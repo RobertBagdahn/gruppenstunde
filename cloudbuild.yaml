@@ -1,0 +1,89 @@
+# Cloud Build – Deploy Pipeline
+# Triggered by Cloud Build triggers (dev: develop branch, prod: main branch)
+# Substitution variables _ENVIRONMENT, _BACKEND_SERVICE, _FRONTEND_BUCKET
+# are set by the Terraform-managed trigger.
+
+steps:
+  # -----------------------------------------------
+  # 1. Build Backend Container Image
+  # -----------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - -t
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA'
+      - -t
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:${_ENVIRONMENT}-latest'
+      - -f
+      - Dockerfile.backend
+      - .
+    id: build-backend
+
+  # -----------------------------------------------
+  # 2. Push Backend Image to Artifact Registry
+  # -----------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend']
+    id: push-backend
+    waitFor: ['build-backend']
+
+  # -----------------------------------------------
+  # 3. Build Frontend (Vite)
+  # -----------------------------------------------
+  - name: 'node:20'
+    entrypoint: bash
+    args:
+      - -c
+      - cd frontend && npm ci && npm run build
+    id: build-frontend
+    waitFor: ['-']  # parallel to backend build
+
+  # -----------------------------------------------
+  # 4. Deploy Backend to Cloud Run
+  # -----------------------------------------------
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - run
+      - deploy
+      - ${_BACKEND_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA
+      - --region=${_REGION}
+      - --port=8000
+      - --allow-unauthenticated
+    id: deploy-backend
+    waitFor: ['push-backend']
+
+  # -----------------------------------------------
+  # 5. Deploy Frontend to GCS
+  # -----------------------------------------------
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'rsync', '-r', '-d', 'frontend/dist/', 'gs://${_FRONTEND_BUCKET}/']
+    id: deploy-frontend
+    waitFor: ['build-frontend']
+
+  # -----------------------------------------------
+  # 6. Run Django Migrations (after deploy)
+  # -----------------------------------------------
+  - name: '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA'
+    entrypoint: python
+    args: ['manage.py', 'migrate', '--noinput']
+    id: migrate
+    waitFor: ['deploy-backend']
+    env:
+      - 'DJANGO_SETTINGS_MODULE=inspi.settings.production'
+      - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID'
+
+substitutions:
+  _REGION: europe-west1
+  _ENVIRONMENT: dev
+  _BACKEND_SERVICE: inspi-dev-backend
+  _FRONTEND_BUCKET: inspi-dev-static
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:${_ENVIRONMENT}-latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'

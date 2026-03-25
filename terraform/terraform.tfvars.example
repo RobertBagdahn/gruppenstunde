@@ -1,0 +1,22 @@
+# ============================================================
+# Example values – DO NOT USE THIS FILE DIRECTLY
+#
+# Instead use the environment-specific files:
+#   terraform/env/dev.tfvars   → make tf-plan ENV=dev
+#   terraform/env/prod.tfvars  → make tf-plan ENV=prod
+#
+# Copy the appropriate env file and fill in your values.
+# ============================================================
+
+environment = "dev"
+project_id  = "your-gcp-project-id"
+region      = "europe-west1"
+db_password = "CHANGE_ME_TO_A_SECURE_PASSWORD"
+domain      = "dev.gruppenstunde.de"
+
+# Branch that triggers deploy (dev=develop, prod=main)
+cloudbuild_branch = "^develop$"
+
+# Cloud Build GitHub connection (create via Console first, then paste here)
+# Format: projects/PROJECT/locations/REGION/connections/CONNECTION/repositories/REPO
+cloudbuild_repo = ""

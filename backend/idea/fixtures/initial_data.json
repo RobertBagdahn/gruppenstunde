@@ -1,0 +1,417 @@
+[
+  {
+    "model": "idea.scoutlevel",
+    "pk": 1,
+    "fields": { "name": "Wölflinge", "sorting": 1, "icon": "pets" }
+  },
+  {
+    "model": "idea.scoutlevel",
+    "pk": 2,
+    "fields": { "name": "Jungpfadfinder", "sorting": 2, "icon": "hiking" }
+  },
+  {
+    "model": "idea.scoutlevel",
+    "pk": 3,
+    "fields": { "name": "Pfadfinder", "sorting": 3, "icon": "explore" }
+  },
+  {
+    "model": "idea.scoutlevel",
+    "pk": 4,
+    "fields": { "name": "Rover", "sorting": 4, "icon": "backpack" }
+  },
+
+  {
+    "model": "idea.tag",
+    "pk": 1,
+    "fields": { "name": "Spielen", "slug": "spielen", "parent": null, "icon": "sports_esports", "sort_order": 1, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 2,
+    "fields": { "name": "Basteln", "slug": "basteln", "parent": null, "icon": "content_cut", "sort_order": 2, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 3,
+    "fields": { "name": "Kochen", "slug": "kochen", "parent": null, "icon": "restaurant", "sort_order": 3, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 4,
+    "fields": { "name": "Natur", "slug": "natur", "parent": null, "icon": "park", "sort_order": 4, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 5,
+    "fields": { "name": "Sport", "slug": "sport", "parent": null, "icon": "directions_run", "sort_order": 5, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 6,
+    "fields": { "name": "Teamwork", "slug": "teamwork", "parent": null, "icon": "group", "sort_order": 6, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 7,
+    "fields": { "name": "Kreativität", "slug": "kreativitaet", "parent": null, "icon": "palette", "sort_order": 7, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 8,
+    "fields": { "name": "Drinnen", "slug": "drinnen", "parent": null, "icon": "home", "sort_order": 8, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 9,
+    "fields": { "name": "Draußen", "slug": "draussen", "parent": null, "icon": "wb_sunny", "sort_order": 9, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 10,
+    "fields": { "name": "Geländespiel", "slug": "gelaendespiel", "parent": 1, "icon": "map", "sort_order": 10, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 11,
+    "fields": { "name": "Brettspiel", "slug": "brettspiel", "parent": 1, "icon": "casino", "sort_order": 11, "is_approved": true }
+  },
+  {
+    "model": "idea.tag",
+    "pk": 12,
+    "fields": { "name": "Lagerfeuer", "slug": "lagerfeuer", "parent": 4, "icon": "local_fire_department", "sort_order": 12, "is_approved": true }
+  },
+
+  {
+    "model": "idea.materialunit",
+    "pk": 1,
+    "fields": { "name": "Stück" }
+  },
+  {
+    "model": "idea.materialunit",
+    "pk": 2,
+    "fields": { "name": "Meter" }
+  },
+  {
+    "model": "idea.materialunit",
+    "pk": 3,
+    "fields": { "name": "Liter" }
+  },
+  {
+    "model": "idea.materialunit",
+    "pk": 4,
+    "fields": { "name": "Kilogramm" }
+  },
+  {
+    "model": "idea.materialunit",
+    "pk": 5,
+    "fields": { "name": "Packung" }
+  },
+
+  {
+    "model": "idea.materialname",
+    "pk": 1,
+    "fields": { "name": "Seil", "default_unit": 2 }
+  },
+  {
+    "model": "idea.materialname",
+    "pk": 2,
+    "fields": { "name": "Papier", "default_unit": 1 }
+  },
+  {
+    "model": "idea.materialname",
+    "pk": 3,
+    "fields": { "name": "Stifte", "default_unit": 1 }
+  },
+  {
+    "model": "idea.materialname",
+    "pk": 4,
+    "fields": { "name": "Kleber", "default_unit": 1 }
+  },
+  {
+    "model": "idea.materialname",
+    "pk": 5,
+    "fields": { "name": "Schere", "default_unit": 1 }
+  },
+  {
+    "model": "idea.materialname",
+    "pk": 6,
+    "fields": { "name": "Ball", "default_unit": 1 }
+  },
+  {
+    "model": "idea.materialname",
+    "pk": 7,
+    "fields": { "name": "Taschenlampe", "default_unit": 1 }
+  },
+  {
+    "model": "idea.materialname",
+    "pk": 8,
+    "fields": { "name": "Kompass", "default_unit": 1 }
+  },
+
+  {
+    "model": "idea.idea",
+    "pk": 1,
+    "fields": {
+      "created_at": "2025-01-15T10:00:00Z",
+      "updated_at": "2025-01-15T10:00:00Z",
+      "title": "Capture the Flag",
+      "slug": "capture-the-flag",
+      "summary": "Zwei Teams versuchen die gegnerische Flagge zu erobern und ins eigene Lager zu bringen.",
+      "summary_long": "Das klassische Geländespiel, bei dem zwei Mannschaften gegeneinander antreten. Jedes Team hat eine Flagge in seinem Gebiet. Ziel ist es, die Flagge des anderen Teams zu stehlen und sicher ins eigene Lager zurückzubringen, ohne dabei gefangen zu werden.",
+      "description": "## Vorbereitung\n\n- Spielfeld in zwei Hälften teilen\n- Jedes Team bekommt eine Flagge (Tuch oder Halstuch)\n- Flagge muss sichtbar aufgestellt werden\n\n## Regeln\n\n1. Jedes Team verteidigt seine Flagge und versucht gleichzeitig, die gegnerische Flagge zu erobern\n2. Wer in der gegnerischen Hälfte abgeschlagen wird, muss ins \"Gefängnis\"\n3. Gefangene können durch Teammitglieder befreit werden\n4. Gewonnen hat das Team, das die Flagge zuerst ins eigene Lager bringt\n\n## Varianten\n\n- Mit mehreren Flaggen spielen\n- Nachtversion mit Taschenlampen\n- Mit Lebens-Bändern statt Abschlagen",
+      "costs_rating": "free",
+      "execution_time": "60_90",
+      "preparation_time": "less_15",
+      "difficulty": "easy",
+      "status": "published",
+      "like_score": 42,
+      "view_count": 150,
+      "is_public": true,
+      "scout_levels": [1, 2, 3],
+      "tags": [1, 5, 6, 9, 10],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 2,
+    "fields": {
+      "created_at": "2025-01-20T14:30:00Z",
+      "updated_at": "2025-01-20T14:30:00Z",
+      "title": "Naturmandala legen",
+      "slug": "naturmandala-legen",
+      "summary": "Die Gruppe sammelt Naturmaterialien und gestaltet daraus ein gemeinsames Mandala.",
+      "summary_long": "Bei einem Spaziergang oder auf dem Lagerplatz sammeln die Teilnehmer verschiedene Naturmaterialien wie Blätter, Steine, Stöcke und Blüten. Daraus wird gemeinsam auf dem Boden ein großes Mandala gelegt. Das fördert Kreativität, Naturverbundenheit und Teamarbeit.",
+      "description": "## Ablauf\n\n1. Materialien sammeln (15-20 Min)\n2. Mitte des Mandalas festlegen\n3. Von innen nach außen gemeinsam gestalten\n4. Foto machen und Mandala der Natur überlassen\n\n## Tipps\n\n- Verschiedene Farben und Texturen verwenden\n- Symmetrie erklären und üben\n- Kann auch als Wettbewerb in kleinen Gruppen gespielt werden",
+      "costs_rating": "free",
+      "execution_time": "30_60",
+      "preparation_time": "none",
+      "difficulty": "easy",
+      "status": "published",
+      "like_score": 35,
+      "view_count": 110,
+      "is_public": true,
+      "scout_levels": [1, 2],
+      "tags": [2, 4, 7, 9],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 3,
+    "fields": {
+      "created_at": "2025-02-01T09:00:00Z",
+      "updated_at": "2025-02-01T09:00:00Z",
+      "title": "Stockbrot am Lagerfeuer",
+      "slug": "stockbrot-am-lagerfeuer",
+      "summary": "Gemeinsam Stockbrot-Teig zubereiten und am Lagerfeuer backen.",
+      "summary_long": "Ein Klassiker bei jeder Pfadfinderaktion: Der Teig wird gemeinsam vorbereitet, um Stöcke gewickelt und über dem Lagerfeuer gebacken. Nebenbei können Lieder gesungen oder Geschichten erzählt werden.",
+      "description": "## Zutaten (für ca. 10 Personen)\n\n- 500g Mehl\n- 1 Päckchen Trockenhefe\n- 250ml lauwarmes Wasser\n- 1 TL Salz\n- 2 EL Öl\n\n## Zubereitung\n\n1. Alle trockenen Zutaten mischen\n2. Wasser und Öl hinzufügen und kneten\n3. Teig 30 Minuten gehen lassen\n4. Stöcke vorbereiten (ca. daumendick, entrinden)\n5. Teig-Schlange formen und um den Stock wickeln\n6. Über der Glut (nicht in der Flamme!) langsam drehen\n\n## Varianten\n\n- Mit Kräutern im Teig\n- Süße Version mit Zimt und Zucker\n- Füllung mit Schokolade oder Käse",
+      "costs_rating": "less_1",
+      "execution_time": "60_90",
+      "preparation_time": "15_30",
+      "difficulty": "easy",
+      "status": "published",
+      "like_score": 58,
+      "view_count": 200,
+      "is_public": true,
+      "scout_levels": [1, 2, 3, 4],
+      "tags": [3, 4, 9, 12],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 4,
+    "fields": {
+      "created_at": "2025-02-10T11:15:00Z",
+      "updated_at": "2025-02-10T11:15:00Z",
+      "title": "Knotenkunde",
+      "slug": "knotenkunde",
+      "summary": "Die wichtigsten Pfadfinderknoten lernen und üben.",
+      "summary_long": "In dieser Gruppenstunde lernen die Teilnehmer die wichtigsten Knoten: Kreuzknoten, Palstek, Mastwurf und Zimmermannsknoten. Mit praktischen Übungen und einem abschließenden Knoten-Wettbewerb wird das Gelernte gefestigt.",
+      "description": "## Knoten\n\n### 1. Kreuzknoten\nZum Verbinden von zwei gleich dicken Seilen.\n\n### 2. Palstek\nBildet eine feste Schlinge, die sich nicht zuzieht.\n\n### 3. Mastwurf\nZum Befestigen eines Seils an einem Pfahl.\n\n### 4. Zimmermannsknoten\nZum Befestigen eines Seils an einem Baumstamm.\n\n## Ablauf\n\n1. Jeden Knoten einzeln vorzeigen und erklären\n2. Alle üben gemeinsam\n3. Partner-Übung: Einer erklärt, der andere knotet blind\n4. Abschluss: Knoten-Staffel als Wettbewerb",
+      "costs_rating": "free",
+      "execution_time": "30_60",
+      "preparation_time": "less_15",
+      "difficulty": "medium",
+      "status": "published",
+      "like_score": 27,
+      "view_count": 95,
+      "is_public": true,
+      "scout_levels": [2, 3],
+      "tags": [6, 8],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 5,
+    "fields": {
+      "created_at": "2025-02-20T16:00:00Z",
+      "updated_at": "2025-02-20T16:00:00Z",
+      "title": "Schnitzeljagd mit Kompass",
+      "slug": "schnitzeljagd-mit-kompass",
+      "summary": "Eine Schnitzeljagd, bei der die Teilnehmer mit Kompass und Karte navigieren müssen.",
+      "summary_long": "Die Teilnehmer folgen Kompass-Peilungen und Hinweisen, um verschiedene Stationen zu finden. An jeder Station gibt es eine kleine Aufgabe zu lösen, bevor die nächste Peilung verraten wird. Am Ende wartet ein Schatz.",
+      "description": "## Vorbereitung\n\n1. Route planen (5-8 Stationen)\n2. An jeder Station einen Umschlag mit Aufgabe und nächster Peilung verstecken\n3. Schatz am Ende verstecken\n\n## Durchführung\n\n1. Einführung in den Kompass (10 Min)\n2. Teams bilden (3-4 Personen)\n3. Erste Peilung ausgeben\n4. Teams laufen los und lösen Stationen\n\n## Stationsideen\n\n- Knoten binden\n- Tierspuren erkennen\n- Morsecode entschlüsseln\n- Naturquiz\n- Feuer machen (mit Aufsicht)",
+      "costs_rating": "less_1",
+      "execution_time": "more_90",
+      "preparation_time": "30_60",
+      "difficulty": "medium",
+      "status": "published",
+      "like_score": 45,
+      "view_count": 175,
+      "is_public": true,
+      "scout_levels": [2, 3, 4],
+      "tags": [1, 4, 6, 9, 10],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 6,
+    "fields": {
+      "created_at": "2025-03-01T13:45:00Z",
+      "updated_at": "2025-03-01T13:45:00Z",
+      "title": "T-Shirt Batiken",
+      "slug": "t-shirt-batiken",
+      "summary": "Individuelle T-Shirts mit der Batik-Technik gestalten.",
+      "summary_long": "Jeder Teilnehmer bringt ein weißes T-Shirt mit und gestaltet es mit Batikfarben. Es werden verschiedene Falttechniken gezeigt, die unterschiedliche Muster erzeugen. Das Ergebnis ist ein einzigartiges Gruppenstunden-Souvenir.",
+      "description": "## Material pro Person\n\n- 1 weißes T-Shirt (Baumwolle)\n- Batikfarben\n- Gummibänder\n- Einweghandschuhe\n- Plastiktüte\n\n## Falttechniken\n\n### Spirale\nT-Shirt flach ausbreiten, in der Mitte fassen und drehen. Mit Gummibändern fixieren.\n\n### Streifen\nT-Shirt in Falten legen wie eine Ziehharmonika. Eng mit Gummibändern umwickeln.\n\n### Kreis\nKleinen Bereich hochheben und von unten mit Gummiband abbinden.\n\n## Ablauf\n\n1. Techniken erklären und vorzeigen (15 Min)\n2. T-Shirts falten und binden (15 Min)\n3. Farben auftragen (20 Min)\n4. In Plastiktüte einpacken und 24h einwirken lassen\n5. Ausspülen und trocknen lassen",
+      "costs_rating": "1_2",
+      "execution_time": "60_90",
+      "preparation_time": "15_30",
+      "difficulty": "medium",
+      "status": "published",
+      "like_score": 33,
+      "view_count": 120,
+      "is_public": true,
+      "scout_levels": [1, 2, 3],
+      "tags": [2, 7, 8],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 7,
+    "fields": {
+      "created_at": "2025-03-10T18:00:00Z",
+      "updated_at": "2025-03-10T18:00:00Z",
+      "title": "Werwolf-Abend",
+      "slug": "werwolf-abend",
+      "summary": "Das beliebte Gesellschaftsspiel Werwolf in großer Runde spielen.",
+      "summary_long": "Ein Spielleiter moderiert das Spiel, bei dem das Dorf versucht, die Werwölfe zu enttarnen, während diese nachts Dorfbewohner eliminieren. Perfekt für Abende auf Lagern oder als Gruppenstunden-Highlight.",
+      "description": "## Was wird gebraucht\n\n- Rollenkarten (selbst gebastelt oder gekauft)\n- Spielleiter der die Regeln kennt\n- Abgedunkelter Raum\n\n## Rollen\n\n- **Werwölfe** (ca. 1/4 der Spieler): Eliminieren nachts einen Dorfbewohner\n- **Dorfbewohner**: Versuchen tagsüber die Werwölfe zu finden\n- **Seherin**: Darf nachts eine Karte aufdecken\n- **Hexe**: Hat einen Heiltrank und einen Gifttrank\n- **Jäger**: Darf bei seinem Tod jemanden mitnehmen\n- **Amor**: Bestimmt ein Liebespaar\n\n## Spielablauf\n\n1. Rollen verteilen\n2. Nachtphase: Werwölfe und Sonderrollen agieren\n3. Tagphase: Diskussion und Abstimmung\n4. Wiederholen bis eine Seite gewinnt\n\n## Tipps\n\n- Atmosphäre mit Kerzen oder Taschenlampen schaffen\n- Zeitlimit für Diskussionen setzen\n- Nach dem Spiel Rollen auflösen und besprechen",
+      "costs_rating": "free",
+      "execution_time": "60_90",
+      "preparation_time": "less_15",
+      "difficulty": "easy",
+      "status": "published",
+      "like_score": 51,
+      "view_count": 190,
+      "is_public": true,
+      "scout_levels": [2, 3, 4],
+      "tags": [1, 6, 8, 11],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 8,
+    "fields": {
+      "created_at": "2025-03-15T08:30:00Z",
+      "updated_at": "2025-03-15T08:30:00Z",
+      "title": "Erste-Hilfe-Rallye",
+      "slug": "erste-hilfe-rallye",
+      "summary": "An verschiedenen Stationen Erste-Hilfe-Maßnahmen üben und vertiefen.",
+      "summary_long": "Die Teilnehmer durchlaufen in kleinen Gruppen verschiedene Stationen, an denen sie Erste-Hilfe-Situationen vorfinden und richtig reagieren müssen. Von stabiler Seitenlage über Verbände bis zur Herz-Lungen-Wiederbelebung.",
+      "description": "## Stationen\n\n### Station 1: Stabile Seitenlage\nBewusstlose Person richtig lagern.\n\n### Station 2: Verbände\nVerschiedene Verbände anlegen (Kopf, Arm, Knie).\n\n### Station 3: Notruf\nW-Fragen üben und Notruf simulieren.\n\n### Station 4: Wiederbelebung\nHerz-Lungen-Wiederbelebung an der Puppe üben.\n\n### Station 5: Schock-Lagerung\nSchocksymptome erkennen und richtig lagern.\n\n## Organisation\n\n1. Pro Station einen Betreuer einteilen\n2. Gruppen von 3-4 Personen bilden\n3. Laufzettel austeilen\n4. Jede Station ca. 10 Minuten\n5. Am Ende gemeinsame Besprechung",
+      "costs_rating": "free",
+      "execution_time": "60_90",
+      "preparation_time": "30_60",
+      "difficulty": "medium",
+      "status": "published",
+      "like_score": 38,
+      "view_count": 130,
+      "is_public": true,
+      "scout_levels": [2, 3, 4],
+      "tags": [6, 8],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 9,
+    "fields": {
+      "created_at": "2025-04-01T12:00:00Z",
+      "updated_at": "2025-04-01T12:00:00Z",
+      "title": "Waldläuferzeichen",
+      "slug": "waldlaeuferzeichen",
+      "summary": "Waldläuferzeichen lernen und in einer Übung anwenden.",
+      "summary_long": "Die Teilnehmer lernen die gängigen Waldläuferzeichen (Pfadfinderzeichen) wie Richtungspfeile, Warnung, Lager und Wasser. Anschließend wird eine Spur gelegt, der eine zweite Gruppe folgen muss.",
+      "description": "## Zeichen\n\n- Pfeil: Richtung folgen\n- Kreis mit Punkt: Hier warten\n- X: Falscher Weg\n- Drei Steine: Achtung/Gefahr\n- Dreieck: Lager/Treffpunkt\n\n## Ablauf\n\n1. Zeichen erklären und zeigen (15 Min)\n2. Gruppe A legt eine Spur mit Zeichen (20 Min)\n3. Gruppe B folgt der Spur (20 Min)\n4. Rollen tauschen\n5. Gemeinsame Auswertung\n\n## Material\n\n- Kreide für feste Wege\n- Stöcke und Steine für den Wald\n- Kleine Zettel als Hinweise an Stationen",
+      "costs_rating": "free",
+      "execution_time": "60_90",
+      "preparation_time": "less_15",
+      "difficulty": "easy",
+      "status": "published",
+      "like_score": 30,
+      "view_count": 85,
+      "is_public": true,
+      "scout_levels": [1, 2, 3],
+      "tags": [1, 4, 9, 10],
+      "authors": []
+    }
+  },
+  {
+    "model": "idea.idea",
+    "pk": 10,
+    "fields": {
+      "created_at": "2025-04-15T15:30:00Z",
+      "updated_at": "2025-04-15T15:30:00Z",
+      "title": "Lagerbau mit Planen",
+      "slug": "lagerbau-mit-planen",
+      "summary": "Aus Planen und Seilen verschiedene Unterstände und Lager bauen.",
+      "summary_long": "Teams bauen mit Planen, Seilen und Heringen verschiedene Unterstandformen. Von einfachen A-Zelten bis zu aufwendigen Kotenkonstruktionen. Danach werden die Bauten getestet – halten sie einem Eimer Wasser stand?",
+      "description": "## Material pro Team\n\n- 2 Planen (3x3m)\n- 10m Seil\n- 6 Heringe\n- Ggf. Stöcke aus dem Wald\n\n## Bauformen\n\n### A-Zelt\nSeil zwischen zwei Bäumen spannen, Plane darüber und an den Seiten mit Heringen abspannen.\n\n### Lean-To\nEine schräge Wand als Windschutz, offene Seite zum Feuer.\n\n### Tarp-Diamant\nPlane diagonal aufhängen für maximale Kopffreiheit.\n\n## Ablauf\n\n1. Bauformen vorstellen (10 Min)\n2. Teams bilden und Material verteilen\n3. Bauphase (30-40 Min)\n4. Gegenseitige Besichtigung\n5. Wassertest!\n\n## Tipps\n\n- Auf Abspannung und Neigung achten\n- Knoten vorher wiederholen\n- Bei Regen: perfekter Anlass zum Testen!",
+      "costs_rating": "less_1",
+      "execution_time": "more_90",
+      "preparation_time": "15_30",
+      "difficulty": "hard",
+      "status": "published",
+      "like_score": 40,
+      "view_count": 145,
+      "is_public": true,
+      "scout_levels": [2, 3, 4],
+      "tags": [4, 6, 9],
+      "authors": []
+    }
+  },
+
+  {
+    "model": "idea.materialitem",
+    "pk": 1,
+    "fields": { "idea": 1, "quantity": 2, "material_name": null, "material_unit": null }
+  },
+  {
+    "model": "idea.materialitem",
+    "pk": 2,
+    "fields": { "idea": 4, "quantity": 10, "material_name": 1, "material_unit": 2 }
+  },
+  {
+    "model": "idea.materialitem",
+    "pk": 3,
+    "fields": { "idea": 5, "quantity": 4, "material_name": 8, "material_unit": 1 }
+  },
+  {
+    "model": "idea.materialitem",
+    "pk": 4,
+    "fields": { "idea": 6, "quantity": 1, "material_name": null, "material_unit": null }
+  },
+  {
+    "model": "idea.materialitem",
+    "pk": 5,
+    "fields": { "idea": 10, "quantity": 20, "material_name": 1, "material_unit": 2 }
+  }
+]

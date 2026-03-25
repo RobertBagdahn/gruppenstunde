@@ -1,0 +1,15 @@
+# Local development – works with `podman compose`
+services:
+  db:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_DB: inspi
+      POSTGRES_USER: inspi
+      POSTGRES_PASSWORD: inspi
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

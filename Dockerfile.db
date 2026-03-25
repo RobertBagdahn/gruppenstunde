@@ -1,0 +1,8 @@
+# PostgreSQL with pgvector – Cloud Run with persistent volume
+FROM pgvector/pgvector:pg15
+
+# Default env (override via Cloud Run env vars)
+ENV POSTGRES_DB=inspi \
+    POSTGRES_USER=inspi
+
+EXPOSE 5432

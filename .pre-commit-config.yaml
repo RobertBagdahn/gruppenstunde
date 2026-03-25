@@ -1,0 +1,55 @@
+# Pre-commit hooks for Inspi backend
+# Install: cd backend && pre-commit install
+# Run all: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: tsconfig\.json$
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3.12
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - django-stubs>=5.1
+          - pydantic>=2.10
+          - django-ninja>=1.3
+          - types-requests
+        args: [--config-file=backend/pyproject.toml]
+        pass_filenames: false
+        files: ^backend/
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (fast tests only)
+        entry: bash -c 'cd backend && python -m pytest -x -q --tb=short -m "not slow"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

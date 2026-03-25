@@ -1,0 +1,81 @@
+# Cloud Build – PR Check Pipeline (triggered on pull requests to main)
+# Runs lint, type check, and tests – no deploy
+
+steps:
+  # -----------------------------------------------
+  # 1. Lint & Format Check
+  # -----------------------------------------------
+  - name: 'python:3.13-slim'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        pip install --quiet uv
+        cd backend
+        uv sync --quiet
+        echo "=== Ruff Lint ==="
+        uv run ruff check .
+        echo "=== Ruff Format Check ==="
+        uv run ruff format --check .
+    id: lint
+
+  # -----------------------------------------------
+  # 2. Type Check (parallel to lint)
+  # -----------------------------------------------
+  - name: 'python:3.13-slim'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        pip install --quiet uv
+        cd backend
+        uv sync --quiet
+        echo "=== Mypy Type Check ==="
+        uv run mypy .
+    id: typecheck
+    waitFor: ['-']
+
+  # -----------------------------------------------
+  # 3. Frontend Lint + TypeScript Check (parallel)
+  # -----------------------------------------------
+  - name: 'node:20'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        cd frontend
+        npm ci --quiet
+        echo "=== ESLint ==="
+        npm run lint
+        echo "=== TypeScript Check ==="
+        npx tsc --noEmit
+    id: frontend-check
+    waitFor: ['-']
+
+  # -----------------------------------------------
+  # 4. Backend Tests (after lint + typecheck pass)
+  # -----------------------------------------------
+  - name: 'python:3.13-slim'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        pip install --quiet uv
+        cd backend
+        uv sync --quiet
+        echo "=== Pytest ==="
+        uv run pytest --tb=short -q
+    id: test
+    waitFor: ['lint', 'typecheck']
+    env:
+      - 'DJANGO_SETTINGS_MODULE=inspi.settings.base'
+      - 'DB_HOST=localhost'
+      - 'DB_NAME=inspi'
+      - 'DB_USER=inspi'
+      - 'DB_PASSWORD=inspi'
+      - 'SECRET_KEY=test-secret-key-for-ci'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '600s'

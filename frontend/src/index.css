@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 140 20% 98%;
+    --foreground: 160 30% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 160 30% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 30% 8%;
+    --primary: 142 60% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 93% 58%;
+    --secondary-foreground: 30 60% 15%;
+    --muted: 140 10% 93%;
+    --muted-foreground: 160 10% 42%;
+    --accent: 18 76% 57%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 140 15% 88%;
+    --input: 140 15% 88%;
+    --ring: 142 60% 42%;
+    --radius: 0.75rem;
+    --chart-1: 45 93% 58%;
+    --chart-2: 18 76% 57%;
+    --chart-3: 174 60% 41%;
+    --chart-4: 142 60% 42%;
+    --chart-5: 280 50% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    @apply bg-gradient-to-r from-[hsl(142,60%,42%)] to-[hsl(174,60%,41%)];
+  }
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(142, 60%, 42%) 0%, hsl(160, 55%, 38%) 30%, hsl(174, 60%, 41%) 60%, hsl(45, 93%, 58%) 100%);
+  }
+  .gradient-warm {
+    @apply bg-gradient-to-r from-[hsl(45,93%,58%)] to-[hsl(18,76%,57%)];
+  }
+  .gradient-fun {
+    background: linear-gradient(135deg, hsl(280, 50%, 55%) 0%, hsl(320, 60%, 55%) 50%, hsl(18, 76%, 57%) 100%);
+  }
+  .gradient-sunset {
+    background: linear-gradient(135deg, hsl(18, 76%, 57%) 0%, hsl(45, 93%, 58%) 50%, hsl(142, 60%, 42%) 100%);
+  }
+  .gradient-rainbow {
+    background: linear-gradient(90deg, hsl(142, 60%, 42%), hsl(174, 60%, 41%), hsl(45, 93%, 58%), hsl(18, 76%, 57%), hsl(280, 50%, 55%));
+  }
+  .glass {
+    @apply bg-white/80 backdrop-blur-lg;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-2 hover:shadow-xl;
+  }
+
+  /* Fun bouncy float animation for mascot images */
+  .float-bounce {
+    animation: floatBounce 3s ease-in-out infinite;
+  }
+  .float-bounce-slow {
+    animation: floatBounce 4.5s ease-in-out infinite;
+  }
+  .float-bounce-delay {
+    animation: floatBounce 3s ease-in-out 1s infinite;
+  }
+
+  /* Wiggle for icons */
+  .wiggle-hover:hover {
+    animation: wiggle 0.5s ease-in-out;
+  }
+
+  /* Pulse glow for CTAs */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  /* Confetti-style colorful dot background */
+  .bg-dots-pattern {
+    background-image: radial-gradient(circle, hsl(142, 60%, 42%) 1px, transparent 1px),
+                       radial-gradient(circle, hsl(45, 93%, 58%) 1px, transparent 1px),
+                       radial-gradient(circle, hsl(18, 76%, 57%) 1px, transparent 1px);
+    background-size: 60px 60px, 80px 80px, 100px 100px;
+    background-position: 0 0, 30px 30px, 15px 60px;
+  }
+}
+
+@keyframes floatBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(34, 163, 74, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(34, 163, 74, 0.5), 0 0 50px rgba(34, 163, 74, 0.2); }
+}
