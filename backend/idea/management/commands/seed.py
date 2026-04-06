@@ -16,9 +16,12 @@ Usage:
 import json
 from pathlib import Path
 
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
+
+from profiles.models import UserProfile
 
 from idea.choices import (
     CostsRatingChoices,
@@ -99,18 +102,20 @@ class Command(BaseCommand):
         parser.add_argument(
             "--only",
             type=str,
-            choices=["tags", "levels", "units", "materials", "ideas"],
+            choices=["tags", "levels", "units", "materials", "ideas", "users"],
             help="Seed only a specific data category.",
         )
 
     def handle(self, *args, **options):
         only = options.get("only")
 
-        if not DATA_DIR.exists():
+        if only != "users" and not DATA_DIR.exists():
             self.stderr.write(self.style.ERROR(f"Data directory not found: {DATA_DIR}"))
             return
 
         with transaction.atomic():
+            if only in (None, "users"):
+                self._seed_users()
             if only in (None, "tags"):
                 self._seed_tags()
             if only in (None, "levels"):
@@ -123,6 +128,104 @@ class Command(BaseCommand):
                 self._seed_ideas()
 
         self.stdout.write(self.style.SUCCESS("Seeding complete."))
+
+    # ------------------------------------------------------------------
+    # Users + Profiles
+    # ------------------------------------------------------------------
+
+    SEED_USERS = [
+        {
+            "username": "admin",
+            "password": "admin",
+            "email": "admin@admin.de",
+            "is_superuser": True,
+            "is_staff": True,
+            "scout_name": "Admin",
+            "first_name": "Admin",
+            "last_name": "User",
+        },
+        {
+            "username": "staff",
+            "password": "staff",
+            "email": "staff@staff.de",
+            "is_superuser": False,
+            "is_staff": True,
+            "scout_name": "Staffi",
+            "first_name": "Staff",
+            "last_name": "User",
+        },
+        {
+            "username": "user",
+            "password": "user",
+            "email": "user@user.de",
+            "is_superuser": False,
+            "is_staff": False,
+            "scout_name": "Normalo",
+            "first_name": "Normal",
+            "last_name": "User",
+        },
+        {
+            "username": "author1",
+            "password": "author1",
+            "email": "author1@author1.de",
+            "is_superuser": False,
+            "is_staff": False,
+            "scout_name": "Autor",
+            "first_name": "Author",
+            "last_name": "Eins",
+        },
+        {
+            "username": "robert",
+            "password": "robert",
+            "email": "robert@robert.de",
+            "is_superuser": False,
+            "is_staff": False,
+            "scout_name": "Robert",
+            "first_name": "Robert",
+            "last_name": "Bagdahn",
+        },
+        {
+            "username": "mats",
+            "password": "mats",
+            "email": "mats@mats.de",
+            "is_superuser": False,
+            "is_staff": False,
+            "scout_name": "Mats",
+            "first_name": "Mats",
+            "last_name": "User",
+        },
+    ]
+
+    def _seed_users(self):
+        self.stdout.write("Seeding users...")
+        UserModel = get_user_model()
+
+        for data in self.SEED_USERS:
+            username = data["username"]
+            if UserModel.objects.filter(username=username).exists():
+                self.stdout.write(f"  User '{username}' already exists, skipping.")
+                continue
+
+            user = UserModel.objects.create_user(
+                username,
+                password=data["password"],
+                email=data["email"],
+            )
+            user.is_superuser = data["is_superuser"]
+            user.is_staff = data["is_staff"]
+            user.save()
+
+            UserProfile.objects.get_or_create(
+                user=user,
+                defaults={
+                    "scout_name": data.get("scout_name", ""),
+                    "first_name": data.get("first_name", ""),
+                    "last_name": data.get("last_name", ""),
+                },
+            )
+            self.stdout.write(f"  + Created user '{username}'")
+
+        self.stdout.write(self.style.SUCCESS(f"  Users total: {UserModel.objects.count()}"))
 
     # ------------------------------------------------------------------
     # Tags (Topics, ActivityTypes, Locations, Times → hierarchical Tags)

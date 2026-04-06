@@ -6,9 +6,11 @@ import {
   useCreateLocation,
   useGenerateInvitation,
 } from '@/api/events';
+import { usePackingLists } from '@/api/packingLists';
 import { useCurrentUser } from '@/api/auth';
-import type { EventLocation } from '@/schemas/event';
 import { cn } from '@/lib/utils';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
+import MarkdownEditor from '@/components/MarkdownEditor';
 
 const STEPS = [
   { label: 'Grunddaten', icon: 'edit_note' },
@@ -44,6 +46,7 @@ export default function NewEventPage() {
   const [endDate, setEndDate] = useState('');
   const [registrationDeadline, setRegistrationDeadline] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [packingListId, setPackingListId] = useState<number | null>(null);
 
   // Step 1: Location
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
@@ -76,6 +79,7 @@ export default function NewEventPage() {
   const { data: locations, isLoading: locationsLoading } = useLocations();
   const createLocation = useCreateLocation();
   const generateInvitation = useGenerateInvitation();
+  const { data: packingLists } = usePackingLists();
 
   // Redirect if not logged in
   if (!user) {
@@ -169,6 +173,7 @@ export default function NewEventPage() {
         end_date: endDate || null,
         registration_deadline: registrationDeadline || null,
         is_public: isPublic,
+        packing_list_id: packingListId,
         booking_options: bookingOptions.length > 0
           ? bookingOptions.map((o) => ({
               name: o.name,
@@ -179,7 +184,7 @@ export default function NewEventPage() {
           : undefined,
       },
       {
-        onSuccess: (data) => navigate(`/planning/events`),
+        onSuccess: () => navigate(`/events/app`),
       },
     );
   }
@@ -252,12 +257,12 @@ export default function NewEventPage() {
 
             <div>
               <label className="block text-sm font-medium mb-1">Beschreibung</label>
-              <textarea
-                placeholder="Kurze Beschreibung des Events..."
+              <MarkdownEditor
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 rounded-md border text-sm bg-background resize-none"
+                onChange={setDescription}
+                placeholder="Kurze Beschreibung des Events..."
+                height={200}
+                preview="edit"
               />
             </div>
 
@@ -301,6 +306,26 @@ export default function NewEventPage() {
               />
               Öffentlich sichtbar
             </label>
+
+            {/* Packing List selector */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Packliste (optional)</label>
+              <select
+                value={packingListId ?? ''}
+                onChange={(e) => setPackingListId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+              >
+                <option value="">Keine Packliste</option>
+                {packingLists?.map((pl) => (
+                  <option key={pl.id} value={pl.id}>
+                    {pl.title}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Verknüpfe eine Packliste mit diesem Event.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -578,10 +603,9 @@ export default function NewEventPage() {
           {invitationText && (
             <div className="space-y-3">
               <label className="block text-sm font-medium">Generierter Einladungstext</label>
-              <div
-                className="border rounded-lg p-4 bg-card text-sm prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: invitationText }}
-              />
+              <div className="border rounded-lg p-4 bg-card text-sm">
+                <MarkdownRenderer content={invitationText} />
+              </div>
               <p className="text-xs text-muted-foreground">
                 Du kannst den Text nach dem Erstellen im Event bearbeiten.
               </p>
@@ -645,6 +669,14 @@ export default function NewEventPage() {
                 <span className="text-muted-foreground">Sichtbarkeit:</span>
                 <span className="ml-1">{isPublic ? 'Öffentlich' : 'Nur eingeladene'}</span>
               </div>
+              {packingListId && packingLists && (
+                <div>
+                  <span className="text-muted-foreground">Packliste:</span>
+                  <span className="ml-1">
+                    {packingLists.find((pl) => pl.id === packingListId)?.title ?? 'Unbekannt'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

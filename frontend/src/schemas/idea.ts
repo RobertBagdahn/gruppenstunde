@@ -199,6 +199,11 @@ export const AiRefurbishSchema = z.object({
     material_unit: z.string(),
     quantity_type: z.enum(['once', 'per_person']).default('per_person'),
   })).optional().default([]),
+  location: z.string().optional().default(''),
+  season: z.string().optional().default(''),
+  image_prompt: z.string().optional().default(''),
+  image_url: z.string().nullable().optional().default(null),
+  image_urls: z.array(z.string()).optional().default([]),
 });
 export type AiRefurbish = z.infer<typeof AiRefurbishSchema>;
 
@@ -228,7 +233,6 @@ export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 export const IDEA_TYPE_OPTIONS = [
   { value: 'idea', label: 'Idee', icon: 'lightbulb', description: 'Eine Aktivität oder Spielidee für die Gruppenstunde' },
   { value: 'knowledge', label: 'Wissensbeitrag', icon: 'menu_book', description: 'Wissen, Methoden oder Hintergrundinformationen teilen' },
-  { value: 'recipe', label: 'Rezept', icon: 'restaurant', description: 'Koch- oder Backrezept für Lager und Gruppenstunde' },
 ] as const;
 
 export const DIFFICULTY_OPTIONS = [

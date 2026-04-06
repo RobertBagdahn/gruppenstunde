@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useImproveText, useSuggestTags } from '@/api/ai';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { IDEA_TYPE_OPTIONS } from '@/schemas/idea';
+import MarkdownEditor from '@/components/MarkdownEditor';
 
 export default function CreateIdeaPage() {
   const [title, setTitle] = useState('');
@@ -174,27 +175,28 @@ export default function CreateIdeaPage() {
 
         {/* Description */}
         <div className="bg-card rounded-xl border p-5">
-          <label className="flex items-center gap-1.5 text-sm font-medium mb-2">
-            <span className="material-symbols-outlined text-primary text-[18px]">description</span>
-            Beschreibung
-          </label>
-          <div className="flex gap-2">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={6}
-              className="flex-1 px-4 py-2.5 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+          <div className="flex items-center justify-between mb-2">
+            <label className="flex items-center gap-1.5 text-sm font-medium">
+              <span className="material-symbols-outlined text-primary text-[18px]">description</span>
+              Beschreibung
+            </label>
             <button
               type="button"
               onClick={() => handleImprove('description', description, setDescription)}
               disabled={!description || improveText.isPending}
-              className="flex items-center gap-1 px-3 py-2.5 rounded-lg border text-sm bg-secondary/20 hover:bg-secondary/40 disabled:opacity-50 transition-colors self-start text-secondary-foreground"
+              className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
               title="KI-Verbesserung"
             >
-              <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+              <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+              {improveText.isPending ? 'Verbessert...' : 'KI verbessern'}
             </button>
           </div>
+          <MarkdownEditor
+            value={description}
+            onChange={setDescription}
+            placeholder="Beschreibe die Idee ausführlich..."
+            height={250}
+          />
         </div>
 
         {/* Meta selects */}

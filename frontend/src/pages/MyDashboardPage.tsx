@@ -13,7 +13,6 @@ import type { UserGroup } from '@/schemas/profile';
 const IDEA_TYPE_LABELS: Record<string, string> = {
   idea: 'Idee',
   knowledge: 'Wissen',
-  recipe: 'Rezept',
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -32,13 +31,27 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-function SectionHeader({ icon, title, count }: { icon: string; title: string; count?: number }) {
+function SectionHeader({
+  icon,
+  title,
+  count,
+  iconColor = 'text-primary',
+  badgeBg = 'bg-primary/10',
+  badgeText = 'text-primary',
+}: {
+  icon: string;
+  title: string;
+  count?: number;
+  iconColor?: string;
+  badgeBg?: string;
+  badgeText?: string;
+}) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <span className="material-symbols-outlined text-primary text-[22px]">{icon}</span>
+      <span className={`material-symbols-outlined ${iconColor} text-[22px]`}>{icon}</span>
       <h2 className="text-lg font-bold">{title}</h2>
       {count !== undefined && (
-        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeBg} ${badgeText}`}>
           {count}
         </span>
       )}
@@ -58,17 +71,17 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 function EventCard({ event, badge }: { event: EventList; badge?: string }) {
   return (
     <Link
-      to={`/planning/events`}
+      to={`/events/app`}
       className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
     >
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
+      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-violet-100 text-violet-600 shrink-0">
         <span className="material-symbols-outlined text-[22px]">celebration</span>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="font-medium text-sm truncate">{event.name}</p>
           {badge && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-600 font-medium">
               {badge}
             </span>
           )}
@@ -102,7 +115,7 @@ function IdeaCard({ idea }: { idea: MyIdea }) {
       {idea.image_url ? (
         <img src={idea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
       ) : (
-        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
+        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-sky-100 text-sky-600 shrink-0">
           <span className="material-symbols-outlined text-[22px]">lightbulb</span>
         </div>
       )}
@@ -127,10 +140,10 @@ function IdeaCard({ idea }: { idea: MyIdea }) {
 function PlannerCard({ planner }: { planner: Planner }) {
   return (
     <Link
-      to="/planning/planner"
+      to="/session-planner/app"
       className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
     >
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
+      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 shrink-0">
         <span className="material-symbols-outlined text-[22px]">calendar_month</span>
       </div>
       <div className="flex-1 min-w-0">
@@ -149,7 +162,7 @@ function GroupCard({ group }: { group: UserGroup }) {
       to={`/groups/${group.slug}`}
       className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
     >
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary shrink-0">
+      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-sky-100 text-sky-600 shrink-0">
         <span className="material-symbols-outlined text-[22px]">groups</span>
       </div>
       <div className="flex-1 min-w-0">
@@ -178,7 +191,7 @@ function PersonCardSmall({ person }: { person: Person }) {
             {person.first_name} {person.last_name}
           </p>
           {person.is_owner && (
-            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">Ich</span>
+            <span className="text-xs bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded-full font-medium">Ich</span>
           )}
           {person.scout_name && (
             <span className="text-xs text-muted-foreground">„{person.scout_name}"</span>
@@ -265,7 +278,7 @@ export default function MyDashboardPage() {
           <span className="material-symbols-outlined text-[16px]">people</span>
           Personen
         </Link>
-        <Link to="/create" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">
+        <Link to="/create" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-sky-100 text-sky-600 border border-sky-200 rounded-lg hover:bg-sky-200 transition-colors">
           <span className="material-symbols-outlined text-[16px]">add</span>
           Neue Idee
         </Link>
@@ -273,7 +286,7 @@ export default function MyDashboardPage() {
 
       {/* Eingeladene Events */}
       <section>
-        <SectionHeader icon="mail" title="Eingeladene Veranstaltungen" count={invitedEvents?.length} />
+        <SectionHeader icon="mail" title="Eingeladene Veranstaltungen" count={invitedEvents?.length} iconColor="text-violet-600" badgeBg="bg-violet-100" badgeText="text-violet-600" />
         <div className="space-y-2">
           {invitedLoading && <><SkeletonCard /><SkeletonCard /></>}
           {!invitedLoading && (!invitedEvents || invitedEvents.length === 0) && (
@@ -287,7 +300,7 @@ export default function MyDashboardPage() {
 
       {/* Angemeldete Events */}
       <section>
-        <SectionHeader icon="how_to_reg" title="Angemeldete Veranstaltungen" count={registeredEvents?.length} />
+        <SectionHeader icon="how_to_reg" title="Angemeldete Veranstaltungen" count={registeredEvents?.length} iconColor="text-violet-600" badgeBg="bg-violet-100" badgeText="text-violet-600" />
         <div className="space-y-2">
           {registeredLoading && <><SkeletonCard /><SkeletonCard /></>}
           {!registeredLoading && (!registeredEvents || registeredEvents.length === 0) && (
@@ -301,7 +314,7 @@ export default function MyDashboardPage() {
 
       {/* Meine Ideen */}
       <section>
-        <SectionHeader icon="lightbulb" title="Meine Ideen" count={myIdeas?.length} />
+        <SectionHeader icon="lightbulb" title="Meine Ideen" count={myIdeas?.length} iconColor="text-sky-600" badgeBg="bg-sky-100" badgeText="text-sky-600" />
         <div className="space-y-2">
           {ideasLoading && <><SkeletonCard /><SkeletonCard /></>}
           {!ideasLoading && (!myIdeas || myIdeas.length === 0) && (
@@ -315,7 +328,7 @@ export default function MyDashboardPage() {
 
       {/* Quartalsplaner */}
       <section>
-        <SectionHeader icon="calendar_month" title="Meine Quartalsplaner" count={planners?.length} />
+        <SectionHeader icon="calendar_month" title="Meine Quartalsplaner" count={planners?.length} iconColor="text-emerald-600" badgeBg="bg-emerald-100" badgeText="text-emerald-600" />
         <div className="space-y-2">
           {plannersLoading && <><SkeletonCard /><SkeletonCard /></>}
           {!plannersLoading && (!planners || planners.length === 0) && (
@@ -330,7 +343,7 @@ export default function MyDashboardPage() {
       {/* Meine Personen */}
       <section>
         <div className="flex items-center justify-between">
-          <SectionHeader icon="people" title="Meine Personen" count={persons?.length} />
+          <SectionHeader icon="people" title="Meine Personen" count={persons?.length} iconColor="text-amber-600" badgeBg="bg-amber-100" badgeText="text-amber-600" />
           <Link
             to="/profile/persons"
             className="text-xs text-primary hover:underline flex items-center gap-0.5"
@@ -360,7 +373,7 @@ export default function MyDashboardPage() {
 
       {/* Meine Gruppen */}
       <section>
-        <SectionHeader icon="groups" title="Meine Gruppen" count={groups?.length} />
+        <SectionHeader icon="groups" title="Meine Gruppen" count={groups?.length} iconColor="text-sky-600" badgeBg="bg-sky-100" badgeText="text-sky-600" />
         <div className="space-y-2">
           {groupsLoading && <><SkeletonCard /><SkeletonCard /></>}
           {!groupsLoading && (!groups || groups.length === 0) && (

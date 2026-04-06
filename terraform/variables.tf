@@ -10,13 +10,13 @@ variable "project_id" {
 variable "region" {
   description = "GCP region"
   type        = string
-  default     = "europe-west1"
+  default     = "europe-west3"
 }
 
 variable "environment" {
   description = "Environment name: dev or prod"
   type        = string
-  default     = "dev"
+  default     = "prod"
 
   validation {
     condition     = contains(["dev", "prod"], var.environment)
@@ -66,14 +66,8 @@ variable "backend_memory" {
   default     = "512Mi"
 }
 
-variable "db_cpu" {
-  description = "CPU allocation for DB Cloud Run service"
+variable "db_tier" {
+  description = "Cloud SQL machine tier"
   type        = string
-  default     = "1"
-}
-
-variable "db_memory" {
-  description = "Memory allocation for DB Cloud Run service"
-  type        = string
-  default     = "1Gi"
+  default     = "db-f1-micro"
 }

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAutocomplete } from '@/api/ideas';
+import { useUnifiedAutocomplete, type AutocompleteResult } from '@/api/search';
 import { useIdeaStore } from '@/store/useIdeaStore';
+import { RESULT_TYPE_CONFIG } from '@/schemas/search';
 import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
@@ -12,7 +13,7 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
   const { searchQuery, setSearchQuery } = useIdeaStore();
   const [localQuery, setLocalQuery] = useState(searchQuery);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const { data: suggestions } = useAutocomplete(localQuery);
+  const { data: suggestions } = useUnifiedAutocomplete(localQuery);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -33,9 +34,9 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
     navigate('/search');
   }
 
-  function handleSelect(_id: number, slug: string) {
+  function handleSelect(item: AutocompleteResult) {
     setShowSuggestions(false);
-    navigate(`/idea/${slug}`);
+    navigate(item.url);
   }
 
   const isHero = variant === 'hero';
@@ -52,7 +53,7 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
           </span>
           <input
             type="search"
-            placeholder="Suche nach Ideen..."
+            placeholder="Suche nach Ideen, Rezepten, Events..."
             value={localQuery}
             onChange={(e) => {
               setLocalQuery(e.target.value);
@@ -84,18 +85,32 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
 
       {showSuggestions && suggestions && suggestions.length > 0 && (
         <ul className="absolute z-50 w-full mt-2 bg-card border rounded-xl shadow-lg max-h-64 overflow-y-auto">
-          {suggestions.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => handleSelect(item.id, item.slug)}
-                className="w-full text-left px-4 py-3 hover:bg-muted text-sm first:rounded-t-xl last:rounded-b-xl transition-colors"
-              >
-                <span className="font-medium text-foreground">{item.title}</span>
-                <span className="text-muted-foreground ml-2 text-xs">{item.summary}</span>
-              </button>
-            </li>
-          ))}
+          {suggestions.map((item) => {
+            const config = RESULT_TYPE_CONFIG[item.result_type];
+            return (
+              <li key={`${item.result_type}-${item.id}`}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(item)}
+                  className="w-full text-left px-4 py-3 hover:bg-muted text-sm first:rounded-t-xl last:rounded-b-xl transition-colors flex items-center gap-3"
+                >
+                  {config && (
+                    <span className={cn('material-symbols-outlined text-[18px]', config.color)}>
+                      {config.icon}
+                    </span>
+                  )}
+                  <span className="flex-1 min-w-0">
+                    <span className="font-medium text-foreground truncate block">{item.title}</span>
+                  </span>
+                  {config && (
+                    <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0', config.color, config.bgColor)}>
+                      {config.label}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

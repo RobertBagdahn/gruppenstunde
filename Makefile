@@ -1,4 +1,4 @@
-.PHONY: help install dev backend frontend db migrate seed reset test lint format typecheck pre-commit clean deploy build
+.PHONY: help install dev backend frontend db migrate seed seed-fixtures seed-users seed-data reset test lint format typecheck pre-commit clean deploy build
 
 # ============================================================
 # Inspi – Makefile for local development
@@ -10,7 +10,7 @@ PODMAN := podman compose
 
 # GCP settings – override via environment or .env
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
-GCP_REGION ?= europe-west1
+GCP_REGION ?= europe-west3
 BACKEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/backend
 DB_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/db
 
@@ -53,9 +53,25 @@ makemigrations: ## Create new migrations
 createsuperuser: ## Create Django superuser
 	$(MANAGE) createsuperuser
 
-seed: ## Load seed data (fixtures)
+seed: ## Load seed data (fixtures + dynamic data + users)
 	$(MANAGE) loaddata idea/fixtures/initial_data.json || echo "No fixtures found yet"
 	$(MANAGE) add_users
+	$(MANAGE) seed_all
+
+seed-fixtures: ## Load only static fixtures (master data)
+	$(MANAGE) loaddata idea/fixtures/initial_data.json || echo "No fixtures found yet"
+
+seed-users: ## Create seed users only
+	$(MANAGE) add_users
+
+seed-data: ## Seed dynamic test data only (ideas, recipes, events, etc.)
+	$(MANAGE) seed_all
+
+init-db: ## Initialize database: migrate + seed (users + master data + ideas)
+	$(MANAGE) migrate
+	$(MANAGE) seed
+	$(MANAGE) seed_all
+	@echo "Database initialized with migrations, seed data, and users."
 
 reset-db: ## Reset database completely (WARNING: destroys all data)
 	$(PODMAN) down -v
@@ -181,28 +197,27 @@ deploy-frontend: frontend-build ## Deploy frontend to GCS
 deploy: deploy-db deploy-backend deploy-frontend ## Deploy everything
 
 # -----------------------------------------------
-# Terraform (GCP Infrastructure)
+# OpenTofu (GCP Infrastructure)
 # -----------------------------------------------
-# Usage: make tf-plan ENV=dev  or  make tf-apply ENV=prod
 
-ENV ?= dev
+ENV ?= prod
 
-tf-init: ## Initialize Terraform for environment (ENV=dev|prod)
-	cd terraform && terraform init -backend-config="prefix=terraform/$(ENV)" -reconfigure
+tf-init: ## Initialize OpenTofu
+	cd terraform && tofu init -backend-config="prefix=terraform/$(ENV)" -reconfigure
 
-tf-plan: ## Plan Terraform changes (ENV=dev|prod)
-	cd terraform && terraform plan -var-file=env/$(ENV).tfvars
+tf-plan: ## Plan OpenTofu changes
+	cd terraform && tofu plan -var-file=env/$(ENV).tfvars
 
-tf-apply: ## Apply Terraform changes (ENV=dev|prod)
-	cd terraform && terraform apply -var-file=env/$(ENV).tfvars
+tf-apply: ## Apply OpenTofu changes
+	cd terraform && tofu apply -var-file=env/$(ENV).tfvars
 
-tf-destroy: ## Destroy Terraform infrastructure (DANGER) (ENV=dev|prod)
-	cd terraform && terraform destroy -var-file=env/$(ENV).tfvars
+tf-destroy: ## Destroy OpenTofu infrastructure (DANGER)
+	cd terraform && tofu destroy -var-file=env/$(ENV).tfvars
 
-tf-output: ## Show Terraform outputs (ENV=dev|prod)
-	cd terraform && terraform output
+tf-output: ## Show OpenTofu outputs
+	cd terraform && tofu output
 
-tf-state-bucket: ## Create GCS bucket for Terraform state (one-time)
+tf-state-bucket: ## Create GCS bucket for OpenTofu state (one-time)
 	gsutil mb -l $(GCP_REGION) gs://inspi-terraform-state/ || true
 	gsutil versioning set on gs://inspi-terraform-state/
 

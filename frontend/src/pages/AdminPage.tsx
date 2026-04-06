@@ -556,21 +556,21 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {units && units.length > 0 ? (
+              {units && (units as { id: number; name: string }[]).length > 0 ? (
                 <div className="space-y-2">
-                  {units.map((unit) => (
+                  {(units as { id: number; name: string }[]).map((unit) => (
                     <div key={unit.id} className="flex items-center justify-between border rounded-lg p-3">
                       {editingUnit?.id === unit.id ? (
                         <div className="flex gap-2 flex-1">
                           <input
                             type="text"
-                            value={editingUnit.name}
-                            onChange={(e) => setEditingUnit({ ...editingUnit, name: e.target.value })}
+                            value={editingUnit?.name ?? ''}
+                            onChange={(e) => editingUnit && setEditingUnit({ ...editingUnit, name: e.target.value })}
                             className="flex-1 px-2 py-1 border rounded text-sm"
                           />
                           <button
                             onClick={() => {
-                              updateUnit.mutate({ id: editingUnit.id, name: editingUnit.name });
+                              if (editingUnit) updateUnit.mutate({ id: editingUnit.id, name: editingUnit.name });
                               setEditingUnit(null);
                             }}
                             className="px-3 py-1 bg-green-600 text-white rounded text-xs"

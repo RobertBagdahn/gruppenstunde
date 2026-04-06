@@ -12,9 +12,9 @@ output "backend_url" {
   value       = google_cloud_run_v2_service.backend.uri
 }
 
-output "db_url" {
-  description = "Cloud Run URL for the database service"
-  value       = google_cloud_run_v2_service.db.uri
+output "db_connection_name" {
+  description = "Cloud SQL connection name"
+  value       = google_sql_database_instance.db.connection_name
 }
 
 output "frontend_bucket" {

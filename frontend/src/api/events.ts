@@ -16,12 +16,8 @@ import {
   type EventList,
   type EventDetail,
   type Person,
-  type Registration,
-  type Participant,
-  type BookingOption,
   type Choice,
   type EventLocation,
-  type GenerateInvitation,
 } from '@/schemas/event';
 import { NutritionalTagSchema, type NutritionalTag } from '@/schemas/idea';
 
@@ -219,6 +215,7 @@ export function useCreateEvent() {
       end_date?: string | null;
       registration_deadline?: string | null;
       is_public?: boolean;
+      packing_list_id?: number | null;
       booking_options?: { name: string; description?: string; price?: string; max_participants?: number }[];
     }) => postJson(`${EVENTS_BASE}/`, body, EventListSchema),
     onSuccess: () => {
@@ -234,10 +231,14 @@ export function useUpdateEvent(slug: string) {
       name: string;
       description: string;
       location: string;
+      event_location_id: number | null;
+      invitation_text: string;
       start_date: string | null;
       end_date: string | null;
       registration_deadline: string | null;
+      registration_start: string | null;
       is_public: boolean;
+      packing_list_id: number | null;
     }>) => patchJson(`${EVENTS_BASE}/${encodeURIComponent(slug)}/`, body, EventListSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });

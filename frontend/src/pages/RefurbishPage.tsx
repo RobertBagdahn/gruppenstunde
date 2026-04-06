@@ -7,6 +7,7 @@ import {
   COSTS_OPTIONS,
   PREPARATION_TIME_OPTIONS,
 } from '@/schemas/idea';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 export default function RefurbishPage() {
   const [rawText, setRawText] = useState('');
@@ -75,8 +76,8 @@ export default function RefurbishPage() {
   const topicTags = tags.filter((t) => t.parent_id === null);
 
   const activityTypeLabel = activityTypeTags.map((t) => t.name).join(', ') || '';
-  const locationLabel = locationTags.map((t) => t.name).join(', ') || '–';
-  const timePeriodLabel = timePeriodTags.map((t) => t.name).join(', ') || '–';
+  const locationLabel = data?.location || locationTags.map((t) => t.name).join(', ') || '–';
+  const timePeriodLabel = data?.season || timePeriodTags.map((t) => t.name).join(', ') || '–';
 
   // Scout level names from suggested IDs
   const SCOUT_LEVEL_NAMES: Record<number, string> = { 1: 'Wölflinge', 2: 'Jungpfadfinder', 3: 'Pfadfinder', 4: 'Rover' };
@@ -128,7 +129,7 @@ export default function RefurbishPage() {
           {/* Hero Image */}
           <div className="mt-6 rounded-xl overflow-hidden shadow-soft">
             <img
-              src="/images/inspi_flying.png"
+              src={data.image_url || '/images/inspi_flying.png'}
               alt={data.title}
               className="w-full object-cover max-h-96"
             />
@@ -201,10 +202,9 @@ export default function RefurbishPage() {
 
           {/* Description */}
           {data.description && (
-            <div
-              className="prose prose-green max-w-none mt-6 bg-card rounded-xl border p-6"
-              dangerouslySetInnerHTML={{ __html: data.description }}
-            />
+            <div className="mt-6 bg-card rounded-xl border p-6">
+              <MarkdownRenderer content={data.description} />
+            </div>
           )}
 
           {/* Materials */}

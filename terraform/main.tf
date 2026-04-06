@@ -4,8 +4,9 @@
 # Resources:
 #   - GCP APIs
 #   - Artifact Registry
-#   - GCS Buckets (frontend, media, pgdata, terraform state)
-#   - Cloud Run Services (backend, db)
+#   - GCS Buckets (frontend, media)
+#   - Cloud SQL (PostgreSQL)
+#   - Cloud Run Service (backend)
 #   - Cloud Build Triggers (deploy + PR check)
 #   - IAM bindings
 #   - Secret Manager
@@ -14,7 +15,6 @@
 locals {
   env_prefix    = var.environment == "prod" ? "inspi" : "inspi-${var.environment}"
   backend_image = "${var.region}-docker.pkg.dev/${var.project_id}/inspi/backend"
-  db_image      = "${var.region}-docker.pkg.dev/${var.project_id}/inspi/db"
   is_prod       = var.environment == "prod"
 }
 
@@ -28,6 +28,7 @@ resource "google_project_service" "apis" {
     "run.googleapis.com",
     "artifactregistry.googleapis.com",
     "secretmanager.googleapis.com",
+    "sqladmin.googleapis.com",
     "storage.googleapis.com",
     "iam.googleapis.com",
   ])
@@ -85,16 +86,6 @@ resource "google_storage_bucket" "media" {
   depends_on = [google_project_service.apis["storage.googleapis.com"]]
 }
 
-resource "google_storage_bucket" "pgdata" {
-  name          = "${local.env_prefix}-pgdata-${var.project_id}"
-  location      = var.region
-  force_destroy = !local.is_prod
-
-  uniform_bucket_level_access = true
-
-  depends_on = [google_project_service.apis["storage.googleapis.com"]]
-}
-
 # -----------------------------------------------
 # Secret Manager – Django Settings
 # -----------------------------------------------
@@ -125,81 +116,45 @@ resource "google_secret_manager_secret_version" "db_password" {
 }
 
 # -----------------------------------------------
-# Cloud Run – Database (PostgreSQL + pgvector)
+# Cloud SQL – PostgreSQL Database
 # -----------------------------------------------
 
-resource "google_cloud_run_v2_service" "db" {
-  name     = "${local.env_prefix}-db"
-  location = var.region
+resource "google_sql_database_instance" "db" {
+  name             = "${local.env_prefix}-db"
+  database_version = "POSTGRES_15"
+  region           = var.region
 
-  template {
-    containers {
-      image = "${local.db_image}:latest"
+  settings {
+    tier              = var.db_tier
+    edition           = "ENTERPRISE"
+    availability_type = "ZONAL"
+    disk_size         = 10
+    disk_autoresize   = false
 
-      ports {
-        container_port = 5432
-      }
-
-      env {
-        name  = "POSTGRES_DB"
-        value = "inspi"
-      }
-      env {
-        name  = "POSTGRES_USER"
-        value = "inspi"
-      }
-      env {
-        name = "POSTGRES_PASSWORD"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.db_password.secret_id
-            version = "latest"
-          }
-        }
-      }
-
-      resources {
-        limits = {
-          cpu    = var.db_cpu
-          memory = var.db_memory
-        }
-      }
-
-      volume_mounts {
-        name       = "pgdata"
-        mount_path = "/var/lib/postgresql/data"
-      }
+    backup_configuration {
+      enabled                        = true
+      point_in_time_recovery_enabled = false
     }
 
-    volumes {
-      name = "pgdata"
-      gcs {
-        bucket    = google_storage_bucket.pgdata.name
-        read_only = false
-      }
+    ip_configuration {
+      ipv4_enabled = true
     }
-
-    scaling {
-      min_instance_count = 0
-      max_instance_count = 1
-    }
-
-    execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
   }
 
-  depends_on = [
-    google_project_service.apis["run.googleapis.com"],
-    google_secret_manager_secret_version.db_password,
-  ]
+  deletion_protection = local.is_prod
+
+  depends_on = [google_project_service.apis["sqladmin.googleapis.com"]]
 }
 
-# DB: no public access
-resource "google_cloud_run_v2_service_iam_member" "db_no_public" {
-  project  = var.project_id
-  location = var.region
-  name     = google_cloud_run_v2_service.db.name
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+resource "google_sql_database" "inspi" {
+  name     = "inspi"
+  instance = google_sql_database_instance.db.name
+}
+
+resource "google_sql_user" "inspi" {
+  name     = "inspi"
+  instance = google_sql_database_instance.db.name
+  password = var.db_password
 }
 
 # -----------------------------------------------
@@ -236,7 +191,7 @@ resource "google_cloud_run_v2_service" "backend" {
       }
       env {
         name  = "DB_HOST"
-        value = google_cloud_run_v2_service.db.uri
+        value = "/cloudsql/${google_sql_database_instance.db.connection_name}"
       }
       env {
         name  = "DB_NAME"
@@ -262,6 +217,18 @@ resource "google_cloud_run_v2_service" "backend" {
           memory = var.backend_memory
         }
       }
+
+      volume_mounts {
+        name       = "cloudsql"
+        mount_path = "/cloudsql"
+      }
+    }
+
+    volumes {
+      name = "cloudsql"
+      cloud_sql_instance {
+        instances = [google_sql_database_instance.db.connection_name]
+      }
     }
 
     scaling {
@@ -272,7 +239,7 @@ resource "google_cloud_run_v2_service" "backend" {
 
   depends_on = [
     google_project_service.apis["run.googleapis.com"],
-    google_cloud_run_v2_service.db,
+    google_sql_database_instance.db,
   ]
 }
 
@@ -283,6 +250,22 @@ resource "google_cloud_run_v2_service_iam_member" "backend_public" {
   name     = google_cloud_run_v2_service.backend.name
   role     = "roles/run.invoker"
   member   = "allUsers"
+}
+
+# -----------------------------------------------
+# Secret Manager – IAM for Compute Service Account
+# -----------------------------------------------
+
+resource "google_secret_manager_secret_iam_member" "db_password_accessor" {
+  secret_id = google_secret_manager_secret.db_password.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+}
+
+resource "google_project_iam_member" "cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 }
 
 # -----------------------------------------------

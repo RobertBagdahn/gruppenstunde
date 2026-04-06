@@ -74,7 +74,7 @@ steps:
       - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID'
 
 substitutions:
-  _REGION: europe-west1
+  _REGION: europe-west3
   _ENVIRONMENT: dev
   _BACKEND_SERVICE: inspi-dev-backend
   _FRONTEND_BUCKET: inspi-dev-static

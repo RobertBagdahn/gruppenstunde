@@ -27,6 +27,8 @@ from .models import (
 from .schemas import (
     AiImproveTextIn,
     AiImproveTextOut,
+    AiGenerateImageIn,
+    AiGenerateImageOut,
     AiRefurbishIn,
     AiRefurbishOut,
     AiSuggestTagsIn,
@@ -361,11 +363,24 @@ def update_idea(request, idea_id: int, payload: IdeaUpdateIn):
         raise HttpError(403, "Keine Berechtigung")
 
     for field, value in payload.dict(exclude_unset=True).items():
-        if field.endswith("_ids") or field == "materials":
+        if field.endswith("_ids") or field == "materials" or field == "image_url":
             continue
         setattr(idea, field, value)
     idea.updated_by = request.user
     idea.save()
+
+    # Handle image_url: set image field from storage path
+    if payload.image_url is not None:
+        from django.core.files.storage import default_storage
+
+        # Extract relative path from URL (e.g. /media/ideas/ai_xxx.png → ideas/ai_xxx.png)
+        image_path = payload.image_url
+        media_url = "/media/"
+        if image_path.startswith(media_url):
+            image_path = image_path[len(media_url):]
+        if default_storage.exists(image_path):
+            idea.image = image_path
+            idea.save(update_fields=["image"])
 
     if payload.scout_level_ids is not None:
         idea.scout_levels.set(payload.scout_level_ids)
@@ -605,6 +620,29 @@ def refurbish_text(request, payload: AiRefurbishIn):
 
     logger.info("Refurbish API result: %s", result)
     return result
+
+
+@ai_router.post("/generate-image/", response=AiGenerateImageOut)
+def generate_image(request, payload: AiGenerateImageIn):
+    """Generate title images using Gemini native image generation."""
+    from .services.ai_service import AIService
+
+    logger = logging.getLogger(__name__)
+    logger.info("Generate image API called – prompt: %s", payload.prompt[:200])
+
+    service = AIService()
+    try:
+        image_urls = service.generate_images(
+            prompt=payload.prompt,
+            title=payload.title,
+            summary=payload.summary,
+            description=payload.description,
+        )
+    except Exception as exc:
+        logger.exception("Image generation failed")
+        return HttpResponse(json.dumps({"detail": str(exc)}), status=500, content_type="application/json")
+
+    return {"image_urls": image_urls}
 
 
 # ==========================================================================

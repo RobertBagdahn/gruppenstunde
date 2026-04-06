@@ -1,0 +1,133 @@
+schema: spec-driven
+
+context: |
+  Projekt: Inspi — eine modulare Tool-Plattform fuer Pfadfinder-Gruppenfuehrer.
+  Die Domain ist gruppenstunde.de, aber die Plattform bietet verschiedene Tools
+  und Module, die Gruppenfuehrer bei ihrer Arbeit unterstuetzen.
+
+  Plattform-Architektur (Module):
+    Zentral: Auth & User, Profil, Gruppen, Suche, Admin, Statische Seiten
+    Modul 1 - Ideen & Wissen (idea App): Drei Idea-Typen (Lern-Idee, Rezept, Wissensbeitrag)
+      mit gleicher Basis-Datenstruktur, gemeinsam suchbar. Unterschied: Lern-Ideen haben Material,
+      Rezepte haben Zutaten (RecipeItem) + optional Material, Wissensbeitraege haben keines.
+      Enthaelt ausserdem die Zutatendatenbank (Ingredient, Portion, Price, NutritionalTag,
+      RetailSection, MeasuringUnit) mit Nutri-Score-Berechnung, Preiskaskade, Rezept-Checks
+      und KI-Autovervollstaendigung (siehe ingredient-database/spec.md).
+    Modul 2 - Events (event App): Pfadfinderveranstaltungen mit Buchungsoptionen,
+      Teilnehmerverwaltung, Einladungen. Top-Level unter /events.
+    Modul 3 - Planung (planner App): Heimabend-Planung (woechentliche Gruppenstunden
+      mit festem Wochentag/Uhrzeit, Ideas zuordnen) und Essensplan (Tage, Mahlzeiten,
+      Rezepte zuordnen). Unter /planning/.
+    Modul 4 - Packlisten (packinglist App, NEU): Packlisten mit Kategorien und Items,
+      editierbar fuer Owner/Gruppen-Admins, oeffentlich teilbar per Link. Unter /packing-lists.
+
+  Tech-Stack:
+    Backend: Django 5.1, Django Ninja (REST), Pydantic v2, Python 3.13, uvicorn
+    Frontend: React 18, TypeScript (strict), Vite 5, TanStack Query v5, Zustand v5
+    Styling: Tailwind CSS 3, shadcn/ui (Radix + Tailwind)
+    Datenbank: PostgreSQL 15 mit pgvector-Erweiterung
+    KI: Google Gemini 3.1 Flash-Lite (text-embedding-001 fuer Embeddings)
+    Speicher: Google Cloud Storage (Medien-Uploads)
+    Hosting: Google Cloud Run (Migration von App Engine)
+    IaC: OpenTofu (terraform/-Verzeichnis)
+    CI/CD: Google Cloud Build (nicht GitHub Actions)
+    Container: Podman lokal, Docker in Cloud Build
+
+  Architektur:
+    - Monorepo: backend/ (Django) + frontend/ (React SPA)
+    - Session-basierte Authentifizierung (Django Allauth, HTTP-only Cookies, kein JWT)
+    - Alle API-Endpunkte unter /api/ via Django Ninja Router
+    - Pydantic-Schemas (Backend) synchron 1:1 mit Zod-Schemas (Frontend)
+    - Paginierte Antworten: { items, total, page, page_size, total_pages }
+    - URL-gesteuerter State fuer Filter, Suche, Paginierung
+
+  Querschnittsthemen:
+    - Fehlerbehandlung: error-handling/spec.md (einheitliches JSON-Fehlerformat,
+      HTTP-Statuscodes, Frontend-Error-States, deutsche Fehlermeldungen, Sentry-Logging)
+    - Best Practices: best-practices/spec.md (UI Patterns, Formulare, State Management,
+      Code-Konventionen, Bilder, Accessibility, Testing)
+
+  Konventionen:
+    Sprache:
+      - Code (Variablen, Funktionen, Kommentare): Englisch
+      - UI-Texte (Labels, Buttons, Fehlermeldungen, Toasts): Deutsch
+      - Git Commit Messages: Englisch, Conventional Commits (feat:, fix:, refactor:, docs:, chore:, test:)
+      - URLs/Routen: Englische Pfade, kebab-case
+      - URL Query-Parameter: kebab-case (z.B. ?page-size=20&idea-type=recipe)
+    Namenskonventionen:
+      - TypeScript Variablen: camelCase
+      - React Komponenten: PascalCase
+      - Python Variablen/Funktionen: snake_case
+      - Python Klassen: PascalCase
+      - CSS: Ausschliesslich Tailwind-Klassen, kein Inline-CSS, kein CSS-Modules
+      - Bedingte CSS-Klassen: cn() Helper (clsx/tailwind-merge)
+    Terminologie:
+      - "Idea" (niemals "Activity", "Gruppenstunde" oder "Heimabend")
+      - Drei Idea-Typen: idea (Lern-Idee), knowledge (Wissensartikel), recipe (Rezept)
+    Code-Qualitaet:
+      - Kommentare: Nur "Warum", nie "Was" — Code soll selbsterklaerend sein
+      - TypeScript: Kein "any", strict mode
+      - Python: Type Hints fuer alle Funktionen
+      - Kein console.log / print in Production-Code
+    Allgemein:
+      - Python-Befehle: immer ueber "uv run"
+      - Mobile-First-Design (320px Minimum)
+      - Keine Rueckwaertskompatibilitaet noetig (aktive Entwicklung)
+    Styling:
+      - Ausschliesslich Tailwind CSS Klassen
+      - Kein Inline-CSS, kein CSS-Modules, keine styled-components
+      - cn() Helper fuer bedingte Klassen (shadcn/ui Pattern)
+    Rich-Text:
+      - Inhaltsformat: Markdown (kein HTML)
+      - Eingabe: MarkdownEditor (basierend auf @uiw/react-md-editor)
+      - Darstellung: MarkdownRenderer (basierend auf react-markdown + remark-gfm)
+      - Verboten: dangerouslySetInnerHTML, Tiptap, HTML-Editoren
+      - PDF-Export: jspdf + html2canvas (clientseitig)
+    State Management:
+      - Server-State: TanStack Query v5
+      - Client-State (Auth, UI): Zustand v5
+      - URL-State: Query-Parameter fuer Filter, Suche, Paginierung, Ansichtsmodi
+    Testing:
+      - Backend: pytest fuer alle API-Endpunkte und Models
+      - Frontend: Vitest fuer Hooks und Utils (keine Komponenten-Tests)
+      - Pre-Commit Hooks: ruff, black, mypy
+      - Pre-Push Hooks: pytest (nur schnelle Tests)
+    Pagination:
+      - Alle Listen-Endpunkte MUESSEN paginiert sein
+      - Standard: page=1, page_size=20
+      - Konfigurierbar: 10, 20 oder 50 Items
+      - Frontend: "Mehr laden"-Button (kein Infinite Scroll, keine Page-Buttons)
+      - Response-Format: { items, total, page, page_size, total_pages }
+    Datum und Zeit:
+      - Backend (DB + API): UTC
+      - Frontend: Lokale Zeitzone anzeigen
+      - Bibliothek: date-fns (tree-shakeable)
+    Bilder:
+      - Upload-Limit: max 500KB
+      - Serverseitige Konvertierung zu WebP, mehrere Groessen generieren
+      - Frontend: Lazy Loading (loading="lazy")
+    API-Versioning:
+      - Aktuell kein Versioning (aktive Entwicklung)
+      - Spaeter /api/v1/ als Prefix geplant
+    Projektstruktur Frontend:
+      - Feature-basierte Ordnerstruktur: features/{modul}/components, hooks, api
+      - Geteilte Komponenten in shared/components, shared/hooks, shared/utils
+
+rules:
+  proposal:
+    - Betroffene Django-Apps und React-Pages referenzieren
+    - Angeben, welche Pydantic- und Zod-Schemas angepasst werden muessen
+    - Migrations-Anforderungen dokumentieren
+  specs:
+    - Given/When/Then-Format fuer alle Szenarien verwenden
+    - Sowohl authentifizierte als auch nicht-authentifizierte Szenarien abdecken
+    - Paginierungs-Parameter angeben wo relevant
+    - RFC 2119 Keywords verwenden (SHALL, MUST, SHOULD, MAY)
+  design:
+    - Betroffene Dateien mit Pfaden angeben (backend/ und frontend/)
+    - API-Endpunkt-Aenderungen dokumentieren (Methode, Pfad, Request/Response-Schemas)
+    - Datenbank-Migrations-Anforderungen notieren
+  tasks:
+    - Backend- und Frontend-Aufgaben trennen
+    - Schema-Sync-Aufgaben einplanen (Pydantic + Zod)
+    - Migrations- und Test-Aufgaben einplanen

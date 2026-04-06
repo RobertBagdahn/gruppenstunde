@@ -81,7 +81,10 @@ export function useIdeas(filters: Partial<IdeaFilter> = {}) {
 export function useIdea(id: number) {
   return useQuery<IdeaDetail>({
     queryKey: ['idea', id],
-    queryFn: () => fetchJson(`${API_BASE}/${id}/`, IdeaDetailSchema),
+    queryFn: async () => {
+      const result = await fetchJson(`${API_BASE}/${id}/`, IdeaDetailSchema);
+      return result as IdeaDetail;
+    },
     enabled: id > 0,
   });
 }
@@ -89,7 +92,10 @@ export function useIdea(id: number) {
 export function useIdeaBySlug(slug: string) {
   return useQuery<IdeaDetail>({
     queryKey: ['idea', 'slug', slug],
-    queryFn: () => fetchJson(`${API_BASE}/by-slug/${encodeURIComponent(slug)}/`, IdeaDetailSchema),
+    queryFn: async () => {
+      const result = await fetchJson(`${API_BASE}/by-slug/${encodeURIComponent(slug)}/`, IdeaDetailSchema);
+      return result as IdeaDetail;
+    },
     enabled: slug.length > 0,
   });
 }
@@ -115,6 +121,39 @@ export function useAutocomplete(q: string) {
     queryKey: ['autocomplete', q],
     queryFn: () => fetchJson(`${API_BASE}/autocomplete/?q=${encodeURIComponent(q)}`, z.array(AutocompleteSchema)),
     enabled: q.length >= 2,
+  });
+}
+
+// --- Idea of the Week (public) ---
+
+const IdeaOfTheWeekSchema = z.object({
+  id: z.number(),
+  idea: z.object({
+    id: z.number(),
+    title: z.string(),
+    slug: z.string(),
+    summary: z.string(),
+    image_url: z.string().nullable().optional(),
+  }),
+  release_date: z.string(),
+  description: z.string(),
+});
+export type IdeaOfTheWeek = z.infer<typeof IdeaOfTheWeekSchema>;
+
+export function useIdeaOfTheWeek() {
+  return useQuery<IdeaOfTheWeek | null>({
+    queryKey: ['idea-of-the-week'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/idea-of-the-week/`);
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error(`API error: ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+      if (!data) return null;
+      return IdeaOfTheWeekSchema.parse(data);
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });
 }
 
@@ -170,6 +209,7 @@ export interface IdeaUpdatePayload {
     material_unit: string;
     quantity_type: string;
   }>;
+  image_url?: string;
 }
 
 export function useUpdateIdea(ideaId: number) {

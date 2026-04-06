@@ -2,7 +2,7 @@
 
 ## Rolle
 
-Du bist ein Full-Stack Entwickler für das Projekt **Inspi** – eine Pfadfinder-Gruppenstunden-Plattform. Du arbeitest in einem Monorepo mit Django Ninja Backend und React Frontend.
+Du bist ein Full-Stack Entwickler für das Projekt **Inspi** – eine modulare Tool-Plattform für Pfadfinder-Gruppenführer. Die Domain ist `gruppenstunde.de`, aber die Plattform bietet verschiedene Tools und Module, die Gruppenführer bei ihrer Arbeit unterstützen. Du arbeitest in einem Monorepo mit Django Ninja Backend und React Frontend.
 
 ## ⚠️ WICHTIG: Keine Rückwärtskompatibilität nötig
 
@@ -14,6 +14,154 @@ Das Projekt befindet sich in aktiver Entwicklung. **Rückwärtskompatibilität i
 - Models, Schemas, API-Endpunkte, URLs, Dateinamen, Variablen, Komponenten, Stores, Hooks
 - Siehe INSTRUCTIONS.md für die vollständige Mapping-Tabelle
 - Beim Schreiben von Code **immer** "Idea" / "idea" verwenden
+
+## Plattform-Architektur (Module & Tools)
+
+Die Plattform besteht aus **zentralen Komponenten** und **funktionalen Modulen**:
+
+### Zentrale Komponenten (plattformweit)
+
+| Komponente | Beschreibung | Django App | Frontend-Bereich |
+|------------|-------------|------------|-------------------|
+| **Auth & User** | Session-basierte Authentifizierung, Login, Register | `core` | `/login`, `/register` |
+| **Profil** | Benutzerprofil, Einstellungen, Personen-Verwaltung | `profiles` | `/profile/*` |
+| **Gruppen** | Hierarchische Pfadfindergruppen, Mitgliedschaften, Rollen | `profiles` | `/profile/groups`, `/groups/:slug` |
+| **Suche** | Plattformweite Suche über alle Idea-Typen | `idea` (SearchService) | `/search` |
+| **Admin** | Moderation, Statistiken, Benutzerverwaltung | `idea`, `core` | `/admin/*` |
+| **Statische Seiten** | Impressum, Datenschutz, Über uns | — | `/imprint`, `/privacy`, `/about` |
+
+### Modul 1: Ideen & Wissen (`idea` App) — Hauptmodul
+
+Das zentrale Content-Modul. Beide Typen teilen die gleiche Basis-Datenstruktur (`Idea` Model), sind gemeinsam suchbar und haben die gleichen Metadaten (Tags, Stufen, Schwierigkeit, etc.). Sie unterscheiden sich nur in der Material-Zuordnung:
+
+| Idea-Typ | Code | Beschreibung | Material | Frontend-Label |
+|----------|------|-------------|----------|----------------|
+| **Lern-Idee** | `idea` | Gruppenstunden-Idee mit Anleitung | `MaterialItem` (Material) | "Material" |
+| **Wissensbeitrag** | `knowledge` | Ausführlicher Wissensartikel | Keine Materialliste | — (ausgeblendet) |
+
+**Frontend-Routen**: `/search`, `/idea/:slug`, `/create`, `/create/:ideaType`
+
+### Modul 1b: Rezepte (`recipe` App) — Eigenständiges Modul
+
+Eigenständiges Rezept-Modul, vollständig getrennt von Ideas. Rezepte haben die gleiche Basis-Datenstruktur wie Ideas, sind aber ein eigenes Model mit eigener API. Rezepte verwalten Zutaten (RecipeItem), Nährwerte, Nutri-Score und regelbasierte Verbesserungsvorschläge (RecipeHint).
+
+| Feld | Beschreibung |
+|------|-------------|
+| **Basis-Felder** | title, slug, summary, description, costs_rating, execution_time, difficulty, status, image, etc. |
+| **Rezept-spezifisch** | recipe_type (Frühstück, Warme Mahlzeit, etc.), servings (Portionen) |
+| **Zutaten** | RecipeItem → Ingredient/Portion (Cross-App FK zu `idea` App) |
+| **Analyse** | Nutri-Score, Rezept-Checks (4 Dimensionen), RecipeHint (Verbesserungsvorschläge) |
+
+**Frontend-Routen**: `/recipes`, `/recipes/:slug` (geplant)
+**API**: `/api/recipes/`
+
+### Modul 2: Events (`event` App) — Top-Level
+
+Eigenständiges Modul für Pfadfinderveranstaltungen (Elternabende, Wochenenden, Sommerfahrten, etc.). Events haben Buchungsoptionen, Teilnehmerverwaltung, Einladungen an Gruppen/Benutzer und Standortverwaltung.
+
+**Frontend-Routen**: `/events`, `/events/new`, `/events/:slug`
+**API**: `/api/events/`, `/api/persons/`, `/api/locations/`
+
+### Modul 3: Planung (`planner` App)
+
+Planungstools für den Gruppenalltag:
+
+#### 3a. Heimabend-Planung (Refactoring des bestehenden Planners)
+
+Wöchentliche Gruppenstunden planen: Ein **fester Wochentag** und eine **feste Uhrzeit** werden pro Planer definiert. Dann wird je Termin eine Idea (Typ `idea`) zugewiesen. Einzelne Termine können als "ausfallend" markiert werden.
+
+- **Kontext**: Immer an eine Gruppe gebunden
+- **Rhythmus**: Wöchentlich, gleicher Tag + Uhrzeit
+- **Inhalt pro Termin**: Eine Idea (optional), Notizen, Status (geplant/ausfällt)
+- **Frontend-Route**: `/planning/sessions` (oder `/planning/planner`)
+
+#### 3b. Essensplan (MealPlan)
+
+Mehrere Tage mit Mahlzeiten planen. Pro Mahlzeit können mehrere Rezepte (`recipe.Recipe`) zugewiesen werden. Enthält Zutatenverwaltung, Preisberechnung, Nutri-Score und Einkaufslisten.
+
+- **Kontext**: Kann an ein Event gebunden sein ODER freistehend existieren
+- **Struktur**: `MealPlan → MealDay → Meal → MealItem → Recipe (recipe.Recipe) → RecipeItem → Portion → Ingredient`
+- **Kern-Features**:
+  - **Zutatendatenbank**: Zutaten mit Nährwerten pro 100g, Portionen (Messeinheiten), Preise pro Packung
+  - **Rezepte als eigenständiges Modul**: Rezepte sind ein eigenes Model in der `recipe` App. `RecipeItem`s verknüpfen eine Menge mit einer Portion (= Zutat + Messeinheit)
+  - **Portionsberechnung (Norm-Personen)**: Automatische Skalierung basierend auf Gruppengröße, Altersstruktur und Aktivitätsfaktor (Mifflin-St Jeor Gleichung)
+  - **Nutri-Score**: Automatische Berechnung (A-E) für Zutaten und Rezepte nach dem offiziellen französischen Algorithmus
+  - **Preiskaskade**: Preis einer Packung → Preis pro kg → Preis pro Portion → Preis pro Rezept → Preis pro Mahlzeit → Preis pro Tag → Gesamtpreis
+  - **Einkaufsliste**: Automatisch generiert aus allen Mahlzeiten eines MealPlans, gruppiert nach Supermarkt-Abteilung
+  - **Rezept-Checks**: Regelbasierte Verbesserungsvorschläge (zu viel Salz, zu wenig Ballaststoffe, etc.) über konfigurierbare `RecipeHint`-Regeln
+  - **KI-Autovervollständigung**: Gemini-basierte Vorschläge für Zutatendaten (Nährwerte, Allergene, physikalische Eigenschaften)
+- **Frontend-Route**: `/planning/meal-plans`, `/planning/meal-plans/:id`
+- **API**: `/api/meal-plans/`, `/api/ingredients/`, `/api/portions/`, `/api/prices/`
+
+### Modul 4: Packlisten (neues Modul)
+
+Packlisten für verschiedene Zwecke erstellen (Hajk, Sommerlager, Wochenende, etc.).
+
+- **Struktur**: Packliste → Kategorien → Items
+- **Berechtigungen**: Owner und Gruppen-Admins dürfen editieren. Jeder mit Link darf anzeigen (öffentlich teilbar).
+- **Frontend-Route**: `/packing-lists`, `/packing-lists/:id`
+- **API**: `/api/packing-lists/`
+- **Django App**: `packinglist` (neu zu erstellen)
+
+### Modul-Übersicht (Routing)
+
+Jedes Tool hat eine eigene **Top-Level-Route** mit einer öffentlichen Landing-Page und einer `/app`-Sub-Route für die eigentliche Anwendung. Landing-Pages funktionieren ohne Login und enthalten Beschreibungen, Features, FAQ und einen interaktiven Sandbox/Playground.
+
+```
+/                           → HomePage (Landing, Featured Ideas, Idea der Woche)
+/search                     → Suche (alle Idea-Typen, Idea der Woche)
+/idea/:slug                 → Idea-Detail
+/create                     → Create Hub
+/create/:ideaType           → Neue Idea erstellen
+
+/recipes                    → Rezept-Liste (eigenständiges Modul)
+/recipes/:slug              → Rezept-Detail
+
+/events                     → Events Landing-Page (öffentlich, mit Sandbox)
+/events/app                 → Events App (Verwaltung, auth optional)
+/events/app/new             → Neues Event
+/events/app/:slug           → Event-Detail
+
+/session-planner            → Gruppenstundenplan Landing-Page (öffentlich, mit Sandbox)
+/session-planner/app        → Gruppenstundenplan App (auth required)
+
+/meal-plans                 → Essensplan Landing-Page (öffentlich, mit Sandbox)
+/meal-plans/app             → Essensplan-Liste (auth required)
+/meal-plans/:id             → Essensplan-Detail
+
+/packing-lists              → Packlisten Landing-Page (öffentlich, mit Sandbox)
+/packing-lists/app          → Packlisten App (auth required)
+/packing-lists/app/:id      → Packliste-Detail
+
+/profile/*                  → Profil, Einstellungen, Personen
+/groups/:slug               → Gruppen-Detail
+/admin/*                    → Admin-Bereich
+```
+
+### Tool-Farbschema
+
+Jedes Modul hat ein konsistentes Farbschema definiert in `frontend/src/lib/toolColors.ts`:
+
+| Modul | Key | Farbe | Gradient |
+|-------|-----|-------|----------|
+| Ideen & Wissen | `idea` | Sky-Blue | `from-sky-500 to-cyan-600` |
+| Veranstaltungen | `events` | Violet/Purple | `from-violet-500 to-purple-600` |
+| Essensplan | `meal-plan` | Amber/Orange | `from-amber-500 to-orange-600` |
+| Gruppenstundenplan | `session-planner` | Emerald/Green | `from-emerald-500 to-green-600` |
+| Packlisten | `packing-lists` | Teal/Cyan | `from-teal-500 to-cyan-600` |
+| Rezepte | `recipes` | Rose/Pink | `from-rose-500 to-pink-600` |
+
+### Django-App-Zuordnung
+
+| Django App | Module | Models |
+|------------|--------|--------|
+| `core` | Zentral (Auth, Middleware, Pagination) | — |
+| `idea` | Ideen & Wissen, Suche, AI, Zutatendatenbank | Idea, Tag, MaterialItem, Ingredient, Portion, Price, NutritionalTag, RetailSection, Comment, Emotion, ... |
+| `recipe` | Rezepte (eigenständig) | Recipe, RecipeItem, RecipeHint, RecipeComment, RecipeEmotion, RecipeView |
+| `event` | Events | Event, BookingOption, Person, Registration, Participant, EventLocation |
+| `profiles` | Profil, Gruppen | UserProfile, UserPreference, UserGroup, GroupMembership |
+| `planner` | Heimabend-Planung, Essensplan | Planner, PlannerEntry, PlannerCollaborator, MealPlan (neu), MealDay (neu), Meal (neu) |
+| `packinglist` | Packlisten (NEU) | PackingList, PackingCategory, PackingItem |
 
 ## ⚠️ WICHTIG: uv als Python Runner
 
@@ -55,20 +203,25 @@ Niemals `python` direkt aufrufen – immer `uv run python`.
 
 ## Idea-Typen (IdeaType)
 
-Eine Idea kann einen von drei Typen haben:
+Eine Idea kann einen von zwei Typen haben:
 
 | Typ | Code | Beschreibung | Material | Inhaltslänge |
 |-----|------|-------------|----------|--------------|
-| **Klassische Idee** | `idea` | Gruppenstunden-Idee mit Anleitung und Materialiste | Ja (`MaterialItem`) | Normal |
+| **Lern-Idee** | `idea` | Gruppenstunden-Idee mit Anleitung und Materialliste | Ja (`MaterialItem`) | Normal |
 | **Wissensbeitrag** | `knowledge` | Ausführlicher Wissensartikel, darf sehr lang sein | Nein (keine Materialliste) | Lang |
-| **Rezept** | `recipe` | Koch-/Back-Anleitung zur Durchführung | Ja, als **Zutaten** (Material = Zutaten) | Normal |
+
+**Rezepte** sind ein eigenständiges Modul (`recipe` App) und kein Idea-Typ mehr. Siehe Modul 1b oben.
 
 ### Regeln
-- Das Feld `idea_type` bestimmt den Typ (TextChoices: `idea`, `knowledge`, `recipe`)
+- Das Feld `idea_type` bestimmt den Typ (TextChoices: `idea`, `knowledge`)
 - **Wissensbeitrag**: `MaterialItem`-Zuordnung wird im UI ausgeblendet und in der API ignoriert
-- **Rezept**: `MaterialItem` wird im UI als "Zutaten" (Label) angezeigt statt "Material"
-- **Klassische Idee**: `MaterialItem` wird als "Material" angezeigt (Standard)
+- **Lern-Idee**: `MaterialItem` wird als "Material" angezeigt (Standard)
 - Frontend und Backend müssen den Typ bei Erstellung, Bearbeitung, Suche und Anzeige berücksichtigen
+- Beide Typen sind über die gleiche Suche auffindbar und teilen die gleiche Basis-Datenstruktur
+
+### Zutatendatenbank
+
+→ Vollständige Details in `openspec/specs/ingredient-database/spec.md` (Models, Nutri-Score, Preiskaskade, Norm-Personen, Rezept-Checks, KI-Autovervollständigung)
 
 ## Arbeitsablauf
 
@@ -117,419 +270,10 @@ Eine Idea kann einen von drei Typen haben:
 
 ---
 
-## ⚠️ WICHTIG: Infrastruktur & Deployment – Migration Plan
+## Infrastruktur & Deployment
 
-### Architektur-Entscheidungen
+→ Vollständige Details in `openspec/specs/infrastructure/spec.md` (Cloud Build, Podman, Cloud Run, OpenTofu, DB-Migration, Implementierungs-Reihenfolge)
 
-| Entscheidung | Alt (wird abgelöst) | Neu |
-|---|---|---|
-| **Hosting** | Google App Engine | **Google Cloud Run** |
-| **Datenbank** | Cloud SQL (PostgreSQL) | **Self-hosted PostgreSQL (pgvector) als Cloud Run Service mit Cloud Storage Volume** |
-| **Container Runtime** | Docker | **Podman** (lokal), **Cloud Build** (CI) |
-| **CI/CD** | Manuell (Makefile) | **Google Cloud Build** (Trigger auf GitHub Push/PR) |
-| **Code Quality** | Manuell | **Pre-Commit Hooks** (bereits vorhanden) + Cloud Build Checks |
-| **Infrastruktur-as-Code** | Manuell (gcloud CLI) | **Terraform** (`terraform/`) |
-
-### Verbotene Technologien
-
-- ❌ **Kein App Engine** – Nicht verwenden, keine `app.yaml`-Dateien
-- ❌ **Kein Cloud SQL** – Keine Cloud SQL Instanzen, keine Cloud SQL Proxy Verbindungen
-- ❌ **Kein Docker lokal** – Lokal immer `podman` statt `docker` verwenden
-- ❌ **Keine GitHub Actions** – CI/CD läuft über Google Cloud Build, nicht GitHub Actions
-
-### Ziel-Architektur
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                  GitHub (Source)                          │
-│  Push/PR ──────────────────────────┐                     │
-└────────────────────────────────────┼─────────────────────┘
-                                     ▼
-┌──────────────────────────────────────────────────────────┐
-│              Google Cloud Build                          │
-│                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌────────────────────────┐  │
-│  │ Lint/Test │  │ Build    │  │ Deploy to Cloud Run    │  │
-│  │ (PR)     │  │ (Image)  │  │ (on push to main)     │  │
-│  └──────────┘  └──────────┘  └────────────────────────┘  │
-│                      │                                    │
-│                      ▼                                    │
-│            Artifact Registry                              │
-└──────────────────────────────────────────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────────────────┐
-│                 Google Cloud Run                          │
-│                                                           │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐  │
-│  │ inspi-backend│   │ inspi-db     │   │ Frontend     │  │
-│  │ (Django/     │──▶│ (PostgreSQL  │   │ (GCS Static  │  │
-│  │  Gunicorn)   │   │  + pgvector) │   │  Hosting)    │  │
-│  └──────────────┘   └──────────────┘   └──────────────┘  │
-│         │                  │                              │
-│         ▼                  ▼                              │
-│  ┌──────────────┐  ┌──────────────┐                      │
-│  │ GCS Media    │  │ GCS Volume   │                      │
-│  │ (Uploads)    │  │ (pg data)    │                      │
-│  └──────────────┘  └──────────────┘                      │
-└──────────────────────────────────────────────────────────┘
-```
-
-### 1. Pre-Commit Hooks (✅ bereits vorhanden)
-
-Datei: `.pre-commit-config.yaml`
-
-| Hook | Stage | Beschreibung |
-|------|-------|-------------|
-| trailing-whitespace, end-of-file-fixer | commit | Basis-Formatierung |
-| check-yaml, check-toml, check-json | commit | Config-Validierung |
-| check-added-large-files (max 500KB) | commit | Verhindert große Dateien |
-| check-merge-conflict | commit | Merge-Konflikte erkennen |
-| debug-statements | commit | Keine `breakpoint()` / `pdb` |
-| ruff (lint + format) | commit | Python Linting & Formatting |
-| black | commit | Python Code Formatting |
-| mypy | commit | Type Checking |
-| pytest (fast, `-m "not slow"`) | **pre-push** | Schnelle Tests vor Push |
-
-**Installation:**
-```bash
-make pre-commit-install
-```
-
-### 2. Google Cloud Build CI/CD Pipeline
-
-Dateien: `cloudbuild.yaml` (Deploy) + `cloudbuild-pr.yaml` (PR Checks)
-
-#### Pipeline-Übersicht
-
-```
-GitHub Push/PR → Cloud Build Trigger → [Lint & Format] → [Type Check] → [Test] → [Build Image] → [Deploy]
-                                                                                       │              │
-                                                                                  nur main        nur main
-```
-
-#### Cloud Build Triggers einrichten
-
-```bash
-# 1. GitHub-Verbindung herstellen (einmalig)
-gcloud builds connections create github inspi-github \
-  --region=europe-west1
-
-# 2. PR-Trigger (Lint + Test, kein Deploy)
-gcloud builds triggers create github \
-  --name=inspi-pr-check \
-  --region=europe-west1 \
-  --repository=projects/$PROJECT/locations/europe-west1/connections/inspi-github/repositories/inspi \
-  --pull-request-pattern='^main$' \
-  --build-config=cloudbuild-pr.yaml
-
-# 3. Deploy-Trigger (Push auf main)
-gcloud builds triggers create github \
-  --name=inspi-deploy \
-  --region=europe-west1 \
-  --repository=projects/$PROJECT/locations/europe-west1/connections/inspi-github/repositories/inspi \
-  --branch-pattern='^main$' \
-  --build-config=cloudbuild.yaml
-```
-
-#### `cloudbuild-pr.yaml` (PR Checks – Lint, Type Check, Test)
-
-```yaml
-steps:
-  # Lint & Format
-  - name: 'python:3.13-slim'
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        pip install uv
-        cd backend && uv sync
-        uv run ruff check .
-        uv run ruff format --check .
-        uv run black --check .
-    id: lint
-
-  # Type Check
-  - name: 'python:3.13-slim'
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        pip install uv
-        cd backend && uv sync
-        uv run mypy .
-    id: typecheck
-    waitFor: ['-']  # parallel zu lint
-
-  # Tests
-  - name: 'python:3.13-slim'
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        pip install uv
-        cd backend && uv sync
-        uv run pytest --tb=short -q
-    id: test
-    waitFor: ['lint', 'typecheck']
-    env:
-      - 'DB_HOST=localhost'
-      - 'DB_NAME=inspi'
-      - 'DB_USER=inspi'
-      - 'DB_PASSWORD=inspi'
-
-options:
-  logging: CLOUD_LOGGING_ONLY
-timeout: '600s'
-```
-
-#### `cloudbuild.yaml` (Deploy – Build + Push + Cloud Run)
-
-```yaml
-steps:
-  # Build Backend Image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA', '-f', 'Dockerfile.backend', '.']
-    id: build-backend
-
-  # Push Backend Image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA']
-    id: push-backend
-    waitFor: ['build-backend']
-
-  # Build Frontend
-  - name: 'node:20'
-    entrypoint: bash
-    args:
-      - -c
-      - cd frontend && npm ci && npm run build
-    id: build-frontend
-    waitFor: ['-']
-
-  # Deploy Backend to Cloud Run
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args:
-      - run
-      - deploy
-      - inspi-backend
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA
-      - --region=${_REGION}
-      - --port=8000
-      - --cpu=1
-      - --memory=512Mi
-      - --min-instances=0
-      - --max-instances=10
-      - --set-env-vars=DJANGO_SETTINGS_MODULE=inspi.settings.production
-      - --allow-unauthenticated
-    id: deploy-backend
-    waitFor: ['push-backend']
-
-  # Deploy Frontend to GCS
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['-m', 'rsync', '-r', 'frontend/dist/', 'gs://gruppenstunde-static/']
-    id: deploy-frontend
-    waitFor: ['build-frontend']
-
-substitutions:
-  _REGION: europe-west1
-
-images:
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/inspi/backend:$COMMIT_SHA'
-
-options:
-  logging: CLOUD_LOGGING_ONLY
-timeout: '1200s'
-```
-
-#### Vorteile Cloud Build vs. GitHub Actions
-
-- **Keine Secrets nötig** – Cloud Build läuft nativ in GCP mit Service Account
-- **Schnellere Builds** – Images werden direkt in GCP gebaut, kein Upload nötig
-- **Artifact Registry Integration** – Native Push ohne extra Auth
-- **Cloud Run Deploy** – Direkt aus Cloud Build, keine externen Credentials
-- **Kosten** – 120 Build-Minuten/Tag kostenlos
-
-#### Cloud Build Service Account Berechtigungen
-
-```bash
-# Cloud Build SA braucht folgende Rollen:
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
-  --role=roles/run.admin
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
-  --role=roles/iam.serviceAccountUser
-
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-  --member=serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com \
-  --role=roles/storage.admin
-```
-
-### 3. Container-Builds mit Podman
-
-#### Lokale Entwicklung
-```bash
-podman compose up -d db          # PostgreSQL lokal starten
-make backend                     # Django Dev Server
-make frontend                    # Vite Dev Server
-```
-
-#### Produktion Images bauen
-```bash
-make build-backend               # podman build -f Dockerfile.backend
-make build-db                    # podman build -f Dockerfile.db
-make push-backend                # podman push → Artifact Registry
-make push-db                     # podman push → Artifact Registry
-```
-
-**Regeln:**
-- Lokal: Alle Container-Befehle verwenden `podman`, niemals `docker`
-- CI (Cloud Build): Verwendet `gcr.io/cloud-builders/docker` Builder (Docker in GCP ist OK)
-- `docker-compose.yml` bleibt kompatibel, da `podman compose` es versteht
-
-### 4. Cloud Run Deployment (Ziel-Setup)
-
-#### Backend Service (`inspi-backend`)
-- **Image**: `europe-west1-docker.pkg.dev/$PROJECT/inspi/backend:latest`
-- **Port**: 8000
-- **CPU**: 1, **Memory**: 512Mi
-- **Min Instances**: 0 (Scale to zero), **Max**: 10
-- **Env Vars**: `DJANGO_SETTINGS_MODULE=inspi.settings.production`
-- **Allow unauthenticated**: Ja (öffentliche API)
-
-#### Database Service (`inspi-db`)
-- **Image**: `europe-west1-docker.pkg.dev/$PROJECT/inspi/db:latest`
-- **Port**: 5432
-- **CPU**: 1, **Memory**: 1Gi
-- **Min Instances**: 1 (immer laufen!), **Max**: 1
-- **No CPU Throttling**: Ja
-- **Volume**: Cloud Storage Bucket `inspi-pgdata-$PROJECT` gemountet auf `/var/lib/postgresql/data`
-- **Allow unauthenticated**: Nein (nur Backend darf zugreifen)
-
-#### Frontend (GCS Static Hosting)
-- **Bucket**: `gruppenstunde-static`
-- **Build**: `npm run build` → `gsutil rsync` zu GCS
-- Optional: Cloud CDN davor für Performance
-
-### 5. Datenbank-Migration (Cloud SQL → Cloud Run PostgreSQL)
-
-**Reihenfolge:**
-1. Cloud Run PostgreSQL Service deployen (`make deploy-db`)
-2. Daten aus Cloud SQL exportieren (`pg_dump`)
-3. Daten in Cloud Run PostgreSQL importieren (`pg_restore`)
-4. Backend `production.py` Env-Vars auf Cloud Run DB Host umstellen
-5. Cloud SQL Instanz abschalten
-6. Cloud SQL Proxy aus dem Projekt entfernen
-
-**Settings ändern** in `backend/inspi/settings/production.py`:
-```python
-# Vorher (Cloud SQL):
-# "HOST": env("DB_HOST", default="/cloudsql/PROJECT_ID:REGION:INSTANCE")
-
-# Nachher (Cloud Run PostgreSQL):
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", default="inspi"),
-        "USER": env("DB_USER", default="inspi"),
-        "PASSWORD": env("DB_PASSWORD", default=""),
-        "HOST": env("DB_HOST"),  # Cloud Run DB Service URL
-        "PORT": env("DB_PORT", default="5432"),
-    }
-}
-```
-
-### 6. Terraform – Infrastruktur-as-Code
-
-Verzeichnis: `terraform/`
-
-```
-terraform/
-  providers.tf              ← Terraform + Google Provider, GCS Backend (per-env prefix)
-  variables.tf              ← Input-Variablen (project_id, region, environment, etc.)
-  main.tf                   ← Alle GCP-Ressourcen (env-aware via var.environment)
-  outputs.tf                ← Backend-URL, DB-URL, Bucket-URLs, Environment
-  terraform.tfvars.example  ← Referenz (nicht direkt nutzen)
-  .gitignore                ← Schützt tfvars und State-Files
-  env/
-    dev.tfvars.example      ← DEV-Werte (kopieren → dev.tfvars, ausfüllen)
-    prod.tfvars.example     ← PROD-Werte (kopieren → prod.tfvars, ausfüllen)
-```
-
-#### Environments (dev / prod)
-
-| Aspekt | dev | prod |
-|---|---|---|
-| **Prefix** | `inspi-dev-*` | `inspi-*` |
-| **Branch** | `develop` | `main` |
-| **Domain** | `dev.gruppenstunde.de` | `gruppenstunde.de` |
-| **Backend Max Instances** | 2 | 10 |
-| **Backend Memory** | 256Mi | 512Mi |
-| **DB Memory** | 512Mi | 1Gi |
-| **DB Min Instances** | 0 (scale to zero) | 0 (scale to zero) |
-| **PR Check Trigger** | Nein | Ja |
-| **State Prefix** | `terraform/dev` | `terraform/prod` |
-
-Alle Cloud Run Services skalieren auf **0 Minimum-Instanzen** (scale to zero) – auch die Datenbank. Das spart Kosten, bedeutet aber Cold-Start-Zeiten.
-
-#### Verwaltete Ressourcen
-
-| Ressource | Terraform Resource |
-|---|---|
-| GCP APIs (Cloud Build, Cloud Run, etc.) | `google_project_service` |
-| Artifact Registry | `google_artifact_registry_repository` |
-| GCS Frontend Bucket | `google_storage_bucket.frontend` |
-| GCS Media Bucket | `google_storage_bucket.media` |
-| GCS pgdata Bucket | `google_storage_bucket.pgdata` |
-| Secret Manager (DB Password) | `google_secret_manager_secret` |
-| Cloud Run Backend | `google_cloud_run_v2_service.backend` |
-| Cloud Run DB | `google_cloud_run_v2_service.db` |
-| Cloud Build IAM | `google_project_iam_member` (4 Rollen) |
-| Cloud Build Triggers | `google_cloudbuild_trigger` (deploy + PR) |
-| IAM Public Access | `google_cloud_run_v2_service_iam_member` |
-
-#### Nutzung
-
-```bash
-# 1. State Bucket erstellen (einmalig)
-make tf-state-bucket
-
-# 2. Environment-Variablen vorbereiten
-cp terraform/env/dev.tfvars.example terraform/env/dev.tfvars
-cp terraform/env/prod.tfvars.example terraform/env/prod.tfvars
-# → Werte ausfüllen (project_id, db_password, cloudbuild_repo)
-
-# 3. DEV deployen
-make tf-init ENV=dev
-make tf-plan ENV=dev
-make tf-apply ENV=dev
-
-# 4. PROD deployen
-make tf-init ENV=prod
-make tf-plan ENV=prod
-make tf-apply ENV=prod
-```
-
-#### Regeln
-- **Alle GCP-Ressourcen** werden über Terraform verwaltet, nicht manuell per `gcloud`
-- **Separate State-Files** pro Environment (dev/prod) im selben GCS Bucket
-- **Secrets** (db_password) kommen über `env/dev.tfvars` / `env/prod.tfvars` (gitignored!)
-- **State** liegt in GCS Bucket `inspi-terraform-state` (versioniert)
-- **Cloud Build GitHub-Verbindung** muss manuell über Console erstellt werden (OAuth-Flow), danach wird der Repo-Name in den tfvars eingetragen
-- **Cloud Build Trigger** wird von Terraform erstellt und setzt die Substitutions (`_ENVIRONMENT`, `_BACKEND_SERVICE`, `_FRONTEND_BUCKET`) automatisch
-
-### 7. Implementierungs-Reihenfolge
-
-- [ ] **Phase 1: Pre-Commit** – Bereits vorhanden, nur sicherstellen dass alle Devs es installiert haben (`make pre-commit-install`)
-- [ ] **Phase 2: Terraform Setup** – State Bucket erstellen, env/*.tfvars anlegen
-- [ ] **Phase 3: Terraform DEV** – `make tf-init ENV=dev && make tf-apply ENV=dev` (APIs, Registry, Buckets, Secrets, Cloud Run)
-- [ ] **Phase 4: Cloud Build GitHub-Verbindung** – Manuell über Console, Repo-Name in env/*.tfvars eintragen
-- [ ] **Phase 5: Terraform mit Triggers** – `make tf-apply ENV=dev` erneut (jetzt mit cloudbuild_repo gesetzt)
-- [ ] **Phase 6: DEV testen** – Push auf `develop` Branch → Cloud Build deployt automatisch
-- [ ] **Phase 7: Terraform PROD** – `make tf-init ENV=prod && make tf-apply ENV=prod`
-- [ ] **Phase 8: Daten-Migration** – Daten von Cloud SQL nach Cloud Run PostgreSQL migrieren
-- [ ] **Phase 9: Cloud SQL abschalten** – Cloud SQL Instanz und Proxy entfernen, `production.py` bereinigen
-- [ ] **Phase 10: App Engine Reste entfernen** – Alle `app.yaml` Referenzen und App-Engine-spezifischen Code entfernen
-- [ ] **Phase 11: Frontend CDN** – Optional: Cloud CDN vor GCS für bessere Performance
+**Kurzfassung der Verbote:**
+- Kein App Engine, kein Docker lokal (nur Podman), keine GitHub Actions, kein Terraform (nur OpenTofu)
+- Alle GCP-Ressourcen über OpenTofu verwalten (`terraform/`-Verzeichnis)

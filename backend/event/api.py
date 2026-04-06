@@ -64,27 +64,20 @@ def list_my_invited_events(request):
     _require_auth(request)
     qs = Event.objects.prefetch_related("booking_options", "registrations")
 
-    user_group_ids = GroupMembership.objects.filter(
-        user=request.user, is_active=True
-    ).values_list("group_id", flat=True)
+    user_group_ids = GroupMembership.objects.filter(user=request.user, is_active=True).values_list(
+        "group_id", flat=True
+    )
 
-    return qs.filter(
-        Q(invited_users=request.user)
-        | Q(invited_groups__in=user_group_ids)
-    ).distinct()
+    return qs.filter(Q(invited_users=request.user) | Q(invited_groups__in=user_group_ids)).distinct()
 
 
 @event_router.get("/my-registered/", response=list[EventListOut])
 def list_my_registered_events(request):
     """List events the current user has registered for."""
     _require_auth(request)
-    registered_event_ids = Registration.objects.filter(
-        user=request.user
-    ).values_list("event_id", flat=True)
+    registered_event_ids = Registration.objects.filter(user=request.user).values_list("event_id", flat=True)
 
-    return Event.objects.filter(
-        id__in=registered_event_ids
-    ).prefetch_related("booking_options", "registrations")
+    return Event.objects.filter(id__in=registered_event_ids).prefetch_related("booking_options", "registrations")
 
 
 # ==========================================================================
@@ -179,9 +172,9 @@ def list_events(request):
         return qs.all()
 
     # Authenticated: public + invited + managed
-    user_group_ids = GroupMembership.objects.filter(
-        user=request.user, is_active=True
-    ).values_list("group_id", flat=True)
+    user_group_ids = GroupMembership.objects.filter(user=request.user, is_active=True).values_list(
+        "group_id", flat=True
+    )
 
     return qs.filter(
         Q(is_public=True)
@@ -250,8 +243,8 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
         "Der Text soll für Jugendliche und deren Eltern ansprechend sein.\n\n"
         "Regeln:\n"
         "- Schreibe in deutscher Sprache, freundlich und einladend\n"
-        "- Formatiere als HTML mit <b>, <ul>, Absätzen\n"
-        "- Keine Schriftgrößen- oder Farbänderungen\n"
+        "- Formatiere als Markdown (Überschriften mit ##, **fett**, Listen mit -, Absätze durch Leerzeilen)\n"
+        "- Kein HTML verwenden\n"
         "- Erwähne alle relevanten Details (Name, Datum, Ort, Optionen)\n"
         "- Baue die Besonderheiten ein, falls vorhanden\n"
         "- Schließe mit einer motivierenden Aufforderung zur Anmeldung\n"
@@ -289,19 +282,19 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
 
 def _build_fallback_invitation(payload: GenerateInvitationIn) -> str:
     """Build a simple fallback invitation when AI is unavailable."""
-    parts = [f"<p><b>Einladung: {payload.name}</b></p>"]
+    parts = [f"## Einladung: {payload.name}"]
     if payload.description:
-        parts.append(f"<p>{payload.description}</p>")
+        parts.append(f"\n{payload.description}")
     if payload.start_date:
-        parts.append(f"<p>Datum: {payload.start_date}</p>")
+        parts.append(f"\n**Datum:** {payload.start_date}")
     if payload.location_name:
         loc = payload.location_name
         if payload.location_address:
             loc += f" ({payload.location_address})"
-        parts.append(f"<p>Ort: {loc}</p>")
+        parts.append(f"\n**Ort:** {loc}")
     if payload.special_notes:
-        parts.append(f"<p>{payload.special_notes}</p>")
-    parts.append("<p>Wir freuen uns auf euch!</p>")
+        parts.append(f"\n{payload.special_notes}")
+    parts.append("\nWir freuen uns auf euch!")
     return "\n".join(parts)
 
 
@@ -325,18 +318,16 @@ def get_event(request, event_slug: str):
             raise HttpError(404, "Event nicht gefunden")
 
     # Build response with context-dependent fields
-    is_manager = (
-        request.user.is_authenticated and event.user_can_manage(request.user)
-    )
+    is_manager = request.user.is_authenticated and event.user_can_manage(request.user)
     is_registered = False
     my_registration = None
     registrations = None
 
     if request.user.is_authenticated:
         try:
-            my_registration = Registration.objects.prefetch_related(
-                "participants__booking_option"
-            ).get(user=request.user, event=event)
+            my_registration = Registration.objects.prefetch_related("participants__booking_option").get(
+                user=request.user, event=event
+            )
             is_registered = True
         except Registration.DoesNotExist:
             pass
@@ -403,9 +394,7 @@ def create_booking_option(request, event_slug: str, payload: BookingOptionCreate
 
 
 @event_router.patch("/{event_slug}/booking-options/{option_id}/", response=BookingOptionOut)
-def update_booking_option(
-    request, event_slug: str, option_id: int, payload: BookingOptionUpdateIn
-):
+def update_booking_option(request, event_slug: str, option_id: int, payload: BookingOptionUpdateIn):
     """Update a booking option."""
     _require_auth(request)
     event = get_object_or_404(Event, slug=event_slug)
@@ -443,9 +432,7 @@ def register_for_event(request, event_slug: str, payload: RegisterIn):
         raise HttpError(403, "Du bist nicht für dieses Event eingeladen")
 
     # Get or create registration
-    registration, _ = Registration.objects.get_or_create(
-        user=request.user, event=event
-    )
+    registration, _ = Registration.objects.get_or_create(user=request.user, event=event)
 
     for entry in payload.persons:
         person = get_object_or_404(Person, id=entry.person_id)
@@ -460,17 +447,13 @@ def register_for_event(request, event_slug: str, payload: RegisterIn):
 
         booking_option = None
         if entry.booking_option_id:
-            booking_option = get_object_or_404(
-                BookingOption, id=entry.booking_option_id, event=event
-            )
+            booking_option = get_object_or_404(BookingOption, id=entry.booking_option_id, event=event)
             if booking_option.is_full:
                 raise HttpError(400, f"Buchungsoption '{booking_option.name}' ist voll")
 
         Participant.create_from_person(registration, person, booking_option)
 
-    return Registration.objects.prefetch_related(
-        "participants__booking_option"
-    ).get(pk=registration.pk)
+    return Registration.objects.prefetch_related("participants__booking_option").get(pk=registration.pk)
 
 
 @event_router.post("/{event_slug}/register-admin/", response=RegistrationOut)
@@ -484,25 +467,19 @@ def register_admin(request, event_slug: str, payload: RegisterIn):
         person = get_object_or_404(Person, id=entry.person_id)
 
         # Find or create registration for the person's owner
-        registration, _ = Registration.objects.get_or_create(
-            user=person.user, event=event
-        )
+        registration, _ = Registration.objects.get_or_create(user=person.user, event=event)
 
         if Participant.objects.filter(registration=registration, person=person).exists():
             continue
 
         booking_option = None
         if entry.booking_option_id:
-            booking_option = get_object_or_404(
-                BookingOption, id=entry.booking_option_id, event=event
-            )
+            booking_option = get_object_or_404(BookingOption, id=entry.booking_option_id, event=event)
 
         Participant.create_from_person(registration, person, booking_option)
 
     # Return the first registration for response
-    reg = Registration.objects.filter(event=event).prefetch_related(
-        "participants__booking_option"
-    ).first()
+    reg = Registration.objects.filter(event=event).prefetch_related("participants__booking_option").first()
     return reg
 
 
@@ -511,15 +488,10 @@ def remove_participant(request, event_slug: str, participant_id: int):
     """Remove a participant from an event."""
     _require_auth(request)
     event = get_object_or_404(Event, slug=event_slug)
-    participant = get_object_or_404(
-        Participant, id=participant_id, registration__event=event
-    )
+    participant = get_object_or_404(Participant, id=participant_id, registration__event=event)
 
     # User can remove own participants, managers can remove any
-    if (
-        participant.registration.user != request.user
-        and not event.user_can_manage(request.user)
-    ):
+    if participant.registration.user != request.user and not event.user_can_manage(request.user):
         raise HttpError(403, "Zugriff verweigert")
 
     registration = participant.registration
@@ -533,15 +505,11 @@ def remove_participant(request, event_slug: str, participant_id: int):
 
 
 @event_router.patch("/{event_slug}/participants/{participant_id}/", response=ParticipantOut)
-def update_participant(
-    request, event_slug: str, participant_id: int, payload: ParticipantUpdateIn
-):
+def update_participant(request, event_slug: str, participant_id: int, payload: ParticipantUpdateIn):
     """Update a participant (payment status, booking option, etc.)."""
     _require_auth(request)
     event = get_object_or_404(Event, slug=event_slug)
-    participant = get_object_or_404(
-        Participant, id=participant_id, registration__event=event
-    )
+    participant = get_object_or_404(Participant, id=participant_id, registration__event=event)
 
     # User can update own participants, managers can update any
     is_own = participant.registration.user == request.user
@@ -560,9 +528,7 @@ def update_participant(
     if "booking_option_id" in data:
         option_id = data.pop("booking_option_id")
         if option_id is not None:
-            participant.booking_option = get_object_or_404(
-                BookingOption, id=option_id, event=event
-            )
+            participant.booking_option = get_object_or_404(BookingOption, id=option_id, event=event)
         else:
             participant.booking_option = None
 
@@ -628,9 +594,7 @@ def list_event_participants(request, event_slug: str):
     event = get_object_or_404(Event, slug=event_slug)
     _require_event_manager(event, request.user)
 
-    return Participant.objects.filter(
-        registration__event=event
-    ).select_related("booking_option", "registration__user")
+    return Participant.objects.filter(registration__event=event).select_related("booking_option", "registration__user")
 
 
 # ==========================================================================

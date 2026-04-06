@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     "profiles",
     "core",
     "event",
+    "packinglist",
+    "recipe",
 ]
 
 MIDDLEWARE = [
@@ -139,4 +141,4 @@ ACCOUNT_EMAIL_VERIFICATION = "optional"
 
 # Google Cloud / Vertex AI
 GOOGLE_CLOUD_PROJECT = env("GOOGLE_CLOUD_PROJECT", default="")
-VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="europe-west1")
+VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="europe-west3")

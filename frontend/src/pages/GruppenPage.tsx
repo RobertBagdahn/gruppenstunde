@@ -45,7 +45,7 @@ export default function GruppenPage() {
   function handleCreateGroup(e: React.FormEvent) {
     e.preventDefault();
     createGroup.mutate(
-      { name: newGroupName, description: newGroupDesc, free_to_join: newGroupFreeJoin },
+      { name: newGroupName, description: newGroupDesc, free_to_join: newGroupFreeJoin, is_visible: true, join_code: '' },
       {
         onSuccess: () => {
           setNewGroupName('');

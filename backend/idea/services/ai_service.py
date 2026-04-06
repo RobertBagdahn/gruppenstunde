@@ -1,6 +1,6 @@
 """
-Vertex AI service for AI features.
-Uses Gemini 3.0 Flash via the google-genai SDK with structured JSON output.
+AI service for AI features.
+Uses Gemini via the google-genai SDK with structured JSON output.
 Authenticates via Application Default Credentials (ADC) – no API keys.
 
 Prompts and rules follow the conventions from inspi/activity.
@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
 
 
 # ---------------------------------------------------------------------------
@@ -37,8 +38,12 @@ class RefurbishOutput(BaseModel):
     execution_time: str = Field(description="One of: less_30, 30_60, 60_90, more_90")
     preparation_time: str = Field(description="One of: none, less_15, 15_30, 30_60, more_60")
     difficulty: str = Field(description="One of: easy, medium, hard")
+    idea_type: str = Field(default="idea", description="One of: idea, knowledge")
     scout_level_ids: list[int] = Field(description="List of scout level IDs: 1=Wölflinge (7-10 J.), 2=Jungpfadfinder (10-13 J.), 3=Pfadfinder (13-16 J.), 4=Rover (16+ J.)")
     materials: list[MaterialSuggestion] = Field(default_factory=list, description="List of materials needed for this activity")
+    image_prompt: str = Field(default="", max_length=500, description="English prompt for generating a title image that illustrates the activity")
+    location: str = Field(default="", description="Best location for this activity, e.g. 'Drinnen', 'Draußen', 'Wald', 'Wiese', 'Gruppenraum'")
+    season: str = Field(default="", description="Best season/time, e.g. 'Frühling', 'Sommer', 'Herbst', 'Winter', 'Ganzjährig'")
 
 
 class TagSuggestionOutput(BaseModel):
@@ -59,7 +64,7 @@ class AIService:
 
     def __init__(self):
         self._client = None
-        self._embedding_model = None
+        self._image_client = None
 
     def _get_client(self):
         if self._client is None:
@@ -67,7 +72,7 @@ class AIService:
                 from google import genai
 
                 project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-                location = getattr(settings, "VERTEX_AI_LOCATION", "europe-west1")
+                location = getattr(settings, "VERTEX_AI_LOCATION", "europe-west3")
 
                 if project:
                     self._client = genai.Client(
@@ -79,15 +84,23 @@ class AIService:
                 logger.warning("google-genai not installed – AI features disabled")
         return self._client
 
-    def _get_embedding_model(self):
-        if self._embedding_model is None:
+    def _get_image_client(self):
+        """Return a client using 'global' location for image generation models."""
+        if self._image_client is None:
             try:
-                from vertexai.language_models import TextEmbeddingModel
+                from google import genai
 
-                self._embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+                project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
+
+                if project:
+                    self._image_client = genai.Client(
+                        vertexai=True, project=project, location="global",
+                    )
+                else:
+                    logger.warning("GOOGLE_CLOUD_PROJECT not set – AI features disabled")
             except ImportError:
-                logger.warning("Embedding model not available")
-        return self._embedding_model
+                logger.warning("google-genai not installed – AI features disabled")
+        return self._image_client
 
     # ------------------------------------------------------------------
     # improve_text
@@ -101,10 +114,10 @@ class AIService:
 
         prompt = (
             "Verbessere und verschönere den folgenden Text, in deutscher Sprache. "
-            "Der Output muss HTML Code sein. "
+            "Der Output muss Markdown sein (kein HTML). "
             "Der Text soll für Jugendliche sein und ansprechend formatiert "
-            "z.B. mit <b>, <ul>, Absätzen. "
-            "Die Schriftgröße soll nicht verändert werden, keine Farbe.\n\n"
+            "z.B. mit **fett**, Listen mit -, Überschriften mit ##, Absätze durch Leerzeilen. "
+            "Verwende kein HTML.\n\n"
             f"Kontext: {context}\n\n"
             f"Text:\n{text}\n\n"
         )
@@ -183,6 +196,7 @@ class AIService:
                 "summary": raw_text[:200],
                 "summary_long": raw_text[:500],
                 "description": raw_text,
+                "idea_type": "idea",
                 "suggested_tag_ids": [],
                 "suggested_tag_names": [],
                 "suggested_tags": [],
@@ -192,6 +206,9 @@ class AIService:
                 "difficulty": "easy",
                 "suggested_scout_level_ids": [],
                 "suggested_materials": [],
+                "location": "",
+                "season": "",
+                "image_prompt": "",
             }
 
         prompt = (
@@ -201,15 +218,15 @@ class AIService:
             "- title: Kurzer, ansprechender Titel (5–45 Zeichen), aussagekräftig für Jugendliche.\n"
             "- summary: Werbender Aussagesatz als Kurzbeschreibung (80–300 Zeichen, maximal 500 Zeichen).\n"
             "- summary_long: Ausführliche, interessante Zusammenfassung (200–1000 Zeichen), für Jugendliche.\n"
-            "- description: Detaillierte Anleitung als HTML. "
-            "Verwende <ul>, <b>, Absätze für gute Formatierung. "
+            "- description: Detaillierte Anleitung als Markdown (kein HTML). "
+            "Verwende **fett**, Listen mit -, Überschriften mit ##, Absätze durch Leerzeilen. "
             "Gliedere in Vorbereitung, Durchführung, Abschluss. "
-            "Keine Schriftgrößen- oder Farbänderungen. "
             "Es dürfen weitere Beispiele oder Varianten hinzugefügt werden. (100–8000 Zeichen)\n"
             "- costs_rating: Eines von 'free', 'less_1', '1_2', 'more_2'\n"
             "- execution_time: Eines von 'less_30', '30_60', '60_90', 'more_90'\n"
             "- preparation_time: Eines von 'none', 'less_15', '15_30', '30_60', 'more_60'\n"
             "- difficulty: Eines von 'easy', 'medium', 'hard'\n"
+            "- idea_type: 'idea' für Aktivitäten/Spiele oder 'knowledge' für Wissensbeiträge/Methoden.\n"
             "- scout_level_ids: Liste der passenden Pfadfinder-Stufen als IDs. "
             "1=Wölflinge (7-10 Jahre), 2=Jungpfadfinder (10-13 Jahre), "
             "3=Pfadfinder (13-16 Jahre), 4=Rover (16+ Jahre). "
@@ -218,7 +235,16 @@ class AIService:
             "quantity (Menge als Text, z.B. '2', '1', '10'), "
             "material_name (Name, z.B. 'Seil', 'Papier', 'Stifte', 'Ball'), "
             "material_unit (Einheit: 'Stück', 'Meter', 'Liter', 'Kilogramm' oder 'Packung'). "
-            "Wenn keine Materialien benötigt werden, gib eine leere Liste an.\n\n"
+            "Wenn keine Materialien benötigt werden, gib eine leere Liste an.\n"
+            "- location: Bester Ort für diese Aktivität (z.B. 'Drinnen', 'Draußen', 'Wald', 'Wiese', 'Gruppenraum', 'Lagerplatz'). "
+            "Leer lassen wenn unklar.\n"
+            "- season: Beste Jahreszeit/Zeitraum (z.B. 'Frühling', 'Sommer', 'Herbst', 'Winter', 'Ganzjährig'). "
+            "Leer lassen wenn unklar.\n"
+            "- image_prompt: Erstelle einen ENGLISCHEN Prompt für ein Titelbild. "
+            "Das Bild soll die Aktivität auf einen Blick verständlich machen. "
+            "Stil: Bunte Cartoon-Illustration/Zeichnung, keine Fotos, KEINE Menschen. "
+            "Zeige nur Objekte, Gegenstände, Natur oder abstrakte Darstellungen. "
+            "Max 200 Zeichen.\n\n"
             "Der gesamte Text soll für Jugendliche / Pfadfinder geschrieben sein.\n\n"
             f"Unformatierter Text:\n{raw_text}"
         )
@@ -282,6 +308,7 @@ class AIService:
             "summary": summary,
             "summary_long": structured.summary_long,
             "description": structured.description,
+            "idea_type": structured.idea_type if structured.idea_type in ("idea", "knowledge") else "idea",
             "suggested_tag_ids": tags["tag_ids"],
             "suggested_tag_names": tags["tag_names"],
             "suggested_tags": suggested_tags,
@@ -298,24 +325,158 @@ class AIService:
                 }
                 for m in structured.materials
             ],
+            "location": structured.location,
+            "season": structured.season,
+            "image_prompt": structured.image_prompt,
         }
+
+        # Generate title image if we have a prompt
+        if structured.image_prompt:
+            image_urls = self.generate_images(
+                prompt=structured.image_prompt,
+                title=structured.title,
+                summary=structured.summary,
+                description=structured.description,
+            )
+            if image_urls:
+                result["image_url"] = image_urls[0]
+                result["image_urls"] = image_urls
         logger.info("AI refurbish final result: %s", result)
         return result
+
+    # ------------------------------------------------------------------
+    # generate_images (Gemini native image generation)
+    # ------------------------------------------------------------------
+
+    def generate_images(
+        self,
+        prompt: str,
+        title: str = "",
+        summary: str = "",
+        description: str = "",
+        num_images: int = 4,
+    ) -> list[str]:
+        """Generate title images using Gemini native image generation.
+
+        Sends Inspi reference images + full idea content as context so
+        the model understands what to illustrate and the desired style.
+
+        Returns a list of saved image URLs (up to num_images).
+        """
+        import uuid
+        from pathlib import Path
+
+        from django.core.files.base import ContentFile
+        from PIL import Image
+
+        client = self._get_image_client()
+        if not client:
+            return []
+
+        # Build context from idea content
+        context_parts = []
+        if title:
+            context_parts.append(f"Titel: {title}")
+        if summary:
+            context_parts.append(f"Zusammenfassung: {summary}")
+        if description:
+            context_parts.append(f"Beschreibung: {description[:500]}")
+        context_text = "\n".join(context_parts)
+
+        system_prompt = (
+            "You are an image generator for 'Inspi', a German scouting activity platform. "
+            "Inspi helps scout leaders find and share ideas for group sessions. "
+            "Generate colorful cartoon illustrations with a hand-drawn look, clean outlines, "
+            "and bright cheerful colors on a white background. "
+            "NEVER include humans or people in the image. "
+            "Show only objects, nature, animals, tools, and abstract elements. "
+            "The style should be fun, child-friendly, and suitable for scouting activities. "
+            "The images should be like Cliparts. "
+            "Use the attached reference images as style guidance."
+        )
+
+        full_prompt = (
+            f"{system_prompt}\n\n"
+            f"Activity context:\n{context_text}\n\n"
+            f"Image description: {prompt}\n\n"
+            "Generate a single illustration for this scouting activity."
+        )
+
+        # Load Inspi reference images for style consistency
+        ref_images: list[Image.Image] = []
+        frontend_images = Path(settings.BASE_DIR).parent / "frontend" / "public" / "images"
+        for ref_name in ("inspi_flying.png", "inspi_creativ.png"):
+            ref_path = frontend_images / ref_name
+            if ref_path.exists():
+                ref_images.append(Image.open(ref_path))
+
+        # Build contents list: [prompt_text, ref_image1, ref_image2, ...]
+        contents: list = [full_prompt] + ref_images
+
+        saved_urls: list[str] = []
+        last_error: Exception | None = None
+
+        try:
+            from google.genai import types
+
+            for i in range(num_images):
+                try:
+                    response = client.models.generate_content(
+                        model=GEMINI_IMAGE_MODEL,
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            response_modalities=["IMAGE"],
+                        ),
+                    )
+
+                    for part in response.parts:
+                        if part.inline_data and part.inline_data.mime_type.startswith("image/"):
+                            image_data = part.inline_data.data
+                            ext = part.inline_data.mime_type.split("/")[-1]
+                            filename = f"ideas/ai_{uuid.uuid4().hex[:12]}.{ext}"
+                            from django.core.files.storage import default_storage
+
+                            saved_path = default_storage.save(filename, ContentFile(image_data))
+                            image_url = default_storage.url(saved_path)
+                            saved_urls.append(image_url)
+                            logger.info("AI generated image %d/%d saved: %s", i + 1, num_images, image_url)
+                            break
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning("Image generation %d/%d failed", i + 1, num_images, exc_info=True)
+
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Image generation setup failed", exc_info=True)
+
+        if not saved_urls and last_error:
+            raise last_error
+
+        return saved_urls
+
+    # For backwards compatibility
+    def generate_image(self, prompt: str) -> str | None:
+        """Generate a single title image. Delegates to generate_images."""
+        urls = self.generate_images(prompt=prompt)
+        return urls[0] if urls else None
 
     # ------------------------------------------------------------------
     # embeddings
     # ------------------------------------------------------------------
 
     def create_embedding(self, text: str) -> list[float] | None:
-        """Create a text embedding using Vertex AI embedding model."""
-        model = self._get_embedding_model()
-        if not model:
+        """Create a text embedding using google-genai SDK."""
+        client = self._get_client()
+        if not client:
             return None
 
         try:
-            embeddings = model.get_embeddings([text])
-            if embeddings:
-                return embeddings[0].values
+            response = client.models.embed_content(
+                model="text-embedding-004",
+                contents=text,
+            )
+            if response.embeddings:
+                return response.embeddings[0].values
         except Exception:
             logger.warning("Embedding creation failed", exc_info=True)
         return None

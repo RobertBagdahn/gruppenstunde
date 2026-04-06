@@ -11,8 +11,8 @@ terraform {
   backend "gcs" {
     bucket = "inspi-terraform-state"
     # prefix is set per environment via -backend-config or init:
-    #   terraform init -backend-config="prefix=terraform/dev"
-    #   terraform init -backend-config="prefix=terraform/prod"
+    #   tofu init -backend-config="prefix=terraform/dev"
+    #   tofu init -backend-config="prefix=terraform/prod"
   }
 }
 

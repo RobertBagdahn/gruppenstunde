@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useRefurbish, useImproveText, useSuggestTags } from '@/api/ai';
+import { useRefurbish, useImproveText, useSuggestTags, useGenerateImage } from '@/api/ai';
 import { useTags, useScoutLevels } from '@/api/tags';
-import RichTextEditor from '@/components/RichTextEditor';
+import MarkdownEditor from '@/components/MarkdownEditor';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 import {
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
@@ -29,7 +30,7 @@ export default function NewIdeaPage() {
   // Step 1 state
   const [rawText, setRawText] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
-  const validTypes = ['idea', 'knowledge', 'recipe'];
+  const validTypes = ['idea', 'knowledge'];
   const [ideaType, setIdeaType] = useState(
     urlIdeaType && validTypes.includes(urlIdeaType) ? urlIdeaType : 'idea'
   );
@@ -45,11 +46,18 @@ export default function NewIdeaPage() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [selectedScoutIds, setSelectedScoutIds] = useState<number[]>([]);
   const [materials, setMaterials] = useState<Array<{ quantity: string; material_name: string; material_unit: string; quantity_type: string }>>([]);
+  const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
+  const [aiImageUrls, setAiImageUrls] = useState<string[]>([]);
+  const [aiLocation, setAiLocation] = useState('');
+  const [aiSeason, setAiSeason] = useState('');
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [customImagePrompt, setCustomImagePrompt] = useState('');
 
   // APIs
   const refurbish = useRefurbish();
   const improveText = useImproveText();
   const suggestTags = useSuggestTags();
+  const generateImage = useGenerateImage();
   const { data: allTags } = useTags();
   const { data: scoutLevels } = useScoutLevels();
 
@@ -72,6 +80,13 @@ export default function NewIdeaPage() {
           setSelectedTagIds(data.suggested_tag_ids);
           setSelectedScoutIds(data.suggested_scout_level_ids ?? []);
           setMaterials(data.suggested_materials ?? []);
+          if (data.idea_type && ['idea', 'knowledge'].includes(data.idea_type)) {
+            setIdeaType(data.idea_type);
+          }
+          setAiImageUrl(data.image_url ?? null);
+          setAiImageUrls(data.image_urls ?? []);
+          setAiLocation(data.location ?? '');
+          setAiSeason(data.season ?? '');
           setStep(1);
         },
       },
@@ -143,10 +158,20 @@ export default function NewIdeaPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    setSaving(false);
     if (res.ok) {
       const data = await res.json();
+      // If we have an AI-generated image, update the idea with it
+      if (aiImageUrl) {
+        await fetch(`/api/ideas/${data.id}/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_url: aiImageUrl }),
+        });
+      }
+      setSaving(false);
       navigate(`/idea/${data.slug}`);
+    } else {
+      setSaving(false);
     }
   }
 
@@ -165,8 +190,8 @@ export default function NewIdeaPage() {
   const topicTags = selectedTags.filter((t) => t.parent_id === null);
   const locationTags = selectedTags.filter((t) => t.parent_name === 'Ort');
   const timePeriodTags = selectedTags.filter((t) => t.parent_name === 'Jahreszeit');
-  const locationLabel = locationTags.map((t) => t.name).join(', ') || '–';
-  const timePeriodLabel = timePeriodTags.map((t) => t.name).join(', ') || '–';
+  const locationLabel = aiLocation || locationTags.map((t) => t.name).join(', ') || '–';
+  const timePeriodLabel = aiSeason || timePeriodTags.map((t) => t.name).join(', ') || '–';
   const selectedScoutLevels =
     scoutLevels?.filter((s) => selectedScoutIds.includes(s.id)) ?? [];
 
@@ -430,7 +455,7 @@ export default function NewIdeaPage() {
                 {improveText.isPending ? 'Verbessert...' : 'KI verbessern'}
               </button>
             </div>
-            <RichTextEditor
+            <MarkdownEditor
               value={description}
               onChange={setDescription}
               placeholder="Beschreibe die Idee ausführlich..."
@@ -604,13 +629,108 @@ export default function NewIdeaPage() {
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{title}</h1>
 
             {/* Hero Image */}
-            <div className="rounded-xl overflow-hidden shadow-soft">
+            <div className="relative rounded-xl overflow-hidden shadow-soft group">
               <img
-                src="/images/inspi_flying.png"
+                src={aiImageUrl || '/images/inspi_flying.png'}
                 alt={title}
                 className="w-full object-cover max-h-96"
               />
+              <button
+                type="button"
+                onClick={() => setImageDialogOpen(true)}
+                className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-white/50 text-sm font-medium text-gray-700 hover:bg-white shadow-md transition-all opacity-0 group-hover:opacity-100"
+              >
+                <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                Bild neu generieren
+              </button>
             </div>
+
+            {/* Image Generation Dialog */}
+            {imageDialogOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setImageDialogOpen(false)}>
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-2xl w-full mx-4 p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                      <span className="material-symbols-outlined text-[20px]">image</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Titelbild generieren</h3>
+                      <p className="text-sm text-muted-foreground">Ergänze optional eine Beschreibung – der Inhalt deiner Idee wird automatisch mitgesendet</p>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={customImagePrompt}
+                    onChange={(e) => setCustomImagePrompt(e.target.value)}
+                    placeholder="Optional: Zusätzliche Bildbeschreibung, z.B. 'Lagerfeuer mit Marshmallows, Sternenhimmel...'"
+                    rows={2}
+                    className="w-full px-4 py-3 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setImageDialogOpen(false)}
+                      className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="button"
+                      disabled={generateImage.isPending}
+                      onClick={() => {
+                        generateImage.mutate(
+                          {
+                            prompt: customImagePrompt.trim() || title,
+                            title,
+                            summary,
+                            description,
+                          },
+                          {
+                            onSuccess: (data) => {
+                              setAiImageUrls(data.image_urls);
+                            },
+                          },
+                        );
+                      }}
+                      className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg disabled:opacity-50 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                      {generateImage.isPending ? 'Generiert 4 Bilder...' : '4 Bilder generieren'}
+                    </button>
+                  </div>
+
+                  {generateImage.error && (
+                    <p className="text-sm text-destructive">Fehler: {generateImage.error.message}</p>
+                  )}
+
+                  {aiImageUrls.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Wähle ein Bild aus:</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {aiImageUrls.map((url, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setAiImageUrl(url);
+                              setImageDialogOpen(false);
+                            }}
+                            className={`rounded-xl overflow-hidden border-2 transition-all hover:shadow-lg ${
+                              aiImageUrl === url
+                                ? 'border-purple-500 ring-2 ring-purple-500/30'
+                                : 'border-transparent hover:border-purple-300'
+                            }`}
+                          >
+                            <img src={url} alt={`Variante ${idx + 1}`} className="w-full aspect-square object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Info Boxes */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -681,10 +801,9 @@ export default function NewIdeaPage() {
 
             {/* Description */}
             {description && (
-              <div
-                className="prose prose-green max-w-none bg-card rounded-xl border p-6"
-                dangerouslySetInnerHTML={{ __html: description }}
-              />
+              <div className="bg-card rounded-xl border p-6">
+                <MarkdownRenderer content={description} />
+              </div>
             )}
 
             {/* Materials */}

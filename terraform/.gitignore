@@ -1,11 +1,11 @@
-# Terraform
-terraform/.terraform/
-terraform/*.tfstate
-terraform/*.tfstate.backup
-terraform/.terraform.lock.hcl
-terraform/terraform.tfvars
-terraform/*.auto.tfvars
+# OpenTofu / Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
 
 # Environment tfvars contain secrets – keep out of git
-terraform/env/*.tfvars
-!terraform/env/*.tfvars.example
+env/*.tfvars
+!env/*.tfvars.example

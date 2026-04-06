@@ -13,6 +13,8 @@ import type { NutritionalTag } from '@/schemas/idea';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '–';
@@ -255,7 +257,7 @@ function PersonForm({
 function PersonCard({
   person,
   genderChoices,
-  nutritionalTags,
+  nutritionalTags: _nutritionalTags,
   onEdit,
 }: {
   person: Person;
@@ -265,9 +267,30 @@ function PersonCard({
 }) {
   const deletePerson = useDeletePerson();
   const [showDetails, setShowDetails] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   return (
     <div className="border rounded-xl bg-card overflow-hidden">
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onConfirm={() => {
+          deletePerson.mutate(person.id, {
+            onSuccess: () => {
+              toast.success('Person geloescht');
+              setShowDeleteConfirm(false);
+            },
+            onError: (err) => {
+              toast.error('Fehler beim Loeschen', { description: err.message });
+              setShowDeleteConfirm(false);
+            },
+          });
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title={`„${person.first_name} ${person.last_name}" loeschen?`}
+        description="Diese Aktion kann nicht rueckgaengig gemacht werden."
+        confirmLabel="Loeschen"
+        loading={deletePerson.isPending}
+      />
       <div
         className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
         onClick={() => setShowDetails(!showDetails)}
@@ -358,9 +381,7 @@ function PersonCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm(`„${person.first_name} ${person.last_name}" wirklich löschen?`)) {
-                  deletePerson.mutate(person.id);
-                }
+                setShowDeleteConfirm(true);
               }}
               disabled={deletePerson.isPending}
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-destructive/30 text-destructive rounded-md hover:bg-destructive/5 transition-colors disabled:opacity-50"

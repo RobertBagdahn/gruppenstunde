@@ -10,7 +10,7 @@
 
 environment = "dev"
 project_id  = "your-gcp-project-id"
-region      = "europe-west1"
+region      = "europe-west3"
 db_password = "CHANGE_ME_TO_A_SECURE_PASSWORD"
 domain      = "dev.gruppenstunde.de"
 

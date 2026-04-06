@@ -226,6 +226,7 @@ class RegisterPersonIn(Schema):
 
 class RegisterIn(Schema):
     """Register one or more persons for an event."""
+
     persons: list[RegisterPersonIn]
 
 
@@ -246,6 +247,7 @@ class EventListOut(Schema):
     registration_deadline: datetime | None
     is_public: bool
     booking_options: list[BookingOptionOut]
+    packing_list_id: int | None = None
     registration_count: int = 0
     participant_count: int = 0
     created_at: datetime
@@ -283,6 +285,7 @@ class EventDetailOut(Schema):
     registration_start: datetime | None
     is_public: bool
     booking_options: list[BookingOptionOut]
+    packing_list_id: int | None = None
     registration_count: int = 0
     participant_count: int = 0
     is_manager: bool = False
@@ -322,6 +325,7 @@ class EventCreateIn(Schema):
     registration_deadline: datetime | None = None
     registration_start: datetime | None = None
     is_public: bool = False
+    packing_list_id: int | None = None
     booking_options: list[BookingOptionCreateIn] | None = None
 
 
@@ -336,6 +340,7 @@ class EventUpdateIn(Schema):
     registration_deadline: datetime | None = None
     registration_start: datetime | None = None
     is_public: bool | None = None
+    packing_list_id: int | None = None
 
 
 class InviteGroupIn(Schema):

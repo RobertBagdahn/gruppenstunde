@@ -43,6 +43,20 @@ export function useSuggestTags() {
 
 export function useRefurbish() {
   return useMutation<AiRefurbish, Error, { raw_text: string }>({
-    mutationFn: (body) => postJson(`${API_BASE}/refurbish/`, body, AiRefurbishSchema),
+    mutationFn: async (body) => {
+      const result = await postJson(`${API_BASE}/refurbish/`, body, AiRefurbishSchema);
+      return result as AiRefurbish;
+    },
+  });
+}
+
+const AiGenerateImageSchema = z.object({
+  image_urls: z.array(z.string()),
+});
+type AiGenerateImage = z.infer<typeof AiGenerateImageSchema>;
+
+export function useGenerateImage() {
+  return useMutation<AiGenerateImage, Error, { prompt: string; title?: string; summary?: string; description?: string }>({
+    mutationFn: (body) => postJson(`${API_BASE}/generate-image/`, body, AiGenerateImageSchema),
   });
 }

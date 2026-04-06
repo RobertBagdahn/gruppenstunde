@@ -1,43 +1,57 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
 import {
   useEvents,
   useEvent,
-  useCreateEvent,
   usePersons,
-  useCreatePerson,
   useRegisterForEvent,
   useRemoveParticipant,
   useUpdateParticipant,
   useCreateBookingOption,
   useDeleteBookingOption,
   useDeleteEvent,
+  useUpdateEvent,
   useInviteGroup,
   useInviteUsers,
 } from '@/api/events';
+import { usePackingLists } from '@/api/packingLists';
 import { useGroups } from '@/api/profile';
 import { useSearchUsers } from '@/api/planner';
 import type { UserSearchResult } from '@/api/planner';
 import type { UserGroup } from '@/schemas/profile';
-import type { EventList } from '@/schemas/event';
+import type { EventList, EventDetail } from '@/schemas/event';
 import { cn } from '@/lib/utils';
+import ErrorDisplay from '@/components/ErrorDisplay';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function EventsPage() {
   const { data: user } = useCurrentUser();
-  const { data: events, isLoading } = useEvents();
+  const { data: events, isLoading, error: eventsError, refetch: refetchEvents } = useEvents();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const navigate = useNavigate();
 
   return (
     <div>
+      {/* Tool-colored header */}
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+          <span className="material-symbols-outlined text-[22px]">celebration</span>
+        </div>
+        <div>
+          <h1 className="text-xl font-bold">Veranstaltungen</h1>
+          <p className="text-xs text-muted-foreground">Lager, Elternabende und Aktionen verwalten</p>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         {/* Sidebar: Event List */}
         <div className="w-full md:w-72 md:shrink-0 space-y-3">
           {user && (
             <button
-              onClick={() => navigate('/planning/events/new')}
-              className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-md text-sm font-medium flex items-center justify-center gap-1.5"
+              onClick={() => navigate('/events/app/new')}
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-md text-sm font-medium flex items-center justify-center gap-1.5 hover:shadow-lg hover:shadow-violet-500/25 transition-all"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               Neues Event
@@ -45,6 +59,10 @@ export default function EventsPage() {
           )}
 
           {isLoading && <p className="text-sm text-muted-foreground">Laden...</p>}
+
+          {eventsError && (
+            <ErrorDisplay error={eventsError} variant="inline" onRetry={() => refetchEvents()} />
+          )}
 
           {events?.map((ev) => (
             <EventCard
@@ -94,12 +112,12 @@ function EventCard({ event, selected, onClick }: { event: EventList; selected: b
       className={cn(
         'w-full text-left px-4 py-3 rounded-lg text-sm border transition-all',
         selected
-          ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+          ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white border-violet-500 shadow-sm'
           : 'hover:bg-muted border-transparent hover:border-border'
       )}
     >
       <div className="font-medium truncate">{event.name}</div>
-      <div className={cn('flex items-center gap-2 mt-1 text-xs', selected ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+      <div className={cn('flex items-center gap-2 mt-1 text-xs', selected ? 'text-white/80' : 'text-muted-foreground')}>
         {dateStr && (
           <span className="flex items-center gap-0.5">
             <span className="material-symbols-outlined text-[14px]">calendar_today</span>
@@ -126,15 +144,17 @@ function EventCard({ event, selected, onClick }: { event: EventList; selected: b
 
 function EventDetailView({ slug, onDeleted }: { slug: string; onDeleted: () => void }) {
   const { data: user } = useCurrentUser();
-  const { data: event, isLoading, isError, error } = useEvent(slug);
+  const { data: event, isLoading, isError, error, refetch } = useEvent(slug);
   const deleteEvent = useDeleteEvent();
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   if (isLoading) return <div className="animate-pulse h-64 bg-muted rounded-lg" />;
-  if (isError) return <p className="text-destructive">{(error as Error).message}</p>;
-  if (!event) return <p className="text-destructive">Event nicht gefunden.</p>;
+  if (isError) return <ErrorDisplay error={error as Error} title="Event konnte nicht geladen werden" onRetry={() => refetch()} />;
+  if (!event) return <ErrorDisplay error={null} title="Event nicht gefunden" />;
 
   const dateFormatter = new Intl.DateTimeFormat('de-DE', {
     day: '2-digit',
@@ -146,6 +166,27 @@ function EventDetailView({ slug, onDeleted }: { slug: string; onDeleted: () => v
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onConfirm={() => {
+          deleteEvent.mutate(slug, {
+            onSuccess: () => {
+              toast.success('Event geloescht');
+              setShowDeleteConfirm(false);
+              onDeleted();
+            },
+            onError: (err) => {
+              toast.error('Fehler beim Loeschen', { description: err.message });
+              setShowDeleteConfirm(false);
+            },
+          });
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title="Event loeschen?"
+        description="Das Event und alle zugehoerigen Anmeldungen werden unwiderruflich geloescht."
+        confirmLabel="Loeschen"
+        loading={deleteEvent.isPending}
+      />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
@@ -178,6 +219,16 @@ function EventDetailView({ slug, onDeleted }: { slug: string; onDeleted: () => v
         {event.is_manager && (
           <div className="flex gap-2">
             <button
+              onClick={() => setShowEditForm(!showEditForm)}
+              className={cn(
+                "px-3 py-1.5 text-sm border rounded-md flex items-center gap-1",
+                showEditForm ? "bg-violet-600 text-white border-violet-600" : "hover:bg-muted"
+              )}
+            >
+              <span className="material-symbols-outlined text-[16px]">edit</span>
+              Bearbeiten
+            </button>
+            <button
               onClick={() => setShowInviteForm(!showInviteForm)}
               className="px-3 py-1.5 text-sm border rounded-md hover:bg-muted flex items-center gap-1"
             >
@@ -185,11 +236,7 @@ function EventDetailView({ slug, onDeleted }: { slug: string; onDeleted: () => v
               Einladen
             </button>
             <button
-              onClick={() => {
-                if (confirm('Event wirklich löschen?')) {
-                  deleteEvent.mutate(slug, { onSuccess: onDeleted });
-                }
-              }}
+              onClick={() => setShowDeleteConfirm(true)}
               className="px-3 py-1.5 text-sm border border-destructive/30 text-destructive rounded-md hover:bg-destructive/5"
             >
               <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -199,8 +246,13 @@ function EventDetailView({ slug, onDeleted }: { slug: string; onDeleted: () => v
       </div>
 
       {/* Description */}
-      {event.description && (
+      {event.description && !showEditForm && (
         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{event.description}</p>
+      )}
+
+      {/* Edit Form (Manager) */}
+      {showEditForm && event.is_manager && (
+        <EventEditForm event={event} slug={slug} onDone={() => setShowEditForm(false)} />
       )}
 
       {/* Invite (Manager) */}
@@ -266,7 +318,7 @@ function EventDetailView({ slug, onDeleted }: { slug: string; onDeleted: () => v
           ) : (
             <button
               onClick={() => setShowRegisterForm(!showRegisterForm)}
-              className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
               Anmelden
@@ -316,6 +368,181 @@ function EventDetailView({ slug, onDeleted }: { slug: string; onDeleted: () => v
 }
 
 // ---------------------------------------------------------------------------
+// Event Edit Form
+// ---------------------------------------------------------------------------
+
+function EventEditForm({ event, slug, onDone }: { event: EventDetail; slug: string; onDone: () => void }) {
+  const updateEvent = useUpdateEvent(slug);
+  const { data: packingLists } = usePackingLists();
+
+  const [name, setName] = useState(event.name);
+  const [description, setDescription] = useState(event.description);
+  const [location, setLocation] = useState(event.location);
+  const [startDate, setStartDate] = useState(event.start_date ? event.start_date.slice(0, 16) : '');
+  const [endDate, setEndDate] = useState(event.end_date ? event.end_date.slice(0, 16) : '');
+  const [registrationDeadline, setRegistrationDeadline] = useState(
+    event.registration_deadline ? event.registration_deadline.slice(0, 16) : ''
+  );
+  const [isPublic, setIsPublic] = useState(event.is_public);
+  const [packingListId, setPackingListId] = useState<number | null>(event.packing_list_id ?? null);
+
+  function handleSave() {
+    updateEvent.mutate(
+      {
+        name: name.trim(),
+        description,
+        location,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        registration_deadline: registrationDeadline || null,
+        is_public: isPublic,
+        packing_list_id: packingListId,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Event aktualisiert');
+          onDone();
+        },
+        onError: (err) => {
+          toast.error('Fehler beim Speichern', { description: err.message });
+        },
+      },
+    );
+  }
+
+  return (
+    <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+      <h3 className="text-sm font-semibold flex items-center gap-1.5">
+        <span className="material-symbols-outlined text-[18px]">edit</span>
+        Event bearbeiten
+      </h3>
+
+      {/* Name */}
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Name *</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+        />
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Beschreibung</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2 rounded-md border text-sm bg-background resize-y"
+        />
+      </div>
+
+      {/* Location */}
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Ort</label>
+        <input
+          type="text"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="z.B. Pfadfinderheim"
+          className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+        />
+      </div>
+
+      {/* Dates */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Start</label>
+          <input
+            type="datetime-local"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Ende</label>
+          <input
+            type="datetime-local"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+          />
+        </div>
+      </div>
+
+      {/* Registration deadline */}
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Anmeldeschluss</label>
+        <input
+          type="datetime-local"
+          value={registrationDeadline}
+          onChange={(e) => setRegistrationDeadline(e.target.value)}
+          className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+        />
+      </div>
+
+      {/* Packing List */}
+      <div>
+        <label className="block text-xs font-medium text-muted-foreground mb-1">Packliste</label>
+        <select
+          value={packingListId ?? ''}
+          onChange={(e) => setPackingListId(e.target.value ? Number(e.target.value) : null)}
+          className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+        >
+          <option value="">Keine Packliste</option>
+          {packingLists?.map((pl) => (
+            <option key={pl.id} value={pl.id}>
+              {pl.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Public toggle */}
+      <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <input
+          type="checkbox"
+          checked={isPublic}
+          onChange={(e) => setIsPublic(e.target.checked)}
+          className="rounded"
+        />
+        Oeffentlich sichtbar
+      </label>
+
+      {/* Actions */}
+      <div className="flex gap-2 pt-2">
+        <button
+          onClick={handleSave}
+          disabled={!name.trim() || updateEvent.isPending}
+          className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-md text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+        >
+          {updateEvent.isPending ? (
+            <>
+              <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+              Speichern...
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined text-[16px]">save</span>
+              Speichern
+            </>
+          )}
+        </button>
+        <button
+          onClick={onDone}
+          className="px-4 py-2 border rounded-md text-sm hover:bg-muted"
+        >
+          Abbrechen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Participant Row
 // ---------------------------------------------------------------------------
 
@@ -342,7 +569,7 @@ function ParticipantRow({
           <span className="text-xs text-muted-foreground">({participant.scout_name})</span>
         )}
         {participant.booking_option_name && (
-          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+           <span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">
             {participant.booking_option_name}
           </span>
         )}
@@ -446,7 +673,7 @@ function RegisterForm({
                   {person.first_name} {person.last_name}
                 </span>
                 {person.is_owner && (
-                  <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Ich</span>
+                  <span className="text-xs bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded">Ich</span>
                 )}
               </label>
               {selectedPersons.has(person.id) && bookingOptions.length > 0 && (
@@ -482,12 +709,20 @@ function RegisterForm({
                     booking_option_id,
                   })),
                 },
-                { onSuccess: onDone }
+                {
+                  onSuccess: () => {
+                    toast.success('Anmeldung erfolgreich');
+                    onDone();
+                  },
+                  onError: (err) => {
+                    toast.error('Fehler bei der Anmeldung', { description: err.message });
+                  },
+                }
               );
             }
           }}
           disabled={selectedPersons.size === 0 || register.isPending}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
+          className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-md text-sm disabled:opacity-50"
         >
           {register.isPending ? 'Anmelden...' : `${selectedPersons.size} Person(en) anmelden`}
         </button>
@@ -546,12 +781,20 @@ function AddBookingOptionForm({ eventSlug, onDone }: { eventSlug: string; onDone
             if (name.trim()) {
               createOption.mutate(
                 { name: name.trim(), price, max_participants: maxParticipants },
-                { onSuccess: () => { setName(''); setPrice('0.00'); setMaxParticipants(0); onDone(); } }
+                {
+                  onSuccess: () => {
+                    toast.success('Buchungsoption erstellt');
+                    setName(''); setPrice('0.00'); setMaxParticipants(0); onDone();
+                  },
+                  onError: (err) => {
+                    toast.error('Fehler beim Erstellen', { description: err.message });
+                  },
+                }
               );
             }
           }}
           disabled={!name.trim() || createOption.isPending}
-          className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs disabled:opacity-50"
+          className="px-3 py-1.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-md text-xs disabled:opacity-50"
         >
           Speichern
         </button>
@@ -618,7 +861,7 @@ function InviteForm({ eventSlug }: { eventSlug: string }) {
           onClick={() => setTab('group')}
           className={cn(
             'px-3 py-1.5 text-sm rounded-md font-medium',
-            tab === 'group' ? 'bg-primary text-primary-foreground' : 'border hover:bg-muted',
+            tab === 'group' ? 'bg-violet-600 text-white' : 'border hover:bg-muted',
           )}
         >
           Gruppe einladen
@@ -627,7 +870,7 @@ function InviteForm({ eventSlug }: { eventSlug: string }) {
           onClick={() => setTab('user')}
           className={cn(
             'px-3 py-1.5 text-sm rounded-md font-medium',
-            tab === 'user' ? 'bg-primary text-primary-foreground' : 'border hover:bg-muted',
+            tab === 'user' ? 'bg-violet-600 text-white' : 'border hover:bg-muted',
           )}
         >
           Benutzer einladen
@@ -703,7 +946,7 @@ function InviteGroupSection({ eventSlug }: { eventSlug: string }) {
           {selectedGroups.map((g) => (
             <span
               key={g.slug}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 text-xs font-medium"
             >
               {g.name}
               <button
@@ -755,7 +998,7 @@ function InviteGroupSection({ eventSlug }: { eventSlug: string }) {
       <button
         onClick={handleInvite}
         disabled={selectedGroups.length === 0 || inviteGroup.isPending}
-        className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
+        className="px-3 py-1.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-md text-sm disabled:opacity-50"
       >
         {inviteGroup.isPending ? 'Wird eingeladen...' : `${selectedGroups.length > 0 ? selectedGroups.length + ' ' : ''}Gruppe${selectedGroups.length !== 1 ? 'n' : ''} einladen`}
       </button>
@@ -806,7 +1049,7 @@ function InviteUserSection({ eventSlug }: { eventSlug: string }) {
           {selectedUsers.map((u) => (
             <span
               key={u.id}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 text-xs font-medium"
             >
               {u.scout_display_name}
               <button
@@ -858,7 +1101,7 @@ function InviteUserSection({ eventSlug }: { eventSlug: string }) {
       <button
         onClick={handleInvite}
         disabled={selectedUsers.length === 0 || inviteUsers.isPending}
-        className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
+        className="px-3 py-1.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-md text-sm disabled:opacity-50"
       >
         {inviteUsers.isPending ? 'Wird eingeladen...' : `${selectedUsers.length > 0 ? selectedUsers.length + ' ' : ''}Benutzer einladen`}
       </button>

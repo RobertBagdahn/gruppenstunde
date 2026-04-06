@@ -15,12 +15,16 @@ from .choices import (
     DifficultyChoices,
     EmotionType,
     ExecutionTimeChoices,
+    HintLevelChoices,
+    HintMinMaxChoices,
+    HintParameterChoices,
     IdeaTypeChoices,
     IngredientStatusChoices,
     MaterialQuantityType,
     MeasuringUnitType,
     PhysicalViscosityChoices,
     PreparationTimeChoices,
+    RecipeObjectiveChoices,
     RecipeTypeChoices,
     StatusChoices,
 )
@@ -250,6 +254,27 @@ class NutritionalTag(TimeStampMixin):
 
 
 # ---------------------------------------------------------------------------
+# Retail Sections (supermarket aisle grouping for shopping lists)
+# ---------------------------------------------------------------------------
+
+
+class RetailSection(models.Model):
+    """Supermarket aisle/section for shopping list grouping."""
+
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    description = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Beschreibung"))
+    rank = models.IntegerField(default=0, verbose_name=_("Sortierung"))
+
+    class Meta:
+        verbose_name = _("Supermarkt-Abteilung")
+        verbose_name_plural = _("Supermarkt-Abteilungen")
+        ordering = ["rank", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+# ---------------------------------------------------------------------------
 # Ingredients (from inspi/food – ingredient database)
 # ---------------------------------------------------------------------------
 
@@ -260,6 +285,8 @@ class Ingredient(TimeStampMixin):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     slug = models.SlugField(max_length=280, unique=True, blank=True)
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
+
+    # Physical properties
     physical_density = models.FloatField(default=1, verbose_name=_("Dichte"))
     physical_viscosity = models.CharField(
         max_length=10,
@@ -267,6 +294,18 @@ class Ingredient(TimeStampMixin):
         default=PhysicalViscosityChoices.SOLID,
         verbose_name=_("Aggregatzustand"),
     )
+    durability_in_days = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Haltbarkeit (Tage)"),
+    )
+    max_storage_temperature = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Max. Lagertemperatur (°C)"),
+    )
+
+    # Legacy field (kept for backward compat)
     standard_recipe_weight_g = models.FloatField(
         default=100,
         help_text=_("Standard-Gewicht in Gramm für ein Rezept"),
@@ -274,19 +313,121 @@ class Ingredient(TimeStampMixin):
         null=True,
         verbose_name=_("Standard-Rezeptgewicht (g)"),
     )
+
+    # Nutritional values per 100g
     energy_kj = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Energie (kJ)"))
     protein_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Eiweiß (g)"))
     fat_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Fett (g)"))
+    fat_sat_g = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Gesättigte Fettsäuren (g)"),
+    )
     carbohydrate_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Kohlenhydrate (g)"))
     sugar_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Zucker (g)"))
     fibre_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Ballaststoffe (g)"))
     salt_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Salz (g)"))
+    sodium_mg = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Natrium (mg)"),
+    )
+    fructose_g = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Fructose (g)"),
+    )
+    lactose_g = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Laktose (g)"),
+    )
+
+    # Scores
+    child_score = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        verbose_name=_("Kinderfreundlichkeit (1-10)"),
+    )
+    scout_score = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        verbose_name=_("Pfadfindereignung (1-10)"),
+    )
+    environmental_score = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        verbose_name=_("Umweltfreundlichkeit (1-10)"),
+    )
+    nova_score = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(4)],
+        verbose_name=_("NOVA-Verarbeitungsgrad (1-4)"),
+    )
+    fruit_factor = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        verbose_name=_("Obst-/Gemüse-Anteil (0-1)"),
+    )
+
+    # Calculated fields
+    nutri_score = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Nutri-Score (Punkte)"),
+    )
+    nutri_class = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        verbose_name=_("Nutri-Score Klasse (1=A bis 5=E)"),
+    )
+    price_per_kg = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Preis pro kg (EUR)"),
+    )
+
+    # External references
+    fdc_id = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("USDA FoodData Central ID"),
+    )
+    ean = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        verbose_name=_("EAN-Barcode"),
+    )
+
+    # Relations
     ingredient_ref = models.ForeignKey(
-        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         verbose_name=_("Referenz-Zutat"),
     )
+    retail_section = models.ForeignKey(
+        RetailSection,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ingredients",
+        verbose_name=_("Supermarkt-Abteilung"),
+    )
     nutritional_tags = models.ManyToManyField(
-        NutritionalTag, blank=True, related_name="ingredients",
+        NutritionalTag,
+        blank=True,
+        related_name="ingredients",
         verbose_name=_("Ernährungstags"),
     )
     status = models.CharField(
@@ -322,7 +463,9 @@ class IngredientAlias(TimeStampMixin):
     """Alternative name for an ingredient."""
 
     ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, related_name="aliases",
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name="aliases",
     )
     name = models.CharField(
         max_length=100,
@@ -351,11 +494,16 @@ class Portion(TimeStampMixin):
 
     name = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Name"))
     measuring_unit = models.ForeignKey(
-        MeasuringUnit, on_delete=models.SET_NULL, blank=True, null=True,
+        MeasuringUnit,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
         verbose_name=_("Maßeinheit"),
     )
     ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, related_name="portions",
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name="portions",
         verbose_name=_("Zutat"),
     )
     quantity = models.FloatField(default=1, verbose_name=_("Menge"))
@@ -373,6 +521,61 @@ class Portion(TimeStampMixin):
 
 
 # ---------------------------------------------------------------------------
+# Prices (for portions – triggers price cascade)
+# ---------------------------------------------------------------------------
+
+
+class Price(TimeStampMixin):
+    """Price for a portion/packaging of an ingredient."""
+
+    portion = models.ForeignKey(
+        Portion,
+        on_delete=models.CASCADE,
+        related_name="prices",
+        verbose_name=_("Portion"),
+    )
+    price_eur = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name=_("Preis (EUR)"),
+    )
+    quantity = models.IntegerField(
+        default=1,
+        verbose_name=_("Anzahl pro Packung"),
+        help_text=_("Wie viele Portionen in einer Packung"),
+    )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Bezeichnung"),
+        help_text=_("z.B. '500g Packung'"),
+    )
+    retailer = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Händler"),
+        help_text=_("z.B. 'Aldi', 'Rewe'"),
+    )
+    quality = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        verbose_name=_("Qualität"),
+        help_text=_("z.B. 'Bio', 'Standard'"),
+    )
+
+    class Meta:
+        verbose_name = _("Preis")
+        verbose_name_plural = _("Preise")
+        ordering = ["price_eur"]
+
+    def __str__(self):
+        return f"{self.name} – {self.price_eur} EUR ({self.retailer})"
+
+
+# ---------------------------------------------------------------------------
 # Idea (core model – replaces Activity)
 # ---------------------------------------------------------------------------
 
@@ -385,7 +588,7 @@ class Idea(TimeStampMixin):
         choices=IdeaTypeChoices.choices,
         default=IdeaTypeChoices.IDEA,
         verbose_name=_("Typ"),
-        help_text=_("Idee, Wissensbeitrag oder Rezept"),
+        help_text=_("Idee oder Wissensbeitrag"),
     )
     title = models.CharField(max_length=255, verbose_name=_("Titel"))
     slug = models.SlugField(
@@ -443,32 +646,10 @@ class Idea(TimeStampMixin):
     # NOTE: Enable once django-pgvector is installed and pgvector extension is active
     embedding = models.BinaryField(null=True, blank=True, verbose_name=_("Embedding"))
 
-    # Recipe-specific fields (only used when idea_type == 'recipe')
-    servings = models.IntegerField(
-        default=4,
-        blank=True,
-        null=True,
-        verbose_name=_("Portionen"),
-        help_text=_("Anzahl der Portionen (nur für Rezepte)"),
-    )
-    recipe_type = models.CharField(
-        max_length=20,
-        choices=RecipeTypeChoices.choices,
-        blank=True,
-        default="",
-        verbose_name=_("Rezepttyp"),
-        help_text=_("Frühstück, Warme Mahlzeit, Snack, etc. (nur für Rezepte)"),
-    )
-
     # Relations
     scout_levels = models.ManyToManyField(ScoutLevel, blank=True, related_name="ideas")
     tags = models.ManyToManyField(Tag, blank=True, related_name="ideas")
     authors = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name="authored_ideas")
-    nutritional_tags = models.ManyToManyField(
-        NutritionalTag, blank=True, related_name="ideas",
-        verbose_name=_("Ernährungstags"),
-        help_text=_("Ernährungshinweise wie vegan, vegetarisch, etc. (nur für Rezepte)"),
-    )
 
     class Meta:
         verbose_name = _("Idee")
@@ -477,7 +658,6 @@ class Idea(TimeStampMixin):
         indexes = [
             GinIndex(fields=["search_vector"]),
             models.Index(fields=["status", "-created_at"]),
-            models.Index(fields=["idea_type", "status", "-created_at"]),
             models.Index(fields=["-like_score"]),
             models.Index(fields=["-view_count"]),
         ]
@@ -520,53 +700,6 @@ class MaterialItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} {self.material_name}"
-
-
-class RecipeItem(models.Model):
-    """Ingredient item for a recipe-type idea (Zutat im Rezept)."""
-
-    idea = models.ForeignKey(
-        Idea, on_delete=models.CASCADE, related_name="recipe_items",
-        verbose_name=_("Rezept"),
-    )
-    portion = models.ForeignKey(
-        Portion, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="recipe_items",
-        verbose_name=_("Portion"),
-    )
-    ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="recipe_items",
-        verbose_name=_("Zutat"),
-        help_text=_("Direkte Zutat (wenn keine Portion gewählt)"),
-    )
-    quantity = models.FloatField(default=1, verbose_name=_("Menge"))
-    measuring_unit = models.ForeignKey(
-        MeasuringUnit, on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name=_("Maßeinheit"),
-    )
-    sort_order = models.IntegerField(default=0, verbose_name=_("Reihenfolge"))
-    note = models.CharField(
-        max_length=255, blank=True, default="",
-        verbose_name=_("Anmerkung"),
-        help_text=_("z.B. 'gehackt', 'in Scheiben', 'optional'"),
-    )
-    quantity_type = models.CharField(
-        max_length=20,
-        choices=MaterialQuantityType.choices,
-        default=MaterialQuantityType.ONCE,
-        verbose_name=_("Mengenart"),
-        help_text=_("Einmalig = Gesamtmenge, Pro Person = Menge pro Person"),
-    )
-
-    class Meta:
-        verbose_name = _("Rezept-Zutat")
-        verbose_name_plural = _("Rezept-Zutaten")
-        ordering = ["sort_order"]
-
-    def __str__(self):
-        name = self.portion or self.ingredient or "?"
-        return f"{self.quantity} x {name}"
 
 
 # ---------------------------------------------------------------------------

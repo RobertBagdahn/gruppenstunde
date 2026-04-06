@@ -4,11 +4,15 @@ from django.http import HttpResponse
 from django.urls import include, path
 from ninja import NinjaAPI
 
-from core.api import auth_router
+from core.api import auth_router, search_router
 from idea.api import admin_router, ai_router, material_router, router as idea_router, tag_router, user_router
+from idea.ingredient_api import ingredient_router, retail_section_router
+from recipe.api import router as recipe_router
 from planner.api import router as planner_router
+from planner.meal_plan_api import meal_plan_router
 from profiles.api import group_router, profile_router
 from event.api import event_router, location_router, person_router
+from packinglist.api import packing_list_router
 
 api = NinjaAPI(
     title="Inspi API",
@@ -17,11 +21,13 @@ api = NinjaAPI(
 )
 
 api.add_router("/auth/", auth_router)
+api.add_router("/search/", search_router)
 api.add_router("/ideas/", idea_router)
 api.add_router("/tags/", tag_router)
 api.add_router("/ai/", ai_router)
 api.add_router("/users/", user_router)
 api.add_router("/planner/", planner_router)
+api.add_router("/meal-plans/", meal_plan_router)
 api.add_router("/materials/", material_router)
 api.add_router("/admin/", admin_router)
 api.add_router("/profile/", profile_router)
@@ -29,6 +35,10 @@ api.add_router("/groups/", group_router)
 api.add_router("/events/", event_router)
 api.add_router("/persons/", person_router)
 api.add_router("/locations/", location_router)
+api.add_router("/packing-lists/", packing_list_router)
+api.add_router("/ingredients/", ingredient_router)
+api.add_router("/retail-sections/", retail_section_router)
+api.add_router("/recipes/", recipe_router)
 
 
 def sitemap_xml(request):
@@ -48,21 +58,17 @@ def sitemap_xml(request):
         )
 
     # Idea pages with slug
-    ideas = Idea.objects.filter(status=StatusChoices.PUBLISHED).values(
-        "slug", "updated_at"
-    )
+    ideas = Idea.objects.filter(status=StatusChoices.PUBLISHED).values("slug", "updated_at")
     for idea in ideas:
         lastmod = idea["updated_at"].strftime("%Y-%m-%d")
         urls.append(
-            f'  <url><loc>{frontend_base}/idea/{idea["slug"]}</loc>'
+            f"  <url><loc>{frontend_base}/idea/{idea['slug']}</loc>"
             f"<lastmod>{lastmod}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>"
         )
 
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + "\n".join(urls)
-        + "\n</urlset>"
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(urls) + "\n</urlset>"
     )
     return HttpResponse(xml, content_type="application/xml")
 
@@ -95,6 +101,7 @@ urlpatterns = [
 if settings.DEBUG:
     try:
         import debug_toolbar
+
         urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
     except ImportError:
         pass

@@ -19,9 +19,7 @@ class EventLocation(models.Model):
     zip_code = models.CharField(max_length=10, blank=True, default="", verbose_name=_("PLZ"))
     city = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Stadt"))
     state = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Bundesland"))
-    country = models.CharField(
-        max_length=100, blank=True, default="Deutschland", verbose_name=_("Land")
-    )
+    country = models.CharField(max_length=100, blank=True, default="Deutschland", verbose_name=_("Land"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -77,17 +75,11 @@ class Event(models.Model):
         related_name="events",
         verbose_name=_("Veranstaltungsort"),
     )
-    invitation_text = models.TextField(
-        blank=True, default="", verbose_name=_("Einladungstext")
-    )
+    invitation_text = models.TextField(blank=True, default="", verbose_name=_("Einladungstext"))
     start_date = models.DateTimeField(null=True, blank=True, verbose_name=_("Startdatum"))
     end_date = models.DateTimeField(null=True, blank=True, verbose_name=_("Enddatum"))
-    registration_deadline = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("Anmeldeschluss")
-    )
-    registration_start = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("Anmeldestart")
-    )
+    registration_deadline = models.DateTimeField(null=True, blank=True, verbose_name=_("Anmeldeschluss"))
+    registration_start = models.DateTimeField(null=True, blank=True, verbose_name=_("Anmeldestart"))
     is_public = models.BooleanField(default=False, verbose_name=_("Öffentlich"))
     responsible_persons = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -106,6 +98,14 @@ class Event(models.Model):
         blank=True,
         related_name="invited_events",
         verbose_name=_("Eingeladene Gruppen"),
+    )
+    packing_list = models.ForeignKey(
+        "packinglist.PackingList",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="events",
+        verbose_name=_("Packliste"),
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -158,9 +158,7 @@ class Event(models.Model):
         # Check group invitations
         from profiles.models import GroupMembership
 
-        user_group_ids = GroupMembership.objects.filter(
-            user=user, is_active=True
-        ).values_list("group_id", flat=True)
+        user_group_ids = GroupMembership.objects.filter(user=user, is_active=True).values_list("group_id", flat=True)
         if self.invited_groups.filter(pk__in=user_group_ids).exists():
             return True
         return False
@@ -176,12 +174,8 @@ class BookingOption(models.Model):
 
     name = models.CharField(max_length=100, verbose_name=_("Name"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
-    price = models.DecimalField(
-        max_digits=7, decimal_places=2, default=0, verbose_name=_("Preis")
-    )
-    event = models.ForeignKey(
-        Event, on_delete=models.CASCADE, related_name="booking_options", verbose_name=_("Event")
-    )
+    price = models.DecimalField(max_digits=7, decimal_places=2, default=0, verbose_name=_("Preis"))
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="booking_options", verbose_name=_("Event"))
     max_participants = models.IntegerField(
         default=0,
         verbose_name=_("Max. Teilnehmer"),
@@ -222,9 +216,7 @@ class Person(models.Model):
         related_name="persons",
         verbose_name=_("Benutzer"),
     )
-    scout_name = models.CharField(
-        max_length=100, blank=True, default="", verbose_name=_("Pfadfindername")
-    )
+    scout_name = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Pfadfindername"))
     first_name = models.CharField(max_length=100, verbose_name=_("Vorname"))
     last_name = models.CharField(max_length=100, verbose_name=_("Nachname"))
     address = models.CharField(max_length=200, blank=True, default="", verbose_name=_("Adresse"))
@@ -244,13 +236,14 @@ class Person(models.Model):
         related_name="persons",
         verbose_name=_("Ernährungstags"),
     )
+    is_owner = models.BooleanField(default=False, verbose_name=_("Ist Eigentümer"))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _("Person")
         verbose_name_plural = _("Personen")
-        ordering = ["last_name", "first_name"]
+        ordering = ["-is_owner", "last_name", "first_name"]
 
     def __str__(self):
         label = f"{self.last_name}, {self.first_name}"
@@ -322,9 +315,7 @@ class Participant(models.Model):
         verbose_name=_("Buchungsoption"),
     )
     # Cloned person data
-    scout_name = models.CharField(
-        max_length=100, blank=True, default="", verbose_name=_("Pfadfindername")
-    )
+    scout_name = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Pfadfindername"))
     first_name = models.CharField(max_length=100, verbose_name=_("Vorname"))
     last_name = models.CharField(max_length=100, verbose_name=_("Nachname"))
     address = models.CharField(max_length=200, blank=True, default="", verbose_name=_("Adresse"))

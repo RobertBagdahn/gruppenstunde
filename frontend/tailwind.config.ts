@@ -1,3 +1,6 @@
+import tailwindcssAnimate from 'tailwindcss-animate';
+import tailwindcssTypography from '@tailwindcss/typography';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
@@ -15,7 +18,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Source Sans 3', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -59,10 +62,10 @@ export default {
           5: "hsl(var(--chart-5))",
         },
         inspi: {
-          green: "#22a34a",
-          yellow: "#f5b731",
-          orange: "#e87532",
-          teal: "#1a9d8a",
+          green: "#0f6c8f",
+          yellow: "#f0b429",
+          orange: "#d39b1d",
+          teal: "#105f75",
         },
       },
       borderRadius: {
@@ -106,5 +109,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate, tailwindcssTypography],
 };

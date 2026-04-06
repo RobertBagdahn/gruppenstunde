@@ -57,7 +57,10 @@ export function useAdminMaterials(page: number = 1, pageSize: number = 20, searc
 export function useAdminUnits() {
   return useQuery<MaterialUnit2[]>({
     queryKey: ['admin', 'units'],
-    queryFn: () => fetchJson(`${ADMIN_BASE}/units/`, z.array(MaterialUnitSchema)),
+    queryFn: async () => {
+      const result = await fetchJson(`${ADMIN_BASE}/units/`, z.array(MaterialUnitSchema));
+      return result as MaterialUnit2[];
+    },
   });
 }
 

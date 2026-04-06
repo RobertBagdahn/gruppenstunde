@@ -18,7 +18,7 @@ Neue Backend-Anforderungen (Models, API-Endpunkte, Services, GCP-Config) MÜSSEN
 
 ### Bei KI-Features (Vertex AI)
 1. Logik in `idea/services/ai_service.py` implementieren
-2. Vertex AI SDK verwenden (`google-cloud-aiplatform`), **keine API Keys**
+2. `google-genai` SDK verwenden (`genai.Client(vertexai=True, ...)`), **keine API Keys**
 3. Service Account / Application Default Credentials (ADC)
 4. API-Endpunkt in `idea/api.py` unter `/api/ai/` Prefix
 
@@ -37,10 +37,17 @@ idea/
     search_service.py ← Hybrid Search (Fulltext + pgvector + Filter)
     export_service.py ← Instagram-Export (3 Slides), PDF-Daten
     view_service.py   ← Bot-freies View-Logging
-calendar/
-  models.py           ← Calendar, CalendarEntry, CalendarCollaborator
-  schemas.py
-  api.py
+    nutri_service.py  ← Nutri-Score Berechnung, Nährwert-Aggregation
+    price_service.py  ← Preiskaskade (Price → Portion → RecipeItem → Recipe → Meal → MealPlan)
+    norm_person.py    ← Norm-Personen-Berechnung (Mifflin-St Jeor), Portionsskalierung
+    recipe_checks.py  ← Rezept-Bewertungen (Sättigung, Preis, Gesundheit, Geschmack)
+    hint_service.py   ← RecipeHint-Regelabgleich für Verbesserungsvorschläge
+    ingredient_ai.py  ← KI-Autovervollständigung für Zutaten (Gemini Flash)
+    shopping_service.py ← Einkaufslisten-Generierung aus MealPlan
+planner/
+  models.py           ← Planner (group FK, weekday, time), PlannerEntry (status), PlannerCollaborator, MealPlan, MealDay, Meal, MealItem
+  schemas.py          ← PlannerOut, PlannerDetailOut, PlannerCreateIn, PlannerUpdateIn, PlannerEntryOut, PlannerEntryIn, PlannerEntryUpdateIn, CollaboratorOut, InviteIn
+  api.py              ← planner_router (9 Endpunkte: CRUD + Entries + Invite, group-based access control)
 core/
   api.py              ← Auth-Endpunkte (Login, Register, Logout, CSRF, /me/)
   middleware.py       ← Bot-Detection, Analytics
@@ -53,20 +60,33 @@ event/
   api.py              ← event_router, person_router
   admin.py
   AGENTS.md           ← Modul-spezifische Doku
+profiles/
+  models.py           ← UserProfile, UserPreference, UserGroup, GroupMembership
+packinglist/
+  models.py           ← PackingList (is_template, clone_for_user), PackingCategory, PackingItem (is_checked)
+  schemas.py          ← Pydantic Schemas (Out, CreateIn, UpdateIn, SortOrderIn) inkl. is_template, is_checked, checked_count
+  api.py              ← packing_list_router (17 Endpunkte: CRUD + Sort + Templates + Clone + Export + Reset)
+  admin.py            ← Admin mit Inlines
+  management/commands/seed_packing_lists.py  ← 12 Vorlagen-Packlisten seeden
+recipe/
+  models.py           ← Recipe, RecipeItem, RecipeHint, RecipeComment, RecipeEmotion, RecipeView
+  choices.py          ← RecipeStatusChoices, RecipeTypeChoices, DifficultyChoices, etc.
+  schemas.py          ← Pydantic Schemas (RecipeListOut, RecipeDetailOut, RecipeCreateIn, etc.)
+  api.py              ← recipe_router (CRUD, Items, Comments, Emotions, Checks, Hints, NutriScore)
+  admin.py            ← Admin mit RecipeItem-Inline
 ```
 
 ## Datenmodell-Kontext
 
 ### Idea (Kernmodell – ehemals Activity)
 Die Idea ist das zentrale Objekt. Felder:
-- **idea_type** (TextChoices: `idea`, `knowledge`, `recipe`) – Typ der Idee:
+- **idea_type** (TextChoices: `idea`, `knowledge`) – Typ der Idee:
   - `idea` = Klassische Gruppenstunden-Idee (Standard)
   - `knowledge` = Wissensbeitrag (lang, kein Material)
-  - `recipe` = Rezept (Material = Zutaten)
 - **title** (str, required) – Titel der Idee
 - **summary** (str) – Kurzbeschreibung
 - **summary_long** (str) – Längere Zusammenfassung
-- **description** (RichText) – Ausführliche Anleitung
+- **description** (TextField) – Ausführliche Anleitung (Markdown-Format, kein HTML)
 - **costs_rating** (TextChoices) – 0€, <1€, 1-2€, >2€
 - **execution_time** (TextChoices) – <30min bis >90min
 - **preparation_time** (TextChoices) – keine bis >60min
@@ -101,17 +121,54 @@ Die Idea ist das zentrale Objekt. Felder:
 - **preferred_scout_level**, **preferred_group_size**, **preferred_difficulty**, **preferred_location**
 - Werden als Default-Werte in Such-Filtern verwendet
 
-### Calendar (Quartalskalender – kollaborativ)
-- **Calendar** – Owner, Title
-- **CalendarEntry** – Datum + Idea (optional) + Notizen
-- **CalendarCollaborator** – User + Rolle (Editor/Viewer)
+### Planner (Heimabend-Planung – kollaborativ, gruppenbasiert)
+- **Planner** – Owner, Title, group (FK → UserGroup, optional), weekday (0=Mon–6=Sun), time (TimeField)
+- **PlannerEntry** – Datum + Idea (optional) + Notizen + status (planned/cancelled)
+- **PlannerCollaborator** – User + Rolle (Editor/Viewer)
+- Zugang: Owner, Collaborator, oder GroupMembership (Members = read, Admins = write)
+- **MealPlan** – Essensplan (optional an Event gebunden)
+- **MealDay** → **Meal** → **MealItem** (Rezept-Zuordnung)
 - Einladung per Link oder E-Mail
 
-### Verwandte Models
-- **MaterialItem** – Material pro Idea (quantity, name, unit). Bei `idea_type=knowledge` nicht verwendet. Bei `idea_type=recipe` sind MaterialItems = Zutaten.
+### Verwandte Models (Idea-App)
+- **MaterialItem** – Material pro Idea (quantity, name, unit). Bei `idea_type=knowledge` nicht verwendet.
 - **Emotion** – Bewertung (love, happy, disappointed, complex), anonym möglich
 - **IdeaOfTheWeek** – Featured Idea mit Datum
 - **TagSuggestion** – Von Usern vorgeschlagene Tags
+
+### Recipe (Eigenständiges Modul – `recipe` App)
+- **Recipe** — Eigenständiges Rezept-Model (ehem. `idea_type=recipe`), gleiche Basis-Felder wie Idea + recipe_type, servings
+- **RecipeItem** — Verknüpft Rezept mit Zutat über Portion (Cross-App FK zu `idea.Ingredient`, `idea.Portion`)
+- **RecipeHint** — Regelbasierte Verbesserungsvorschläge
+- **RecipeComment** — Kommentare mit Moderation
+- **RecipeEmotion** — Reaktionen (anonym möglich)
+- **RecipeView** — Bot-freies View-Logging (DSGVO-konform)
+
+### Zutatendatenbank & MealPlan Models
+
+→ Vollständige Details in `openspec/specs/ingredient-database/spec.md` und `openspec/specs/meal-plan/spec.md`
+
+**Kurzübersicht der Models (in `idea` App):**
+- **Ingredient** — Zutat (Stammdaten, Nährwerte pro 100g, Scores, Nutri-Score)
+- **MeasuringUnit** — Messeinheit (g, ml, Scheibe, Esslöffel, etc.)
+- **Portion** — Messbare Einheit einer Zutat (Ingredient + MeasuringUnit → weight_g)
+- **Price** — Packungspreis (löst Preiskaskade aus via post_save Signal)
+- **RetailSection** — Supermarkt-Abteilung (für Einkaufslisten)
+- **NutritionalTag** — Allergen/Unverträglichkeit
+- **IngredientAlias** — Alternative Suchbegriffe
+
+**MealPlan Models (in `planner` App):**
+- **MealPlan** — Essensplan (optional an Event gebunden, Norm-Portionen, Aktivitätsfaktor)
+- **MealDay** → **Meal** → **MealItem** — Tage → Mahlzeiten → Rezept-Zuordnung (MealItem FK zu `recipe.Recipe`)
+
+**Services (in `idea/services/`):**
+- `nutri_service.py` — Nutri-Score Berechnung
+- `price_service.py` — Preiskaskade
+- `norm_person.py` — Portionsskalierung (Mifflin-St Jeor)
+- `recipe_checks.py` — Rezept-Bewertungen (4 Dimensionen)
+- `hint_service.py` — RecipeHint-Regelabgleich
+- `ingredient_ai.py` — KI-Autovervollständigung (Gemini Flash)
+- `shopping_service.py` — Einkaufslisten-Generierung
 
 ## API-Design
 
@@ -157,11 +214,39 @@ GET    /api/users/me/                 → Profil
 PATCH  /api/users/me/                 → Profil aktualisieren
 PATCH  /api/users/me/preferences/     → Filter-Präferenzen
 
-# Kalender (kollaborativ)
-GET    /api/calendars/                → Eigene Kalender
-POST   /api/calendars/               → Erstellen
-POST   /api/calendars/{id}/entries/   → Entry hinzufügen
-POST   /api/calendars/{id}/invite/    → Collaborator einladen
+# Kalender / Planner (kollaborativ, gruppenbasiert)
+GET    /api/planner/                      → Eigene + gruppen-sichtbare Planner
+POST   /api/planner/                      → Erstellen (auth, mit group_id, weekday, time)
+GET    /api/planner/{id}/                  → Detail (Entries, Collaborators, can_edit)
+PATCH  /api/planner/{id}/                  → Aktualisieren (owner/group-admin/editor)
+DELETE /api/planner/{id}/                  → Löschen (owner only)
+POST   /api/planner/{id}/entries/          → Entry hinzufügen (editor+)
+PATCH  /api/planner/{id}/entries/{eid}/    → Entry aktualisieren (editor+)
+DELETE /api/planner/{id}/entries/{eid}/    → Entry löschen (editor+)
+POST   /api/planner/{id}/invite/           → Collaborator einladen (owner/editor)
+
+# Essensplan, Zutatendatenbank, Stammdaten, KI-Zutaten
+# → Vollständige Endpunkt-Listen in openspec/specs/meal-plan/spec.md
+#   und openspec/specs/ingredient-database/spec.md
+
+# Rezepte (eigenständiges Modul)
+GET    /api/recipes/                           → Paginierte Liste (filterbar)
+GET    /api/recipes/{id}/                       → Detail per ID
+GET    /api/recipes/by-slug/{slug}/             → Detail per Slug (SEO)
+POST   /api/recipes/                           → Erstellen (auth)
+PATCH  /api/recipes/{id}/                       → Aktualisieren (auth)
+DELETE /api/recipes/{id}/                       → Löschen (auth)
+GET    /api/recipes/{id}/recipe-items/          → Zutaten auflisten
+POST   /api/recipes/{id}/recipe-items/          → Zutat hinzufügen
+PATCH  /api/recipes/{id}/recipe-items/{iid}/    → Zutat aktualisieren
+DELETE /api/recipes/{id}/recipe-items/{iid}/    → Zutat entfernen
+GET    /api/recipes/{id}/comments/              → Kommentare
+POST   /api/recipes/{id}/comments/              → Kommentar erstellen
+POST   /api/recipes/{id}/emotions/              → Emotion setzen/toggeln
+GET    /api/recipes/{id}/recipe-checks/         → 4-Dimensionen-Bewertung
+GET    /api/recipes/{id}/recipe-hints/          → Regelbasierte Hinweise
+GET    /api/recipes/{id}/nutri-score/           → Detaillierter Nutri-Score
+POST   /api/recipes/{id}/image/                 → Bild hochladen
 
 # Admin
 POST   /api/admin/idea-of-the-week/   → Featured Idea setzen
@@ -170,6 +255,25 @@ POST   /api/admin/moderation/{id}/     → Freigeben/Ablehnen
 GET    /api/admin/statistics/          → Nutzerstatistiken
 POST   /api/admin/ideas/{id}/author/   → Autor ändern
 POST   /api/admin/ideas/{id}/instagram/ → 3 Instagram-Slides generieren
+
+# Packlisten (CRUD + Sort + Templates + Export)
+GET    /api/packing-lists/                                        → Eigene Packlisten (owner + group-admin, excl. templates)
+GET    /api/packing-lists/templates/                               → Vorlagen auflisten (öffentlich)
+POST   /api/packing-lists/                                        → Erstellen
+GET    /api/packing-lists/{id}/                                   → Detail (öffentlich lesbar, can_edit Flag)
+PATCH  /api/packing-lists/{id}/                                   → Aktualisieren (owner/group-admin)
+DELETE /api/packing-lists/{id}/                                   → Löschen (owner/staff)
+POST   /api/packing-lists/{id}/clone/                             → Packliste klonen (auth, deep copy)
+GET    /api/packing-lists/{id}/export/text/                        → Text-Export (öffentlich)
+POST   /api/packing-lists/{id}/reset-checks/                      → Alle is_checked zurücksetzen (auth + edit)
+POST   /api/packing-lists/{id}/categories/                        → Kategorie hinzufügen
+PATCH  /api/packing-lists/{id}/categories/{cat_id}/               → Kategorie bearbeiten
+DELETE /api/packing-lists/{id}/categories/{cat_id}/               → Kategorie löschen
+POST   /api/packing-lists/{id}/categories/sort/                   → Kategorien sortieren
+POST   /api/packing-lists/{id}/categories/{cat_id}/items/         → Item hinzufügen
+PATCH  /api/packing-lists/{id}/categories/{cat_id}/items/{item_id}/ → Item bearbeiten (inkl. is_checked)
+DELETE /api/packing-lists/{id}/categories/{cat_id}/items/{item_id}/ → Item löschen
+POST   /api/packing-lists/{id}/categories/{cat_id}/items/sort/    → Items sortieren
 ```
 
 ### Filter-Parameter
@@ -238,7 +342,7 @@ if not request.user.is_authenticated or not request.user.is_staff:
 
 - **Bilder**: GCS Bucket (`gs://gruppenstunde-media/`)
 - **Datenbank**: Cloud SQL PostgreSQL 15 + pgvector Extension
-- **AI**: Vertex AI Gemini 3.1 Flash Lite (Text + Embeddings) – ADC, keine API Keys
+- **AI**: Vertex AI Gemini Flash (Text + Embeddings + Zutaten-Autovervollständigung) – ADC, keine API Keys
 - **Secrets**: Google Secret Manager für DB-Passwort, Django Secret Key
 - **Deployment**: App Engine Standard oder Cloud Run
 - **Settings**: `inspi/settings/production.py` für GCP-spezifische Config
@@ -254,3 +358,7 @@ if not request.user.is_authenticated or not request.user.is_staff:
 - [ ] Keine Klar-IPs gespeichert (DSGVO)
 - [ ] "Idea" verwendet, nicht "Activity", "Gruppenstunde" oder "Heimabend"
 - [ ] Idea-URLs verwenden Slug
+- [ ] Freitext-Felder (description, summary, etc.) verwenden Markdown, kein HTML
+- [ ] Preiskaskade wird bei Price-Änderungen korrekt ausgelöst (Signal)
+- [ ] Nutri-Score wird bei Nährwert-Änderungen neu berechnet
+- [ ] RecipeItem-Änderungen aktualisieren Rezept-Aggregate (Preis, Nährwerte)

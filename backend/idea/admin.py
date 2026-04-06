@@ -13,7 +13,8 @@ from .models import (
     MeasuringUnit,
     NutritionalTag,
     Portion,
-    RecipeItem,
+    Price,
+    RetailSection,
     ScoutLevel,
     Tag,
     TagSuggestion,
@@ -26,20 +27,14 @@ class MaterialItemInline(admin.TabularInline):
     extra = 1
 
 
-class RecipeItemInline(admin.TabularInline):
-    model = RecipeItem
-    extra = 1
-    autocomplete_fields = ["portion", "ingredient", "measuring_unit"]
-
-
 @admin.register(Idea)
 class IdeaAdmin(admin.ModelAdmin):
     list_display = ["title", "slug", "idea_type", "status", "difficulty", "like_score", "view_count", "created_at"]
     list_filter = ["idea_type", "status", "difficulty", "costs_rating"]
     search_fields = ["title", "summary"]
     prepopulated_fields = {"slug": ("title",)}
-    inlines = [MaterialItemInline, RecipeItemInline]
-    filter_horizontal = ["scout_levels", "tags", "authors", "nutritional_tags"]
+    inlines = [MaterialItemInline]
+    filter_horizontal = ["scout_levels", "tags", "authors"]
     list_per_page = 25
 
 
@@ -144,14 +139,63 @@ class PortionInline(admin.TabularInline):
     extra = 1
 
 
+class PriceInline(admin.TabularInline):
+    model = Price
+    extra = 1
+
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug", "physical_viscosity", "status"]
-    list_filter = ["status", "physical_viscosity"]
+    list_display = ["name", "slug", "physical_viscosity", "status", "nutri_class", "price_per_kg", "retail_section"]
+    list_filter = ["status", "physical_viscosity", "retail_section", "nutri_class"]
     search_fields = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ["nutritional_tags"]
     inlines = [IngredientAliasInline, PortionInline]
+    list_per_page = 25
+    fieldsets = (
+        (None, {"fields": ("name", "slug", "description", "status", "retail_section")}),
+        (
+            "Physikalisch",
+            {"fields": ("physical_density", "physical_viscosity", "durability_in_days", "max_storage_temperature")},
+        ),
+        (
+            "Nährwerte pro 100g",
+            {
+                "fields": (
+                    "energy_kj",
+                    "protein_g",
+                    "fat_g",
+                    "fat_sat_g",
+                    "carbohydrate_g",
+                    "sugar_g",
+                    "fibre_g",
+                    "salt_g",
+                    "sodium_mg",
+                    "fructose_g",
+                    "lactose_g",
+                )
+            },
+        ),
+        ("Scores", {"fields": ("child_score", "scout_score", "environmental_score", "nova_score", "fruit_factor")}),
+        ("Berechnet", {"fields": ("nutri_score", "nutri_class", "price_per_kg"), "classes": ("collapse",)}),
+        ("Referenzen", {"fields": ("fdc_id", "ean", "ingredient_ref"), "classes": ("collapse",)}),
+        ("Tags", {"fields": ("nutritional_tags",)}),
+    )
+
+
+@admin.register(RetailSection)
+class RetailSectionAdmin(admin.ModelAdmin):
+    list_display = ["name", "rank"]
+    search_fields = ["name"]
+    list_per_page = 25
+
+
+@admin.register(Price)
+class PriceAdmin(admin.ModelAdmin):
+    list_display = ["name", "price_eur", "quantity", "retailer", "quality", "portion"]
+    search_fields = ["name", "retailer"]
+    list_filter = ["retailer"]
     list_per_page = 25
 
 
