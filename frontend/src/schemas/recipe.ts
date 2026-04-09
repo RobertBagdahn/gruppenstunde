@@ -1,20 +1,28 @@
 /**
  * Zod schemas for Recipe API.
  * MUST stay in sync with backend/recipe/schemas.py
+ *
+ * Recipe now extends Content base schemas (ContentListItem, ContentDetail).
  */
 import { z } from 'zod';
-import { TagSchema, ScoutLevelSchema, NutritionalTagSchema } from './idea';
+import {
+  ContentListItemSchema,
+  ContentDetailSchema,
+  ContentSimilarSchema,
+} from './content';
+import { PortionSchema } from './supply';
 
-// --- Author ---
+// --- NutritionalTag (from supply) ---
 
-export const RecipeAuthorSchema = z.object({
-  id: z.number().nullable().default(null),
-  display_name: z.string(),
-  scout_name: z.string().default(''),
-  profile_picture_url: z.string().nullable().default(null),
-  is_registered: z.boolean().default(false),
+export const NutritionalTagSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  name_opposite: z.string(),
+  description: z.string(),
+  rank: z.number(),
+  is_dangerous: z.boolean(),
 });
-export type RecipeAuthor = z.infer<typeof RecipeAuthorSchema>;
+export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
 
 // --- RecipeItem ---
 
@@ -24,81 +32,64 @@ export const RecipeItemSchema = z.object({
   portion_name: z.string().nullable().optional(),
   ingredient_id: z.number().nullable(),
   ingredient_name: z.string().nullable().optional(),
+  ingredient_slug: z.string().nullable().optional(),
   quantity: z.number(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string().nullable().optional(),
   sort_order: z.number(),
   note: z.string(),
   quantity_type: z.string(),
+  ingredient_portions: z.array(PortionSchema).default([]),
+  ingredient_density: z.number().nullable().optional(),
+  ingredient_viscosity: z.string().nullable().optional(),
 });
-export type RecipeItem = z.infer<typeof RecipeItemSchema>;
+export type RecipeItem = z.output<typeof RecipeItemSchema>;
 
-// --- Recipe List Item ---
+// --- Recipe List Item (extends ContentListItem) ---
 
-export const RecipeListItemSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  slug: z.string(),
+export const RecipeListItemSchema = ContentListItemSchema.extend({
   recipe_type: z.string(),
-  summary: z.string(),
-  costs_rating: z.string(),
-  execution_time: z.string(),
-  difficulty: z.string(),
-  image_url: z.string().nullable(),
-  like_score: z.number(),
-  view_count: z.number(),
   servings: z.number().nullable(),
-  created_at: z.string(),
-  scout_levels: z.array(ScoutLevelSchema),
-  tags: z.array(TagSchema),
+  // Cached nutritional values (denormalized, per-100g)
+  cached_energy_kj: z.number().nullable().optional(),
+  cached_protein_g: z.number().nullable().optional(),
+  cached_fat_g: z.number().nullable().optional(),
+  cached_carbohydrate_g: z.number().nullable().optional(),
+  cached_sugar_g: z.number().nullable().optional(),
+  cached_fibre_g: z.number().nullable().optional(),
+  cached_salt_g: z.number().nullable().optional(),
+  cached_nutri_class: z.number().nullable().optional(),
+  cached_price_total: z.number().nullable().optional(),
+  cached_at: z.string().nullable().optional(),
 });
 export type RecipeListItem = z.infer<typeof RecipeListItemSchema>;
 
-// --- Recipe Similar ---
+// --- Recipe Similar (extends ContentSimilar) ---
 
-export const RecipeSimilarSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  slug: z.string(),
-  summary: z.string(),
-  image_url: z.string().nullable(),
-  difficulty: z.string(),
-  execution_time: z.string(),
-});
+export const RecipeSimilarSchema = ContentSimilarSchema;
 export type RecipeSimilar = z.infer<typeof RecipeSimilarSchema>;
 
-// --- Recipe Detail ---
+// --- Recipe Detail (extends ContentDetail) ---
 
-export const RecipeDetailSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  slug: z.string(),
+export const RecipeDetailSchema = ContentDetailSchema.extend({
   recipe_type: z.string(),
-  summary: z.string(),
-  summary_long: z.string(),
-  description: z.string(),
-  costs_rating: z.string(),
-  execution_time: z.string(),
-  preparation_time: z.string(),
-  difficulty: z.string(),
-  status: z.string(),
-  image_url: z.string().nullable(),
-  like_score: z.number(),
-  view_count: z.number(),
   servings: z.number().nullable(),
-  created_at: z.string(),
-  updated_at: z.string(),
-  scout_levels: z.array(ScoutLevelSchema),
-  tags: z.array(TagSchema),
+  // Cached nutritional values (denormalized, per-100g)
+  cached_energy_kj: z.number().nullable().optional(),
+  cached_protein_g: z.number().nullable().optional(),
+  cached_fat_g: z.number().nullable().optional(),
+  cached_carbohydrate_g: z.number().nullable().optional(),
+  cached_sugar_g: z.number().nullable().optional(),
+  cached_fibre_g: z.number().nullable().optional(),
+  cached_salt_g: z.number().nullable().optional(),
+  cached_nutri_class: z.number().nullable().optional(),
+  cached_price_total: z.number().nullable().optional(),
+  cached_at: z.string().nullable().optional(),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   recipe_items: z.array(RecipeItemSchema).default([]),
-  authors: z.array(RecipeAuthorSchema).default([]),
-  emotion_counts: z.record(z.string(), z.number()).default({}),
-  user_emotion: z.string().nullable().default(null),
-  can_edit: z.boolean().default(false),
   next_best_recipes: z.array(RecipeSimilarSchema).default([]),
 });
-export type RecipeDetail = z.infer<typeof RecipeDetailSchema>;
+export type RecipeDetail = z.output<typeof RecipeDetailSchema>;
 
 // --- Pagination ---
 
@@ -110,28 +101,6 @@ export const PaginatedRecipesSchema = z.object({
   total_pages: z.number(),
 });
 export type PaginatedRecipes = z.infer<typeof PaginatedRecipesSchema>;
-
-// --- Comment ---
-
-export const RecipeCommentSchema = z.object({
-  id: z.number(),
-  text: z.string(),
-  author_name: z.string(),
-  user_id: z.number().nullable(),
-  created_at: z.string(),
-  parent_id: z.number().nullable(),
-  status: z.string(),
-});
-export type RecipeComment = z.infer<typeof RecipeCommentSchema>;
-
-// --- Emotion ---
-
-export const RecipeEmotionSchema = z.object({
-  id: z.number(),
-  emotion_type: z.string(),
-  created_at: z.string(),
-});
-export type RecipeEmotion = z.infer<typeof RecipeEmotionSchema>;
 
 // --- Filter ---
 
@@ -197,13 +166,13 @@ export type NutriScoreDetail = z.infer<typeof NutriScoreDetailSchema>;
 // --- Choices (mirrors backend recipe/choices.py) ---
 
 export const RECIPE_TYPE_OPTIONS = [
-  { value: 'breakfast', label: 'Frühstück', icon: 'free_breakfast' },
+  { value: 'breakfast', label: 'Fruehstueck', icon: 'free_breakfast' },
   { value: 'warm_meal', label: 'Warme Mahlzeit', icon: 'lunch_dining' },
   { value: 'cold_meal', label: 'Kalte Mahlzeit', icon: 'takeout_dining' },
   { value: 'dessert', label: 'Nachtisch', icon: 'cake' },
   { value: 'side_dish', label: 'Beilage', icon: 'rice_bowl' },
   { value: 'snack', label: 'Snack', icon: 'cookie' },
-  { value: 'drink', label: 'Getränk', icon: 'local_cafe' },
+  { value: 'drink', label: 'Getraenk', icon: 'local_cafe' },
 ] as const;
 
 export const RECIPE_DIFFICULTY_OPTIONS = [
@@ -213,10 +182,10 @@ export const RECIPE_DIFFICULTY_OPTIONS = [
 ] as const;
 
 export const RECIPE_COSTS_OPTIONS = [
-  { value: 'free', label: '0 €' },
-  { value: 'less_1', label: '< 1 €' },
-  { value: '1_2', label: '1 – 2 €' },
-  { value: 'more_2', label: '> 2 €' },
+  { value: 'free', label: '0 EUR' },
+  { value: 'less_1', label: '< 1 EUR' },
+  { value: '1_2', label: '1 – 2 EUR' },
+  { value: 'more_2', label: '> 2 EUR' },
 ] as const;
 
 export const RECIPE_EXECUTION_TIME_OPTIONS = [
@@ -236,16 +205,16 @@ export const RECIPE_PREPARATION_TIME_OPTIONS = [
 
 export const RECIPE_SORT_OPTIONS = [
   { value: 'newest', label: 'Neueste' },
-  { value: 'oldest', label: 'Älteste' },
+  { value: 'oldest', label: 'Aelteste' },
   { value: 'most_liked', label: 'Beliebteste' },
-  { value: 'most_viewed', label: 'Meistgesehen' },
-  { value: 'random', label: 'Zufällig' },
+  { value: 'popular', label: 'Meistgesehen' },
+  { value: 'random', label: 'Zufaellig' },
 ] as const;
 
 export const RECIPE_EMOTION_OPTIONS = [
   { value: 'in_love', label: 'Begeistert', emoji: '😍' },
   { value: 'happy', label: 'Gut', emoji: '😊' },
-  { value: 'disappointed', label: 'Enttäuscht', emoji: '😞' },
+  { value: 'disappointed', label: 'Enttaeuscht', emoji: '😞' },
   { value: 'complex', label: 'Zu komplex', emoji: '🤯' },
 ] as const;
 

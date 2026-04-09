@@ -13,13 +13,15 @@ import {
   ChoiceSchema,
   EventLocationSchema,
   GenerateInvitationSchema,
-  type EventList,
-  type EventDetail,
+  PaginatedEventListSchema,
+  PaginatedPersonSchema,
+  PaginatedLocationSchema,
+  PaginatedInvitationStatusSchema,
   type Person,
   type Choice,
   type EventLocation,
 } from '@/schemas/event';
-import { NutritionalTagSchema, type NutritionalTag } from '@/schemas/idea';
+
 
 const EVENTS_BASE = '/api/events';
 const PERSONS_BASE = '/api/persons';
@@ -97,14 +99,6 @@ export function useGenderChoices() {
   });
 }
 
-export function useNutritionalTags() {
-  return useQuery<NutritionalTag[]>({
-    queryKey: ['nutritional-tags'],
-    queryFn: () => fetchJson('/api/ideas/nutritional-tags/', z.array(NutritionalTagSchema)),
-    staleTime: 60 * 60 * 1000,
-  });
-}
-
 // ==========================================================================
 // Persons
 // ==========================================================================
@@ -112,7 +106,10 @@ export function useNutritionalTags() {
 export function usePersons() {
   return useQuery<Person[]>({
     queryKey: ['persons'],
-    queryFn: () => fetchJson(`${PERSONS_BASE}/`, z.array(PersonSchema)),
+    queryFn: async () => {
+      const result = await fetchJson(`${PERSONS_BASE}/`, PaginatedPersonSchema);
+      return result.items;
+    },
   });
 }
 
@@ -172,14 +169,17 @@ export function useDeletePerson() {
 // ==========================================================================
 
 export function useEvents() {
-  return useQuery<EventList[]>({
+  return useQuery({
     queryKey: ['events'],
-    queryFn: () => fetchJson(`${EVENTS_BASE}/`, z.array(EventListSchema)),
+    queryFn: async () => {
+      const result = await fetchJson(`${EVENTS_BASE}/`, PaginatedEventListSchema);
+      return result.items;
+    },
   });
 }
 
 export function useMyInvitedEvents() {
-  return useQuery<EventList[]>({
+  return useQuery({
     queryKey: ['events', 'my-invited'],
     queryFn: () => fetchJson(`${EVENTS_BASE}/my-invited/`, z.array(EventListSchema)),
     staleTime: 2 * 60 * 1000,
@@ -187,7 +187,7 @@ export function useMyInvitedEvents() {
 }
 
 export function useMyRegisteredEvents() {
-  return useQuery<EventList[]>({
+  return useQuery({
     queryKey: ['events', 'my-registered'],
     queryFn: () => fetchJson(`${EVENTS_BASE}/my-registered/`, z.array(EventListSchema)),
     staleTime: 2 * 60 * 1000,
@@ -195,7 +195,7 @@ export function useMyRegisteredEvents() {
 }
 
 export function useEvent(slug: string) {
-  return useQuery<EventDetail>({
+  return useQuery({
     queryKey: ['event', slug],
     queryFn: () => fetchJson(`${EVENTS_BASE}/${encodeURIComponent(slug)}/`, EventDetailSchema),
     enabled: slug.length > 0,
@@ -239,6 +239,7 @@ export function useUpdateEvent(slug: string) {
       registration_start: string | null;
       is_public: boolean;
       packing_list_id: number | null;
+      participant_visibility: string;
     }>) => patchJson(`${EVENTS_BASE}/${encodeURIComponent(slug)}/`, body, EventListSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -270,6 +271,23 @@ export function useCreateBookingOption(eventSlug: string) {
       price?: string;
       max_participants?: number;
     }) => postJson(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/booking-options/`, body, BookingOptionSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventSlug] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+export function useUpdateBookingOption(eventSlug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ optionId, ...body }: {
+      optionId: number;
+      name?: string;
+      description?: string;
+      price?: string;
+      max_participants?: number;
+    }) => patchJson(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/booking-options/${optionId}/`, body, BookingOptionSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventSlug] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -370,7 +388,10 @@ const LOCATIONS_BASE = '/api/locations';
 export function useLocations() {
   return useQuery<EventLocation[]>({
     queryKey: ['locations'],
-    queryFn: () => fetchJson(`${LOCATIONS_BASE}/`, z.array(EventLocationSchema)),
+    queryFn: async () => {
+      const result = await fetchJson(`${LOCATIONS_BASE}/`, PaginatedLocationSchema);
+      return result.items;
+    },
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -409,5 +430,47 @@ export function useGenerateInvitation() {
       booking_options?: string[];
       special_notes?: string;
     }) => postJson(`${EVENTS_BASE}/generate-invitation/`, body, GenerateInvitationSchema),
+  });
+}
+
+// ==========================================================================
+// Event Invitations (invited users with status)
+// ==========================================================================
+
+export function useEventInvitations(
+  eventSlug: string,
+  params?: { page?: number; pageSize?: number; status?: string; search?: string },
+) {
+  const page = params?.page ?? 1;
+  const pageSize = params?.pageSize ?? 20;
+  const status = params?.status ?? '';
+  const search = params?.search ?? '';
+
+  return useQuery({
+    queryKey: ['event', eventSlug, 'invitations', { page, pageSize, status, search }],
+    queryFn: () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('page', String(page));
+      searchParams.set('page_size', String(pageSize));
+      if (status) searchParams.set('status', status);
+      if (search) searchParams.set('search', search);
+      return fetchJson(
+        `${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/invitations/?${searchParams.toString()}`,
+        PaginatedInvitationStatusSchema,
+      );
+    },
+    enabled: eventSlug.length > 0,
+  });
+}
+
+// ==========================================================================
+// Participant Visibility Choices
+// ==========================================================================
+
+export function useParticipantVisibilityChoices() {
+  return useQuery<Choice[]>({
+    queryKey: ['choices', 'participant-visibility'],
+    queryFn: () => fetchJson(`${EVENTS_BASE}/choices/participant-visibility/`, z.array(ChoiceSchema)),
+    staleTime: 60 * 60 * 1000,
   });
 }

@@ -57,7 +57,8 @@ class TestEventFactories:
         assert participant.pk is not None
         assert participant.registration is not None
         assert participant.first_name == "Max"
-        assert participant.is_paid is False
+        # is_paid is now a computed property: True when no booking option (free)
+        assert participant.is_paid is True
 
     def test_make_participant_with_booking(self):
         event = make_event()

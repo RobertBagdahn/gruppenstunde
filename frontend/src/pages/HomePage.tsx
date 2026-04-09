@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom';
-import { useIdeas, useIdeaOfTheWeek } from '@/api/ideas';
-import { useIdeaStore } from '@/store/useIdeaStore';
-import IdeaCard from '@/components/IdeaCard';
+import { useUnifiedSearch } from '@/api/search';
+import { useSearchStore } from '@/store/useSearchStore';
 import SearchBar from '@/components/SearchBar';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import {
+  RESULT_TYPE_CONFIG,
+  type UnifiedSearchResult,
+} from '@/schemas/search';
 import {
   TOOL_IDEA,
   TOOL_EVENTS,
@@ -38,7 +41,7 @@ const PLATFORM_MODULES = [
     img: '/images/inspi_scout.webp',
     gradient: TOOL_IDEA.gradient,
     icon: TOOL_IDEA.icon,
-    link: '/search?type=idea',
+    link: '/search?type=session',
     features: ['Material-Listen', 'Schwierigkeitsgrade', 'Altersgruppen'],
   },
   {
@@ -146,9 +149,8 @@ const AI_FEATURES = [
 ];
 
 export default function HomePage() {
-  const { filters } = useIdeaStore();
-  const { data, isLoading, error, refetch } = useIdeas({ ...filters, page_size: 12 });
-  const { data: ideaOfTheWeek } = useIdeaOfTheWeek();
+  const { filters } = useSearchStore();
+  const { data, isLoading, error, refetch } = useUnifiedSearch({ ...filters, page_size: 12, sort: 'newest' });
 
   return (
     <div>
@@ -451,65 +453,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Idea of the Week */}
-      {ideaOfTheWeek && (
-        <section className="container py-12 md:py-16">
-          <div className="relative overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 shadow-soft">
-            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-200/30 blur-3xl" />
-            <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-yellow-200/30 blur-2xl" />
-            <div className="relative flex flex-col md:flex-row items-center gap-6 p-6 md:p-10">
-              {/* Image */}
-              {ideaOfTheWeek.idea.image_url && (
-                <Link to={`/idea/${ideaOfTheWeek.idea.slug}`} className="shrink-0">
-                  <img
-                    src={ideaOfTheWeek.idea.image_url}
-                    alt={ideaOfTheWeek.idea.title}
-                    className="w-40 h-40 md:w-48 md:h-48 rounded-2xl object-cover shadow-lg hover:scale-105 transition-transform"
-                  />
-                </Link>
-              )}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center gap-2 justify-center md:justify-start mb-3">
-                  <span
-                    className="material-symbols-outlined text-amber-500 text-[28px]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    star
-                  </span>
-                  <h2 className="text-xl md:text-2xl font-extrabold text-amber-700">
-                    Idee der Woche
-                  </h2>
-                </div>
-                <Link
-                  to={`/idea/${ideaOfTheWeek.idea.slug}`}
-                  className="inline-block text-lg md:text-xl font-bold text-foreground hover:text-primary transition-colors"
-                >
-                  {ideaOfTheWeek.idea.title}
-                </Link>
-                <p className="text-muted-foreground text-sm md:text-base mt-2 line-clamp-3">
-                  {ideaOfTheWeek.description || ideaOfTheWeek.idea.summary}
-                </p>
-                <Link
-                  to={`/idea/${ideaOfTheWeek.idea.slug}`}
-                  className="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 rounded-full bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 hover:scale-105 transition-all shadow-md"
-                >
-                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                  Jetzt ansehen
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Newest Ideas */}
+      {/* Newest Content */}
       <section className="container py-12 md:py-16">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/15">
               <span className="material-symbols-outlined text-primary text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold">Neueste Ideen 🌟</h2>
+            <h2 className="text-2xl md:text-3xl font-extrabold">Neueste Inhalte</h2>
           </div>
           <Link
             to="/search"
@@ -532,9 +483,37 @@ export default function HomePage() {
         )}
         {data && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.items.map((idea) => (
-              <IdeaCard key={idea.id} idea={idea} />
-            ))}
+            {data.items.map((item: UnifiedSearchResult) => {
+              const config = RESULT_TYPE_CONFIG[item.result_type] ?? RESULT_TYPE_CONFIG.session;
+              return (
+                <Link
+                  key={`${item.result_type}-${item.id}`}
+                  to={item.url}
+                  className="group relative rounded-2xl border border-border/60 bg-card shadow-soft hover:shadow-colorful hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                >
+                  {item.image_url ? (
+                    <div className="relative aspect-square overflow-hidden">
+                      <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    </div>
+                  ) : (
+                    <div className="aspect-square bg-muted/30 flex items-center justify-center">
+                      <span className={`material-symbols-outlined text-[48px] ${config.color} opacity-30`}>{config.icon}</span>
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`material-symbols-outlined text-[16px] ${config.color}`}>{config.icon}</span>
+                      <span className={`text-xs font-semibold ${config.color}`}>{config.label}</span>
+                    </div>
+                    <h3 className="font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">{item.title}</h3>
+                    {item.summary && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.summary}</p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>
@@ -703,7 +682,7 @@ export default function HomePage() {
                 <span className="material-symbols-outlined text-primary ml-auto">arrow_forward</span>
               </Link>
               <Link
-                to="/meal-plans"
+                to="/meal-events"
                 className="group flex items-center gap-4 p-5 rounded-2xl bg-card border border-border/60 shadow-soft hover:shadow-colorful hover:-translate-y-1 transition-all"
               >
                 <div className={`flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${TOOL_MEAL_PLAN.gradient} text-white shadow-lg shrink-0`}>
@@ -745,12 +724,12 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { icon: TOOL_IDEA.icon, label: 'Lern-Idee', link: '/create/idea', gradient: TOOL_IDEA.gradient },
+            { icon: TOOL_IDEA.icon, label: 'Gruppenstunde', link: '/create/session', gradient: TOOL_IDEA.gradient },
             { icon: 'menu_book', label: 'Wissensartikel', link: '/create/knowledge', gradient: 'from-slate-500 to-sky-600' },
             { icon: TOOL_RECIPES.icon, label: 'Rezept', link: '/recipes/new', gradient: TOOL_RECIPES.gradient },
             { icon: TOOL_EVENTS.icon, label: 'Event', link: '/events/app/new', gradient: TOOL_EVENTS.gradient },
             { icon: TOOL_PACKING_LISTS.icon, label: 'Packliste', link: '/packing-lists', gradient: TOOL_PACKING_LISTS.gradient },
-            { icon: TOOL_MEAL_PLAN.icon, label: 'Essensplan', link: '/meal-plans', gradient: TOOL_MEAL_PLAN.gradient },
+            { icon: TOOL_MEAL_PLAN.icon, label: 'Essensplan', link: '/meal-events', gradient: TOOL_MEAL_PLAN.gradient },
           ].map((item) => (
             <Link
               key={item.label}

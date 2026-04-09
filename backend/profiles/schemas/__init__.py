@@ -1,0 +1,53 @@
+"""Profiles schemas package — re-exports all schemas for backward compatibility."""
+
+from .profile import (
+    MyContentOut,
+    MyIdeaOut,
+    PublicContentOut,
+    PublicIdeaOut,
+    PublicUserProfileOut,
+    UserPreferenceIn,
+    UserPreferenceOut,
+    UserProfileOut,
+    UserProfileUpdateIn,
+)
+from .groups import (
+    AddMemberIn,
+    GroupMemberOut,
+    GroupParentOut,
+    JoinByCodeIn,
+    JoinRequestDecisionIn,
+    JoinRequestIn,
+    JoinRequestOut,
+    UpdateMemberIn,
+    UserGroupChildOut,
+    UserGroupCreateIn,
+    UserGroupDetailOut,
+    UserGroupOut,
+    UserGroupUpdateIn,
+)
+
+__all__ = [
+    "AddMemberIn",
+    "GroupMemberOut",
+    "GroupParentOut",
+    "JoinByCodeIn",
+    "JoinRequestDecisionIn",
+    "JoinRequestIn",
+    "JoinRequestOut",
+    "MyContentOut",
+    "MyIdeaOut",
+    "PublicContentOut",
+    "PublicIdeaOut",
+    "PublicUserProfileOut",
+    "UpdateMemberIn",
+    "UserGroupChildOut",
+    "UserGroupCreateIn",
+    "UserGroupDetailOut",
+    "UserGroupOut",
+    "UserGroupUpdateIn",
+    "UserPreferenceIn",
+    "UserPreferenceOut",
+    "UserProfileOut",
+    "UserProfileUpdateIn",
+]

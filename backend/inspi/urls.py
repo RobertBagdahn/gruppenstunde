@@ -4,15 +4,22 @@ from django.http import HttpResponse
 from django.urls import include, path
 from ninja import NinjaAPI
 
-from core.api import auth_router, search_router
-from idea.api import admin_router, ai_router, material_router, router as idea_router, tag_router, user_router
-from idea.ingredient_api import ingredient_router, retail_section_router
+from core.api import auth_router
+from content.admin_api import router as admin_router
+from content.api import router as content_router
 from recipe.api import router as recipe_router
+from recipe.api.cockpit import cockpit_router, health_rule_router
 from planner.api import router as planner_router
 from planner.meal_plan_api import meal_plan_router
 from profiles.api import group_router, profile_router
 from event.api import event_router, location_router, person_router
 from packinglist.api import packing_list_router
+from shopping.api import shopping_router
+from session.api import router as session_router
+from supply.api import router as supply_router, ingredient_router, retail_section_router, norm_person_router
+from blog.api import router as blog_router
+from game.api import router as game_router
+from content.tags_api import tags_router, scout_levels_router
 
 api = NinjaAPI(
     title="Inspi API",
@@ -21,30 +28,39 @@ api = NinjaAPI(
 )
 
 api.add_router("/auth/", auth_router)
-api.add_router("/search/", search_router)
-api.add_router("/ideas/", idea_router)
-api.add_router("/tags/", tag_router)
-api.add_router("/ai/", ai_router)
-api.add_router("/users/", user_router)
-api.add_router("/planner/", planner_router)
-api.add_router("/meal-plans/", meal_plan_router)
-api.add_router("/materials/", material_router)
 api.add_router("/admin/", admin_router)
+api.add_router("/planner/", planner_router)
+api.add_router("/meal-events/", meal_plan_router)
 api.add_router("/profile/", profile_router)
 api.add_router("/groups/", group_router)
 api.add_router("/events/", event_router)
 api.add_router("/persons/", person_router)
 api.add_router("/locations/", location_router)
 api.add_router("/packing-lists/", packing_list_router)
+api.add_router("/shopping-lists/", shopping_router)
 api.add_router("/ingredients/", ingredient_router)
 api.add_router("/retail-sections/", retail_section_router)
 api.add_router("/recipes/", recipe_router)
+api.add_router("/health-rules/", health_rule_router)
+api.add_router("/", cockpit_router)
+# Content-type routers
+api.add_router("/sessions/", session_router)
+api.add_router("/supplies/", supply_router)
+api.add_router("/norm-person/", norm_person_router)
+api.add_router("/blogs/", blog_router)
+api.add_router("/games/", game_router)
+api.add_router("/tags/", tags_router)
+api.add_router("/scout-levels/", scout_levels_router)
+api.add_router("/content/", content_router)
 
 
 def sitemap_xml(request):
     """Generate sitemap.xml for search engine crawlers."""
-    from idea.models import Idea
-    from idea.choices import StatusChoices
+    from content.choices import ContentStatus
+    from session.models import GroupSession
+    from blog.models import Blog
+    from game.models import Game
+    from recipe.models import Recipe
 
     domain = request.get_host()
     scheme = "https" if request.is_secure() else "http"
@@ -57,14 +73,21 @@ def sitemap_xml(request):
             f"  <url><loc>{frontend_base}{loc}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>"
         )
 
-    # Idea pages with slug
-    ideas = Idea.objects.filter(status=StatusChoices.PUBLISHED).values("slug", "updated_at")
-    for idea in ideas:
-        lastmod = idea["updated_at"].strftime("%Y-%m-%d")
-        urls.append(
-            f"  <url><loc>{frontend_base}/idea/{idea['slug']}</loc>"
-            f"<lastmod>{lastmod}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>"
-        )
+    # Content pages with slug
+    content_types = [
+        (GroupSession, "/sessions/"),
+        (Blog, "/blogs/"),
+        (Game, "/games/"),
+        (Recipe, "/recipes/"),
+    ]
+    for Model, prefix in content_types:
+        items = Model.objects.filter(status=ContentStatus.APPROVED).values("slug", "updated_at")
+        for item in items:
+            lastmod = item["updated_at"].strftime("%Y-%m-%d")
+            urls.append(
+                f"  <url><loc>{frontend_base}{prefix}{item['slug']}</loc>"
+                f"<lastmod>{lastmod}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>"
+            )
 
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -99,6 +122,10 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+    from django.conf.urls.static import static
+
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
     try:
         import debug_toolbar
 

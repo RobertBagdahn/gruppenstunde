@@ -5,12 +5,21 @@ import {
   RECIPE_DIFFICULTY_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
 } from '@/schemas/recipe';
+import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 
 interface RecipeCardProps {
   recipe: RecipeListItem;
+  /** Whether the user can edit this item */
+  canEdit?: boolean;
+  /** Whether the user can delete this item */
+  canDelete?: boolean;
+  /** Callback when the edit icon is clicked */
+  onEdit?: () => void;
+  /** Callback when the delete icon is clicked */
+  onDelete?: () => void;
 }
 
-export default function RecipeCard({ recipe }: RecipeCardProps) {
+export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelete }: RecipeCardProps) {
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
   const timeLabel =
@@ -18,18 +27,22 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
     recipe.execution_time;
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
 
+  const hasActions = (canEdit && onEdit) || (canDelete && onDelete);
+  const nutriClass = recipe.cached_nutri_class;
+  const nutriColors = nutriClass ? NUTRI_SCORE_COLORS[nutriClass] : null;
+
   return (
     <Link
       to={`/recipes/${recipe.slug}`}
       className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border/50 hover:border-primary/40 hover:shadow-colorful"
     >
       {/* Image with gradient overlay */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden aspect-square">
         <img
           src={recipe.image_url || '/images/inspi_cook.png'}
           alt={recipe.title}
           loading="lazy"
-          className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-amber-500/10" />
         {/* Like badge */}
@@ -44,11 +57,49 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             {typeOpt.label}
           </div>
         )}
-        {/* Servings badge */}
-        {recipe.servings && (
-          <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1 text-xs font-bold text-white">
-            <span className="material-symbols-outlined text-[14px]">group</span>
-            {recipe.servings}
+        {/* Servings & Nutri-Score badges */}
+        <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+          {nutriColors && (
+            <div className={`flex items-center justify-center w-7 h-7 rounded-full ${nutriColors.bg} ${nutriColors.text} text-xs font-extrabold shadow-md`}>
+              {nutriColors.label}
+            </div>
+          )}
+          {recipe.servings && (
+            <div className="flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1 text-xs font-bold text-white">
+              <span className="material-symbols-outlined text-[14px]">group</span>
+              {recipe.servings}
+            </div>
+          )}
+        </div>
+        {/* Admin action icons */}
+        {hasActions && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+            {canEdit && onEdit && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm text-foreground shadow-md hover:bg-white transition-colors"
+                title="Bearbeiten"
+              >
+                <span className="material-symbols-outlined text-[16px]">edit</span>
+              </button>
+            )}
+            {canDelete && onDelete && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm text-destructive shadow-md hover:bg-white transition-colors"
+                title="Loeschen"
+              >
+                <span className="material-symbols-outlined text-[16px]">delete</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -97,6 +148,12 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             <span className="material-symbols-outlined text-[16px] text-accent" style={{ fontVariationSettings: "'FILL' 1" }}>signal_cellular_alt</span>
             {difficultyLabel}
           </span>
+          {recipe.cached_price_total != null && recipe.cached_price_total > 0 && (
+            <span className="flex items-center gap-1.5 bg-amber-500/10 rounded-full px-2.5 py-1 ml-auto">
+              <span className="material-symbols-outlined text-[16px] text-amber-600" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+              {recipe.cached_price_total.toFixed(2)} EUR
+            </span>
+          )}
         </div>
       </div>
     </Link>

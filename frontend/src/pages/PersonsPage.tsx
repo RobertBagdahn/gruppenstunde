@@ -6,10 +6,10 @@ import {
   useUpdatePerson,
   useDeletePerson,
   useGenderChoices,
-  useNutritionalTags,
 } from '@/api/events';
+import { useNutritionalTags } from '@/api/supplies';
 import type { Person, Choice } from '@/schemas/event';
-import type { NutritionalTag } from '@/schemas/idea';
+import type { NutritionalTag } from '@/schemas/supply';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';

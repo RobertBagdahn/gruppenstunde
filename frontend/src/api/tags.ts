@@ -2,7 +2,7 @@
  * TanStack Query hooks for the Tag API.
  */
 import { useQuery } from '@tanstack/react-query';
-import { TagSchema, ScoutLevelSchema, type Tag, type ScoutLevel } from '@/schemas/idea';
+import { TagSchema, ScoutLevelSchema, type Tag, type ScoutLevel } from '@/schemas/content';
 import { z } from 'zod';
 
 const API_BASE = '/api';
@@ -27,7 +27,7 @@ export function useTags() {
 export function useScoutLevels() {
   return useQuery<ScoutLevel[]>({
     queryKey: ['scoutLevels'],
-    queryFn: () => fetchJson(`${API_BASE}/ideas/scout-levels/`, z.array(ScoutLevelSchema)),
+    queryFn: () => fetchJson(`${API_BASE}/scout-levels/`, z.array(ScoutLevelSchema)),
     staleTime: 30 * 60 * 1000,
   });
 }

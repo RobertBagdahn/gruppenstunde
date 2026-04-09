@@ -9,10 +9,13 @@ import type { MyIdea } from '@/schemas/profile';
 import type { EventList } from '@/schemas/event';
 import type { Planner } from '@/schemas/planner';
 import type { UserGroup } from '@/schemas/profile';
+import { getContentUrl, getContentTypeLabel } from '@/schemas/content';
 
-const IDEA_TYPE_LABELS: Record<string, string> = {
-  idea: 'Idee',
-  knowledge: 'Wissen',
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  session: 'Gruppenstunde',
+  blog: 'Wissensbeitrag',
+  game: 'Spiel',
+  recipe: 'Rezept',
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -109,11 +112,11 @@ function IdeaCard({ idea }: { idea: MyIdea }) {
   const status = STATUS_LABELS[idea.status] ?? { label: idea.status, color: 'bg-gray-100 text-gray-800' };
   return (
     <Link
-      to={`/idea/${idea.slug}`}
+      to={getContentUrl(idea.content_type, idea.slug)}
       className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
     >
       {idea.image_url ? (
-        <img src={idea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+        <img src={idea.image_url} alt="" className="w-10 aspect-square rounded-lg object-cover shrink-0" />
       ) : (
         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-sky-100 text-sky-600 shrink-0">
           <span className="material-symbols-outlined text-[22px]">lightbulb</span>
@@ -126,7 +129,7 @@ function IdeaCard({ idea }: { idea: MyIdea }) {
             {status.label}
           </span>
           <span className="text-xs text-muted-foreground">
-            {IDEA_TYPE_LABELS[idea.idea_type] ?? idea.idea_type}
+            {CONTENT_TYPE_LABELS[idea.content_type] ?? idea.content_type}
           </span>
         </div>
         {idea.summary && (

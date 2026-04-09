@@ -2,9 +2,8 @@ from django.contrib import admin
 
 from .models import (
     Meal,
-    MealDay,
+    MealEvent,
     MealItem,
-    MealPlan,
     Planner,
     PlannerCollaborator,
     PlannerEntry,
@@ -14,7 +13,7 @@ from .models import (
 class PlannerEntryInline(admin.TabularInline):
     model = PlannerEntry
     extra = 1
-    raw_id_fields = ["idea"]
+    raw_id_fields = ["session"]
 
 
 class PlannerCollaboratorInline(admin.TabularInline):
@@ -30,7 +29,7 @@ class PlannerAdmin(admin.ModelAdmin):
 
 
 # ==========================================================================
-# Meal Plan Admin
+# MealEvent Admin
 # ==========================================================================
 
 
@@ -46,32 +45,18 @@ class MealInline(admin.TabularInline):
     show_change_link = True
 
 
-class MealDayInline(admin.TabularInline):
-    model = MealDay
-    extra = 0
-    show_change_link = True
-
-
-@admin.register(MealPlan)
-class MealPlanAdmin(admin.ModelAdmin):
+@admin.register(MealEvent)
+class MealEventAdmin(admin.ModelAdmin):
     list_display = ["name", "created_by", "norm_portions", "event", "created_at"]
     list_filter = ["created_at"]
     search_fields = ["name"]
-    inlines = [MealDayInline]
-    list_per_page = 25
-
-
-@admin.register(MealDay)
-class MealDayAdmin(admin.ModelAdmin):
-    list_display = ["meal_plan", "date"]
-    list_filter = ["meal_plan"]
     inlines = [MealInline]
     list_per_page = 25
 
 
 @admin.register(Meal)
 class MealAdmin(admin.ModelAdmin):
-    list_display = ["meal_day", "meal_type", "day_part_factor"]
+    list_display = ["meal_event", "start_datetime", "meal_type", "day_part_factor"]
     list_filter = ["meal_type"]
     inlines = [MealItemInline]
     list_per_page = 25

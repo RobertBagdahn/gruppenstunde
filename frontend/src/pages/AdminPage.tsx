@@ -1,6 +1,6 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Boxes, Ruler, Users } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Boxes, Ruler, Users, ShieldCheck, Brain, MessageCircle } from 'lucide-react';
 import { useAdminStats, useModerationQueue, useModerateComment, useAdminUsers, useRecentActivity, useTrending } from '@/api/admin';
 import {
   useAdminMaterials,
@@ -13,17 +13,38 @@ import {
   useDeleteUnit,
 } from '@/api/materials';
 
-type AdminSection = 'dashboard' | 'moderation' | 'materials' | 'units' | 'users';
+const ApprovalQueuePage = lazy(() => import('./admin/ApprovalQueuePage'));
+const EmbeddingViewerPage = lazy(() => import('./admin/EmbeddingViewerPage'));
+const EmbeddingFeedbackPage = lazy(() => import('./admin/EmbeddingFeedbackPage'));
+
+/** Map legacy idea_type to content URL prefix */
+function contentUrlForSlug(slug: string, ideaType?: string): string {
+  const prefixMap: Record<string, string> = {
+    idea: '/sessions',
+    knowledge: '/blogs',
+    game: '/games',
+    recipe: '/recipes',
+    session: '/sessions',
+    blog: '/blogs',
+  };
+  const prefix = prefixMap[ideaType ?? ''] ?? '/sessions';
+  return `${prefix}/${slug}`;
+}
+
+type AdminSection = 'dashboard' | 'moderation' | 'materials' | 'units' | 'users' | 'approvals' | 'embeddings' | 'embedding-feedback';
 
 const MENU_ITEMS: { key: AdminSection; label: string; icon: ReactNode }[] = [
   { key: 'dashboard', label: 'Übersicht', icon: <LayoutDashboard className="w-4 h-4" /> },
   { key: 'moderation', label: 'Moderation', icon: <MessageSquare className="w-4 h-4" /> },
+  { key: 'approvals', label: 'Genehmigungen', icon: <ShieldCheck className="w-4 h-4" /> },
   { key: 'materials', label: 'Materialien', icon: <Boxes className="w-4 h-4" /> },
   { key: 'units', label: 'Einheiten', icon: <Ruler className="w-4 h-4" /> },
   { key: 'users', label: 'Benutzer', icon: <Users className="w-4 h-4" /> },
+  { key: 'embeddings', label: 'Embeddings', icon: <Brain className="w-4 h-4" /> },
+  { key: 'embedding-feedback', label: 'Feedback', icon: <MessageCircle className="w-4 h-4" /> },
 ];
 
-const VALID_SECTIONS: AdminSection[] = ['dashboard', 'moderation', 'materials', 'units', 'users'];
+const VALID_SECTIONS: AdminSection[] = ['dashboard', 'moderation', 'materials', 'units', 'users', 'approvals', 'embeddings', 'embedding-feedback'];
 
 export default function AdminPage() {
   const { section } = useParams<{ section: string }>();
@@ -160,7 +181,7 @@ export default function AdminPage() {
                             <tr key={idea.id} className="border-t">
                               <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                               <td className="px-3 py-2">
-                                <a href={`/idea/${idea.slug}`} className="hover:text-primary font-medium">
+                                <a href={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
                                   {idea.title}
                                 </a>
                               </td>
@@ -198,7 +219,7 @@ export default function AdminPage() {
                             <tr key={idea.id} className="border-t">
                               <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                               <td className="px-3 py-2">
-                                <a href={`/idea/${idea.slug}`} className="hover:text-primary font-medium">
+                                <a href={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
                                   {idea.title}
                                 </a>
                               </td>
@@ -243,7 +264,7 @@ export default function AdminPage() {
                                 <tr key={view.id} className="border-t">
                                   <td className="px-3 py-2">
                                     {view.idea_slug ? (
-                                      <a href={`/idea/${view.idea_slug}`} className="hover:text-primary font-medium">
+                                      <a href={contentUrlForSlug(view.idea_slug)} className="hover:text-primary font-medium">
                                         {view.idea_title}
                                       </a>
                                     ) : (
@@ -319,13 +340,13 @@ export default function AdminPage() {
                             <tbody>
                               {recentActivity.recent_ideas.map((idea) => (
                                 <tr key={idea.id} className="border-t">
-                                  <td className="px-3 py-2">
-                                    <a href={`/idea/${idea.slug}`} className="hover:text-primary font-medium">
+                                   <td className="px-3 py-2">
+                                    <a href={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
                                       {idea.title}
                                     </a>
                                   </td>
                                   <td className="px-3 py-2 text-muted-foreground">
-                                    {idea.idea_type === 'idea' ? 'Idee' : idea.idea_type === 'knowledge' ? 'Wissen' : 'Rezept'}
+                                    {idea.idea_type === 'idea' ? 'Gruppenstunde' : idea.idea_type === 'knowledge' ? 'Wissen' : idea.idea_type === 'game' ? 'Spiel' : 'Rezept'}
                                   </td>
                                   <td className="px-3 py-2">
                                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -666,6 +687,27 @@ export default function AdminPage() {
                 <p className="text-sm text-muted-foreground">Keine Benutzer vorhanden.</p>
               )}
             </section>
+          )}
+
+          {/* Approval Queue */}
+          {activeSection === 'approvals' && (
+            <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-24" />)}</div>}>
+              <ApprovalQueuePage />
+            </Suspense>
+          )}
+
+          {/* Embedding Viewer */}
+          {activeSection === 'embeddings' && (
+            <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-12" />)}</div>}>
+              <EmbeddingViewerPage />
+            </Suspense>
+          )}
+
+          {/* Embedding Feedback */}
+          {activeSection === 'embedding-feedback' && (
+            <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-16" />)}</div>}>
+              <EmbeddingFeedbackPage />
+            </Suspense>
           )}
 
         </main>

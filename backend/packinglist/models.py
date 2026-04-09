@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -84,7 +86,7 @@ class PackingList(models.Model):
 
 
 class PackingCategory(models.Model):
-    """A category within a packing list (e.g. Kleidung, Ausruestung, Hygiene)."""
+    """A category within a packing list (e.g. Kleidung, Ausrüstung, Hygiene)."""
 
     packing_list = models.ForeignKey(
         PackingList,
@@ -120,6 +122,23 @@ class PackingItem(models.Model):
     description = models.CharField(max_length=500, blank=True, default="", verbose_name=_("Beschreibung"))
     is_checked = models.BooleanField(default=False, verbose_name=_("Gepackt"))
     sort_order = models.IntegerField(default=0, verbose_name=_("Sortierung"))
+
+    # Optional link to a supply item (Material, Ingredient, etc.)
+    supply_content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="packing_items",
+        verbose_name=_("Ausrüstungstyp"),
+    )
+    supply_object_id = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Ausrüstungs-ID"),
+    )
+    supply_object = GenericForeignKey("supply_content_type", "supply_object_id")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

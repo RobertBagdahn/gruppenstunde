@@ -140,7 +140,7 @@ export function useAddPlannerEntry(plannerId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: {
-      idea_id?: number;
+      session_id?: number;
       date: string;
       notes?: string;
       status?: string;
@@ -159,7 +159,7 @@ export function useUpdatePlannerEntry(plannerId: number) {
       ...body
     }: {
       entryId: number;
-      idea_id?: number | null;
+      session_id?: number | null;
       date?: string;
       notes?: string;
       status?: string;

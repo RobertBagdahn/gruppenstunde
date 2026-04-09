@@ -32,19 +32,27 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     # Third-party
+    "channels",
     "corsheaders",
     "allauth",
     "allauth.account",
     "django_cleanup.apps.CleanupConfig",
     "imagekit",
-    # Project apps
-    "idea",
-    "planner",
-    "profiles",
+    # Project apps – core & shared
+    "content",
+    "supply",
     "core",
+    "profiles",
+    # Project apps – content types
+    "session",
+    "blog",
+    "game",
+    "recipe",
+    # Project apps – tools
+    "planner",
     "event",
     "packinglist",
-    "recipe",
+    "shopping",
 ]
 
 MIDDLEWARE = [
@@ -78,6 +86,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "inspi.wsgi.application"
+ASGI_APPLICATION = "inspi.asgi.application"
+
+# Channel Layers — default in-memory, overridden in production.py for Redis
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # Database – overridden in local.py / production.py
 DATABASES = {
@@ -141,4 +157,4 @@ ACCOUNT_EMAIL_VERIFICATION = "optional"
 
 # Google Cloud / Vertex AI
 GOOGLE_CLOUD_PROJECT = env("GOOGLE_CLOUD_PROJECT", default="")
-VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="europe-west3")
+VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="global")

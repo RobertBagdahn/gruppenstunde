@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Infrastruktur, Deployment und CI/CD-Konfiguration fuer die Inspi-Plattform. Definiert die Ziel-Architektur (Google Cloud Run), Container-Builds (Podman), CI/CD-Pipeline (Google Cloud Build), Infrastruktur-as-Code (OpenTofu) und den Migrationsplan von App Engine/Cloud SQL.
+Infrastruktur, Deployment und CI/CD-Konfiguration für die Inspi-Plattform. Definiert die Ziel-Architektur (Google Cloud Run), Container-Builds (Podman), CI/CD-Pipeline (Google Cloud Build), Infrastruktur-as-Code (OpenTofu) und den Migrationsplan von App Engine/Cloud SQL.
 
 ## Context
 
@@ -20,26 +20,26 @@ Infrastruktur, Deployment und CI/CD-Konfiguration fuer die Inspi-Plattform. Defi
 
 Das System MUST folgende Technologien NICHT verwenden.
 
-#### Scenario: Technologie-Ausschluesse
+#### Scenario: Technologie-Ausschlüsse
 
 - GIVEN die Architektur-Entscheidungen
 - THEN gelten folgende Verbote:
   - Kein App Engine — Nicht verwenden, keine `app.yaml`-Dateien
   - Kein Docker lokal — Lokal immer `podman` statt `docker` verwenden
-  - Keine GitHub Actions — CI/CD laeuft ueber Google Cloud Build
+  - Keine GitHub Actions — CI/CD läuft über Google Cloud Build
   - Kein Terraform (HashiCorp) — Immer OpenTofu (`tofu`) verwenden
 
 ### Requirement: Ziel-Architektur
 
 Das System SHALL folgende Cloud-Architektur verwenden.
 
-#### Scenario: Architektur-Ueberblick
+#### Scenario: Architektur-Überblick
 
 - GIVEN die Ziel-Architektur
 - THEN besteht sie aus:
   - **GitHub** als Source Repository
-  - **Google Cloud Build** fuer CI/CD (Trigger auf Push/PR)
-  - **Artifact Registry** fuer Container-Images
+  - **Google Cloud Build** für CI/CD (Trigger auf Push/PR)
+  - **Artifact Registry** für Container-Images
   - **Cloud Run Backend** (`inspi-backend`) — Django/Gunicorn auf Port 8000
   - **Cloud Run DB** (`inspi-db`) — PostgreSQL + pgvector
   - **GCS Media Bucket** — Benutzer-Uploads
@@ -48,12 +48,12 @@ Das System SHALL folgende Cloud-Architektur verwenden.
 
 ### Requirement: Pre-Commit Hooks
 
-Das System MUST Pre-Commit Hooks fuer Code-Qualitaet bereitstellen (bereits vorhanden in `.pre-commit-config.yaml`).
+Das System MUST Pre-Commit Hooks für Code-Qualität bereitstellen (bereits vorhanden in `.pre-commit-config.yaml`).
 
 #### Scenario: Commit-Stage Hooks
 
-- GIVEN ein Entwickler fuehrt `git commit` aus
-- THEN werden folgende Hooks ausgefuehrt:
+- GIVEN ein Entwickler führt `git commit` aus
+- THEN werden folgende Hooks ausgeführt:
   - trailing-whitespace, end-of-file-fixer (Basis-Formatierung)
   - check-yaml, check-toml, check-json (Config-Validierung)
   - check-added-large-files (max 500KB)
@@ -65,8 +65,8 @@ Das System MUST Pre-Commit Hooks fuer Code-Qualitaet bereitstellen (bereits vorh
 
 #### Scenario: Pre-Push Hooks
 
-- GIVEN ein Entwickler fuehrt `git push` aus
-- THEN wird pytest mit `-m "not slow"` ausgefuehrt (schnelle Tests)
+- GIVEN ein Entwickler führt `git push` aus
+- THEN wird pytest mit `-m "not slow"` ausgeführt (schnelle Tests)
 
 #### Scenario: Hook-Installation
 
@@ -76,13 +76,13 @@ Das System MUST Pre-Commit Hooks fuer Code-Qualitaet bereitstellen (bereits vorh
 
 ### Requirement: Google Cloud Build CI/CD Pipeline
 
-Das System MUST eine CI/CD-Pipeline ueber Google Cloud Build bereitstellen.
+Das System MUST eine CI/CD-Pipeline über Google Cloud Build bereitstellen.
 
 #### Scenario: PR-Check Pipeline (cloudbuild-pr.yaml)
 
 - GIVEN ein Pull Request gegen den `main` Branch
-- WHEN Cloud Build den PR-Trigger ausfuehrt
-- THEN werden folgende Schritte ausgefuehrt:
+- WHEN Cloud Build den PR-Trigger ausführt
+- THEN werden folgende Schritte ausgeführt:
   1. **Lint & Format** (parallel): `ruff check`, `ruff format --check`, `black --check`
   2. **Type Check** (parallel zu Lint): `mypy .`
   3. **Tests** (nach Lint + Type Check): `pytest --tb=short -q`
@@ -92,8 +92,8 @@ Das System MUST eine CI/CD-Pipeline ueber Google Cloud Build bereitstellen.
 #### Scenario: Deploy Pipeline (cloudbuild.yaml)
 
 - GIVEN ein Push auf den `main` Branch
-- WHEN Cloud Build den Deploy-Trigger ausfuehrt
-- THEN werden folgende Schritte ausgefuehrt:
+- WHEN Cloud Build den Deploy-Trigger ausführt
+- THEN werden folgende Schritte ausgeführt:
   1. **Build Backend Image** → `Dockerfile.backend`
   2. **Push Backend Image** → Artifact Registry
   3. **Build Frontend** (parallel): `npm ci && npm run build`
@@ -103,9 +103,9 @@ Das System MUST eine CI/CD-Pipeline ueber Google Cloud Build bereitstellen.
 
 #### Scenario: Cloud Build Vorteile
 
-- GIVEN Cloud Build als CI/CD-Loesung
+- GIVEN Cloud Build als CI/CD-Lösung
 - THEN bietet es folgende Vorteile:
-  - Keine Secrets noetig (nativer GCP Service Account)
+  - Keine Secrets nötig (nativer GCP Service Account)
   - Schnellere Builds (Images direkt in GCP gebaut)
   - Native Artifact Registry Integration
   - Direkte Cloud Run Deploys ohne externe Credentials
@@ -114,14 +114,14 @@ Das System MUST eine CI/CD-Pipeline ueber Google Cloud Build bereitstellen.
 #### Scenario: Cloud Build Service Account Berechtigungen
 
 - GIVEN der Cloud Build Service Account
-- THEN benoetigt er folgende IAM-Rollen:
+- THEN benötigt er folgende IAM-Rollen:
   - `roles/run.admin` (Cloud Run Deployments)
   - `roles/iam.serviceAccountUser` (Service Account Impersonation)
   - `roles/storage.admin` (GCS Uploads)
 
 ### Requirement: Container-Builds mit Podman
 
-Das System SHALL lokale Container-Builds mit Podman unterstuetzen.
+Das System SHALL lokale Container-Builds mit Podman unterstützen.
 
 #### Scenario: Lokale Entwicklung
 
@@ -140,11 +140,11 @@ Das System SHALL lokale Container-Builds mit Podman unterstuetzen.
   - `make push-backend` — `podman push` zu Artifact Registry
   - `make push-db` — `podman push` zu Artifact Registry
 
-#### Scenario: Docker-Compose Kompatibilitaet
+#### Scenario: Docker-Compose Kompatibilität
 
 - GIVEN `docker-compose.yml` existiert im Projekt
 - THEN versteht `podman compose` diese Datei
-- AND lokal werden alle Container-Befehle mit `podman` ausgefuehrt
+- AND lokal werden alle Container-Befehle mit `podman` ausgeführt
 - AND in Cloud Build wird `gcr.io/cloud-builders/docker` verwendet (Docker in GCP ist OK)
 
 ### Requirement: Cloud Run Deployment
@@ -160,7 +160,7 @@ Das System SHALL die Cloud Run Service-Konfiguration definieren.
   - CPU: 1, Memory: 512Mi
   - Min Instances: 0 (Scale to zero), Max: 10
   - Env Vars: `DJANGO_SETTINGS_MODULE=inspi.settings.production`
-  - Allow unauthenticated: Ja (oeffentliche API)
+  - Allow unauthenticated: Ja (öffentliche API)
 
 #### Scenario: Database Service (inspi-db)
 
@@ -180,11 +180,11 @@ Das System SHALL die Cloud Run Service-Konfiguration definieren.
 - THEN wird es wie folgt bereitgestellt:
   - Bucket: `gruppenstunde-static`
   - Build: `npm run build` → `gsutil rsync` zu GCS
-  - Optional: Cloud CDN fuer bessere Performance
+  - Optional: Cloud CDN für bessere Performance
 
 ### Requirement: Datenbank-Migration (Cloud SQL zu Cloud Run PostgreSQL)
 
-Das System SHALL einen klaren Migrationsplan fuer die Datenbank bereitstellen.
+Das System SHALL einen klaren Migrationsplan für die Datenbank bereitstellen.
 
 #### Scenario: Migrationsschritte
 
@@ -197,11 +197,11 @@ Das System SHALL einen klaren Migrationsplan fuer die Datenbank bereitstellen.
   5. Cloud SQL Instanz abschalten
   6. Cloud SQL Proxy aus dem Projekt entfernen
 
-#### Scenario: Settings-Aenderung (production.py)
+#### Scenario: Settings-Änderung (production.py)
 
 - GIVEN die Datenbank-Konfiguration in `backend/inspi/settings/production.py`
 - WHEN auf Cloud Run PostgreSQL umgestellt wird
-- THEN aendern sich die Settings zu:
+- THEN ändern sich die Settings zu:
   - `ENGINE`: `django.db.backends.postgresql`
   - `NAME`: env `DB_NAME` (default: `inspi`)
   - `USER`: env `DB_USER` (default: `inspi`)
@@ -211,18 +211,18 @@ Das System SHALL einen klaren Migrationsplan fuer die Datenbank bereitstellen.
 
 ### Requirement: OpenTofu Infrastruktur-as-Code
 
-Das System MUST alle GCP-Ressourcen ueber OpenTofu verwalten (nicht manuell per gcloud).
+Das System MUST alle GCP-Ressourcen über OpenTofu verwalten (nicht manuell per gcloud).
 
 #### Scenario: Verzeichnisstruktur
 
 - GIVEN das OpenTofu-Verzeichnis `terraform/`
-- THEN enthaelt es:
+- THEN enthält es:
   - `providers.tf` — OpenTofu + Google Provider, GCS Backend
   - `variables.tf` — Input-Variablen (project_id, region, etc.)
   - `main.tf` — Alle GCP-Ressourcen
   - `outputs.tf` — Backend-URL, DB-URL, Bucket-URLs
-  - `.gitignore` — Schuetzt tfvars und State-Files
-  - `env/prod.tfvars` — PROD-Werte (gitignored, enthaelt Secrets)
+  - `.gitignore` — Schützt tfvars und State-Files
+  - `env/prod.tfvars` — PROD-Werte (gitignored, enthält Secrets)
   - `env/prod.tfvars.example` — Vorlage
 
 #### Scenario: Verwaltete Ressourcen
@@ -257,25 +257,25 @@ Das System MUST alle GCP-Ressourcen ueber OpenTofu verwalten (nicht manuell per 
 #### Scenario: OpenTofu Nutzung
 
 - GIVEN ein Entwickler will die Infrastruktur deployen
-- THEN fuehrt er folgende Schritte aus:
+- THEN führt er folgende Schritte aus:
   1. State Bucket erstellen (einmalig): `make tf-state-bucket`
-  2. tfvars vorbereiten: `cp terraform/env/prod.tfvars.example terraform/env/prod.tfvars` und Werte ausfuellen
+  2. tfvars vorbereiten: `cp terraform/env/prod.tfvars.example terraform/env/prod.tfvars` und Werte ausfüllen
   3. Infrastruktur deployen: `make tf-init && make tf-plan && make tf-apply`
 
 #### Scenario: OpenTofu Regeln
 
 - GIVEN die OpenTofu-Nutzung
 - THEN gelten folgende Regeln:
-  - Alle GCP-Ressourcen werden ueber OpenTofu verwaltet, nicht manuell per `gcloud`
-  - Secrets (db_password) kommen ueber `env/prod.tfvars` (gitignored)
+  - Alle GCP-Ressourcen werden über OpenTofu verwaltet, nicht manuell per `gcloud`
+  - Secrets (db_password) kommen über `env/prod.tfvars` (gitignored)
   - State liegt in GCS Bucket `inspi-terraform-state` (versioniert)
-  - Cloud Build GitHub-Verbindung muss manuell ueber Console erstellt werden (OAuth-Flow)
+  - Cloud Build GitHub-Verbindung muss manuell über Console erstellt werden (OAuth-Flow)
   - Danach wird der Repo-Name in `env/prod.tfvars` eingetragen
   - Immer `tofu` statt `terraform` verwenden. Installation: `brew install opentofu`
 
 ### Requirement: Implementierungs-Reihenfolge
 
-Das System SHALL die Migration in folgender Reihenfolge durchfuehren.
+Das System SHALL die Migration in folgender Reihenfolge durchführen.
 
 #### Scenario: Phasen
 
@@ -284,10 +284,10 @@ Das System SHALL die Migration in folgender Reihenfolge durchfuehren.
   - **Phase 1**: Pre-Commit — Sicherstellen dass alle Devs es installiert haben
   - **Phase 2**: OpenTofu Setup — State Bucket, `env/prod.tfvars`
   - **Phase 3**: OpenTofu Apply (Basis) — APIs, Registry, Buckets, Secrets, Cloud Run
-  - **Phase 4**: Cloud Build GitHub-Verbindung — Manuell ueber Console
+  - **Phase 4**: Cloud Build GitHub-Verbindung — Manuell über Console
   - **Phase 5**: OpenTofu Apply (Triggers) — Mit cloudbuild_repo gesetzt
   - **Phase 6**: Testen — Push auf main, Cloud Build deployt automatisch
   - **Phase 7**: Daten-Migration — Cloud SQL nach Cloud Run PostgreSQL
   - **Phase 8**: Cloud SQL abschalten — Instanz und Proxy entfernen
   - **Phase 9**: App Engine Reste entfernen — app.yaml Referenzen und Code
-  - **Phase 10**: Frontend CDN — Optional: Cloud CDN fuer bessere Performance
+  - **Phase 10**: Frontend CDN — Optional: Cloud CDN für bessere Performance

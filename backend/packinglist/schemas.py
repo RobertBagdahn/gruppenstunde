@@ -17,8 +17,31 @@ class PackingItemOut(Schema):
     description: str
     is_checked: bool
     sort_order: int
+    supply_type: str | None = None
+    supply_id: int | None = None
+    supply_name: str | None = None
     created_at: datetime
     updated_at: datetime
+
+    @staticmethod
+    def resolve_supply_type(obj) -> str | None:
+        if obj.supply_content_type:
+            return obj.supply_content_type.model
+        return None
+
+    @staticmethod
+    def resolve_supply_id(obj) -> int | None:
+        return obj.supply_object_id
+
+    @staticmethod
+    def resolve_supply_name(obj) -> str | None:
+        if obj.supply_content_type and obj.supply_object_id:
+            try:
+                supply = obj.supply_content_type.get_object_for_this_type(pk=obj.supply_object_id)
+                return getattr(supply, "name", None)
+            except Exception:
+                pass
+        return None
 
 
 class PackingItemCreateIn(Schema):
@@ -26,6 +49,8 @@ class PackingItemCreateIn(Schema):
     quantity: str = ""
     description: str = ""
     sort_order: int = 0
+    supply_type: str | None = None
+    supply_id: int | None = None
 
 
 class PackingItemUpdateIn(Schema):
@@ -34,6 +59,8 @@ class PackingItemUpdateIn(Schema):
     description: str | None = None
     is_checked: bool | None = None
     sort_order: int | None = None
+    supply_type: str | None = None
+    supply_id: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -167,3 +194,18 @@ class SortOrderIn(Schema):
     """Reorder items or categories by providing a list of IDs in desired order."""
 
     ordered_ids: list[int]
+
+
+# ---------------------------------------------------------------------------
+# Pagination
+# ---------------------------------------------------------------------------
+
+
+class PaginatedPackingListOut(Schema):
+    """Paginated response for packing list summaries."""
+
+    items: list[PackingListSummaryOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

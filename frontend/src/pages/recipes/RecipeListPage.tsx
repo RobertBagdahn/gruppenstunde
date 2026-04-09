@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { useRecipes } from '@/api/recipes';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useRecipes, useDeleteRecipe } from '@/api/recipes';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeFilterSidebar from '@/components/recipe/RecipeFilterSidebar';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { RECIPE_SORT_OPTIONS, type RecipeFilter } from '@/schemas/recipe';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import { toast } from 'sonner';
 
 const DEFAULT_FILTERS: Partial<RecipeFilter> = {
   sort: 'newest',
@@ -59,11 +61,14 @@ function filtersToSearchParams(filters: Partial<RecipeFilter>): URLSearchParams 
 
 export default function RecipeListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialized = useRef(false);
   const [filters, setFilters] = useState<Partial<RecipeFilter>>(DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
 
   const { data, isLoading, error, refetch } = useRecipes(filters);
+  const deleteRecipe = useDeleteRecipe();
 
   // On mount: read URL params
   useEffect(() => {
@@ -236,7 +241,14 @@ export default function RecipeListPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {data?.items.map((recipe) => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  canEdit={recipe.can_edit}
+                  canDelete={recipe.can_delete}
+                  onEdit={() => navigate(`/recipes/${recipe.slug}`)}
+                  onDelete={() => setDeleteTarget({ id: recipe.id, title: recipe.title })}
+                />
               ))}
             </div>
           )}
@@ -261,6 +273,30 @@ export default function RecipeListPage() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          deleteRecipe.mutate(deleteTarget.id, {
+            onSuccess: () => {
+              toast.success('Rezept geloescht');
+              setDeleteTarget(null);
+              refetch();
+            },
+            onError: (err) => {
+              toast.error('Fehler beim Loeschen', { description: err.message });
+              setDeleteTarget(null);
+            },
+          });
+        }}
+        onCancel={() => setDeleteTarget(null)}
+        title={`"${deleteTarget?.title}" loeschen?`}
+        description="Das Rezept wird geloescht und ist nicht mehr sichtbar."
+        confirmLabel="Loeschen"
+        loading={deleteRecipe.isPending}
+      />
     </div>
   );
 }

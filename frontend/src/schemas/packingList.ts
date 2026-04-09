@@ -11,6 +11,9 @@ export const PackingItemSchema = z.object({
   description: z.string(),
   is_checked: z.boolean(),
   sort_order: z.number(),
+  supply_type: z.string().nullable().optional(),
+  supply_id: z.number().nullable().optional(),
+  supply_name: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });

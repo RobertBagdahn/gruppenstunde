@@ -1,14 +1,22 @@
 /**
  * TanStack Query hooks for the Admin API.
+ *
+ * Includes both legacy admin endpoints (/api/admin/) and
+ * new content admin endpoints (/api/content/admin/).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CommentSchema, type Comment } from '@/schemas/idea';
+import { ContentCommentSchema, type ContentComment } from '@/schemas/content';
 import { z } from 'zod';
 
 const API_BASE = '/api/admin';
+const CONTENT_API_BASE = '/api/content/admin';
+
+function getCsrfToken(): string {
+  return document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
+}
 
 async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }
@@ -19,7 +27,11 @@ async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
 async function postJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -58,9 +70,9 @@ export function useAdminStats() {
 // --- Moderation Queue ---
 
 export function useModerationQueue() {
-  return useQuery<Comment[]>({
+  return useQuery<ContentComment[]>({
     queryKey: ['admin', 'moderation'],
-    queryFn: () => fetchJson(`${API_BASE}/moderation/`, z.array(CommentSchema)),
+    queryFn: () => fetchJson(`${API_BASE}/moderation/`, z.array(ContentCommentSchema)),
   });
 }
 
@@ -68,7 +80,7 @@ export function useModerateComment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: { comment_id: number; action: 'approve' | 'reject' }) =>
-      postJson(`${API_BASE}/moderation/`, body, CommentSchema),
+      postJson(`${API_BASE}/moderation/`, body, ContentCommentSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'moderation'] });
     },
@@ -265,5 +277,213 @@ export function useTrending() {
   return useQuery<Trending>({
     queryKey: ['admin', 'trending'],
     queryFn: () => fetchJson(`${API_BASE}/trending/`, TrendingSchema),
+  });
+}
+
+// ==========================================================================
+// Content Admin: Approval Queue
+// ==========================================================================
+
+const ApprovalQueueItemSchema = z.object({
+  content_type: z.string(),
+  object_id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  summary: z.string(),
+  submitted_at: z.string(),
+  author: z.string().nullable(),
+});
+export type ApprovalQueueItem = z.infer<typeof ApprovalQueueItemSchema>;
+
+const PaginatedApprovalQueueSchema = z.object({
+  items: z.array(ApprovalQueueItemSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedApprovalQueue = z.infer<typeof PaginatedApprovalQueueSchema>;
+
+export function useApprovalQueue(page = 1, pageSize = 20) {
+  return useQuery<PaginatedApprovalQueue>({
+    queryKey: ['admin', 'approvals', page, pageSize],
+    queryFn: () =>
+      fetchJson(
+        `${CONTENT_API_BASE}/approvals/?page=${page}&page_size=${pageSize}`,
+        PaginatedApprovalQueueSchema,
+      ),
+  });
+}
+
+const ApprovalActionResultSchema = z.object({
+  success: z.boolean(),
+  content_type: z.string(),
+  object_id: z.number(),
+  new_status: z.string(),
+  message: z.string(),
+});
+export type ApprovalActionResult = z.infer<typeof ApprovalActionResultSchema>;
+
+export function useApprovalAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      contentType: string;
+      objectId: number;
+      action: 'approve' | 'reject';
+      reason?: string;
+    }) =>
+      postJson(
+        `${CONTENT_API_BASE}/approvals/${params.contentType}/${params.objectId}/`,
+        { action: params.action, reason: params.reason ?? '' },
+        ApprovalActionResultSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] });
+    },
+  });
+}
+
+const ApprovalLogItemSchema = z.object({
+  id: z.number(),
+  content_type: z.string(),
+  object_id: z.number(),
+  action: z.string(),
+  reviewer_name: z.string().nullable(),
+  reason: z.string(),
+  created_at: z.string(),
+});
+export type ApprovalLogItem = z.infer<typeof ApprovalLogItemSchema>;
+
+export function useApprovalHistory(contentType: string, objectId: number) {
+  return useQuery<ApprovalLogItem[]>({
+    queryKey: ['admin', 'approval-history', contentType, objectId],
+    queryFn: () =>
+      fetchJson(
+        `${CONTENT_API_BASE}/approvals/${contentType}/${objectId}/history/`,
+        z.array(ApprovalLogItemSchema),
+      ),
+    enabled: !!contentType && objectId > 0,
+  });
+}
+
+// ==========================================================================
+// Content Admin: Embedding Viewer
+// ==========================================================================
+
+const EmbeddingStatusItemSchema = z.object({
+  content_type: z.string(),
+  object_id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  has_embedding: z.boolean(),
+  embedding_updated_at: z.string().nullable(),
+  content_updated_at: z.string(),
+  is_stale: z.boolean(),
+});
+export type EmbeddingStatusItem = z.infer<typeof EmbeddingStatusItemSchema>;
+
+const EmbeddingStatsSchema = z.object({
+  total: z.number(),
+  with_embedding: z.number(),
+  stale: z.number(),
+  missing: z.number(),
+});
+export type EmbeddingStats = z.infer<typeof EmbeddingStatsSchema>;
+
+const PaginatedEmbeddingStatusSchema = z.object({
+  items: z.array(EmbeddingStatusItemSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+  stats: EmbeddingStatsSchema,
+});
+export type PaginatedEmbeddingStatus = z.infer<typeof PaginatedEmbeddingStatusSchema>;
+
+export function useEmbeddingStatus(
+  contentType = '',
+  statusFilter = '',
+  page = 1,
+  pageSize = 20,
+) {
+  const params = new URLSearchParams();
+  if (contentType) params.set('content_type', contentType);
+  if (statusFilter) params.set('status_filter', statusFilter);
+  params.set('page', String(page));
+  params.set('page_size', String(pageSize));
+
+  return useQuery<PaginatedEmbeddingStatus>({
+    queryKey: ['admin', 'embeddings', contentType, statusFilter, page, pageSize],
+    queryFn: () =>
+      fetchJson(
+        `${CONTENT_API_BASE}/embeddings/?${params}`,
+        PaginatedEmbeddingStatusSchema,
+      ),
+  });
+}
+
+const BatchEmbeddingResultSchema = z.object({
+  updated: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
+});
+export type BatchEmbeddingResult = z.infer<typeof BatchEmbeddingResultSchema>;
+
+export function useBatchUpdateEmbeddings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { content_type?: string; force?: boolean; limit?: number }) =>
+      postJson(
+        `${CONTENT_API_BASE}/embeddings/batch-update/`,
+        params,
+        BatchEmbeddingResultSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'embeddings'] });
+    },
+  });
+}
+
+// ==========================================================================
+// Content Admin: Embedding Feedback
+// ==========================================================================
+
+const EmbeddingFeedbackItemSchema = z.object({
+  id: z.number(),
+  content_link_id: z.number(),
+  source_content_type: z.string(),
+  source_title: z.string(),
+  target_content_type: z.string(),
+  target_title: z.string(),
+  feedback_type: z.string(),
+  notes: z.string(),
+  created_by_name: z.string().nullable(),
+  created_at: z.string(),
+});
+export type EmbeddingFeedbackItem = z.infer<typeof EmbeddingFeedbackItemSchema>;
+
+const PaginatedEmbeddingFeedbackSchema = z.object({
+  items: z.array(EmbeddingFeedbackItemSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedEmbeddingFeedback = z.infer<typeof PaginatedEmbeddingFeedbackSchema>;
+
+export function useEmbeddingFeedback(feedbackType = '', page = 1, pageSize = 20) {
+  const params = new URLSearchParams();
+  if (feedbackType) params.set('feedback_type', feedbackType);
+  params.set('page', String(page));
+  params.set('page_size', String(pageSize));
+
+  return useQuery<PaginatedEmbeddingFeedback>({
+    queryKey: ['admin', 'embedding-feedback', feedbackType, page, pageSize],
+    queryFn: () =>
+      fetchJson(
+        `${CONTENT_API_BASE}/embedding-feedback/?${params}`,
+        PaginatedEmbeddingFeedbackSchema,
+      ),
   });
 }

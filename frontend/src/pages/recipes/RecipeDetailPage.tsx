@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useCreateFromRecipe } from '@/api/shoppingLists';
+import { useCurrentUser } from '@/api/auth';
 import {
   useRecipeBySlug,
   useRecipeComments,
@@ -9,6 +11,8 @@ import {
   useRecipeHints,
   useRecipeNutriScore,
   useRecipeNutritionBreakdown,
+  useUpdateRecipe,
+  useDeleteRecipe,
 } from '@/api/recipes';
 import {
   RECIPE_TYPE_OPTIONS,
@@ -16,11 +20,18 @@ import {
   RECIPE_EXECUTION_TIME_OPTIONS,
   RECIPE_COSTS_OPTIONS,
   RECIPE_PREPARATION_TIME_OPTIONS,
-  RECIPE_EMOTION_OPTIONS,
 } from '@/schemas/recipe';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import ContentComments from '@/components/content/ContentComments';
+import ContentEmotions from '@/components/content/ContentEmotions';
+import InlineEditor from '@/components/content/InlineEditor';
+import IngredientList from '@/components/supply/IngredientList';
+import { ContentLinkSection } from '@/components/content/ContentLinkSection';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { toast } from 'sonner';
+import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 
 // Scout level colors
 const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -38,24 +49,6 @@ const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
   D: { bg: 'bg-orange-500', text: 'text-white' },
   E: { bg: 'bg-red-600', text: 'text-white' },
 };
-
-function useDocumentMeta(title: string, description: string) {
-  useEffect(() => {
-    const prevTitle = document.title;
-    document.title = title ? `${title} – Rezepte – Inspi` : 'Inspi – Rezepte';
-
-    let metaDesc = document.querySelector('meta[name="description"]');
-    const prevDesc = metaDesc?.getAttribute('content') ?? '';
-    if (metaDesc) {
-      metaDesc.setAttribute('content', description);
-    }
-
-    return () => {
-      document.title = prevTitle;
-      if (metaDesc) metaDesc.setAttribute('content', prevDesc);
-    };
-  }, [title, description]);
-}
 
 // --- Collapsible Section Component ---
 function AnalysisSection({
@@ -136,16 +129,27 @@ export default function RecipeDetailPage() {
   const { data: comments } = useRecipeComments(recipeId);
   const createComment = useCreateRecipeComment(recipeId);
   const createEmotion = useRecipeEmotion(recipeId);
+  const updateRecipe = useUpdateRecipe(recipeId);
+  const deleteRecipe = useDeleteRecipe();
   const { data: checks } = useRecipeChecks(recipeId);
   const { data: nutriScore } = useRecipeNutriScore(recipeId);
   const { data: hints } = useRecipeHints(recipeId);
   const { data: nutritionBreakdown } = useRecipeNutritionBreakdown(recipeId);
 
-  const [commentText, setCommentText] = useState('');
-  const [commentAuthor, setCommentAuthor] = useState('');
   const [servingsMultiplier, setServingsMultiplier] = useState(1);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showShoppingExport, setShowShoppingExport] = useState(false);
+  const [exportServings, setExportServings] = useState(1);
 
-  useDocumentMeta(recipe?.title ?? '', recipe?.summary ?? '');
+  const { data: currentUser } = useCurrentUser();
+  const createFromRecipe = useCreateFromRecipe();
+
+  useDocumentMeta({
+    title: recipe?.title,
+    description: recipe?.summary,
+    url: slug ? `/recipes/${slug}` : undefined,
+    image: recipe?.image_url,
+  });
 
   if (isLoading) {
     return (
@@ -203,6 +207,29 @@ export default function RecipeDetailPage() {
 
   return (
     <article className="container py-8 max-w-3xl">
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onConfirm={() => {
+          deleteRecipe.mutate(recipeId, {
+            onSuccess: () => {
+              toast.success('Rezept geloescht');
+              setShowDeleteConfirm(false);
+              navigate('/recipes');
+            },
+            onError: (err) => {
+              toast.error('Fehler beim Loeschen', { description: err.message });
+              setShowDeleteConfirm(false);
+            },
+          });
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title="Rezept loeschen?"
+        description="Das Rezept wird geloescht und ist nicht mehr sichtbar."
+        confirmLabel="Loeschen"
+        loading={deleteRecipe.isPending}
+      />
+
       {/* Recipe Type Badge */}
       {typeOpt && (
         <p className="inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 uppercase tracking-wide bg-rose-50 rounded-full px-3 py-1 border border-rose-200 mb-3">
@@ -211,28 +238,41 @@ export default function RecipeDetailPage() {
         </p>
       )}
 
-      {/* Title + Edit */}
+      {/* Title + Edit + Delete */}
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{recipe.title}</h1>
-        {recipe.can_edit && (
-          <Link
-            to={`/recipes/${recipe.slug}/edit`}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors shrink-0"
-            title="Rezept bearbeiten"
-          >
-            <span className="material-symbols-outlined text-[18px]">edit</span>
-            <span className="hidden sm:inline">Bearbeiten</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {recipe.can_edit && (
+            <Link
+              to={`/recipes/${recipe.slug}/edit`}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
+              title="Rezept bearbeiten"
+            >
+              <span className="material-symbols-outlined text-[18px]">edit</span>
+              <span className="hidden sm:inline">Bearbeiten</span>
+            </Link>
+          )}
+          {recipe.can_delete && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
+              title="Rezept loeschen"
+            >
+              <span className="material-symbols-outlined text-[18px]">delete</span>
+              <span className="hidden sm:inline">Loeschen</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Hero Image */}
-      <div className="mt-6 rounded-xl overflow-hidden shadow-soft">
+      <div className="mt-6 rounded-xl overflow-hidden shadow-soft max-w-lg mx-auto relative aspect-square">
         <img
           src={recipe.image_url || '/images/inspi_cook.png'}
           alt={recipe.title}
-          className="w-full object-cover max-h-96"
+          className="w-full h-full object-cover"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
       </div>
 
       {/* Info Boxes */}
@@ -271,8 +311,17 @@ export default function RecipeDetailPage() {
         {/* Servings */}
         <div className="flex flex-col items-center text-center gap-1 bg-emerald-50 rounded-xl border border-emerald-200 p-5">
           <span className="material-symbols-outlined text-3xl text-emerald-600">group</span>
-          <span className="text-base font-bold">{recipe.servings ?? '–'}</span>
+          <span className="text-base font-bold">
+            {recipe.servings
+              ? recipe.servings * servingsMultiplier
+              : '–'}
+          </span>
           <span className="text-xs text-muted-foreground">Portionen</span>
+          {servingsMultiplier !== 1 && recipe.servings && (
+            <span className="text-xs text-emerald-600 font-medium">
+              ({servingsMultiplier}x)
+            </span>
+          )}
         </div>
 
         {/* Views */}
@@ -297,9 +346,20 @@ export default function RecipeDetailPage() {
 
       {/* Summary */}
       {recipe.summary && (
-        <div className="mt-6 bg-card rounded-xl border p-5">
-          <MarkdownRenderer content={recipe.summary} className="text-lg font-semibold italic" />
-        </div>
+        <InlineEditor
+          mode="textarea"
+          label="Zusammenfassung"
+          value={recipe.summary}
+          canEdit={recipe.can_edit ?? false}
+          aiField="summary"
+          onSave={(val) => updateRecipe.mutateAsync({ summary: val })}
+          isSaving={updateRecipe.isPending}
+          className="mt-6"
+        >
+          <div className="bg-card rounded-xl border p-5">
+            <MarkdownRenderer content={recipe.summary} className="text-lg font-semibold italic" />
+          </div>
+        </InlineEditor>
       )}
 
       {/* Authors */}
@@ -502,7 +562,7 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
-      {/* Recipe Items (Ingredients) - CLICKABLE */}
+      {/* Recipe Items (Ingredients) — using IngredientList component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
         <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
           <span className="material-symbols-outlined text-rose-500">egg_alt</span>
@@ -514,112 +574,124 @@ export default function RecipeDetailPage() {
           )}
         </h2>
 
-        {(recipe.recipe_items?.length ?? 0) === 0 ? (
-          <p className="text-muted-foreground italic">Keine Zutaten angegeben</p>
-        ) : (
-          <>
-            {/* Servings multiplier */}
-            {recipe.servings && (
-              <div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
-                <span className="material-symbols-outlined text-muted-foreground">group</span>
-                <span className="text-sm font-medium">Portionen:</span>
-                <button
-                  onClick={() => setServingsMultiplier(Math.max(1, servingsMultiplier - 1))}
-                  className="w-8 h-8 rounded-lg border bg-background flex items-center justify-center hover:bg-muted transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[18px]">remove</span>
-                </button>
-                <input
-                  type="number"
-                  min={1}
-                  max={99}
-                  value={servingsMultiplier}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value, 10);
-                    if (!isNaN(v) && v >= 1) setServingsMultiplier(v);
-                  }}
-                  className="w-16 h-8 text-center rounded-lg border bg-background text-sm font-bold"
-                />
-                <button
-                  onClick={() => setServingsMultiplier(servingsMultiplier + 1)}
-                  className="w-8 h-8 rounded-lg border bg-background flex items-center justify-center hover:bg-muted transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[18px]">add</span>
-                </button>
-              </div>
-            )}
+        <IngredientList
+          items={recipe.recipe_items ?? []}
+          servings={recipe.servings}
+          servingsMultiplier={servingsMultiplier}
+          onServingsChange={setServingsMultiplier}
+        />
 
-            <ul className="space-y-2">
-              {(recipe.recipe_items ?? [])
-                .sort((a, b) => a.sort_order - b.sort_order)
-                .map((item) => {
-                  const qty = item.quantity * servingsMultiplier;
-                  const displayQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
-
-                  const ingredientContent = (
-                    <>
-                       <span className="material-symbols-outlined text-rose-500 text-[18px]">
-                        check_circle
-                      </span>
-                      {item.quantity > 0 && (
-                        <span className="font-semibold">{displayQty}</span>
-                      )}
-                      {item.measuring_unit_name && (
-                        <span className="text-muted-foreground">{item.measuring_unit_name}</span>
-                      )}
-                      {item.portion_name && (
-                        <span className="text-muted-foreground">{item.portion_name}</span>
-                      )}
-                      <span className="font-medium">{item.ingredient_name ?? 'Unbekannt'}</span>
-                      {item.note && (
-                        <span className="text-xs text-muted-foreground italic">({item.note})</span>
-                      )}
-                      {item.quantity_type === 'per_person' && (
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                          pro Person
-                        </span>
-                      )}
-                    </>
-                  );
-
-                  // Make ingredient clickable if it has an ingredient_id
-                  if (item.ingredient_id) {
-                    return (
-                      <li key={item.id} className="text-sm">
-                        <Link
-                          to={`/ingredients/${item.ingredient_id}`}
-                          className="flex items-center gap-2 p-2 -m-2 rounded-lg hover:bg-rose-50 hover:border-rose-200 transition-colors group"
-                          title={`${item.ingredient_name} – Details anzeigen`}
-                        >
-                          {ingredientContent}
-                          <span className="material-symbols-outlined text-[14px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-                            arrow_forward
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  }
-
-                  return (
-                    <li key={item.id} className="flex items-center gap-2 text-sm p-2 -m-2">
-                      {ingredientContent}
-                    </li>
-                  );
-                })}
-            </ul>
-          </>
+        {/* Export to Shopping List */}
+        {currentUser && (
+          <div className="mt-4 pt-4 border-t">
+            <button
+              type="button"
+              onClick={() => {
+                setExportServings(
+                  (recipe.servings ?? 1) * servingsMultiplier,
+                );
+                setShowShoppingExport(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center md:w-auto"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                shopping_cart
+              </span>
+              Zur Einkaufsliste
+            </button>
+          </div>
         )}
       </section>
 
+      {/* Shopping List Export Dialog */}
+      {showShoppingExport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">shopping_cart</span>
+              Einkaufsliste erstellen
+            </h3>
+            <label className="block text-sm text-muted-foreground mb-1">
+              Anzahl Portionen
+            </label>
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                type="button"
+                onClick={() => setExportServings(Math.max(1, exportServings - 1))}
+                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">remove</span>
+              </button>
+              <input
+                type="number"
+                min={1}
+                max={999}
+                value={exportServings}
+                onChange={(e) => setExportServings(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-20 text-center text-lg font-semibold border rounded-lg py-2 bg-background"
+              />
+              <button
+                type="button"
+                onClick={() => setExportServings(exportServings + 1)}
+                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">add</span>
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={createFromRecipe.isPending}
+                onClick={() => {
+                  createFromRecipe.mutate(
+                    { recipeId: recipe.id, servings: exportServings },
+                    {
+                      onSuccess: (created) => {
+                        toast.success('Einkaufsliste erstellt');
+                        setShowShoppingExport(false);
+                        navigate(`/shopping-lists/${created.id}`);
+                      },
+                      onError: (err) =>
+                        toast.error('Fehler', { description: err.message }),
+                    },
+                  );
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {createFromRecipe.isPending ? 'Erstelle...' : 'Erstellen'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowShoppingExport(false)}
+                className="px-4 py-2.5 text-sm border rounded-lg hover:bg-muted transition-colors"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Description */}
       {recipe.description && (
-        <div className="mt-6 bg-card rounded-xl border p-6">
-          <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
-            <span className="material-symbols-outlined text-primary">description</span>
-            Zubereitung
-          </h2>
-          <MarkdownRenderer content={recipe.description} />
-        </div>
+        <InlineEditor
+          mode="markdown"
+          label="Zubereitung"
+          value={recipe.description}
+          canEdit={recipe.can_edit ?? false}
+          aiField="description"
+          onSave={(val) => updateRecipe.mutateAsync({ description: val })}
+          isSaving={updateRecipe.isPending}
+          className="mt-6"
+        >
+          <div className="bg-card rounded-xl border p-6">
+            <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+              <span className="material-symbols-outlined text-primary">description</span>
+              Zubereitung
+            </h2>
+            <MarkdownRenderer content={recipe.description} />
+          </div>
+        </InlineEditor>
       )}
 
       {/* Long Summary */}
@@ -1073,42 +1145,18 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
-      {/* Emotions */}
-      <section className="mt-8">
+      {/* Emotions — using generic ContentEmotions component */}
+      <section className="mt-8 bg-card rounded-xl border p-6">
         <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
           <span className="material-symbols-outlined text-accent">mood</span>
           Wie findest du dieses Rezept?
         </h2>
-        <div className="flex gap-3">
-          {RECIPE_EMOTION_OPTIONS.map((opt) => {
-            const count = recipe.emotion_counts?.[opt.value] ?? 0;
-            const isSelected = recipe.user_emotion === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => createEmotion.mutate({ emotion_type: opt.value })}
-                disabled={createEmotion.isPending}
-                className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border cursor-pointer hover:border-rose-500 hover:shadow-glow active:scale-95 transition-all ${
-                  isSelected
-                    ? 'bg-rose-500/10 border-rose-500 ring-2 ring-rose-500/30'
-                    : 'bg-card'
-                }`}
-              >
-                <span className={`text-3xl ${createEmotion.isPending ? 'opacity-50' : ''}`}>
-                  {opt.emoji}
-                </span>
-                <span className="text-xs font-medium text-muted-foreground">{opt.label}</span>
-                {count > 0 && (
-                  <span
-                    className={`text-xs font-bold ${isSelected ? 'text-rose-600' : 'text-muted-foreground'}`}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <ContentEmotions
+          emotionCounts={recipe.emotion_counts ?? {}}
+          userEmotion={recipe.user_emotion ?? null}
+          onToggle={(emotionType) => createEmotion.mutate({ emotion_type: emotionType })}
+          isPending={createEmotion.isPending}
+        />
       </section>
 
       {/* Similar Recipes */}
@@ -1125,12 +1173,14 @@ export default function RecipeDetailPage() {
                 to={`/recipes/${similar.slug}`}
                 className="group block rounded-xl bg-card border overflow-hidden hover:border-rose-500/40 hover:shadow-md transition-all"
               >
-                <img
-                  src={similar.image_url || '/images/inspi_cook.png'}
-                  alt={similar.title}
-                  loading="lazy"
-                  className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                <div className="aspect-square overflow-hidden">
+                  <img
+                    src={similar.image_url || '/images/inspi_cook.png'}
+                    alt={similar.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
                 <div className="p-3">
                   <h3 className="font-semibold text-sm group-hover:text-rose-600 transition-colors line-clamp-2">
                     {similar.title}
@@ -1159,100 +1209,15 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
-      {/* Comments */}
-      <section className="mt-8">
-        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
-          <span className="material-symbols-outlined text-primary">forum</span>
-          Kommentare
-        </h2>
+      <ContentLinkSection contentType="recipe" objectId={recipeId} />
 
-        {/* Comment Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!commentText.trim()) return;
-            createComment.mutate(
-              {
-                text: commentText.trim(),
-                author_name: commentAuthor.trim() || undefined,
-              },
-              {
-                onSuccess: () => {
-                  setCommentText('');
-                  setCommentAuthor('');
-                },
-              },
-            );
-          }}
-          className="mb-6 space-y-3 bg-card rounded-xl border p-5"
-        >
-          <input
-            type="text"
-            placeholder="Dein Name (optional)"
-            value={commentAuthor}
-            onChange={(e) => setCommentAuthor(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-rose-500"
-          />
-          <textarea
-            placeholder="Schreibe einen Kommentar..."
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            rows={3}
-            className="w-full px-4 py-2.5 rounded-lg border text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-rose-500"
-          />
-          <button
-            type="submit"
-            disabled={!commentText.trim() || createComment.isPending}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-lg text-sm font-medium hover:shadow-lg disabled:opacity-50 transition-all"
-          >
-            <span className="material-symbols-outlined text-[18px]">send</span>
-            {createComment.isPending ? 'Wird gesendet...' : 'Kommentar senden'}
-          </button>
-          {createComment.isSuccess && (
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span className="material-symbols-outlined text-rose-500 text-[18px]">
-                check_circle
-              </span>
-              Dein Kommentar wurde eingereicht und wird nach Pruefung angezeigt.
-            </p>
-          )}
-        </form>
-
-        {/* Comment List */}
-        {comments && comments.length > 0 ? (
-          <div className="space-y-3">
-            {comments.map((comment) => (
-              <div key={comment.id} className="bg-card border rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="flex items-center gap-1.5 text-sm font-medium">
-                    <span className="material-symbols-outlined text-muted-foreground text-[18px]">
-                      person
-                    </span>
-                    {comment.user_id ? (
-                      <Link
-                        to={`/profile/name/${comment.user_id}`}
-                        className="text-rose-600 hover:underline"
-                      >
-                        {comment.author_name}
-                      </Link>
-                    ) : (
-                      comment.author_name
-                    )}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(comment.created_at).toLocaleDateString('de-DE')}
-                  </span>
-                </div>
-                <p className="text-sm text-foreground/85">{comment.text}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">chat_bubble_outline</span>
-            Noch keine Kommentare. Sei der Erste!
-          </p>
-        )}
+      {/* Comments — using generic ContentComments component */}
+      <section className="mt-8 bg-card rounded-xl border p-6">
+        <ContentComments
+          comments={comments ?? []}
+          onSubmit={(data) => createComment.mutate(data)}
+          isPending={createComment.isPending}
+        />
       </section>
     </article>
   );

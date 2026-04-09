@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { usePublicUserProfile } from '@/api/profile';
+import { getContentUrl } from '@/schemas/content';
 
 export default function UserProfilePage() {
   const { userId } = useParams<{ userId: string }>();
@@ -65,37 +66,37 @@ export default function UserProfilePage() {
         </div>
       )}
 
-      {/* Ideas */}
+      {/* Content */}
       <section className="mt-8">
         <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
           <span className="material-symbols-outlined text-primary">lightbulb</span>
-          Ideen von {displayName}
-          {profile.ideas.length > 0 && (
-            <span className="text-sm font-normal text-muted-foreground">({profile.ideas.length})</span>
+          Beiträge von {displayName}
+          {profile.contents.length > 0 && (
+            <span className="text-sm font-normal text-muted-foreground">({profile.contents.length})</span>
           )}
         </h2>
-        {profile.ideas.length === 0 ? (
-          <p className="text-muted-foreground italic">Noch keine veröffentlichten Ideen.</p>
+        {profile.contents.length === 0 ? (
+          <p className="text-muted-foreground italic">Noch keine veröffentlichten Beiträge.</p>
         ) : (
           <div className="grid gap-4">
-            {profile.ideas.map((idea) => (
+            {profile.contents.map((item) => (
               <Link
-                key={idea.id}
-                to={`/idea/${idea.slug}`}
+                key={item.id}
+                to={getContentUrl(item.content_type, item.slug)}
                 className="flex gap-4 bg-card rounded-xl border p-4 hover:border-primary/50 hover:shadow-soft transition-all"
               >
-                {idea.image_url && (
+                {item.image_url && (
                   <img
-                    src={idea.image_url}
-                    alt={idea.title}
-                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                    src={item.image_url}
+                    alt={item.title}
+                    className="w-20 aspect-square rounded-lg object-cover flex-shrink-0"
                   />
                 )}
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-sm line-clamp-1">{idea.title}</h3>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{idea.summary}</p>
+                  <h3 className="font-semibold text-sm line-clamp-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{item.summary}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(idea.created_at).toLocaleDateString('de-DE')}
+                    {new Date(item.created_at).toLocaleDateString('de-DE')}
                   </p>
                 </div>
               </Link>

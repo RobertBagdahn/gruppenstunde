@@ -41,7 +41,7 @@ export interface ToolConfig {
 /* ------------------------------------------------------------------ */
 
 export const TOOL_IDEA: ToolConfig = {
-  key: 'idea',
+  key: 'content',
   label: 'Ideen & Wissen',
   tagline: 'Gruppenstunden-Ideen und Wissensartikel entdecken',
   icon: 'lightbulb',
@@ -81,7 +81,7 @@ export const TOOL_MEAL_PLAN: ToolConfig = {
   bgTint: 'bg-amber-50',
   borderColor: 'border-amber-300',
   ringColor: 'ring-amber-400',
-  basePath: '/meal-plans',
+  basePath: '/meal-events',
   mascotImg: '/images/inspi_cook.png',
 };
 
@@ -130,23 +130,86 @@ export const TOOL_RECIPES: ToolConfig = {
   mascotImg: '/images/inspi_baby_cookie.png',
 };
 
+export const TOOL_SESSIONS: ToolConfig = {
+  key: 'sessions',
+  label: 'Gruppenstunden',
+  tagline: 'Ideen und Anleitungen fuer die naechste Gruppenstunde',
+  icon: 'groups',
+  gradient: 'from-emerald-500 to-green-600',
+  bgSolid: 'bg-emerald-500',
+  textColor: 'text-emerald-600',
+  bgTint: 'bg-emerald-50',
+  borderColor: 'border-emerald-300',
+  ringColor: 'ring-emerald-400',
+  basePath: '/sessions',
+};
+
+export const TOOL_BLOG: ToolConfig = {
+  key: 'blog',
+  label: 'Blog',
+  tagline: 'Wissensbeitraege, Tutorials und Erfahrungsberichte',
+  icon: 'article',
+  gradient: 'from-indigo-500 to-blue-600',
+  bgSolid: 'bg-indigo-500',
+  textColor: 'text-indigo-600',
+  bgTint: 'bg-indigo-50',
+  borderColor: 'border-indigo-300',
+  ringColor: 'ring-indigo-400',
+  basePath: '/blogs',
+};
+
+export const TOOL_GAMES: ToolConfig = {
+  key: 'games',
+  label: 'Spiele',
+  tagline: 'Gelaendespiele, Kennenlernspiele und mehr',
+  icon: 'sports_esports',
+  gradient: 'from-orange-500 to-red-600',
+  bgSolid: 'bg-orange-500',
+  textColor: 'text-orange-600',
+  bgTint: 'bg-orange-50',
+  borderColor: 'border-orange-300',
+  ringColor: 'ring-orange-400',
+  basePath: '/games',
+};
+
+export const TOOL_NORM_PORTION: ToolConfig = {
+  key: 'norm-portion',
+  label: 'Normportion-Simulator',
+  tagline: 'Energiebedarf und Normfaktoren nach Alter und Geschlecht',
+  icon: 'calculate',
+  gradient: 'from-amber-500 to-yellow-600',
+  bgSolid: 'bg-amber-500',
+  textColor: 'text-amber-600',
+  bgTint: 'bg-amber-50',
+  borderColor: 'border-amber-300',
+  ringColor: 'ring-amber-400',
+  basePath: '/tools/norm-portion-simulator',
+};
+
 /** All planning/productivity tools (shown in nav, homepage, etc.) */
 export const ALL_TOOLS: ToolConfig[] = [
   TOOL_EVENTS,
   TOOL_MEAL_PLAN,
   TOOL_SESSION_PLANNER,
   TOOL_PACKING_LISTS,
+  TOOL_NORM_PORTION,
 ];
 
-/** All content modules (Ideas + Recipes) */
+/** All content modules (Ideas + Recipes + Sessions + Blog + Games) */
 export const CONTENT_MODULES: ToolConfig[] = [
   TOOL_IDEA,
   TOOL_RECIPES,
+  TOOL_SESSIONS,
+  TOOL_BLOG,
+  TOOL_GAMES,
 ];
 
 /** Everything combined */
 export const ALL_MODULES: ToolConfig[] = [
   TOOL_IDEA,
   TOOL_RECIPES,
+  TOOL_SESSIONS,
+  TOOL_BLOG,
+  TOOL_GAMES,
   ...ALL_TOOLS,
 ];

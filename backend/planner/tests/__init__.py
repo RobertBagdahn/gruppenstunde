@@ -2,14 +2,14 @@
 
 import datetime
 
+from django.utils import timezone
 from model_bakery import baker
 
 from planner.models import (
     EntryStatusChoices,
     Meal,
-    MealDay,
+    MealEvent,
     MealItem,
-    MealPlan,
     MealTypeChoices,
     Planner,
     PlannerCollaborator,
@@ -77,11 +77,11 @@ def make_planner_collaborator(planner: Planner | None = None, user=None, **kwarg
 
 
 # ---------------------------------------------------------------------------
-# MealPlan
+# MealEvent
 # ---------------------------------------------------------------------------
 
 
-def make_meal_plan(created_by=None, **kwargs) -> MealPlan:
+def make_meal_event(created_by=None, **kwargs) -> MealEvent:
     if created_by is None:
         from django.contrib.auth import get_user_model
 
@@ -95,22 +95,7 @@ def make_meal_plan(created_by=None, **kwargs) -> MealPlan:
         "reserve_factor": 1.1,
     }
     defaults.update(kwargs)
-    return baker.make(MealPlan, created_by=created_by, **defaults)
-
-
-# ---------------------------------------------------------------------------
-# MealDay
-# ---------------------------------------------------------------------------
-
-
-def make_meal_day(meal_plan: MealPlan | None = None, **kwargs) -> MealDay:
-    if meal_plan is None:
-        meal_plan = make_meal_plan()
-    defaults = {
-        "date": datetime.date.today(),
-    }
-    defaults.update(kwargs)
-    return baker.make(MealDay, meal_plan=meal_plan, **defaults)
+    return baker.make(MealEvent, created_by=created_by, **defaults)
 
 
 # ---------------------------------------------------------------------------
@@ -118,15 +103,18 @@ def make_meal_day(meal_plan: MealPlan | None = None, **kwargs) -> MealDay:
 # ---------------------------------------------------------------------------
 
 
-def make_meal(meal_day: MealDay | None = None, **kwargs) -> Meal:
-    if meal_day is None:
-        meal_day = make_meal_day()
+def make_meal(meal_event: MealEvent | None = None, **kwargs) -> Meal:
+    if meal_event is None:
+        meal_event = make_meal_event()
+    today = datetime.date.today()
     defaults = {
+        "start_datetime": timezone.make_aware(datetime.datetime.combine(today, datetime.time(12, 0))),
+        "end_datetime": timezone.make_aware(datetime.datetime.combine(today, datetime.time(13, 0))),
         "meal_type": MealTypeChoices.LUNCH,
         "day_part_factor": 0.35,
     }
     defaults.update(kwargs)
-    return baker.make(Meal, meal_day=meal_day, **defaults)
+    return baker.make(Meal, meal_event=meal_event, **defaults)
 
 
 # ---------------------------------------------------------------------------

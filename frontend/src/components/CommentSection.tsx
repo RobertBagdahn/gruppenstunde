@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useCreateComment } from '@/api/ideas';
-import type { Comment } from '@/schemas/idea';
+import { useCreateContentComment } from '@/api/contentInteractions';
+import type { ContentComment } from '@/schemas/content';
 
 interface CommentSectionProps {
-  ideaId: number;
-  comments: Comment[] | undefined;
+  contentType: string;
+  contentId: number;
+  apiBase: string;
+  comments: ContentComment[] | undefined;
 }
 
-export default function CommentSection({ ideaId, comments }: CommentSectionProps) {
+export default function CommentSection({ contentType, contentId, apiBase, comments }: CommentSectionProps) {
   const [text, setText] = useState('');
   const [authorName, setAuthorName] = useState('');
-  const createComment = useCreateComment(ideaId);
+  const createComment = useCreateContentComment(contentType, contentId, apiBase);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

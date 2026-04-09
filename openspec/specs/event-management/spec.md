@@ -1,227 +1,84 @@
-# event-management Specification
-
-## Purpose
-
-Vollstaendiges Event-Management-System fuer Pfadfinder-Gruppenaktivitaeten. Umfasst Event-Erstellung, Buchungsoptionen mit Preisgestaltung, Benutzer-Registrierung mit Teilnehmerverwaltung, Einladungsverteilung an Gruppen und einzelne Benutzer, sowie Event-Standort-Verwaltung. Verwendet ein Snapshot-Muster, bei dem Personendaten zum Zeitpunkt der Registrierung als Participant geklont werden.
-
 ## Requirements
 
-### Requirement: Event CRUD
-
-Das System MUST vollstaendige CRUD-Operationen fuer Events ueber `/api/events/` bereitstellen. Events werden per Slug identifiziert (nicht per ID).
-
-#### Scenario: Event erstellen
-
-- GIVEN ein authentifizierter Benutzer
-- WHEN der Benutzer POST `/api/events/` mit Name, Beschreibung, Daten und Sichtbarkeitseinstellungen absendet
-- THEN wird das Event mit einem URL-sicheren Slug erstellt
-- AND der Ersteller wird als verantwortliche Person gesetzt
-
-#### Scenario: Event erstellen (nicht authentifiziert)
-
-- GIVEN ein nicht-authentifizierter Benutzer
-- WHEN der Benutzer POST `/api/events/` aufruft
-- THEN wird HTTP 401 Unauthorized zurueckgegeben
-
-#### Scenario: Event per Slug abrufen
-
-- GIVEN ein oeffentliches Event mit Slug "sommerlager-2025"
-- WHEN ein beliebiger Benutzer GET `/api/events/sommerlager-2025/` aufruft
-- THEN werden die vollstaendigen Event-Details inkl. Buchungsoptionen und Standort zurueckgegeben
-- AND fuer den Event-Ersteller enthaelt die Antwort `is_manager: true` und `all_registrations`
-- AND fuer registrierte Benutzer enthaelt die Antwort `is_registered: true` und `my_registration`
-
-#### Scenario: Event aktualisieren (nur Ersteller oder Admin)
-
-- GIVEN der Event-Ersteller oder ein Admin
-- WHEN der Benutzer PATCH `/api/events/{slug}/` absendet
-- THEN wird das Event mit neuen Daten aktualisiert
-
-#### Scenario: Event loeschen
-
-- GIVEN der Event-Ersteller oder ein Admin
-- WHEN der Benutzer DELETE `/api/events/{slug}/` aufruft
-- THEN werden das Event und alle zugehoerigen Registrierungen und Participants per CASCADE entfernt
-
-### Requirement: Event-Sichtbarkeit
-
-Das System SHALL zwei Sichtbarkeitsstufen fuer Events unterstuetzen, gesteuert ueber das Feld `is_public` (BooleanField).
-
-#### Scenario: Oeffentliches Event
-
-- GIVEN ein Event mit `is_public=true`
-- WHEN ein beliebiger Benutzer Events durchsucht
-- THEN ist das Event in der oeffentlichen Event-Liste sichtbar
-
-#### Scenario: Nur-Einladung-Event
-
-- GIVEN ein Event mit `is_public=false`
-- WHEN ein nicht-eingeladener Benutzer Events durchsucht
-- THEN ist das Event fuer ihn nicht sichtbar
-- AND eingeladene Benutzer koennen das Event weiterhin sehen und sich registrieren
-
-#### Scenario: Direktzugriff auf privates Event per Slug
-
-- GIVEN ein Event mit `is_public=false`
-- WHEN ein nicht-eingeladener Benutzer den Event-Slug direkt aufruft
-- THEN wird HTTP 403 Forbidden oder HTTP 404 Not Found zurueckgegeben
-
-### Requirement: Buchungsoptionen
-
-Das System SHALL mehrere Buchungsoptionen pro Event mit individueller Preisgestaltung und Kapazitaetsbegrenzung unterstuetzen.
-
-#### Scenario: Buchungsoption erstellen
-
-- GIVEN ein Event wird erstellt oder bearbeitet
-- WHEN der Organisator eine Buchungsoption mit Name, Beschreibung, Preis und `max_participants` per POST `/api/events/{slug}/booking-options/` hinzufuegt
-- THEN wird die BookingOption mit dem Event verknuepft
-- AND die Antwort enthaelt `current_participant_count` und `is_full`
-
-#### Scenario: Buchungsoption-Kapazitaetspruefung
-
-- GIVEN eine Buchungsoption mit `max_participants = 20` und 19 registrierten Teilnehmern
-- WHEN ein neuer Teilnehmer fuer diese Option registriert wird
-- THEN wird die Registrierung akzeptiert
-- AND `is_full` zeigt `true` an
-
-#### Scenario: Buchungsoption ausgebucht
-
-- GIVEN eine Buchungsoption bei der `max_participants` erreicht ist
-- WHEN ein neuer Teilnehmer versucht sich zu registrieren
-- THEN wird die Registrierung mit einer passenden Meldung abgelehnt
-
-#### Scenario: Buchungsoption loeschen
-
-- GIVEN eine Buchungsoption ohne zugeordnete Teilnehmer
-- WHEN der Organisator DELETE `/api/events/{slug}/booking-options/{id}/` aufruft
-- THEN wird die Buchungsoption entfernt
-
-### Requirement: Event-Registrierung
-
-Das System MUST Benutzer-Registrierung fuer Events mit Teilnehmer-Zuweisung unterstuetzen.
-
-#### Scenario: Fuer Event registrieren
-
-- GIVEN ein authentifizierter Benutzer mit bestehenden Person-Datensaetzen
-- WHEN der Benutzer eine Registrierung per POST `/api/events/{slug}/register/` absendet (Body: `{ persons: [{ person_id, booking_option_id? }] }`)
-- THEN wird ein Registration-Datensatz erstellt, der den Benutzer mit dem Event verknuepft
-- AND ausgewaehlte Personen werden als Participant-Datensaetze geklont (Snapshot-Muster)
-- AND Teilnehmerdaten (Name, Adresse, Ernaehrungs-Tags) werden zum Registrierungszeitpunkt eingefroren
-
-#### Scenario: Snapshot-Muster-Durchsetzung
-
-- GIVEN ein Benutzer, der fuer ein Event registriert ist mit geklonten Teilnehmerdaten
-- WHEN der Benutzer spaeter sein Person-Profil aktualisiert
-- THEN bleiben die Participant-Daten fuer vergangene Registrierungen unveraendert
-- AND nur neue Registrierungen verwenden die aktualisierten Person-Daten
-
-#### Scenario: Registrierung mit Buchungsoptionswahl
-
-- GIVEN ein Event mit mehreren Buchungsoptionen
-- WHEN der Benutzer sich registriert
-- THEN wird jeder Teilnehmer einer bestimmten Buchungsoption zugewiesen
-- AND der `current_participant_count` der Buchungsoption wird erhoeht
-
-#### Scenario: Registrierung stornieren
-
-- GIVEN ein Benutzer, der fuer ein Event registriert ist
-- WHEN ein Teilnehmer per DELETE `/api/events/{slug}/participants/{participantId}/` entfernt wird
-- THEN wird der Participant-Datensatz geloescht
-- AND der `current_participant_count` der Buchungsoption wird verringert
-
-### Requirement: Anmeldefrist
-
-Das System SHALL Anmeldefristen fuer Events durchsetzen. Events haben die Felder `registration_start` und `registration_deadline` (beide DateTimeField, nullable).
-
-#### Scenario: Anmeldung vor Fristende
-
-- GIVEN ein Event mit `registration_deadline` in der Zukunft
-- WHEN ein Benutzer versucht sich anzumelden
-- THEN wird die Registrierung akzeptiert
-
-#### Scenario: Anmeldung nach Fristende
-
-- GIVEN ein Event dessen `registration_deadline` abgelaufen ist
-- WHEN ein Benutzer versucht sich anzumelden
-- THEN wird die Registrierung mit einer Frist-abgelaufen-Meldung abgelehnt
-
-#### Scenario: Anmeldung vor Registrierungsstart
-
-- GIVEN ein Event mit `registration_start` in der Zukunft
-- WHEN ein Benutzer versucht sich anzumelden
-- THEN wird die Registrierung mit einer Meldung abgelehnt, dass die Anmeldung noch nicht geoeffnet ist
-
-### Requirement: Teilnehmerverwaltung
-
-Das System SHALL Event-Organisatoren die Verwaltung von Teilnehmern ermoeglichen.
-
-#### Scenario: Teilnehmerliste anzeigen
-
-- GIVEN ein Event mit Registrierungen
-- WHEN der Organisator die Event-Detailseite aufruft (als Manager)
-- THEN enthaelt die Antwort `all_registrations` mit allen Registrierungen und deren Participants
-
-#### Scenario: Zahlungsverfolgung
-
-- GIVEN Teilnehmer, die fuer ein Event registriert sind
-- WHEN der Organisator einen Teilnehmer per PATCH `/api/events/{slug}/participants/{participantId}/` als bezahlt markiert (`{ is_paid: true }`)
-- THEN wird der Zahlungsstatus des Participants aktualisiert
-
-### Requirement: Event-Einladungen
-
-Das System SHALL das Einladen von Gruppen und einzelnen Benutzern zu Events unterstuetzen.
-
-#### Scenario: Gruppe zu Event einladen
-
-- GIVEN ein Event und eine UserGroup
-- WHEN der Organisator die Gruppe per POST `/api/events/{slug}/invite-group/` einlaedt (Body: `{ group_slug: string }`)
-- THEN koennen alle Mitglieder der Gruppe das Event in ihrer "Eingeladene Events"-Liste sehen
-
-#### Scenario: Einzelne Benutzer einladen
-
-- GIVEN ein Event und bestimmte Benutzer
-- WHEN der Organisator die Benutzer per POST `/api/events/{slug}/invite-users/` einlaedt (Body: `number[]` mit User-IDs)
-- THEN sehen die Benutzer das Event in ihrer "Eingeladene Events"-Liste
-
-#### Scenario: Eingeladene Events anzeigen
-
-- GIVEN ein authentifizierter Benutzer, der zu Events eingeladen wurde
-- WHEN der Benutzer GET `/api/events/my-invited/` aufruft
-- THEN werden alle Events zurueckgegeben, zu denen er eingeladen wurde (direkt oder ueber Gruppe)
-
-#### Scenario: Eigene registrierte Events anzeigen
-
-- GIVEN ein authentifizierter Benutzer, der fuer Events registriert ist
-- WHEN der Benutzer GET `/api/events/my-registered/` aufruft
-- THEN werden alle Events zurueckgegeben, fuer die der Benutzer Registrierungen hat
-
-### Requirement: Event-Standort-Verwaltung
-
-Das System SHALL wiederverwendbare Event-Standorte als `EventLocation`-Datensaetze unterstuetzen.
-
-#### Scenario: Standort erstellen
-
-- GIVEN ein authentifizierter Benutzer
-- WHEN der Benutzer einen Standort per POST `/api/locations/` erstellt
-- THEN wird der EventLocation mit den Feldern `name`, `street`, `zip_code`, `city`, `state`, `country`, `description` gespeichert
-
-#### Scenario: Standorte auflisten
-
-- GIVEN bestehende EventLocations
-- WHEN ein Benutzer GET `/api/locations/` aufruft
-- THEN werden alle Standorte zurueckgegeben (staleTime: 5 Minuten)
-
-#### Scenario: Standort fuer Event verwenden
-
-- GIVEN ein bestehender EventLocation
-- WHEN ein neues Event erstellt wird
-- THEN kann der Benutzer einen bestehenden Standort per `event_location_id` waehlen oder einen neuen erstellen
-
-## Planned Features
-
-Die folgenden Features sind geplant, aber noch nicht implementiert:
-
-### Planned: E-Mail-Benachrichtigungen
-
-- Derzeit gibt es keine E-Mail-Benachrichtigungen bei Event-Einladungen, Registrierungen oder Anmeldefrist-Erinnerungen.
-- Geplant: E-Mail-Service mit Templates fuer Einladungen und Registrierungsbestaetigungen.
+### Requirement: Event detail API response
+The event detail API response SHALL include responsible person contact information, enhanced participant data, computed phase, and role-appropriate participant statistics.
+
+#### Scenario: Event detail includes contact persons
+- **WHEN** GET `/api/events/{slug}/`
+- **THEN** the response SHALL include `responsible_persons_detail`: list of {id, first_name, last_name, email} for each responsible person
+- **THEN** these details SHALL be visible to all users who can see the event (not just managers)
+
+#### Scenario: Event detail includes day slots
+- **WHEN** GET `/api/events/{slug}/`
+- **THEN** the response SHALL include a `day_slots` array grouped by date
+- **THEN** each slot SHALL include: date, start_time, end_time, title, notes, content_type, content_title, content_slug
+
+#### Scenario: Event detail includes computed phase
+- **WHEN** GET `/api/events/{slug}/`
+- **THEN** the response SHALL include a `phase` field computed from date fields
+- **THEN** the phase SHALL be one of: `draft`, `pre_registration`, `registration`, `pre_event`, `running`, `completed`
+
+#### Scenario: Event detail includes participant stats for members
+- **WHEN** GET `/api/events/{slug}/` by an invited member
+- **AND** `participant_visibility` is not `none`
+- **THEN** the response SHALL include `participant_stats` with data matching the visibility level:
+  - `total_only`: `{ total: number }`
+  - `per_option`: `{ total: number, by_option: [{ option_id, option_name, count, max_participants }] }`
+  - `with_names`: Same as `per_option` plus `participants: [{ first_name }]` per option
+
+#### Scenario: Event detail includes full stats for managers
+- **WHEN** GET `/api/events/{slug}/` by a manager
+- **THEN** the response SHALL include `participant_stats` with full data regardless of `participant_visibility` setting
+
+#### Scenario: Event detail includes user registration info
+- **WHEN** GET `/api/events/{slug}/` by an authenticated user
+- **THEN** the response SHALL include `user_registration`: `{ is_registered: boolean, registration_id: number | null, participant_count: number }`
+
+#### Scenario: Event detail includes invitation counts for managers
+- **WHEN** GET `/api/events/{slug}/` by a manager
+- **THEN** the response SHALL include `invitation_counts`: `{ total: number, accepted: number, pending: number }`
+
+### Requirement: Event model participant visibility field
+The Event model SHALL have a `participant_visibility` field to control what registered user data is visible to members.
+
+#### Scenario: New field on Event model
+- **WHEN** an Event is created
+- **THEN** the `participant_visibility` field SHALL default to `none`
+- **THEN** the field SHALL accept one of: `none`, `total_only`, `per_option`, `with_names`
+
+#### Scenario: Update participant visibility
+- **WHEN** PATCH `/api/events/{slug}/` with `participant_visibility` set to a valid value
+- **THEN** the field SHALL be updated
+- **THEN** only managers SHALL be able to update this field
+
+### Requirement: Participant list with extended data
+The participant list endpoint SHALL return extended data including payments, labels, and custom field values.
+
+#### Scenario: Extended participant response
+- **WHEN** GET `/api/events/{slug}/participants/`
+- **THEN** each participant SHALL include:
+  - Standard fields: id, first_name, last_name, scout_name, email, birthday, gender, address, zip_code, city, booking_option, nutritional_tags
+  - Payment data: is_paid (computed), total_paid, remaining_amount
+  - Labels: list of {id, name, color}
+  - Custom field values: list of {custom_field_id, label, field_type, value}
+  - Registration timestamp: created_at
+  - Booking option metadata: booking_option_is_system (boolean, indicates if the assigned option is a system option)
+
+#### Scenario: Participant list with filters
+- **WHEN** GET `/api/events/{slug}/participants/?is-paid=true&booking-option-id=5&label-id=3&search=Max`
+- **THEN** the system SHALL return only participants matching ALL filter criteria
+- **THEN** the search filter SHALL match against first_name, last_name, scout_name, and email
+- **THEN** filtering by `booking-option-id` SHALL also work for system BookingOptions (for managers)
+
+#### Scenario: Participant list pagination
+- **WHEN** GET `/api/events/{slug}/participants/?page=1&page-size=20`
+- **THEN** the response SHALL use the standard paginated format: {items, total, page, page_size, total_pages}
+
+### Requirement: Participant update creates timeline entry
+The participant update endpoint SHALL log changes to the timeline. Custom field values are managed via a separate endpoint (see event-custom-fields spec).
+
+#### Scenario: Participant update creates timeline entry
+- **WHEN** PATCH `/api/events/{slug}/participants/{id}/` with any data change (name, booking option, etc.)
+- **THEN** a TimelineEntry with action_type `participant_updated` SHALL be created
+- **THEN** the metadata SHALL describe what was changed
+- **NOTE** Custom field values are NOT set via this endpoint — use `PATCH /api/events/{slug}/participants/{id}/custom-fields/` instead (see event-custom-fields spec)

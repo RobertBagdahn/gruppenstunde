@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useMaterialBySlug } from '@/api/materials';
+import { getContentUrl } from '@/schemas/content';
 
 export default function MaterialPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -46,11 +47,11 @@ export default function MaterialPage() {
         </div>
       )}
 
-      {/* Ideas using this material */}
+      {/* Content using this material */}
       <section>
         <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
           <span className="material-symbols-outlined text-primary">lightbulb</span>
-          Ideen mit diesem Material
+          Beiträge mit diesem Material
           <span className="text-sm font-normal text-muted-foreground">({material.ideas.length})</span>
         </h2>
 
@@ -59,17 +60,17 @@ export default function MaterialPage() {
             {material.ideas.map((idea) => (
               <Link
                 key={idea.id}
-                to={`/idea/${idea.slug}`}
+                to={getContentUrl(idea.content_type ?? 'session', idea.slug)}
                 className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:border-primary hover:shadow-glow transition-all"
               >
                 {idea.image_url ? (
                   <img
                     src={idea.image_url}
                     alt={idea.title}
-                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                    className="w-16 aspect-square rounded-lg object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="w-16 aspect-square rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     <span className="material-symbols-outlined text-muted-foreground">image</span>
                   </div>
                 )}
@@ -82,7 +83,7 @@ export default function MaterialPage() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Noch keine Ideen mit diesem Material.
+            Noch keine Beiträge mit diesem Material.
           </p>
         )}
       </section>

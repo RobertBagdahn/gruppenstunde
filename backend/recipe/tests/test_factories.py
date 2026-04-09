@@ -3,6 +3,7 @@
 import pytest
 
 from recipe.tests import (
+    make_health_rule,
     make_recipe,
     make_recipe_comment,
     make_recipe_emotion,
@@ -17,7 +18,7 @@ class TestRecipeFactories:
     def test_make_recipe(self):
         recipe = make_recipe()
         assert recipe.pk is not None
-        assert recipe.status == "published"
+        assert recipe.status == "approved"
         assert recipe.slug
         assert recipe.servings == 4
 
@@ -40,7 +41,8 @@ class TestRecipeFactories:
     def test_make_recipe_comment(self):
         comment = make_recipe_comment()
         assert comment.pk is not None
-        assert comment.recipe is not None
+        assert comment.content_type is not None
+        assert comment.object_id is not None
         assert comment.status == "approved"
 
     def test_make_recipe_emotion(self):
@@ -53,3 +55,12 @@ class TestRecipeFactories:
         assert view.pk is not None
         assert view.ip_hash
         assert len(view.ip_hash) == 64
+
+    def test_make_health_rule(self):
+        rule = make_health_rule()
+        assert rule.pk is not None
+        assert rule.parameter == "sugar_g"
+        assert rule.scope == "meal"
+        assert rule.threshold_green == 10.0
+        assert rule.threshold_yellow == 20.0
+        assert rule.is_active is True

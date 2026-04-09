@@ -13,9 +13,8 @@ import {
   useSearchUsers,
   type UserSearchResult,
 } from '@/api/planner';
-import { useAutocomplete } from '@/api/ideas';
+import { useUnifiedAutocomplete, type AutocompleteResult } from '@/api/search';
 import { WEEKDAY_LABELS, type PlannerEntry } from '@/schemas/planner';
-import type { Autocomplete } from '@/schemas/idea';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -356,13 +355,13 @@ function PlannerDetail({ plannerId }: { plannerId: number }) {
               isCancelled={isCancelled}
               canEdit={canEdit}
               onAddEntry={(ideaId, notes) =>
-                addEntry.mutate({ date: dateStr, idea_id: ideaId, notes })
+                addEntry.mutate({ date: dateStr, session_id: ideaId, notes })
               }
               onUpdateEntry={(entryId, updates) =>
                 updateEntry.mutate({ entryId, ...updates })
               }
               onRemoveEntry={(entryId) => removeEntry.mutate(entryId)}
-              onIdeaClick={(slug) => navigate(`/idea/${slug}`)}
+              onIdeaClick={(slug) => navigate(`/sessions/${slug}`)}
             />
           );
         })}
@@ -454,13 +453,13 @@ function CalendarSlot({
         <div className="flex-1 min-w-0">
           {entry ? (
             <div className={isCancelled ? 'line-through text-muted-foreground' : ''}>
-              {entry.idea_title ? (
+              {entry.session_title ? (
                 <button
                   type="button"
-                  onClick={() => entry.idea_slug && onIdeaClick(entry.idea_slug)}
+                  onClick={() => entry.session_slug && onIdeaClick(entry.session_slug)}
                   className="text-sm text-primary hover:underline font-medium truncate block text-left"
                 >
-                  {entry.idea_title}
+                  {entry.session_title}
                 </button>
               ) : entry.notes ? (
                 <span className="text-sm text-muted-foreground">{entry.notes}</span>
@@ -527,7 +526,7 @@ function CalendarSlot({
       )}
 
       {/* Notes below title */}
-      {entry && entry.notes && entry.idea_title && !isCancelled && (
+      {entry && entry.notes && entry.session_title && !isCancelled && (
         <p className="text-xs text-muted-foreground mt-1 pl-0">{entry.notes}</p>
       )}
     </div>
@@ -547,9 +546,9 @@ function AddEntryInline({
 }) {
   const [notes, setNotes] = useState('');
   const [ideaQuery, setIdeaQuery] = useState('');
-  const [selectedIdea, setSelectedIdea] = useState<Autocomplete | null>(null);
+  const [selectedIdea, setSelectedIdea] = useState<AutocompleteResult | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const { data: suggestions } = useAutocomplete(ideaQuery);
+  const { data: suggestions } = useUnifiedAutocomplete(ideaQuery);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -567,7 +566,7 @@ function AddEntryInline({
       <div ref={wrapperRef} className="relative flex-1">
         <input
           type="text"
-          placeholder="Idee suchen..."
+          placeholder="Gruppenstunde suchen..."
           value={selectedIdea ? selectedIdea.title : ideaQuery}
           onChange={(e) => {
             setIdeaQuery(e.target.value);

@@ -53,24 +53,27 @@ makemigrations: ## Create new migrations
 createsuperuser: ## Create Django superuser
 	$(MANAGE) createsuperuser
 
-seed: ## Load seed data (fixtures + dynamic data + users)
-	$(MANAGE) loaddata idea/fixtures/initial_data.json || echo "No fixtures found yet"
+seed: ## Load seed data (users + dynamic data)
 	$(MANAGE) add_users
 	$(MANAGE) seed_all
-
-seed-fixtures: ## Load only static fixtures (master data)
-	$(MANAGE) loaddata idea/fixtures/initial_data.json || echo "No fixtures found yet"
 
 seed-users: ## Create seed users only
 	$(MANAGE) add_users
 
-seed-data: ## Seed dynamic test data only (ideas, recipes, events, etc.)
+seed-data: ## Seed dynamic test data only (sessions, recipes, events, etc.)
 	$(MANAGE) seed_all
 
-init-db: ## Initialize database: migrate + seed (users + master data + ideas)
+generate-embeddings: ## Generate missing embeddings for all content types using Gemini
+	$(MANAGE) generate_embeddings
+
+generate-embeddings-force: ## Regenerate ALL embeddings (even existing ones)
+	$(MANAGE) generate_embeddings --force
+
+init-db: ## Initialize database: migrate + seed (users + dynamic data)
 	$(MANAGE) migrate
-	$(MANAGE) seed
+	$(MANAGE) add_users
 	$(MANAGE) seed_all
+	$(MANAGE) generate_embeddings
 	@echo "Database initialized with migrations, seed data, and users."
 
 reset-db: ## Reset database completely (WARNING: destroys all data)

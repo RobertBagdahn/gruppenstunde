@@ -7,6 +7,10 @@ import {
   TOOL_MEAL_PLAN,
   TOOL_SESSION_PLANNER,
   TOOL_PACKING_LISTS,
+  TOOL_SESSIONS,
+  TOOL_BLOG,
+  TOOL_GAMES,
+  TOOL_RECIPES,
 } from '@/lib/toolColors';
 
 interface LayoutProps {
@@ -123,6 +127,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [contentMenuOpen, setContentMenuOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
 
   const isActive = (path: string, exact = false) =>
@@ -131,6 +136,13 @@ export default function Layout({ children }: LayoutProps) {
   /* -- Navigation items -------------------------------------------- */
   const navItems = [
     { to: '/search', icon: 'search', label: 'Suchen' },
+  ];
+
+  const contentMenuItems = [
+    { to: TOOL_SESSIONS.basePath, icon: TOOL_SESSIONS.icon, label: TOOL_SESSIONS.label },
+    { to: TOOL_BLOG.basePath, icon: TOOL_BLOG.icon, label: TOOL_BLOG.label },
+    { to: TOOL_GAMES.basePath, icon: TOOL_GAMES.icon, label: TOOL_GAMES.label },
+    { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label },
   ];
 
   const toolsMenuItems = [
@@ -191,10 +203,61 @@ export default function Layout({ children }: LayoutProps) {
               />
             ))}
 
+            {/* Content Dropdown — visible to everyone */}
+            <div className="relative">
+              <button
+                onClick={() => { setContentMenuOpen(!contentMenuOpen); setToolsMenuOpen(false); }}
+                  className={cn(
+                    'flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all',
+                    contentMenuItems.some((item) => isActive(item.to))
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  )}
+                >
+                  <span
+                    className="material-symbols-outlined text-[20px] wiggle-hover"
+                    style={contentMenuItems.some((item) => isActive(item.to)) ? { fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" } : undefined}
+                  >
+                    lightbulb
+                  </span>
+                  Inhalte
+                  <span className="material-symbols-outlined text-[16px] text-muted-foreground">
+                    {contentMenuOpen ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+
+                {contentMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setContentMenuOpen(false)}
+                    />
+                    <div className="absolute left-0 top-full mt-2 w-52 bg-white border border-border/60 rounded-2xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {contentMenuItems.map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setContentMenuOpen(false)}
+                          className={cn(
+                            'flex items-center gap-3 px-4 py-2.5 text-sm transition-colors rounded-lg mx-1',
+                            isActive(item.to)
+                              ? 'text-primary bg-primary/8 font-semibold'
+                              : 'text-foreground hover:bg-muted'
+                          )}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
             {/* Tools Dropdown — visible to everyone */}
             <div className="relative">
               <button
-                onClick={() => setToolsMenuOpen(!toolsMenuOpen)}
+                onClick={() => { setToolsMenuOpen(!toolsMenuOpen); setContentMenuOpen(false); }}
                   className={cn(
                     'flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all',
                     toolsMenuItems.some((item) => isActive(item.to))
@@ -407,6 +470,29 @@ export default function Layout({ children }: LayoutProps) {
                 </>
               )}
 
+              {/* Content section — visible to everyone */}
+              <p className="px-3 pt-2 pb-1 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                Inhalte
+              </p>
+              {contentMenuItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors',
+                    isActive(item.to)
+                      ? 'text-primary bg-primary/8 font-semibold'
+                      : 'text-foreground hover:bg-muted'
+                  )}
+                >
+                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+
+              <div className="border-t border-border/60 my-2" />
+
               {/* Tools section — visible to everyone */}
               <p className="px-3 pt-2 pb-1 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
                 Tools
@@ -506,7 +592,7 @@ export default function Layout({ children }: LayoutProps) {
               />
               <div>
                 <p className="font-extrabold text-lg text-foreground">Inspi</p>
-                <p className="text-sm text-muted-foreground">Der Ideen-Inspirator fuer Pfadfinder</p>
+                <p className="text-sm text-muted-foreground">Die Toolbox fuer Pfadfinder</p>
               </div>
             </div>
 
@@ -514,11 +600,19 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-5 gap-y-2 text-sm">
               <Link to="/search" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">explore</span>
-                Ideen entdecken
+                Inhalte entdecken
+              </Link>
+              <Link to="/sessions" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">groups</span>
+                Gruppenstunden
+              </Link>
+              <Link to="/recipes" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">menu_book</span>
+                Rezepte
               </Link>
               <Link to="/create" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                Idee erstellen
+                Beitrag erstellen
               </Link>
               <Link to="/about" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">info</span>

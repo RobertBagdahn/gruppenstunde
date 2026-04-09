@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useIdeasOfTheWeek, useSetIdeaOfWeek, useRemoveIdeaOfWeek } from '@/api/admin';
-import { useAutocomplete } from '@/api/ideas';
-import type { Autocomplete } from '@/schemas/idea';
+import { useUnifiedAutocomplete, type AutocompleteResult } from '@/api/search';
 
 export default function IdeaOfTheWeekPage() {
   const { data: entries, isLoading } = useIdeasOfTheWeek();
@@ -11,9 +10,9 @@ export default function IdeaOfTheWeekPage() {
   const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
   const [ideaQuery, setIdeaQuery] = useState('');
-  const [selectedIdea, setSelectedIdea] = useState<Autocomplete | null>(null);
+  const [selectedIdea, setSelectedIdea] = useState<AutocompleteResult | null>(null);
   const [showIdeaSuggestions, setShowIdeaSuggestions] = useState(false);
-  const { data: ideaSuggestions } = useAutocomplete(ideaQuery);
+  const { data: ideaSuggestions } = useUnifiedAutocomplete(ideaQuery);
   const ideaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,9 +85,6 @@ export default function IdeaOfTheWeekPage() {
                       className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
                     >
                       <span className="font-medium">{item.title}</span>
-                      {item.summary && (
-                        <span className="text-muted-foreground ml-2 text-xs">{item.summary}</span>
-                      )}
                     </button>
                   </li>
                 ))}

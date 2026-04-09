@@ -9,8 +9,8 @@ Static master data (Tags, ScoutLevels, MeasuringUnits, etc.) should be loaded
 separately via `loaddata initial_data.json`.
 
 Usage:
-    uv run python manage.py seed_all               # seed everything
-    uv run python manage.py seed_all --only ideas   # seed only ideas
+    uv run python manage.py seed_all                # seed everything
+    uv run python manage.py seed_all --only content  # seed only content (sessions, blogs, games, materials)
     uv run python manage.py seed_all --only recipes
     uv run python manage.py seed_all --only events
     uv run python manage.py seed_all --only planner
@@ -28,7 +28,7 @@ from django.utils import timezone
 
 User = get_user_model()
 
-SECTIONS = ["ideas", "recipes", "events", "planner", "profiles", "packing"]
+SECTIONS = ["content", "recipes", "events", "planner", "profiles", "packing"]
 
 
 class Command(BaseCommand):
@@ -49,8 +49,8 @@ class Command(BaseCommand):
             # Ensure we have at least one user to assign as author/owner
             users = self._ensure_users()
 
-            if only in (None, "ideas"):
-                self._seed_ideas(users)
+            if only in (None, "content"):
+                self._seed_content(users)
             if only in (None, "recipes"):
                 self._seed_recipes(users)
             if only in (None, "events"):
@@ -86,36 +86,22 @@ class Command(BaseCommand):
         return users[index % len(users)]
 
     # ------------------------------------------------------------------
-    # Ideas
+    # Content (GroupSession, Blog, Game, Material, Ingredients)
     # ------------------------------------------------------------------
 
-    def _seed_ideas(self, users: list):
-        self.stdout.write("Seeding ideas...")
+    def _seed_content(self, users: list):
+        self.stdout.write("Seeding content (sessions, blogs, games, materials, ingredients)...")
 
-        from idea.choices import (
-            CostsRatingChoices,
-            DifficultyChoices,
-            EmotionType,
-            ExecutionTimeChoices,
-            IdeaTypeChoices,
-            StatusChoices,
-        )
-        from idea.models import (
-            Comment,
-            Emotion,
-            Idea,
-            IdeaOfTheWeek,
-            Ingredient,
-            MaterialItem,
-            MaterialName,
-            MeasuringUnit,
-            Portion,
-            Price,
-            Tag,
-        )
+        from content.choices import ContentStatus, CostsRatingChoices, DifficultyChoices, ExecutionTimeChoices
+        from content.models import ContentComment, ContentEmotion, FeaturedContent, Tag
+        from session.models import GroupSession
+        from blog.models import Blog
+        from game.models import Game
+        from supply.models import ContentMaterialItem, Ingredient, Material, MeasuringUnit, Portion
+        from django.contrib.contenttypes.models import ContentType
 
-        # --- Ideas (different types and statuses) ---
-        idea_data = [
+        # --- GroupSessions ---
+        session_data = [
             {
                 "title": "Schnitzeljagd im Wald",
                 "summary": "Eine spannende Schnitzeljagd durch den Wald mit Rätseln und Aufgaben",
@@ -123,8 +109,9 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
                 "costs_rating": CostsRatingChoices.LESS_1,
-                "status": StatusChoices.PUBLISHED,
-                "idea_type": IdeaTypeChoices.IDEA,
+                "status": ContentStatus.APPROVED,
+                "session_type": "exploration",
+                "location_type": "outdoor",
             },
             {
                 "title": "Knotenkunde für Anfänger",
@@ -133,8 +120,9 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "costs_rating": CostsRatingChoices.FREE,
-                "status": StatusChoices.PUBLISHED,
-                "idea_type": IdeaTypeChoices.IDEA,
+                "status": ContentStatus.APPROVED,
+                "session_type": "scout_skills",
+                "location_type": "both",
             },
             {
                 "title": "Nachtwanderung mit Sternenbeobachtung",
@@ -143,18 +131,9 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.MORE_90,
                 "costs_rating": CostsRatingChoices.FREE,
-                "status": StatusChoices.PUBLISHED,
-                "idea_type": IdeaTypeChoices.IDEA,
-            },
-            {
-                "title": "Erste-Hilfe-Wissen: Stabile Seitenlage",
-                "summary": "Wissensartikel zur stabilen Seitenlage mit Schritt-für-Schritt-Anleitung",
-                "description": "## Warum die stabile Seitenlage?\n\nDie stabile Seitenlage verhindert, dass eine bewusstlose Person an Erbrochenem oder der eigenen Zunge erstickt.\n\n## Schritt-für-Schritt\n\n1. Bewusstlosigkeit feststellen\n2. Notruf absetzen (112)\n3. Arm der Person anwinkeln\n4. Gegenüberliegendes Bein aufstellen\n5. Person zu sich rollen\n6. Kopf überstrecken\n7. Mund leicht öffnen\n\n## Häufige Fehler\n\n- Kopf nicht überstreckt → Atemwege blockiert\n- Person auf dem Rücken gelassen\n- Notruf vergessen",
-                "difficulty": DifficultyChoices.EASY,
-                "execution_time": ExecutionTimeChoices.LESS_30,
-                "costs_rating": CostsRatingChoices.FREE,
-                "status": StatusChoices.PUBLISHED,
-                "idea_type": IdeaTypeChoices.KNOWLEDGE,
+                "status": ContentStatus.APPROVED,
+                "session_type": "nature_study",
+                "location_type": "outdoor",
             },
             {
                 "title": "Feuer machen ohne Streichhölzer",
@@ -163,18 +142,9 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.HARD,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "costs_rating": CostsRatingChoices.LESS_1,
-                "status": StatusChoices.PUBLISHED,
-                "idea_type": IdeaTypeChoices.IDEA,
-            },
-            {
-                "title": "Geländespiel: Capture the Flag",
-                "summary": "Das klassische Geländespiel für große Gruppen",
-                "description": "## Regeln\n\n- Zwei Teams\n- Jedes Team hat eine Flagge in seiner Basis\n- Ziel: die gegnerische Flagge erobern\n- Wer im gegnerischen Gebiet gefangen wird, muss ins 'Gefängnis'\n\n## Vorbereitung\n\n- Spielfeld markieren\n- Grenzen festlegen\n- Flaggen basteln (Stöcke + Tücher)",
-                "difficulty": DifficultyChoices.MEDIUM,
-                "execution_time": ExecutionTimeChoices.MORE_90,
-                "costs_rating": CostsRatingChoices.FREE,
-                "status": StatusChoices.PUBLISHED,
-                "idea_type": IdeaTypeChoices.IDEA,
+                "status": ContentStatus.APPROVED,
+                "session_type": "scout_skills",
+                "location_type": "outdoor",
             },
             {
                 "title": "Entwurf: Orientierung mit Karte und Kompass",
@@ -183,83 +153,194 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.HARD,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
                 "costs_rating": CostsRatingChoices.BETWEEN_1_2,
-                "status": StatusChoices.DRAFT,
-                "idea_type": IdeaTypeChoices.IDEA,
+                "status": ContentStatus.DRAFT,
+                "session_type": "navigation",
+                "location_type": "outdoor",
             },
         ]
 
-        created_ideas = []
-        for i, data in enumerate(idea_data):
-            if Idea.objects.filter(title=data["title"]).exists():
-                self.stdout.write(f"  Idea '{data['title']}' already exists, skipping.")
-                created_ideas.append(Idea.objects.get(title=data["title"]))
+        created_sessions = []
+        for i, data in enumerate(session_data):
+            if GroupSession.objects.filter(title=data["title"]).exists():
+                self.stdout.write(f"  GroupSession '{data['title']}' already exists, skipping.")
+                created_sessions.append(GroupSession.objects.get(title=data["title"]))
                 continue
-            idea = Idea.objects.create(**data)
-            idea.authors.add(self._pick_user(users, i))
-            # Assign tags if they exist
+            gs = GroupSession.objects.create(**data)
+            gs.authors.add(self._pick_user(users, i))
             tags = Tag.objects.filter(parent__isnull=False)[:3]
             if tags:
-                idea.tags.set(tags)
-            created_ideas.append(idea)
-            self.stdout.write(f"  + Idea: {data['title']}")
+                gs.tags.set(tags)
+            created_sessions.append(gs)
+            self.stdout.write(f"  + GroupSession: {data['title']}")
 
-        # --- Comments on published ideas ---
-        published = [i for i in created_ideas if i.status == StatusChoices.PUBLISHED]
+        # --- Blogs ---
+        blog_data = [
+            {
+                "title": "Erste-Hilfe-Wissen: Stabile Seitenlage",
+                "summary": "Wissensartikel zur stabilen Seitenlage mit Schritt-für-Schritt-Anleitung",
+                "description": "## Warum die stabile Seitenlage?\n\nDie stabile Seitenlage verhindert, dass eine bewusstlose Person an Erbrochenem oder der eigenen Zunge erstickt.\n\n## Schritt-für-Schritt\n\n1. Bewusstlosigkeit feststellen\n2. Notruf absetzen (112)\n3. Arm der Person anwinkeln\n4. Gegenüberliegendes Bein aufstellen\n5. Person zu sich rollen\n6. Kopf überstrecken\n7. Mund leicht öffnen\n\n## Häufige Fehler\n\n- Kopf nicht überstreckt → Atemwege blockiert\n- Person auf dem Rücken gelassen\n- Notruf vergessen",
+                "difficulty": DifficultyChoices.EASY,
+                "status": ContentStatus.APPROVED,
+                "blog_type": "guide",
+                "show_table_of_contents": True,
+            },
+            {
+                "title": "Gruppenstunden-Methodik: Wie halte ich eine gute Gruppenstunde?",
+                "summary": "Tipps und Tricks für erfolgreiche Gruppenstunden-Gestaltung",
+                "description": "## Die 5 Phasen einer Gruppenstunde\n\n1. **Ankommen** (5-10 Min)\n2. **Einstieg** – Spiel oder Ritual\n3. **Hauptteil** – Thematische Aktivität\n4. **Reflexion** – Abschlussrunde\n5. **Verabschiedung**\n\n## Methodik-Tipps\n\n- Abwechslung zwischen aktiv und ruhig\n- Altersgerechte Ansprache\n- Immer einen Plan B haben",
+                "difficulty": DifficultyChoices.MEDIUM,
+                "status": ContentStatus.APPROVED,
+                "blog_type": "methodology",
+                "show_table_of_contents": True,
+            },
+        ]
+
+        for i, data in enumerate(blog_data):
+            if Blog.objects.filter(title=data["title"]).exists():
+                self.stdout.write(f"  Blog '{data['title']}' already exists, skipping.")
+                continue
+            blog = Blog.objects.create(**data)
+            blog.authors.add(self._pick_user(users, i))
+            self.stdout.write(f"  + Blog: {data['title']}")
+
+        # --- Games ---
+        game_data = [
+            {
+                "title": "Capture the Flag",
+                "summary": "Das klassische Geländespiel für große Gruppen",
+                "description": "## Regeln\n\n- Zwei Teams\n- Jedes Team hat eine Flagge in seiner Basis\n- Ziel: die gegnerische Flagge erobern\n- Wer im gegnerischen Gebiet gefangen wird, muss ins 'Gefängnis'\n\n## Vorbereitung\n\n- Spielfeld markieren\n- Grenzen festlegen\n- Flaggen basteln (Stöcke + Tücher)",
+                "rules": "1. Zwei gleich große Teams bilden\n2. Jedes Team versteckt eine Flagge in seiner Hälfte\n3. Ziel: gegnerische Flagge in eigene Basis bringen\n4. In gegnerischer Hälfte kann man gefangen werden\n5. Gefangene kommen ins Gefängnis (können befreit werden)",
+                "difficulty": DifficultyChoices.MEDIUM,
+                "execution_time": ExecutionTimeChoices.MORE_90,
+                "costs_rating": CostsRatingChoices.FREE,
+                "status": ContentStatus.APPROVED,
+                "game_type": "field_game",
+                "play_area": "field",
+                "min_players": 10,
+                "max_players": 40,
+                "game_duration_minutes": 60,
+            },
+            {
+                "title": "Werwolf",
+                "summary": "Das beliebte Rollenspiel-Kartenspiel",
+                "description": "## Spielidee\n\nIm Dorf treiben Werwölfe ihr Unwesen. Die Dorfbewohner müssen herausfinden, wer die Werwölfe sind.\n\n## Rollen\n\n- Werwolf, Seherin, Hexe, Jäger, Amor, Dorfbewohner",
+                "rules": "Nachtphase: Werwölfe wählen ein Opfer. Tagphase: Diskussion und Abstimmung wer ein Werwolf ist.",
+                "difficulty": DifficultyChoices.EASY,
+                "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
+                "costs_rating": CostsRatingChoices.FREE,
+                "status": ContentStatus.APPROVED,
+                "game_type": "group_game",
+                "play_area": "indoor",
+                "min_players": 8,
+                "max_players": 25,
+                "game_duration_minutes": 30,
+            },
+            {
+                "title": "Schmuggler",
+                "summary": "Nachtspiel im Wald – Schmuggler gegen Zöllner",
+                "description": "## Ablauf\n\nSchmuggler versuchen, Gegenstände von A nach B zu bringen. Zöllner patrouillieren und versuchen, Schmuggler abzufangen.",
+                "rules": "Schmuggler tragen 'Schmuggelware'. Werden sie von Zöllnern angetippt, müssen sie ihre Ware abgeben.",
+                "difficulty": DifficultyChoices.MEDIUM,
+                "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
+                "costs_rating": CostsRatingChoices.FREE,
+                "status": ContentStatus.APPROVED,
+                "game_type": "night_game",
+                "play_area": "forest",
+                "min_players": 12,
+                "max_players": 50,
+                "game_duration_minutes": 45,
+            },
+        ]
+
+        for i, data in enumerate(game_data):
+            if Game.objects.filter(title=data["title"]).exists():
+                self.stdout.write(f"  Game '{data['title']}' already exists, skipping.")
+                continue
+            game = Game.objects.create(**data)
+            game.authors.add(self._pick_user(users, i))
+            self.stdout.write(f"  + Game: {data['title']}")
+
+        # --- Materials ---
+        material_data = [
+            {"name": "Seil (10m)", "material_category": "outdoor", "is_consumable": False},
+            {"name": "Schreibpapier", "material_category": "stationery", "is_consumable": True},
+            {"name": "Buntstifte", "material_category": "stationery", "is_consumable": False},
+            {"name": "Taschenlampe", "material_category": "outdoor", "is_consumable": False},
+            {"name": "Schere", "material_category": "tools", "is_consumable": False},
+            {"name": "Klebeband", "material_category": "crafting", "is_consumable": True},
+            {"name": "Kompass", "material_category": "outdoor", "is_consumable": False},
+            {"name": "Topografische Karte", "material_category": "outdoor", "is_consumable": False},
+        ]
+        for mat_data in material_data:
+            name = mat_data.pop("name")
+            mat, created = Material.objects.get_or_create(name=name, defaults=mat_data)
+            if created:
+                self.stdout.write(f"  + Material: {name}")
+
+        # --- ContentMaterialItems for sessions ---
+        session_ct = ContentType.objects.get_for_model(GroupSession)
+        approved_sessions = [s for s in created_sessions if s.status == ContentStatus.APPROVED]
+        materials_for_sessions = [
+            ("Schnitzeljagd im Wald", ["Schreibpapier", "Buntstifte"]),
+            ("Knotenkunde für Anfänger", ["Seil (10m)"]),
+            ("Nachtwanderung mit Sternenbeobachtung", ["Taschenlampe"]),
+            ("Feuer machen ohne Streichhölzer", []),
+        ]
+        for session_title, mat_names in materials_for_sessions:
+            gs = GroupSession.objects.filter(title=session_title).first()
+            if gs and not ContentMaterialItem.objects.filter(content_type=session_ct, object_id=gs.id).exists():
+                for idx, mat_name in enumerate(mat_names):
+                    mat = Material.objects.filter(name=mat_name).first()
+                    if mat:
+                        ContentMaterialItem.objects.create(
+                            content_type=session_ct,
+                            object_id=gs.id,
+                            material=mat,
+                            quantity="1",
+                            sort_order=idx,
+                        )
+
+        # --- Comments on approved sessions ---
         comments_data = [
             ("Super Idee! Haben wir letzten Freitag ausprobiert.", "approved"),
             ("Könnte man auch drinnen machen?", "approved"),
             ("Vorsicht bei nassem Wetter.", "pending"),
         ]
-        for i, idea in enumerate(published[:3]):
+        for i, gs in enumerate(approved_sessions[:3]):
             text, status = comments_data[i % len(comments_data)]
-            if not Comment.objects.filter(idea=idea, text=text).exists():
-                Comment.objects.create(
-                    idea=idea,
+            if not ContentComment.objects.filter(content_type=session_ct, object_id=gs.id, text=text).exists():
+                ContentComment.objects.create(
+                    content_type=session_ct,
+                    object_id=gs.id,
                     text=text,
                     status=status,
                     author_name=f"Pfadfinder{i + 1}",
                     user=self._pick_user(users, i) if status == "approved" else None,
                 )
 
-        # --- Emotions ---
+        # --- Emotions on sessions ---
+        from content.choices import EmotionType
+
         emotion_types = [EmotionType.IN_LOVE, EmotionType.HAPPY, EmotionType.HAPPY]
-        for i, idea in enumerate(published[:3]):
-            if not Emotion.objects.filter(idea=idea).exists():
-                Emotion.objects.create(
-                    idea=idea,
+        for i, gs in enumerate(approved_sessions[:3]):
+            if not ContentEmotion.objects.filter(content_type=session_ct, object_id=gs.id).exists():
+                ContentEmotion.objects.create(
+                    content_type=session_ct,
+                    object_id=gs.id,
                     emotion_type=emotion_types[i % len(emotion_types)],
                     session_key=f"seed-session-{i}",
                 )
 
-        # --- Idea of the Week ---
-        if published and not IdeaOfTheWeek.objects.exists():
-            IdeaOfTheWeek.objects.create(
-                idea=published[0],
-                release_date=datetime.date.today(),
-                description="Unsere Empfehlung für diese Woche!",
+        # --- Featured Content ---
+        if approved_sessions and not FeaturedContent.objects.exists():
+            FeaturedContent.objects.create(
+                content_type=session_ct,
+                object_id=approved_sessions[0].id,
+                featured_from=datetime.date.today(),
+                featured_until=datetime.date.today() + datetime.timedelta(days=7),
+                reason="Unsere Empfehlung für diese Woche!",
+                created_by=self._pick_user(users, 0),
             )
-
-        # --- MaterialItems for non-knowledge ideas ---
-        material_ideas = [
-            i for i in created_ideas if i.idea_type != IdeaTypeChoices.KNOWLEDGE and i.status == StatusChoices.PUBLISHED
-        ]
-        # Get or create some material names and units
-        unit, _ = MeasuringUnit.objects.get_or_create(name="Stück", defaults={"description": "Einzelstück"})
-        materials = [
-            ("Seil", "10 Meter"),
-            ("Papier", "5 Blatt"),
-            ("Stifte", "1 Set"),
-            ("Taschenlampe", "1"),
-        ]
-        for i, idea in enumerate(material_ideas[:4]):
-            if not MaterialItem.objects.filter(idea=idea).exists():
-                mat_name, _ = MaterialName.objects.get_or_create(name=materials[i % len(materials)][0])
-                MaterialItem.objects.create(
-                    idea=idea,
-                    quantity=materials[i % len(materials)][1],
-                    material_name=mat_name,
-                    material_unit=unit,
-                )
 
         # --- Ingredients & Portions & Prices (for the ingredient database) ---
         ingredients_data = [
@@ -567,56 +648,6 @@ class Command(BaseCommand):
             ],
         }
 
-        # Extra prices per ingredient (portion_name, price, qty, label, retailer, quality)
-        extra_prices = {
-            "Mehl": [
-                ("100g Mehl", Decimal("0.49"), 1, "1kg Mehl", "Aldi", "Standard"),
-                ("100g Mehl", Decimal("1.29"), 1, "1kg Bio-Mehl", "Rewe", "Bio"),
-            ],
-            "Butter": [
-                ("100g Butter", Decimal("1.79"), 1, "250g Markenbutter", "Aldi", "Standard"),
-                ("100g Butter", Decimal("2.49"), 1, "250g Bio-Butter", "Edeka", "Bio"),
-            ],
-            "Milch": [
-                ("100g Milch", Decimal("1.15"), 1, "1L Vollmilch", "Aldi", "Standard"),
-                ("100g Milch", Decimal("1.69"), 1, "1L Bio-Vollmilch", "Rewe", "Bio"),
-            ],
-            "Eier": [
-                ("100g Eier", Decimal("1.69"), 1, "10er Packung Eier", "Aldi", "Bodenhaltung"),
-                ("100g Eier", Decimal("3.29"), 1, "10er Bio-Eier", "Edeka", "Bio"),
-            ],
-            "Nudeln": [
-                ("100g Nudeln", Decimal("0.79"), 1, "500g Spaghetti", "Aldi", "Standard"),
-                ("100g Nudeln", Decimal("1.49"), 1, "500g Bio-Spaghetti", "dm", "Bio"),
-            ],
-            "Tomaten (Dose)": [
-                ("100g Tomaten (Dose)", Decimal("0.59"), 1, "400g Dose Tomaten", "Aldi", "Standard"),
-            ],
-            "Zwiebeln": [
-                ("100g Zwiebeln", Decimal("1.29"), 1, "1kg Zwiebeln", "Aldi", "Standard"),
-            ],
-            "Olivenöl": [
-                ("100g Olivenöl", Decimal("3.99"), 1, "500ml Olivenöl", "Aldi", "Standard"),
-                ("100g Olivenöl", Decimal("6.99"), 1, "500ml Bio-Olivenöl", "Rewe", "Bio"),
-            ],
-            "Kartoffeln": [
-                ("100g Kartoffeln", Decimal("1.99"), 1, "2,5kg Kartoffeln", "Aldi", "Standard"),
-            ],
-            "Käse (Gouda)": [
-                ("100g Käse (Gouda)", Decimal("1.29"), 1, "200g Gouda", "Aldi", "Standard"),
-            ],
-            "Haferflocken": [
-                ("100g Haferflocken", Decimal("0.59"), 1, "500g Haferflocken", "Aldi", "Standard"),
-                ("100g Haferflocken", Decimal("1.19"), 1, "500g Bio-Haferflocken", "dm", "Bio"),
-            ],
-            "Zucker": [
-                ("100g Zucker", Decimal("0.85"), 1, "1kg Zucker", "Aldi", "Standard"),
-            ],
-            "Joghurt (Natur)": [
-                ("100g Joghurt (Natur)", Decimal("0.59"), 1, "500g Naturjoghurt", "Aldi", "Standard"),
-            ],
-        }
-
         for ing_data in ingredients_data:
             name = ing_data.pop("name")
             description = ing_data.pop("description")
@@ -646,17 +677,6 @@ class Command(BaseCommand):
                     "rank": 1,
                 },
             )
-            # Create a default price
-            Price.objects.get_or_create(
-                portion=portion,
-                price_eur=Decimal("1.49"),
-                defaults={
-                    "quantity": 1,
-                    "name": f"1kg Packung {name}",
-                    "retailer": "Aldi",
-                    "quality": "Standard",
-                },
-            )
 
             # Create extra portions
             if name in extra_portions:
@@ -675,23 +695,13 @@ class Command(BaseCommand):
                         },
                     )
 
-            # Create extra prices
-            if name in extra_prices:
-                base_portion = Portion.objects.filter(ingredient=ingredient, measuring_unit=gram_unit).first()
-                if base_portion:
-                    for _, price_val, qty, label, retailer, quality in extra_prices[name]:
-                        Price.objects.get_or_create(
-                            portion=base_portion,
-                            name=label,
-                            defaults={
-                                "price_eur": price_val,
-                                "quantity": qty,
-                                "retailer": retailer,
-                                "quality": quality,
-                            },
-                        )
-
-        self.stdout.write(self.style.SUCCESS(f"  Ideas total: {Idea.objects.count()}"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"  Content seeded: {GroupSession.objects.count()} sessions, "
+                f"{Blog.objects.count()} blogs, {Game.objects.count()} games, "
+                f"{Material.objects.count()} materials"
+            )
+        )
 
     # ------------------------------------------------------------------
     # Recipes
@@ -712,7 +722,7 @@ class Command(BaseCommand):
         )
         from recipe.models import Recipe, RecipeHint, RecipeItem
 
-        from idea.models import Ingredient, MeasuringUnit, Portion
+        from supply.models import Ingredient, MeasuringUnit, Portion
 
         recipe_data = [
             {
@@ -723,7 +733,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
                 "servings": 10,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Nudeln mit Tomatensoße",
@@ -733,7 +743,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
                 "servings": 10,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Müsli mit frischem Obst",
@@ -743,7 +753,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.BREAKFAST,
                 "servings": 10,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Stockbrot",
@@ -753,7 +763,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
                 "recipe_type": RecipeTypeChoices.SNACK,
                 "servings": 8,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Kartoffelsuppe",
@@ -763,7 +773,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
                 "servings": 12,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Overnight Oats",
@@ -773,7 +783,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.BREAKFAST,
                 "servings": 10,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Gemüsepfanne mit Reis",
@@ -783,7 +793,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
                 "servings": 10,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Obstsalat",
@@ -793,7 +803,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.DESSERT,
                 "servings": 10,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Nudelauflauf mit Käse",
@@ -803,7 +813,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
                 "servings": 12,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
             {
                 "title": "Käsebrot-Platte",
@@ -813,7 +823,7 @@ class Command(BaseCommand):
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.COLD_MEAL,
                 "servings": 10,
-                "status": RecipeStatusChoices.PUBLISHED,
+                "status": RecipeStatusChoices.APPROVED,
             },
         ]
 
@@ -986,6 +996,83 @@ class Command(BaseCommand):
                 RecipeHint.objects.create(**hint_data)
                 self.stdout.write(f"  + RecipeHint: {hint_data['name']}")
 
+        # --- HealthRules (cockpit traffic-light thresholds) ---
+        from recipe.models import HealthRule
+
+        health_rules_data = [
+            {
+                "name": "Zuckergehalt pro Mahlzeit",
+                "description": "Bewertung des Zuckergehalts pro 100g der Mahlzeit",
+                "parameter": "sugar_g",
+                "scope": "meal",
+                "threshold_green": 10.0,
+                "threshold_yellow": 20.0,
+                "unit": "g",
+                "tip_text": "Versuche, den Zuckeranteil zu reduzieren. Ersetze gesüßte Zutaten durch natürliche Alternativen.",
+                "sort_order": 1,
+            },
+            {
+                "name": "Energiegehalt pro Tag",
+                "description": "Tägliche Energiezufuhr (kJ) für die gesamte Verpflegung",
+                "parameter": "energy_kj",
+                "scope": "day",
+                "threshold_green": 9000.0,
+                "threshold_yellow": 12000.0,
+                "unit": "kJ",
+                "tip_text": "Der Tagesenergiegehalt ist hoch. Prüfe die Portionsgrößen oder ersetze kalorienreiche Zutaten.",
+                "sort_order": 2,
+            },
+            {
+                "name": "Gesamtkosten pro Tag",
+                "description": "Geschätzte Kosten aller Mahlzeiten eines Tages",
+                "parameter": "price_total",
+                "scope": "day",
+                "threshold_green": 8.0,
+                "threshold_yellow": 15.0,
+                "unit": "EUR",
+                "tip_text": "Die Tageskosten sind hoch. Günstigere Zutaten oder Saisongemüse können helfen.",
+                "sort_order": 3,
+            },
+            {
+                "name": "Nutri-Score Durchschnitt",
+                "description": "Durchschnittlicher Nutri-Score aller Rezepte im Essensplan",
+                "parameter": "nutri_class",
+                "scope": "meal_event",
+                "threshold_green": 2.5,
+                "threshold_yellow": 3.5,
+                "unit": "",
+                "tip_text": "Der durchschnittliche Nutri-Score ist niedrig. Ersetze einige Rezepte durch gesündere Alternativen.",
+                "sort_order": 4,
+            },
+            {
+                "name": "Zuckergehalt pro Tag",
+                "description": "Täglicher Zuckergehalt über alle Mahlzeiten",
+                "parameter": "sugar_g",
+                "scope": "day",
+                "threshold_green": 25.0,
+                "threshold_yellow": 50.0,
+                "unit": "g",
+                "tip_text": "Die WHO empfiehlt max. 25g freien Zucker pro Tag. Reduziere gesüßte Getränke und Desserts.",
+                "sort_order": 5,
+            },
+            {
+                "name": "Energiegehalt pro Mahlzeit",
+                "description": "Energiegehalt einer einzelnen Mahlzeit",
+                "parameter": "energy_kj",
+                "scope": "meal",
+                "threshold_green": 3000.0,
+                "threshold_yellow": 4500.0,
+                "unit": "kJ",
+                "tip_text": "Diese Mahlzeit ist sehr energiereich. Reduziere fettreiche Zutaten oder die Portionsgröße.",
+                "sort_order": 6,
+            },
+        ]
+
+        for rule_data in health_rules_data:
+            if not HealthRule.objects.filter(name=rule_data["name"]).exists():
+                HealthRule.objects.create(**rule_data)
+                self.stdout.write(f"  + HealthRule: {rule_data['name']}")
+
         self.stdout.write(self.style.SUCCESS(f"  Recipes total: {Recipe.objects.count()}"))
 
     # ------------------------------------------------------------------
@@ -995,14 +1082,19 @@ class Command(BaseCommand):
     def _seed_events(self, users: list):
         self.stdout.write("Seeding events...")
 
-        from event.choices import GenderChoices
+        from event.choices import GenderChoices, PaymentMethodChoices, TimelineActionChoices, CustomFieldTypeChoices
         from event.models import (
             BookingOption,
+            CustomField,
+            CustomFieldValue,
             Event,
             EventLocation,
             Participant,
+            ParticipantLabel,
+            Payment,
             Person,
             Registration,
+            TimelineEntry,
         )
 
         # --- Locations ---
@@ -1303,7 +1395,9 @@ class Command(BaseCommand):
         for ep in extra_persons:
             user = self._pick_user(users, ep["user_index"])
             data = {k: v for k, v in ep.items() if k != "user_index"}
-            if not Person.objects.filter(user=user, first_name=data["first_name"], last_name=data["last_name"]).exists():
+            if not Person.objects.filter(
+                user=user, first_name=data["first_name"], last_name=data["last_name"]
+            ).exists():
                 Person.objects.create(user=user, **data)
                 self.stdout.write(f"  + Person: {data['first_name']} {data['last_name']}")
 
@@ -1320,7 +1414,9 @@ class Command(BaseCommand):
                     for person in user_persons:
                         booking = booking_full if person.is_owner else booking_weekend
                         Participant.create_from_person(reg, person, booking_option=booking)
-                    self.stdout.write(f"  + Registration: {reg_user.username} for Sommerlager ({user_persons.count()} participants)")
+                    self.stdout.write(
+                        f"  + Registration: {reg_user.username} for Sommerlager ({user_persons.count()} participants)"
+                    )
 
             # Invite all users to sommerlager
             for user in users:
@@ -1341,6 +1437,181 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"  Events total: {Event.objects.count()}"))
 
+        # ------------------------------------------------------------------
+        # New dashboard models: Labels, Custom Fields, Payments, Timeline
+        # ------------------------------------------------------------------
+
+        # --- Participant Labels for Sommerlager ---
+        if sommerlager:
+            labels_data = [
+                {"name": "Sippe Adler", "color": "#3b82f6"},
+                {"name": "Sippe Bären", "color": "#ef4444"},
+                {"name": "Sippe Wölfe", "color": "#22c55e"},
+                {"name": "Küchendienst", "color": "#f59e0b"},
+                {"name": "Erste Hilfe", "color": "#ec4899"},
+            ]
+            for lbl_data in labels_data:
+                label, created = ParticipantLabel.objects.get_or_create(
+                    event=sommerlager,
+                    name=lbl_data["name"],
+                    defaults={"color": lbl_data["color"]},
+                )
+                if created:
+                    self.stdout.write(f"  + Label: {lbl_data['name']}")
+
+            # Assign labels to participants
+            sommerlager_participants = list(Participant.objects.filter(registration__event=sommerlager))
+            sommerlager_labels = list(ParticipantLabel.objects.filter(event=sommerlager))
+            for i, participant in enumerate(sommerlager_participants):
+                if sommerlager_labels and not participant.labels.exists():
+                    # Each participant gets 1-2 labels
+                    participant.labels.add(sommerlager_labels[i % len(sommerlager_labels)])
+                    if i % 3 == 0 and len(sommerlager_labels) > 1:
+                        participant.labels.add(sommerlager_labels[(i + 1) % len(sommerlager_labels)])
+
+        # --- Custom Fields for Sommerlager ---
+        if sommerlager:
+            custom_fields_data = [
+                {
+                    "label": "T-Shirt-Größe",
+                    "field_type": CustomFieldTypeChoices.SELECT,
+                    "options": ["XS", "S", "M", "L", "XL"],
+                    "is_required": True,
+                    "sort_order": 0,
+                },
+                {
+                    "label": "Schwimmer?",
+                    "field_type": CustomFieldTypeChoices.CHECKBOX,
+                    "is_required": False,
+                    "sort_order": 1,
+                },
+                {
+                    "label": "Allergien / Sonstiges",
+                    "field_type": CustomFieldTypeChoices.TEXT,
+                    "is_required": False,
+                    "sort_order": 2,
+                },
+                {
+                    "label": "Anreisedatum",
+                    "field_type": CustomFieldTypeChoices.DATE,
+                    "is_required": False,
+                    "sort_order": 3,
+                },
+            ]
+            for cf_data in custom_fields_data:
+                cf, created = CustomField.objects.get_or_create(
+                    event=sommerlager,
+                    label=cf_data["label"],
+                    defaults=cf_data,
+                )
+                if created:
+                    self.stdout.write(f"  + CustomField: {cf_data['label']}")
+
+            # Set custom field values for some participants
+            tshirt_field = CustomField.objects.filter(event=sommerlager, label="T-Shirt-Größe").first()
+            swimmer_field = CustomField.objects.filter(event=sommerlager, label="Schwimmer?").first()
+            sizes = ["S", "M", "L", "XL", "M"]
+            for i, participant in enumerate(sommerlager_participants):
+                if (
+                    tshirt_field
+                    and not CustomFieldValue.objects.filter(participant=participant, custom_field=tshirt_field).exists()
+                ):
+                    CustomFieldValue.objects.create(
+                        participant=participant,
+                        custom_field=tshirt_field,
+                        value=sizes[i % len(sizes)],
+                    )
+                if (
+                    swimmer_field
+                    and i % 2 == 0
+                    and not CustomFieldValue.objects.filter(
+                        participant=participant, custom_field=swimmer_field
+                    ).exists()
+                ):
+                    CustomFieldValue.objects.create(
+                        participant=participant,
+                        custom_field=swimmer_field,
+                        value="true",
+                    )
+
+        # --- Payments for Sommerlager ---
+        if sommerlager:
+            for i, participant in enumerate(sommerlager_participants):
+                if participant.booking_option and not Payment.objects.filter(participant=participant).exists():
+                    # Some participants have paid fully, some partially, some not at all
+                    if i % 3 == 0:
+                        # Full payment
+                        Payment.objects.create(
+                            participant=participant,
+                            amount=participant.booking_option.price,
+                            method=PaymentMethodChoices.UEBERWEISUNG,
+                            received_at=timezone.now() - datetime.timedelta(days=10 - i),
+                            created_by=self._pick_user(users, 0),
+                            note="Vollständig bezahlt",
+                        )
+                        self.stdout.write(
+                            f"  + Payment: {participant.first_name} {participant.last_name} – {participant.booking_option.price}€ (full)"
+                        )
+                    elif i % 3 == 1:
+                        # Partial payment
+                        partial = participant.booking_option.price / 2
+                        Payment.objects.create(
+                            participant=participant,
+                            amount=partial,
+                            method=PaymentMethodChoices.BAR,
+                            received_at=timezone.now() - datetime.timedelta(days=5),
+                            created_by=self._pick_user(users, 0),
+                            note="Anzahlung",
+                        )
+                        self.stdout.write(
+                            f"  + Payment: {participant.first_name} {participant.last_name} – {partial}€ (partial)"
+                        )
+                    # i % 3 == 2 → no payment
+
+        # --- Timeline Entries for Sommerlager ---
+        if sommerlager and not TimelineEntry.objects.filter(event=sommerlager).exists():
+            manager_user = self._pick_user(users, 0)
+            base_time = timezone.now() - datetime.timedelta(days=14)
+
+            # Registration timeline entries
+            for i, participant in enumerate(sommerlager_participants):
+                TimelineEntry.objects.create(
+                    event=sommerlager,
+                    action_type=TimelineActionChoices.REGISTERED,
+                    description=f"{participant.first_name} {participant.last_name} angemeldet",
+                    participant=participant,
+                    user=participant.registration.user,
+                    created_at=base_time + datetime.timedelta(days=i, hours=i * 2),
+                )
+
+            # Payment timeline entries
+            for payment in Payment.objects.filter(participant__registration__event=sommerlager):
+                TimelineEntry.objects.create(
+                    event=sommerlager,
+                    action_type=TimelineActionChoices.PAYMENT_RECEIVED,
+                    description=f"Zahlung von {payment.amount}€ für {payment.participant.first_name} {payment.participant.last_name}",
+                    participant=payment.participant,
+                    user=manager_user,
+                    metadata={"amount": str(payment.amount), "method": payment.method},
+                    created_at=payment.received_at,
+                )
+
+            # Label assignment entries
+            for participant in sommerlager_participants:
+                for label in participant.labels.all():
+                    TimelineEntry.objects.create(
+                        event=sommerlager,
+                        action_type=TimelineActionChoices.LABEL_ADDED,
+                        description=f"Label '{label.name}' zu {participant.first_name} {participant.last_name} hinzugefügt",
+                        participant=participant,
+                        user=manager_user,
+                        metadata={"label_name": label.name, "label_color": label.color},
+                        created_at=base_time + datetime.timedelta(days=7),
+                    )
+
+            timeline_count = TimelineEntry.objects.filter(event=sommerlager).count()
+            self.stdout.write(f"  + {timeline_count} TimelineEntries for Sommerlager")
+
     # ------------------------------------------------------------------
     # Planner
     # ------------------------------------------------------------------
@@ -1351,9 +1622,8 @@ class Command(BaseCommand):
         from planner.models import (
             EntryStatusChoices,
             Meal,
-            MealDay,
+            MealEvent,
             MealItem,
-            MealPlan,
             MealTypeChoices,
             Planner,
             PlannerCollaborator,
@@ -1361,7 +1631,8 @@ class Command(BaseCommand):
             WeekdayChoices,
         )
 
-        from idea.models import Idea
+        from session.models import GroupSession
+        from content.choices import ContentStatus
 
         # --- Planners ---
         planners_data = [
@@ -1391,7 +1662,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  + Planner: {pl_data['title']}")
 
         # --- PlannerEntries ---
-        ideas = list(Idea.objects.filter(status="published")[:4])
+        sessions = list(GroupSession.objects.filter(status=ContentStatus.APPROVED)[:4])
         if created_planners:
             planner = created_planners[0]
             if not PlannerEntry.objects.filter(planner=planner).exists():
@@ -1404,7 +1675,7 @@ class Command(BaseCommand):
                         date=entry_date,
                         status=status,
                         sort_order=week,
-                        idea=ideas[week % len(ideas)] if ideas else None,
+                        session=sessions[week % len(sessions)] if sessions else None,
                         notes="Fällt wegen Feiertag aus" if week == 3 else "",
                     )
                 self.stdout.write(f"  + 6 PlannerEntries for '{planner.title}'")
@@ -1420,9 +1691,9 @@ class Command(BaseCommand):
                     role=PlannerCollaborator.Role.EDITOR,
                 )
 
-        # --- MealPlan ---
-        if not MealPlan.objects.exists():
-            meal_plan = MealPlan.objects.create(
+        # --- MealEvent ---
+        if not MealEvent.objects.exists():
+            meal_event = MealEvent.objects.create(
                 name="Sommerlager Essensplan 2026",
                 description="Essensplan für 7 Tage Sommerlager",
                 created_by=self._pick_user(users, 0),
@@ -1430,47 +1701,38 @@ class Command(BaseCommand):
                 activity_factor=1.6,
                 reserve_factor=1.1,
             )
-            self.stdout.write(f"  + MealPlan: {meal_plan.name}")
+            self.stdout.write(f"  + MealEvent: {meal_event.name}")
 
             # Create 7 days with meals
             from recipe.models import Recipe
 
-            recipes = list(Recipe.objects.filter(status="published")[:10])
+            recipes = list(Recipe.objects.filter(status="approved")[:10])
 
             for day_offset in range(7):
-                day = MealDay.objects.create(
-                    meal_plan=meal_plan,
-                    date=datetime.date.today() + datetime.timedelta(days=day_offset),
-                )
+                day_date = datetime.date.today() + datetime.timedelta(days=day_offset)
+                meal_event.create_default_meals_for_date(day_date)
 
-                # Breakfast, Lunch, Snack, Dinner
-                for meal_type, factor in [
-                    (MealTypeChoices.BREAKFAST, 0.25),
-                    (MealTypeChoices.LUNCH, 0.35),
-                    (MealTypeChoices.SNACK, 0.10),
-                    (MealTypeChoices.DINNER, 0.30),
-                ]:
-                    meal = Meal.objects.create(
-                        meal_day=day,
-                        meal_type=meal_type,
-                        day_part_factor=factor,
+                # Assign recipes to meals if available
+                if recipes:
+                    day_meals = Meal.objects.filter(
+                        meal_event=meal_event,
+                        start_datetime__date=day_date,
                     )
-                    # Assign a recipe if available
-                    if recipes:
-                        recipe_idx = (day_offset * 4 + list(MealTypeChoices).index(meal_type)) % len(recipes)
+                    for idx, meal in enumerate(day_meals):
+                        recipe_idx = (day_offset * 4 + idx) % len(recipes)
                         MealItem.objects.create(
                             meal=meal,
                             recipe=recipes[recipe_idx],
                             factor=1.0,
                         )
 
-            self.stdout.write(f"  + 7 MealDays with 28 Meals")
+            self.stdout.write(f"  + 7 days with Meals")
 
-        # --- Second MealPlan (Pfingstlager) ---
-        if not MealPlan.objects.filter(name="Pfingstlager Essensplan 2026").exists():
+        # --- Second MealEvent (Pfingstlager) ---
+        if not MealEvent.objects.filter(name="Pfingstlager Essensplan 2026").exists():
             from recipe.models import Recipe
 
-            meal_plan2 = MealPlan.objects.create(
+            meal_event2 = MealEvent.objects.create(
                 name="Pfingstlager Essensplan 2026",
                 description="Essensplan für 4 Tage Pfingstlager",
                 created_by=self._pick_user(users, 0),
@@ -1478,33 +1740,27 @@ class Command(BaseCommand):
                 activity_factor=1.4,
                 reserve_factor=1.05,
             )
-            self.stdout.write(f"  + MealPlan: {meal_plan2.name}")
+            self.stdout.write(f"  + MealEvent: {meal_event2.name}")
 
-            recipes = list(Recipe.objects.filter(status="published")[:10])
+            recipes = list(Recipe.objects.filter(status="approved")[:10])
             for day_offset in range(4):
-                day = MealDay.objects.create(
-                    meal_plan=meal_plan2,
-                    date=datetime.date.today() + datetime.timedelta(days=50 + day_offset),
-                )
-                for meal_type, factor in [
-                    (MealTypeChoices.BREAKFAST, 0.25),
-                    (MealTypeChoices.LUNCH, 0.35),
-                    (MealTypeChoices.DINNER, 0.30),
-                ]:
-                    meal = Meal.objects.create(
-                        meal_day=day,
-                        meal_type=meal_type,
-                        day_part_factor=factor,
+                day_date = datetime.date.today() + datetime.timedelta(days=50 + day_offset)
+                meal_event2.create_default_meals_for_date(day_date)
+
+                if recipes:
+                    day_meals = Meal.objects.filter(
+                        meal_event=meal_event2,
+                        start_datetime__date=day_date,
                     )
-                    if recipes:
-                        recipe_idx = (day_offset * 3 + list(MealTypeChoices).index(meal_type)) % len(recipes)
+                    for idx, meal in enumerate(day_meals):
+                        recipe_idx = (day_offset * 3 + idx) % len(recipes)
                         MealItem.objects.create(
                             meal=meal,
                             recipe=recipes[recipe_idx],
                             factor=1.0,
                         )
 
-            self.stdout.write(f"  + 4 MealDays with 12 Meals (Pfingstlager)")
+            self.stdout.write(f"  + 4 days with Meals (Pfingstlager)")
 
         self.stdout.write(self.style.SUCCESS(f"  Planners total: {Planner.objects.count()}"))
 

@@ -4,9 +4,8 @@ import pytest
 
 from planner.tests import (
     make_meal,
-    make_meal_day,
+    make_meal_event,
     make_meal_item,
-    make_meal_plan,
     make_planner,
     make_planner_collaborator,
     make_planner_entry,
@@ -27,12 +26,17 @@ class TestPlannerFactories:
         assert entry.planner is not None
         assert entry.status == "planned"
 
-    def test_make_planner_entry_with_idea(self):
-        from idea.tests import make_idea
+    def test_make_planner_entry_with_session(self):
+        from content.choices import ContentStatus
+        from session.models import GroupSession
 
-        idea = make_idea()
-        entry = make_planner_entry(idea=idea)
-        assert entry.idea == idea
+        gs = GroupSession.objects.create(
+            title="Test Session",
+            summary="A test session",
+            status=ContentStatus.APPROVED,
+        )
+        entry = make_planner_entry(session=gs)
+        assert entry.session == gs
 
     def test_make_planner_collaborator(self):
         collab = make_planner_collaborator()
@@ -41,23 +45,19 @@ class TestPlannerFactories:
         assert collab.user is not None
         assert collab.role == "editor"
 
-    def test_make_meal_plan(self):
-        plan = make_meal_plan()
-        assert plan.pk is not None
-        assert plan.slug
-        assert plan.norm_portions == 10
-        assert plan.scaling_factor == 10 * 1.5 * 1.1
-
-    def test_make_meal_day(self):
-        day = make_meal_day()
-        assert day.pk is not None
-        assert day.meal_plan is not None
-        assert day.date is not None
+    def test_make_meal_event(self):
+        event = make_meal_event()
+        assert event.pk is not None
+        assert event.slug
+        assert event.norm_portions == 10
+        assert event.scaling_factor == 10 * 1.5 * 1.1
 
     def test_make_meal(self):
         meal = make_meal()
         assert meal.pk is not None
-        assert meal.meal_day is not None
+        assert meal.meal_event is not None
+        assert meal.start_datetime is not None
+        assert meal.end_datetime is not None
         assert meal.meal_type == "lunch"
 
     def test_make_meal_item(self):

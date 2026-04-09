@@ -2,6 +2,20 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAdminUserDetail } from '@/api/admin';
 
+/** Map legacy idea_type to content URL prefix */
+function contentUrlForSlug(slug: string, ideaType?: string): string {
+  const prefixMap: Record<string, string> = {
+    idea: '/sessions',
+    knowledge: '/blogs',
+    game: '/games',
+    recipe: '/recipes',
+    session: '/sessions',
+    blog: '/blogs',
+  };
+  const prefix = prefixMap[ideaType ?? ''] ?? '/sessions';
+  return `${prefix}/${slug}`;
+}
+
 export default function AdminUserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const { data: user, isLoading, error } = useAdminUserDetail(Number(userId) || 0);
@@ -75,7 +89,7 @@ export default function AdminUserDetailPage() {
       {/* Ideas */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-3">
-          Ideen <span className="text-sm text-muted-foreground font-normal">({user.ideas.length})</span>
+          Beiträge <span className="text-sm text-muted-foreground font-normal">({user.ideas.length})</span>
         </h2>
         {user.ideas.length > 0 ? (
           <div className="border rounded-lg overflow-hidden">
@@ -92,12 +106,12 @@ export default function AdminUserDetailPage() {
                 {user.ideas.map((idea) => (
                   <tr key={idea.id} className="border-t">
                     <td className="px-3 py-2">
-                      <Link to={`/idea/${idea.slug}`} className="hover:text-primary font-medium">
+                      <Link to={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
                         {idea.title}
                       </Link>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {idea.idea_type === 'idea' ? 'Idee' : idea.idea_type === 'knowledge' ? 'Wissen' : 'Rezept'}
+                      {idea.idea_type === 'idea' ? 'Gruppenstunde' : idea.idea_type === 'knowledge' ? 'Wissen' : idea.idea_type === 'game' ? 'Spiel' : 'Rezept'}
                     </td>
                     <td className="px-3 py-2">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -120,7 +134,7 @@ export default function AdminUserDetailPage() {
             </table>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Keine Ideen vorhanden.</p>
+          <p className="text-sm text-muted-foreground">Keine Beiträge vorhanden.</p>
         )}
       </section>
 
@@ -135,7 +149,7 @@ export default function AdminUserDetailPage() {
               <thead className="bg-muted">
                 <tr>
                   <th className="text-left px-3 py-2 font-medium">Kommentar</th>
-                  <th className="text-left px-3 py-2 font-medium">Idee</th>
+                    <th className="text-left px-3 py-2 font-medium">Beitrag</th>
                   <th className="text-left px-3 py-2 font-medium">Status</th>
                   <th className="text-right px-3 py-2 font-medium">Datum</th>
                 </tr>
@@ -146,7 +160,7 @@ export default function AdminUserDetailPage() {
                     <td className="px-3 py-2 max-w-xs truncate">{comment.text}</td>
                     <td className="px-3 py-2">
                       {comment.idea_slug ? (
-                        <Link to={`/idea/${comment.idea_slug}`} className="hover:text-primary">
+                        <Link to={contentUrlForSlug(comment.idea_slug)} className="hover:text-primary">
                           {comment.idea_title}
                         </Link>
                       ) : (

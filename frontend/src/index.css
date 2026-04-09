@@ -36,6 +36,9 @@
   * {
     @apply border-border;
   }
+  html {
+    min-width: 320px;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;

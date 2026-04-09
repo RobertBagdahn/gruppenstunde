@@ -21,6 +21,11 @@ dependencies = [
     "google-genai>=1.0,<2.0",
     "pydantic>=2.10,<3.0",
     "html2text>=2025.4.15",
+    "openpyxl>=3.1,<4.0",
+    "reportlab>=4.2,<5.0",
+    "channels>=4.0,<5.0",
+    "channels-redis>=4.2,<5.0",
+    "daphne>=4.1,<5.0",
 ]
 
 [project.optional-dependencies]
@@ -46,7 +51,7 @@ requires = ["setuptools>=75.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["idea*", "planner*", "core*", "inspi*", "packinglist*"]
+include = ["idea*", "planner*", "core*", "inspi*", "packinglist*", "content*", "supply*", "session*", "blog*", "game*"]
 
 [tool.ruff]
 target-version = "py313"
@@ -78,7 +83,7 @@ ignore = [
 "**/migrations/**" = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["idea", "planner", "core", "inspi", "packinglist"]
+known-first-party = ["idea", "planner", "core", "inspi", "packinglist", "content", "supply", "session", "blog", "game"]
 
 [tool.black]
 line-length = 120
@@ -109,7 +114,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["idea", "planner", "core", "packinglist"]
+source = ["idea", "planner", "core", "packinglist", "content", "supply", "session", "blog", "game"]
 omit = ["*/migrations/*", "*/tests/*"]
 
 [tool.coverage.report]

@@ -18,9 +18,9 @@ export type Planner = z.infer<typeof PlannerSchema>;
 
 export const PlannerEntrySchema = z.object({
   id: z.number(),
-  idea_id: z.number().nullable(),
-  idea_title: z.string().nullable(),
-  idea_slug: z.string().nullable(),
+  session_id: z.number().nullable(),
+  session_title: z.string().nullable(),
+  session_slug: z.string().nullable(),
   date: z.string(),
   notes: z.string(),
   status: z.string(),

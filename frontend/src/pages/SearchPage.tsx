@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useUnifiedSearch } from '@/api/search';
-import { useIdeaOfTheWeek } from '@/api/ideas';
-import { useIdeaStore } from '@/store/useIdeaStore';
+import { useSearchStore } from '@/store/useSearchStore';
 import SearchBar from '@/components/SearchBar';
+import { SearchTabs } from '@/components/search/SearchTabs';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import {
-  RESULT_TYPE_OPTIONS,
   RESULT_TYPE_CONFIG,
   type UnifiedSearchResult,
   type UnifiedSearchFilter,
@@ -33,7 +32,7 @@ const SORT_OPTIONS = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  URL ↔ Filter sync helpers                                         */
+/*  URL <-> Filter sync helpers                                        */
 /* ------------------------------------------------------------------ */
 function filtersToSearchParams(filters: Partial<UnifiedSearchFilter>): URLSearchParams {
   const params = new URLSearchParams();
@@ -76,16 +75,16 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
       className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border/50 hover:border-primary/40 hover:shadow-colorful"
     >
       {/* Image area (or placeholder) */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden aspect-square">
         {result.image_url ? (
           <img
             src={result.image_url}
             alt={result.title}
             loading="lazy"
-            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-32 bg-gradient-to-br from-primary/10 via-muted/50 to-secondary/10 flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-primary/10 via-muted/50 to-secondary/10 flex items-center justify-center">
             <span className="material-symbols-outlined text-[48px] text-muted-foreground/40">
               {config?.icon ?? 'article'}
             </span>
@@ -132,6 +131,48 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
 
         {/* Meta info per type */}
         <div className="flex items-center gap-2 mt-3 flex-wrap">
+          {/* Session: type + time + difficulty */}
+          {result.result_type === 'session' && extra(result, 'execution_time') && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
+              <span className="material-symbols-outlined text-[14px]">schedule</span>
+              {extra(result, 'execution_time')}
+            </span>
+          )}
+          {result.result_type === 'session' && extra(result, 'difficulty') && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
+              <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
+              {extra(result, 'difficulty')}
+            </span>
+          )}
+
+          {/* Blog: type + reading time */}
+          {result.result_type === 'blog' && extra(result, 'reading_time_minutes') && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
+              <span className="material-symbols-outlined text-[14px]">schedule</span>
+              {extra(result, 'reading_time_minutes')} Min. Lesezeit
+            </span>
+          )}
+
+          {/* Game: type + players + play area */}
+          {result.result_type === 'game' && extra(result, 'game_type') && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
+              <span className="material-symbols-outlined text-[14px]">sports_esports</span>
+              {extra(result, 'game_type')}
+            </span>
+          )}
+          {result.result_type === 'game' && extra(result, 'min_players') && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
+              <span className="material-symbols-outlined text-[14px]">group</span>
+              {extra(result, 'min_players')}{extra(result, 'max_players') ? `–${extra(result, 'max_players')}` : '+'} Spieler
+            </span>
+          )}
+          {result.result_type === 'game' && extra(result, 'play_area') && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
+              <span className="material-symbols-outlined text-[14px]">landscape</span>
+              {extra(result, 'play_area')}
+            </span>
+          )}
+
           {/* Idea: difficulty + time */}
           {result.result_type === 'idea' && extra(result, 'execution_time') && (
             <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
@@ -196,7 +237,7 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
 /*  Search Page                                                        */
 /* ------------------------------------------------------------------ */
 export default function SearchPage() {
-  const { searchQuery } = useIdeaStore();
+  const { searchQuery } = useSearchStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialized = useRef(false);
 
@@ -224,13 +265,13 @@ export default function SearchPage() {
         setFilters(parsed);
         // Also sync q back to IdeaStore for the SearchBar
         if (parsed.q) {
-          useIdeaStore.getState().setSearchQuery(parsed.q);
+          useSearchStore.getState().setSearchQuery(parsed.q);
         }
       }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync filters → URL
+  // Sync filters -> URL
   useEffect(() => {
     if (initialized.current) {
       const newParams = filtersToSearchParams(filters);
@@ -248,8 +289,6 @@ export default function SearchPage() {
   }, [filters.q]);
 
   const { data, isLoading, error, refetch } = useUnifiedSearch(filters);
-  const { data: ideaOfTheWeek } = useIdeaOfTheWeek();
-  const showIdeaOfTheWeek = ideaOfTheWeek && !filters.q;
 
   /* -- Filter helpers ------------------------------------------------ */
   function setFilter<K extends keyof UnifiedSearchFilter>(key: K, value: UnifiedSearchFilter[K]) {
@@ -260,24 +299,11 @@ export default function SearchPage() {
     }));
   }
 
-  function toggleResultType(type: string) {
-    setFilters((prev) => {
-      const current = prev.result_types ?? [];
-      const next = current.includes(type)
-        ? current.filter((t) => t !== type)
-        : [...current, type];
-      return { ...prev, result_types: next.length > 0 ? next : undefined, page: 1 };
-    });
-  }
-
   const activeTypes = filters.result_types ?? [];
+  const typeCounts = data?.type_counts ?? {};
 
   /* -- Total label --------------------------------------------------- */
   function getTotalLabel(total: number): string {
-    if (activeTypes.length === 1) {
-      const opt = RESULT_TYPE_OPTIONS.find((o) => o.value === activeTypes[0]);
-      return `${total} ${opt?.label ?? 'Ergebnisse'} gefunden`;
-    }
     return `${total} Ergebnis${total !== 1 ? 'se' : ''} gefunden`;
   }
 
@@ -311,73 +337,24 @@ export default function SearchPage() {
         <SearchBar />
       </div>
 
-      {/* Idea of the Week */}
-      {showIdeaOfTheWeek && (
-        <div className="mb-4 md:mb-6">
-          <Link
-            to={`/idea/${ideaOfTheWeek.idea.slug}`}
-            className="group flex flex-col sm:flex-row items-center gap-4 p-4 md:p-6 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 shadow-soft hover:shadow-colorful hover:-translate-y-0.5 transition-all overflow-hidden"
-          >
-            {ideaOfTheWeek.idea.image_url && (
-              <img
-                src={ideaOfTheWeek.idea.image_url}
-                alt={ideaOfTheWeek.idea.title}
-                className="w-24 h-24 md:w-28 md:h-28 rounded-xl object-cover shadow-md group-hover:scale-105 transition-transform shrink-0"
-              />
-            )}
-            <div className="flex-1 text-center sm:text-left min-w-0">
-              <div className="flex items-center gap-1.5 justify-center sm:justify-start mb-1.5">
-                <span
-                  className="material-symbols-outlined text-amber-500 text-[20px]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  star
-                </span>
-                <span className="text-xs font-extrabold text-amber-600 uppercase tracking-wider">
-                  Idee der Woche
-                </span>
-              </div>
-              <h3 className="font-extrabold text-base md:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                {ideaOfTheWeek.idea.title}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {ideaOfTheWeek.description || ideaOfTheWeek.idea.summary}
-              </p>
-            </div>
-            <span className="material-symbols-outlined text-amber-500 text-[24px] hidden sm:block shrink-0 group-hover:translate-x-1 transition-transform">
-              arrow_forward
-            </span>
-          </Link>
-        </div>
-      )}
-
-      {/* Type Filter Chips + Sort */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
-        {/* Type chips */}
-        <div className="flex flex-wrap gap-2">
-          {RESULT_TYPE_OPTIONS.map((opt) => {
-            const isActive = activeTypes.includes(opt.value);
-            const config = RESULT_TYPE_CONFIG[opt.value];
-            return (
-              <button
-                key={opt.value}
-                onClick={() => toggleResultType(opt.value)}
-                className={cn(
-                  'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-all',
-                  isActive
-                    ? cn(config?.bgColor, config?.color, 'shadow-sm')
-                    : 'bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                <span className="material-symbols-outlined text-[18px]">{opt.icon}</span>
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+      {/* Search Tabs + Sort */}
+      <div className="flex flex-col gap-3 mb-4 md:mb-6">
+        {/* Tabs row */}
+        <SearchTabs
+          activeTypes={activeTypes}
+          typeCounts={typeCounts}
+          onTypeChange={(types) =>
+            setFilters((prev) => ({
+              ...prev,
+              result_types: types.length > 0 ? types : undefined,
+              page: 1,
+            }))
+          }
+          totalCount={data?.total ?? 0}
+        />
 
         {/* Sort */}
-        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-lg shrink-0">
+        <div className="flex items-center gap-2 self-end">
           <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
           <select
             value={filters.sort ?? 'relevant'}

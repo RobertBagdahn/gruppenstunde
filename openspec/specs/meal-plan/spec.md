@@ -1,273 +1,147 @@
-# meal-plan Specification
-
-## Purpose
-
-Essensplan-Tool fuer Pfadfinder-Veranstaltungen und den Gruppenalltag. Ermoeglicht das Planen mehrerer Tage mit Mahlzeiten, wobei pro Mahlzeit mehrere Rezepte (Ideas vom Typ `recipe`) zugewiesen werden koennen. Ein Essensplan kann an ein Event gebunden sein ODER freistehend existieren. Enthaelt Portionsskalierung (Norm-Personen), Naehrwert-Zusammenfassung und Einkaufslisten-Generierung.
-
-## Context
-
-- **Django App**: `planner` (bestehend, wird erweitert)
-- **API**: `/api/meal-plans/`
-- **Frontend-Routen**: `/meal-plans` (Landing-Page), `/meal-plans/app` (Liste), `/meal-plans/:id` (Detail)
-- **Datenstruktur**: MealPlan -> MealDay -> Meal -> MealItem -> Rezept (Idea vom Typ `recipe`)
-- **Beziehung zu Events**: Optional, ein MealPlan MAY an ein Event gebunden sein
-- **Beziehung zu Zutatendatenbank**: Rezepte verweisen ueber RecipeItems auf Ingredients (siehe `ingredient-database/spec.md`)
-
-## Data Model
-
-### Modell-Hierarchie
-
-```
-MealPlan (Name, Norm-Portionen, Aktivitaetsfaktor)
-  +-- MealDay[] (Datum)
-       +-- Meal[] (Mahlzeittyp, Tagesanteil)
-            +-- MealItem[] (Skalierungsfaktor)
-                 +-- recipe FK -> Idea (idea_type=recipe)
-                      +-- RecipeItem[] -> Ingredient -> Portion -> Price
-```
-
 ## Requirements
 
-### Requirement: MealPlan-Datenmodell
-
-Das System MUST folgende Model-Felder fuer den Essensplan fuehren.
-
-#### Scenario: MealPlan-Felder
-
-- GIVEN ein MealPlan-Datensatz
-- THEN hat er folgende Felder:
-  - `name` (CharField) — Name des Essensplans
-  - `slug` (SlugField, unique) — URL-sicherer Slug
-  - `description` (TextField, optional) — Beschreibung
-  - `norm_portions` (IntegerField) — Anzahl Norm-Personen/Portionen
-  - `activity_factor` (FloatField, default 1.5) — PAL-Wert fuer Portionsskalierung
-  - `reserve_factor` (FloatField, default 1.1) — Reservefaktor (10% mehr kochen)
-  - `event` (FK zu Event, nullable) — Optionale Event-Zuordnung
-  - `created_by` (FK zu User) — Ersteller
-- AND berechnete Felder (aggregiert): `total_price_eur`, `total_energy_kj`
-
-#### Scenario: MealDay-Felder
-
-- GIVEN ein MealDay-Datensatz
-- THEN hat er folgende Felder:
-  - `date` (DateField) — Datum des Tages
-  - `meal_plan` (FK zu MealPlan) — Zugehoerig zum Essensplan
-
-#### Scenario: Meal-Felder
-
-- GIVEN ein Meal-Datensatz
-- THEN hat er folgende Felder:
-  - `meal_type` (TextChoices: `breakfast`, `lunch`, `dinner`, `snack`, `dessert`) — Mahlzeittyp
-  - `time_start` (TimeField, optional) — Startzeit
-  - `time_end` (TimeField, optional) — Endzeit
-  - `day_part_factor` (FloatField) — Anteil am Tagesbedarf (z.B. Fruehstueck=0.25, Mittag=0.35, Abend=0.30, Snack=0.10)
-  - `meal_day` (FK zu MealDay) — Zugehoerig zum Tag
-
-#### Scenario: MealItem-Felder
-
-- GIVEN ein MealItem-Datensatz
-- THEN hat er folgende Felder:
-  - `factor` (FloatField, default 1.0) — Skalierungsfaktor fuer das Rezept
-  - `recipe` (FK zu Idea mit `idea_type=recipe`) — Das zugeordnete Rezept
-  - `meal` (FK zu Meal) — Zugehoerig zur Mahlzeit
-
-### Requirement: Essensplan CRUD
-
-Das System MUST vollstaendige CRUD-Operationen fuer Essensplaene ueber `/api/meal-plans/` bereitstellen.
-
-#### Scenario: Freistehenden Essensplan erstellen
-
-- GIVEN ein authentifizierter Benutzer
-- WHEN der Benutzer POST `/api/meal-plans/` mit Titel, Startdatum und Anzahl Tage absendet
-- THEN wird ein MealPlan ohne Event-Zuordnung erstellt
-- AND fuer jeden Tag wird ein MealDay mit Standard-Mahlzeiten (Fruehstueck, Mittag, Abend) erstellt
-
-#### Scenario: Event-gebundenen Essensplan erstellen
-
-- GIVEN ein authentifizierter Benutzer und ein bestehendes Event
-- WHEN der Benutzer POST `/api/meal-plans/` mit Titel und event_id absendet
-- THEN wird ein MealPlan erstellt und mit dem Event verknuepft
-- AND die Tage werden basierend auf dem Event-Zeitraum (start_date bis end_date) generiert
-
-#### Scenario: Essensplan abrufen
-
-- GIVEN ein bestehender MealPlan
-- WHEN ein Benutzer GET `/api/meal-plans/{id}` aufruft
-- THEN werden der MealPlan mit allen Tagen, Mahlzeiten und zugeordneten Rezepten zurueckgegeben
-- AND pro Rezept werden Naehrwerte und Preise mitgeliefert
-
-#### Scenario: Essensplan aktualisieren
-
-- GIVEN der MealPlan-Owner
-- WHEN der Owner PATCH `/api/meal-plans/{id}` mit partiellen Daten absendet
-- THEN wird der MealPlan aktualisiert
-- AND bei Aenderung von `norm_portions` oder `activity_factor` werden alle Portionen neu skaliert
-
-#### Scenario: Essensplan loeschen
-
-- GIVEN der MealPlan-Owner
-- WHEN der Owner DELETE `/api/meal-plans/{id}` aufruft
-- THEN werden der MealPlan und alle zugehoerigen Tage und Mahlzeiten entfernt
-
-### Requirement: Tage-Verwaltung (MealDay)
-
-Das System SHALL Tage innerhalb eines Essensplans unterstuetzen.
-
-#### Scenario: Tag hinzufuegen
-
-- GIVEN ein bestehender Essensplan
-- WHEN der Owner POST `/api/meal-plans/{id}/days/` mit Datum absendet
-- THEN wird ein MealDay erstellt mit Standard-Mahlzeiten-Slots (Fruehstueck, Mittag, Abend)
-
-#### Scenario: Tag entfernen
-
-- GIVEN ein bestehender MealDay
-- WHEN der Owner DELETE `/api/meal-plans/{id}/days/{day_id}/` aufruft
-- THEN werden der Tag und alle zugehoerigen Mahlzeiten und MealItems entfernt
-
-### Requirement: Mahlzeiten-Verwaltung (Meal)
-
-Das System SHALL Mahlzeiten innerhalb eines Tages mit Rezept-Zuordnung unterstuetzen.
-
-#### Scenario: Standard-Mahlzeiten-Typen
-
-- GIVEN ein MealDay wird erstellt
-- WHEN der Tag initialisiert wird
-- THEN stehen folgende Mahlzeiten-Typen zur Verfuegung: Fruehstueck, Mittagessen, Abendessen, Snack, Dessert
-
-#### Scenario: Mahlzeit hinzufuegen
-
-- GIVEN ein MealDay
-- WHEN der Owner POST `/api/meal-plans/{id}/days/{day_id}/meals/` mit Mahlzeittyp absendet
-- THEN wird eine neue Meal-Entitaet erstellt
-
-#### Scenario: Mahlzeit loeschen
-
-- GIVEN eine Mahlzeit
-- WHEN der Owner DELETE `/api/meal-plans/{id}/meals/{meal_id}/` aufruft
-- THEN wird die Mahlzeit und alle zugeordneten MealItems entfernt
-
-#### Scenario: Rezept zu Mahlzeit hinzufuegen
-
-- GIVEN eine Mahlzeit innerhalb eines Tages
-- WHEN der Owner POST `/api/meal-plans/{id}/meals/{meal_id}/items/` mit Rezept-ID und optionalem Skalierungsfaktor absendet
-- THEN wird ein MealItem erstellt und das Rezept der Mahlzeit zugeordnet
-- AND es koennen mehrere Rezepte pro Mahlzeit zugewiesen werden
-
-#### Scenario: Rezept von Mahlzeit entfernen
-
-- GIVEN eine Mahlzeit mit zugeordneten Rezepten
-- WHEN der Owner DELETE `/api/meal-plans/{id}/meal-items/{item_id}/` aufruft
-- THEN wird das MealItem geloescht, das Rezept (Idea) bleibt bestehen
-
-### Requirement: Rezept-Suche und -Zuordnung
-
-Das System SHALL die einfache Suche und Zuordnung von Rezepten ermoeglichen.
-
-#### Scenario: Rezept suchen fuer Mahlzeit
-
-- GIVEN eine Mahlzeit, der ein Rezept zugewiesen werden soll
-- WHEN der Owner nach einem Rezept sucht
-- THEN werden nur Ideas vom Typ `recipe` in den Suchergebnissen angezeigt
-- AND der Owner kann ein Rezept per Klick zuordnen
-
-### Requirement: Portionsskalierung
-
-Das System SHALL die automatische Portionsskalierung basierend auf Norm-Personen unterstuetzen (siehe `ingredient-database/spec.md` fuer Mifflin-St Jeor Algorithmus).
-
-#### Scenario: Norm-Portionen-basierte Skalierung
-
-- GIVEN ein MealPlan mit `norm_portions = 10` und `activity_factor = 1.5`
-- WHEN die Portionen berechnet werden
-- THEN werden alle Rezeptmengen mit `norm_portions x activity_factor x reserve_factor` skaliert
-
-#### Scenario: Teilnehmer-basierte Mengenberechnung (Event-gebunden)
-
-- GIVEN ein Event-gebundener Essensplan und registrierte Teilnehmer mit Altersangaben
-- WHEN der Essensplan angezeigt wird
-- THEN MAY die `norm_portions` basierend auf den Norm-Faktoren der Teilnehmer berechnet werden
-
-### Requirement: Naehrwert-Zusammenfassung
-
-Das System SHALL aggregierte Naehrwerte pro Mahlzeit, Tag und Gesamtplan bereitstellen.
-
-#### Scenario: Naehrwert-Uebersicht abrufen
-
-- GIVEN ein Essensplan mit zugeordneten Rezepten, die Naehrwertdaten haben
-- WHEN ein Benutzer GET `/api/meal-plans/{id}/nutrition-summary/` aufruft
-- THEN werden die aggregierten Naehrwerte zurueckgegeben:
-  - Pro Mahlzeit: Summe aller MealItems (gewichtet mit factor)
-  - Pro Tag: Summe aller Meals
-  - Gesamt: Summe aller Tage
-- AND die Naehrwerte beinhalten mindestens: energy_kj, protein_g, fat_g, carbohydrate_g, sugar_g, fibre_g, salt_g
-
-### Requirement: Einkaufsliste
-
-Das System SHALL automatisch generierte Einkaufslisten bereitstellen (Details zur Generierung siehe `ingredient-database/spec.md`).
-
-#### Scenario: Einkaufsliste abrufen
-
-- GIVEN ein MealPlan mit zugeordneten Rezepten
-- WHEN ein Benutzer GET `/api/meal-plans/{id}/shopping-list/` aufruft
-- THEN werden alle Zutaten aggregiert, nach RetailSection gruppiert und mit Preisen zurueckgegeben
-
-### Requirement: Event-Integration
-
-Das System MAY eine Integration mit dem Event-Modul unterstuetzen.
-
-#### Scenario: Essensplan im Event anzeigen
-
-- GIVEN ein Event mit zugeordnetem MealPlan
-- WHEN ein Benutzer die Event-Detailseite aufruft
-- THEN wird der zugehoerige Essensplan angezeigt oder verlinkt
-
-### Requirement: API-Endpunkte (MealPlan)
-
-Das System MUST folgende REST-Endpunkte bereitstellen.
-
-#### Scenario: MealPlan-Endpunkte
-
-- GIVEN die MealPlan-API
-- THEN sind folgende Endpunkte verfuegbar:
-  - `GET /api/meal-plans/` — Eigene Essensplaene (paginiert)
-  - `POST /api/meal-plans/` — Erstellen (optional mit event_id)
-  - `GET /api/meal-plans/{id}/` — Detail inkl. Tage, Mahlzeiten, Rezepte
-  - `PATCH /api/meal-plans/{id}/` — Aktualisieren
-  - `DELETE /api/meal-plans/{id}/` — Loeschen
-  - `POST /api/meal-plans/{id}/days/` — Tag hinzufuegen
-  - `DELETE /api/meal-plans/{id}/days/{day_id}/` — Tag loeschen
-  - `POST /api/meal-plans/{id}/days/{day_id}/meals/` — Mahlzeit hinzufuegen
-  - `DELETE /api/meal-plans/{id}/meals/{meal_id}/` — Mahlzeit loeschen
-  - `POST /api/meal-plans/{id}/meals/{meal_id}/items/` — Rezept zu Mahlzeit hinzufuegen
-  - `DELETE /api/meal-plans/{id}/meal-items/{item_id}/` — Rezept aus Mahlzeit entfernen
-  - `GET /api/meal-plans/{id}/shopping-list/` — Einkaufsliste (aggregiert, nach Abteilung)
-  - `GET /api/meal-plans/{id}/nutrition-summary/` — Naehrwert-Zusammenfassung
-
-### Requirement: Essensplan UI (Mobile-First)
-
-Das Frontend SHALL das Essensplan-Layout Mobile-First gestalten.
-
-#### Scenario: Mobile Layout
-
-- GIVEN ein MealPlan wird auf einem Smartphone angezeigt
-- THEN werden die Tage vertikal gestapelt
-- AND pro Tag werden die Mahlzeiten horizontal scrollbar dargestellt
-
-#### Scenario: Desktop Layout
-
-- GIVEN ein MealPlan wird auf einem Desktop angezeigt
-- THEN wird ein Grid-Layout verwendet (Tage als Spalten, Mahlzeiten als Zeilen)
-
-#### Scenario: Mahlzeit-Karten
-
-- GIVEN eine Mahlzeit mit zugeordneten Rezepten
-- THEN zeigt jede Mahlzeit-Karte:
-  - Rezept-Name
-  - Bild-Thumbnail
-  - Nutri-Score Badge (Farbcodes siehe `ingredient-database/spec.md`)
-  - Preis
-
-#### Scenario: Drag & Drop (Optional)
-
-- GIVEN ein Desktop-Benutzer
-- THEN MAY Drag & Drop fuer die Rezept-Zuordnung zu Mahlzeiten unterstuetzt werden
+### Requirement: Meal event data model
+The meal event system SHALL use a flat hierarchy: `MealEvent -> Meal -> MealItem`. Each `Meal` SHALL belong directly to a `MealEvent` via FK and SHALL have `start_datetime` and `end_datetime` fields.
+
+#### Scenario: Meal belongs to MealEvent directly
+- **WHEN** a Meal is created
+- **THEN** it SHALL have a `meal_event` FK referencing the parent MealEvent
+- **THEN** it SHALL have `start_datetime` (DateTimeField) and `end_datetime` (DateTimeField) indicating when the meal takes place
+- **THEN** the combination of `(meal_event, start_datetime, meal_type)` SHALL be unique
+
+### Requirement: Meal event detail response
+The meal event detail API response SHALL return meals as a flat list with datetime information on each meal, instead of nested under day objects.
+
+#### Scenario: Flat meals in detail response
+- **WHEN** a user requests a meal event detail via `GET /api/meal-events/{meal_event_id}/`
+- **THEN** the response SHALL contain a `meals` field (list of Meal objects)
+- **THEN** each Meal object SHALL include `id`, `meal_type`, `start_datetime`, `end_datetime`, `day_part_factor`, and `items`
+- **THEN** the response SHALL NOT contain a `days` field
+
+#### Scenario: Meals ordered by datetime and type
+- **WHEN** the meal event detail is returned
+- **THEN** meals SHALL be ordered by `start_datetime` ascending, then by `meal_type`
+
+### Requirement: Adding meals to a meal event
+Users SHALL add meals directly to a meal event by specifying datetime information, without creating a day object first.
+
+#### Scenario: Add a single meal
+- **WHEN** a user sends `POST /api/meal-events/{meal_event_id}/meals/` with `meal_type`, `start_datetime`, and `end_datetime`
+- **THEN** a new Meal SHALL be created with the specified datetime range and meal type
+- **THEN** the response SHALL return the created Meal
+
+#### Scenario: Duplicate meal type on same datetime rejected
+- **WHEN** a user tries to add a meal with a `meal_type` that already exists for that `start_datetime` in the meal event
+- **THEN** the API SHALL return HTTP 400 with an appropriate error message
+
+### Requirement: Adding a day with default meals
+Users SHALL be able to add a full day of default meals (breakfast, lunch, dinner) in one request.
+
+#### Scenario: Add day with defaults
+- **WHEN** a user sends `POST /api/meal-events/{meal_event_id}/days/` with a `date`
+- **THEN** default meals (breakfast, lunch, dinner) SHALL be created for that date with appropriate `start_datetime` and `end_datetime` values
+- **THEN** each default meal SHALL have the appropriate `day_part_factor` (breakfast=0.25, lunch=0.35, dinner=0.30)
+- **THEN** the response SHALL return the list of created meals
+
+#### Scenario: Day already has meals
+- **WHEN** a user tries to add a day for a date that already has meals
+- **THEN** the API SHALL return HTTP 400 with error "Dieser Tag existiert bereits im Essensplan"
+
+### Requirement: Removing meals by date
+Users SHALL be able to remove all meals for a specific date from a meal event.
+
+#### Scenario: Remove all meals for a date
+- **WHEN** a user sends `DELETE /api/meal-events/{meal_event_id}/days/?date=YYYY-MM-DD`
+- **THEN** all meals for that date in the meal event SHALL be deleted
+- **THEN** the response SHALL confirm success
+
+#### Scenario: No meals for the given date
+- **WHEN** a user tries to remove meals for a date that has no meals
+- **THEN** the API SHALL return HTTP 404
+
+### Requirement: Auto-generating meals on meal event creation
+When a meal event is created with a date range (from event or explicit start_date+num_days), default meals SHALL be created directly without intermediate day objects.
+
+#### Scenario: Event-bound meal event creation
+- **WHEN** a meal event is created with an `event_id` that has start and end dates
+- **THEN** default meals (breakfast, lunch, dinner) SHALL be created for each date in the event range
+- **THEN** each meal SHALL reference the meal event directly
+
+#### Scenario: Standalone meal event creation with date range
+- **WHEN** a meal event is created with `start_date` and `num_days`
+- **THEN** default meals SHALL be created for each date in the range
+- **THEN** each meal SHALL reference the meal event directly
+
+### Requirement: Meal event list response
+The meal event list response SHALL show `meals_count` instead of `days_count`.
+
+#### Scenario: Meals count in list
+- **WHEN** a user requests the list of meal events via `GET /api/meal-events/`
+- **THEN** each meal event SHALL include a `meals_count` field with the total number of meals
+- **THEN** the response SHALL NOT include a `days_count` field
+
+### Requirement: MealItem references recipe from recipe app
+MealItem SHALL continue to reference Recipe via FK, but Recipe now inherits from Content. The FK relationship SHALL be updated to point to `recipe.Recipe`.
+
+#### Scenario: Adding recipe to meal
+- **WHEN** a user adds a recipe to a meal in the meal event
+- **THEN** the MealItem SHALL reference the Recipe (which inherits from Content)
+- **THEN** the recipe's Content base fields (title, image, tags) SHALL be accessible
+
+### Requirement: EventDaySlot integration with MealEvent
+The event day plan SHALL visually integrate meal slots from the MealEvent system. When an event has a linked MealEvent, meal times SHALL appear in the day plan timeline alongside other activity slots.
+
+#### Scenario: MealEvent meals in day plan
+- **WHEN** an event has a linked MealEvent with meals for a specific date
+- **THEN** meal slots SHALL appear in the day plan timeline with recipe names
+- **THEN** meal slots SHALL be visually distinguished from activity slots (different color/icon)
+- **THEN** clicking a meal slot SHALL navigate to the MealEvent detail at `/meal-events/{id}`
+
+#### Scenario: MealItem shows recipe in day plan
+- **WHEN** a Meal in the MealEvent has MealItems (recipes)
+- **THEN** the day plan meal slot SHALL list the recipe names
+- **THEN** each recipe SHALL link to its Recipe detail page
+
+### Requirement: Cockpit API endpoints
+The system SHALL provide cockpit endpoints for aggregated meal event and meal data views.
+
+#### Scenario: MealEvent cockpit overview
+- **WHEN** a user requests `GET /api/meal-events/{id}/cockpit/`
+- **THEN** the response SHALL return an aggregated overview of the entire meal event (totals, nutritional summaries, cost summaries)
+
+#### Scenario: MealEvent cockpit day view
+- **WHEN** a user requests `GET /api/meal-events/{id}/cockpit/day/?date=YYYY-MM-DD`
+- **THEN** the response SHALL return aggregated data for that specific day within the meal event
+
+#### Scenario: Meal cockpit detail
+- **WHEN** a user requests `GET /api/meals/{id}/cockpit/`
+- **THEN** the response SHALL return detailed nutritional and cost data for a single meal
+
+### Requirement: Frontend routing
+The meal event frontend SHALL be accessible at `/meal-events/`.
+
+#### Scenario: Navigating to meal events
+- **WHEN** a user navigates to `/meal-events/`
+- **THEN** the meal event list page SHALL be displayed
+- **WHEN** a user navigates to `/meal-events/{id}`
+- **THEN** the meal event detail page SHALL be displayed
+
+### Requirement: Export-Button auf MealEvent-Detailseite
+Die MealEvent-Detailseite SHALL einen "Einkaufsliste erstellen"-Button anzeigen, der die aggregierte Einkaufsliste als persistente ShoppingList exportiert.
+
+#### Scenario: Einkaufsliste aus MealEvent erstellen
+- **WHEN** ein authentifizierter Nutzer auf der MealEvent-Detailseite "Einkaufsliste erstellen" klickt
+- **THEN** SHALL die Shopping-List-API `POST /api/shopping-lists/from-meal-event/{id}/` aufgerufen werden
+- **THEN** SHALL der MealEvent-Skalierungsfaktor (norm_portions * activity_factor * reserve_factor) angewendet werden
+- **THEN** SHALL der Nutzer zur erstellten Einkaufsliste weitergeleitet werden
+
+### Requirement: Skalierte Mengen in MealEvent-Shopping-Ansicht
+Die bestehende Shopping-List-Ansicht im MealEvent SHALL die intelligente Einheiten-Umrechnung und natürliche Portionsanzeige verwenden.
+
+#### Scenario: Shopping-Ansicht mit Einheiten-Umrechnung
+- **WHEN** ein Nutzer die Shopping-List eines MealEvents ansieht (`GET /api/meal-events/{id}/shopping-list/`)
+- **THEN** SHALL die Response zusätzlich `display_quantity` (formatierte Anzeige mit intelligenter Einheit) und `natural_portions` (Liste der natürlichen Portionsangaben) pro Item enthalten
+
+#### Scenario: Echtzeit-Update bei Faktor-Änderung
+- **WHEN** ein Nutzer `norm_portions`, `activity_factor` oder `reserve_factor` im MealEvent ändert
+- **THEN** SHALL die Shopping-List-Ansicht mit den neuen Mengen aktualisiert werden

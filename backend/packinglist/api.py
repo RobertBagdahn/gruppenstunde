@@ -23,6 +23,7 @@ from .schemas import (
     PackingListOut,
     PackingListSummaryOut,
     PackingListUpdateIn,
+    PaginatedPackingListOut,
     SortOrderIn,
 )
 
@@ -47,10 +48,11 @@ def _require_edit_permission(packing_list: PackingList, user):
 # ==========================================================================
 
 
-@packing_list_router.get("/", response=list[PackingListSummaryOut])
-def list_packing_lists(request):
+@packing_list_router.get("/", response=PaginatedPackingListOut)
+def list_packing_lists(request, page: int = 1, page_size: int = 20):
     """List packing lists the user owns or can admin via group membership."""
     _require_auth(request)
+    import math
 
     # Groups where user is admin
     admin_group_ids = GroupMembership.objects.filter(
@@ -62,18 +64,45 @@ def list_packing_lists(request):
     qs = PackingList.objects.select_related("owner", "group").prefetch_related("categories")
 
     if request.user.is_staff:
-        return qs.filter(is_template=False)
+        qs = qs.filter(is_template=False)
+    else:
+        qs = qs.filter(
+            Q(owner=request.user) | Q(group_id__in=admin_group_ids),
+            is_template=False,
+        ).distinct()
 
-    return qs.filter(
-        Q(owner=request.user) | Q(group_id__in=admin_group_ids),
-        is_template=False,
-    ).distinct()
+    total = qs.count()
+    total_pages = math.ceil(total / page_size) if page_size > 0 else 1
+    offset = (page - 1) * page_size
+    items = list(qs[offset : offset + page_size])
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
-@packing_list_router.get("/templates/", response=list[PackingListSummaryOut])
-def list_templates(request):
+@packing_list_router.get("/templates/", response=PaginatedPackingListOut)
+def list_templates(request, page: int = 1, page_size: int = 20):
     """List all template packing lists (publicly accessible)."""
-    return PackingList.objects.filter(is_template=True).select_related("owner", "group").prefetch_related("categories")
+    import math
+
+    qs = PackingList.objects.filter(is_template=True).select_related("owner", "group").prefetch_related("categories")
+    total = qs.count()
+    total_pages = math.ceil(total / page_size) if page_size > 0 else 1
+    offset = (page - 1) * page_size
+    items = list(qs[offset : offset + page_size])
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 @packing_list_router.post("/", response=PackingListOut)
@@ -293,13 +322,24 @@ def create_item(request, packing_list_id: int, category_id: int, payload: Packin
 
     category = get_object_or_404(PackingCategory, id=category_id, packing_list=packing_list)
 
+    payload_dict = payload.dict(exclude={"supply_type", "supply_id"})
+
     # Auto-assign sort_order if not provided
-    if payload.sort_order == 0:
+    if payload_dict.get("sort_order", 0) == 0:
         max_order = category.items.aggregate(max_order=Max("sort_order"))["max_order"]
-        payload_dict = payload.dict()
         payload_dict["sort_order"] = (max_order or 0) + 1
-    else:
-        payload_dict = payload.dict()
+
+    # Resolve supply reference
+    if payload.supply_type and payload.supply_id:
+        from django.contrib.contenttypes.models import ContentType
+
+        try:
+            ct = ContentType.objects.get(model=payload.supply_type)
+            ct.get_object_for_this_type(pk=payload.supply_id)  # verify exists
+            payload_dict["supply_content_type"] = ct
+            payload_dict["supply_object_id"] = payload.supply_id
+        except (ContentType.DoesNotExist, Exception):
+            raise HttpError(400, f"Ungültiger Ausrüstungstyp: {payload.supply_type}")
 
     item = PackingItem.objects.create(category=category, **payload_dict)
     return item
@@ -324,7 +364,30 @@ def update_item(
     category = get_object_or_404(PackingCategory, id=category_id, packing_list=packing_list)
     item = get_object_or_404(PackingItem, id=item_id, category=category)
 
-    for field, value in payload.dict(exclude_unset=True).items():
+    update_data = payload.dict(exclude_unset=True)
+
+    # Handle supply reference
+    if "supply_type" in update_data or "supply_id" in update_data:
+        supply_type = update_data.pop("supply_type", None)
+        supply_id = update_data.pop("supply_id", None)
+        if supply_type and supply_id:
+            from django.contrib.contenttypes.models import ContentType
+
+            try:
+                ct = ContentType.objects.get(model=supply_type)
+                ct.get_object_for_this_type(pk=supply_id)
+                item.supply_content_type = ct
+                item.supply_object_id = supply_id
+            except (ContentType.DoesNotExist, Exception):
+                raise HttpError(400, f"Ungültiger Ausrüstungstyp: {supply_type}")
+        elif supply_type is None:
+            item.supply_content_type = None
+            item.supply_object_id = None
+    else:
+        update_data.pop("supply_type", None)
+        update_data.pop("supply_id", None)
+
+    for field, value in update_data.items():
         setattr(item, field, value)
     item.save()
     return item

@@ -1,165 +1,80 @@
-# admin Specification
+## ADDED Requirements
 
-## Purpose
+### Requirement: Embedding Admin View
+The admin interface SHALL provide a dedicated "Embeddings" section for viewing and managing content embeddings across all content types.
 
-Admin-Dashboard und Verwaltungswerkzeuge fuer Plattform-Administratoren. Bietet Moderationsfaehigkeiten, Inhaltsverwaltung, Benutzerverwaltung, Plattformstatistiken und Material-/Einheiten-CRUD-Operationen. Nur fuer Benutzer mit `is_staff=true` zugaenglich.
+#### Scenario: Embedding list view
+- **WHEN** an admin navigates to the embeddings admin section
+- **THEN** all content items SHALL be listed with: title, content_type, has_embedding (boolean), embedding_updated_at, similarity_to_reference (if reference selected)
+- **THEN** the admin SHALL be able to filter by content_type and embedding status (has/missing)
 
-## Requirements
+#### Scenario: Embedding similarity explorer
+- **WHEN** an admin selects a reference content item
+- **THEN** all other content items SHALL be sorted by cosine similarity to the reference
+- **THEN** each item SHALL show its similarity score (0.0 - 1.0)
+- **THEN** the admin SHALL be able to identify clustering and quality issues
 
-### Requirement: Admin-Zugriffskontrolle
+#### Scenario: Bulk embedding regeneration
+- **WHEN** an admin selects multiple items and clicks "Embeddings neu generieren"
+- **THEN** embeddings SHALL be regenerated for all selected items
 
-Das System MUST alle Admin-Endpunkte unter `/api/admin/` auf Benutzer mit `is_staff=true` beschraenken.
+### Requirement: Approval Queue Admin View
+The admin interface SHALL provide an "Approval Queue" section showing all content with status='submitted'.
 
-#### Scenario: Admin-Zugriff
+#### Scenario: Viewing pending approvals
+- **WHEN** an admin navigates to the approval queue
+- **THEN** submitted content SHALL be listed sorted by submission date (oldest first)
+- **THEN** each item SHALL show: title, content_type badge, author, submission date, preview button
 
-- GIVEN ein authentifizierter Benutzer mit `is_staff=true`
-- WHEN der Benutzer einen `/api/admin/`-Endpunkt aufruft
-- THEN wird die Anfrage normal verarbeitet
+#### Scenario: Approving from queue
+- **WHEN** an admin clicks "Genehmigen" on a submitted item
+- **THEN** the content status SHALL change to 'approved'
+- **THEN** an approval email SHALL be sent to the author
+- **THEN** the item SHALL be removed from the queue
 
-#### Scenario: Nicht-Admin-Zugriff verweigert
+#### Scenario: Rejecting from queue
+- **WHEN** an admin clicks "Ablehnen" on a submitted item
+- **THEN** a dialog SHALL open requiring a rejection reason
+- **THEN** the content status SHALL change to 'rejected'
+- **THEN** a rejection email SHALL be sent to the author with the reason
 
-- GIVEN ein authentifizierter Benutzer ohne `is_staff=true`
-- WHEN der Benutzer versucht einen `/api/admin/`-Endpunkt aufzurufen
-- THEN wird HTTP 403 Forbidden zurueckgegeben
+### Requirement: EmbeddingFeedback Admin View
+The admin interface SHALL provide a view for reviewing embedding quality feedback.
 
-#### Scenario: Nicht-authentifizierter Zugriff verweigert
+#### Scenario: Viewing feedback list
+- **WHEN** an admin navigates to the embedding feedback section
+- **THEN** all EmbeddingFeedback entries SHALL be listed with: source title, target title, feedback_type, notes, created_by, created_at
+- **THEN** the admin SHALL be able to filter by feedback_type and date range
 
-- GIVEN ein nicht-authentifizierter Benutzer
-- WHEN der Benutzer einen `/api/admin/`-Endpunkt aufruft
-- THEN wird HTTP 401 Unauthorized zurueckgegeben
+## MODIFIED Requirements
 
-### Requirement: Idee der Woche
+### Requirement: Admin Dashboard Statistics
+The admin dashboard SHALL include statistics for all content types, not just Ideas. Admin users (`is_staff=True`) SHALL have full edit and delete access to all content across the platform, with edit and delete UI elements visible on both list and detail views in the public-facing frontend.
 
-Das System SHALL die Hervorhebung von Ideas als "Idee der Woche" unterstuetzen. Mehrere Eintraege koennen existieren (mit Veroeffentlichungsdatum).
+#### Scenario: Content statistics overview
+- **WHEN** an admin views the dashboard
+- **THEN** statistics SHALL show: total content per type, pending approvals count, total embeddings, total content links, recent activity across all types
 
-#### Scenario: Idee der Woche setzen
+#### Scenario: Admin sees edit/delete on all content list pages
+- **WHEN** an admin views any content list page (Sessions, Blogs, Games, Recipes)
+- **THEN** each content card SHALL display edit and delete icon buttons
+- **THEN** the admin SHALL be able to edit or delete any content item regardless of authorship
 
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin eine Idea per POST `/api/admin/idea-of-the-week/` mit `{ idea_id, description?, release_date? }` setzt
-- THEN wird ein IdeaOfTheWeek-Eintrag erstellt
-- AND die Idea wird auf der Startseite hervorgehoben
+#### Scenario: Admin sees edit/delete on all content detail pages
+- **WHEN** an admin views any content detail page
+- **THEN** inline editing SHALL be enabled (`can_edit: true`)
+- **THEN** a delete button SHALL be visible (`can_delete: true`)
+- **THEN** the admin SHALL be able to delete any content item regardless of authorship
 
-#### Scenario: Idee der Woche entfernen
+### Requirement: Admin Material/Ingredient Management
+The admin SHALL provide management interfaces for both Material and Ingredient (Supply subtypes) with full CRUD, search, and filtering.
 
-- GIVEN ein bestehender IdeaOfTheWeek-Eintrag
-- WHEN der Admin DELETE `/api/admin/idea-of-the-week/{entryId}/` aufruft
-- THEN wird der Eintrag entfernt
+#### Scenario: Material admin
+- **WHEN** an admin navigates to the Material admin
+- **THEN** materials SHALL be listed with name, category, usage count, purchase link count
+- **THEN** inline editing SHALL be available for all fields
 
-#### Scenario: Oeffentlicher Zugriff auf Idee der Woche
-
-- GIVEN IdeaOfTheWeek-Eintraege existieren
-- WHEN ein beliebiger Benutzer GET `/api/admin/idea-of-the-week/` aufruft
-- THEN werden die aktuellen IdeaOfTheWeek-Eintraege zurueckgegeben
-
-### Requirement: Kommentar-Moderation
-
-Das System SHALL eine Kommentar-Moderationswarteschlange fuer Administratoren bereitstellen. Alle Kommentare (sowohl von authentifizierten als auch von anonymen Benutzern) erfordern Admin-Moderation bevor sie sichtbar werden.
-
-#### Scenario: Ausstehende Kommentare anzeigen
-
-- GIVEN Kommentare mit Status "pending" im System
-- WHEN ein Admin GET `/api/admin/moderation/` aufruft
-- THEN werden alle ausstehenden (nicht freigegebenen) Kommentare zurueckgegeben
-
-#### Scenario: Kommentar freigeben
-
-- GIVEN ein ausstehender Kommentar
-- WHEN ein Admin POST `/api/admin/moderation/` mit `{ comment_id: number, action: "approve" }` sendet
-- THEN wird der Kommentar-Status auf "approved" geaendert
-- AND der Kommentar wird auf der Idea-Detailseite sichtbar
-
-#### Scenario: Kommentar ablehnen/loeschen
-
-- GIVEN ein ausstehender oder freigegebener Kommentar
-- WHEN ein Admin POST `/api/admin/moderation/` mit `{ comment_id: number, action: "reject" }` sendet
-- THEN wird der Kommentar aus dem System entfernt
-
-### Requirement: Benutzerverwaltung
-
-Das System SHALL Admins das Anzeigen und Verwalten von Benutzerkonten ermoeglichen.
-
-#### Scenario: Benutzer auflisten
-
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin GET `/api/admin/users/` aufruft
-- THEN werden registrierte Benutzer mit `{ id, email, first_name, last_name, is_staff, is_active, date_joined }` zurueckgegeben
-
-#### Scenario: Benutzerdetails anzeigen
-
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin GET `/api/admin/users/{userId}/` aufruft
-- THEN werden vollstaendige Details zurueckgegeben: `{ id, email, first_name, last_name, is_staff, is_active, date_joined, last_login, ideas: AdminUserIdea[], comments: AdminUserComment[] }`
-
-### Requirement: Material- und Einheiten-Verwaltung
-
-Das System SHALL Admins die Verwaltung des MaterialName- und MeasuringUnit-Katalogs ermoeglichen.
-
-#### Scenario: CRUD MaterialName
-
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin einen MaterialName erstellt, aktualisiert oder loescht
-- THEN wird der Material-Katalog aktualisiert
-- AND bestehende Ideas, die das Material referenzieren, bleiben unberuehrt (ON DELETE SET NULL)
-
-#### Scenario: CRUD MeasuringUnit
-
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin eine MeasuringUnit erstellt, aktualisiert oder loescht
-- THEN wird der Einheiten-Katalog aktualisiert
-
-### Requirement: Plattform-Statistiken
-
-Das System SHALL aggregierte Statistiken fuer das Admin-Dashboard ueber GET `/api/admin/statistics/` bereitstellen.
-
-#### Scenario: Dashboard-Statistiken
-
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin GET `/api/admin/statistics/` aufruft
-- THEN werden folgende Zaehler zurueckgegeben:
-  - `total_ideas`: Gesamt-Anzahl Ideas
-  - `published_ideas`: Anzahl veroeffentlichter Ideas
-  - `total_users`: Gesamt-Anzahl Benutzer
-  - `total_comments`: Gesamt-Anzahl Kommentare
-  - `pending_comments`: Anzahl ausstehender Kommentare
-  - `views_last_30_days`: Views der letzten 30 Tage
-  - `top_ideas`: Liste der meistgesehenen Ideas mit `{ id, title, slug, view_count, like_score }`
-
-#### Scenario: Aktuelle Aktivitaet
-
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin GET `/api/admin/recent-activity/` aufruft
-- THEN werden zurueckgegeben:
-  - `recent_views`: Letzte Views mit Idea-Titel und Benutzer-Email
-  - `recent_searches`: Letzte Suchanfragen mit Query und Ergebnis-Anzahl
-  - `recent_ideas`: Zuletzt erstellte Ideas mit Status und Autor
-
-#### Scenario: Trending
-
-- GIVEN ein Admin-Benutzer
-- WHEN der Admin GET `/api/admin/trending/` aufruft
-- THEN werden zurueckgegeben:
-  - `most_viewed`: Meistgesehene Ideas der letzten 7 Tage
-  - `most_liked`: Meistgelikte Ideas der letzten 7 Tage
-
-### Requirement: Autorenwechsel
-
-Das System SHALL Admins das Umzuweisen der Idea-Autorenschaft ermoeglichen.
-
-#### Scenario: Idea-Autor aendern
-
-- GIVEN ein Admin-Benutzer und eine bestehende Idea
-- WHEN der Admin den Autor auf einen anderen Benutzer aendert
-- THEN wird der Autor der Idea aktualisiert
-- AND die Idea erscheint im Profil des neuen Autors
-
-### Requirement: Instagram-Export
-
-Das System SHALL teilbare Bilder fuer Social-Media-Promotion von Ideas generieren.
-
-#### Scenario: Instagram-Slides generieren
-
-- GIVEN ein Admin-Benutzer und eine veroeffentlichte Idea
-- WHEN der Admin POST `/api/admin/instagram-export/` mit der Idea-ID aufruft
-- THEN werden 3 Slide-Bilder generiert (Titel-Slide, Beschreibungs-Slide, Meta-Slide)
-- AND die Bilder werden als Base64-kodierte PNGs in `{ slides: string[] }` zurueckgegeben
-- AND die Bilder verwenden die Plattform-Farbpalette (Sky/Teal-Primaerfarben, Source Sans 3 Schrift)
+#### Scenario: Ingredient admin
+- **WHEN** an admin navigates to the Ingredient admin
+- **THEN** ingredients SHALL be listed with name, nutri_score, is_standalone_food, usage count
+- **THEN** the admin SHALL be able to trigger AI autocomplete for nutritional data

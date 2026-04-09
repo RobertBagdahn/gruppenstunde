@@ -1,98 +1,64 @@
-# comments-emotions Specification
+## MODIFIED Requirements
 
-## Purpose
+### Requirement: Generic ContentComment Model
+The system SHALL provide a single `ContentComment` model that works with all content types via Django ContentType framework. Fields: content_type (FK to ContentType), object_id (PositiveIntegerField), parent (FK to self, nullable for nesting), text (TextField), author_name (CharField for anonymous), user (FK to User, nullable), status (TextChoices: pending/approved/rejected), created_at, updated_at.
 
-Benutzer-Engagement-Funktionen fuer Ideas: moderierte Kommentare und Emoji-basierte Emotions-Reaktionen. Alle Kommentare erfordern Admin-Moderation bevor sie sichtbar werden. Emotions bieten leichtgewichtiges Feedback ueber Toggle-basierte Reaktionen, die per Session-Key oder Benutzer-ID verfolgt werden.
+#### Scenario: Adding a comment to any content type
+- **WHEN** POST `/api/content/{type}/{id}/comments/` with comment text
+- **THEN** a ContentComment SHALL be created linked to the specified content item
+- **THEN** anonymous comments SHALL have status='pending' (moderation required)
+- **THEN** authenticated user comments SHALL have status='approved'
 
-## Requirements
+#### Scenario: Listing comments for content
+- **WHEN** GET `/api/content/{type}/{id}/comments/`
+- **THEN** only approved comments SHALL be returned
+- **THEN** comments SHALL be nested by parent_id
 
-### Requirement: Kommentare
+### Requirement: Generic ContentEmotion Model
+The system SHALL provide a single `ContentEmotion` model for reactions across all content types. Fields: content_type (FK to ContentType), object_id (PositiveIntegerField), emotion_type (TextChoices: in_love/happy/disappointed/complex), user (FK to User, nullable), session_key (CharField for anonymous), created_at.
 
-Das System SHALL Kommentare auf Ideas mit Pflicht-Moderation unterstuetzen. Alle Kommentare (authentifiziert und anonym) werden mit Status "pending" erstellt und erfordern Admin-Freigabe.
+#### Scenario: Adding an emotion to any content type
+- **WHEN** POST `/api/content/{type}/{id}/emotions/` with emotion_type
+- **THEN** a ContentEmotion SHALL be created or toggled (remove if same emotion exists)
+- **THEN** the content's like_score SHALL be recalculated
 
-#### Scenario: Kommentar eines authentifizierten Benutzers
+#### Scenario: Emotion counts on content
+- **WHEN** content is retrieved via API
+- **THEN** emotion counts SHALL be included (in_love_count, happy_count, disappointed_count, complex_count)
 
-- GIVEN ein authentifizierter Benutzer auf einer Idea-Detailseite
-- WHEN der Benutzer einen Kommentar per POST `/api/ideas/{id}/comments/` absendet (Body: `{ text: string }`)
-- THEN wird der Kommentar mit Status "pending" erstellt
-- AND der Kommentar wird mit dem Benutzerkonto verknuepft (`user_id` gesetzt)
-- AND der Kommentar ist erst nach Admin-Freigabe sichtbar
+### Requirement: Generic ContentView Model
+The system SHALL provide a single `ContentView` model for bot-free view tracking. Fields: content_type (FK to ContentType), object_id (PositiveIntegerField), session_key (CharField), ip_hash (CharField, SHA256), user_agent (CharField), user (FK to User, nullable), created_at.
 
-#### Scenario: Anonymer Kommentar
+#### Scenario: Recording a view
+- **WHEN** a user views a content detail page
+- **THEN** the system SHALL check the User-Agent against known bot patterns (bot, crawl, spider, slurp, headless, selenium, puppeteer, playwright, curl, wget, python-requests, httpx, aiohttp, scrapy)
+- **THEN** if the User-Agent matches a bot pattern or is empty, the view SHALL NOT be recorded
+- **THEN** if the user is not a bot and no ContentView exists for the same session_key within 24 hours, a ContentView record SHALL be created
+- **THEN** the content object's `view_count` field SHALL be atomically incremented using a database-level `F()` expression
 
-- GIVEN ein nicht-authentifizierter Benutzer auf einer Idea-Detailseite
-- WHEN der Benutzer einen Kommentar mit einem Anzeigenamen absendet (Body: `{ text: string, author_name: string }`)
-- THEN wird der Kommentar mit Status "pending" erstellt
-- AND `user_id` ist null, `author_name` wird als Anzeigename verwendet
-- AND der Kommentar erfordert Admin-Freigabe bevor er sichtbar wird
+#### Scenario: Recording a view for Recipe content
+- **WHEN** a user views a Recipe detail page via `GET /api/recipes/{id}/` or `GET /api/recipes/by-slug/{slug}/`
+- **THEN** the system SHALL record the view using the same `record_view` mechanism as GroupSession, Blog, and Game
 
-#### Scenario: Verschachtelte Antworten
+#### Scenario: Duplicate view within 24 hours
+- **WHEN** a ContentView already exists for the same content object and session_key within the last 24 hours
+- **THEN** no new ContentView SHALL be created
+- **THEN** the `view_count` SHALL NOT be incremented
 
-- GIVEN ein bestehender freigegebener Kommentar auf einer Idea
-- WHEN ein Benutzer auf diesen Kommentar antwortet (`parent_id` angegeben)
-- THEN wird die Antwort als Kind des Originalkommentars erstellt
-- AND die Antwort erfordert ebenfalls Admin-Freigabe
-- AND der Kommentar-Thread wird hierarchisch dargestellt
+## REMOVED Requirements
 
-#### Scenario: Kommentare laden
+### Requirement: Comment Model (idea app)
+**Reason**: Replaced by generic ContentComment
+**Migration**: Existing data migrated to ContentComment
 
-- GIVEN eine Idea mit freigegebenen Kommentaren
-- WHEN ein Benutzer die Idea-Detailseite betrachtet
-- THEN liefert GET `/api/ideas/{id}/comments/` alle freigegebenen Kommentare
-- AND Kommentare werden chronologisch mit verschachtelten Antworten sortiert
-- AND jeder Kommentar enthaelt: `{ id, text, author_name, user_id, created_at, parent_id, status }`
+### Requirement: Emotion Model (idea app)
+**Reason**: Replaced by generic ContentEmotion
+**Migration**: Existing data migrated to ContentEmotion
 
-#### Scenario: Spam-Schutz
+### Requirement: RecipeComment Model
+**Reason**: Replaced by generic ContentComment
+**Migration**: Existing data migrated to ContentComment
 
-- GIVEN ein Benutzer (authentifiziert oder anonym)
-- WHEN der Benutzer mehr als 5 Kommentare innerhalb von 10 Minuten absendet
-- THEN wird HTTP 429 Too Many Requests zurueckgegeben
-
-### Requirement: Emotions-Reaktionen
-
-Das System SHALL Emoji-basierte Reaktionen auf Ideas unterstuetzen. Verfuegbare Emotionstypen (definiert als `EmotionType` TextChoices): `in_love` (Begeistert), `happy` (Gut), `disappointed` (Enttaeuscht), `complex` (Zu komplex).
-
-#### Scenario: Reaktion hinzufuegen
-
-- GIVEN ein Benutzer auf einer Idea-Detailseite
-- WHEN der Benutzer einen Emotions-Button klickt per POST `/api/ideas/{id}/emotions/` mit `{ emotion_type: string }`
-- THEN wird die Emotion erstellt oder umgeschaltet
-- AND der Reaktions-Zaehler fuer diesen Emotionstyp wird erhoeht
-
-#### Scenario: Reaktion entfernen (Toggle aus)
-
-- GIVEN ein Benutzer, der zuvor auf eine Idea reagiert hat
-- WHEN der Benutzer den gleichen Emotions-Button erneut klickt
-- THEN wird die Reaktion entfernt (ausgeschaltet)
-- AND der Reaktions-Zaehler fuer diesen Emotionstyp wird verringert
-
-#### Scenario: Tracking per Session-Key
-
-- GIVEN eine Benutzer-Session
-- WHEN der Benutzer auf eine Idea reagiert
-- THEN wird die Reaktion per `session_key` (CharField, max 40) oder `created_by` (FK, nullable) zugeordnet
-- AND fuer authentifizierte Benutzer wird `created_by` gesetzt
-- AND fuer anonyme Benutzer wird der `session_key` aus dem Django-Session-Cookie verwendet
-
-#### Scenario: Eine Reaktion pro Typ pro Session
-
-- GIVEN eine Benutzer-Session
-- WHEN der Benutzer auf eine Idea reagiert
-- THEN ist nur eine Reaktion pro Emotionstyp pro Session erlaubt
-- AND der Benutzer kann gleichzeitig Reaktionen verschiedener Typen haben (z.B. sowohl `in_love` als auch `complex`)
-
-#### Scenario: Reaktionszaehler anzeigen
-
-- GIVEN eine Idea mit Reaktionen
-- WHEN ein beliebiger Benutzer die Idea betrachtet
-- THEN wird der aktuelle Zaehler fuer jeden Emotionstyp in `emotion_counts: Record<string, number>` angezeigt
-- AND die eigene aktive Reaktion des Benutzers wird in `user_emotion: string | null` zurueckgegeben
-
-## Planned Features
-
-Die folgenden Features sind geplant, aber noch nicht implementiert:
-
-### Planned: Kommentar-Rate-Limiting
-
-- Derzeit gibt es keinen Spam-Schutz fuer Kommentare.
-- Geplant: Rate-Limiting von 5 Kommentaren pro 10 Minuten pro Session.
+### Requirement: RecipeEmotion Model
+**Reason**: Replaced by generic ContentEmotion
+**Migration**: Existing data migrated to ContentEmotion

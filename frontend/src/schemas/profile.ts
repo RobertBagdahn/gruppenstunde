@@ -3,7 +3,7 @@
  * MUST stay in sync with backend/profiles/schemas.py
  */
 import { z } from 'zod';
-import { NutritionalTagSchema } from './idea';
+import { NutritionalTagSchema } from './supply';
 
 // --- User Profile ---
 
@@ -56,29 +56,39 @@ export type UserPreferenceUpdate = z.infer<typeof UserPreferenceUpdateSchema>;
 
 // --- Public User Profile ---
 
-export const PublicIdeaSchema = z.object({
+export const PublicContentSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
-  idea_type: z.string(),
+  content_type: z.string(),
   summary: z.string(),
   image_url: z.string().nullable().optional(),
   created_at: z.string(),
 });
-export type PublicIdea = z.infer<typeof PublicIdeaSchema>;
+export type PublicContent = z.infer<typeof PublicContentSchema>;
 
-export const MyIdeaSchema = z.object({
+/** @deprecated Use PublicContentSchema */
+export const PublicIdeaSchema = PublicContentSchema;
+/** @deprecated Use PublicContent */
+export type PublicIdea = PublicContent;
+
+export const MyContentSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
-  idea_type: z.string(),
+  content_type: z.string(),
   summary: z.string(),
   status: z.string(),
   image_url: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
-export type MyIdea = z.infer<typeof MyIdeaSchema>;
+export type MyContent = z.infer<typeof MyContentSchema>;
+
+/** @deprecated Use MyContentSchema */
+export const MyIdeaSchema = MyContentSchema;
+/** @deprecated Use MyContent */
+export type MyIdea = MyContent;
 
 export const PublicUserProfileSchema = z.object({
   id: z.number(),
@@ -87,7 +97,7 @@ export const PublicUserProfileSchema = z.object({
   about_me: z.string(),
   profile_picture_url: z.string().nullable().optional(),
   created_at: z.string(),
-  ideas: z.array(PublicIdeaSchema).default([]),
+  contents: z.array(PublicContentSchema).default([]),
 });
 export type PublicUserProfile = z.infer<typeof PublicUserProfileSchema>;
 

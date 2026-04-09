@@ -1,14 +1,19 @@
 # best-practices Specification
 
+> **⚠️ HINWEIS: Diese Spec referenziert die alte `idea` App-Architektur.**
+> Die `idea` App wurde durch die Content/Supply-Architektur ersetzt (siehe `openspec/changes/content-base-refactor/`).
+> Mapping: `Idea (idea_type=idea)` → `session.GroupSession`, `Idea (idea_type=knowledge)` → `blog.Blog`, `Idea (idea_type=recipe)` → `recipe.Recipe`.
+> Neue Apps: `content`, `supply`, `session`, `blog`, `game`, `recipe`. Die `idea/` App existiert nicht mehr.
+
 ## Purpose
 
-Querschnittsspezifikation fuer UI-Patterns, Code-Konventionen, Formular-Handling, State Management, Bildverarbeitung, Accessibility und Testing-Standards der Inspi-Plattform. Definiert verbindliche Regeln fuer konsistente Implementierung ueber alle Module hinweg.
+Querschnittsspezifikation für UI-Patterns, Code-Konventionen, Formular-Handling, State Management, Bildverarbeitung, Accessibility und Testing-Standards der Inspi-Plattform. Definiert verbindliche Regeln für konsistente Implementierung über alle Module hinweg.
 
 ## Context
 
 - **Backend**: Django Ninja, Pydantic v2, Python 3.13
 - **Frontend**: React 18, TypeScript (strict), TanStack Query v5, Zustand v5, shadcn/ui
-- **Querschnittsthema**: Gilt fuer alle Spec-Domaenen
+- **Querschnittsthema**: Gilt für alle Spec-Domänen
 
 ## Requirements
 
@@ -28,7 +33,7 @@ Alle Formulare MUST react-hook-form mit Zod-Resolver verwenden.
 
 - GIVEN ein Formular mit Eingabefeldern
 - WHEN der Benutzer ein Feld verliert (onBlur) oder das Formular absendet
-- THEN werden Client-seitige Validierungsregeln (Zod) geprueft
+- THEN werden Client-seitige Validierungsregeln (Zod) geprüft
 - AND bei Server-Antwort werden Server-Fehler ebenfalls inline am Feld angezeigt
 - AND die gleichen Validierungsregeln gelten in Pydantic (Backend) als Sicherheitsnetz
 
@@ -43,53 +48,53 @@ Alle Formulare MUST react-hook-form mit Zod-Resolver verwenden.
 
 ### Requirement: Loading States
 
-Das Frontend MUST kontextabhaengige Loading-States anzeigen.
+Das Frontend MUST kontextabhängige Loading-States anzeigen.
 
 #### Scenario: Initiales Laden von Listen und Seiten
 
 - GIVEN eine Seite wird zum ersten Mal geladen
 - WHEN Daten per TanStack Query abgerufen werden
 - THEN werden Skeleton-Loader in der Form des erwarteten Inhalts angezeigt
-- AND Skeletons muessen die tatsaechliche Inhaltsstruktur widerspiegeln (Cards, Text-Zeilen, etc.)
+- AND Skeletons müssen die tatsächliche Inhaltsstruktur widerspiegeln (Cards, Text-Zeilen, etc.)
 - AND es wird KEIN leeres Layout ohne Feedback angezeigt
 
-#### Scenario: Aktionen (Speichern, Loeschen, etc.)
+#### Scenario: Aktionen (Speichern, Löschen, etc.)
 
-- GIVEN ein Benutzer fuehrt eine Mutation aus (Erstellen, Bearbeiten, Loeschen)
-- WHEN die API-Anfrage laeuft
-- THEN wird ein Spinner im ausloeenden Button angezeigt
-- AND der Button ist waehrend der Anfrage deaktiviert
-- AND andere Interaktionen auf der Seite bleiben moeglich
+- GIVEN ein Benutzer führt eine Mutation aus (Erstellen, Bearbeiten, Löschen)
+- WHEN die API-Anfrage läuft
+- THEN wird ein Spinner im auslösenden Button angezeigt
+- AND der Button ist während der Anfrage deaktiviert
+- AND andere Interaktionen auf der Seite bleiben möglich
 
 #### Scenario: Nachladen (Mehr laden)
 
 - GIVEN eine paginierte Liste mit "Mehr laden"-Button
 - WHEN der Benutzer "Mehr laden" klickt
 - THEN wird ein Spinner im Button angezeigt
-- AND die bestehenden Eintraege bleiben sichtbar
-- AND neue Eintraege werden unterhalb angehaengt
+- AND die bestehenden Einträge bleiben sichtbar
+- AND neue Einträge werden unterhalb angehängt
 
 ### Requirement: Empty States
 
-Das Frontend MUST leere Zustaende mit Illustration, Text und Handlungsaufforderung anzeigen.
+Das Frontend MUST leere Zustände mit Illustration, Text und Handlungsaufforderung anzeigen.
 
 #### Scenario: Leere Liste (keine Daten vorhanden)
 
-- GIVEN eine Listen-Seite ohne Eintraege (z.B. keine Ideas, keine Events)
-- WHEN die API eine leere Liste zurueckgibt
+- GIVEN eine Listen-Seite ohne Einträge (z.B. keine Ideas, keine Events)
+- WHEN die API eine leere Liste zurückgibt
 - THEN wird ein Empty-State angezeigt mit:
   - Passendem Icon oder Illustration
-  - Erklaerungstext auf Deutsch (z.B. "Noch keine Ideen vorhanden")
+  - Erklärungstext auf Deutsch (z.B. "Noch keine Ideen vorhanden")
   - CTA-Button zum Erstellen (z.B. "Erste Idee erstellen")
 - AND der CTA-Button ist nur sichtbar, wenn der Benutzer die Berechtigung hat
 
 #### Scenario: Leere Suchergebnisse
 
 - GIVEN eine Suche, die keine Ergebnisse liefert
-- WHEN die API `{ items: [], total: 0 }` zurueckgibt
-- THEN wird angezeigt: "Keine Ergebnisse fuer '{suchbegriff}'"
-- AND Vorschlaege werden angezeigt: "Versuche einen anderen Suchbegriff oder weniger Filter"
-- AND die aktiven Filter werden als Chips angezeigt mit Moeglichkeit, sie zu entfernen
+- WHEN die API `{ items: [], total: 0 }` zurückgibt
+- THEN wird angezeigt: "Keine Ergebnisse für '{suchbegriff}'"
+- AND Vorschläge werden angezeigt: "Versuche einen anderen Suchbegriff oder weniger Filter"
+- AND die aktiven Filter werden als Chips angezeigt mit Möglichkeit, sie zu entfernen
 
 ### Requirement: Pagination
 
@@ -97,16 +102,16 @@ Alle Listen MUST Pagination mit "Mehr laden"-Pattern verwenden.
 
 #### Scenario: Standard-Pagination
 
-- GIVEN eine Listen-Ansicht mit mehr als 20 Eintraegen
+- GIVEN eine Listen-Ansicht mit mehr als 20 Einträgen
 - THEN werden initial 20 Items geladen (Standard page_size)
 - AND ein "Mehr laden"-Button wird am Ende der Liste angezeigt
 - AND der Button zeigt die verbleibende Anzahl: "Mehr laden (noch 15)"
-- AND nach Klick werden die naechsten 20 Items angehaengt
+- AND nach Klick werden die nächsten 20 Items angehängt
 
 #### Scenario: Pagination konfigurieren
 
-- GIVEN ein Benutzer moechte die Seitengroesse aendern
-- THEN stehen die Optionen 10, 20 oder 50 Items zur Verfuegung
+- GIVEN ein Benutzer möchte die Seitengröße ändern
+- THEN stehen die Optionen 10, 20 oder 50 Items zur Verfügung
 - AND die Auswahl wird als URL Query-Parameter gespeichert: `?page-size=50`
 - AND die Einstellung bleibt beim Neuladen der Seite erhalten
 
@@ -133,12 +138,12 @@ Das Frontend MUST WCAG 2.1 Level AA einhalten.
 
 - GIVEN jede UI-Komponente
 - THEN wird semantisches HTML verwendet:
-  - `<nav>` fuer Navigation
-  - `<main>` fuer Hauptinhalt
-  - `<article>` fuer eigenstaendige Inhalte (Ideas, Events)
-  - `<section>` fuer thematische Gruppierungen
-  - `<button>` fuer klickbare Aktionen (nicht `<div onClick>`)
-  - `<a>` fuer Links zu anderen Seiten
+  - `<nav>` für Navigation
+  - `<main>` für Hauptinhalt
+  - `<article>` für eigenständige Inhalte (Ideas, Events)
+  - `<section>` für thematische Gruppierungen
+  - `<button>` für klickbare Aktionen (nicht `<div onClick>`)
+  - `<a>` für Links zu anderen Seiten
 
 #### Scenario: Keyboard-Navigation
 
@@ -146,14 +151,14 @@ Das Frontend MUST WCAG 2.1 Level AA einhalten.
 - THEN sind alle interaktiven Elemente per Tab erreichbar
 - AND die Fokus-Reihenfolge ist logisch (top-to-bottom, left-to-right)
 - AND fokussierte Elemente haben einen sichtbaren Fokus-Ring
-- AND Dialoge koennen per Escape geschlossen werden
-- AND Dropdown-Menues koennen per Pfeiltasten navigiert werden
+- AND Dialoge können per Escape geschlossen werden
+- AND Dropdown-Menüs können per Pfeiltasten navigiert werden
 
 #### Scenario: Kontraste und Farben
 
 - GIVEN Text und interaktive Elemente
-- THEN hat normaler Text ein Kontrastverhaltnis von mindestens 4.5:1
-- AND grosser Text (>= 18px bold oder >= 24px) hat mindestens 3:1
+- THEN hat normaler Text ein Kontrastverhältnis von mindestens 4.5:1
+- AND großer Text (>= 18px bold oder >= 24px) hat mindestens 3:1
 - AND Farbe allein wird NICHT als einziges Unterscheidungsmerkmal verwendet
   (z.B. Fehler: rote Farbe UND Icon/Text, nicht nur rot)
 
@@ -162,14 +167,14 @@ Das Frontend MUST WCAG 2.1 Level AA einhalten.
 - GIVEN interaktive Elemente ohne sichtbaren Text (z.B. Icon-Buttons)
 - THEN haben sie ein `aria-label` mit deutscher Beschreibung
 - AND Formulare haben zugeordnete `<label>`-Elemente oder `aria-label`
-- AND Bilder haben aussagekraeftige `alt`-Texte auf Deutsch (oder `alt=""` fuer dekorative Bilder)
+- AND Bilder haben aussagekräftige `alt`-Texte auf Deutsch (oder `alt=""` für dekorative Bilder)
 
-#### Scenario: Screen-Reader-Unterstuetzung
+#### Scenario: Screen-Reader-Unterstützung
 
-- GIVEN dynamische Inhaltsaenderungen (Toast, Ladevorgang abgeschlossen)
-- THEN werden `aria-live="polite"` Regionen fuer Status-Updates verwendet
+- GIVEN dynamische Inhaltsänderungen (Toast, Ladevorgang abgeschlossen)
+- THEN werden `aria-live="polite"` Regionen für Status-Updates verwendet
 - AND Toasts sind als `role="alert"` markiert
-- AND Ladezustaende werden mit `aria-busy="true"` kommuniziert
+- AND Ladezustände werden mit `aria-busy="true"` kommuniziert
 
 ### Requirement: Bildverarbeitung
 
@@ -177,16 +182,16 @@ Bilder MUST serverseitig optimiert und im Frontend lazy geladen werden.
 
 #### Scenario: Bild-Upload
 
-- GIVEN ein Benutzer laedt ein Bild hoch
-- WHEN die Datei groesser als 500KB ist
-- THEN wird der Upload abgelehnt mit Fehlermeldung: "Bild zu gross. Maximum: 500KB."
+- GIVEN ein Benutzer lädt ein Bild hoch
+- WHEN die Datei größer als 500KB ist
+- THEN wird der Upload abgelehnt mit Fehlermeldung: "Bild zu groß. Maximum: 500KB."
 - AND die erlaubten Formate sind: JPEG, PNG, WebP, GIF
 
 #### Scenario: Serverseitige Bildoptimierung
 
 - GIVEN ein Bild wird erfolgreich hochgeladen
 - THEN wird es serverseitig zu WebP konvertiert
-- AND mehrere Groessen werden generiert:
+- AND mehrere Größen werden generiert:
   - Thumbnail: 150x150px (Vorschau, Listen)
   - Medium: 600px Breite (Detail-Ansicht Mobile)
   - Large: 1200px Breite (Detail-Ansicht Desktop)
@@ -195,9 +200,9 @@ Bilder MUST serverseitig optimiert und im Frontend lazy geladen werden.
 #### Scenario: Frontend Bild-Darstellung
 
 - GIVEN ein Bild wird im Frontend angezeigt
-- THEN wird `loading="lazy"` gesetzt (ausser Hero-Bilder above-the-fold)
+- THEN wird `loading="lazy"` gesetzt (außer Hero-Bilder above-the-fold)
 - AND `width` und `height` Attribute werden gesetzt (Layout-Shift vermeiden)
-- AND das `srcset`-Attribut referenziert die verschiedenen Groessen
+- AND das `srcset`-Attribut referenziert die verschiedenen Größen
 
 ### Requirement: State Management
 
@@ -206,21 +211,21 @@ Die Anwendung MUST eine klare Trennung zwischen Server-State und Client-State ha
 #### Scenario: Server-State (API-Daten)
 
 - GIVEN Daten, die vom Server kommen (Ideas, Events, User-Profile)
-- THEN wird TanStack Query v5 fuer Caching, Fetching und Synchronisation verwendet
-- AND Daten werden NICHT zusaetzlich in Zustand oder Context dupliziert
+- THEN wird TanStack Query v5 für Caching, Fetching und Synchronisation verwendet
+- AND Daten werden NICHT zusätzlich in Zustand oder Context dupliziert
 - AND `staleTime` und `gcTime` werden pro Query-Typ sinnvoll konfiguriert
 
 #### Scenario: Client-State (UI-Zustand)
 
 - GIVEN reiner UI-Zustand (Auth-Status, Theme, Sidebar-State, Modals)
 - THEN wird Zustand v5 verwendet
-- AND Stores werden klein und fokussiert gehalten (ein Store pro Domaene)
-- AND React Context wird NICHT fuer State-Management verwendet
+- AND Stores werden klein und fokussiert gehalten (ein Store pro Domäne)
+- AND React Context wird NICHT für State-Management verwendet
 
 #### Scenario: URL-State
 
 - GIVEN filterbarer, teilbarer Zustand (Suchbegriff, Filter, Paginierung, Ansichtsmodus)
-- THEN wird der Zustand ueber URL Query-Parameter abgebildet
+- THEN wird der Zustand über URL Query-Parameter abgebildet
 - AND Seiten sind bookmarkbar und teilbar
 - AND der Browser-Back-Button funktioniert korrekt
 - AND URL-Parameter verwenden kebab-case: `?idea-type=recipe&scout-level=woelfling&page-size=20`
@@ -231,11 +236,11 @@ Alle Freitext-/Rich-Text-Felder MUST Markdown als Inhaltsformat verwenden. HTML-
 
 #### Scenario: Rich-Text-Eingabe
 
-- GIVEN ein Formularfeld fuer formatierten Text (z.B. Beschreibung, Zusammenfassung)
+- GIVEN ein Formularfeld für formatierten Text (z.B. Beschreibung, Zusammenfassung)
 - THEN wird die `MarkdownEditor`-Komponente (`src/components/MarkdownEditor.tsx`) verwendet
 - AND der Editor basiert auf `@uiw/react-md-editor`
 - AND es wird KEIN HTML-basierter Editor (Tiptap, Quill, CKEditor, etc.) verwendet
-- AND der Editor unterstuetzt GitHub Flavored Markdown (GFM)
+- AND der Editor unterstützt GitHub Flavored Markdown (GFM)
 
 #### Scenario: Rich-Text-Darstellung
 
@@ -250,8 +255,8 @@ Alle Freitext-/Rich-Text-Felder MUST Markdown als Inhaltsformat verwenden. HTML-
 
 - GIVEN ein Freitext-Feld in einem Django-Model
 - THEN wird der Inhalt als Markdown-Plaintext in einem `TextField` gespeichert
-- AND die API gibt den Markdown-Text direkt zurueck (kein serverseitiges Rendering zu HTML)
-- AND serverseitige Konvertierung (z.B. fuer E-Mails) verwendet `markdown2` oder aehnliche Bibliotheken
+- AND die API gibt den Markdown-Text direkt zurück (kein serverseitiges Rendering zu HTML)
+- AND serverseitige Konvertierung (z.B. für E-Mails) verwendet `markdown2` oder ähnliche Bibliotheken
 
 #### Scenario: Verbotene Patterns
 
@@ -259,7 +264,7 @@ Alle Freitext-/Rich-Text-Felder MUST Markdown als Inhaltsformat verwenden. HTML-
 - THEN sind folgende Patterns verboten:
   - `dangerouslySetInnerHTML` (XSS-Risiko)
   - Tiptap oder andere HTML-basierte Editoren
-  - HTML-Tags in Datenbank-Feldern (ausser Legacy-Daten vor Migration)
+  - HTML-Tags in Datenbank-Feldern (außer Legacy-Daten vor Migration)
   - Direkte HTML-String-Interpolation in React-Komponenten
 
 ### Requirement: Code-Konventionen
@@ -285,7 +290,7 @@ Alle Entwickler MUST die folgenden Code-Konventionen einhalten.
 | API-Endpunkte | kebab-case | `/api/ideas/by-slug/{slug}` |
 | URL-Routen | kebab-case | `/packing-lists/:id` |
 | URL Query-Parameter | kebab-case | `?page-size=20` |
-| Dateinamen (Frontend) | PascalCase fuer Komponenten, camelCase fuer Utils | `IdeaCard.tsx`, `formatDate.ts` |
+| Dateinamen (Frontend) | PascalCase für Komponenten, camelCase für Utils | `IdeaCard.tsx`, `formatDate.ts` |
 | Dateinamen (Backend) | snake_case | `search_service.py`, `ai_service.py` |
 
 #### Scenario: Commit Messages
@@ -305,7 +310,7 @@ Alle Entwickler MUST die folgenden Code-Konventionen einhalten.
 #### Scenario: CSS/Styling
 
 - GIVEN ein UI-Element wird gestyled
-- THEN werden ausschliesslich Tailwind CSS Klassen verwendet
+- THEN werden ausschließlich Tailwind CSS Klassen verwendet
 - AND kein Inline-CSS (`style={...}`) wird verwendet
 - AND kein CSS-Modules oder styled-components
 - AND bedingte Klassen verwenden den `cn()` Helper:
@@ -321,7 +326,7 @@ Alle Entwickler MUST die folgenden Code-Konventionen einhalten.
 #### Scenario: Kommentare
 
 - GIVEN Code-Kommentare werden geschrieben
-- THEN erklaeren sie das "Warum", nie das "Was"
+- THEN erklären sie das "Warum", nie das "Was"
 - AND offensichtlicher Code wird nicht kommentiert
 - AND TODO-Kommentare enthalten ein Ticket/Issue: `// TODO(#123): implement rate limiting`
 - AND Sprache: Englisch
@@ -333,19 +338,19 @@ Die Anwendung MUST die definierten Testing-Standards einhalten.
 #### Scenario: Backend-Tests (pytest)
 
 - GIVEN ein neuer API-Endpunkt oder Model
-- THEN werden pytest-Tests geschrieben fuer:
+- THEN werden pytest-Tests geschrieben für:
   - Alle CRUD-Operationen
-  - Authentifizierungs- und Berechtigungspruefungen
-  - Validierungsfehler (ungueltige Eingaben)
+  - Authentifizierungs- und Berechtigungsprüfungen
+  - Validierungsfehler (ungültige Eingaben)
   - Edge Cases (leere Listen, nicht gefundene Ressourcen)
-- AND Tests verwenden Fixtures fuer Test-Daten
+- AND Tests verwenden Fixtures für Test-Daten
 - AND Tests sind isoliert (kein State zwischen Tests)
 - AND Tests laufen mit `uv run pytest`
 
 #### Scenario: Frontend-Tests (Vitest)
 
 - GIVEN neue Hooks oder Utility-Funktionen
-- THEN werden Vitest-Tests geschrieben fuer:
+- THEN werden Vitest-Tests geschrieben für:
   - Custom Hooks (mit `renderHook`)
   - Utility-Funktionen (Formatierung, Validierung, Berechnung)
   - Zod-Schema-Validierung
@@ -359,20 +364,20 @@ Alle Datums- und Zeitangaben MUST konsistent behandelt werden.
 #### Scenario: Backend Datum-Handling
 
 - GIVEN ein Datum/Zeit-Feld in der Datenbank oder API
-- THEN wird es als UTC gespeichert und uebertragen
+- THEN wird es als UTC gespeichert und übertragen
 - AND das Format in der API ist ISO 8601: `2026-04-03T14:30:00Z`
 
 #### Scenario: Frontend Datum-Anzeige
 
 - GIVEN ein Datum/Zeit-Wert wird dem Benutzer angezeigt
 - THEN wird es in der lokalen Zeitzone des Browsers dargestellt
-- AND die Bibliothek `date-fns` wird fuer Formatierung und Berechnung verwendet
+- AND die Bibliothek `date-fns` wird für Formatierung und Berechnung verwendet
 - AND deutsche Locale wird verwendet: `format(date, 'dd. MMMM yyyy', { locale: de })`
 - AND relative Zeitangaben wo sinnvoll: "vor 2 Stunden", "gestern"
 
 ## Betroffene Dateien
 
-### Frontend (uebergreifend)
+### Frontend (übergreifend)
 
 | Datei/Bereich | Relevanz |
 |---------------|----------|
@@ -383,7 +388,7 @@ Alle Datums- und Zeitangaben MUST konsistent behandelt werden.
 | `frontend/src/api/*.ts` | TanStack Query Hooks |
 | `frontend/src/store/*.ts` | Zustand Stores |
 
-### Backend (uebergreifend)
+### Backend (übergreifend)
 
 | Datei/Bereich | Relevanz |
 |---------------|----------|
@@ -395,6 +400,6 @@ Alle Datums- und Zeitangaben MUST konsistent behandelt werden.
 
 ## Planned Features
 
-- **Storybook**: Komponentenbibliothek fuer geteilte UI-Komponenten (spaeter)
+- **Storybook**: Komponentenbibliothek für geteilte UI-Komponenten (später)
 - **Lighthouse CI**: Automatische Performance- und Accessibility-Checks in Cloud Build
 - **Bundle-Analyse**: Automatische Bundle-Size-Checks bei PRs

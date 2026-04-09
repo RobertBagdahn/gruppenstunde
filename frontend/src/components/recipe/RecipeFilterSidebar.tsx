@@ -7,7 +7,7 @@ import {
   RECIPE_EXECUTION_TIME_OPTIONS,
   type RecipeFilter,
 } from '@/schemas/recipe';
-import type { Tag } from '@/schemas/idea';
+import type { Tag } from '@/schemas/content';
 
 /** Build a tree structure from flat tag list */
 function buildTagTree(tags: Tag[]): (Tag & { children: Tag[] })[] {

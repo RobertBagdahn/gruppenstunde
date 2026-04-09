@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUnifiedAutocomplete, type AutocompleteResult } from '@/api/search';
-import { useIdeaStore } from '@/store/useIdeaStore';
+import { useSearchStore } from '@/store/useSearchStore';
 import { RESULT_TYPE_CONFIG } from '@/schemas/search';
 import { cn } from '@/lib/utils';
 
@@ -10,7 +10,7 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ variant = 'default' }: SearchBarProps) {
-  const { searchQuery, setSearchQuery } = useIdeaStore();
+  const { searchQuery, setSearchQuery } = useSearchStore();
   const [localQuery, setLocalQuery] = useState(searchQuery);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { data: suggestions } = useUnifiedAutocomplete(localQuery);

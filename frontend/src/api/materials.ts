@@ -6,12 +6,12 @@ import {
   MaterialNameDetailSchema,
   MaterialNameListSchema,
   MaterialUnitSchema,
-  PaginatedMaterialsSchema,
+  PaginatedMaterialNamesSchema,
   type MaterialNameDetail,
   type MaterialNameList,
   type MaterialUnit2,
-  type PaginatedMaterials,
-} from '@/schemas/idea';
+  type PaginatedMaterialNames,
+} from '@/schemas/supply';
 import { z } from 'zod';
 
 const API_BASE = '/api/materials';
@@ -48,9 +48,9 @@ export function useMaterialList() {
 export function useAdminMaterials(page: number = 1, pageSize: number = 20, search: string = '') {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   if (search) params.set('q', search);
-  return useQuery<PaginatedMaterials>({
+  return useQuery<PaginatedMaterialNames>({
     queryKey: ['admin', 'materials', page, pageSize, search],
-    queryFn: () => fetchJson(`${ADMIN_BASE}/materials/?${params}`, PaginatedMaterialsSchema),
+    queryFn: () => fetchJson(`${ADMIN_BASE}/materials/?${params}`, PaginatedMaterialNamesSchema),
   });
 }
 

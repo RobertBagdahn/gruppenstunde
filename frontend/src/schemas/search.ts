@@ -1,13 +1,13 @@
 /**
  * Zod schemas for the Unified Search API.
- * MUST stay in sync with backend/core/api.py (UnifiedSearchResultOut, PaginatedSearchOut)
+ * MUST stay in sync with backend/content/api.py (PaginatedSearchOut, UnifiedSearchResultOut)
  */
 import { z } from 'zod';
 
 // --- Unified Search Result ---
 
 export const UnifiedSearchResultSchema = z.object({
-  result_type: z.enum(['idea', 'recipe', 'tag', 'event']),
+  result_type: z.enum(['session', 'blog', 'game', 'recipe', 'tag', 'event']),
   id: z.number(),
   title: z.string(),
   slug: z.string(),
@@ -26,6 +26,7 @@ export const PaginatedSearchResultsSchema = z.object({
   page: z.number(),
   page_size: z.number(),
   total_pages: z.number(),
+  type_counts: z.record(z.string(), z.number()).default({}),
 });
 export type PaginatedSearchResults = z.infer<typeof PaginatedSearchResultsSchema>;
 
@@ -40,10 +41,12 @@ export const UnifiedSearchFilterSchema = z.object({
 });
 export type UnifiedSearchFilter = z.infer<typeof UnifiedSearchFilterSchema>;
 
-// --- Result Type Options (for UI filter chips) ---
+// --- Result Type Options (for UI filter chips / tabs) ---
 
 export const RESULT_TYPE_OPTIONS = [
-  { value: 'idea', label: 'Ideen', icon: 'lightbulb' },
+  { value: 'session', label: 'Gruppenstunden', icon: 'groups' },
+  { value: 'blog', label: 'Wissensbeiträge', icon: 'article' },
+  { value: 'game', label: 'Spiele', icon: 'sports_esports' },
   { value: 'recipe', label: 'Rezepte', icon: 'menu_book' },
   { value: 'tag', label: 'Tags', icon: 'label' },
   { value: 'event', label: 'Events', icon: 'event' },
@@ -52,8 +55,10 @@ export const RESULT_TYPE_OPTIONS = [
 // --- Result Type Labels & Colors (for badges) ---
 
 export const RESULT_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string; bgColor: string }> = {
-  idea: { label: 'Idee', icon: 'lightbulb', color: 'text-amber-700', bgColor: 'bg-amber-50 border-amber-200' },
-  recipe: { label: 'Rezept', icon: 'menu_book', color: 'text-green-700', bgColor: 'bg-green-50 border-green-200' },
+  session: { label: 'Gruppenstunde', icon: 'groups', color: 'text-sky-700', bgColor: 'bg-sky-50 border-sky-200' },
+  blog: { label: 'Wissensbeitrag', icon: 'article', color: 'text-indigo-700', bgColor: 'bg-indigo-50 border-indigo-200' },
+  game: { label: 'Spiel', icon: 'sports_esports', color: 'text-emerald-700', bgColor: 'bg-emerald-50 border-emerald-200' },
+  recipe: { label: 'Rezept', icon: 'menu_book', color: 'text-rose-700', bgColor: 'bg-rose-50 border-rose-200' },
   tag: { label: 'Tag', icon: 'label', color: 'text-blue-700', bgColor: 'bg-blue-50 border-blue-200' },
-  event: { label: 'Event', icon: 'event', color: 'text-purple-700', bgColor: 'bg-purple-50 border-purple-200' },
+  event: { label: 'Event', icon: 'event', color: 'text-violet-700', bgColor: 'bg-violet-50 border-violet-200' },
 };

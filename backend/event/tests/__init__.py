@@ -6,14 +6,19 @@ from decimal import Decimal
 from django.utils import timezone
 from model_bakery import baker
 
-from event.choices import GenderChoices
+from event.choices import GenderChoices, PaymentMethodChoices, CustomFieldTypeChoices
 from event.models import (
     BookingOption,
+    CustomField,
+    CustomFieldValue,
     Event,
     EventLocation,
     Participant,
+    ParticipantLabel,
+    Payment,
     Person,
     Registration,
+    TimelineEntry,
 )
 
 
@@ -138,7 +143,6 @@ def make_participant(
         "scout_name": "Falke",
         "gender": GenderChoices.MALE,
         "birthday": datetime.date(2010, 5, 15),
-        "is_paid": False,
     }
     defaults.update(kwargs)
     return baker.make(
@@ -148,3 +152,94 @@ def make_participant(
         booking_option=booking_option,
         **defaults,
     )
+
+
+# ---------------------------------------------------------------------------
+# TimelineEntry
+# ---------------------------------------------------------------------------
+
+
+def make_timeline_entry(event: Event | None = None, **kwargs) -> TimelineEntry:
+    if event is None:
+        event = make_event()
+    defaults = {
+        "action_type": "registered",
+        "description": "Test timeline entry",
+    }
+    defaults.update(kwargs)
+    return baker.make(TimelineEntry, event=event, **defaults)
+
+
+# ---------------------------------------------------------------------------
+# Payment
+# ---------------------------------------------------------------------------
+
+
+def make_payment(participant: Participant | None = None, **kwargs) -> Payment:
+    if participant is None:
+        participant = make_participant()
+    defaults = {
+        "amount": Decimal("25.00"),
+        "method": PaymentMethodChoices.BAR,
+        "received_at": timezone.now(),
+        "location": "Pfadfinderheim",
+        "note": "Barzahlung",
+    }
+    defaults.update(kwargs)
+    return baker.make(Payment, participant=participant, **defaults)
+
+
+# ---------------------------------------------------------------------------
+# CustomField
+# ---------------------------------------------------------------------------
+
+
+def make_custom_field(event: Event | None = None, **kwargs) -> CustomField:
+    if event is None:
+        event = make_event()
+    defaults = {
+        "label": "T-Shirt Größe",
+        "field_type": CustomFieldTypeChoices.SELECT,
+        "options": ["S", "M", "L", "XL"],
+        "is_required": False,
+        "sort_order": 0,
+    }
+    defaults.update(kwargs)
+    return baker.make(CustomField, event=event, **defaults)
+
+
+def make_custom_field_value(
+    custom_field: CustomField | None = None,
+    participant: Participant | None = None,
+    **kwargs,
+) -> CustomFieldValue:
+    if custom_field is None:
+        custom_field = make_custom_field()
+    if participant is None:
+        participant = make_participant()
+    defaults = {
+        "value": "M",
+    }
+    defaults.update(kwargs)
+    return baker.make(
+        CustomFieldValue,
+        custom_field=custom_field,
+        participant=participant,
+        **defaults,
+    )
+
+
+# ---------------------------------------------------------------------------
+# ParticipantLabel
+# ---------------------------------------------------------------------------
+
+
+def make_label(event: Event | None = None, **kwargs) -> ParticipantLabel:
+    if event is None:
+        event = make_event()
+    defaults = {
+        "name": "Betreuer",
+        "color": "#4CAF50",
+    }
+    defaults.update(kwargs)
+    return baker.make(ParticipantLabel, event=event, **defaults)

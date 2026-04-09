@@ -1,6 +1,18 @@
 from django.contrib import admin
 
-from .models import BookingOption, Event, EventLocation, Participant, Person, Registration
+from .models import (
+    BookingOption,
+    CustomField,
+    CustomFieldValue,
+    Event,
+    EventLocation,
+    Participant,
+    ParticipantLabel,
+    Payment,
+    Person,
+    Registration,
+    TimelineEntry,
+)
 
 
 @admin.register(EventLocation)
@@ -18,7 +30,7 @@ class BookingOptionInline(admin.TabularInline):
 class ParticipantInline(admin.TabularInline):
     model = Participant
     extra = 0
-    readonly_fields = ["person", "created_at"]
+    readonly_fields = ["person", "created_at", "is_paid"]
     fields = [
         "first_name",
         "last_name",
@@ -86,13 +98,53 @@ class ParticipantAdmin(admin.ModelAdmin):
         "is_paid",
         "gender",
     ]
-    list_filter = ["is_paid", "gender", "registration__event"]
+    list_filter = ["gender", "registration__event"]
     search_fields = ["first_name", "last_name", "email"]
-    list_editable = ["is_paid"]
     raw_id_fields = ["registration", "person", "booking_option"]
-    filter_horizontal = ["nutritional_tags"]
+    filter_horizontal = ["nutritional_tags", "labels"]
     list_per_page = 25
 
     @admin.display(description="Event")
     def event_name(self, obj):
         return obj.registration.event.name
+
+
+@admin.register(TimelineEntry)
+class TimelineEntryAdmin(admin.ModelAdmin):
+    list_display = ["event", "action_type", "participant", "user", "created_at"]
+    list_filter = ["action_type", "event"]
+    search_fields = ["description"]
+    raw_id_fields = ["event", "participant", "user"]
+    readonly_fields = ["created_at"]
+    list_per_page = 50
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ["participant", "amount", "method", "received_at", "created_by", "created_at"]
+    list_filter = ["method", "participant__registration__event"]
+    search_fields = ["participant__first_name", "participant__last_name", "note"]
+    raw_id_fields = ["participant", "created_by"]
+    readonly_fields = ["created_at"]
+    list_per_page = 25
+
+
+@admin.register(CustomField)
+class CustomFieldAdmin(admin.ModelAdmin):
+    list_display = ["label", "event", "field_type", "is_required", "sort_order"]
+    list_filter = ["field_type", "is_required", "event"]
+    search_fields = ["label"]
+    list_per_page = 25
+
+
+class CustomFieldValueInline(admin.TabularInline):
+    model = CustomFieldValue
+    extra = 0
+
+
+@admin.register(ParticipantLabel)
+class ParticipantLabelAdmin(admin.ModelAdmin):
+    list_display = ["name", "event", "color", "created_at"]
+    list_filter = ["event"]
+    search_fields = ["name"]
+    list_per_page = 25

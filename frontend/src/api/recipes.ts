@@ -1,26 +1,23 @@
 /**
  * TanStack Query hooks for the Recipe API.
  * MUST stay in sync with backend/recipe/api.py
+ *
+ * Recipe now extends Content. Comments use ContentCommentSchema (threaded).
+ * Emotions are generic ContentEmotions (toggle returns counts dict).
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   PaginatedRecipesSchema,
   RecipeDetailSchema,
-  RecipeCommentSchema,
   RecipeItemSchema,
   RecipeCheckSchema,
   RecipeHintMatchSchema,
   NutriScoreDetailSchema,
   RecipeNutritionBreakdownSchema,
-  type PaginatedRecipes,
-  type RecipeComment,
-  type RecipeItem,
   type RecipeFilter,
-  type RecipeCheck,
-  type RecipeHintMatch,
-  type RecipeNutritionBreakdown,
 } from '@/schemas/recipe';
+import { ContentCommentSchema } from '@/schemas/content';
 
 const API_BASE = '/api/recipes';
 
@@ -29,7 +26,10 @@ function getCsrfToken(): string {
   return match ? match[1] : '';
 }
 
-async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
+async function fetchJson<T extends z.ZodTypeAny>(
+  url: string,
+  schema: T,
+): Promise<z.output<T>> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
@@ -38,7 +38,11 @@ async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   return schema.parse(data);
 }
 
-async function postJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): Promise<T> {
+async function postJson<T extends z.ZodTypeAny>(
+  url: string,
+  body: unknown,
+  schema: T,
+): Promise<z.output<T>> {
   const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
@@ -55,7 +59,11 @@ async function postJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): 
   return schema.parse(data);
 }
 
-async function patchJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): Promise<T> {
+async function patchJson<T extends z.ZodTypeAny>(
+  url: string,
+  body: unknown,
+  schema: T,
+): Promise<z.output<T>> {
   const res = await fetch(url, {
     method: 'PATCH',
     credentials: 'include',
@@ -109,15 +117,15 @@ function buildFilterParams(filters: Partial<RecipeFilter>): string {
 
 export function useRecipes(filters: Partial<RecipeFilter> = {}) {
   const queryString = buildFilterParams(filters);
-  return useQuery<PaginatedRecipes>({
-    queryKey: ['recipes', filters],
+  return useQuery({
+    queryKey: ['recipes', filters] as const,
     queryFn: () => fetchJson(`${API_BASE}/?${queryString}`, PaginatedRecipesSchema),
   });
 }
 
 export function useRecipe(id: number) {
   return useQuery({
-    queryKey: ['recipe', id],
+    queryKey: ['recipe', id] as const,
     queryFn: () => fetchJson(`${API_BASE}/${id}/`, RecipeDetailSchema),
     enabled: id > 0,
   });
@@ -125,7 +133,7 @@ export function useRecipe(id: number) {
 
 export function useRecipeBySlug(slug: string) {
   return useQuery({
-    queryKey: ['recipe', 'slug', slug],
+    queryKey: ['recipe', 'slug', slug] as const,
     queryFn: () => fetchJson(`${API_BASE}/by-slug/${encodeURIComponent(slug)}/`, RecipeDetailSchema),
     enabled: slug.length > 0,
   });
@@ -225,8 +233,8 @@ export function useDeleteRecipe() {
 // ==========================================================================
 
 export function useRecipeItems(recipeId: number) {
-  return useQuery<RecipeItem[]>({
-    queryKey: ['recipe-items', recipeId],
+  return useQuery({
+    queryKey: ['recipe-items', recipeId] as const,
     queryFn: () => fetchJson(`${API_BASE}/${recipeId}/recipe-items/`, z.array(RecipeItemSchema)),
     enabled: recipeId > 0,
   });
@@ -275,13 +283,13 @@ export function useDeleteRecipeItem(recipeId: number) {
 }
 
 // ==========================================================================
-// Comments
+// Comments (now using ContentComment — threaded)
 // ==========================================================================
 
 export function useRecipeComments(recipeId: number) {
-  return useQuery<RecipeComment[]>({
-    queryKey: ['recipe-comments', recipeId],
-    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/comments/`, z.array(RecipeCommentSchema)),
+  return useQuery({
+    queryKey: ['recipe-comments', recipeId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/comments/`, z.array(ContentCommentSchema)),
     enabled: recipeId > 0,
   });
 }
@@ -290,7 +298,7 @@ export function useCreateRecipeComment(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: { text: string; author_name?: string; parent_id?: number | null }) =>
-      postJson(`${API_BASE}/${recipeId}/comments/`, body, RecipeCommentSchema),
+      postJson(`${API_BASE}/${recipeId}/comments/`, body, ContentCommentSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipe-comments', recipeId] });
     },
@@ -298,7 +306,7 @@ export function useCreateRecipeComment(recipeId: number) {
 }
 
 // ==========================================================================
-// Emotions
+// Emotions (toggle — returns emotion counts dict)
 // ==========================================================================
 
 export function useRecipeEmotion(recipeId: number) {
@@ -330,8 +338,8 @@ export function useRecipeEmotion(recipeId: number) {
 // ==========================================================================
 
 export function useRecipeChecks(recipeId: number) {
-  return useQuery<RecipeCheck[]>({
-    queryKey: ['recipe-checks', recipeId],
+  return useQuery({
+    queryKey: ['recipe-checks', recipeId] as const,
     queryFn: () => fetchJson(`${API_BASE}/${recipeId}/recipe-checks/`, z.array(RecipeCheckSchema)),
     enabled: recipeId > 0,
   });
@@ -339,8 +347,8 @@ export function useRecipeChecks(recipeId: number) {
 
 export function useRecipeHints(recipeId: number, recipeObjective?: string) {
   const params = recipeObjective ? `?recipe_objective=${recipeObjective}` : '';
-  return useQuery<RecipeHintMatch[]>({
-    queryKey: ['recipe-hints', recipeId, recipeObjective],
+  return useQuery({
+    queryKey: ['recipe-hints', recipeId, recipeObjective] as const,
     queryFn: () => fetchJson(`${API_BASE}/${recipeId}/recipe-hints/${params}`, z.array(RecipeHintMatchSchema)),
     enabled: recipeId > 0,
   });
@@ -348,15 +356,15 @@ export function useRecipeHints(recipeId: number, recipeObjective?: string) {
 
 export function useRecipeNutriScore(recipeId: number) {
   return useQuery({
-    queryKey: ['recipe-nutri-score', recipeId],
+    queryKey: ['recipe-nutri-score', recipeId] as const,
     queryFn: () => fetchJson(`${API_BASE}/${recipeId}/nutri-score/`, NutriScoreDetailSchema),
     enabled: recipeId > 0,
   });
 }
 
 export function useRecipeNutritionBreakdown(recipeId: number) {
-  return useQuery<RecipeNutritionBreakdown>({
-    queryKey: ['recipe-nutrition-breakdown', recipeId],
+  return useQuery({
+    queryKey: ['recipe-nutrition-breakdown', recipeId] as const,
     queryFn: () =>
       fetchJson(`${API_BASE}/${recipeId}/nutrition-breakdown/`, RecipeNutritionBreakdownSchema),
     enabled: recipeId > 0,

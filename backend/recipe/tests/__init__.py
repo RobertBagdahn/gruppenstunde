@@ -1,8 +1,10 @@
 """Factories for creating test data (recipe app)."""
 
-from decimal import Decimal
-
 from model_bakery import baker
+
+from content.choices import ContentStatus
+from content.models import ContentComment, ContentEmotion, ContentView
+from django.contrib.contenttypes.models import ContentType
 
 from recipe.choices import (
     DifficultyChoices,
@@ -11,16 +13,13 @@ from recipe.choices import (
     HintMinMaxChoices,
     HintParameterChoices,
     RecipeObjectiveChoices,
-    RecipeStatusChoices,
     RecipeTypeChoices,
 )
 from recipe.models import (
+    HealthRule,
     Recipe,
-    RecipeComment,
-    RecipeEmotion,
     RecipeHint,
     RecipeItem,
-    RecipeView,
 )
 
 
@@ -29,7 +28,7 @@ from recipe.models import (
 # ---------------------------------------------------------------------------
 
 
-def make_recipe(status: str = RecipeStatusChoices.PUBLISHED, **kwargs) -> Recipe:
+def make_recipe(status: str = ContentStatus.APPROVED, **kwargs) -> Recipe:
     defaults = {
         "title": "Pfannkuchen",
         "summary": "Einfache Pfannkuchen für die Gruppe",
@@ -81,48 +80,69 @@ def make_recipe_hint(**kwargs) -> RecipeHint:
 
 
 # ---------------------------------------------------------------------------
-# RecipeComment
+# HealthRule
 # ---------------------------------------------------------------------------
 
 
-def make_recipe_comment(recipe: Recipe | None = None, **kwargs) -> RecipeComment:
+def make_health_rule(**kwargs) -> HealthRule:
+    defaults = {
+        "name": "Zuckergehalt pro Mahlzeit",
+        "description": "Bewertung des Zuckergehalts pro 100g",
+        "parameter": "sugar_g",
+        "scope": "meal",
+        "threshold_green": 10.0,
+        "threshold_yellow": 20.0,
+        "unit": "g",
+        "tip_text": "Zucker reduzieren.",
+        "is_active": True,
+        "sort_order": 1,
+    }
+    defaults.update(kwargs)
+    return baker.make(HealthRule, **defaults)
+
+
+# ---------------------------------------------------------------------------
+# Content Interactions (Comments, Emotions, Views) — using generic models
+# ---------------------------------------------------------------------------
+
+
+def make_recipe_comment(recipe: Recipe | None = None, **kwargs) -> ContentComment:
     if recipe is None:
         recipe = make_recipe()
+    ct = ContentType.objects.get_for_model(Recipe)
     defaults = {
+        "content_type": ct,
+        "object_id": recipe.id,
         "text": "Sehr leckeres Rezept!",
         "status": "approved",
     }
     defaults.update(kwargs)
-    return baker.make(RecipeComment, recipe=recipe, **defaults)
+    return baker.make(ContentComment, **defaults)
 
 
-# ---------------------------------------------------------------------------
-# RecipeEmotion
-# ---------------------------------------------------------------------------
-
-
-def make_recipe_emotion(recipe: Recipe | None = None, **kwargs) -> RecipeEmotion:
+def make_recipe_emotion(recipe: Recipe | None = None, **kwargs) -> ContentEmotion:
     if recipe is None:
         recipe = make_recipe()
+    ct = ContentType.objects.get_for_model(Recipe)
     defaults = {
+        "content_type": ct,
+        "object_id": recipe.id,
         "emotion_type": "happy",
     }
     defaults.update(kwargs)
-    return baker.make(RecipeEmotion, recipe=recipe, **defaults)
+    return baker.make(ContentEmotion, **defaults)
 
 
-# ---------------------------------------------------------------------------
-# RecipeView
-# ---------------------------------------------------------------------------
-
-
-def make_recipe_view(recipe: Recipe | None = None, **kwargs) -> RecipeView:
+def make_recipe_view(recipe: Recipe | None = None, **kwargs) -> ContentView:
     if recipe is None:
         recipe = make_recipe()
+    ct = ContentType.objects.get_for_model(Recipe)
     defaults = {
+        "content_type": ct,
+        "object_id": recipe.id,
         "session_key": "test-session-key-1234",
-        "ip_hash": RecipeView.hash_ip("127.0.0.1"),
+        "ip_hash": ContentView.hash_ip("127.0.0.1"),
         "user_agent": "Mozilla/5.0 TestBrowser",
     }
     defaults.update(kwargs)
-    return baker.make(RecipeView, recipe=recipe, **defaults)
+    return baker.make(ContentView, **defaults)
