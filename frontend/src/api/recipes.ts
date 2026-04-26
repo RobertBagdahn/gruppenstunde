@@ -5,16 +5,16 @@
  * Recipe now extends Content. Comments use ContentCommentSchema (threaded).
  * Emotions are generic ContentEmotions (toggle returns counts dict).
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   PaginatedRecipesSchema,
   RecipeDetailSchema,
   RecipeItemSchema,
-  RecipeCheckSchema,
-  RecipeHintMatchSchema,
   NutriScoreDetailSchema,
   RecipeNutritionBreakdownSchema,
+  ImprovementListSchema,
+  LlmSuggestionSchema,
   type RecipeFilter,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
@@ -99,6 +99,7 @@ function buildFilterParams(filters: Partial<RecipeFilter>): string {
   if (filters.difficulty) params.set('difficulty', filters.difficulty);
   if (filters.costs_rating) params.set('costs_rating', filters.costs_rating);
   if (filters.execution_time) params.set('execution_time', filters.execution_time);
+  if (filters.origin) params.set('origin', filters.origin);
   if (filters.sort) params.set('sort', filters.sort);
   if (filters.page) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
@@ -109,6 +110,27 @@ function buildFilterParams(filters: Partial<RecipeFilter>): string {
     filters.tag_slugs.forEach((slug) => params.append('tag_slugs', slug));
   }
   return params.toString();
+}
+
+// ==========================================================================
+// Invalidation Helper
+// ==========================================================================
+
+/**
+ * Invalidate all TanStack Query keys that can become stale when a Recipe
+ * or its RecipeItems change. All Recipe/RecipeItem mutations should call
+ * this in their onSuccess callback.
+ */
+export function invalidateRecipeData(queryClient: QueryClient, recipeId: number): void {
+  queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe', 'slug'] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-hints', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-nutri-score', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-nutrition-breakdown', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-nutri-improvements', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipes'] });
+  queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
 }
 
 // ==========================================================================
@@ -174,8 +196,8 @@ export function useCreateRecipe() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: RecipeCreatePayload) => postJson(`${API_BASE}/`, payload, RecipeDetailSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    onSuccess: (newRecipe) => {
+      invalidateRecipeData(queryClient, newRecipe.id);
     },
   });
 }
@@ -213,7 +235,7 @@ export function useUpdateRecipe(recipeId: number) {
     onSuccess: (updatedRecipe) => {
       queryClient.setQueryData(['recipe', recipeId], updatedRecipe);
       queryClient.setQueryData(['recipe', 'slug', updatedRecipe.slug], updatedRecipe);
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      invalidateRecipeData(queryClient, recipeId);
     },
   });
 }
@@ -222,8 +244,8 @@ export function useDeleteRecipe() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, number>({
     mutationFn: (recipeId) => deleteJson(`${API_BASE}/${recipeId}/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    onSuccess: (_data, recipeId) => {
+      invalidateRecipeData(queryClient, recipeId);
     },
   });
 }
@@ -253,8 +275,7 @@ export function useCreateRecipeItem(recipeId: number) {
       quantity_type?: string;
     }) => postJson(`${API_BASE}/${recipeId}/recipe-items/`, data, RecipeItemSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
-      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      invalidateRecipeData(queryClient, recipeId);
     },
   });
 }
@@ -265,8 +286,7 @@ export function useUpdateRecipeItem(recipeId: number) {
     mutationFn: ({ itemId, data }: { itemId: number; data: Record<string, unknown> }) =>
       patchJson(`${API_BASE}/${recipeId}/recipe-items/${itemId}/`, data, RecipeItemSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
-      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      invalidateRecipeData(queryClient, recipeId);
     },
   });
 }
@@ -276,8 +296,7 @@ export function useDeleteRecipeItem(recipeId: number) {
   return useMutation({
     mutationFn: (itemId: number) => deleteJson(`${API_BASE}/${recipeId}/recipe-items/${itemId}/`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
-      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      invalidateRecipeData(queryClient, recipeId);
     },
   });
 }
@@ -327,29 +346,19 @@ export function useRecipeEmotion(recipeId: number) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
-      queryClient.invalidateQueries({ queryKey: ['recipe', 'slug'] });
+      invalidateRecipeData(queryClient, recipeId);
     },
   });
 }
 
 // ==========================================================================
-// Recipe Analysis (Checks, Hints, Nutri-Score)
+// Recipe Analysis (Hints, Nutri-Score)
 // ==========================================================================
 
-export function useRecipeChecks(recipeId: number) {
+export function useRecipeImprovements(recipeId: number) {
   return useQuery({
-    queryKey: ['recipe-checks', recipeId] as const,
-    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/recipe-checks/`, z.array(RecipeCheckSchema)),
-    enabled: recipeId > 0,
-  });
-}
-
-export function useRecipeHints(recipeId: number, recipeObjective?: string) {
-  const params = recipeObjective ? `?recipe_objective=${recipeObjective}` : '';
-  return useQuery({
-    queryKey: ['recipe-hints', recipeId, recipeObjective] as const,
-    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/recipe-hints/${params}`, z.array(RecipeHintMatchSchema)),
+    queryKey: ['recipe-improvements', recipeId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/improvements/`, ImprovementListSchema),
     enabled: recipeId > 0,
   });
 }
@@ -391,9 +400,120 @@ export function useUploadRecipeImage(recipeId: number) {
       return res.json() as Promise<{ image_url: string }>;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
-      queryClient.invalidateQueries({ queryKey: ['recipe', 'slug'] });
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+export function useDeleteRecipeImage(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${API_BASE}/${recipeId}/image/`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json() as Promise<{ image_url: null }>;
+    },
+    onSuccess: () => {
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+export function useSetRecipeImageFromUrl(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (imageUrl: string) => {
+      const res = await fetch(`${API_BASE}/${recipeId}/image-from-url/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify({ image_url: imageUrl }),
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json() as Promise<{ image_url: string }>;
+    },
+    onSuccess: () => {
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+// ==========================================================================
+// LLM Suggestions
+// ==========================================================================
+
+export function useLlmSuggestions(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (objective: string) =>
+      postJson(
+        `${API_BASE}/${recipeId}/suggestions/`,
+        { objective },
+        z.array(LlmSuggestionSchema),
+      ),
+    onSuccess: () => {
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+// ==========================================================================
+// Personal Recipes (Fork, My Recipes, Visibility)
+// ==========================================================================
+
+export function useForkRecipe(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => postJson(`${API_BASE}/${recipeId}/fork/`, {}, RecipeDetailSchema),
+    onSuccess: (forkedRecipe) => {
+      invalidateRecipeData(queryClient, forkedRecipe.id);
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+/** Fork a recipe and immediately apply modifications (items + servings) to the fork */
+export function useForkAndSaveRecipe(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { servings?: number | null; recipe_items: RecipeUpdatePayload['recipe_items'] }) => {
+      const forked = await postJson(`${API_BASE}/${recipeId}/fork/`, {}, RecipeDetailSchema);
+      const updated = await patchJson(`${API_BASE}/${forked.id}/`, payload, RecipeDetailSchema);
+      return updated;
+    },
+    onSuccess: (updatedRecipe) => {
+      invalidateRecipeData(queryClient, updatedRecipe.id);
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+export function useMyRecipes(filters: Partial<RecipeFilter> = {}) {
+  const queryString = buildFilterParams(filters);
+  return useQuery({
+    queryKey: ['my-recipes', filters] as const,
+    queryFn: () => fetchJson(`${API_BASE}/my-recipes/?${queryString}`, PaginatedRecipesSchema),
+  });
+}
+
+export function useUpdateVisibility(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (visibility: string) =>
+      patchJson(
+        `${API_BASE}/${recipeId}/visibility/`,
+        { visibility },
+        z.object({ success: z.boolean(), visibility: z.string(), status: z.string() }),
+      ),
+    onSuccess: () => {
+      invalidateRecipeData(queryClient, recipeId);
     },
   });
 }

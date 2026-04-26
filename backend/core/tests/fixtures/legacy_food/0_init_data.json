@@ -1,0 +1,61 @@
+[
+  {
+    "model": "food.measuringunit",
+    "pk": 1,
+    "fields": {
+      "created_at": null,
+      "updated_at": null,
+      "name": "EL",
+      "description": "Esslöffel",
+      "quantity": 15.0,
+      "unit": "ml"
+    }
+  },
+  {
+    "model": "food.measuringunit",
+    "pk": 3,
+    "fields": {
+      "created_at": null,
+      "updated_at": null,
+      "name": "g",
+      "description": "Gramm",
+      "quantity": 1.0,
+      "unit": "g"
+    }
+  },
+  {
+    "model": "food.retailsection",
+    "pk": 1,
+    "fields": {
+      "created_at": null,
+      "updated_at": null,
+      "name": "Obst & Gemüse",
+      "description": "",
+      "rank": 1
+    }
+  },
+  {
+    "model": "food.nutritionaltag",
+    "pk": 1,
+    "fields": {
+      "created_at": null,
+      "updated_at": null,
+      "name": "vegan",
+      "name_opposite": "nicht vegan",
+      "description": "Enthält keine tierischen Produkte",
+      "rank": 1
+    }
+  },
+  {
+    "model": "food.recipehint",
+    "pk": 1,
+    "fields": {
+      "hint": "Zu viel Zucker",
+      "parameter": "sugar_g",
+      "hint_level": "warn",
+      "min_max": "max",
+      "value": 50.0,
+      "improvement": "Weniger Zucker verwenden"
+    }
+  }
+]

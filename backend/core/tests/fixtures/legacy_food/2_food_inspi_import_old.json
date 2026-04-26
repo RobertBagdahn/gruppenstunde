@@ -1,0 +1,48 @@
+[
+  {
+    "model": "food.metainfo",
+    "pk": 500,
+    "fields": {
+      "created_at": "2025-01-01T00:00:00",
+      "updated_at": "2025-01-01T00:00:00",
+      "energy_kj": 111.0,
+      "protein_g": 0.83,
+      "fat_g": 0.63,
+      "fat_sat_g": 0.0,
+      "sugar_g": 0.0,
+      "sodium_mg": 6.0,
+      "salt_g": 15.0,
+      "fruit_factor": 0.0,
+      "carbohydrate_g": 5.51,
+      "fibre_g": 2.1,
+      "nutri_points_energy_kj": 0,
+      "nutri_points_protein_g": 0,
+      "nutri_points_fat_sat_g": 0,
+      "nutri_points_sugar_g": 0,
+      "nutri_points_sodium_mg": 0,
+      "nutri_points_fibre_g": -2,
+      "nutri_points": -2,
+      "nutri_class": 1
+    }
+  },
+  {
+    "model": "food.ingredient",
+    "pk": 500,
+    "fields": {
+      "created_at": "2025-01-01T00:00:00",
+      "updated_at": "2025-01-01T00:00:00",
+      "name": "Cocktail Tomate",
+      "slug": "cocktail-tomate-500",
+      "description": "",
+      "physical_density": 1.0,
+      "physical_viscosity": "solid",
+      "ingredient_ref": null,
+      "fdc_id": 321360,
+      "meta_info": 500,
+      "child_frendly_score": 1,
+      "scout_frendly_score": 1,
+      "created_by": 5,
+      "nutritional_tags": []
+    }
+  }
+]

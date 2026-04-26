@@ -5,8 +5,8 @@
 ## Datenmodell-Überblick
 
 ### Planner App
-- **`MealEvent`** (ehem. MealPlan): name, slug, description, norm_portions, activity_factor, reserve_factor, event FK (nullable). DB table: `planner_mealplan`.
-- **`Meal`**: meal_event FK, start_datetime, end_datetime, meal_type, day_part_factor. Gruppierung nach Tag via `start_datetime__date`.
+- **`MealPlan`**: name, slug, description, norm_portions, activity_factor, reserve_factor, event FK (nullable). DB table: `planner_mealplan`.
+- **`Meal`**: meal_plan FK, start_datetime, end_datetime, meal_type, day_part_factor. Gruppierung nach Tag via `start_datetime__date`.
 
 ### Recipe App
 - **`Recipe`** (erbt Content): recipe_type, servings, nutritional_tags M2M. Hat denormalisierte Cache-Felder: `cached_energy_kj`, `cached_protein_g`, `cached_fat_g`, `cached_carbohydrate_g`, `cached_sugar_g`, `cached_fibre_g`, `cached_salt_g`, `cached_nutri_class`, `cached_price_total`, `cached_at`.
@@ -24,7 +24,7 @@
 - API: `packing_list_router` unter `/api/packing-lists/`. Pagination (Standard-Format) für list + templates. CRUD + clone + text-export + sort + reset-checks.
 
 ### Wichtige Services
-- `recipe/services/cockpit_service.py` — evaluiert HealthRules für MealEvent/Tag/Meal
+- `recipe/services/cockpit_service.py` — evaluiert HealthRules für MealPlan/Tag/Meal
 - `recipe/services/recipe_checks.py` — enthält `recalculate_recipe_cache(recipe)`
 - `recipe/signals.py` — Cache-Invalidierung bei RecipeItem/Ingredient Änderungen
 - `supply/services/price_service.py` — nur `get_portion_price(ingredient, weight_g)` via `price_per_kg`
@@ -77,6 +77,27 @@ if not request.user.is_authenticated or not request.user.is_staff:
 - **AI**: Vertex AI Gemini Flash – ADC, keine API Keys
 - **Secrets**: Google Secret Manager
 - **Deployment**: Cloud Run
+
+## Management Commands
+
+### `import_inspi_data`
+- Deduplizierter Import aus dem Inspi-Altprojekt (Zutaten, Rezepte, Materialien, Aktivitäten)
+- Idempotent: wiederholter Lauf erzeugt keine Duplikate (Slug-basierte Dedup)
+- `status=verified` für Ingredients
+- Einziger Aufruf: `uv run python manage.py import_inspi_data [--data-dir /path/to/inspi/data]`
+
+### `import_legacy_food`
+- **Bulk-Import** der vier Legacy-Food-JSON-Dateien aus `/inspi/data/food/`
+- **Keine Deduplizierung** von Content-Daten (Ingredients, Portions, Recipes, RecipeItems) — jede Legacy-Zeile wird als neue DB-Zeile angelegt
+- Stammdaten (MeasuringUnit, RetailSection, NutritionalTag, RecipeHint) bleiben idempotent via `get_or_create`
+- `status=user_content` für Ingredients, `status=approved` + `owner=None` für Recipes
+- Signale werden während des Imports disconnected, Cache-Neuberechnung läuft gebündelt am Ende
+- Flags:
+  - `--data-dir`: Pfad zum Food-Datenverzeichnis (Default: `/Users/robertbagdahn/code/inspi/data/food`)
+  - `--files 0,1,2,3`: Komma-separierte Datei-Auswahl (0=Stammdaten, 1=REWE-Zutaten, 2=FDC-Zutaten, 3=Rezepte)
+  - `--dry-run`: Mapping komplett durchlaufen, aber DB-Änderungen am Ende rollbacken
+  - `--batch-size 500`: Batch-Größe für `bulk_create`
+- Tests: `uv run pytest core/tests/test_import_legacy_food.py`
 
 ## Qualitäts-Checkliste – Backend
 
