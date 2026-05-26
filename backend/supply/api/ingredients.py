@@ -73,6 +73,14 @@ def list_ingredients(
     }
 
 
+@ingredient_router.get("/suggest/", response=list[dict])
+def suggest_ingredients(request, q: str = "", limit: int = 5):
+    """Fuzzy-match ingredients by name using trigram similarity."""
+    from supply.services.fuzzy_match import suggest_ingredients as do_suggest
+
+    return do_suggest(query=q, limit=limit)
+
+
 @ingredient_router.get("/{slug}/", response=IngredientDetailOut)
 def get_ingredient(request, slug: str):
     """Get ingredient detail by slug."""
@@ -122,6 +130,9 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
 
+    if not request.user.is_staff and ingredient.created_by_id != request.user.id:
+        raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat bearbeiten")
+
     nutritional_fields = {
         "energy_kj",
         "protein_g",
@@ -170,6 +181,9 @@ def delete_ingredient(request, slug: str):
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    if not request.user.is_staff and ingredient.created_by_id != request.user.id:
+        raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat löschen")
 
     from recipe.models import RecipeItem
 

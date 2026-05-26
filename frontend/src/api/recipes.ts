@@ -15,6 +15,7 @@ import {
   RecipeNutritionBreakdownSchema,
   ImprovementListSchema,
   LlmSuggestionSchema,
+  RecipeFolderSchema,
   type RecipeFilter,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
@@ -319,7 +320,60 @@ export function useCreateRecipeComment(recipeId: number) {
     mutationFn: (body: { text: string; author_name?: string; parent_id?: number | null }) =>
       postJson(`${API_BASE}/${recipeId}/comments/`, body, ContentCommentSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recipe-comments', recipeId] });
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+// ===========================================================================
+// Recipe Folders
+// ===========================================================================
+
+const FOLDER_BASE = '/api/recipe-folders';
+
+export function useRecipeFolders() {
+  return useQuery({
+    queryKey: ['recipe-folders'] as const,
+    queryFn: async () => {
+      const res = await fetch(`${FOLDER_BASE}/`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Ordner laden fehlgeschlagen');
+      return z.array(RecipeFolderSchema).parse(await res.json());
+    },
+  });
+}
+
+export function useCreateRecipeFolder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { name: string; parent_id?: number | null }) => {
+      const res = await fetch(`${FOLDER_BASE}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Ordner erstellen fehlgeschlagen');
+      return RecipeFolderSchema.parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-folders'] });
+    },
+  });
+}
+
+export function useDeleteRecipeFolder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (folderId: number) => {
+      const res = await fetch(`${FOLDER_BASE}/${folderId}/`, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Ordner löschen fehlgeschlagen');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-folders'] });
     },
   });
 }

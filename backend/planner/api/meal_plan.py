@@ -13,6 +13,7 @@ from planner.models import (
     Meal,
     MealPlan,
     MealItem,
+    MealItemOverride,
 )
 from planner.schemas import (
     MealCreateIn,
@@ -23,7 +24,10 @@ from planner.schemas import (
     MealPlanUpdateIn,
     MealItemCreateIn,
     MealItemOut,
+    MealItemOverrideIn,
+    MealItemOverrideOut,
     MealOut,
+    MealUpdateIn,
     NutritionSummaryOut,
     ShoppingListItemOut,
 )
@@ -223,19 +227,33 @@ def remove_meal(request, meal_plan_id: int, meal_id: int):
 
 @meal_plan_router.post("/{meal_plan_id}/meals/{meal_id}/items/", response=MealItemOut)
 def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCreateIn):
-    """Add a recipe to a meal."""
+    """Add a recipe or ingredient to a meal."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _check_owner(meal_plan, request.user)
 
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
 
-    # Verify recipe exists
-    recipe = get_object_or_404(Recipe, id=payload.recipe_id)
+    if payload.recipe_id and payload.ingredient_id:
+        raise HttpError(422, "Entweder Rezept oder Zutat angeben, nicht beides")
+    if not payload.recipe_id and not payload.ingredient_id:
+        raise HttpError(422, "Rezept oder Zutat muss angegeben werden")
+
+    recipe = None
+    ingredient = None
+    if payload.recipe_id:
+        recipe = get_object_or_404(Recipe, id=payload.recipe_id)
+    if payload.ingredient_id:
+        from supply.models import Ingredient
+        ingredient = get_object_or_404(Ingredient, id=payload.ingredient_id)
 
     item = MealItem.objects.create(
         meal=meal,
         recipe=recipe,
+        ingredient=ingredient,
+        quantity=payload.quantity,
+        measuring_unit_id=payload.measuring_unit_id,
+        display_name=payload.display_name,
         factor=payload.factor,
     )
     return item
@@ -255,6 +273,73 @@ def remove_meal_item(request, meal_plan_id: int, item_id: int):
     )
     item.delete()
     return {"success": True}
+
+
+# ==========================================================================
+# Meal Update (notes, portions override)
+# ==========================================================================
+
+
+@meal_plan_router.patch("/{meal_plan_id}/meals/{meal_id}/", response=MealOut)
+def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn):
+    """Update meal notes, override_portions, or note visibility."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _check_owner(meal_plan, request.user)
+
+    meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
+
+    if payload.override_portions is not None:
+        meal.override_portions = payload.override_portions if payload.override_portions > 0 else None
+    if payload.note is not None:
+        meal.note = payload.note
+    if payload.note_is_published is not None:
+        meal.note_is_published = payload.note_is_published
+
+    meal.save()
+    return meal
+
+
+# ==========================================================================
+# MealItem Overrides
+# ==========================================================================
+
+
+@meal_plan_router.patch(
+    "/{meal_plan_id}/meal-items/{item_id}/overrides/",
+    response=list[MealItemOverrideOut],
+)
+def set_meal_item_overrides(
+    request, meal_plan_id: int, item_id: int, payload: list[MealItemOverrideIn]
+):
+    """Set overrides for a meal item's recipe ingredients."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _check_owner(meal_plan, request.user)
+
+    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
+
+    if not item.recipe:
+        raise HttpError(422, "Overrides nur für Rezept-Einträge möglich")
+
+    # Clear existing overrides and recreate
+    MealItemOverride.objects.filter(meal_item=item).delete()
+
+    overrides = []
+    for override_in in payload:
+        # Verify recipe_item belongs to this recipe
+        recipe_item = get_object_or_404(
+            RecipeItem, id=override_in.recipe_item_id, recipe=item.recipe
+        )
+        override = MealItemOverride.objects.create(
+            meal_item=item,
+            recipe_item=recipe_item,
+            quantity_override=override_in.quantity_override,
+            excluded=override_in.excluded,
+        )
+        overrides.append(override)
+
+    return overrides
 
 
 # ==========================================================================
@@ -373,3 +458,27 @@ def search_recipes(request, q: str = ""):
 
     qs = qs.values("id", "title", "slug")[:20]
     return list(qs)
+
+
+# ==========================================================================
+# PDF Export
+# ==========================================================================
+
+
+@meal_plan_router.get("/{meal_plan_id}/export/pdf/")
+def export_pdf(request, meal_plan_id: int, include_notes: bool = False):
+    """Export meal plan as PDF."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+
+    if meal_plan.created_by != request.user and not request.user.is_staff:
+        raise HttpError(403, "Kein Zugriff auf diesen Essensplan")
+
+    from django.http import HttpResponse
+    from planner.services.pdf_export import generate_meal_plan_pdf
+
+    pdf_bytes = generate_meal_plan_pdf(meal_plan, include_notes=include_notes)
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{meal_plan.slug}-essensplan.pdf"'
+    return response

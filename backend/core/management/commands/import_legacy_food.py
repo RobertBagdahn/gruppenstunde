@@ -459,6 +459,7 @@ class Command(BaseCommand):
                 scout_score=self._safe_int(fields.get("scout_frendly_score")),
                 # External IDs
                 fdc_id=fdc_id,
+                nan_art_id_rewe=self._safe_int(fields.get("nan_art_id_rewe")),
                 ean=ean,
                 retail_section_id=rs_new_pk,
             )

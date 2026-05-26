@@ -381,3 +381,14 @@ export const RecipeNutritionBreakdownSchema = z.object({
   items: z.array(RecipeItemNutritionSchema),
 });
 export type RecipeNutritionBreakdown = z.infer<typeof RecipeNutritionBreakdownSchema>;
+
+// --- Recipe Folders ---
+
+export const RecipeFolderSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  parent_id: z.number().nullable(),
+  sort_order: z.number(),
+  recipe_count: z.number(),
+});
+export type RecipeFolder = z.infer<typeof RecipeFolderSchema>;

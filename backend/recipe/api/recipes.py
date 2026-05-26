@@ -33,6 +33,7 @@ from recipe.schemas import (
     RecipeUpdateIn,
     VisibilityUpdateIn,
 )
+from recipe.schemas.import_schemas import RecipeImportPreviewOut, RecipeImportRequestIn
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
 
 
 @router.get("/my-recipes/", response=PaginatedRecipeOut)
-def list_my_recipes(request, page: int = 1, page_size: int = 20):
+def list_my_recipes(request, page: int = 1, page_size: int = 20, folder: int | None = None):
     """List current user's personal recipes."""
     if not request.user.is_authenticated:
         raise HttpError(401, "Anmeldung erforderlich")
@@ -165,6 +166,9 @@ def list_my_recipes(request, page: int = 1, page_size: int = 20):
         .prefetch_related("scout_levels", "tags__parent", "authors")
         .order_by("-created_at")
     )
+
+    if folder is not None:
+        qs = qs.filter(folder_id=folder) if folder > 0 else qs.filter(folder__isnull=True)
 
     result = paginate_queryset(qs, page, page_size)
     enrich_list_with_permissions(request, result["items"])
@@ -607,3 +611,39 @@ def update_recipe_visibility(request, recipe_id: int, payload: VisibilityUpdateI
         "visibility": recipe.visibility,
         "status": recipe.status,
     }
+
+
+# ===========================================================================
+# URL Import
+# ===========================================================================
+
+
+@router.post("/import-from-url/", response=RecipeImportPreviewOut)
+def import_recipe_from_url(request, payload: RecipeImportRequestIn):
+    """Import a recipe from an external URL and return a preview."""
+    _require_auth(request)
+
+    from recipe.services.import_service import ImportedRecipe, import_from_url
+
+    try:
+        result: ImportedRecipe = import_from_url(payload.url)
+    except ValueError as e:
+        raise HttpError(422, str(e))
+    except Exception as e:
+        logger.exception("Recipe import failed for URL: %s", payload.url)
+        raise HttpError(422, f"Import fehlgeschlagen: {e}")
+
+    return RecipeImportPreviewOut(
+        title=result.title,
+        description=result.description,
+        servings=result.servings,
+        ingredients=[
+            {"name": i.name, "quantity": i.quantity, "unit": i.unit}
+            for i in result.ingredients
+        ],
+        steps=result.steps,
+        image_url=result.image_url,
+        source_url=result.source_url,
+        prep_time_minutes=result.prep_time_minutes,
+        cook_time_minutes=result.cook_time_minutes,
+    )

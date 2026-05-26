@@ -43,6 +43,7 @@ import MyRecipesPage from './pages/recipes/MyRecipesPage';
 import CreateRecipePage from './pages/recipes/CreateRecipePage';
 import EditRecipePage from './pages/recipes/EditRecipePage';
 import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
+import RecipeImportPage from './pages/recipes/RecipeImportPage';
 import EventsLandingPage from './pages/tools/EventsLandingPage';
 import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
 import MealPlanListPage from './pages/planning/MealEventListPage';
@@ -78,6 +79,7 @@ function App() {
         <Route path="/create/:contentType" element={<Navigate to="/create" replace />} />
         <Route path="/recipes" element={<RecipeListPage />} />
         <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
+        <Route path="/recipes/import" element={<RecipeImportPage />} />
         <Route path="/recipes/new" element={<CreateRecipePage />} />
         <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
         <Route path="/recipes/:slug" element={<RecipeDetailPage />} />

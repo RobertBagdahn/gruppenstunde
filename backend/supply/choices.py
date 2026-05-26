@@ -52,6 +52,7 @@ class RecipeTypeChoices(models.TextChoices):
     SIDE_DISH = "side_dish", _("Beilage")
     SNACK = "snack", _("Snack")
     DRINK = "drink", _("Getränk")
+    SIMPLE_MEAL = "simple_meal", _("Einfache Mahlzeit")
 
 
 class HintParameterChoices(models.TextChoices):

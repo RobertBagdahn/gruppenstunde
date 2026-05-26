@@ -7,7 +7,7 @@ from ninja import NinjaAPI
 from core.api import auth_router
 from content.admin_api import router as admin_router
 from content.api import router as content_router
-from recipe.api import router as recipe_router
+from recipe.api import router as recipe_router, folder_router as recipe_folder_router
 from recipe.api.cockpit import cockpit_router, health_rule_router
 from planner.api import router as planner_router
 from planner.meal_plan_api import meal_plan_router
@@ -29,6 +29,7 @@ from supply.api import (
     retail_section_router,
     norm_person_router,
     dge_reference_router,
+    unit_conversion_router,
 )
 from blog.api import router as blog_router
 from game.api import router as game_router
@@ -56,7 +57,9 @@ api.add_router("/packing-lists/", packing_list_router)
 api.add_router("/shopping-lists/", shopping_router)
 api.add_router("/ingredients/", ingredient_router)
 api.add_router("/retail-sections/", retail_section_router)
+api.add_router("/unit-conversions/", unit_conversion_router)
 api.add_router("/recipes/", recipe_router)
+api.add_router("/recipe-folders/", recipe_folder_router)
 api.add_router("/health-rules/", health_rule_router)
 api.add_router("/", cockpit_router)
 # Content-type routers

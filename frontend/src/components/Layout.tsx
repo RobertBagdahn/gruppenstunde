@@ -12,6 +12,7 @@ import {
   TOOL_BLOG,
   TOOL_GAMES,
   TOOL_RECIPES,
+  TOOL_INGREDIENTS,
 } from '@/lib/toolColors';
 
 interface LayoutProps {
@@ -152,6 +153,7 @@ export default function Layout({ children }: LayoutProps) {
     { to: TOOL_BLOG.basePath, icon: TOOL_BLOG.icon, label: TOOL_BLOG.label },
     { to: TOOL_GAMES.basePath, icon: TOOL_GAMES.icon, label: TOOL_GAMES.label },
     { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label },
+    { to: TOOL_INGREDIENTS.basePath, icon: TOOL_INGREDIENTS.icon, label: TOOL_INGREDIENTS.label },
   ];
 
   // Primary navigation single-location policy:

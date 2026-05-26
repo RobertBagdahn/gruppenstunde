@@ -1,17 +1,38 @@
 """MealPlan-related schemas."""
 
 import datetime as dt
+from decimal import Decimal
 
 from ninja import Schema
 
 
+class MealItemOverrideOut(Schema):
+    id: int
+    recipe_item_id: int
+    quantity_override: float | None = None
+    excluded: bool = False
+
+
+class MealItemOverrideIn(Schema):
+    recipe_item_id: int
+    quantity_override: float | None = None
+    excluded: bool = False
+
+
 class MealItemOut(Schema):
     id: int
-    recipe_id: int
+    recipe_id: int | None = None
     recipe_title: str = ""
     recipe_slug: str = ""
     recipe_image: str | None = None
+    ingredient_id: int | None = None
+    ingredient_name: str = ""
+    quantity: float | None = None
+    measuring_unit_id: int | None = None
+    measuring_unit_name: str = ""
+    display_name: str | None = None
     factor: float
+    overrides: list[MealItemOverrideOut] = []
 
     @staticmethod
     def resolve_recipe_title(obj) -> str:
@@ -27,9 +48,31 @@ class MealItemOut(Schema):
             return obj.recipe.image.url
         return None
 
+    @staticmethod
+    def resolve_ingredient_name(obj) -> str:
+        return obj.ingredient.name if obj.ingredient else ""
+
+    @staticmethod
+    def resolve_measuring_unit_name(obj) -> str:
+        return obj.measuring_unit.name if obj.measuring_unit else ""
+
+    @staticmethod
+    def resolve_quantity(obj) -> float | None:
+        return float(obj.quantity) if obj.quantity else None
+
+    @staticmethod
+    def resolve_overrides(obj) -> list:
+        if hasattr(obj, "_prefetched_objects_cache") and "overrides" in obj._prefetched_objects_cache:
+            return obj.overrides.all()
+        return []
+
 
 class MealItemCreateIn(Schema):
-    recipe_id: int
+    recipe_id: int | None = None
+    ingredient_id: int | None = None
+    quantity: float | None = None
+    measuring_unit_id: int | None = None
+    display_name: str | None = None
     factor: float = 1.0
 
 
@@ -39,6 +82,9 @@ class MealOut(Schema):
     end_datetime: dt.datetime
     meal_type: str
     day_part_factor: float
+    override_portions: int | None = None
+    note: str = ""
+    note_is_published: bool = False
     items: list[MealItemOut] = []
 
 
@@ -47,6 +93,12 @@ class MealCreateIn(Schema):
     end_datetime: dt.datetime
     meal_type: str
     day_part_factor: float | None = None
+
+
+class MealUpdateIn(Schema):
+    override_portions: int | None = None
+    note: str | None = None
+    note_is_published: bool | None = None
 
 
 class MealDayBulkCreateIn(Schema):

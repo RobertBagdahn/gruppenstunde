@@ -14,6 +14,7 @@ from .meal_plan import (
     Meal,
     MealPlan,
     MealItem,
+    MealItemOverride,
     MealTypeChoices,
 )
 
@@ -25,6 +26,7 @@ __all__ = [
     "Meal",
     "MealPlan",
     "MealItem",
+    "MealItemOverride",
     "MealTypeChoices",
     "Planner",
     "PlannerCollaborator",

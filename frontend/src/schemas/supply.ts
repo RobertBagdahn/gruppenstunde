@@ -234,6 +234,7 @@ export const IngredientDetailSchema = z.object({
 
   created_at: z.string(),
   updated_at: z.string(),
+  created_by_id: z.number().nullable(),
 });
 export type IngredientDetail = z.infer<typeof IngredientDetailSchema>;
 
@@ -342,3 +343,24 @@ export const PaginatedMaterialNamesSchema = z.object({
   total_pages: z.number(),
 });
 export type PaginatedMaterialNames = z.infer<typeof PaginatedMaterialNamesSchema>;
+
+// --- Unit Conversion ---
+
+export const UnitConversionSchema = z.object({
+  id: z.number(),
+  from_unit_id: z.number(),
+  from_unit_name: z.string(),
+  to_unit_id: z.number(),
+  to_unit_name: z.string(),
+  factor: z.number(),
+  ingredient_id: z.number().nullable(),
+  ingredient_name: z.string().nullable(),
+});
+export type UnitConversion = z.infer<typeof UnitConversionSchema>;
+
+export const UnitConversionResultSchema = z.object({
+  result: z.number(),
+  factor: z.number(),
+  is_ingredient_specific: z.boolean(),
+});
+export type UnitConversionResult = z.infer<typeof UnitConversionResultSchema>;

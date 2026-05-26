@@ -351,3 +351,56 @@ export function useRetailSections() {
     staleTime: 10 * 60 * 1000,
   });
 }
+
+// ==========================================================================
+// UNIT CONVERSIONS
+// ==========================================================================
+
+const UNIT_CONVERSION_BASE = '/api/unit-conversions';
+
+export function useUnitConversions(params?: {
+  from_unit?: number;
+  to_unit?: number;
+  ingredient?: number;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.from_unit) searchParams.set('from_unit', String(params.from_unit));
+  if (params?.to_unit) searchParams.set('to_unit', String(params.to_unit));
+  if (params?.ingredient) searchParams.set('ingredient', String(params.ingredient));
+
+  const qs = searchParams.toString();
+  const url = `${UNIT_CONVERSION_BASE}/${qs ? `?${qs}` : ''}`;
+
+  return useQuery({
+    queryKey: ['unit-conversions', params] as const,
+    queryFn: async () => {
+      const { UnitConversionSchema } = await import('@/schemas/supply');
+      return fetchJson(url, z.array(UnitConversionSchema));
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useConvertUnit() {
+  return useMutation({
+    mutationFn: async (params: {
+      from_unit: number;
+      to_unit: number;
+      quantity: number;
+      ingredient?: number;
+    }) => {
+      const searchParams = new URLSearchParams({
+        from_unit: String(params.from_unit),
+        to_unit: String(params.to_unit),
+        quantity: String(params.quantity),
+      });
+      if (params.ingredient) searchParams.set('ingredient', String(params.ingredient));
+
+      const { UnitConversionResultSchema } = await import('@/schemas/supply');
+      return fetchJson(
+        `${UNIT_CONVERSION_BASE}/convert/?${searchParams.toString()}`,
+        UnitConversionResultSchema
+      );
+    },
+  });
+}

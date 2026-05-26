@@ -142,6 +142,7 @@ class Ingredient(models.Model):
 
     # External references
     fdc_id = models.IntegerField(null=True, blank=True, verbose_name=_("USDA FoodData Central ID"))
+    nan_art_id_rewe = models.BigIntegerField(null=True, blank=True, verbose_name=_("REWE Artikelnummer"))
     ean = models.CharField(max_length=20, blank=True, default="", verbose_name=_("EAN-Barcode"))
 
     # Relations

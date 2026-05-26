@@ -32,6 +32,7 @@ DEFAULT_MEAL_TYPES = [
     MealTypeChoices.BREAKFAST,
     MealTypeChoices.LUNCH,
     MealTypeChoices.DINNER,
+    MealTypeChoices.SNACK,
 ]
 
 # Default start/end times per meal type (hour, minute)
@@ -145,6 +146,22 @@ class Meal(models.Model):
         verbose_name=_("Tagesanteil"),
         help_text=_("Anteil am Tagesbedarf (z.B. Frühstück=0.25, Mittag=0.35)"),
     )
+    override_portions = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Portionen-Override"),
+        help_text=_("Überschreibt norm_portions des Plans für diese Mahlzeit (z.B. Tagesgäste)"),
+    )
+    note = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Notiz"),
+    )
+    note_is_published = models.BooleanField(
+        default=False,
+        verbose_name=_("Notiz sichtbar"),
+        help_text=_("Wenn True, erscheint die Notiz im PDF/Ausdruck"),
+    )
 
     class Meta:
         verbose_name = _("Mahlzeit")
@@ -175,7 +192,7 @@ class Meal(models.Model):
 
 
 class MealItem(models.Model):
-    """A recipe assigned to a meal."""
+    """A recipe or ingredient assigned to a meal."""
 
     meal = models.ForeignKey(
         Meal,
@@ -186,15 +203,97 @@ class MealItem(models.Model):
     recipe = models.ForeignKey(
         "recipe.Recipe",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="meal_items",
         verbose_name=_("Rezept"),
+    )
+    ingredient = models.ForeignKey(
+        "supply.Ingredient",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="meal_items",
+        verbose_name=_("Zutat"),
+        help_text=_("Alternative zu Rezept — Einzelzutat im Plan"),
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Menge"),
+        help_text=_("Menge für Einzelzutat"),
+    )
+    measuring_unit = models.ForeignKey(
+        "supply.MeasuringUnit",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="meal_items",
+        verbose_name=_("Einheit"),
+    )
+    display_name = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name=_("Anzeigename"),
+        help_text=_("Überschreibt den automatischen Rezept-/Zutatennamen"),
     )
     factor = models.FloatField(default=1.0, verbose_name=_("Skalierungsfaktor"))
 
     class Meta:
-        verbose_name = _("Mahlzeit-Rezept")
-        verbose_name_plural = _("Mahlzeit-Rezepte")
+        verbose_name = _("Mahlzeit-Eintrag")
+        verbose_name_plural = _("Mahlzeit-Einträge")
         ordering = ["id"]
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(recipe__isnull=False, ingredient__isnull=True)
+                    | models.Q(recipe__isnull=True, ingredient__isnull=False)
+                ),
+                name="meal_item_recipe_xor_ingredient",
+            ),
+        ]
 
     def __str__(self):
-        return f"{self.meal} – {self.recipe.title}"
+        name = self.display_name or (self.recipe.title if self.recipe else self.ingredient.name if self.ingredient else "?")
+        return f"{self.meal} – {name}"
+
+
+class MealItemOverride(models.Model):
+    """Override a specific recipe ingredient within a meal item."""
+
+    meal_item = models.ForeignKey(
+        MealItem,
+        on_delete=models.CASCADE,
+        related_name="overrides",
+        verbose_name=_("Mahlzeit-Eintrag"),
+    )
+    recipe_item = models.ForeignKey(
+        "recipe.RecipeItem",
+        on_delete=models.CASCADE,
+        related_name="meal_overrides",
+        verbose_name=_("Rezept-Zutat"),
+    )
+    quantity_override = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Menge-Override"),
+        help_text=_("Überschreibt die Original-Menge, null = Original beibehalten"),
+    )
+    excluded = models.BooleanField(
+        default=False,
+        verbose_name=_("Ausgeschlossen"),
+        help_text=_("Zutat wird aus Einkaufsliste/Nährwertberechnung entfernt"),
+    )
+
+    class Meta:
+        verbose_name = _("Zutat-Override")
+        verbose_name_plural = _("Zutat-Overrides")
+        unique_together = [("meal_item", "recipe_item")]
+
+    def __str__(self):
+        return f"{self.meal_item} → {self.recipe_item} (override)"

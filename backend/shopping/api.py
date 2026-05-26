@@ -163,6 +163,84 @@ def delete_shopping_list(request, shopping_list_id: int):
 
 
 # ---------------------------------------------------------------------------
+# Shopping List Views (summarized, by-recipe)
+# ---------------------------------------------------------------------------
+
+
+@shopping_router.get("/{shopping_list_id}/view/")
+def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed"):
+    """Get shopping list items in different view modes.
+
+    Views:
+    - detailed: default item list (same as detail endpoint)
+    - summarized: group by ingredient, sum quantities
+    - by_recipe: group by source recipe
+    """
+    _require_auth(request)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    _require_access(shopping_list, request.user)
+
+    items = shopping_list.items.select_related("ingredient", "retail_section").order_by(
+        "retail_section__name", "sort_order"
+    )
+
+    if view == "summarized":
+        # Group by ingredient, sum quantities
+        grouped: dict[int | str, dict] = {}
+        for item in items:
+            key = item.ingredient_id or item.name
+            if key not in grouped:
+                grouped[key] = {
+                    "name": item.ingredient.name if item.ingredient else item.name,
+                    "total_quantity_g": 0.0,
+                    "unit": item.unit or "g",
+                    "retail_section": item.retail_section.name if item.retail_section else "",
+                    "is_checked": True,
+                    "items_count": 0,
+                }
+            grouped[key]["total_quantity_g"] += float(item.quantity_g or 0)
+            grouped[key]["items_count"] += 1
+            if not item.is_checked:
+                grouped[key]["is_checked"] = False
+
+        return {"view": "summarized", "groups": list(grouped.values())}
+
+    elif view == "by_recipe":
+        # Group by source (note field or manual)
+        by_source: dict[str, list] = {}
+        for item in items:
+            source = item.note or "Sonstiges"
+            if source not in by_source:
+                by_source[source] = []
+            by_source[source].append({
+                "id": item.id,
+                "name": item.ingredient.name if item.ingredient else item.name,
+                "quantity_g": float(item.quantity_g or 0),
+                "unit": item.unit or "g",
+                "is_checked": item.is_checked,
+            })
+
+        return {"view": "by_recipe", "groups": [
+            {"source": k, "items": v} for k, v in by_source.items()
+        ]}
+
+    else:
+        # Detailed: return raw items
+        return {"view": "detailed", "items": [
+            {
+                "id": item.id,
+                "name": item.ingredient.name if item.ingredient else item.name,
+                "quantity_g": float(item.quantity_g or 0),
+                "unit": item.unit or "g",
+                "retail_section": item.retail_section.name if item.retail_section else "",
+                "is_checked": item.is_checked,
+                "note": item.note or "",
+            }
+            for item in items
+        ]}
+
+
+# ---------------------------------------------------------------------------
 # Shopping List Items (7.7 – 7.9)
 # ---------------------------------------------------------------------------
 

@@ -172,6 +172,20 @@ export const TOOL_GAMES: ToolConfig = {
   basePath: '/games',
 };
 
+export const TOOL_INGREDIENTS: ToolConfig = {
+  key: 'ingredients',
+  label: 'Zutaten',
+  tagline: 'Zutatendatenbank mit Nährwerten und Portionen',
+  icon: 'egg',
+  gradient: 'from-amber-500 to-yellow-600',
+  bgSolid: 'bg-amber-500',
+  textColor: 'text-amber-600',
+  bgTint: 'bg-amber-50',
+  borderColor: 'border-amber-300',
+  ringColor: 'ring-amber-400',
+  basePath: '/ingredients',
+};
+
 export const TOOL_NORM_PORTION: ToolConfig = {
   key: 'norm-portion',
   label: 'Normportion-Simulator',

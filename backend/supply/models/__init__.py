@@ -3,6 +3,7 @@
 from .material import ContentMaterialItem, Material, Supply
 from .reference import DgeGenderChoices, DgeReference, MeasuringUnit, NutritionalTag, RetailSection
 from .ingredient import Ingredient, IngredientAlias, Portion
+from .unit_conversion import UnitConversion
 
 __all__ = [
     "ContentMaterialItem",
@@ -16,4 +17,5 @@ __all__ = [
     "Portion",
     "RetailSection",
     "Supply",
+    "UnitConversion",
 ]

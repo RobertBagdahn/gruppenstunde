@@ -266,7 +266,7 @@ export default function IngredientDetailPage() {
   // Edit fields
   const [editRetailSection, setEditRetailSection] = useState<string>('');
 
-  const canEdit = !!user;
+  const canEdit = !!user && (user.is_staff || user.id === ingredient?.created_by_id);
 
   // --- Loading / error states ---
   if (isLoading) {

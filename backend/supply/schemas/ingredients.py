@@ -167,6 +167,7 @@ class IngredientDetailOut(Schema):
 
     created_at: str = ""
     updated_at: str = ""
+    created_by_id: int | None = None
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:

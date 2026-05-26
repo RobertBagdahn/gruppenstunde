@@ -72,6 +72,15 @@ class Recipe(Content):
         verbose_name=_("Sichtbarkeit"),
         help_text=_("Nur relevant wenn owner gesetzt: private/group/public"),
     )
+    folder = models.ForeignKey(
+        "recipe.RecipeFolder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recipes",
+        verbose_name=_("Ordner"),
+        help_text=_("Optionaler Ordner für persönliche Rezepte"),
+    )
 
     # --- Cached nutritional values (denormalized, per-100g of total recipe) ---
     cached_energy_kj = models.FloatField(null=True, blank=True, verbose_name=_("Energie (kJ, cached)"))

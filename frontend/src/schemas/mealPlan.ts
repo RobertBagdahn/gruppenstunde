@@ -5,16 +5,35 @@
 import { z } from 'zod';
 
 // ==========================================================================
+// MealItem Override
+// ==========================================================================
+
+export const MealItemOverrideSchema = z.object({
+  id: z.number(),
+  recipe_item_id: z.number(),
+  quantity_override: z.number().nullable(),
+  excluded: z.boolean(),
+});
+export type MealItemOverride = z.infer<typeof MealItemOverrideSchema>;
+
+// ==========================================================================
 // MealItem
 // ==========================================================================
 
 export const MealItemSchema = z.object({
   id: z.number(),
-  recipe_id: z.number(),
+  recipe_id: z.number().nullable(),
   recipe_title: z.string(),
   recipe_slug: z.string(),
   recipe_image: z.string().nullable(),
+  ingredient_id: z.number().nullable(),
+  ingredient_name: z.string(),
+  quantity: z.number().nullable(),
+  measuring_unit_id: z.number().nullable(),
+  measuring_unit_name: z.string(),
+  display_name: z.string().nullable(),
   factor: z.number(),
+  overrides: z.array(MealItemOverrideSchema),
 });
 export type MealItem = z.infer<typeof MealItemSchema>;
 
@@ -28,6 +47,9 @@ export const MealSchema = z.object({
   end_datetime: z.string(),
   meal_type: z.string(),
   day_part_factor: z.number(),
+  override_portions: z.number().nullable(),
+  note: z.string(),
+  note_is_published: z.boolean(),
   items: z.array(MealItemSchema),
 });
 export type Meal = z.infer<typeof MealSchema>;
