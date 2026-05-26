@@ -72,7 +72,7 @@ function CapacitySection({ stats }: { stats: Stats }) {
     <div className="rounded-xl border p-4">
       <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
         <span className="material-symbols-outlined text-[18px]">groups</span>
-        Kapazitaet
+         Kapazität
       </h3>
 
       {/* Overall bar */}
@@ -179,7 +179,7 @@ function DemographicsSection({ stats }: { stats: Stats }) {
   if (!hasGender && !hasAge) return null;
 
   const GENDER_LABELS: Record<string, string> = {
-    male: 'Maennlich',
+     male: 'Männlich',
     female: 'Weiblich',
     diverse: 'Divers',
     no_answer: 'Keine Angabe',

@@ -4,6 +4,7 @@ from model_bakery import baker
 
 from profiles.choices import GenderChoices, MembershipRoleChoices
 from profiles.models import (
+    GroupCorporateIdentity,
     GroupJoinRequest,
     GroupMembership,
     UserGroup,
@@ -118,3 +119,24 @@ def make_group_join_request(
     }
     defaults.update(kwargs)
     return baker.make(GroupJoinRequest, user=user, group=group, **defaults)
+
+
+# ---------------------------------------------------------------------------
+# GroupCorporateIdentity
+# ---------------------------------------------------------------------------
+
+
+def make_corporate_identity(group: UserGroup | None = None, **kwargs) -> GroupCorporateIdentity:
+    if group is None:
+        group = make_user_group()
+    defaults = {
+        "primary_color": "#2E7D32",
+        "secondary_color": "#E8F5E9",
+        "slogan": "Allzeit bereit!",
+        "greeting_text": "Liebe Pfadfinderinnen und Pfadfinder,",
+        "footer_text": "Stamm Waldläufer e.V.\nWaldweg 12\n12345 Waldstadt",
+        "payment_info": "IBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX",
+        "signature_text": "Gut Pfad!\nMax Mustermann\nStammesführer",
+    }
+    defaults.update(kwargs)
+    return baker.make(GroupCorporateIdentity, group=group, **defaults)

@@ -27,13 +27,37 @@ logger = logging.getLogger(__name__)
 router = Router(tags=["content"])
 
 
-@router.post("/ai/improve-text/", response=AiImproveTextOut, url_name="content_ai_improve_text")
+@router.post(
+    "/ai/improve-text/",
+    response={200: AiImproveTextOut, 429: AiErrorOut, 500: AiErrorOut},
+    url_name="content_ai_improve_text",
+)
 def ai_improve_text(request, payload: AiImproveTextIn):
     """Improve text using AI: grammar, style, clarity."""
-    from content.services.ai_service import ContentAIService
+    from content.services.ai_service import AiRateLimitError, ContentAIService
 
     service = ContentAIService()
-    result = service.improve_text(payload.text, payload.context)
+    try:
+        result = service.improve_text(payload.text, payload.context)
+    except AiRateLimitError as exc:
+        logger.warning("AI improve-text rate limited: %s", exc)
+        return HttpResponse(
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            status=429,
+            content_type="application/json",
+        )
+    except Exception:
+        logger.exception("AI improve-text unexpected error")
+        return HttpResponse(
+            json.dumps(
+                {
+                    "detail": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+                    "error_code": "AI_INTERNAL_ERROR",
+                }
+            ),
+            status=500,
+            content_type="application/json",
+        )
     return {"improved_text": result}
 
 

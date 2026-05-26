@@ -9,6 +9,7 @@ Falls back to icontains queries on SQLite (test environment).
 """
 
 import logging
+from typing import Literal
 
 from django.db import connection
 from django.db.models import Q, Value
@@ -25,7 +26,36 @@ def _is_postgres() -> bool:
 
 
 # Content types that are searchable
-CONTENT_TYPES = {"session", "blog", "game", "recipe", "tag", "event"}
+CONTENT_TYPES = {"session", "blog", "game", "recipe", "event"}
+
+
+def apply_mine_filter(queryset, user, content_type: str):
+    """Return a filtered queryset restricted to items related to the user.
+
+    Per-type semantics:
+    - session/blog/game: created_by OR authors
+    - recipe: owner OR authors
+    - event: created_by OR responsible_persons OR invited_users OR
+             invited_groups (via GroupMembership) OR registrations
+    """
+    if content_type in ("session", "blog", "game"):
+        return queryset.filter(Q(created_by=user) | Q(authors=user))
+    elif content_type == "recipe":
+        return queryset.filter(Q(owner=user) | Q(authors=user))
+    elif content_type == "event":
+        from profiles.models import GroupMembership
+
+        user_group_ids = GroupMembership.objects.filter(
+            user=user, is_active=True
+        ).values_list("group_id", flat=True)
+        return queryset.filter(
+            Q(created_by=user)
+            | Q(responsible_persons=user)
+            | Q(invited_users=user)
+            | Q(invited_groups__in=user_group_ids)
+            | Q(registrations__user=user)
+        ).distinct()
+    return queryset
 
 
 def unified_search(
@@ -34,6 +64,8 @@ def unified_search(
     page: int = 1,
     page_size: int = 20,
     sort: str = "relevant",
+    scope: Literal["all", "mine"] = "all",
+    user=None,
 ) -> tuple[list[dict], int, dict[str, int]]:
     """
     Search across all content types.
@@ -44,11 +76,18 @@ def unified_search(
         page: Page number (1-indexed).
         page_size: Items per page.
         sort: Sort order ('relevant', 'newest').
+        scope: 'all' (default) or 'mine' (restrict to user's content).
+        user: The requesting user (needed for scope=mine).
 
     Returns:
         (items, total_count, type_counts) where items are dicts with result_type,
         and type_counts maps each type to its hit count.
     """
+    # Anonymous users: ignore scope=mine
+    effective_scope = scope
+    if effective_scope == "mine" and (user is None or not user.is_authenticated):
+        effective_scope = "all"
+
     if result_types:
         search_types = set(result_types) & CONTENT_TYPES
     else:
@@ -58,7 +97,11 @@ def unified_search(
     type_counts: dict[str, int] = {}
 
     for content_type in CONTENT_TYPES:
-        results = _search_by_type(content_type, q) if content_type in search_types else []
+        results = (
+            _search_by_type(content_type, q, scope=effective_scope, user=user)
+            if content_type in search_types
+            else []
+        )
         type_counts[content_type] = len(results)
         if content_type in search_types:
             all_results.extend(results)
@@ -66,7 +109,7 @@ def unified_search(
     # If filtering, still compute counts for ALL types (for tab badges)
     if result_types:
         for content_type in CONTENT_TYPES - search_types:
-            count_results = _search_by_type(content_type, q)
+            count_results = _search_by_type(content_type, q, scope=effective_scope, user=user)
             type_counts[content_type] = len(count_results)
 
     # Sort results
@@ -122,19 +165,23 @@ def log_search(q: str, results_count: int, user=None) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _search_by_type(content_type: str, q: str) -> list[dict]:
+def _search_by_type(
+    content_type: str,
+    q: str,
+    scope: Literal["all", "mine"] = "all",
+    user=None,
+) -> list[dict]:
     """Dispatch to the correct search function by type."""
     dispatchers = {
         "session": _search_sessions,
         "blog": _search_blogs,
         "game": _search_games,
         "recipe": _search_recipes,
-        "tag": _search_tags,
         "event": _search_events,
     }
     fn = dispatchers.get(content_type)
     if fn:
-        return fn(q)
+        return fn(q, scope=scope, user=user)
     return []
 
 
@@ -182,6 +229,7 @@ def _to_result(obj, result_type: str, url: str, extra: dict | None = None) -> di
         "url": url,
         "score": score,
         "created_at": obj.created_at.isoformat() if hasattr(obj, "created_at") and obj.created_at else "",
+        "status": getattr(obj, "status", None),
         "extra": extra or {},
     }
 
@@ -189,11 +237,23 @@ def _to_result(obj, result_type: str, url: str, extra: dict | None = None) -> di
 # --- New content types ---
 
 
-def _search_sessions(q: str) -> list[dict]:
+def _search_sessions(
+    q: str,
+    scope: Literal["all", "mine"] = "all",
+    user=None,
+) -> list[dict]:
     from session.models import GroupSession
     from content.choices import ContentStatus
 
-    qs = GroupSession.objects.filter(status=ContentStatus.APPROVED)
+    if scope == "mine" and user and user.is_authenticated:
+        # Mine: approved OR (draft AND owned by user)
+        mine_q = Q(created_by=user) | Q(authors=user)
+        qs = GroupSession.objects.filter(
+            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
+        )
+        qs = apply_mine_filter(qs, user, "session")
+    else:
+        qs = GroupSession.objects.filter(status=ContentStatus.APPROVED)
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(
@@ -210,11 +270,22 @@ def _search_sessions(q: str) -> list[dict]:
     ]
 
 
-def _search_blogs(q: str) -> list[dict]:
+def _search_blogs(
+    q: str,
+    scope: Literal["all", "mine"] = "all",
+    user=None,
+) -> list[dict]:
     from blog.models import Blog
     from content.choices import ContentStatus
 
-    qs = Blog.objects.filter(status=ContentStatus.APPROVED)
+    if scope == "mine" and user and user.is_authenticated:
+        mine_q = Q(created_by=user) | Q(authors=user)
+        qs = Blog.objects.filter(
+            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
+        )
+        qs = apply_mine_filter(qs, user, "blog")
+    else:
+        qs = Blog.objects.filter(status=ContentStatus.APPROVED)
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(
@@ -230,11 +301,22 @@ def _search_blogs(q: str) -> list[dict]:
     ]
 
 
-def _search_games(q: str) -> list[dict]:
+def _search_games(
+    q: str,
+    scope: Literal["all", "mine"] = "all",
+    user=None,
+) -> list[dict]:
     from game.models import Game
     from content.choices import ContentStatus
 
-    qs = Game.objects.filter(status=ContentStatus.APPROVED)
+    if scope == "mine" and user and user.is_authenticated:
+        mine_q = Q(created_by=user) | Q(authors=user)
+        qs = Game.objects.filter(
+            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
+        )
+        qs = apply_mine_filter(qs, user, "game")
+    else:
+        qs = Game.objects.filter(status=ContentStatus.APPROVED)
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(
@@ -252,11 +334,22 @@ def _search_games(q: str) -> list[dict]:
     ]
 
 
-def _search_recipes(q: str) -> list[dict]:
+def _search_recipes(
+    q: str,
+    scope: Literal["all", "mine"] = "all",
+    user=None,
+) -> list[dict]:
     from recipe.models import Recipe
     from content.choices import ContentStatus
 
-    qs = Recipe.objects.filter(status=ContentStatus.APPROVED)
+    if scope == "mine" and user and user.is_authenticated:
+        mine_q = Q(owner=user) | Q(authors=user)
+        qs = Recipe.objects.filter(
+            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
+        )
+        qs = apply_mine_filter(qs, user, "recipe")
+    else:
+        qs = Recipe.objects.filter(status=ContentStatus.APPROVED)
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(
@@ -273,46 +366,20 @@ def _search_recipes(q: str) -> list[dict]:
     ]
 
 
-def _search_tags(q: str) -> list[dict]:
-    from content.models import Tag
-
-    qs = Tag.objects.filter(is_approved=True)
-    if q:
-        if _is_postgres():
-            from django.contrib.postgres.search import TrigramSimilarity
-
-            trigram_sim = TrigramSimilarity("name", q)
-            qs = qs.annotate(trigram_score=trigram_sim).filter(Q(name__icontains=q) | Q(trigram_score__gt=0.2))
-        else:
-            qs = qs.annotate(trigram_score=Value(1.0)).filter(name__icontains=q)
-    else:
-        qs = qs.annotate(trigram_score=Value(0.0))
-    qs = qs.distinct().order_by("-trigram_score")[:30]
-
-    results = []
-    for tag in qs:
-        score = float(tag.trigram_score) if hasattr(tag, "trigram_score") else 0.0
-        results.append(
-            {
-                "result_type": "tag",
-                "id": tag.id,
-                "title": tag.name,
-                "slug": tag.slug,
-                "summary": "",
-                "image_url": None,
-                "url": f"/search?tag_slugs={tag.slug}",
-                "score": score,
-                "created_at": "",
-                "extra": {"icon": tag.icon, "parent_id": tag.parent_id},
-            }
-        )
-    return results
-
-
-def _search_events(q: str) -> list[dict]:
+def _search_events(
+    q: str,
+    scope: Literal["all", "mine"] = "all",
+    user=None,
+) -> list[dict]:
     from event.models import Event
 
-    qs = Event.objects.filter(is_public=True)
+    # Always exclude templates (task 1.7)
+    qs = Event.objects.filter(is_template=False)
+
+    if scope == "mine" and user and user.is_authenticated:
+        qs = apply_mine_filter(qs, user, "event")
+    else:
+        qs = qs.filter(is_public=True)
     if q:
         if _is_postgres():
             from django.contrib.postgres.search import TrigramSimilarity
@@ -344,6 +411,7 @@ def _search_events(q: str) -> list[dict]:
                 "url": f"/events/{event.slug}",
                 "score": score,
                 "created_at": event.created_at.isoformat() if event.created_at else "",
+                "status": None,
                 "extra": {
                     "location": event.location,
                     "start_date": event.start_date.isoformat() if event.start_date else None,
@@ -432,7 +500,7 @@ def _autocomplete_tags(q: str, limit: int = 3) -> list[dict]:
 def _autocomplete_events(q: str, limit: int = 3) -> list[dict]:
     from event.models import Event
 
-    qs = Event.objects.filter(is_public=True)
+    qs = Event.objects.filter(is_public=True, is_template=False)
     if _is_postgres():
         from django.contrib.postgres.search import TrigramSimilarity
 

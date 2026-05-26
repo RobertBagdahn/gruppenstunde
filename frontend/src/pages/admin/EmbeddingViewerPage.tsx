@@ -38,7 +38,7 @@ export default function EmbeddingViewerPage() {
       {
         onSuccess: (result) =>
           toast.success(
-            `Embeddings: ${result.updated} aktualisiert, ${result.skipped} uebersprungen, ${result.failed} fehlgeschlagen`,
+            `Embeddings: ${result.updated} aktualisiert, ${result.skipped} übersprungen, ${result.failed} fehlgeschlagen`,
           ),
         onError: (err) => toast.error('Fehler', { description: err.message }),
       },
@@ -48,7 +48,7 @@ export default function EmbeddingViewerPage() {
   if (error) {
     return (
       <div className="text-center py-8 text-red-600">
-        Fehler beim Laden der Embedding-Uebersicht.
+         Fehler beim Laden der Embedding-Übersicht.
       </div>
     );
   }
@@ -57,9 +57,9 @@ export default function EmbeddingViewerPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold">Embedding-Uebersicht</h2>
+           <h2 className="text-xl font-bold">Embedding-Übersicht</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Status der Text-Embeddings fuer alle Inhalte
+             Status der Text-Embeddings für alle Inhalte
           </p>
         </div>
         <div className="flex gap-2">
@@ -68,7 +68,7 @@ export default function EmbeddingViewerPage() {
             disabled={batchUpdate.isPending}
             className="px-3 py-1.5 rounded-md text-sm font-medium bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
           >
-            {batchUpdate.isPending ? 'Laeuft...' : 'Fehlende aktualisieren'}
+             {batchUpdate.isPending ? 'Läuft...' : 'Fehlende aktualisieren'}
           </button>
           <button
             onClick={() => handleBatchUpdate(true)}
@@ -133,7 +133,7 @@ export default function EmbeddingViewerPage() {
         </div>
       ) : data && data.items.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p>Keine Ergebnisse fuer die gewaehlten Filter.</p>
+           <p>Keine Ergebnisse für die gewählten Filter.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -194,7 +194,7 @@ export default function EmbeddingViewerPage() {
             disabled={page <= 1}
             className="px-3 py-1.5 rounded-md border text-sm disabled:opacity-50"
           >
-            Zurueck
+             Zurück
           </button>
           <span className="px-3 py-1.5 text-sm text-muted-foreground">
             Seite {data.page} / {data.total_pages}

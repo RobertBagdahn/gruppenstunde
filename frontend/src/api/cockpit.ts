@@ -36,27 +36,27 @@ export function useHealthRules() {
 // Cockpit Dashboard Hooks
 // ==========================================================================
 
-export function useMealEventCockpit(mealEventId: number) {
+export function useMealPlanCockpit(mealPlanId: number) {
   return useQuery<CockpitDashboard>({
-    queryKey: ['cockpit', 'meal-event', mealEventId],
+    queryKey: ['cockpit', 'meal-plan', mealPlanId],
     queryFn: () =>
       fetchJson(
-        `/api/meal-events/${mealEventId}/cockpit/`,
+        `/api/meal-plans/${mealPlanId}/cockpit/`,
         CockpitDashboardSchema,
       ),
-    enabled: mealEventId > 0,
+    enabled: mealPlanId > 0,
   });
 }
 
-export function useDayCockpit(mealEventId: number, date: string) {
+export function useDayCockpit(mealPlanId: number, date: string) {
   return useQuery<CockpitDashboard>({
-    queryKey: ['cockpit', 'meal-event', mealEventId, 'day', date],
+    queryKey: ['cockpit', 'meal-plan', mealPlanId, 'day', date],
     queryFn: () =>
       fetchJson(
-        `/api/meal-events/${mealEventId}/cockpit/day/?date=${date}`,
+        `/api/meal-plans/${mealPlanId}/cockpit/day/?date=${date}`,
         CockpitDashboardSchema,
       ),
-    enabled: mealEventId > 0 && !!date,
+    enabled: mealPlanId > 0 && !!date,
   });
 }
 
@@ -68,3 +68,7 @@ export function useMealCockpit(mealId: number) {
     enabled: mealId > 0,
   });
 }
+
+// Backward compatibility
+/** @deprecated Use useMealPlanCockpit */
+export const useMealEventCockpit = useMealPlanCockpit;

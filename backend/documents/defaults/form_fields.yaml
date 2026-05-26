@@ -1,0 +1,43 @@
+standard:
+  - type: "text_line"
+    label: "Name"
+    same_line_with: "Geburtsdatum"
+  - type: "text_line"
+    label: "Gut erreichbare Telefonnummern"
+  - type: "checkboxes"
+    label: "Essgewohnheiten"
+    options:
+      - "vegetarisch"
+      - "Vegan"
+    has_other: true
+    other_label: "sonstiges"
+  - type: "text_area"
+    label: "Allergien, Medikamenteneinnahme, Krankheiten oder andere Besonderheiten, über die die Fahrten Leitung informiert werden muss"
+    lines: 2
+
+extended:
+  - type: "text_line"
+    label: "Name"
+    same_line_with: "Geburtsdatum"
+  - type: "text_line"
+    label: "Adresse"
+  - type: "text_line"
+    label: "Gut erreichbare Telefonnummern"
+  - type: "text_line"
+    label: "E-Mail"
+  - type: "checkboxes"
+    label: "Essgewohnheiten"
+    options:
+      - "vegetarisch"
+      - "Vegan"
+    has_other: true
+    other_label: "sonstiges"
+  - type: "checkboxes"
+    label: "Schwimmfähigkeit"
+    options:
+      - "Nichtschwimmer"
+      - "Seepferdchen"
+      - "Bronze oder besser"
+  - type: "text_area"
+    label: "Allergien, Medikamenteneinnahme, Krankheiten oder andere Besonderheiten, über die die Fahrten Leitung informiert werden muss"
+    lines: 2

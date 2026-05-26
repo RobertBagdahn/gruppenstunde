@@ -2,9 +2,8 @@
 
 from .profile import (
     MyContentOut,
-    MyIdeaOut,
+    ProfilePictureOut,
     PublicContentOut,
-    PublicIdeaOut,
     PublicUserProfileOut,
     UserPreferenceIn,
     UserPreferenceOut,
@@ -13,6 +12,8 @@ from .profile import (
 )
 from .groups import (
     AddMemberIn,
+    GroupCorporateIdentityIn,
+    GroupCorporateIdentityOut,
     GroupMemberOut,
     GroupParentOut,
     JoinByCodeIn,
@@ -26,9 +27,21 @@ from .groups import (
     UserGroupOut,
     UserGroupUpdateIn,
 )
+from .privacy import (
+    AnalyticsDataSchema,
+    CategorySchema,
+    DataOverviewSchema,
+    DeleteAccountRequestSchema,
+)
 
 __all__ = [
     "AddMemberIn",
+    "AnalyticsDataSchema",
+    "CategorySchema",
+    "DataOverviewSchema",
+    "DeleteAccountRequestSchema",
+    "GroupCorporateIdentityIn",
+    "GroupCorporateIdentityOut",
     "GroupMemberOut",
     "GroupParentOut",
     "JoinByCodeIn",
@@ -36,9 +49,8 @@ __all__ = [
     "JoinRequestIn",
     "JoinRequestOut",
     "MyContentOut",
-    "MyIdeaOut",
+    "ProfilePictureOut",
     "PublicContentOut",
-    "PublicIdeaOut",
     "PublicUserProfileOut",
     "UpdateMemberIn",
     "UserGroupChildOut",

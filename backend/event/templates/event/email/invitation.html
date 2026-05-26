@@ -1,0 +1,70 @@
+{% extends "event/email/base.html" %}
+{% comment %}
+Invitation email template.
+Additional context:
+  event_name: name of the event
+  invitation_text: event invitation text (markdown content rendered as plain text)
+  date_info: formatted date string
+  location_info: formatted location string
+  booking_options: list of dicts with name, price, description
+{% endcomment %}
+
+{% block title %}Einladung: {{ event_name }}{% endblock %}
+
+{% block content %}
+{% if ci_greeting_text %}
+<div style="white-space: pre-line; margin-bottom: 15px; color: #555555;">{{ ci_greeting_text }}</div>
+{% endif %}
+
+<h2 style="color: {{ ci_primary_color|default:'#4a3a6b' }}; font-size: 22px; margin: 0 0 15px 0;">{{ event_name }}</h2>
+
+{% if date_info %}
+<div style="margin-bottom: 8px;">
+  <strong>Datum:</strong> <span style="white-space: pre-line;">{{ date_info }}</span>
+</div>
+{% endif %}
+
+{% if location_info %}
+<div style="margin-bottom: 15px;">
+  <strong>Ort:</strong> {{ location_info }}
+</div>
+{% endif %}
+
+{% if invitation_text %}
+<div style="white-space: pre-line; margin: 20px 0; line-height: 1.6;">{{ invitation_text }}</div>
+{% endif %}
+
+{% if booking_options %}
+<h3 style="color: {{ ci_primary_color|default:'#4a3a6b' }}; font-size: 16px; margin: 25px 0 10px 0;">Buchungsoptionen</h3>
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" border="0" style="border: 1px solid #e0e0e0; border-radius: 4px;">
+  <tr style="background-color: {{ ci_secondary_color|default:'#e8e4f0' }};">
+    <td style="font-weight: bold; font-size: 13px;">Option</td>
+    <td style="font-weight: bold; font-size: 13px; text-align: right;">Preis</td>
+  </tr>
+  {% for opt in booking_options %}
+  <tr style="{% if forloop.counter|divisibleby:2 %}background-color: #fafafa;{% endif %}">
+    <td style="font-size: 14px;">
+      {{ opt.name }}
+      {% if opt.description %}
+      <div style="font-size: 12px; color: #777;">{{ opt.description }}</div>
+      {% endif %}
+    </td>
+    <td style="font-size: 14px; text-align: right;">{{ opt.price }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}
+
+{% block payment_section %}
+{% if ci_payment_info %}
+<tr>
+  <td style="padding: 0 30px 20px 30px;">
+    <div style="background-color: #f9f9f9; border-left: 3px solid {{ ci_primary_color|default:'#4a3a6b' }}; padding: 15px; border-radius: 4px;">
+      <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: {{ ci_primary_color|default:'#4a3a6b' }};">Zahlungsinformationen</div>
+      <div style="white-space: pre-line; font-size: 13px; color: #555555;">{{ ci_payment_info }}</div>
+    </div>
+  </td>
+</tr>
+{% endif %}
+{% endblock %}

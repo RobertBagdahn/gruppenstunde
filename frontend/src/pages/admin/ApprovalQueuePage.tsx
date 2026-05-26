@@ -67,7 +67,7 @@ export default function ApprovalQueuePage() {
         <div>
           <h2 className="text-xl font-bold">Genehmigungswarteschlange</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Eingereichte Inhalte pruefen und genehmigen oder ablehnen
+            Eingereichte Inhalte prüfen und genehmigen oder ablehnen
           </p>
         </div>
         {data && (
@@ -159,7 +159,7 @@ export default function ApprovalQueuePage() {
             disabled={page <= 1}
             className="px-3 py-1.5 rounded-md border text-sm disabled:opacity-50"
           >
-            Zurueck
+            Zurück
           </button>
           <span className="px-3 py-1.5 text-sm text-muted-foreground">
             Seite {data.page} / {data.total_pages}
@@ -185,7 +185,7 @@ export default function ApprovalQueuePage() {
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Grund fuer die Ablehnung..."
+              placeholder="Grund für die Ablehnung..."
               className="w-full rounded-md border px-3 py-2 text-sm min-h-[80px] mb-4"
             />
             <div className="flex gap-2 justify-end">

@@ -16,8 +16,8 @@ import {
   ComposedChart,
 } from 'recharts';
 import { useNormPersonCalculation, useNormPersonCurves } from '@/api/normPerson';
-import { useNutritionSummary } from '@/api/mealEvents';
-import { useMealEvent } from '@/api/mealEvents';
+import { useNutritionSummary } from '@/api/mealPlans';
+import { useMealPlan } from '@/api/mealPlans';
 import type { DgeReferencePoint } from '@/schemas/normPerson';
 import { cn } from '@/lib/utils';
 
@@ -26,14 +26,14 @@ import { cn } from '@/lib/utils';
 /* ------------------------------------------------------------------ */
 
 const PAL_OPTIONS = [
-  { value: 1.2, label: 'Ruhend', description: 'Kaum koerperliche Aktivitaet' },
-  { value: 1.5, label: 'Moderat', description: 'Normale Pfadfinder-Aktivitaet' },
-  { value: 1.75, label: 'Aktiv', description: 'Wanderung, Gelaendespiel' },
+  { value: 1.2, label: 'Ruhend', description: 'Kaum körperliche Aktivität' },
+  { value: 1.5, label: 'Moderat', description: 'Normale Pfadfinder-Aktivität' },
+  { value: 1.75, label: 'Aktiv', description: 'Wanderung, Geländespiel' },
   { value: 2.0, label: 'Sehr aktiv', description: 'Hajk, intensives Lager' },
 ] as const;
 
 const GENDER_OPTIONS = [
-  { value: 'male', label: 'Maennlich' },
+  { value: 'male', label: 'Männlich' },
   { value: 'female', label: 'Weiblich' },
 ] as const;
 
@@ -138,9 +138,9 @@ function ReferenceInfoCard() {
             Referenz-Normperson
           </p>
           <p className="text-sm text-amber-800 mt-1">
-            15 Jahre, maennlich, PAL 1.5 (moderat). Ein Normfaktor von 1.0
-            entspricht dem Energiebedarf dieser Referenzperson. Werte ueber 1.0
-            bedeuten hoeheren Bedarf, Werte unter 1.0 geringeren.
+            15 Jahre, männlich, PAL 1.5 (moderat). Ein Normfaktor von 1.0
+            entspricht dem Energiebedarf dieser Referenzperson. Werte über 1.0
+            bedeuten höheren Bedarf, Werte unter 1.0 geringeren.
           </p>
         </div>
       </div>
@@ -239,10 +239,10 @@ function MacroBreakdownChart({ dgePoints }: { dgePoints: DgeReferencePoint[] }) 
       <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
         <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
           <span className="material-symbols-outlined text-lg">stacked_bar_chart</span>
-          Makronaehrstoff-Verteilung (DGE-Empfehlung)
+          Makronährstoff-Verteilung (DGE-Empfehlung)
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Empfohlene Tageszufuhr in Gramm nach Altersgruppe und Geschlecht (M=Maennlich, W=Weiblich)
+          Empfohlene Tageszufuhr in Gramm nach Altersgruppe und Geschlecht (M=Männlich, W=Weiblich)
         </p>
       </div>
       <div className="p-4 overflow-x-auto">
@@ -275,31 +275,30 @@ function MacroBreakdownChart({ dgePoints }: { dgePoints: DgeReferencePoint[] }) 
 }
 
 /* ------------------------------------------------------------------ */
-/*  Ist vs. Soll Comparison (MealEvent context)                        */
+/*  Ist vs. Soll Comparison (MealPlan context)                        */
 /* ------------------------------------------------------------------ */
 
 function IstVsSollComparison({
-  mealEventId,
+  mealPlanId,
   dgePoints,
   pal,
 }: {
-  mealEventId: number;
+  mealPlanId: number;
   dgePoints: DgeReferencePoint[];
   pal: number;
 }) {
-  const { data: mealEvent } = useMealEvent(mealEventId);
-  const { data: nutrition } = useNutritionSummary(mealEventId);
+  const { data: mealPlan } = useMealPlan(mealPlanId);
+  const { data: nutrition } = useNutritionSummary(mealPlanId);
 
-  if (!nutrition || !mealEvent) return null;
+  if (!nutrition || !mealPlan) return null;
 
-  // Calculate average daily values (divide total by number of days)
-  // We approximate by dividing total nutrition by norm_portions to get per-person values
+  // Use backend-calculated per-portion values directly
   const perPerson = {
-    energy_kj: nutrition.energy_kj / (mealEvent.norm_portions || 1),
-    protein_g: nutrition.protein_g / (mealEvent.norm_portions || 1),
-    fat_g: nutrition.fat_g / (mealEvent.norm_portions || 1),
-    carbohydrate_g: nutrition.carbohydrate_g / (mealEvent.norm_portions || 1),
-    fibre_g: nutrition.fibre_g / (mealEvent.norm_portions || 1),
+    energy_kj: nutrition.per_portion_energy_kj,
+    protein_g: nutrition.per_portion_protein_g,
+    fat_g: nutrition.per_portion_fat_g,
+    carbohydrate_g: nutrition.per_portion_carbohydrate_g,
+    fibre_g: nutrition.per_portion_fibre_g,
   };
 
   // Get a representative DGE reference (average male+female for age 10-15)
@@ -350,10 +349,10 @@ function IstVsSollComparison({
       <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
         <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
           <span className="material-symbols-outlined text-lg">compare_arrows</span>
-          Ist vs. Soll - {mealEvent.name}
+          Ist vs. Soll - {mealPlan.name}
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Vergleich der tatsaechlichen Naehrwerte pro Normportion mit DGE-Empfehlung (Durchschnitt 7-19 J.)
+          Vergleich der tatsächlichen Nährwerte pro Normportion mit DGE-Empfehlung (Durchschnitt 7-19 J.)
         </p>
       </div>
       <div className="p-4 overflow-x-auto">
@@ -445,7 +444,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
           {/* PAL select */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              Aktivitaetslevel (PAL)
+              Aktivitätslevel (PAL)
             </label>
             <select
               value={pal}
@@ -495,7 +494,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
               value={`${data.weight_kg} kg`}
             />
             <ResultCard
-              label="Referenzgroesse"
+              label="Referenzgröße"
               value={`${data.height_cm} cm`}
             />
           </div>
@@ -549,8 +548,8 @@ export default function NormPortionSimulatorPage() {
     return parsed;
   }, [searchParams]);
 
-  const mealEventId = useMemo(() => {
-    const raw = searchParams.get('meal-event-id');
+  const mealPlanId = useMemo(() => {
+    const raw = searchParams.get('meal-plan-id');
     if (!raw) return null;
     const parsed = parseInt(raw, 10);
     return isNaN(parsed) || parsed <= 0 ? null : parsed;
@@ -558,7 +557,7 @@ export default function NormPortionSimulatorPage() {
 
   const handlePalChange = (newPal: number) => {
     const params: Record<string, string> = { pal: String(newPal) };
-    if (mealEventId) params['meal-event-id'] = String(mealEventId);
+    if (mealPlanId) params['meal-plan-id'] = String(mealPlanId);
     setSearchParams(params, { replace: true });
   };
 
@@ -597,13 +596,13 @@ export default function NormPortionSimulatorPage() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Visualisiere den Energiebedarf und Normfaktor nach Alter, Geschlecht
-          und Aktivitaetslevel. Die Normfaktoren helfen bei der
-          Portionsberechnung fuer unterschiedliche Altersgruppen.
+          und Aktivitätslevel. Die Normfaktoren helfen bei der
+          Portionsberechnung für unterschiedliche Altersgruppen.
         </p>
       </div>
 
-      {/* MealEvent context banner */}
-      {mealEventId && (
+      {/* MealPlan context banner */}
+      {mealPlanId && (
         <div className="rounded-xl border border-blue-300 bg-blue-50 p-4">
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">
@@ -615,7 +614,7 @@ export default function NormPortionSimulatorPage() {
               </p>
               <p className="text-sm text-blue-800 mt-1">
                 Ist vs. Soll Vergleich wird unten angezeigt basierend auf den
-                tatsaechlichen Naehrwerten des Essensplans.
+                tatsächlichen Nährwerten des Essensplans.
               </p>
             </div>
           </div>
@@ -628,7 +627,7 @@ export default function NormPortionSimulatorPage() {
       {/* PAL Selector */}
       <div>
         <h2 className="text-base font-semibold text-foreground mb-2">
-          Aktivitaetslevel (PAL)
+          Aktivitätslevel (PAL)
         </h2>
         <PalSelector value={pal} onChange={handlePalChange} />
       </div>
@@ -685,7 +684,7 @@ export default function NormPortionSimulatorPage() {
                         <Line
                           type="stepAfter"
                           dataKey="dge_male_kcal"
-                          name="DGE Maennlich"
+                          name="DGE Männlich"
                           stroke={CHART_COLORS.dge_male}
                           strokeWidth={2}
                           strokeDasharray="6 3"
@@ -708,7 +707,7 @@ export default function NormPortionSimulatorPage() {
                     <Line
                       type="monotone"
                       dataKey="male_tdee"
-                      name="Maennlich"
+                      name="Männlich"
                       stroke={CHART_COLORS.male}
                       strokeWidth={2}
                       dot={false}
@@ -747,7 +746,7 @@ export default function NormPortionSimulatorPage() {
                 Normfaktor nach Alter
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Faktor relativ zur Referenz-Normperson (1.0 = 15 J., maennlich, PAL 1.5)
+                Faktor relativ zur Referenz-Normperson (1.0 = 15 J., männlich, PAL 1.5)
               </p>
             </div>
             <div className="p-4 overflow-x-auto">
@@ -782,7 +781,7 @@ export default function NormPortionSimulatorPage() {
                     <Line
                       type="monotone"
                       dataKey="male_norm_factor"
-                      name="Maennlich"
+                      name="Männlich"
                       stroke={CHART_COLORS.male}
                       strokeWidth={2}
                       dot={false}
@@ -820,10 +819,10 @@ export default function NormPortionSimulatorPage() {
         </div>
       )}
 
-      {/* Ist vs. Soll (only when MealEvent context is provided) */}
-      {mealEventId && curves && curves.dge_reference.length > 0 && (
+      {/* Ist vs. Soll (only when MealPlan context is provided) */}
+      {mealPlanId && curves && curves.dge_reference.length > 0 && (
         <IstVsSollComparison
-          mealEventId={mealEventId}
+          mealPlanId={mealPlanId}
           dgePoints={curves.dge_reference}
           pal={pal}
         />

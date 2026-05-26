@@ -48,7 +48,7 @@ def _require_staff(request):
 # ---------------------------------------------------------------------------
 
 
-class TopIdeaOut(Schema):
+class TopContentOut(Schema):
     id: int
     title: str
     slug: str
@@ -57,13 +57,13 @@ class TopIdeaOut(Schema):
 
 
 class StatsOut(Schema):
-    total_ideas: int
-    published_ideas: int
+    total_content: int
+    published_content: int
     total_users: int
     total_comments: int
     pending_comments: int
     views_last_30_days: int
-    top_ideas: list[TopIdeaOut]
+    top_content: list[TopContentOut]
 
 
 class TrendingViewOut(Schema):
@@ -99,12 +99,12 @@ class AdminUserOut(Schema):
         return obj.date_joined.isoformat()
 
 
-class AdminUserIdeaOut(Schema):
+class AdminUserContentOut(Schema):
     id: int
     title: str
     slug: str
     status: str
-    idea_type: str
+    content_type: str
     created_at: str
 
     @staticmethod
@@ -117,8 +117,8 @@ class AdminUserCommentOut(Schema):
     text: str
     status: str
     created_at: str
-    idea_title: str | None
-    idea_slug: str | None
+    content_title: str | None
+    content_slug: str | None
 
 
 class AdminUserDetailOut(Schema):
@@ -130,15 +130,15 @@ class AdminUserDetailOut(Schema):
     is_active: bool
     date_joined: str
     last_login: str | None
-    ideas: list[AdminUserIdeaOut]
+    content: list[AdminUserContentOut]
     comments: list[AdminUserCommentOut]
 
 
 class RecentViewOut(Schema):
     id: int
     created_at: str
-    idea_title: str | None
-    idea_slug: str | None
+    content_title: str | None
+    content_slug: str | None
     user_email: str | None
 
 
@@ -150,12 +150,12 @@ class RecentSearchOut(Schema):
     user_email: str | None
 
 
-class RecentIdeaOut(Schema):
+class RecentContentOut(Schema):
     id: int
     title: str
     slug: str
     status: str
-    idea_type: str
+    content_type: str
     created_at: str
     author_email: str | None
 
@@ -163,7 +163,7 @@ class RecentIdeaOut(Schema):
 class RecentActivityOut(Schema):
     recent_views: list[RecentViewOut]
     recent_searches: list[RecentSearchOut]
-    recent_ideas: list[RecentIdeaOut]
+    recent_content: list[RecentContentOut]
 
 
 class CommentModerationOut(Schema):
@@ -264,10 +264,8 @@ def _get_all_content_qs():
 def admin_statistics(request):
     _require_staff(request)
 
-    total_ideas = sum(m.objects.count() for m in CONTENT_MODELS)
-    published_ideas = sum(
-        m.objects.filter(status=ContentStatus.APPROVED).count() for m in CONTENT_MODELS
-    )
+    total_content = sum(m.objects.count() for m in CONTENT_MODELS)
+    published_content = sum(m.objects.filter(status=ContentStatus.APPROVED).count() for m in CONTENT_MODELS)
 
     total_users = User.objects.count()
     total_comments = ContentComment.objects.count()
@@ -276,28 +274,30 @@ def admin_statistics(request):
     thirty_days_ago = timezone.now() - timedelta(days=30)
     views_last_30_days = ContentView.objects.filter(created_at__gte=thirty_days_ago).count()
 
-    # Top ideas by view_count across all content types
-    top_ideas = []
+    # Top content by view_count across all content types
+    top_content = []
     for model in CONTENT_MODELS:
         for item in model.objects.order_by("-view_count")[:5]:
-            top_ideas.append({
-                "id": item.id,
-                "title": item.title,
-                "slug": item.slug,
-                "view_count": item.view_count,
-                "like_score": item.like_score,
-            })
-    top_ideas.sort(key=lambda x: x["view_count"], reverse=True)
-    top_ideas = top_ideas[:10]
+            top_content.append(
+                {
+                    "id": item.id,
+                    "title": item.title,
+                    "slug": item.slug,
+                    "view_count": item.view_count,
+                    "like_score": item.like_score,
+                }
+            )
+    top_content.sort(key=lambda x: x["view_count"], reverse=True)
+    top_content = top_content[:10]
 
     return {
-        "total_ideas": total_ideas,
-        "published_ideas": published_ideas,
+        "total_content": total_content,
+        "published_content": published_content,
         "total_users": total_users,
         "total_comments": total_comments,
         "pending_comments": pending_comments,
         "views_last_30_days": views_last_30_days,
-        "top_ideas": top_ideas,
+        "top_content": top_content,
     }
 
 
@@ -325,12 +325,14 @@ def admin_trending(request):
         ct = ContentType.objects.get(id=vc["content_type_id"])
         try:
             obj = ct.get_object_for_this_type(id=vc["object_id"])
-            most_viewed.append({
-                "id": obj.id,
-                "title": obj.title,
-                "slug": obj.slug,
-                "views_7d": vc["views_7d"],
-            })
+            most_viewed.append(
+                {
+                    "id": obj.id,
+                    "title": obj.title,
+                    "slug": obj.slug,
+                    "views_7d": vc["views_7d"],
+                }
+            )
         except ct.model_class().DoesNotExist:
             continue
 
@@ -347,12 +349,14 @@ def admin_trending(request):
         ct = ContentType.objects.get(id=lc["content_type_id"])
         try:
             obj = ct.get_object_for_this_type(id=lc["object_id"])
-            most_liked.append({
-                "id": obj.id,
-                "title": obj.title,
-                "slug": obj.slug,
-                "likes_7d": lc["likes_7d"],
-            })
+            most_liked.append(
+                {
+                    "id": obj.id,
+                    "title": obj.title,
+                    "slug": obj.slug,
+                    "likes_7d": lc["likes_7d"],
+                }
+            )
         except ct.model_class().DoesNotExist:
             continue
 
@@ -369,9 +373,7 @@ def admin_recent_activity(request):
     _require_staff(request)
 
     # Recent views
-    recent_views_qs = ContentView.objects.select_related("user", "content_type").order_by(
-        "-created_at"
-    )[:20]
+    recent_views_qs = ContentView.objects.select_related("user", "content_type").order_by("-created_at")[:20]
     recent_views = []
     for v in recent_views_qs:
         title = None
@@ -383,13 +385,15 @@ def admin_recent_activity(request):
                 slug = obj.slug
         except Exception:
             pass
-        recent_views.append({
-            "id": v.id,
-            "created_at": v.created_at.isoformat(),
-            "idea_title": title,
-            "idea_slug": slug,
-            "user_email": v.user.email if v.user else None,
-        })
+        recent_views.append(
+            {
+                "id": v.id,
+                "created_at": v.created_at.isoformat(),
+                "content_title": title,
+                "content_slug": slug,
+                "user_email": v.user.email if v.user else None,
+            }
+        )
 
     # Recent searches
     recent_searches_qs = SearchLog.objects.select_related("user").order_by("-created_at")[:20]
@@ -405,27 +409,29 @@ def admin_recent_activity(request):
     ]
 
     # Recent content
-    recent_ideas = []
+    recent_content = []
     for model in CONTENT_MODELS:
         model_name = model.__name__.lower()
         label = CONTENT_TYPE_LABELS.get(model_name, model_name)
         for item in model.objects.select_related("created_by").order_by("-created_at")[:5]:
-            recent_ideas.append({
-                "id": item.id,
-                "title": item.title,
-                "slug": item.slug,
-                "status": item.status,
-                "idea_type": label,
-                "created_at": item.created_at.isoformat(),
-                "author_email": item.created_by.email if item.created_by else None,
-            })
-    recent_ideas.sort(key=lambda x: x["created_at"], reverse=True)
-    recent_ideas = recent_ideas[:20]
+            recent_content.append(
+                {
+                    "id": item.id,
+                    "title": item.title,
+                    "slug": item.slug,
+                    "status": item.status,
+                    "content_type": label,
+                    "created_at": item.created_at.isoformat(),
+                    "author_email": item.created_by.email if item.created_by else None,
+                }
+            )
+    recent_content.sort(key=lambda x: x["created_at"], reverse=True)
+    recent_content = recent_content[:20]
 
     return {
         "recent_views": recent_views,
         "recent_searches": recent_searches,
-        "recent_ideas": recent_ideas,
+        "recent_content": recent_content,
     }
 
 
@@ -447,16 +453,14 @@ def admin_user_detail(request, user_id: int):
     user = get_object_or_404(User, id=user_id)
 
     # Gather all content by this user
-    ideas = []
+    user_content = []
     for model in CONTENT_MODELS:
         model_name = model.__name__.lower()
         label = CONTENT_TYPE_LABELS.get(model_name, model_name)
-        for item in model.objects.filter(created_by=user).values(
-            "id", "title", "slug", "status", "created_at"
-        ):
-            item["idea_type"] = label
-            ideas.append(item)
-    ideas.sort(key=lambda x: x["created_at"], reverse=True)
+        for item in model.objects.filter(created_by=user).values("id", "title", "slug", "status", "created_at"):
+            item["content_type"] = label
+            user_content.append(item)
+    user_content.sort(key=lambda x: x["created_at"], reverse=True)
 
     # Gather comments
     comments_qs = ContentComment.objects.filter(user=user).select_related("content_type")
@@ -471,14 +475,16 @@ def admin_user_detail(request, user_id: int):
                 slug = obj.slug
         except Exception:
             pass
-        comments.append({
-            "id": c.id,
-            "text": c.text,
-            "status": c.status,
-            "created_at": c.created_at.isoformat(),
-            "idea_title": title,
-            "idea_slug": slug,
-        })
+        comments.append(
+            {
+                "id": c.id,
+                "text": c.text,
+                "status": c.status,
+                "created_at": c.created_at.isoformat(),
+                "content_title": title,
+                "content_slug": slug,
+            }
+        )
 
     return {
         "id": user.id,
@@ -489,7 +495,7 @@ def admin_user_detail(request, user_id: int):
         "is_active": user.is_active,
         "date_joined": user.date_joined.isoformat(),
         "last_login": user.last_login.isoformat() if user.last_login else None,
-        "ideas": ideas,
+        "content": user_content,
         "comments": comments,
     }
 
@@ -548,12 +554,14 @@ def admin_materials(request, filters: Query[MaterialFilterIn]):
     offset = (filters.page - 1) * filters.page_size
     items = []
     for m in qs[offset : offset + filters.page_size]:
-        items.append({
-            "id": m.id,
-            "name": m.name,
-            "slug": m.slug,
-            "default_unit": None,
-        })
+        items.append(
+            {
+                "id": m.id,
+                "name": m.name,
+                "slug": m.slug,
+                "default_unit": None,
+            }
+        )
 
     return {
         "items": items,

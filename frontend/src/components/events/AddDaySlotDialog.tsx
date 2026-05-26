@@ -122,7 +122,7 @@ export default function AddDaySlotDialog({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="z.B. Fruehstueck, Wanderung, Lagerfeuer"
+             placeholder="z.B. Frühstück, Wanderung, Lagerfeuer"
             required
             className="w-full px-3 py-2 text-sm border rounded-md bg-background"
           />

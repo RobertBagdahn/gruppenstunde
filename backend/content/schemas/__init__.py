@@ -24,6 +24,8 @@ from .base import (
     ContentUpdateIn,
     FeaturedContentIn,
     FeaturedContentOut,
+    ImageFromUrlIn,
+    ImageOut,
     PaginatedContentOut,
     ScoutLevelOut,
     TagOut,
@@ -101,6 +103,8 @@ __all__ = [
     "ApprovalActionIn",
     "FeaturedContentOut",
     "FeaturedContentIn",
+    "ImageFromUrlIn",
+    "ImageOut",
     "PaginatedContentOut",
     # Search
     "UnifiedSearchFilterIn",

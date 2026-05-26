@@ -2,12 +2,14 @@
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import File, Router
 from ninja.errors import HttpError
+from ninja.files import UploadedFile
 
 from profiles.models import GroupMembership, UserPreference, UserProfile
 from profiles.schemas import (
     MyContentOut,
+    ProfilePictureOut,
     PublicUserProfileOut,
     UserGroupOut,
     JoinRequestOut,
@@ -18,6 +20,9 @@ from profiles.schemas import (
 )
 
 profile_router = Router(tags=["profile"])
+
+MAX_PROFILE_PICTURE_SIZE = 500 * 1024  # 500KB
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 def _require_auth(request):
@@ -48,6 +53,37 @@ def update_my_profile(request, payload: UserProfileUpdateIn):
     return profile
 
 
+@profile_router.post("/me/picture/", response=ProfilePictureOut)
+def upload_profile_picture(request, file: UploadedFile = File(...)):
+    """Upload a profile picture (max 500KB, jpeg/png/webp)."""
+    _require_auth(request)
+
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HttpError(422, "Nur JPEG, PNG und WebP Bilder sind erlaubt")
+
+    if file.size and file.size > MAX_PROFILE_PICTURE_SIZE:
+        raise HttpError(422, "Maximale Dateigröße: 500 KB")
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    if profile.profile_picture:
+        profile.profile_picture.delete(save=False)
+    profile.profile_picture.save(file.name, file, save=True)
+    return {"profile_picture_url": profile.profile_picture.url}
+
+
+@profile_router.delete("/me/picture/", response=ProfilePictureOut)
+def delete_profile_picture(request):
+    """Remove the current user's profile picture."""
+    _require_auth(request)
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    if profile.profile_picture:
+        profile.profile_picture.delete(save=False)
+    profile.profile_picture = ""
+    profile.save(update_fields=["profile_picture"])
+    return {"profile_picture_url": None}
+
+
 @profile_router.get("/me/preferences/", response=UserPreferenceOut)
 def get_my_preferences(request):
     """Get the current user's preferences."""
@@ -67,8 +103,8 @@ def update_my_preferences(request, payload: UserPreferenceIn):
     return prefs
 
 
-@profile_router.get("/me/ideas/", response=list[MyContentOut])
-def get_my_ideas(request):
+@profile_router.get("/me/content/", response=list[MyContentOut])
+def get_my_content(request):
     """List all content authored by the current user (all statuses)."""
     _require_auth(request)
 
@@ -95,10 +131,22 @@ def get_my_ideas(request):
     return results
 
 
+# Legacy alias — will be removed in a future release
+@profile_router.get("/me/ideas/", response=list[MyContentOut], include_in_schema=False)
+def get_my_ideas_legacy(request):
+    """Legacy alias for get_my_content."""
+    return get_my_content(request)
+
+
 @profile_router.get("/{user_id}/", response=PublicUserProfileOut)
 def get_user_profile(request, user_id: int):
     """Get another user's public profile with their published content."""
     profile = get_object_or_404(UserProfile, user_id=user_id)
+
+    # Respect is_public flag (owner can always view their own profile)
+    is_own_profile = request.user.is_authenticated and request.user.id == user_id
+    if not profile.is_public and not is_own_profile:
+        raise HttpError(404, "Profil nicht gefunden")
     from content.choices import ContentStatus
 
     from blog.models import Blog

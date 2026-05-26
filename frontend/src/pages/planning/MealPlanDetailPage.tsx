@@ -1,5 +1,5 @@
 /**
- * BACKWARD COMPATIBILITY: Re-exports from MealEventDetailPage.
- * @deprecated Import from MealEventDetailPage instead.
+ * MealPlanDetailPage — primary export.
+ * The implementation lives in MealEventDetailPage.tsx (legacy filename).
  */
 export { default } from './MealEventDetailPage';

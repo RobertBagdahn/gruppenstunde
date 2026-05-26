@@ -63,7 +63,7 @@ export default function ExportTab({ event }: Props) {
       : Array.from(selectedColumns);
 
     if (!useAllColumns && colList.length === 0) {
-      toast.error('Bitte mindestens eine Spalte auswaehlen');
+      toast.error('Bitte mindestens eine Spalte auswählen');
       return;
     }
 

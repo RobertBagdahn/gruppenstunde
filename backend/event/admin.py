@@ -25,6 +25,15 @@ class EventLocationAdmin(admin.ModelAdmin):
 class BookingOptionInline(admin.TabularInline):
     model = BookingOption
     extra = 1
+    fields = [
+        "name",
+        "price",
+        "max_participants",
+        "is_system",
+        "bookable_from",
+        "bookable_till",
+    ]
+    readonly_fields = ["is_system"]
 
 
 class ParticipantInline(admin.TabularInline):
@@ -47,8 +56,16 @@ class ParticipantInline(admin.TabularInline):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug", "start_date", "end_date", "is_public", "created_at"]
-    list_filter = ["is_public", "start_date"]
+    list_display = [
+        "name",
+        "slug",
+        "start_date",
+        "end_date",
+        "is_public",
+        "guest_registration_enabled",
+        "created_at",
+    ]
+    list_filter = ["is_public", "guest_registration_enabled", "start_date"]
     search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ["responsible_persons", "invited_users", "invited_groups"]
@@ -58,8 +75,16 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(BookingOption)
 class BookingOptionAdmin(admin.ModelAdmin):
-    list_display = ["name", "event", "price", "max_participants"]
-    list_filter = ["event"]
+    list_display = [
+        "name",
+        "event",
+        "price",
+        "max_participants",
+        "is_system",
+        "bookable_from",
+        "bookable_till",
+    ]
+    list_filter = ["event", "is_system"]
     search_fields = ["name"]
     list_per_page = 25
 
@@ -76,16 +101,32 @@ class PersonAdmin(admin.ModelAdmin):
 
 @admin.register(Registration)
 class RegistrationAdmin(admin.ModelAdmin):
-    list_display = ["event", "user", "participant_count", "created_at"]
-    list_filter = ["event"]
+    list_display = [
+        "event",
+        "user",
+        "participant_count",
+        "is_deleted",
+        "deleted_reason",
+        "created_at",
+    ]
+    list_filter = ["event", "deleted_at"]
     search_fields = ["user__email", "event__name"]
-    raw_id_fields = ["user"]
+    raw_id_fields = ["user", "deleted_by"]
+    readonly_fields = ["deleted_at", "deleted_by", "deleted_reason"]
     inlines = [ParticipantInline]
     list_per_page = 25
+
+    def get_queryset(self, request):
+        """Show all registrations including soft-deleted ones in admin."""
+        return Registration.objects_all.all()
 
     @admin.display(description="Teilnehmer")
     def participant_count(self, obj):
         return obj.participants.count()
+
+    @admin.display(description="Gelöscht", boolean=True)
+    def is_deleted(self, obj):
+        return obj.deleted_at is not None
 
 
 @admin.register(Participant)

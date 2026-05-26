@@ -5,13 +5,13 @@ import math
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from profiles.models import GroupMembership, UserGroup
 
 from event.choices import GenderChoices, ParticipantVisibilityChoices
-from event.models import BookingOption, Event, EventLocation, Participant, Registration
+from event.models import BookingOption, Event, EventLocation, MeetingPoint, Participant, Registration
 from event.schemas import (
     BookingOptionCreateIn,
     BookingOptionOut,
@@ -23,6 +23,8 @@ from event.schemas import (
     EventUpdateIn,
     GenerateInvitationIn,
     GenerateInvitationOut,
+    GuestRegistrationIn,
+    GuestRegistrationOut,
     InvitationStatusOut,
     InviteGroupIn,
     PaginatedEventListOut,
@@ -30,11 +32,118 @@ from event.schemas import (
     RegistrationOut,
 )
 
-from .helpers import require_auth, require_event_manager
+from .helpers import check_rate_limit, require_auth, require_event_manager
 
 logger = logging.getLogger(__name__)
 
 event_router = Router(tags=["events"])
+
+
+# ==========================================================================
+# Slug Check (MUST be before /{event_slug}/)
+# ==========================================================================
+
+
+class SlugCheckOut(Schema):
+    available: bool
+    suggestion: str
+
+
+@event_router.get("/check-slug/", response=SlugCheckOut)
+def check_slug(request, slug: str):
+    """Check if a slug is available and suggest an alternative if not."""
+    from django.utils.text import slugify
+
+    clean_slug = slugify(slug)
+    if not clean_slug:
+        return {"available": False, "suggestion": ""}
+
+    exists = Event.objects.filter(slug=clean_slug).exists()
+    if not exists:
+        return {"available": True, "suggestion": clean_slug}
+
+    # Generate suggestion by appending a number
+    counter = 2
+    suggestion = f"{clean_slug}-{counter}"
+    while Event.objects.filter(slug=suggestion).exists():
+        counter += 1
+        suggestion = f"{clean_slug}-{counter}"
+
+    return {"available": False, "suggestion": suggestion}
+
+
+# ==========================================================================
+# Public Landing (MUST be before /{event_slug}/)
+# ==========================================================================
+
+
+@event_router.get("/public-landing/", response=list[EventListOut])
+def public_landing_events(request):
+    """Return up to 12 public, non-template events for the anonymous landing page.
+
+    Ordering: upcoming events first (start_date ascending from now).
+    If fewer than 12 upcoming events exist, recent past events are appended
+    (start_date descending) to fill up to 12 items total.
+    Unauthenticated endpoint, safe to cache.
+    """
+    from django.utils import timezone
+
+    now = timezone.now()
+    base_qs = Event.objects.filter(is_public=True, is_template=False).prefetch_related(
+        "booking_options", "registrations"
+    )
+
+    upcoming = list(
+        base_qs.filter(start_date__gte=now).order_by("start_date", "id")[:12]
+    )
+
+    items: list[Event] = list(upcoming)
+    if len(items) < 12:
+        remaining = 12 - len(items)
+        past = list(
+            base_qs.filter(start_date__lt=now).order_by("-start_date", "-id")[:remaining]
+        )
+        items.extend(past)
+
+    # Public landing hides system options and invitation/registration status
+    for event in items:
+        event._show_system_options = False
+        event._is_registered = False
+        event._is_invited = False
+
+    return items
+
+
+# ==========================================================================
+# Templates (MUST be before /{event_slug}/)
+# ==========================================================================
+
+
+@event_router.get("/templates/", response=PaginatedEventListOut)
+def list_templates(request, page: int = 1, page_size: int = 20):
+    """List template events owned by the current user."""
+    require_auth(request)
+    qs = Event.objects.filter(
+        is_template=True,
+        responsible_persons=request.user,
+    ).prefetch_related("booking_options", "registrations")
+
+    total = qs.count()
+    total_pages = max(1, math.ceil(total / page_size))
+    page = max(1, min(page, total_pages))
+    offset = (page - 1) * page_size
+    items = list(qs[offset : offset + page_size])
+
+    for event in items:
+        event._show_system_options = True
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 # ==========================================================================
@@ -96,8 +205,17 @@ def list_participant_visibility_choices(request):
 
 @event_router.get("/", response=PaginatedEventListOut)
 def list_events(request, page: int = 1, page_size: int = 20):
-    """List events visible to the current user (paginated)."""
-    qs = Event.objects.prefetch_related("booking_options", "registrations")
+    """List events visible to the current user (paginated). Excludes templates."""
+    qs = Event.objects.filter(is_template=False).prefetch_related(
+        "booking_options", "registrations", "invited_users", "invited_groups"
+    )
+
+    # Preload authenticated user's active group IDs once (re-used for filtering + invitation status)
+    user_group_ids: list[int] = []
+    if request.user.is_authenticated:
+        user_group_ids = list(
+            GroupMembership.objects.filter(user=request.user, is_active=True).values_list("group_id", flat=True)
+        )
 
     if not request.user.is_authenticated:
         # Anonymous users only see public events
@@ -106,10 +224,6 @@ def list_events(request, page: int = 1, page_size: int = 20):
         pass  # staff sees all
     else:
         # Authenticated: public + invited + managed
-        user_group_ids = GroupMembership.objects.filter(user=request.user, is_active=True).values_list(
-            "group_id", flat=True
-        )
-
         qs = qs.filter(
             Q(is_public=True)
             | Q(responsible_persons=request.user)
@@ -127,18 +241,25 @@ def list_events(request, page: int = 1, page_size: int = 20):
     for event in items:
         event._show_system_options = request.user.is_authenticated and event.user_can_manage(request.user)
 
-    # Mark registration status for authenticated users
+    # Mark registration and personal-invitation status for authenticated users
     if request.user.is_authenticated:
         registered_event_ids = set(
             Registration.objects.filter(user=request.user, event_id__in=[e.id for e in items]).values_list(
                 "event_id", flat=True
             )
         )
+        user_group_id_set = set(user_group_ids)
+        user_pk = request.user.pk
         for event in items:
             event._is_registered = event.id in registered_event_ids
+            # Evaluate personal invitation in-memory using prefetched M2M sets (no extra queries)
+            invited_user_pks = {u.pk for u in event.invited_users.all()}
+            invited_group_pks = {g.pk for g in event.invited_groups.all()}
+            event._is_invited = (user_pk in invited_user_pks) or bool(invited_group_pks & user_group_id_set)
     else:
         for event in items:
             event._is_registered = False
+            event._is_invited = False
 
     return {
         "items": items,
@@ -153,13 +274,30 @@ def list_events(request, page: int = 1, page_size: int = 20):
 def create_event(request, payload: EventCreateIn):
     """Create a new event with optional inline booking options."""
     require_auth(request)
-    data = payload.dict(exclude={"booking_options"})
+    data = payload.dict(exclude={"booking_options", "group_id", "invited_user_ids", "invited_group_ids"})
 
     # Handle event_location_id
     event_location_id = data.pop("event_location_id", None)
     if event_location_id:
         location_obj = get_object_or_404(EventLocation, id=event_location_id)
         data["event_location"] = location_obj
+
+    # Handle meeting_point_id
+    meeting_point_id = data.pop("meeting_point_id", None)
+    if meeting_point_id:
+        data["meeting_point"] = get_object_or_404(MeetingPoint, id=meeting_point_id)
+
+    # Handle pickup_point_id
+    pickup_point_id = data.pop("pickup_point_id", None)
+    if pickup_point_id:
+        data["pickup_point"] = get_object_or_404(MeetingPoint, id=pickup_point_id)
+
+    # Handle meal_plan_id
+    meal_plan_id = data.pop("meal_plan_id", None)
+    if meal_plan_id:
+        from planner.models import MealPlan
+
+        data["meal_plan"] = get_object_or_404(MealPlan, id=meal_plan_id)
 
     event = Event.objects.create(created_by=request.user, **data)
     event.responsible_persons.add(request.user)
@@ -169,7 +307,86 @@ def create_event(request, payload: EventCreateIn):
         for opt in payload.booking_options:
             BookingOption.objects.create(event=event, **opt.dict())
 
+    # Invite group if provided (legacy single group_id)
+    if payload.group_id:
+        group = get_object_or_404(UserGroup, id=payload.group_id, is_deleted=False)
+        event.invited_groups.add(group)
+
+    # Invite groups if provided (new multi-group support)
+    if payload.invited_group_ids:
+        from profiles.models import GroupMembership
+
+        valid_group_ids = GroupMembership.objects.filter(
+            user=request.user,
+            is_active=True,
+            group__id__in=payload.invited_group_ids,
+            group__is_deleted=False,
+        ).values_list("group_id", flat=True)
+        groups = UserGroup.objects.filter(id__in=valid_group_ids)
+        event.invited_groups.add(*groups)
+
+    # Invite users if provided
+    if payload.invited_user_ids:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        users = User.objects.filter(id__in=payload.invited_user_ids)
+        event.invited_users.add(*users)
+
     return event
+
+
+# ==========================================================================
+# Duplicate Event
+# ==========================================================================
+
+
+class DuplicateEventIn(Schema):
+    date_shift_weeks: int | None = None
+
+
+@event_router.post("/{event_slug}/duplicate/", response=EventListOut)
+def duplicate_event(request, event_slug: str, payload: DuplicateEventIn = None):
+    """Deep-copy an event with optional date shifting."""
+    require_auth(request)
+    event = get_object_or_404(Event, slug=event_slug)
+    require_event_manager(event, request.user)
+
+    from event.services.duplication import DuplicationService
+
+    date_shift_weeks = payload.date_shift_weeks if payload else None
+    new_event = DuplicationService.duplicate_event(event, request.user, date_shift_weeks=date_shift_weeks)
+    return new_event
+
+
+# ==========================================================================
+# Guest Registration (public, no auth required)
+# ==========================================================================
+
+
+@event_router.post("/{event_slug}/register-guest/", response={201: GuestRegistrationOut})
+def register_guest(request, event_slug: str, payload: GuestRegistrationIn):
+    """Register persons for an event without authentication (guest mode)."""
+    check_rate_limit(request, max_requests=10, window_seconds=3600)
+    event = get_object_or_404(Event, slug=event_slug)
+
+    persons_data = [p.dict() for p in payload.persons]
+
+    from event.services.guest_registration import GuestRegistrationService
+
+    GuestRegistrationService.validate_guest_registration(event, persons_data)
+    registration = GuestRegistrationService.create_guest_registration(event, persons_data, payload.email)
+
+    # Send confirmation email
+    from event.services.mail import MailService
+
+    MailService.send_registration_confirmation(event, registration)
+
+    return 201, {
+        "registration_id": registration.id,
+        "participant_count": registration.participants.count(),
+        "email": payload.email,
+    }
 
 
 # ==========================================================================
@@ -231,7 +448,7 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
             text: str = Field(min_length=100, max_length=5000)
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite-preview",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -328,6 +545,12 @@ def get_event(request, event_slug: str):
     # Participant stats based on visibility setting
     event.participant_stats = _build_participant_stats(event, is_manager)
 
+    # Guest registration URL (managers only)
+    if is_manager and event.guest_registration_enabled:
+        event.guest_registration_url = f"/events/{event.slug}/register"
+    else:
+        event.guest_registration_url = None
+
     # Invitation counts (managers only)
     if is_manager:
         event.invitation_counts = _compute_invitation_counts(event)
@@ -353,6 +576,32 @@ def update_event(request, event_slug: str, payload: EventUpdateIn):
             event.event_location = get_object_or_404(EventLocation, id=loc_id)
         else:
             event.event_location = None
+
+    # Handle meeting_point_id separately
+    if "meeting_point_id" in data:
+        mp_id = data.pop("meeting_point_id")
+        if mp_id is not None:
+            event.meeting_point = get_object_or_404(MeetingPoint, id=mp_id)
+        else:
+            event.meeting_point = None
+
+    # Handle pickup_point_id separately
+    if "pickup_point_id" in data:
+        pp_id = data.pop("pickup_point_id")
+        if pp_id is not None:
+            event.pickup_point = get_object_or_404(MeetingPoint, id=pp_id)
+        else:
+            event.pickup_point = None
+
+    # Handle meal_plan_id separately
+    if "meal_plan_id" in data:
+        mp_id = data.pop("meal_plan_id")
+        if mp_id is not None:
+            from planner.models import MealPlan
+
+            event.meal_plan = get_object_or_404(MealPlan, id=mp_id)
+        else:
+            event.meal_plan = None
 
     for field, value in data.items():
         setattr(event, field, value)
@@ -392,7 +641,7 @@ def update_booking_option(request, event_slug: str, option_id: int, payload: Boo
     require_event_manager(event, request.user)
     option = get_object_or_404(BookingOption, id=option_id, event=event)
     if option.is_system:
-        raise HttpError(403, "System-Buchungsoptionen koennen nicht bearbeitet werden.")
+        raise HttpError(403, "System-Buchungsoptionen können nicht bearbeitet werden.")
     for field, value in payload.dict(exclude_unset=True).items():
         setattr(option, field, value)
     option.save()
@@ -407,7 +656,7 @@ def delete_booking_option(request, event_slug: str, option_id: int):
     require_event_manager(event, request.user)
     option = get_object_or_404(BookingOption, id=option_id, event=event)
     if option.is_system:
-        raise HttpError(403, "System-Buchungsoptionen koennen nicht geloescht werden.")
+        raise HttpError(403, "System-Buchungsoptionen können nicht gelöscht werden.")
     option.delete()
     return {"success": True, "message": "Buchungsoption gelöscht"}
 

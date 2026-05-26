@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
 import {
@@ -11,6 +11,8 @@ import {
 } from '@/api/packingLists';
 import type { PackingListSummary } from '@/schemas/packingList';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ListPageHero from '@/components/shared/ListPageHero';
+import EmptyState from '@/components/shared/EmptyState';
 
 function ProgressBar({ checked, total }: { checked: number; total: number }) {
   const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
@@ -60,7 +62,7 @@ function PackingListCard({
             </span>
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">checklist</span>
-              {pl.item_count} Gegenstaende
+              {pl.item_count} Gegenstände
             </span>
             {pl.group_name && (
               <span className="flex items-center gap-1">
@@ -68,6 +70,12 @@ function PackingListCard({
                 {pl.group_name}
               </span>
             )}
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">
+                {pl.visibility === 'private' ? 'lock' : 'link'}
+              </span>
+              {pl.visibility === 'private' ? 'Privat' : 'Per Link'}
+            </span>
             <span>
               {new Date(pl.updated_at).toLocaleDateString('de-DE')}
             </span>
@@ -85,7 +93,7 @@ function PackingListCard({
               onDelete(pl.id);
             }}
             className="text-destructive hover:bg-destructive/10 rounded p-1 ml-2 shrink-0"
-            title="Loeschen"
+            title="Löschen"
           >
             <span className="material-symbols-outlined text-lg">delete</span>
           </button>
@@ -116,14 +124,33 @@ function TemplateCard({
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
             <span>{template.category_count} Kategorien</span>
-            <span>{template.item_count} Gegenstaende</span>
+            <span>{template.item_count} Gegenstände</span>
           </div>
+          {(template.activity_type || template.season || template.duration) && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {template.activity_type && (
+                <span className="inline-flex items-center px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-medium">
+                  {template.activity_type}
+                </span>
+              )}
+              {template.season && (
+                <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-medium">
+                  {template.season}
+                </span>
+              )}
+              {template.duration && (
+                <span className="inline-flex items-center px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-[10px] font-medium">
+                  {template.duration}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <button
           onClick={() => onClone(template.id)}
           disabled={isCloning}
           className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-md text-xs hover:opacity-90 transition disabled:opacity-50 shrink-0 ml-2"
-          title="Als eigene Packliste uebernehmen"
+           title="Als eigene Packliste übernehmen"
         >
           <span className="material-symbols-outlined text-sm">content_copy</span>
           Verwenden
@@ -135,6 +162,7 @@ function TemplateCard({
 
 export default function PackingListsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const { data: packingLists, isLoading } = usePackingLists();
   const { data: templates, isLoading: templatesLoading } = usePackingListTemplates();
@@ -142,9 +170,20 @@ export default function PackingListsPage() {
   const deletePackingList = useDeletePackingList();
   const clonePackingList = useClonePackingList();
   const [newTitle, setNewTitle] = useState('');
+  const [newVisibility, setNewVisibility] = useState<'link_only' | 'private'>('link_only');
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+
+  // Open create form when navigated from wizard with openCreate state
+  useEffect(() => {
+    const state = location.state as { openCreate?: boolean } | null;
+    if (state?.openCreate) {
+      setShowCreate(true);
+      // Clear the state so refreshing doesn't re-open
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   if (userLoading) {
     return <div className="animate-pulse h-64 bg-muted rounded-lg" />;
@@ -184,6 +223,13 @@ export default function PackingListsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
+      <ListPageHero
+        title="Packlisten"
+        description="Erstelle und teile Packlisten fuer Lager, Fahrten und Aktionen."
+        icon="backpack"
+        gradientClasses="bg-gradient-to-br from-violet-500 to-purple-600"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -201,7 +247,7 @@ export default function PackingListsPage() {
             <span className="hidden sm:inline">Vorlagen</span>
           </button>
           <button
-            onClick={() => setShowCreate(!showCreate)}
+            onClick={() => navigate('/packing-lists/new')}
             className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-md text-sm hover:opacity-90 transition"
           >
             <span className="material-symbols-outlined text-lg">add</span>
@@ -226,7 +272,7 @@ export default function PackingListsPage() {
             </button>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Waehle eine Vorlage als Ausgangspunkt fuer deine eigene Packliste.
+            Wähle eine Vorlage als Ausgangspunkt für deine eigene Packliste.
           </p>
           {templatesLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -247,7 +293,7 @@ export default function PackingListsPage() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Keine Vorlagen verfuegbar.
+               Keine Vorlagen verfügbar.
             </p>
           )}
         </div>
@@ -266,10 +312,11 @@ export default function PackingListsPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newTitle.trim()) {
                   createPackingList.mutate(
-                    { title: newTitle.trim() },
+                    { title: newTitle.trim(), visibility: newVisibility },
                     {
                       onSuccess: (data) => {
                         setNewTitle('');
+                        setNewVisibility('link_only');
                         setShowCreate(false);
                         navigate(`/packing-lists/${data.id}`);
                       },
@@ -281,13 +328,37 @@ export default function PackingListsPage() {
               autoFocus
             />
             <button
+              type="button"
+              onClick={() =>
+                setNewVisibility(newVisibility === 'link_only' ? 'private' : 'link_only')
+              }
+              className={`px-3 py-2 rounded-md border text-sm flex items-center gap-1 transition ${
+                newVisibility === 'private'
+                  ? 'text-amber-600 border-amber-300 bg-amber-50'
+                  : 'text-muted-foreground'
+              }`}
+              title={
+                newVisibility === 'private'
+                  ? 'Privat — Nur du hast Zugriff'
+                  : 'Per Link zugänglich'
+              }
+            >
+              <span className="material-symbols-outlined text-lg">
+                {newVisibility === 'private' ? 'lock' : 'link'}
+              </span>
+              <span className="hidden sm:inline">
+                {newVisibility === 'private' ? 'Privat' : 'Per Link'}
+              </span>
+            </button>
+            <button
               onClick={() => {
                 if (newTitle.trim()) {
                   createPackingList.mutate(
-                    { title: newTitle.trim() },
+                    { title: newTitle.trim(), visibility: newVisibility },
                     {
                       onSuccess: (data) => {
                         setNewTitle('');
+                        setNewVisibility('link_only');
                         setShowCreate(false);
                         navigate(`/packing-lists/${data.id}`);
                       },
@@ -315,29 +386,13 @@ export default function PackingListsPage() {
 
       {/* Empty State */}
       {!isLoading && packingLists && packingLists.length === 0 && (
-        <div className="text-center py-12">
-          <span className="material-symbols-outlined text-5xl text-muted-foreground mb-4 block">
-            inventory_2
-          </span>
-          <h2 className="text-lg font-semibold mb-2">Noch keine Packlisten</h2>
-          <p className="text-muted-foreground text-sm mb-4">
-            Erstelle deine erste Packliste oder waehle eine Vorlage als Ausgangspunkt.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={() => setShowCreate(true)}
-              className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-md text-sm"
-            >
-              Leere Packliste erstellen
-            </button>
-            <button
-              onClick={() => setShowTemplates(true)}
-              className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
-            >
-              Aus Vorlage erstellen
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          icon="inventory_2"
+          title="Noch keine Packlisten"
+          description="Erstelle deine erste Packliste oder wähle eine Vorlage als Ausgangspunkt."
+          ctaLabel="Neue Packliste erstellen"
+          ctaHref="/packing-lists/new"
+        />
       )}
 
       {/* Packing List Cards */}
@@ -359,19 +414,19 @@ export default function PackingListsPage() {
           if (deleteTargetId === null) return;
           deletePackingList.mutate(deleteTargetId, {
             onSuccess: () => {
-              toast.success('Packliste geloescht');
+              toast.success('Packliste gelöscht');
               setDeleteTargetId(null);
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setDeleteTargetId(null);
             },
           });
         }}
         onCancel={() => setDeleteTargetId(null)}
-        title="Packliste loeschen?"
-        description="Alle Kategorien und Gegenstaende werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Packliste löschen?"
+        description="Alle Kategorien und Gegenstände werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deletePackingList.isPending}
       />
     </div>

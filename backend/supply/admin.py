@@ -4,6 +4,7 @@ from django.contrib import admin
 
 from .models import (
     ContentMaterialItem,
+    DgeReference,
     Ingredient,
     IngredientAlias,
     Material,
@@ -115,6 +116,47 @@ class IngredientAdmin(admin.ModelAdmin):
                 )
             },
         ),
+        (
+            "Vitamine",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "vitamin_a_mg",
+                    "vitamin_b1_mg",
+                    "vitamin_b2_mg",
+                    "vitamin_b6_mg",
+                    "vitamin_b12_ug",
+                    "vitamin_c_mg",
+                    "vitamin_d_ug",
+                    "vitamin_e_mg",
+                    "vitamin_k_ug",
+                    "niacin_mg",
+                    "folate_ug",
+                    "pantothenic_acid_mg",
+                    "biotin_ug",
+                ),
+            },
+        ),
+        (
+            "Mineralstoffe",
+            {
+                "classes": ("collapse",),
+                "fields": (
+                    "calcium_mg",
+                    "iron_mg",
+                    "magnesium_mg",
+                    "zinc_mg",
+                    "potassium_mg",
+                    "phosphorus_mg",
+                    "iodine_ug",
+                    "selenium_ug",
+                    "copper_mg",
+                    "manganese_mg",
+                    "chromium_ug",
+                    "fluoride_mg",
+                ),
+            },
+        ),
         ("Scores", {"fields": ("child_score", "scout_score", "environmental_score", "nova_score", "fruit_factor")}),
         ("Berechnet", {"fields": ("nutri_score", "nutri_class", "price_per_kg"), "classes": ("collapse",)}),
         ("Referenzen", {"fields": ("fdc_id", "ean", "ingredient_ref"), "classes": ("collapse",)}),
@@ -127,3 +169,66 @@ class PortionAdmin(admin.ModelAdmin):
     list_display = ["name", "ingredient", "quantity", "measuring_unit"]
     search_fields = ["name", "ingredient__name"]
     list_per_page = 25
+
+
+# ---------------------------------------------------------------------------
+# DGE Reference Values
+# ---------------------------------------------------------------------------
+
+
+@admin.register(DgeReference)
+class DgeReferenceAdmin(admin.ModelAdmin):
+    list_display = ["age_min", "age_max", "gender", "energy_kj", "protein_g", "vitamin_c_mg", "calcium_mg"]
+    list_filter = ["gender"]
+    search_fields = ["gender"]
+    list_per_page = 25
+    fieldsets = (
+        (None, {"fields": ("age_min", "age_max", "gender")}),
+        (
+            "Makronährstoffe (pro Tag)",
+            {"fields": ("energy_kj", "protein_g", "fat_g", "carbohydrate_g", "fibre_g")},
+        ),
+        (
+            "Obergrenzen (pro Tag)",
+            {"fields": ("sugar_g_max", "salt_g_max", "fat_sat_g_max", "sodium_mg_max")},
+        ),
+        (
+            "Vitamine (pro Tag)",
+            {
+                "fields": (
+                    "vitamin_a_mg",
+                    "vitamin_b1_mg",
+                    "vitamin_b2_mg",
+                    "vitamin_b6_mg",
+                    "vitamin_b12_ug",
+                    "vitamin_c_mg",
+                    "vitamin_d_ug",
+                    "vitamin_e_mg",
+                    "vitamin_k_ug",
+                    "niacin_mg",
+                    "folate_ug",
+                    "pantothenic_acid_mg",
+                    "biotin_ug",
+                ),
+            },
+        ),
+        (
+            "Mineralstoffe (pro Tag)",
+            {
+                "fields": (
+                    "calcium_mg",
+                    "iron_mg",
+                    "magnesium_mg",
+                    "zinc_mg",
+                    "potassium_mg",
+                    "phosphorus_mg",
+                    "iodine_ug",
+                    "selenium_ug",
+                    "copper_mg",
+                    "manganese_mg",
+                    "chromium_ug",
+                    "fluoride_mg",
+                ),
+            },
+        ),
+    )

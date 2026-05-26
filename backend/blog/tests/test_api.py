@@ -24,7 +24,7 @@ def scout_level(db):
 def approved_blog(db, tag, scout_level):
     blog = Blog.objects.create(
         title="Wie plane ich eine Gruppenstunde",
-        summary="Schritt-fuer-Schritt Anleitung",
+        summary="Schritt-für-Schritt Anleitung",
         description="Lorem ipsum dolor sit amet " * 100,  # ~500 words → ~3 min reading
         blog_type="guide",
         difficulty="easy",

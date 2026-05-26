@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 
-const CREATE_OPTIONS = [
+const CONTENT_OPTIONS = [
   {
     to: '/create/session',
     icon: 'groups',
     label: 'Gruppenstunde',
-    description: 'Eine Aktivität oder Idee für die Gruppenstunde erstellen',
+    description:
+      'Erstelle eine Aktivitaet, Andacht, Bastelarbeit oder Methode fuer die Gruppenstunde. Teile deine Idee mit anderen Leitern und lass dich inspirieren.',
     color: 'text-sky-600',
     bg: 'bg-sky-50',
     border: 'hover:border-sky-300',
@@ -14,7 +15,8 @@ const CREATE_OPTIONS = [
     to: '/recipes/new',
     icon: 'menu_book',
     label: 'Rezept',
-    description: 'Koch- oder Backrezept für Lager und Gruppenstunde',
+    description:
+      'Koch- oder Backrezept fuer Lager, Hajk oder Gruppenstunde. Mit Zutaten, Naehrwerten und Portionsberechnung fuer grosse Gruppen.',
     color: 'text-rose-600',
     bg: 'bg-rose-50',
     border: 'hover:border-rose-300',
@@ -23,7 +25,8 @@ const CREATE_OPTIONS = [
     to: '/create/game',
     icon: 'sports_esports',
     label: 'Spiel',
-    description: 'Ein Gelaende-, Gruppen- oder Kooperationsspiel beschreiben',
+    description:
+      'Gelaendespiel, Gruppenspiel, Kooperationsspiel oder Kennenlernspiel beschreiben. Mit Regeln, Spielerzahl, Dauer und benoetigtem Material.',
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
     border: 'hover:border-emerald-300',
@@ -32,42 +35,134 @@ const CREATE_OPTIONS = [
     to: '/create/blog',
     icon: 'article',
     label: 'Blog-Beitrag',
-    description: 'Wissen, Methoden oder Erfahrungsberichte teilen',
+    description:
+      'Wissen, Methoden, Erfahrungsberichte oder Tipps teilen. Perfekt fuer Leitungsrunden-Themen, paedagogische Impulse oder Lager-Berichte.',
     color: 'text-indigo-600',
     bg: 'bg-indigo-50',
     border: 'hover:border-indigo-300',
   },
 ] as const;
 
+const TOOL_OPTIONS = [
+  {
+    to: '/events/app/new',
+    icon: 'celebration',
+    label: 'Aktion / Veranstaltung',
+    description:
+      'Lager, Hajk, Elternabend, Stammeslager oder andere Aktion planen. Mit Anmeldung, Teilnehmerverwaltung, Packliste und Kommunikation.',
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    border: 'hover:border-violet-300',
+  },
+  {
+    to: '/packing-lists/new',
+    icon: 'checklist',
+    label: 'Packliste',
+    description:
+      'Packliste fuer Lager, Hajk oder Wochenendaktion erstellen. Mit KI-Unterstuetzung, Kategorien und Teilen-Funktion.',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
+    border: 'hover:border-amber-300',
+  },
+  {
+    to: '/meal-plans/app',
+    icon: 'restaurant',
+    label: 'Essensplan',
+    description:
+      'Mahlzeiten fuer mehrtaegige Veranstaltungen planen. Automatische Mengenberechnung, Naehrwert-Cockpit und Einkaufsliste.',
+    color: 'text-orange-600',
+    bg: 'bg-orange-50',
+    border: 'hover:border-orange-300',
+  },
+  {
+    to: '/session-planner/app',
+    icon: 'calendar_month',
+    label: 'Quartalsplan',
+    description:
+      'Gruppenstunden fuer ein ganzes Quartal planen. Themen, Verantwortliche und Termine im Ueberblick.',
+    color: 'text-teal-600',
+    bg: 'bg-teal-50',
+    border: 'hover:border-teal-300',
+  },
+  {
+    to: '/ingredients/new',
+    icon: 'egg_alt',
+    label: 'Zutat',
+    description:
+      'Neue Zutat mit Naehrwerten, Preis und Portionsgroessen zur Datenbank hinzufuegen. Wird fuer Rezepte und Essensplaene verwendet.',
+    color: 'text-lime-600',
+    bg: 'bg-lime-50',
+    border: 'hover:border-lime-300',
+  },
+] as const;
+
+function CreateCard({
+  opt,
+}: {
+  opt: (typeof CONTENT_OPTIONS)[number] | (typeof TOOL_OPTIONS)[number];
+}) {
+  return (
+    <Link
+      to={opt.to}
+      className={`flex items-start gap-4 p-5 rounded-xl border-2 border-border transition-all duration-200 hover:shadow-colorful hover:-translate-y-1 ${opt.border}`}
+    >
+      <div
+        className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${opt.bg}`}
+      >
+        <span className={`material-symbols-outlined text-[28px] ${opt.color}`}>
+          {opt.icon}
+        </span>
+      </div>
+      <div className="min-w-0">
+        <span className="font-semibold text-sm">{opt.label}</span>
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          {opt.description}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 export default function CreateHubPage() {
   return (
     <div className="container py-8 max-w-2xl">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="flex items-center justify-center w-12 h-12 rounded-xl gradient-primary text-white">
           <span className="material-symbols-outlined text-[24px]">add_circle</span>
         </div>
         <div>
           <h1 className="text-2xl font-bold">Erstellen</h1>
-          <p className="text-sm text-muted-foreground">Was möchtest du erstellen?</p>
+          <p className="text-sm text-muted-foreground">
+            Was moechtest du erstellen? Waehle einen Inhaltstyp oder ein Planungstool.
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {CREATE_OPTIONS.map((opt) => (
-          <Link
-            key={opt.to}
-            to={opt.to}
-            className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border transition-all text-center hover:shadow-md ${opt.border}`}
-          >
-            <div className={`flex items-center justify-center w-16 h-16 rounded-2xl ${opt.bg}`}>
-              <span className={`material-symbols-outlined text-[36px] ${opt.color}`}>
-                {opt.icon}
-              </span>
-            </div>
-            <span className="font-semibold">{opt.label}</span>
-            <span className="text-xs text-muted-foreground">{opt.description}</span>
-          </Link>
-        ))}
+      {/* Content section */}
+      <div className="mb-8">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px]">lightbulb</span>
+          Inhalte
+        </h2>
+        <div className="grid grid-cols-1 gap-3">
+          {CONTENT_OPTIONS.map((opt) => (
+            <CreateCard key={opt.to} opt={opt} />
+          ))}
+        </div>
+      </div>
+
+      {/* Tools section */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px]">build</span>
+          Planungstools
+        </h2>
+        <div className="grid grid-cols-1 gap-3">
+          {TOOL_OPTIONS.map((opt) => (
+            <CreateCard key={opt.to} opt={opt} />
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,17 +1,42 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useMealEvents, useCreateMealEvent, useDeleteMealEvent } from '@/api/mealEvents';
+import { useMealPlans, useCreateMealPlan, useDeleteMealPlan } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import UnauthGate from '@/components/shared/UnauthGate';
 
-export default function MealEventListPage() {
+export default function MealPlanListPage() {
+  const { data: user, isLoading: userLoading } = useCurrentUser();
+
+  if (userLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <UnauthGate
+        title="Essenspläne"
+        description="Melde dich an, um deine Essenspläne zu verwalten."
+      />
+    );
+  }
+
+  return <MealPlanListPageInner />;
+}
+
+function MealPlanListPageInner() {
   const navigate = useNavigate();
-  const { data: user } = useCurrentUser();
-  const { data: mealPlans, error, isLoading, refetch } = useMealEvents();
-  const createMutation = useCreateMealEvent();
-  const deleteMutation = useDeleteMealEvent();
+  const { data: mealPlans, error, isLoading, refetch } = useMealPlans();
+  const createMutation = useCreateMealPlan();
+  const deleteMutation = useDeleteMealPlan();
 
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
@@ -19,15 +44,6 @@ export default function MealEventListPage() {
   const [createNumDays, setCreateNumDays] = useState(3);
   const [createPortions, setCreatePortions] = useState(10);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  if (!user) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <span className="material-symbols-outlined text-4xl mb-2 block">login</span>
-        <p>Bitte melde dich an, um Essenspläne zu verwalten.</p>
-      </div>
-    );
-  }
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
@@ -58,7 +74,7 @@ export default function MealEventListPage() {
           setCreateStartDate('');
           setCreateNumDays(3);
           setCreatePortions(10);
-          navigate(`/meal-events/${plan.id}`);
+          navigate(`/meal-plans/${plan.id}`);
         },
         onError: (err) => toast.error('Fehler', { description: err.message }),
       },
@@ -170,7 +186,7 @@ export default function MealEventListPage() {
           {mealPlans?.map((plan) => (
             <div
               key={plan.id}
-              onClick={() => navigate(`/meal-events/${plan.id}`)}
+              onClick={() => navigate(`/meal-plans/${plan.id}`)}
               className="rounded-xl border bg-card p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between">

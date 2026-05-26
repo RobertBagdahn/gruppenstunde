@@ -1,5 +1,5 @@
 /**
- * Central color and metadata configuration for all platform modules (Tools + Idea).
+ * Central color and metadata configuration for all platform modules (Tools + Content).
  *
  * Every tool has a consistent color scheme used across:
  * - Navigation, hero banners, badges, cards, gradients, buttons
@@ -40,7 +40,7 @@ export interface ToolConfig {
 /*  Tool Definitions                                                   */
 /* ------------------------------------------------------------------ */
 
-export const TOOL_IDEA: ToolConfig = {
+export const TOOL_CONTENT: ToolConfig = {
   key: 'content',
   label: 'Ideen & Wissen',
   tagline: 'Gruppenstunden-Ideen und Wissensartikel entdecken',
@@ -57,8 +57,8 @@ export const TOOL_IDEA: ToolConfig = {
 
 export const TOOL_EVENTS: ToolConfig = {
   key: 'events',
-  label: 'Veranstaltungen',
-  tagline: 'Lager, Elternabende und Aktionen planen',
+  label: 'Aktionen',
+  tagline: 'Lager, Elternabende und Aktionen planen und verwalten',
   icon: 'celebration',
   gradient: 'from-violet-500 to-purple-600',
   bgSolid: 'bg-violet-500',
@@ -73,7 +73,7 @@ export const TOOL_EVENTS: ToolConfig = {
 export const TOOL_MEAL_PLAN: ToolConfig = {
   key: 'meal-plan',
   label: 'Essensplan',
-  tagline: 'Mahlzeiten planen mit Einkaufsliste und Naehrwerten',
+  tagline: 'Mahlzeiten planen mit Einkaufsliste und Nährwerten',
   icon: 'restaurant_menu',
   gradient: 'from-amber-500 to-orange-600',
   bgSolid: 'bg-amber-500',
@@ -81,14 +81,14 @@ export const TOOL_MEAL_PLAN: ToolConfig = {
   bgTint: 'bg-amber-50',
   borderColor: 'border-amber-300',
   ringColor: 'ring-amber-400',
-  basePath: '/meal-events',
+  basePath: '/meal-plans',
   mascotImg: '/images/inspi_cook.png',
 };
 
 export const TOOL_SESSION_PLANNER: ToolConfig = {
   key: 'session-planner',
   label: 'Gruppenstundenplan',
-  tagline: 'Woechentliche Gruppenstunden planen und organisieren',
+  tagline: 'Wöchentliche Gruppenstunden planen und organisieren',
   icon: 'calendar_month',
   gradient: 'from-emerald-500 to-green-600',
   bgSolid: 'bg-emerald-500',
@@ -103,7 +103,7 @@ export const TOOL_SESSION_PLANNER: ToolConfig = {
 export const TOOL_PACKING_LISTS: ToolConfig = {
   key: 'packing-lists',
   label: 'Packlisten',
-  tagline: 'Packlisten fuer Hajk, Lager und Wochenendaktionen',
+  tagline: 'Packlisten für Hajk, Lager und Wochenendaktionen',
   icon: 'checklist',
   gradient: 'from-teal-500 to-cyan-600',
   bgSolid: 'bg-teal-500',
@@ -118,7 +118,7 @@ export const TOOL_PACKING_LISTS: ToolConfig = {
 export const TOOL_RECIPES: ToolConfig = {
   key: 'recipes',
   label: 'Rezepte',
-  tagline: 'Koch- und Backrezepte mit Naehrwerten und Nutri-Score',
+  tagline: 'Koch- und Backrezepte mit Nährwerten und Nutri-Score',
   icon: 'menu_book',
   gradient: 'from-rose-500 to-pink-600',
   bgSolid: 'bg-rose-500',
@@ -133,7 +133,7 @@ export const TOOL_RECIPES: ToolConfig = {
 export const TOOL_SESSIONS: ToolConfig = {
   key: 'sessions',
   label: 'Gruppenstunden',
-  tagline: 'Ideen und Anleitungen fuer die naechste Gruppenstunde',
+  tagline: 'Ideen und Anleitungen für die nächste Gruppenstunde',
   icon: 'groups',
   gradient: 'from-emerald-500 to-green-600',
   bgSolid: 'bg-emerald-500',
@@ -147,7 +147,7 @@ export const TOOL_SESSIONS: ToolConfig = {
 export const TOOL_BLOG: ToolConfig = {
   key: 'blog',
   label: 'Blog',
-  tagline: 'Wissensbeitraege, Tutorials und Erfahrungsberichte',
+  tagline: 'Wissensbeiträge, Tutorials und Erfahrungsberichte',
   icon: 'article',
   gradient: 'from-indigo-500 to-blue-600',
   bgSolid: 'bg-indigo-500',
@@ -161,7 +161,7 @@ export const TOOL_BLOG: ToolConfig = {
 export const TOOL_GAMES: ToolConfig = {
   key: 'games',
   label: 'Spiele',
-  tagline: 'Gelaendespiele, Kennenlernspiele und mehr',
+  tagline: 'Geländespiele, Kennenlernspiele und mehr',
   icon: 'sports_esports',
   gradient: 'from-orange-500 to-red-600',
   bgSolid: 'bg-orange-500',
@@ -195,9 +195,9 @@ export const ALL_TOOLS: ToolConfig[] = [
   TOOL_NORM_PORTION,
 ];
 
-/** All content modules (Ideas + Recipes + Sessions + Blog + Games) */
+/** All content modules (Content + Recipes + Sessions + Blog + Games) */
 export const CONTENT_MODULES: ToolConfig[] = [
-  TOOL_IDEA,
+  TOOL_CONTENT,
   TOOL_RECIPES,
   TOOL_SESSIONS,
   TOOL_BLOG,
@@ -206,7 +206,7 @@ export const CONTENT_MODULES: ToolConfig[] = [
 
 /** Everything combined */
 export const ALL_MODULES: ToolConfig[] = [
-  TOOL_IDEA,
+  TOOL_CONTENT,
   TOOL_RECIPES,
   TOOL_SESSIONS,
   TOOL_BLOG,

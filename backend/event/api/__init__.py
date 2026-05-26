@@ -14,11 +14,25 @@ from .labels import *  # noqa: F401, F403 — registers endpoints on event_route
 from .export import *  # noqa: F401, F403 — registers endpoints on event_router
 from .mail import *  # noqa: F401, F403 — registers endpoints on event_router
 from .stats import *  # noqa: F401, F403 — registers endpoints on event_router
+from .invitation import *  # noqa: F401, F403 — registers endpoints on event_router
+from .checklist import *  # noqa: F401, F403 — registers endpoints on event_router
+from .waitlist import *  # noqa: F401, F403 — registers endpoints on event_router
+from .attendance import *  # noqa: F401, F403 — registers endpoints on event_router
+from .room_assignment import *  # noqa: F401, F403 — registers endpoints on event_router
+from .parent_access import *  # noqa: F401, F403 — registers endpoints on event_router
+from .budget import *  # noqa: F401, F403 — registers endpoints on event_router
+from .import_data import *  # noqa: F401, F403 — registers endpoints on event_router
+from .messaging import *  # noqa: F401, F403 — registers endpoints on event_router
 from .persons import person_router  # noqa: F401 — person CRUD router
 from .locations import location_router  # noqa: F401 — location CRUD router
+from .meeting_points import meeting_point_router  # noqa: F401 — meeting point CRUD router
+from .whatsapp import template_router, whatsapp_router  # noqa: F401 — WhatsApp routers
 
 __all__ = [
     "event_router",
     "location_router",
+    "meeting_point_router",
     "person_router",
+    "template_router",
+    "whatsapp_router",
 ]

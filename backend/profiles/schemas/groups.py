@@ -1,8 +1,10 @@
-"""Pydantic schemas for groups, memberships, and join requests."""
+"""Pydantic schemas for groups, memberships, join requests, and corporate identity."""
 
+import re
 from datetime import datetime
 
 from ninja import Schema
+from pydantic import field_validator
 
 
 class GroupParentOut(Schema):
@@ -68,6 +70,45 @@ class GroupMemberOut(Schema):
         return obj.user.last_name
 
 
+# --- Corporate Identity ---
+
+
+class GroupCorporateIdentityOut(Schema):
+    """Output schema for corporate identity data."""
+
+    primary_color: str
+    secondary_color: str
+    logo_url: str = ""
+    slogan: str
+    greeting_text: str
+    footer_text: str
+    payment_info: str
+    signature_text: str
+
+    @staticmethod
+    def resolve_logo_url(obj) -> str:
+        return obj.logo_url
+
+
+class GroupCorporateIdentityIn(Schema):
+    """Input schema for creating/updating corporate identity."""
+
+    primary_color: str = "#4a3a6b"
+    secondary_color: str = "#e8e4f0"
+    slogan: str = ""
+    greeting_text: str = ""
+    footer_text: str = ""
+    payment_info: str = ""
+    signature_text: str = ""
+
+    @field_validator("primary_color", "secondary_color")
+    @classmethod
+    def validate_hex_color(cls, v: str) -> str:
+        if not re.match(r"^#[0-9a-fA-F]{6}$", v):
+            raise ValueError("Farbe muss ein gültiger Hex-Wert sein (z.B. #4a3a6b)")
+        return v
+
+
 class UserGroupDetailOut(Schema):
     id: int
     name: str
@@ -85,6 +126,7 @@ class UserGroupDetailOut(Schema):
     updated_at: datetime
     members: list[GroupMemberOut] = []
     inherited_member_count: int = 0
+    corporate_identity: GroupCorporateIdentityOut | None = None
 
     @staticmethod
     def resolve_member_count(obj) -> int:
@@ -111,6 +153,13 @@ class UserGroupDetailOut(Schema):
     @staticmethod
     def resolve_inherited_member_count(obj) -> int:
         return len(obj.get_all_member_ids())
+
+    @staticmethod
+    def resolve_corporate_identity(obj):
+        try:
+            return obj.corporate_identity
+        except obj.__class__.corporate_identity.RelatedObjectDoesNotExist:
+            return None
 
 
 class UserGroupCreateIn(Schema):

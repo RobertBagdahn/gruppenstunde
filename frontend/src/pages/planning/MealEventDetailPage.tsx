@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useCreateFromMealEvent } from '@/api/shoppingLists';
+import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import {
-  useMealEvent,
-  useUpdateMealEvent,
+  useMealPlan,
+  useUpdateMealPlan,
   useAddDay,
   useRemoveDay,
   useAddMeal,
@@ -15,13 +15,16 @@ import {
   useNutritionSummary,
   useShoppingList,
   useRecipeSearch,
-} from '@/api/mealEvents';
-import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS } from '@/schemas/mealEvent';
-import type { Meal } from '@/schemas/mealEvent';
+} from '@/api/mealPlans';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS } from '@/schemas/mealPlan';
+import type { Meal } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useMealEventCockpit, useDayCockpit, useMealCockpit } from '@/api/cockpit';
+import { useMealPlanCockpit, useDayCockpit, useMealCockpit } from '@/api/cockpit';
 import { CockpitDashboard as CockpitDashboardComponent, TrafficLightIndicator } from '@/components/cockpit';
+import EmptyState from '@/components/shared/EmptyState';
+
+const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
 /** Group a flat list of meals by date (from start_datetime), preserving sort order. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -38,13 +41,13 @@ function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
     .map(([date, meals]) => ({ date, meals }));
 }
 
-export default function MealEventDetailPage() {
+export default function MealPlanDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const mealPlanId = Number(id) || 0;
 
-  const { data: plan, error, isLoading, refetch } = useMealEvent(mealPlanId);
-  const updateMutation = useUpdateMealEvent(mealPlanId);
+  const { data: plan, error, isLoading, refetch } = useMealPlan(mealPlanId);
+  const updateMutation = useUpdateMealPlan(mealPlanId);
   const addDayMutation = useAddDay(mealPlanId);
   const removeDayMutation = useRemoveDay(mealPlanId);
   const addMealMutation = useAddMeal(mealPlanId);
@@ -81,7 +84,7 @@ export default function MealEventDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container py-6 space-y-4">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <div className="h-8 w-48 bg-muted rounded animate-pulse" />
         <div className="h-64 bg-muted rounded-xl animate-pulse" />
       </div>
@@ -159,11 +162,11 @@ export default function MealEventDetailPage() {
   };
 
   return (
-    <div className="container py-4 sm:py-6 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <button
-           onClick={() => navigate('/meal-events/app')}
+           onClick={() => navigate('/meal-plans/app')}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors self-start"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -230,7 +233,7 @@ export default function MealEventDetailPage() {
       {/* Tab Content */}
       {activeTab === 'plan' && (
         <DayPlanView
-          mealEventId={mealPlanId}
+          mealPlanId={mealPlanId}
           dayGroups={dayGroups}
           canEdit={plan.can_edit}
           newDayDate={newDayDate}
@@ -251,7 +254,7 @@ export default function MealEventDetailPage() {
       )}
       {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
-      {activeTab === 'cockpit' && <CockpitView mealEventId={mealPlanId} />}
+      {activeTab === 'cockpit' && <CockpitView mealPlanId={mealPlanId} />}
 
       {/* Delete Day Confirm */}
       <ConfirmDialog
@@ -416,7 +419,7 @@ function SettingsPanel({
 // ==========================================================================
 
 function DayPlanView({
-  mealEventId,
+  mealPlanId,
   dayGroups,
   canEdit,
   newDayDate,
@@ -434,7 +437,7 @@ function DayPlanView({
   onAddRecipe,
   onDeleteItem,
 }: {
-  mealEventId: number;
+  mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
   canEdit: boolean;
   newDayDate: string;
@@ -483,10 +486,11 @@ function DayPlanView({
 
       {/* Days */}
       {dayGroups.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <span className="material-symbols-outlined text-4xl mb-2 block">event</span>
-          <p>Noch keine Tage vorhanden. Füge einen Tag hinzu.</p>
-        </div>
+        <EmptyState
+          icon="event"
+          title="Noch keine Tage vorhanden"
+          description="Füge einen Tag hinzu, um mit der Planung zu beginnen."
+        />
       ) : (
         dayGroups.map((group) => (
           <div key={group.date} className="rounded-xl border bg-card overflow-hidden">
@@ -494,7 +498,7 @@ function DayPlanView({
             <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b">
               <div className="flex items-center gap-3 min-w-0">
                 <h3 className="font-semibold text-sm sm:text-base">{formatDate(group.date)}</h3>
-                <DayCockpitDots mealEventId={mealEventId} date={group.date} />
+                <DayCockpitDots mealPlanId={mealPlanId} date={group.date} />
               </div>
               {canEdit && (
                 <button
@@ -701,28 +705,46 @@ function MealSlot({
 
 function NutritionView({ mealPlanId }: { mealPlanId: number }) {
   const { data, error, isLoading, refetch } = useNutritionSummary(mealPlanId);
+  const [showPerPortion, setShowPerPortion] = useState(false);
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
   if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
   if (!data) return null;
 
-  const rows = [
-    { label: 'Energie', value: `${Math.round(data.energy_kj)} kJ`, icon: 'local_fire_department' },
-    { label: 'Protein', value: `${data.protein_g.toFixed(1)} g`, icon: 'fitness_center' },
-    { label: 'Fett', value: `${data.fat_g.toFixed(1)} g`, icon: 'water_drop' },
-    { label: 'Kohlenhydrate', value: `${data.carbohydrate_g.toFixed(1)} g`, icon: 'grain' },
-    { label: 'Zucker', value: `${data.sugar_g.toFixed(1)} g`, icon: 'cake' },
-    { label: 'Ballaststoffe', value: `${data.fibre_g.toFixed(1)} g`, icon: 'eco' },
-    { label: 'Salz', value: `${data.salt_g.toFixed(1)} g`, icon: 'water_drop' },
-  ];
+  const rows = showPerPortion
+    ? [
+        { label: 'Energie', value: `${Math.round(data.per_portion_energy_kj)} kJ`, icon: 'local_fire_department' },
+        { label: 'Protein', value: `${data.per_portion_protein_g.toFixed(1)} g`, icon: 'fitness_center' },
+        { label: 'Fett', value: `${data.per_portion_fat_g.toFixed(1)} g`, icon: 'water_drop' },
+        { label: 'Kohlenhydrate', value: `${data.per_portion_carbohydrate_g.toFixed(1)} g`, icon: 'grain' },
+        { label: 'Zucker', value: `${data.per_portion_sugar_g.toFixed(1)} g`, icon: 'cake' },
+        { label: 'Ballaststoffe', value: `${data.per_portion_fibre_g.toFixed(1)} g`, icon: 'eco' },
+        { label: 'Salz', value: `${data.per_portion_salt_g.toFixed(1)} g`, icon: 'water_drop' },
+      ]
+    : [
+        { label: 'Energie', value: `${Math.round(data.energy_kj)} kJ`, icon: 'local_fire_department' },
+        { label: 'Protein', value: `${data.protein_g.toFixed(1)} g`, icon: 'fitness_center' },
+        { label: 'Fett', value: `${data.fat_g.toFixed(1)} g`, icon: 'water_drop' },
+        { label: 'Kohlenhydrate', value: `${data.carbohydrate_g.toFixed(1)} g`, icon: 'grain' },
+        { label: 'Zucker', value: `${data.sugar_g.toFixed(1)} g`, icon: 'cake' },
+        { label: 'Ballaststoffe', value: `${data.fibre_g.toFixed(1)} g`, icon: 'eco' },
+        { label: 'Salz', value: `${data.salt_g.toFixed(1)} g`, icon: 'water_drop' },
+      ];
 
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
-      <div className="px-4 py-3 bg-muted/50 border-b">
+      <div className="px-4 py-3 bg-muted/50 border-b flex items-center justify-between">
         <h3 className="font-semibold flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px]">nutrition</span>
-          Nährwert-Zusammenfassung (gesamt)
+          Nährwert-Zusammenfassung {showPerPortion ? '(pro Normportion)' : '(gesamt)'}
         </h3>
+        <button
+          type="button"
+          onClick={() => setShowPerPortion(!showPerPortion)}
+          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium"
+        >
+          {showPerPortion ? 'Gesamt anzeigen' : `Pro Portion (${data.norm_portions})`}
+        </button>
       </div>
       <div className="divide-y">
         {rows.map((row) => (
@@ -735,6 +757,27 @@ function NutritionView({ mealPlanId }: { mealPlanId: number }) {
           </div>
         ))}
       </div>
+
+      {/* Nutrient Balance Chart */}
+      {(data.protein_g > 0 || data.fat_g > 0 || data.carbohydrate_g > 0) && (
+        <div className="px-4 py-4 border-t">
+          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px]">bar_chart</span>
+            Nährstoff-Verteilung {showPerPortion ? '(pro Portion)' : '(gesamt)'}
+          </h4>
+          <Suspense fallback={<div className="h-[260px] bg-muted rounded-xl animate-pulse" />}>
+            <LazyNutrientBalanceChart
+              proteinG={showPerPortion ? data.per_portion_protein_g : data.protein_g}
+              fatG={showPerPortion ? data.per_portion_fat_g : data.fat_g}
+              carbsG={showPerPortion ? data.per_portion_carbohydrate_g : data.carbohydrate_g}
+              sugarG={showPerPortion ? data.per_portion_sugar_g : data.sugar_g}
+              fibreG={showPerPortion ? data.per_portion_fibre_g : data.fibre_g}
+              saltG={showPerPortion ? data.per_portion_salt_g : data.salt_g}
+              label={showPerPortion ? 'Pro Normportion' : 'Gesamt'}
+            />
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 }
@@ -747,16 +790,17 @@ function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
   const { data, error, isLoading, refetch } = useShoppingList(mealPlanId);
-  const createFromMealEvent = useCreateFromMealEvent();
+  const createFromMealPlan = useCreateFromMealPlan();
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
   if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <span className="material-symbols-outlined text-4xl mb-2 block">shopping_cart</span>
-        <p>Noch keine Zutaten. Füge Rezepte zu den Mahlzeiten hinzu.</p>
-      </div>
+      <EmptyState
+        icon="shopping_cart"
+        title="Noch keine Zutaten"
+        description="Füge Rezepte zu den Mahlzeiten hinzu, um die Einkaufsliste zu sehen."
+      />
     );
   }
 
@@ -776,9 +820,9 @@ function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
       {currentUser && (
         <button
           type="button"
-          disabled={createFromMealEvent.isPending}
+          disabled={createFromMealPlan.isPending}
           onClick={() => {
-            createFromMealEvent.mutate(mealPlanId, {
+            createFromMealPlan.mutate(mealPlanId, {
               onSuccess: (created) => {
                 toast.success('Einkaufsliste erstellt');
                 navigate(`/shopping-lists/${created.id}`);
@@ -790,9 +834,9 @@ function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
           className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50"
         >
           <span className="material-symbols-outlined text-[18px]">
-            {createFromMealEvent.isPending ? 'hourglass_empty' : 'shopping_cart'}
+            {createFromMealPlan.isPending ? 'hourglass_empty' : 'shopping_cart'}
           </span>
-          {createFromMealEvent.isPending
+          {createFromMealPlan.isPending
             ? 'Erstelle Einkaufsliste...'
             : 'Einkaufsliste erstellen'}
         </button>
@@ -809,7 +853,16 @@ function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
           <div className="divide-y">
             {items.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between px-4 py-2">
-                <span className="text-sm">{item.ingredient_name}</span>
+                {item.ingredient_slug ? (
+                  <Link
+                    to={`/ingredients/${item.ingredient_slug}`}
+                    className="text-sm hover:text-primary transition-colors"
+                  >
+                    {item.ingredient_name}
+                  </Link>
+                ) : (
+                  <span className="text-sm">{item.ingredient_name}</span>
+                )}
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <span>{Math.round(item.total_quantity_g)} {item.unit}</span>
                   {item.estimated_price_eur !== null && (
@@ -839,8 +892,8 @@ function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
 // Day Cockpit Dots — compact traffic light dots for a single day
 // ==========================================================================
 
-function DayCockpitDots({ mealEventId, date }: { mealEventId: number; date: string }) {
-  const { data: cockpit } = useDayCockpit(mealEventId, date);
+function DayCockpitDots({ mealPlanId, date }: { mealPlanId: number; date: string }) {
+  const { data: cockpit } = useDayCockpit(mealPlanId, date);
 
   if (!cockpit || cockpit.evaluations.length === 0) return null;
 
@@ -883,8 +936,8 @@ function MealCockpitDots({ mealId }: { mealId: number }) {
 // CockpitView — Health rule traffic lights (full dashboard)
 // ==========================================================================
 
-function CockpitView({ mealEventId }: { mealEventId: number }) {
-  const { data: cockpit, error, isLoading } = useMealEventCockpit(mealEventId);
+function CockpitView({ mealPlanId }: { mealPlanId: number }) {
+  const { data: cockpit, error, isLoading } = useMealPlanCockpit(mealPlanId);
 
   if (isLoading) {
     return (

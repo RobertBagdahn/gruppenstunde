@@ -23,11 +23,31 @@ export const EventLocationSchema = z.object({
   city: z.string(),
   state: z.string(),
   country: z.string(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   description: z.string(),
   created_at: z.string(),
   updated_at: z.string(),
 });
 export type EventLocation = z.infer<typeof EventLocationSchema>;
+
+// --- Meeting Point ---
+
+export const MeetingPointSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  street: z.string(),
+  zip_code: z.string(),
+  city: z.string(),
+  description: z.string(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  group_id: z.number().nullable().optional(),
+  full_address: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type MeetingPoint = z.infer<typeof MeetingPointSchema>;
 
 // --- Person ---
 
@@ -40,6 +60,7 @@ export const PersonSchema = z.object({
   zip_code: z.string(),
   city: z.string(),
   email: z.string(),
+  phone_number: z.string().nullable().optional(),
   birthday: z.string().nullable(),
   gender: z.string(),
   nutritional_tags: z.array(NutritionalTagSchema),
@@ -60,6 +81,9 @@ export const BookingOptionSchema = z.object({
   current_participant_count: z.number(),
   is_full: z.boolean(),
   is_system: z.boolean(),
+  bookable_from: z.string().nullable().optional(),
+  bookable_till: z.string().nullable().optional(),
+  is_bookable: z.boolean(),
   created_at: z.string(),
 });
 export type BookingOption = z.infer<typeof BookingOptionSchema>;
@@ -111,6 +135,7 @@ export const ParticipantSchema = z.object({
   zip_code: z.string(),
   city: z.string(),
   email: z.string(),
+  phone_number: z.string().nullable().optional(),
   birthday: z.string().nullable(),
   gender: z.string(),
   nutritional_tags: z.array(NutritionalTagSchema),
@@ -280,8 +305,15 @@ export const EventListSchema = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string(),
+  color: z.string(),
+  icon: z.string(),
+  is_template: z.boolean(),
+  manual_phase: z.string().nullable().optional(),
+  meal_plan_id: z.number().nullable().optional(),
   location: z.string(),
   event_location: EventLocationSchema.nullable().optional(),
+  meeting_point: MeetingPointSchema.nullable().optional(),
+  pickup_point: MeetingPointSchema.nullable().optional(),
   start_date: z.string().nullable(),
   end_date: z.string().nullable(),
   registration_deadline: z.string().nullable(),
@@ -292,6 +324,7 @@ export const EventListSchema = z.object({
   participant_count: z.number(),
   phase: EventPhaseSchema,
   is_registered: z.boolean(),
+  is_invited: z.boolean(),
   created_at: z.string(),
 });
 export type EventList = z.infer<typeof EventListSchema>;
@@ -301,14 +334,23 @@ export const EventDetailSchema = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string(),
+  color: z.string(),
+  icon: z.string(),
+  is_template: z.boolean(),
+  manual_phase: z.string().nullable().optional(),
+  meal_plan_id: z.number().nullable().optional(),
   location: z.string(),
   event_location: EventLocationSchema.nullable().optional(),
+  meeting_point: MeetingPointSchema.nullable().optional(),
+  pickup_point: MeetingPointSchema.nullable().optional(),
   invitation_text: z.string(),
   start_date: z.string().nullable(),
   end_date: z.string().nullable(),
   registration_deadline: z.string().nullable(),
   registration_start: z.string().nullable(),
   is_public: z.boolean(),
+  guest_registration_enabled: z.boolean(),
+  guest_registration_url: z.string().nullable().optional(),
   participant_visibility: z.string(),
   booking_options: z.array(BookingOptionSchema),
   packing_list_id: z.number().nullable().optional(),
@@ -473,6 +515,34 @@ export const GenerateInvitationSchema = z.object({
 });
 export type GenerateInvitation = z.infer<typeof GenerateInvitationSchema>;
 
+// --- Guest Registration ---
+
+export const GuestRegistrationPersonSchema = z.object({
+  first_name: z.string().min(1, 'Vorname ist erforderlich'),
+  last_name: z.string().min(1, 'Nachname ist erforderlich'),
+  scout_name: z.string().optional().default(''),
+  birthday: z.string().nullable().optional(),
+  gender: z.string().optional().default('no_answer'),
+  phone_number: z.string().optional().default(''),
+  booking_option_id: z.number({ required_error: 'Buchungsoption ist erforderlich' }),
+});
+export type GuestRegistrationPerson = z.infer<typeof GuestRegistrationPersonSchema>;
+
+export const GuestRegistrationSchema = z.object({
+  persons: z
+    .array(GuestRegistrationPersonSchema)
+    .min(1, 'Mindestens eine Person ist erforderlich'),
+  email: z.string().email('Gültige E-Mail-Adresse erforderlich'),
+});
+export type GuestRegistration = z.infer<typeof GuestRegistrationSchema>;
+
+export const GuestRegistrationResponseSchema = z.object({
+  registration_id: z.number(),
+  participant_count: z.number(),
+  email: z.string(),
+});
+export type GuestRegistrationResponse = z.infer<typeof GuestRegistrationResponseSchema>;
+
 // --- Paginated Response Schemas ---
 
 export const PaginatedEventListSchema = z.object({
@@ -502,6 +572,15 @@ export const PaginatedLocationSchema = z.object({
 });
 export type PaginatedLocation = z.infer<typeof PaginatedLocationSchema>;
 
+export const PaginatedMeetingPointSchema = z.object({
+  items: z.array(MeetingPointSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedMeetingPoint = z.infer<typeof PaginatedMeetingPointSchema>;
+
 export const PaginatedInvitationStatusSchema = z.object({
   items: z.array(InvitationStatusSchema),
   total: z.number(),
@@ -510,3 +589,199 @@ export const PaginatedInvitationStatusSchema = z.object({
   total_pages: z.number(),
 });
 export type PaginatedInvitationStatus = z.infer<typeof PaginatedInvitationStatusSchema>;
+
+// --- Slug Check ---
+
+export const SlugCheckSchema = z.object({
+  available: z.boolean(),
+  suggestion: z.string(),
+});
+export type SlugCheck = z.infer<typeof SlugCheckSchema>;
+
+// --- Waitlist ---
+
+export const WaitlistEntrySchema = z.object({
+  id: z.number(),
+  event_id: z.number(),
+  booking_option_id: z.number(),
+  booking_option_name: z.string(),
+  user_id: z.number(),
+  user_display_name: z.string(),
+  person_id: z.number().nullable().optional(),
+  person_display_name: z.string(),
+  created_at: z.string(),
+  notified_at: z.string().nullable().optional(),
+  expired_at: z.string().nullable().optional(),
+});
+export type WaitlistEntry = z.infer<typeof WaitlistEntrySchema>;
+
+export const WaitlistEntryCreateSchema = z.object({
+  booking_option_id: z.number(),
+  person_id: z.number().nullable().optional(),
+});
+export type WaitlistEntryCreate = z.infer<typeof WaitlistEntryCreateSchema>;
+
+export const PaginatedWaitlistEntrySchema = z.object({
+  items: z.array(WaitlistEntrySchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedWaitlistEntry = z.infer<typeof PaginatedWaitlistEntrySchema>;
+
+// --- Attendance ---
+
+export const AttendanceRecordSchema = z.object({
+  id: z.number(),
+  participant_id: z.number(),
+  participant_name: z.string(),
+  checked_in_at: z.string().nullable().optional(),
+  checked_out_at: z.string().nullable().optional(),
+  checked_in_by_id: z.number().nullable().optional(),
+  is_checked_in: z.boolean(),
+});
+export type AttendanceRecord = z.infer<typeof AttendanceRecordSchema>;
+
+export const PaginatedAttendanceRecordSchema = z.object({
+  items: z.array(AttendanceRecordSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedAttendanceRecord = z.infer<typeof PaginatedAttendanceRecordSchema>;
+
+// --- Checklist ---
+
+export const ChecklistItemSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  is_met: z.boolean(),
+  link: z.string(),
+});
+export type ChecklistItem = z.infer<typeof ChecklistItemSchema>;
+
+export const ChecklistSchema = z.object({
+  items: z.array(ChecklistItemSchema),
+  all_met: z.boolean(),
+});
+export type Checklist = z.infer<typeof ChecklistSchema>;
+
+// --- Room Assignment ---
+
+export const RoomParticipantSchema = z.object({
+  id: z.number(),
+  first_name: z.string(),
+  last_name: z.string(),
+  scout_name: z.string(),
+});
+export type RoomParticipant = z.infer<typeof RoomParticipantSchema>;
+
+export const RoomAssignmentSchema = z.object({
+  id: z.number(),
+  event_id: z.number(),
+  name: z.string(),
+  capacity: z.number(),
+  description: z.string(),
+  sort_order: z.number(),
+  participants: z.array(RoomParticipantSchema),
+  current_occupancy: z.number(),
+  is_full: z.boolean(),
+});
+export type RoomAssignment = z.infer<typeof RoomAssignmentSchema>;
+
+export const RoomAssignmentCreateSchema = z.object({
+  name: z.string().min(1, 'Name ist erforderlich'),
+  capacity: z.number().min(0).optional(),
+  description: z.string().optional(),
+  sort_order: z.number().optional(),
+});
+export type RoomAssignmentCreate = z.infer<typeof RoomAssignmentCreateSchema>;
+
+// --- Parent Access Token ---
+
+export const ParentAccessTokenSchema = z.object({
+  id: z.number(),
+  participant_id: z.number(),
+  participant_name: z.string(),
+  token: z.string(),
+  email: z.string(),
+  created_at: z.string(),
+  expires_at: z.string(),
+});
+export type ParentAccessToken = z.infer<typeof ParentAccessTokenSchema>;
+
+export const PaginatedParentAccessTokenSchema = z.object({
+  items: z.array(ParentAccessTokenSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedParentAccessToken = z.infer<typeof PaginatedParentAccessTokenSchema>;
+
+// --- Budget ---
+
+export const BudgetItemSchema = z.object({
+  id: z.number(),
+  event_id: z.number(),
+  description: z.string(),
+  amount: z.string(), // Decimal as string
+  category: z.string(),
+  is_expense: z.boolean(),
+  created_by_id: z.number().nullable().optional(),
+  created_at: z.string(),
+});
+export type BudgetItem = z.infer<typeof BudgetItemSchema>;
+
+export const BudgetItemCreateSchema = z.object({
+  description: z.string().min(1, 'Beschreibung ist erforderlich'),
+  amount: z.string(),
+  category: z.string().optional().default('other'),
+  is_expense: z.boolean().optional().default(true),
+});
+export type BudgetItemCreate = z.infer<typeof BudgetItemCreateSchema>;
+
+export const BudgetSummarySchema = z.object({
+  total_income: z.string(), // Decimal as string
+  expected_income: z.string(),
+  total_expenses: z.string(),
+  balance: z.string(),
+  items: z.array(BudgetItemSchema),
+});
+export type BudgetSummary = z.infer<typeof BudgetSummarySchema>;
+
+// --- Import ---
+
+export const ImportColumnMappingSchema = z.object({
+  source_column: z.string(),
+  target_field: z.string(),
+});
+export type ImportColumnMapping = z.infer<typeof ImportColumnMappingSchema>;
+
+export const ImportRowPreviewSchema = z.object({
+  row_number: z.number(),
+  data: z.record(z.string()),
+  errors: z.array(z.string()),
+  is_valid: z.boolean(),
+});
+export type ImportRowPreview = z.infer<typeof ImportRowPreviewSchema>;
+
+export const ImportPreviewSchema = z.object({
+  total_rows: z.number(),
+  valid_rows: z.number(),
+  invalid_rows: z.number(),
+  columns: z.array(z.string()),
+  suggested_mappings: z.array(ImportColumnMappingSchema),
+  preview_rows: z.array(ImportRowPreviewSchema),
+});
+export type ImportPreview = z.infer<typeof ImportPreviewSchema>;
+
+export const ImportResultSchema = z.object({
+  total_processed: z.number(),
+  success_count: z.number(),
+  error_count: z.number(),
+  errors: z.array(z.string()),
+});
+export type ImportResult = z.infer<typeof ImportResultSchema>;

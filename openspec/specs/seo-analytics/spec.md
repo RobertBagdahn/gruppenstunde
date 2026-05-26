@@ -1,10 +1,5 @@
 # seo-analytics Specification
 
-> **⚠️ HINWEIS: Diese Spec referenziert die alte `idea` App-Architektur.**
-> Die `idea` App wurde durch die Content/Supply-Architektur ersetzt (siehe `openspec/changes/content-base-refactor/`).
-> Mapping: `Idea (idea_type=idea)` → `session.GroupSession`, `Idea (idea_type=knowledge)` → `blog.Blog`, `Idea (idea_type=recipe)` → `recipe.Recipe`.
-> Neue Apps: `content`, `supply`, `session`, `blog`, `game`, `recipe`. Die `idea/` App existiert nicht mehr.
-
 ## Purpose
 
 Suchmaschinenoptimierung, Meta-Tag-Verwaltung und DSGVO-konforme Analytik für die Inspi-Plattform. Stellt sicher, dass die Plattform von Suchmaschinen auffindbar ist, liefert ansprechende Vorschauen in Social-Media-Shares und verfolgt die Nutzung ohne personenbezogene Daten zu speichern.
@@ -19,7 +14,7 @@ Das System MUST slug-basierte, menschenlesbare URLs für alle öffentlichen Inha
 
 - GIVEN eine Idea mit Slug "nachtwanderung-im-wald"
 - WHEN die Idea veröffentlicht wird
-- THEN ist die Idea unter `/idea/nachtwanderung-im-wald` erreichbar (Frontend-Route: `/idea/:slug`)
+- THEN ist die Idea unter `/sessions/nachtwanderung-im-wald` erreichbar (Frontend-Route: `/sessions/:slug`)
 - AND der Slug ist URL-sicher (Kleinbuchstaben, Bindestriche, keine Sonderzeichen, kein Unicode)
 
 #### Scenario: Event-URL-Struktur
@@ -72,7 +67,7 @@ Das Backend MUST `sitemap.xml` und `robots.txt` für Suchmaschinen-Crawler berei
 
 ### Requirement: DSGVO-konforme View-Verfolgung
 
-Das System MUST Idea-Views verfolgen, ohne personenbezogene Daten zu speichern. Die Implementierung befindet sich im `ViewService` (`backend/idea/services/view_service.py`).
+Das System MUST Idea-Views verfolgen, ohne personenbezogene Daten zu speichern. Die Implementierung befindet sich im `ViewService` (`backend/content/services/view_service.py`).
 
 #### Scenario: View-Erfassung
 

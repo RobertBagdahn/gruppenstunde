@@ -1,4 +1,4 @@
-"""Cockpit service — evaluate HealthRules at MealEvent, day, and meal scopes.
+"""Cockpit service — evaluate HealthRules at MealPlan, day, and meal scopes.
 
 Aggregates nutritional values and prices across meals/recipes,
 then evaluates them against active HealthRule thresholds.
@@ -10,10 +10,10 @@ import datetime as dt
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from planner.models import Meal, MealEvent
+    from planner.models import Meal, MealPlan
 
 from recipe.models import HealthRule
-from recipe.services.recipe_checks import get_recipe_nutritional_values
+from recipe.services.recipe_checks import CACHED_MICRONUTRIENT_FIELDS, get_recipe_nutritional_values
 
 
 def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
@@ -30,6 +30,9 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
         "salt_g": 0.0,
         "price_total": 0.0,
     }
+    # Micronutrient totals
+    for field in CACHED_MICRONUTRIENT_FIELDS:
+        totals[field] = 0.0
 
     items = MealItem.objects.filter(meal=meal).select_related("recipe")
     for item in items:
@@ -44,10 +47,17 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
             totals["fibre_g"] += (recipe.cached_fibre_g or 0.0) * item.factor
             totals["salt_g"] += (recipe.cached_salt_g or 0.0) * item.factor
             totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
+            # Cached micronutrients
+            for field in CACHED_MICRONUTRIENT_FIELDS:
+                cached_field = f"cached_{field}"
+                totals[field] += (getattr(recipe, cached_field, None) or 0.0) * item.factor
         else:
             values = get_recipe_nutritional_values(recipe)
             for key in ["energy_kj", "protein_g", "fat_g", "carbohydrate_g", "sugar_g", "fibre_g", "salt_g"]:
                 totals[key] += values.get(key, 0.0) * item.factor
+            # Micronutrients from fresh calculation
+            for field in CACHED_MICRONUTRIENT_FIELDS:
+                totals[field] += values.get(field, 0.0) * item.factor
 
     # Add nutri_class as average across recipes (weighted by factor)
     nutri_classes = []
@@ -59,12 +69,12 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
     return totals
 
 
-def _aggregate_day_values(meal_event: "MealEvent", date: dt.date) -> dict[str, float]:
+def _aggregate_day_values(meal_plan: "MealPlan", date: dt.date) -> dict[str, float]:
     """Aggregate nutritional values for all meals on a given day."""
     from planner.models import Meal
 
     meals = Meal.objects.filter(
-        meal_event=meal_event,
+        meal_plan=meal_plan,
         start_datetime__date=date,
     )
 
@@ -79,6 +89,8 @@ def _aggregate_day_values(meal_event: "MealEvent", date: dt.date) -> dict[str, f
         "price_total": 0.0,
         "nutri_class": 0.0,
     }
+    for field in CACHED_MICRONUTRIENT_FIELDS:
+        totals[field] = 0.0
 
     nutri_classes = []
     for meal in meals:
@@ -94,11 +106,11 @@ def _aggregate_day_values(meal_event: "MealEvent", date: dt.date) -> dict[str, f
     return totals
 
 
-def _aggregate_meal_event_values(meal_event: "MealEvent") -> dict[str, float]:
-    """Aggregate nutritional values for the entire MealEvent (all days)."""
+def _aggregate_meal_plan_values(meal_plan: "MealPlan") -> dict[str, float]:
+    """Aggregate nutritional values for the entire MealPlan (all days)."""
     from planner.models import Meal
 
-    meals = Meal.objects.filter(meal_event=meal_event)
+    meals = Meal.objects.filter(meal_plan=meal_plan)
 
     totals: dict[str, float] = {
         "energy_kj": 0.0,
@@ -111,6 +123,8 @@ def _aggregate_meal_event_values(meal_event: "MealEvent") -> dict[str, float]:
         "price_total": 0.0,
         "nutri_class": 0.0,
     }
+    for field in CACHED_MICRONUTRIENT_FIELDS:
+        totals[field] = 0.0
 
     nutri_classes = []
     for meal in meals:
@@ -171,16 +185,16 @@ def _build_dashboard(evaluations: list[dict]) -> dict:
     }
 
 
-def evaluate_meal_event_cockpit(meal_event: "MealEvent") -> dict:
-    """Evaluate all MealEvent-scope HealthRules."""
-    values = _aggregate_meal_event_values(meal_event)
+def evaluate_meal_plan_cockpit(meal_plan: "MealPlan") -> dict:
+    """Evaluate all MealPlan-scope HealthRules."""
+    values = _aggregate_meal_plan_values(meal_plan)
     evaluations = _evaluate_rules("meal_event", values)
     return _build_dashboard(evaluations)
 
 
-def evaluate_day_cockpit(meal_event: "MealEvent", date: dt.date) -> dict:
+def evaluate_day_cockpit(meal_plan: "MealPlan", date: dt.date) -> dict:
     """Evaluate all day-scope HealthRules for a specific date."""
-    values = _aggregate_day_values(meal_event, date)
+    values = _aggregate_day_values(meal_plan, date)
     evaluations = _evaluate_rules("day", values)
     return _build_dashboard(evaluations)
 

@@ -28,6 +28,8 @@ def search_endpoint(request, filters: Query[UnifiedSearchFilterIn]):
         page=filters.page,
         page_size=filters.page_size,
         sort=filters.sort,
+        scope=filters.scope,
+        user=request.user,
     )
 
     # Log search

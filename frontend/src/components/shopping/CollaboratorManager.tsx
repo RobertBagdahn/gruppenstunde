@@ -37,7 +37,7 @@ export default function CollaboratorManager({
   const handleInvite = () => {
     const userId = parseInt(inviteUserId, 10);
     if (isNaN(userId) || userId <= 0) {
-      toast.error('Bitte eine gueltige Nutzer-ID eingeben');
+      toast.error('Bitte eine gültige Nutzer-ID eingeben');
       return;
     }
     addCollaborator.mutate(
@@ -105,7 +105,7 @@ export default function CollaboratorManager({
                       updateCollaborator.mutate(
                         { collabId: collab.id, role: e.target.value },
                         {
-                          onSuccess: () => toast.success('Rolle geaendert'),
+                          onSuccess: () => toast.success('Rolle geändert'),
                           onError: (err) =>
                             toast.error('Fehler', { description: err.message }),
                         },

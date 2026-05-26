@@ -104,7 +104,7 @@ export default function MaterialListPage() {
           {searchResults && searchResults.length > 0 ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground mb-3">
-                {searchResults.length} Ergebnis{searchResults.length !== 1 ? 'se' : ''} fuer &quot;{debouncedSearch}&quot;
+                 {searchResults.length} Ergebnis{searchResults.length !== 1 ? 'se' : ''} für &quot;{debouncedSearch}&quot;
               </p>
               {searchResults.map((material) => {
                 const icon = CATEGORY_ICONS[material.material_category] || 'category';

@@ -1,18 +1,21 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import CreateHubPage from './pages/CreateHubPage';
 import ProfilePage from './pages/ProfilePage';
 import MyDashboardPage from './pages/MyDashboardPage';
-import NamePage from './pages/NamePage';
 import GruppenPage from './pages/GruppenPage';
 import GroupDetailPage from './pages/GroupDetailPage';
-import EinstellungenPage from './pages/EinstellungenPage';
+import GroupCorporateIdentityPage from './pages/GroupCorporateIdentityPage';
 import PlannerPage from './pages/PlannerPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import EventDashboardPage from './pages/EventDashboardPage';
 import NewEventPage from './pages/NewEventPage';
+import GuestRegistrationPage from './pages/GuestRegistrationPage';
+import QRCodePage from './pages/QRCodePage';
+import ParentPage from './pages/ParentPage';
 import AdminPage from './pages/AdminPage';
 import AdminUserDetailPage from './pages/AdminUserDetailPage';
 import IdeaOfTheWeekPage from './pages/IdeaOfTheWeekPage';
@@ -25,36 +28,37 @@ import UserProfilePage from './pages/UserProfilePage';
 import PersonsPage from './pages/PersonsPage';
 import PackingListsPage from './pages/PackingListsPage';
 import PackingListDetailPage from './pages/PackingListDetailPage';
-import IngredientListPage from './pages/ingredients/IngredientListPage';
-import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
-import IngredientCreatePage from './pages/ingredients/IngredientCreatePage';
-import MealEventListPage from './pages/planning/MealEventListPage';
-import MealEventDetailPage from './pages/planning/MealEventDetailPage';
-import RecipeListPage from './pages/recipes/RecipeListPage';
-import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
-import CreateRecipePage from './pages/recipes/CreateRecipePage';
-import EditRecipePage from './pages/recipes/EditRecipePage';
-import SessionListPage from './pages/sessions/SessionListPage';
-import SessionDetailPage from './pages/sessions/SessionDetailPage';
-import CreateSessionPage from './pages/sessions/CreateSessionPage';
-import BlogListPage from './pages/blogs/BlogListPage';
-import BlogDetailPage from './pages/blogs/BlogDetailPage';
-import CreateBlogPage from './pages/blogs/CreateBlogPage';
-import GameListPage from './pages/games/GameListPage';
-import GameDetailPage from './pages/games/GameDetailPage';
-import CreateGamePage from './pages/games/CreateGamePage';
-import MaterialDetailPage from './pages/supplies/MaterialDetailPage';
-import MaterialListPage from './pages/supplies/MaterialListPage';
-import Layout from './components/Layout';
-
-// Tool Landing Pages
-import EventsLandingPage from './pages/tools/EventsLandingPage';
-import MealEventLandingPage from './pages/tools/MealEventLandingPage';
-import SessionPlannerLandingPage from './pages/tools/SessionPlannerLandingPage';
+import PackingListSharePage from './pages/PackingListSharePage';
+import PackingListWizardPage from './pages/PackingListWizardPage';
 import PackingListLandingPage from './pages/tools/PackingListLandingPage';
 import NormPortionSimulatorPage from './pages/tools/NormPortionSimulatorPage';
 import ShoppingListPage from './pages/shopping/ShoppingListPage';
 import ShoppingListDetailPage from './pages/shopping/ShoppingListDetailPage';
+import PrivacyPage from './pages/profile/PrivacyPage';
+import CreateSessionPage from './pages/sessions/CreateSessionPage';
+import CreateBlogPage from './pages/blogs/CreateBlogPage';
+import CreateGamePage from './pages/games/CreateGamePage';
+import RecipeListPage from './pages/recipes/RecipeListPage';
+import MyRecipesPage from './pages/recipes/MyRecipesPage';
+import CreateRecipePage from './pages/recipes/CreateRecipePage';
+import EditRecipePage from './pages/recipes/EditRecipePage';
+import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
+import EventsLandingPage from './pages/tools/EventsLandingPage';
+import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
+import MealPlanListPage from './pages/planning/MealEventListPage';
+import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
+import SessionPlannerLandingPage from './pages/tools/SessionPlannerLandingPage';
+import SessionListPage from './pages/sessions/SessionListPage';
+import SessionDetailPage from './pages/sessions/SessionDetailPage';
+import BlogListPage from './pages/blogs/BlogListPage';
+import BlogDetailPage from './pages/blogs/BlogDetailPage';
+import GameListPage from './pages/games/GameListPage';
+import GameDetailPage from './pages/games/GameDetailPage';
+import IngredientListPage from './pages/ingredients/IngredientListPage';
+import IngredientCreatePage from './pages/ingredients/IngredientCreatePage';
+import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
+import MaterialListPage from './pages/supplies/MaterialListPage';
+import MaterialDetailPage from './pages/supplies/MaterialDetailPage';
 
 function App() {
   return (
@@ -69,35 +73,42 @@ function App() {
         <Route path="/create/blog" element={<CreateBlogPage />} />
         <Route path="/create/game" element={<CreateGamePage />} />
 
-        {/* Legacy redirects: old /idea/:slug → /sessions/:slug (best guess) */}
+        {/* Legacy redirects: old /idea/:slug and /create/:type → redirect */}
         <Route path="/idea/:slug" element={<Navigate to="/search" replace />} />
-        <Route path="/create/:ideaType" element={<Navigate to="/create" replace />} />
+        <Route path="/create/:contentType" element={<Navigate to="/create" replace />} />
         <Route path="/recipes" element={<RecipeListPage />} />
+        <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
         <Route path="/recipes/new" element={<CreateRecipePage />} />
         <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
         <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
         <Route path="/my-dashboard" element={<MyDashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/profile/name" element={<NamePage />} />
-        <Route path="/profile/name/:userId" element={<NamePage />} />
+        <Route path="/profile/name" element={<Navigate to="/profile" replace />} />
+        <Route path="/profile/name/:userId" element={<Navigate to="/profile" replace />} />
         <Route path="/profile/groups" element={<GruppenPage />} />
         <Route path="/groups/:slug" element={<GroupDetailPage />} />
-        <Route path="/profile/settings" element={<EinstellungenPage />} />
+        <Route path="/groups/:slug/settings/corporate-identity" element={<GroupCorporateIdentityPage />} />
+        <Route path="/profile/settings" element={<Navigate to="/profile" replace />} />
+        <Route path="/profile/privacy" element={<PrivacyPage />} />
         <Route path="/profile/persons" element={<PersonsPage />} />
 
         {/* Tool: Events / Veranstaltungen */}
         <Route path="/events" element={<EventsLandingPage />} />
         <Route path="/events/app" element={<EventsPage />} />
         <Route path="/events/app/new" element={<NewEventPage />} />
+        <Route path="/events/app/persons" element={<PersonsPage />} />
+        <Route path="/events/app/:slug/qr-code" element={<QRCodePage />} />
         <Route path="/events/app/:slug" element={<EventDashboardPage />} />
+        <Route path="/events/:slug/register" element={<GuestRegistrationPage />} />
+        <Route path="/events/:slug/parent/:token" element={<ParentPage />} />
         <Route path="/events/:slug" element={<EventDetailPage />} />
 
         {/* Tool: Essensplan */}
-        <Route path="/meal-events" element={<MealEventLandingPage />} />
-        <Route path="/meal-events/app" element={<MealEventListPage />} />
-        <Route path="/meal-events/:id" element={<MealEventDetailPage />} />
+        <Route path="/meal-plans" element={<MealPlanLandingPage />} />
+        <Route path="/meal-plans/app" element={<MealPlanListPage />} />
+        <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
         {/* Legacy redirect */}
-        <Route path="/meal-plans/*" element={<Navigate to="/meal-events" replace />} />
+        <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />
 
         {/* Tool: Gruppenstundenplan */}
         <Route path="/session-planner" element={<SessionPlannerLandingPage />} />
@@ -118,6 +129,8 @@ function App() {
         {/* Tool: Packlisten */}
         <Route path="/packing-lists" element={<PackingListLandingPage />} />
         <Route path="/packing-lists/app" element={<PackingListsPage />} />
+        <Route path="/packing-lists/new" element={<PackingListWizardPage />} />
+        <Route path="/packing-lists/shared/:token" element={<PackingListSharePage />} />
         <Route path="/packing-lists/:id" element={<PackingListDetailPage />} />
 
         {/* Tool: Einkaufslisten */}

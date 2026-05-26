@@ -62,7 +62,7 @@ export default function MaterialDetailPage() {
           title="Material nicht gefunden"
           description="Das Material existiert nicht oder wurde entfernt."
           onBack={() => navigate('/materials')}
-          backLabel="Zurueck zur Uebersicht"
+          backLabel="Zurück zur Übersicht"
           onRetry={() => refetch()}
         />
       </div>
@@ -244,6 +244,9 @@ export default function MaterialDetailPage() {
                 src={material.image_url}
                 alt={material.name}
                 className="w-16 aspect-square rounded-md object-cover"
+                loading="lazy"
+                width={64}
+                height={64}
               />
             </div>
           )}
@@ -275,7 +278,7 @@ export default function MaterialDetailPage() {
           Wo wird das verwendet?
         </h2>
         <p className="text-sm text-muted-foreground italic">
-          Diese Funktion wird in einer zukuenftigen Version verfuegbar sein. Dann werden hier alle
+          Diese Funktion wird in einer zukünftigen Version verfügbar sein. Dann werden hier alle
           Gruppenstunden, Spiele und Rezepte angezeigt, die dieses Material verwenden.
         </p>
       </div>

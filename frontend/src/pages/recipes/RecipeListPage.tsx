@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { useRecipes, useDeleteRecipe } from '@/api/recipes';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeFilterSidebar from '@/components/recipe/RecipeFilterSidebar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { RECIPE_SORT_OPTIONS, type RecipeFilter } from '@/schemas/recipe';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import Pagination from '@/components/shared/Pagination';
+import ListPageHero from '@/components/shared/ListPageHero';
+import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
 
 const DEFAULT_FILTERS: Partial<RecipeFilter> = {
@@ -119,30 +123,18 @@ export default function RecipeListPage() {
   }
 
   return (
-    <div className="container py-4 md:py-8 px-3 md:px-4">
+    <EntityLinkContext.Provider value="list">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600 p-4 md:p-8 mb-4 md:mb-8 shadow-lg">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 hidden md:block" />
-        <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/4 hidden md:block" />
-        <div className="absolute top-10 right-40 w-20 h-20 bg-pink-300/20 rounded-full hidden md:block" />
-        <div className="relative flex items-center gap-4">
-          <div className="hidden sm:flex items-center justify-center w-20 h-20 md:w-28 md:h-28 bg-white/20 backdrop-blur-sm rounded-2xl">
-            <span className="material-symbols-outlined text-white text-4xl md:text-5xl">menu_book</span>
-          </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">Rezepte</h1>
-            <p className="text-white/80 text-sm md:text-base mt-1">
-              Finde das perfekte Rezept fuer deine Gruppe
-            </p>
-            {data && (
-              <span className="inline-flex items-center gap-1.5 mt-2 bg-white/20 backdrop-blur-sm text-white text-sm font-medium rounded-full px-4 py-1.5">
-                <span className="material-symbols-outlined text-[18px]">restaurant</span>
-                {data.total} Rezept{data.total !== 1 ? 'e' : ''} gefunden
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+      <ListPageHero
+        title="Rezepte"
+        description="Finde das perfekte Rezept fuer deine Gruppe"
+        icon="menu_book"
+        gradientClasses="bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600"
+        totalCount={data?.total}
+        countLabel="Rezept"
+        countIcon="restaurant"
+      />
 
       {/* Search Bar */}
       <div className="mb-4 md:mb-8 bg-gradient-to-r from-rose-500/5 via-pink-500/5 to-rose-500/5 rounded-2xl p-4 md:p-6 border border-rose-500/10">
@@ -213,7 +205,7 @@ export default function RecipeListPage() {
           {error ? (
             <ErrorDisplay error={error} onRetry={() => refetch()} />
           ) : isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
@@ -222,24 +214,15 @@ export default function RecipeListPage() {
               ))}
             </div>
           ) : data?.items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 bg-gradient-to-br from-rose-500/5 via-card to-pink-500/5 rounded-xl border border-dashed border-rose-500/30">
-              <span className="material-symbols-outlined text-6xl text-rose-400 mb-4">
-                menu_book
-              </span>
-              <p className="text-lg font-semibold text-foreground">Keine Rezepte gefunden</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Versuch es mit anderen Suchbegriffen oder Filtern.
-              </p>
-              <Link
-                to="/recipes/new"
-                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-rose-500 to-pink-600 text-white font-medium hover:shadow-lg transition-all"
-              >
-                <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                Erstes Rezept erstellen
-              </Link>
-            </div>
+            <EmptyState
+              icon="menu_book"
+              title="Keine Rezepte gefunden"
+              description="Versuch es mit anderen Suchbegriffen oder Filtern."
+              ctaLabel="Erstes Rezept erstellen"
+              ctaHref="/recipes/new"
+            />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {data?.items.map((recipe) => (
                 <RecipeCard
                   key={recipe.id}
@@ -254,23 +237,11 @@ export default function RecipeListPage() {
           )}
 
           {/* Pagination */}
-          {data && data.total_pages > 1 && (
-            <div className="flex justify-center gap-2 mt-10 bg-gradient-to-r from-transparent via-rose-500/5 to-transparent py-4 rounded-xl">
-              {Array.from({ length: data.total_pages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleFilterChange('page', i + 1)}
-                  className={`w-10 h-10 rounded-full text-sm font-medium transition-all ${
-                    filters.page === i + 1
-                      ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/30 scale-110'
-                      : 'border bg-card hover:bg-rose-500/10 hover:text-rose-600 hover:border-rose-500/30'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
+          <Pagination
+            currentPage={filters.page ?? 1}
+            totalPages={data?.total_pages ?? 1}
+            onPageChange={(page) => handleFilterChange('page', page)}
+          />
         </div>
       </div>
 
@@ -281,22 +252,23 @@ export default function RecipeListPage() {
           if (!deleteTarget) return;
           deleteRecipe.mutate(deleteTarget.id, {
             onSuccess: () => {
-              toast.success('Rezept geloescht');
+              toast.success('Rezept gelöscht');
               setDeleteTarget(null);
               refetch();
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setDeleteTarget(null);
             },
           });
         }}
         onCancel={() => setDeleteTarget(null)}
-        title={`"${deleteTarget?.title}" loeschen?`}
-        description="Das Rezept wird geloescht und ist nicht mehr sichtbar."
-        confirmLabel="Loeschen"
+        title={`"${deleteTarget?.title}" löschen?`}
+        description="Das Rezept wird gelöscht und ist nicht mehr sichtbar."
+        confirmLabel="Löschen"
         loading={deleteRecipe.isPending}
       />
     </div>
+    </EntityLinkContext.Provider>
   );
 }

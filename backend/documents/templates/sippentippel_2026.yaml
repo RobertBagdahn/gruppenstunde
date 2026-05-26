@@ -1,0 +1,35 @@
+event:
+  name: "Sippentippel"
+  type: "sippentippel"
+  location: "Königswinter"
+  area: "das schöne Siebengebirge"
+  start_date: 2026-05-29
+  start_time: "16:30"
+  end_date: 2026-05-31
+  end_time: "15:00"
+  meeting_point: "Bahnhof Korschenbroich"
+  fee: 25.00
+  fee_note: "passend in bar mitbringen oder vorab überweisen"
+  registration_deadline: 2026-05-22
+  registration_method: "Am Heimabend abgeben oder per WhatsApp an Marcel"
+
+participants:
+  type: "Sipplinge"
+
+group:
+  name: "Stamm Sugambrer"
+  logo: "assets/logos/stamm_logo.png"
+
+texts:
+  greeting: "default"
+  additional_info: "zelt_wanderung"
+  consent: "default"
+
+packlist: "wanderung"
+packlist_extra: []
+
+form_fields: "standard"
+signup_note: "Anmelden am Heimabend abgeben oder per WhatsApp an Marcel"
+
+layout:
+  pages: 1

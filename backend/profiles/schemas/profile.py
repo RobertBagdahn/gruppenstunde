@@ -17,6 +17,7 @@ class UserProfileOut(Schema):
     about_me: str
     nutritional_tags: list[NutritionalTagOut]
     profile_picture_url: str | None = None
+    is_public: bool
     created_at: datetime
     updated_at: datetime
 
@@ -39,6 +40,11 @@ class UserProfileUpdateIn(Schema):
     birthday: date | None = None
     about_me: str | None = None
     nutritional_tag_ids: list[int] | None = None
+    is_public: bool | None = None
+
+
+class ProfilePictureOut(Schema):
+    profile_picture_url: str | None = None
 
 
 class PublicContentOut(Schema):
@@ -59,10 +65,6 @@ class PublicContentOut(Schema):
         return None
 
 
-# Backwards-compatible aliases
-PublicIdeaOut = PublicContentOut
-
-
 class MyContentOut(Schema):
     """Compact content info for the current user's profile (includes status)."""
 
@@ -81,10 +83,6 @@ class MyContentOut(Schema):
         if obj.image:
             return obj.image.url
         return None
-
-
-# Backwards-compatible alias
-MyIdeaOut = MyContentOut
 
 
 class PublicUserProfileOut(Schema):

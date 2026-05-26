@@ -20,6 +20,7 @@ from content.base_api import (
     toggle_emotion,
 )
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
+from content.schemas import ImageFromUrlIn
 
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
@@ -30,6 +31,7 @@ from recipe.schemas import (
     RecipeListOut,
     RecipeSimilarOut,
     RecipeUpdateIn,
+    VisibilityUpdateIn,
 )
 
 logger = logging.getLogger(__name__)
@@ -50,9 +52,45 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
         return True
     if recipe.created_by_id == request.user.id:
         return True
+    if recipe.owner_id and recipe.owner_id == request.user.id:
+        return True
     if recipe.authors.filter(id=request.user.id).exists():
         return True
     return False
+
+
+def _get_visible_recipes_qs(request):
+    """
+    Return a Recipe queryset filtered by visibility rules.
+
+    Rules:
+    - System recipes (owner=null) with status=approved are always visible
+    - User's own recipes (owner=current_user) are always visible to them
+    - Public community recipes (visibility=public, status=approved) are visible
+    - Group recipes (visibility=group) visible to group members (TODO: implement group membership)
+    - Staff sees everything
+    """
+    base_prefetch = ("scout_levels", "tags__parent", "authors")
+    base_select = ("owner", "forked_from")
+
+    if request.user.is_authenticated and request.user.is_staff:
+        return Recipe.objects.all().select_related(*base_select).prefetch_related(*base_prefetch)
+
+    # System recipes (Inspi-verified): owner is null, status approved
+    system_q = Q(owner__isnull=True, status="approved")
+    # Public community recipes: owner set, public visibility, approved
+    community_q = Q(owner__isnull=False, visibility="public", status="approved")
+
+    if request.user.is_authenticated:
+        # Own recipes (any status/visibility)
+        own_q = Q(owner=request.user)
+        # Also show own drafts (created_by, for backward compat)
+        created_q = Q(created_by=request.user)
+        visibility_q = system_q | community_q | own_q | created_q
+    else:
+        visibility_q = system_q | community_q
+
+    return Recipe.objects.filter(visibility_q).select_related(*base_select).prefetch_related(*base_prefetch)
 
 
 # ==========================================================================
@@ -63,16 +101,7 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
 @router.get("/", response=PaginatedRecipeOut)
 def list_recipes(request, filters: Query[RecipeFilterIn]):
     """List recipes with pagination and filters."""
-    qs = Recipe.objects.filter(status="approved").prefetch_related("scout_levels", "tags__parent", "authors")
-
-    # Show drafts to authenticated users
-    if request.user.is_authenticated:
-        if request.user.is_staff:
-            qs = Recipe.objects.all().prefetch_related("scout_levels", "tags__parent", "authors")
-        else:
-            qs = Recipe.objects.filter(Q(status="approved") | Q(created_by=request.user)).prefetch_related(
-                "scout_levels", "tags__parent", "authors"
-            )
+    qs = _get_visible_recipes_qs(request)
 
     if filters.q:
         qs = qs.filter(
@@ -98,6 +127,15 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
     if filters.execution_time:
         qs = qs.filter(execution_time=filters.execution_time)
 
+    # Origin filter (verified/community/mine)
+    if filters.origin and filters.origin != "all":
+        if filters.origin == "verified":
+            qs = qs.filter(owner__isnull=True)
+        elif filters.origin == "community":
+            qs = qs.filter(owner__isnull=False, visibility="public", status="approved")
+        elif filters.origin == "mine" and request.user.is_authenticated:
+            qs = qs.filter(owner=request.user)
+
     # Sorting
     sort_map = {
         "newest": "-created_at",
@@ -116,11 +154,28 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
     return result
 
 
+@router.get("/my-recipes/", response=PaginatedRecipeOut)
+def list_my_recipes(request, page: int = 1, page_size: int = 20):
+    """List current user's personal recipes."""
+    if not request.user.is_authenticated:
+        raise HttpError(401, "Anmeldung erforderlich")
+
+    qs = (
+        Recipe.objects.filter(owner=request.user)
+        .prefetch_related("scout_levels", "tags__parent", "authors")
+        .order_by("-created_at")
+    )
+
+    result = paginate_queryset(qs, page, page_size)
+    enrich_list_with_permissions(request, result["items"])
+    return result
+
+
 @router.get("/{recipe_id}/", response=RecipeDetailOut)
 def get_recipe(request, recipe_id: int):
     """Get recipe detail by ID."""
     recipe = get_object_or_404(
-        Recipe.objects.prefetch_related(
+        Recipe.objects.select_related("owner", "forked_from").prefetch_related(
             "scout_levels",
             "tags__parent",
             "nutritional_tags",
@@ -137,6 +192,9 @@ def get_recipe(request, recipe_id: int):
     record_view(Recipe, recipe.id, request)
     recipe.can_edit = _can_edit_recipe(request, recipe)
     recipe.can_delete = request.user.is_authenticated and request.user.is_staff
+    recipe.is_owner = (
+        request.user.is_authenticated and recipe.owner_id is not None and recipe.owner_id == request.user.id
+    )
 
     # Similar recipes
     _attach_similar_recipes(recipe)
@@ -148,7 +206,7 @@ def get_recipe(request, recipe_id: int):
 def get_recipe_by_slug(request, slug: str):
     """Get recipe detail by slug (SEO-friendly)."""
     recipe = get_object_or_404(
-        Recipe.objects.prefetch_related(
+        Recipe.objects.select_related("owner", "forked_from").prefetch_related(
             "scout_levels",
             "tags__parent",
             "nutritional_tags",
@@ -165,6 +223,9 @@ def get_recipe_by_slug(request, slug: str):
     record_view(Recipe, recipe.id, request)
     recipe.can_edit = _can_edit_recipe(request, recipe)
     recipe.can_delete = request.user.is_authenticated and request.user.is_staff
+    recipe.is_owner = (
+        request.user.is_authenticated and recipe.owner_id is not None and recipe.owner_id == request.user.id
+    )
 
     # Similar recipes
     _attach_similar_recipes(recipe)
@@ -282,13 +343,13 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         for item_data in recipe_items_data:
             RecipeItem.objects.create(
                 recipe=recipe,
-                portion_id=item_data.portion_id,
-                ingredient_id=item_data.ingredient_id,
-                quantity=item_data.quantity,
-                measuring_unit_id=item_data.measuring_unit_id,
-                sort_order=item_data.sort_order,
-                note=item_data.note,
-                quantity_type=item_data.quantity_type,
+                portion_id=item_data["portion_id"],
+                ingredient_id=item_data["ingredient_id"],
+                quantity=item_data["quantity"],
+                measuring_unit_id=item_data["measuring_unit_id"],
+                sort_order=item_data["sort_order"],
+                note=item_data["note"],
+                quantity_type=item_data["quantity_type"],
             )
 
     enrich_content_with_interactions(request, recipe, Recipe)
@@ -304,7 +365,7 @@ def delete_recipe(request, recipe_id: int):
     _require_auth(request)
 
     if not request.user.is_staff:
-        raise HttpError(403, "Nur Admins duerfen Rezepte loeschen")
+        raise HttpError(403, "Nur Admins dürfen Rezepte löschen")
 
     recipe = get_object_or_404(Recipe, id=recipe_id)
 
@@ -408,3 +469,141 @@ def upload_recipe_image(request, recipe_id: int):
     recipe.save(update_fields=["image"])
 
     return {"image_url": recipe.image.url}
+
+
+@router.delete("/{recipe_id}/image/")
+def delete_recipe_image(request, recipe_id: int):
+    """Remove the title image from a recipe."""
+    _require_auth(request)
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    recipe.image = None
+    recipe.save(update_fields=["image"])
+    return {"image_url": None}
+
+
+@router.post("/{recipe_id}/image-from-url/")
+def set_recipe_image_from_url(request, recipe_id: int, payload: ImageFromUrlIn):
+    """Set the title image from an existing storage URL."""
+    _require_auth(request)
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    from content.services.image_service import download_and_save_image, validate_image_url
+
+    if not validate_image_url(payload.image_url):
+        raise HttpError(400, "URL verweist nicht auf den eigenen Speicher.")
+
+    try:
+        saved_path = download_and_save_image(payload.image_url, "content/")
+    except RuntimeError as exc:
+        raise HttpError(500, str(exc))
+
+    recipe.image = saved_path
+    recipe.save(update_fields=["image"])
+    return {"image_url": recipe.image.url if recipe.image else None}
+
+
+# ==========================================================================
+# Personal Recipes (Fork, My Recipes, Visibility)
+# ==========================================================================
+
+
+@router.post("/{recipe_id}/fork/", response=RecipeDetailOut)
+def fork_recipe(request, recipe_id: int):
+    """Create a personal copy (fork) of a recipe.
+
+    Copies the recipe and all its RecipeItems, setting owner to the current user.
+    """
+    _require_auth(request)
+
+    original = get_object_or_404(
+        Recipe.objects.prefetch_related(
+            "recipe_items__portion",
+            "recipe_items__ingredient",
+            "recipe_items__measuring_unit",
+            "tags",
+            "scout_levels",
+            "nutritional_tags",
+        ),
+        id=recipe_id,
+    )
+
+    # Create the fork
+    fork = Recipe(
+        title=original.title,
+        summary=original.summary,
+        summary_long=original.summary_long,
+        description=original.description,
+        recipe_type=original.recipe_type,
+        servings=original.servings,
+        costs_rating=original.costs_rating,
+        execution_time=original.execution_time,
+        preparation_time=original.preparation_time,
+        difficulty=original.difficulty,
+        owner=request.user,
+        forked_from=original,
+        visibility="private",
+        status="draft",
+        created_by=request.user,
+    )
+    fork.save()
+
+    # Copy M2M relations
+    fork.tags.set(original.tags.all())
+    fork.scout_levels.set(original.scout_levels.all())
+    fork.nutritional_tags.set(original.nutritional_tags.all())
+    fork.authors.add(request.user)
+
+    # Copy all RecipeItems
+    for item in original.recipe_items.all():
+        RecipeItem.objects.create(
+            recipe=fork,
+            portion_id=item.portion_id,
+            ingredient_id=item.ingredient_id,
+            quantity=item.quantity,
+            measuring_unit_id=item.measuring_unit_id,
+            sort_order=item.sort_order,
+            note=item.note,
+            quantity_type=item.quantity_type,
+        )
+
+    fork.emotion_counts = {}
+    fork.user_emotion = None
+    fork.can_edit = True
+    fork.next_best_recipes = []
+
+    return fork
+
+
+@router.patch("/{recipe_id}/visibility/")
+def update_recipe_visibility(request, recipe_id: int, payload: VisibilityUpdateIn):
+    """Update the visibility of a personal recipe. Only the owner can change visibility."""
+    _require_auth(request)
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+
+    if recipe.owner_id != request.user.id:
+        raise HttpError(403, "Nur der Besitzer kann die Sichtbarkeit ändern")
+
+    if payload.visibility not in ("private", "group", "public"):
+        raise HttpError(400, "Ungültige Sichtbarkeit. Erlaubt: private, group, public")
+
+    recipe.visibility = payload.visibility
+
+    # When setting to public, require moderation
+    if payload.visibility == "public" and recipe.status != "approved":
+        recipe.status = "submitted"
+
+    recipe.save(update_fields=["visibility", "status"])
+
+    return {
+        "success": True,
+        "visibility": recipe.visibility,
+        "status": recipe.status,
+    }

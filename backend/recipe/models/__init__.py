@@ -3,7 +3,7 @@
 from .health_rule import HealthRule, HealthRuleScopeChoices
 from .hints import RecipeHint
 from .items import RecipeItem
-from .recipe import Recipe
+from .recipe import Recipe, RecipeVisibility
 
 __all__ = [
     "HealthRule",
@@ -11,4 +11,5 @@ __all__ = [
     "Recipe",
     "RecipeHint",
     "RecipeItem",
+    "RecipeVisibility",
 ]

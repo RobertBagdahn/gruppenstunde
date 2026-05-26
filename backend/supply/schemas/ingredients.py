@@ -113,6 +113,35 @@ class IngredientDetailOut(Schema):
     fructose_g: float | None
     lactose_g: float | None
 
+    # Vitamins per 100g
+    vitamin_a_mg: float | None = None
+    vitamin_b1_mg: float | None = None
+    vitamin_b2_mg: float | None = None
+    vitamin_b6_mg: float | None = None
+    vitamin_b12_ug: float | None = None
+    vitamin_c_mg: float | None = None
+    vitamin_d_ug: float | None = None
+    vitamin_e_mg: float | None = None
+    vitamin_k_ug: float | None = None
+    niacin_mg: float | None = None
+    folate_ug: float | None = None
+    pantothenic_acid_mg: float | None = None
+    biotin_ug: float | None = None
+
+    # Minerals per 100g
+    calcium_mg: float | None = None
+    iron_mg: float | None = None
+    magnesium_mg: float | None = None
+    zinc_mg: float | None = None
+    potassium_mg: float | None = None
+    phosphorus_mg: float | None = None
+    iodine_ug: float | None = None
+    selenium_ug: float | None = None
+    copper_mg: float | None = None
+    manganese_mg: float | None = None
+    chromium_ug: float | None = None
+    fluoride_mg: float | None = None
+
     # Scores
     child_score: int | None
     scout_score: int | None
@@ -212,6 +241,35 @@ class IngredientCreateIn(Schema):
     fructose_g: float | None = None
     lactose_g: float | None = None
 
+    # Vitamins
+    vitamin_a_mg: float | None = None
+    vitamin_b1_mg: float | None = None
+    vitamin_b2_mg: float | None = None
+    vitamin_b6_mg: float | None = None
+    vitamin_b12_ug: float | None = None
+    vitamin_c_mg: float | None = None
+    vitamin_d_ug: float | None = None
+    vitamin_e_mg: float | None = None
+    vitamin_k_ug: float | None = None
+    niacin_mg: float | None = None
+    folate_ug: float | None = None
+    pantothenic_acid_mg: float | None = None
+    biotin_ug: float | None = None
+
+    # Minerals
+    calcium_mg: float | None = None
+    iron_mg: float | None = None
+    magnesium_mg: float | None = None
+    zinc_mg: float | None = None
+    potassium_mg: float | None = None
+    phosphorus_mg: float | None = None
+    iodine_ug: float | None = None
+    selenium_ug: float | None = None
+    copper_mg: float | None = None
+    manganese_mg: float | None = None
+    chromium_ug: float | None = None
+    fluoride_mg: float | None = None
+
     # Scores
     child_score: int | None = None
     scout_score: int | None = None
@@ -249,6 +307,35 @@ class IngredientUpdateIn(Schema):
     sodium_mg: float | None = None
     fructose_g: float | None = None
     lactose_g: float | None = None
+
+    # Vitamins
+    vitamin_a_mg: float | None = None
+    vitamin_b1_mg: float | None = None
+    vitamin_b2_mg: float | None = None
+    vitamin_b6_mg: float | None = None
+    vitamin_b12_ug: float | None = None
+    vitamin_c_mg: float | None = None
+    vitamin_d_ug: float | None = None
+    vitamin_e_mg: float | None = None
+    vitamin_k_ug: float | None = None
+    niacin_mg: float | None = None
+    folate_ug: float | None = None
+    pantothenic_acid_mg: float | None = None
+    biotin_ug: float | None = None
+
+    # Minerals
+    calcium_mg: float | None = None
+    iron_mg: float | None = None
+    magnesium_mg: float | None = None
+    zinc_mg: float | None = None
+    potassium_mg: float | None = None
+    phosphorus_mg: float | None = None
+    iodine_ug: float | None = None
+    selenium_ug: float | None = None
+    copper_mg: float | None = None
+    manganese_mg: float | None = None
+    chromium_ug: float | None = None
+    fluoride_mg: float | None = None
 
     child_score: int | None = None
     scout_score: int | None = None

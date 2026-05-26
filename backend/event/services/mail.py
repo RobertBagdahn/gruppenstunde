@@ -1,4 +1,4 @@
-"""MailService — send manual emails to event participants."""
+"""MailService — send manual and automated emails to event participants."""
 
 from __future__ import annotations
 
@@ -8,25 +8,32 @@ from typing import Any
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import models
+from django.template.loader import render_to_string
 
 from ..choices import TimelineActionChoices
+from ..services.ci_helper import get_event_ci
+from ..services.placeholders import apply_participant_filters, replace_placeholders
 from ..services.timeline import TimelineService
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_FROM_EMAIL = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@gruppenstunde.de")
 
-# Supported placeholders and their corresponding Participant fields / computed values.
-PLACEHOLDER_MAP = {
-    "{vorname}": "first_name",
-    "{nachname}": "last_name",
-    "{pfadiname}": "scout_name",
-    "{event_name}": "_event_name",  # special: from event
-    "{buchungsoption}": "booking_option_name",
-    "{preis}": "_price",  # special: computed
-    "{bezahlt}": "_paid",  # special: computed
-    "{restbetrag}": "_remaining",  # special: computed
-}
+
+def _ci_context(event: models.Model) -> dict[str, str]:
+    """Build template context dict from event CI."""
+    ci = get_event_ci(event)
+    return {
+        "ci_group_name": ci.group_name,
+        "ci_primary_color": ci.primary_color,
+        "ci_secondary_color": ci.secondary_color,
+        "ci_logo_url": ci.logo_url,
+        "ci_slogan": ci.slogan,
+        "ci_greeting_text": ci.greeting_text,
+        "ci_footer_text": ci.footer_text,
+        "ci_payment_info": ci.payment_info,
+        "ci_signature_text": ci.signature_text,
+    }
 
 
 class MailService:
@@ -56,7 +63,7 @@ class MailService:
         Returns:
             Dict with sent_count, failed_count, failed_recipients.
         """
-        from ..models import Participant, Registration
+        from ..models import Participant
 
         # Get participants based on recipient_type
         participants_qs = Participant.objects.filter(
@@ -64,7 +71,7 @@ class MailService:
         ).select_related("registration", "booking_option")
 
         if recipient_type == "filtered" and filters:
-            participants_qs = _apply_filters(participants_qs, filters)
+            participants_qs = apply_participant_filters(participants_qs, filters)
         elif recipient_type == "selected" and participant_ids:
             participants_qs = participants_qs.filter(id__in=participant_ids)
 
@@ -76,13 +83,16 @@ class MailService:
         if responsible and responsible.email:
             reply_to = [responsible.email]
 
+        # Load CI context once for the event
+        ci_ctx = _ci_context(event)
+
         sent_count = 0
         failed_count = 0
         failed_recipients: list[dict[str, Any]] = []
 
         for participant in participants:
-            participant_subject = _replace_placeholders(subject, participant, event)
-            participant_body = _replace_placeholders(body, participant, event)
+            participant_subject = replace_placeholders(subject, participant, event)
+            participant_body = replace_placeholders(body, participant, event)
             recipient_email = participant.email
 
             if not recipient_email:
@@ -96,15 +106,18 @@ class MailService:
                 )
                 continue
 
+            # Render HTML version
+            html_context = {**ci_ctx, "subject": participant_subject, "body": participant_body}
+            html_message = render_to_string("event/email/event_mail.html", html_context)
+
             try:
                 send_mail(
                     subject=participant_subject,
                     message=participant_body,
                     from_email=DEFAULT_FROM_EMAIL,
                     recipient_list=[recipient_email],
+                    html_message=html_message,
                     fail_silently=False,
-                    # Note: reply_to requires EmailMessage; send_mail doesn't support it.
-                    # We use send_mail for simplicity; reply-to can be added later via EmailMessage.
                 )
                 sent_count += 1
 
@@ -139,56 +152,94 @@ class MailService:
             "failed_recipients": failed_recipients,
         }
 
+    @staticmethod
+    def send_registration_confirmation(
+        event: models.Model,
+        registration: models.Model,
+        participants: list | None = None,
+    ) -> None:
+        """Send a confirmation email after registration.
 
-def _replace_placeholders(text: str, participant: models.Model, event: models.Model) -> str:
-    """Replace all supported placeholders in the text."""
-    for placeholder, field in PLACEHOLDER_MAP.items():
-        if placeholder not in text:
-            continue
+        Skips silently if no email address is available.
+        """
+        if participants is None:
+            participants = list(registration.participants.select_related("booking_option").all())
 
-        if field == "_event_name":
-            value = event.name
-        elif field == "_price":
-            if participant.booking_option:
-                value = f"{participant.booking_option.price:.2f} €"
-            else:
-                value = "0.00 €"
-        elif field == "_paid":
-            value = f"{participant.total_paid:.2f} €"
-        elif field == "_remaining":
-            value = f"{participant.remaining_amount:.2f} €"
-        else:
-            value = getattr(participant, field, "")
+        if not participants:
+            return
 
-        text = text.replace(placeholder, str(value) if value else "")
+        # Determine recipient email
+        recipient_email = registration.user.email
+        if not recipient_email:
+            for p in participants:
+                if p.email:
+                    recipient_email = p.email
+                    break
 
-    return text
+        if not recipient_email:
+            return
 
+        # Build participant data for template
+        participant_data = []
+        for p in participants:
+            option_name = p.booking_option.name if p.booking_option else "Keine Buchungsoption"
+            price = f"{p.booking_option.price:.2f} EUR" if p.booking_option else "0.00 EUR"
+            participant_data.append(
+                {"first_name": p.first_name, "last_name": p.last_name, "booking_option": option_name, "price": price}
+            )
 
-def _apply_filters(qs, filters: dict[str, Any]):
-    """Apply filters to a Participant queryset."""
-    if "is_paid" in filters:
-        if filters["is_paid"]:
-            # Paid: no booking option OR total_paid >= price
-            from django.db.models import Q, Sum, F
-            from ..models import Payment
+        # Build date info
+        date_info = ""
+        if event.start_date:
+            date_info = f"Beginn: {event.start_date.strftime('%d.%m.%Y %H:%M')}"
+            if event.end_date:
+                date_info += f"\nEnde: {event.end_date.strftime('%d.%m.%Y %H:%M')}"
 
-            paid_ids = []
-            for p in qs:
-                if p.is_paid:
-                    paid_ids.append(p.id)
-            qs = qs.filter(id__in=paid_ids)
-        else:
-            unpaid_ids = []
-            for p in qs:
-                if not p.is_paid:
-                    unpaid_ids.append(p.id)
-            qs = qs.filter(id__in=unpaid_ids)
+        # Build location info
+        location_info = ""
+        if event.event_location:
+            location_info = event.event_location.name
+            if event.event_location.full_address:
+                location_info += f" ({event.event_location.full_address})"
+        elif event.location:
+            location_info = event.location
 
-    if "booking_option_id" in filters:
-        qs = qs.filter(booking_option_id=filters["booking_option_id"])
+        subject = f"Anmeldebestätigung: {event.name}"
 
-    if "label_id" in filters:
-        qs = qs.filter(labels__id=filters["label_id"])
+        # Plain-text fallback
+        participant_lines = [
+            f"  - {p['first_name']} {p['last_name']}: {p['booking_option']} ({p['price']})" for p in participant_data
+        ]
+        plain_body = (
+            f"Hallo,\n\n"
+            f'die Anmeldung für "{event.name}" war erfolgreich.\n\n'
+            f"Angemeldete Personen:\n" + "\n".join(participant_lines) + "\n"
+        )
+        if date_info:
+            plain_body += f"\n{date_info}\n"
+        if location_info:
+            plain_body += f"Ort: {location_info}\n"
+        plain_body += f"\nViele Grüße,\nDas Team von {event.name}\n"
 
-    return qs
+        # Render HTML
+        ci_ctx = _ci_context(event)
+        html_context = {
+            **ci_ctx,
+            "event_name": event.name,
+            "participants": participant_data,
+            "date_info": date_info,
+            "location_info": location_info,
+        }
+        html_message = render_to_string("event/email/registration_confirmation.html", html_context)
+
+        try:
+            send_mail(
+                subject=subject,
+                message=plain_body,
+                from_email=DEFAULT_FROM_EMAIL,
+                recipient_list=[recipient_email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+        except Exception:
+            logger.exception("Failed to send registration confirmation to %s", recipient_email)

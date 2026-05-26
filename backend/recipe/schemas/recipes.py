@@ -44,6 +44,45 @@ class RecipeListOut(ContentListOut):
     cached_nutri_class: int | None = None
     cached_price_total: float | None = None
     cached_at: dt.datetime | None = None
+    # Cached micronutrients
+    cached_vitamin_a_mg: float | None = None
+    cached_vitamin_c_mg: float | None = None
+    cached_vitamin_d_ug: float | None = None
+    cached_vitamin_b12_ug: float | None = None
+    cached_calcium_mg: float | None = None
+    cached_iron_mg: float | None = None
+    cached_magnesium_mg: float | None = None
+    cached_zinc_mg: float | None = None
+    cached_potassium_mg: float | None = None
+    cached_folate_ug: float | None = None
+    owner_name: str | None = None
+    forked_from_title: str | None = None
+    visibility: str | None = None
+    recipe_badge: str | None = None  # "verified" | "community" | "personal"
+
+    @staticmethod
+    def resolve_owner_name(obj) -> str | None:
+        if obj.owner_id:
+            owner = obj.owner
+            profile = getattr(owner, "profile", None)
+            if profile:
+                return profile.scout_name or profile.full_name or owner.first_name or None
+            return owner.first_name or None
+        return None
+
+    @staticmethod
+    def resolve_forked_from_title(obj) -> str | None:
+        if obj.forked_from_id:
+            return obj.forked_from.title if obj.forked_from else None
+        return None
+
+    @staticmethod
+    def resolve_recipe_badge(obj) -> str | None:
+        if obj.owner_id is None:
+            return "verified"
+        if obj.visibility == "public" and obj.status == "approved":
+            return "community"
+        return "personal"
 
 
 # --- Similar Recipes ---
@@ -73,9 +112,50 @@ class RecipeDetailOut(ContentDetailOut):
     cached_nutri_class: int | None = None
     cached_price_total: float | None = None
     cached_at: dt.datetime | None = None
+    # Cached micronutrients
+    cached_vitamin_a_mg: float | None = None
+    cached_vitamin_c_mg: float | None = None
+    cached_vitamin_d_ug: float | None = None
+    cached_vitamin_b12_ug: float | None = None
+    cached_calcium_mg: float | None = None
+    cached_iron_mg: float | None = None
+    cached_magnesium_mg: float | None = None
+    cached_zinc_mg: float | None = None
+    cached_potassium_mg: float | None = None
+    cached_folate_ug: float | None = None
+    # Personal recipe fields
+    owner_name: str | None = None
+    forked_from_title: str | None = None
+    visibility: str | None = None
+    recipe_badge: str | None = None  # "verified" | "community" | "personal"
+    is_owner: bool = False
     nutritional_tags: list[NutritionalTagOut] = []
     recipe_items: list[RecipeItemOut] = []
     next_best_recipes: list[RecipeSimilarOut] = []
+
+    @staticmethod
+    def resolve_owner_name(obj) -> str | None:
+        if obj.owner_id:
+            owner = obj.owner
+            profile = getattr(owner, "profile", None)
+            if profile:
+                return profile.scout_name or profile.full_name or owner.first_name or None
+            return owner.first_name or None
+        return None
+
+    @staticmethod
+    def resolve_forked_from_title(obj) -> str | None:
+        if obj.forked_from_id:
+            return obj.forked_from.title if obj.forked_from else None
+        return None
+
+    @staticmethod
+    def resolve_recipe_badge(obj) -> str | None:
+        if obj.owner_id is None:
+            return "verified"
+        if obj.visibility == "public" and obj.status == "approved":
+            return "community"
+        return "personal"
 
     @staticmethod
     def resolve_authors(obj) -> list:
@@ -179,9 +259,16 @@ class RecipeFilterIn(Schema):
     difficulty: str | None = None
     costs_rating: str | None = None
     execution_time: str | None = None
+    origin: str | None = None  # "all" | "verified" | "community" | "mine"
     sort: str = "newest"
     page: int = 1
     page_size: int = 20
+
+
+class VisibilityUpdateIn(Schema):
+    """Schema for updating recipe visibility."""
+
+    visibility: str  # "private" | "group" | "public"
 
 
 # --- Pagination ---

@@ -6,221 +6,283 @@ Dieses Dokument bildet die wichtigsten UI-Komponenten und Backend-Module der Ins
 
 Die Plattform besteht aus zentralen Komponenten und funktionalen Modulen:
 
-| Modul | Django App | Beschreibung | Frontend-Bereich |
-|-------|-----------|-------------|------------------|
+| Modul | Django App(s) | Beschreibung | Frontend-Bereich |
+|-------|-------------|-------------|------------------|
 | **Zentral** | `core`, `profiles` | Auth, Profil, Gruppen, Admin | `/login`, `/profile/*`, `/groups/*`, `/admin/*` |
-| **Ideen & Wissen** | `idea` | Lern-Ideen, Wissensbeiträge, Suche | `/search`, `/idea/:slug`, `/create` |
-| **Rezepte** | `recipe` | Rezepte (eigenständiges Modul) | `/recipes`, `/recipes/:slug` |
-| **Veranstaltungen** | `event` | Events, Buchung, Teilnehmer | `/events` (Landing), `/events/app` (App) |
-| **Gruppenstundenplan** | `planner` | Heimabend-Planung | `/session-planner` (Landing), `/session-planner/app` (App) |
-| **Essensplan** | `planner` | Mahlzeitenplanung, Einkaufslisten | `/meal-plans` (Landing), `/meal-plans/app` (App) |
-| **Packlisten** | `packinglist` | Packlisten mit Kategorien | `/packing-lists` (Landing), `/packing-lists/app` (App) |
-
-> **Hinweis**: Jedes Tool hat eine öffentliche Landing-Page (ohne Login) und eine `/app`-Sub-Route für die eigentliche Anwendung.
+| **Inhalte** | `content`, `session`, `blog`, `game` | Abstrakte Content-Basis, Gruppenstunden, Blog, Spiele | `/search`, `/sessions/*`, `/blogs/*`, `/games/*`, `/create/*` |
+| **Rezepte** | `recipe` | Rezepte mit Nährwerten, Cockpit, Health Rules | `/recipes/*` |
+| **Zutaten & Material** | `supply` | Zutaten-Datenbank, Materialien, Portionen, Norm-Person | `/ingredients/*`, `/materials/*` |
+| **Veranstaltungen** | `event` | Events, Buchung, Teilnehmer, WhatsApp | `/events/*` |
+| **Planung** | `planner` | Heimabend-Planung, Essensplan | `/session-planner/*`, `/meal-plans/*` |
+| **Packlisten** | `packinglist` | Packlisten mit Kategorien | `/packing-lists/*` |
+| **Einkaufslisten** | `shopping` | Kollaborative Einkaufslisten (WebSocket) | `/shopping-lists/*` |
 
 ## Backend-Module
 
-### Django Apps
+### Django Apps (INSTALLED_APPS)
 
-| App | Verzeichnis | Zweck | Wichtige Dateien |
-|-----|-------------|-------|------------------|
-| **idea** | `backend/idea/` | Kern-Idea-Verwaltung, Tags, Materialien, Suche, Views, Kommentare, Emotions | `models.py`, `api.py`, `schemas.py`, `services/ai_service.py`, `services/search_service.py`, `services/view_service.py`, `services/export_service.py` |
-| **core** | `backend/core/` | Auth-API, Middleware, Paginierung, Speicher, Admin-Seite | `api.py`, `schemas.py`, `middleware.py`, `pagination.py`, `storage.py`, `admin.py` |
-| **event** | `backend/event/` | Events, Buchung, Registrierung, Teilnehmer, Standorte, Personen | `models.py`, `api.py`, `schemas.py` |
-| **profiles** | `backend/profiles/` | Benutzerprofile, Einstellungen, Gruppen, Mitgliedschaften, Beitrittsanfragen | `models.py`, `api.py`, `schemas.py` |
-| **planner** | `backend/planner/` | Heimabend-Planung (gruppenbasiert, Wochentag+Uhrzeit, Status, Collaborators), Essensplan | `models.py`, `api.py`, `schemas.py` |
-| **packinglist** | `backend/packinglist/` | Packlisten mit Kategorien und Items | `models.py`, `api.py`, `schemas.py`, `admin.py` |
+| App | Verzeichnis | Struktur | Zweck |
+|-----|-------------|----------|-------|
+| **content** | `backend/content/` | Hybrid (Packages) | Abstrakte Content-Basis, Tags, Kommentare, Emotionen, Suche, Embeddings, AI, Approval, Content-Linking |
+| **supply** | `backend/supply/` | Hybrid (Packages) | Abstrakte Supply-Basis, Ingredient (standalone), Material, Portionen, Messeinheiten, DGE-Referenzen, Norm-Person |
+| **core** | `backend/core/` | Einzeldateien | Auth-API, Management-Commands |
+| **profiles** | `backend/profiles/` | Hybrid (Packages) | Benutzerprofile, Einstellungen, Gruppen, Mitgliedschaften, Corporate Identity |
+| **session** | `backend/session/` | Einzeldateien | GroupSession Content-Typ |
+| **blog** | `backend/blog/` | Einzeldateien | Blog Content-Typ |
+| **game** | `backend/game/` | Einzeldateien | Game Content-Typ |
+| **recipe** | `backend/recipe/` | Hybrid (Packages) | Recipe Content-Typ, RecipeItem, HealthRule, Cockpit, Inspi-Score |
+| **planner** | `backend/planner/` | Hybrid (Packages) | Heimabend-Planer, MealPlan, Meal, MealItem |
+| **event** | `backend/event/` | Hybrid (Packages) | Events, Registrierungen, Teilnehmer, Zahlungen, WhatsApp, Tagesplan |
+| **packinglist** | `backend/packinglist/` | Einzeldateien | Packlisten mit Kategorien und Items |
+| **shopping** | `backend/shopping/` | Einzeldateien | Einkaufslisten mit WebSocket-Kollaboration |
 
 ### API-Router
 
 | Router | Mount-Pfad | Quelle | Spec-Domäne |
 |--------|-----------|--------|--------------|
 | Auth | `/api/auth/` | `core/api.py` | auth-session |
-| Ideas | `/api/ideas/` | `idea/api.py` | idea-management, search |
-| Tags | `/api/tags/` | `idea/api.py` | idea-management |
-| AI | `/api/ai/` | `idea/api.py` | ai-features |
-| Admin | `/api/admin/` | `idea/api.py` | admin |
-| Materials | `/api/materials/` | `idea/api.py` | idea-management |
-| Users | `/api/users/` | `profiles/api.py` | user-profiles |
-| Profile | `/api/profile/` | `profiles/api.py` | user-profiles |
-| Groups | `/api/groups/` | `profiles/api.py` | group-management |
-| Events | `/api/events/` | `event/api.py` | event-management |
-| Persons | `/api/persons/` | `event/api.py` | user-profiles |
-| Locations | `/api/locations/` | `event/api.py` | event-management |
-| Planner | `/api/planner/` | `planner/api.py` | planner, session-planner |
-| Meal Plans | `/api/meal-plans/` | `planner/api.py` (NEU) | meal-plan |
-| Ingredients | `/api/ingredients/` | `idea/api.py` (NEU) | ingredient-database |
-| Ingredient AI | `/api/ingredients/{slug}/ai/` | `idea/api.py` (NEU) | ai-features, ingredient-database |
-| Recipe Analysis | `/api/ideas/{id}/recipe-checks/` | `idea/api.py` (NEU) | ingredient-database |
-| Retail Sections | `/api/retail-sections/` | `idea/api.py` (NEU) | ingredient-database |
-| Nutritional Tags | `/api/nutritional-tags/` | `idea/api.py` (NEU) | ingredient-database |
-| Measuring Units | `/api/measuring-units/` | `idea/api.py` (NEU) | ingredient-database |
+| Admin | `/api/admin/` | `content/admin_api.py` | admin |
+| Content | `/api/content/` | `content/api/` | content-base, content-search, ai-features |
+| Tags | `/api/tags/` | `content/tags_api.py` | content-base |
+| Scout Levels | `/api/scout-levels/` | `content/tags_api.py` | content-base |
+| Sessions | `/api/sessions/` | `session/api.py` | group-session |
+| Blogs | `/api/blogs/` | `blog/api.py` | blog-content |
+| Games | `/api/games/` | `game/api.py` | game-content |
+| Recipes | `/api/recipes/` | `recipe/api/` | recipe |
+| Health Rules | `/api/health-rules/` | `recipe/api/cockpit.py` | meal-cockpit |
+| Cockpit | `/api/` (root) | `recipe/api/cockpit.py` | meal-cockpit |
+| Supplies | `/api/supplies/` | `supply/api/` | supply-base |
+| Ingredients | `/api/ingredients/` | `supply/api/` | ingredient-database |
+| Retail Sections | `/api/retail-sections/` | `supply/api/` | ingredient-database |
+| Norm Person | `/api/norm-person/` | `supply/api/` | norm-portion-simulator |
+| DGE References | `/api/dge-references/` | `supply/api/` | ingredient-database |
+| Profile | `/api/profile/` | `profiles/api/` | user-profiles |
+| Groups | `/api/groups/` | `profiles/api/` | group-management |
+| Events | `/api/events/` | `event/api/` | event-management |
+| Persons | `/api/persons/` | `event/api/` | user-profiles |
+| Locations | `/api/locations/` | `event/api/` | event-management |
+| Meeting Points | `/api/meeting-points/` | `event/api/` | event-management |
+| WhatsApp | `/api/whatsapp/` | `event/api/` | whatsapp-connection |
+| Message Templates | `/api/message-templates/` | `event/api/` | event-messaging |
+| Planner | `/api/planner/` | `planner/api/` | session-planner |
+| Meal Plans | `/api/meal-plans/` | `planner/api/meal_plan.py` | meal-plan |
 | Packing Lists | `/api/packing-lists/` | `packinglist/api.py` | packing-list |
+| Shopping Lists | `/api/shopping-lists/` | `shopping/api.py` | shopping-list |
 
 ### Backend-Dienste
 
 | Dienst | Pfad | Spec-Domäne | Zweck |
 |--------|------|--------------|-------|
-| AIService | `backend/idea/services/ai_service.py` | ai-features | Gemini-Integration (Textverbesserung, Tag-Vorschläge, Aufbereitung, Embeddings) |
-| IngredientAIService | `backend/idea/services/ingredient_ai.py` | ai-features, ingredient-database | KI-Autovervollständigung für Zutaten (6 Schritte) |
-| NutriService | `backend/idea/services/nutri_service.py` | ingredient-database | Nutri-Score Berechnung, Naehrwert-Aggregation |
-| PriceService | `backend/idea/services/price_service.py` | ingredient-database | Preiskaskade (Price -> Portion -> RecipeItem -> Recipe -> Meal -> MealPlan) |
-| NormPersonService | `backend/idea/services/norm_person.py` | ingredient-database, meal-plan | Norm-Personen-Berechnung (Mifflin-St Jeor), Portionsskalierung |
-| RecipeChecksService | `backend/idea/services/recipe_checks.py` | ingredient-database | Rezept-Bewertungen (Sättigung, Preis, Gesundheit, Geschmack) |
-| HintService | `backend/idea/services/hint_service.py` | ingredient-database | RecipeHint-Regelabgleich für Verbesserungsvorschläge |
-| ShoppingService | `backend/idea/services/shopping_service.py` | meal-plan, ingredient-database | Einkaufslisten-Generierung aus MealPlan |
-| SearchService | `backend/idea/services/search_service.py` | search | Hybride Suche (Volltext + Trigramm + Vektor-Ähnlichkeit) |
-| ViewService | `backend/idea/services/view_service.py` | seo-analytics | Bot-Erkennung, IP-Hashing, View-Deduplizierung |
-| ExportService | `backend/idea/services/export_service.py` | admin | Instagram-Slide-Generierung |
+| AIService | `content/services/ai_service.py` | ai-features | Gemini-Integration (Textverbesserung, Tag-Vorschläge, Refurbish, Embeddings) |
+| SearchService | `content/services/search_service.py` | content-search | Hybride Suche (Volltext + Trigramm + Vektor-Ähnlichkeit) |
+| ViewService | `content/services/view_service.py` | seo-analytics | Bot-Erkennung, IP-Hashing, View-Deduplizierung |
+| ExportService | `content/services/export_service.py` | admin | Content-Export |
+| IngredientAIService | `supply/services/ingredient_ai_service.py` | ai-features, ingredient-database | KI-Autovervollständigung für Zutaten |
+| NutriService | `supply/services/nutri_service.py` | ingredient-database | Nutri-Score Berechnung, Nährwert-Aggregation |
+| PriceService | `supply/services/price_service.py` | ingredient-database | Preisberechnung via price_per_kg |
+| NormPersonService | `supply/services/norm_person_service.py` | norm-portion-simulator | Norm-Personen-Berechnung (Mifflin-St Jeor) |
+| CockpitService | `recipe/services/cockpit_service.py` | meal-cockpit | HealthRule-Evaluation, Ampel-Dashboard |
+| RecipeChecksService | `recipe/services/recipe_checks.py` | recipe | Rezept-Cache-Neuberechnung, Hints |
 
 ## Frontend-Komponenten
 
 ### Seiten (Routen)
 
 > Die folgenden Routen entsprechen 1:1 den Route-Definitionen in `frontend/src/App.tsx`.
-> Seiten, die noch nicht implementiert sind, sind mit "(NEU)" markiert.
 
 #### Zentral
 
 | Seite | Pfad | Route | Spec-Domäne |
 |-------|------|-------|--------------|
-| HomePage | `src/pages/HomePage.tsx` | `/` | idea-management, search |
+| HomePage | `src/pages/HomePage.tsx` | `/` | homepage-redesign |
 | LoginPage | `src/pages/LoginPage.tsx` | `/login` | auth-session |
 | RegisterPage | `src/pages/RegisterPage.tsx` | `/register` | auth-session |
-| ProfilePage | `src/pages/ProfilePage.tsx` | `/profile` | user-profiles |
-| NamePage | `src/pages/NamePage.tsx` | `/profile/name` | user-profiles |
-| NamePage (Admin) | `src/pages/NamePage.tsx` | `/profile/name/:userId` | user-profiles |
-| EinstellungenPage | `src/pages/EinstellungenPage.tsx` | `/profile/settings` | user-profiles |
-| PersonsPage | `src/pages/PersonsPage.tsx` | `/profile/persons` | user-profiles |
-| UserProfilePage | `src/pages/UserProfilePage.tsx` | `/user/:userId` | user-profiles |
-| GruppenPage | `src/pages/GruppenPage.tsx` | `/profile/groups` | group-management |
-| GroupDetailPage | `src/pages/GroupDetailPage.tsx` | `/groups/:slug` | group-management |
+| SearchPage | `src/pages/SearchPage.tsx` | `/search` | content-search |
+| CreateHubPage | `src/pages/CreateHubPage.tsx` | `/create` | content-stepper |
 | MyDashboardPage | `src/pages/MyDashboardPage.tsx` | `/my-dashboard` | user-profiles |
-| AdminPage | `src/pages/AdminPage.tsx` | `/admin` (Layout mit `:section` Child-Route) | admin |
-| AdminUserDetailPage | `src/pages/AdminUserDetailPage.tsx` | `/admin/users/:userId` | admin |
 | AboutPage | `src/pages/AboutPage.tsx` | `/about` | - |
 | ImpressumPage | `src/pages/ImpressumPage.tsx` | `/imprint` | - |
 | DatenschutzPage | `src/pages/DatenschutzPage.tsx` | `/privacy` | - |
 
-#### Modul 1: Ideen & Wissen
+#### Content-Typen
 
-| Seite | Pfad | Route | Spec-Domäne |
-|-------|------|-------|--------------|
-| SearchPage | `src/pages/SearchPage.tsx` | `/search` | search |
-| IdeaPage | `src/pages/IdeaPage.tsx` | `/idea/:slug` | idea-management, comments-emotions |
-| CreateHubPage | `src/pages/CreateHubPage.tsx` | `/create` | idea-management |
-| NewIdeaPage | `src/pages/NewIdeaPage.tsx` | `/create/:ideaType` | idea-management, idea-creation-flow |
-| MaterialPage | `src/pages/MaterialPage.tsx` | `/material/:slug` | idea-management |
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| SessionListPage | `/sessions` | group-session |
+| SessionDetailPage | `/sessions/:slug` | group-session |
+| CreateSessionPage | `/create/session` | group-session, content-stepper |
+| BlogListPage | `/blogs` | blog-content |
+| BlogDetailPage | `/blogs/:slug` | blog-content |
+| CreateBlogPage | `/create/blog` | blog-content, content-stepper |
+| GameListPage | `/games` | game-content |
+| GameDetailPage | `/games/:slug` | game-content |
+| CreateGamePage | `/create/game` | game-content, content-stepper |
+| RecipeListPage | `/recipes` | recipe |
+| RecipeDetailPage | `/recipes/:slug` | recipe |
+| CreateRecipePage | `/recipes/new` | recipe |
+| EditRecipePage | `/recipes/:slug/edit` | recipe |
+| MyRecipesPage | `/recipes/my-recipes` | personal-recipes |
 
-#### Modul 3: Veranstaltungen (Events)
+#### Supply / Zutaten
 
-| Seite | Pfad | Route | Spec-Domäne |
-|-------|------|-------|--------------|
-| EventsLandingPage | `src/pages/tools/EventsLandingPage.tsx` | `/events` (Landing) | event-management |
-| EventsPage | `src/pages/EventsPage.tsx` | `/events/app` | event-management |
-| NewEventPage | `src/pages/NewEventPage.tsx` | `/events/app/new` | event-management |
-| EventDetailPage | (NEU) | `/events/app/:slug` | event-management |
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| IngredientListPage | `/ingredients` | ingredient-database |
+| IngredientDetailPage | `/ingredients/:slug` | ingredient-database |
+| IngredientCreatePage | `/ingredients/new` | ingredient-database |
+| MaterialListPage | `/materials` | supply-base |
+| MaterialDetailPage | `/materials/:slug` | supply-base |
 
-#### Modul 4: Gruppenstundenplan (Session Planner)
+#### Profil & Gruppen
 
-| Seite | Pfad | Route | Spec-Domäne |
-|-------|------|-------|--------------|
-| SessionPlannerLandingPage | `src/pages/tools/SessionPlannerLandingPage.tsx` | `/session-planner` (Landing) | session-planner |
-| PlannerPage | `src/pages/PlannerPage.tsx` | `/session-planner/app` | session-planner |
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| ProfilePage | `/profile` | user-profiles |
+| PersonsPage | `/profile/persons` | user-profiles |
+| GruppenPage | `/profile/groups` | group-management |
+| PrivacyPage | `/profile/privacy` | privacy-data-overview |
+| UserProfilePage | `/user/:userId` | user-profiles |
+| GroupDetailPage | `/groups/:slug` | group-management |
+| GroupCIPage | `/groups/:slug/settings/corporate-identity` | group-corporate-identity |
 
-#### Modul 5: Essensplan (Meal Plan)
+#### Events
 
-| Seite | Pfad | Route | Spec-Domäne |
-|-------|------|-------|--------------|
-| MealPlanLandingPage | `src/pages/tools/MealPlanLandingPage.tsx` | `/meal-plans` (Landing) | meal-plan |
-| MealPlanListPage | `src/pages/planning/MealPlanListPage.tsx` | `/meal-plans/app` | meal-plan |
-| MealPlanDetailPage | `src/pages/planning/MealPlanDetailPage.tsx` | `/meal-plans/:id` | meal-plan |
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| EventsLandingPage | `/events` | event-landing-page |
+| EventsPage | `/events/app` | event-management |
+| NewEventPage | `/events/app/new` | event-wizard-overhaul |
+| EventDashboardPage | `/events/app/:slug` | event-organizer-dashboard |
+| EventDetailPage | `/events/:slug` | event-landing-page |
+| GuestRegistrationPage | `/events/:slug/register` | event-guest-registration |
+| QRCodePage | `/events/app/:slug/qr-code` | event-qr-code |
+| ParentPage | `/events/:slug/parent/:token` | event-parent-access |
+| PersonsPage | `/events/app/persons` | user-profiles |
 
-#### Modul 6: Packlisten
+#### Planung
 
-| Seite | Pfad | Route | Spec-Domäne |
-|-------|------|-------|--------------|
-| PackingListLandingPage | `src/pages/tools/PackingListLandingPage.tsx` | `/packing-lists` (Landing) | packing-list |
-| PackingListsPage | `src/pages/PackingListsPage.tsx` | `/packing-lists/app` | packing-list |
-| PackingListDetailPage | `src/pages/PackingListDetailPage.tsx` | `/packing-lists/app/:id` | packing-list |
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| SessionPlannerLandingPage | `/session-planner` | session-planner |
+| PlannerPage | `/session-planner/app` | session-planner |
+| MealPlanLandingPage | `/meal-plans` | meal-plan |
+| MealPlanListPage | `/meal-plans/app` | meal-plan |
+| MealPlanDetailPage | `/meal-plans/:id` | meal-plan |
+
+#### Packlisten & Einkaufslisten
+
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| PackingListLandingPage | `/packing-lists` | packing-list |
+| PackingListsPage | `/packing-lists/app` | packing-list |
+| PackingListDetailPage | `/packing-lists/:id` | packing-list |
+| PackingListWizardPage | `/packing-lists/new` | packing-list-wizard |
+| PackingListSharePage | `/packing-lists/shared/:token` | packing-list-sharing |
+| ShoppingListPage | `/shopping-lists` | shopping-list |
+| ShoppingListDetailPage | `/shopping-lists/:id` | shopping-list |
+
+#### Tools
+
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| NormPortionSimulatorPage | `/tools/norm-portion-simulator` | norm-portion-simulator |
+
+#### Admin
+
+| Seite | Route | Spec-Domäne |
+|-------|-------|--------------|
+| AdminPage | `/admin` | admin |
+| AdminUserDetailPage | `/admin/users/:userId` | admin |
+| IdeaOfTheWeekPage | `/admin/idea-of-the-week` | admin |
 
 ### Geteilte UI-Komponenten
 
-| Komponente | Pfad | Verwendet in | Spec-Domäne |
-|------------|------|-------------|--------------|
-| Layout | `src/components/Layout.tsx` | Alle Seiten | - (Shell) |
-| ErrorBoundary | `src/components/ErrorBoundary.tsx` | `main.tsx` (wraps App) | error-handling |
-| ErrorDisplay | `src/components/ErrorDisplay.tsx` | HomePage, SearchPage, IdeaPage, EventsPage, PlannerPage, PackingListDetailPage | error-handling |
-| ConfirmDialog | `src/components/ConfirmDialog.tsx` | PlannerPage, PackingListsPage, PackingListDetailPage, EventsPage, PersonsPage | error-handling |
-| IdeaCard | `src/components/IdeaCard.tsx` | HomePage, SearchPage, DashboardPage | idea-management |
-| SearchBar | `src/components/SearchBar.tsx` | HomePage (Hero-Variante), Layout (Standard) | search |
-| IdeaFilterSidebar | `src/components/IdeaFilterSidebar.tsx` | SearchPage | search |
-| CommentSection | `src/components/CommentSection.tsx` | IdeaPage | comments-emotions |
-| SimilarIdeas | `src/components/SimilarIdeas.tsx` | IdeaPage | search |
-| EditableSection | `src/components/EditableSection.tsx` | IdeaPage (Bearbeitungsmodus) | idea-management |
-| MarkdownEditor | `src/components/MarkdownEditor.tsx` | CreateIdeaPage, NewIdeaPage, NewEventPage, IdeaPage (Bearbeitung) | idea-management, event-management |
-| MarkdownRenderer | `src/components/MarkdownRenderer.tsx` | IdeaPage, NewIdeaPage, RefurbishPage, NewEventPage | idea-management, event-management |
-
-### Utilities
-
-| Utility | Pfad | Verwendet in | Spec-Domäne |
-|---------|------|-------------|--------------|
-| pdfExport | `src/lib/pdfExport.ts` | IdeaPage (PDF-Download-Button) | idea-management |
+| Kategorie | Komponenten |
+|-----------|-------------|
+| **Layout** | Layout, Navigation, Breadcrumb, ScrollToTop |
+| **Fehlerbehandlung** | ErrorBoundary, ErrorDisplay, ConfirmDialog |
+| **Content** | ContentCard, ContentStepper, ContentInlineEditor, ContentStatusBadge, ContentLinkSection, TitleImageEditor |
+| **Interaktion** | CommentSection, EmotionBar, AuthorInfo |
+| **Suche** | SearchBar, AutocompleteSearch, FilterSelect, SortSelect |
+| **Rezepte** | RecipeCard, RecipeFilterSidebar, PortionScaler, NutriScoreBadge, InspiScore, RecipeHintDetail |
+| **Cockpit** | TrafficLightIndicator, HealthTipCard, CockpitDashboard, CockpitSummaryCard |
+| **Supply** | IngredientList, MaterialList, SupplySearch |
+| **Events** | EventDashboard-Tabs (Overview, Participants, Invitations, Settings, Payments, Mail, Export, Timeline, Stats, Registration, PackingList, Budget, Attendance, RoomAssignment, ParentAccess, Messaging) |
+| **WhatsApp** | WhatsAppConnectionCard, QRCodeDialog, StatsDisplay, PrivacyNotice |
+| **Shopping** | ShoppingItemRow, ProgressBar, CollaboratorManager |
+| **Charts** | NutrientBalanceChart, ContentStatsBar, NutritionPieChart |
+| **Markdown** | MarkdownEditor (@uiw/react-md-editor), MarkdownRenderer (react-markdown + remark-gfm) |
+| **UI Primitives** | shadcn/ui: Button, Card, Dialog, Input, Label, Tabs, Tooltip, Separator, Select, Textarea, Switch, Progress, Avatar, ColorPicker, Sheet, Command |
 
 ### API-Hooks (TanStack Query)
 
-| Hook-Datei | Pfad | Spec-Domäne | Wichtige Hooks |
-|------------|------|--------------|----------------|
-| ideas.ts | `src/api/ideas.ts` | idea-management, search | `useIdeas`, `useIdea`, `useIdeaBySlug`, `useCreateIdea`, `useUpdateIdea`, `useDeleteIdea`, `useIdeaAutocomplete`, `useSimilarIdeas`, `useScoutLevels` |
-| auth.ts | `src/api/auth.ts` | auth-session | `useCurrentUser`, `useLogin`, `useRegister`, `useLogout`, `useCsrfToken` |
-| tags.ts | `src/api/tags.ts` | idea-management | `useTags`, `useCreateTag`, `useUpdateTag`, `useDeleteTag` |
-| ai.ts | `src/api/ai.ts` | ai-features, idea-creation-flow | `useImproveText`, `useSuggestTags`, `useRefurbish`, `useGenerateImage` |
-| admin.ts | `src/api/admin.ts` | admin | `useAdminStats`, `useAdminComments`, `useApproveComment`, `useAdminUsers`, `useIdeaOfTheWeek` |
-| profile.ts | `src/api/profile.ts` | user-profiles, group-management | `useProfile`, `useUpdateProfile`, `useMyIdeas`, `useMyGroups`, `usePersons` |
-| materials.ts | `src/api/materials.ts` | idea-management | `useMaterials`, `useMaterial` |
-| planner.ts | `src/api/planner.ts` | session-planner | `usePlanners`, `usePlanner`, `useCreatePlanner`, `useUpdatePlanner`, `useDeletePlanner`, `useAddPlannerEntry`, `useUpdatePlannerEntry`, `useRemovePlannerEntry`, `useInviteCollaborator`, `useSearchUsers` |
-| events.ts | `src/api/events.ts` | event-management | `useEvents`, `useEvent`, `useCreateEvent`, `useBookingOptions`, `useRegisterForEvent`, `useParticipants` |
-| mealPlans.ts | `src/api/mealPlans.ts` (NEU) | meal-plan | `useMealPlans`, `useMealPlan`, `useCreateMealPlan`, `useAddRecipeToMeal`, `useShoppingList`, `useNutritionSummary` |
-| ingredients.ts | `src/api/ingredients.ts` (NEU) | ingredient-database | `useIngredients`, `useIngredient`, `useCreateIngredient`, `useUpdateIngredient`, `usePortions`, `useAddPortion`, `usePrices`, `useAddPrice`, `useIngredientAI` |
-| packingLists.ts | `src/api/packingLists.ts` | packing-list | `usePackingLists`, `usePackingList`, `useCreatePackingList`, `useUpdatePackingList`, `useDeletePackingList`, `useCreateCategory`, `useUpdateCategory`, `useDeleteCategory`, `useSortCategories`, `useCreateItem`, `useUpdateItem`, `useDeleteItem`, `useSortItems` |
+| Hook-Datei | Pfad | Spec-Domäne |
+|------------|------|--------------|
+| auth.ts | `src/api/auth.ts` | auth-session |
+| sessions.ts | `src/api/sessions.ts` | group-session |
+| blogs.ts | `src/api/blogs.ts` | blog-content |
+| games.ts | `src/api/games.ts` | game-content |
+| recipes.ts | `src/api/recipes.ts` | recipe |
+| supplies.ts | `src/api/supplies.ts` | supply-base |
+| ingredients.ts | `src/api/ingredients.ts` | ingredient-database |
+| cockpit.ts | `src/api/cockpit.ts` | meal-cockpit |
+| normPerson.ts | `src/api/normPerson.ts` | norm-portion-simulator |
+| profile.ts | `src/api/profile.ts` | user-profiles, group-management |
+| events.ts | `src/api/events.ts` | event-management |
+| eventDashboard.ts | `src/api/eventDashboard.ts` | event-organizer-dashboard |
+| eventDayPlan.ts | `src/api/eventDayPlan.ts` | event-day-plan |
+| whatsapp.ts | `src/api/whatsapp.ts` | whatsapp-connection |
+| planner.ts | `src/api/planner.ts` | session-planner |
+| mealPlans.ts | `src/api/mealPlans.ts` | meal-plan |
+| packingLists.ts | `src/api/packingLists.ts` | packing-list |
+| shoppingLists.ts | `src/api/shoppingLists.ts` | shopping-list |
+| search.ts | `src/api/search.ts` | content-search |
+| contentInteractions.ts | `src/api/contentInteractions.ts` | comments-emotions |
+| contentLinks.ts | `src/api/contentLinks.ts` | content-linking |
+| tags.ts | `src/api/tags.ts` | content-base |
+| ai.ts | `src/api/ai.ts` | ai-features |
+| admin.ts | `src/api/admin.ts` | admin |
+| privacy.ts | `src/api/privacy.ts` | privacy-data-overview |
 
 ### Zod-Schemas
 
 | Schema-Datei | Pfad | Synchron mit (Backend) | Spec-Domäne |
 |--------------|------|------------------------|--------------|
-| idea.ts | `src/schemas/idea.ts` | `idea/schemas.py` | idea-management, search |
+| content.ts | `src/schemas/content.ts` | `content/schemas/` | content-base |
+| session.ts | `src/schemas/session.ts` | `session/schemas.py` | group-session |
+| blog.ts | `src/schemas/blog.ts` | `blog/schemas.py` | blog-content |
+| game.ts | `src/schemas/game.ts` | `game/schemas.py` | game-content |
+| recipe.ts | `src/schemas/recipe.ts` | `recipe/schemas/` | recipe |
+| supply.ts | `src/schemas/supply.ts` | `supply/schemas/` | supply-base, ingredient-database |
+| cockpit.ts | `src/schemas/cockpit.ts` | `recipe/schemas/cockpit.py` | meal-cockpit |
+| normPerson.ts | `src/schemas/normPerson.ts` | `supply/schemas/norm_person.py` | norm-portion-simulator |
 | auth.ts | `src/schemas/auth.ts` | `core/schemas.py` | auth-session |
-| event.ts | `src/schemas/event.ts` | `event/schemas.py` | event-management |
-| profile.ts | `src/schemas/profile.ts` | `profiles/schemas.py` | user-profiles, group-management |
-| planner.ts | `src/schemas/planner.ts` | `planner/schemas.py` | session-planner |
-| mealPlan.ts | `src/schemas/mealPlan.ts` (NEU) | `planner/schemas.py` | meal-plan |
-| ingredient.ts | `src/schemas/ingredient.ts` (NEU) | `idea/schemas.py` | ingredient-database |
+| event.ts | `src/schemas/event.ts` | `event/schemas/` | event-management |
+| profile.ts | `src/schemas/profile.ts` | `profiles/schemas/` | user-profiles, group-management |
+| planner.ts | `src/schemas/planner.ts` | `planner/schemas/` | session-planner |
+| mealPlan.ts | `src/schemas/mealPlan.ts` | `planner/schemas/meal_plan.py` | meal-plan |
 | packingList.ts | `src/schemas/packingList.ts` | `packinglist/schemas.py` | packing-list |
-
-### Zustandsverwaltung
-
-| Store | Pfad | Spec-Domäne | Zweck |
-|-------|------|--------------|-------|
-| useIdeaStore | `src/store/useIdeaStore.ts` | search | Such-Filter, Paginierungszustand, URL-Synchronisation |
+| shoppingList.ts | `src/schemas/shoppingList.ts` | `shopping/schemas.py` | shopping-list |
+| search.ts | `src/schemas/search.ts` | `content/schemas/search.py` | content-search |
+| contentLink.ts | `src/schemas/contentLink.ts` | `content/schemas/links.py` | content-linking |
+| whatsapp.ts | `src/schemas/whatsapp.ts` | `event/schemas/whatsapp.py` | whatsapp-connection |
+| messaging.ts | `src/schemas/messaging.ts` | `event/schemas/messaging.py` | event-messaging |
+| privacy.ts | `src/schemas/privacy.ts` | `profiles/schemas/privacy.py` | privacy-data-overview |
 
 ## Querschnittsthemen
 
 ### Fehlerbehandlung
 
-Die Fehlerbehandlung ist vollständig implementiert:
-
 | Komponente | Beschreibung |
 |------------|-------------|
 | `ErrorBoundary` | React Error Boundary in `main.tsx`, fängt unbehandelte Render-Fehler ab |
 | `ErrorDisplay` | Geteilte Fehler-UI mit `full` und `inline` Varianten, erkennt automatisch 404/403/Network/500 |
-| `ConfirmDialog` | Bestätigungsdialog für destruktive Aktionen (native `<dialog>`, loading-State, destructive Variante) |
+| `ConfirmDialog` | Bestätigungsdialog für destruktive Aktionen (loading-State, destructive Variante) |
 | `sonner` Toaster | Toast-Benachrichtigungen (bottom-right, richColors, 4s) für Erfolg/Fehler bei Mutations |
-
-Alle `window.confirm()`-Aufrufe wurden durch `ConfirmDialog` ersetzt. Toast-Benachrichtigungen werden in den Seiten-Komponenten (`onSuccess`/`onError` Callbacks) verwendet, nicht in den API-Hooks.
 
 ### Schema-Synchronisation (Pydantic <-> Zod)
 
-Jede Änderung an einem Backend-Pydantic-Schema in `**/schemas.py` MUSS im entsprechenden Zod-Schema in `frontend/src/schemas/*.ts` gespiegelt werden und umgekehrt. Die Schemas müssen 1:1 synchron bleiben.
+Jede Änderung an einem Backend-Pydantic-Schema MUSS im entsprechenden Zod-Schema gespiegelt werden und umgekehrt. Die Schemas müssen 1:1 synchron bleiben.
 
 ### Paginierung
 
@@ -229,16 +291,26 @@ Alle Listen-Endpunkte verwenden das Standard-paginierte Antwortformat:
 { items: T[], total: number, page: number, page_size: number, total_pages: number }
 ```
 
-Standard: `page=1`, `page_size=20`. Ausnahme: `GET /api/planner/` gibt derzeit eine flache Liste zurück (Paginierung geplant).
+Standard: `page=1`, `page_size=20`.
 
 ### Authentifizierung
 
-Alle authentifizierten Endpunkte erfordern ein gültiges Session-Cookie. Das Frontend muss CSRF-Tokens bei allen verändernden Anfragen mitsenden. Der Auth-Zustand wird über `useCurrentUser` aus `src/api/auth.ts` verwaltet.
+Alle authentifizierten Endpunkte erfordern ein gültiges Session-Cookie (HTTP-only, kein JWT). Das Frontend muss CSRF-Tokens bei allen verändernden Anfragen mitsenden. Der Auth-Zustand wird über `useCurrentUser` aus `src/api/auth.ts` verwaltet.
 
-### Idea-Typen und Material/Zutaten
+### Content-Typ-Architektur
 
-| Idea-Typ | Code | Material | Zutaten (RecipeItem) | Frontend-Label |
-|----------|------|----------|---------------------|----------------|
-| Lern-Idee | `idea` | Ja (`MaterialItem`) | Nein | "Material" |
-| Rezept | `recipe` | Optional (`MaterialItem`) | Ja (`RecipeItem`) | "Zutaten" |
-| Wissensbeitrag | `knowledge` | Nein | Nein | — (ausgeblendet) |
+| Content-Typ | Django Model | Django App | Frontend-Bereich |
+|-------------|-------------|-----------|-----------------|
+| Gruppenstunde | `session.GroupSession` | `session` | `/sessions/*` |
+| Blog | `blog.Blog` | `blog` | `/blogs/*` |
+| Spiel | `game.Game` | `game` | `/games/*` |
+| Rezept | `recipe.Recipe` | `recipe` | `/recipes/*` |
+
+Alle Content-Typen erben von `content.Content` (abstrakt) und teilen: Titel, Slug, Beschreibung (Markdown), Schwierigkeit, Kosten, Dauer, Status, Bild, Tags, Pfadfinderstufen, Autoren, Kommentare, Emotionen, Views.
+
+### Supply-Architektur
+
+| Supply-Typ | Django Model | Vererbung |
+|------------|-------------|-----------|
+| Material | `supply.Material` | Erbt von `Supply` (abstrakt) |
+| Zutat | `supply.Ingredient` | Standalone (`models.Model`) — hat 30+ eigene Felder |

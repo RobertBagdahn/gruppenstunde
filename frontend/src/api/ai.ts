@@ -80,7 +80,7 @@ const AiGenerateImageSchema = z.object({
 type AiGenerateImage = z.infer<typeof AiGenerateImageSchema>;
 
 export function useGenerateImage() {
-  return useMutation<AiGenerateImage, AiApiError, { prompt: string; title?: string; summary?: string; description?: string; signal?: AbortSignal }>({
+  return useMutation<AiGenerateImage, AiApiError, { prompt: string; title?: string; summary?: string; description?: string; content_type?: string; signal?: AbortSignal }>({
     mutationFn: ({ signal, ...body }) => postJson(`${API_BASE}/generate-image/`, body, AiGenerateImageSchema, signal),
   });
 }

@@ -152,14 +152,14 @@ export default function MailTab({ event }: Props) {
       <div className="rounded-xl border p-4">
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px]">group</span>
-          Empfaenger
+          Empfänger
         </h3>
 
         <div className="flex flex-wrap gap-2 mb-4">
           {([
             { key: 'all' as const, label: 'Alle Teilnehmer', icon: 'groups' },
             { key: 'filtered' as const, label: 'Gefiltert', icon: 'filter_alt' },
-            { key: 'selected' as const, label: 'Ausgewaehlt', icon: 'checklist' },
+            { key: 'selected' as const, label: 'Ausgewählt', icon: 'checklist' },
           ]).map((opt) => (
             <button
               key={opt.key}
@@ -240,7 +240,7 @@ export default function MailTab({ event }: Props) {
           <div className="pt-2 border-t">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs text-muted-foreground">
-                {selectedParticipantIds.size} von {allParticipants.length} ausgewaehlt
+                {selectedParticipantIds.size} von {allParticipants.length} ausgewählt
               </span>
               <button
                 onClick={() => {
@@ -253,8 +253,8 @@ export default function MailTab({ event }: Props) {
                 className="text-xs text-violet-600 hover:underline"
               >
                 {selectedParticipantIds.size === allParticipants.length
-                  ? 'Alle abwaehlen'
-                  : 'Alle auswaehlen'}
+                  ? 'Alle abwählen'
+                  : 'Alle auswählen'}
               </button>
             </div>
             <div className="max-h-40 overflow-y-auto space-y-1">
@@ -286,7 +286,7 @@ export default function MailTab({ event }: Props) {
 
         <p className="text-xs text-muted-foreground mt-2">
           <span className="material-symbols-outlined text-[14px] align-middle mr-0.5">mail</span>
-          {getRecipientCount()} Empfaenger
+          {getRecipientCount()} Empfänger
         </p>
       </div>
 
@@ -297,7 +297,7 @@ export default function MailTab({ event }: Props) {
           Platzhalter
         </h3>
         <p className="text-xs text-muted-foreground mb-3">
-          Klicke auf einen Platzhalter, um ihn in den Betreff oder Text einzufuegen.
+          Klicke auf einen Platzhalter, um ihn in den Betreff oder Text einzufügen.
         </p>
         <div className="flex flex-wrap gap-1.5">
           {PLACEHOLDERS.map((ph) => (
@@ -342,7 +342,7 @@ export default function MailTab({ event }: Props) {
             onChange={(e) => setBody(e.target.value)}
             rows={8}
             className="w-full text-sm border rounded-lg px-3 py-2 bg-background resize-y"
-            placeholder={`Hallo {vorname},\n\nhier sind wichtige Infos zu {event_name}...\n\nViele Gruesse,\nDein Leitungsteam`}
+            placeholder={`Hallo {vorname},\n\nhier sind wichtige Infos zu {event_name}...\n\nViele Grüße,\nDein Leitungsteam`}
           />
         </div>
       </div>
@@ -352,7 +352,7 @@ export default function MailTab({ event }: Props) {
         <div className="rounded-xl border p-4 bg-muted/30">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]">preview</span>
-            Vorschau (fuer {sampleParticipant.first_name} {sampleParticipant.last_name})
+            Vorschau (für {sampleParticipant.first_name} {sampleParticipant.last_name})
           </h3>
           <div className="space-y-2">
             <p className="text-sm">
@@ -392,7 +392,7 @@ export default function MailTab({ event }: Props) {
         onConfirm={handleSend}
         onCancel={() => setShowConfirm(false)}
         title="E-Mail senden?"
-        description={`Die E-Mail wird an ${getRecipientCount()} Empfaenger gesendet. Dieser Vorgang kann nicht rueckgaengig gemacht werden.`}
+        description={`Die E-Mail wird an ${getRecipientCount()} Empfänger gesendet. Dieser Vorgang kann nicht rückgängig gemacht werden.`}
         confirmLabel="Senden"
         loading={sendMail.isPending}
       />

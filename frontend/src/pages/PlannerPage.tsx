@@ -13,10 +13,13 @@ import {
   useSearchUsers,
   type UserSearchResult,
 } from '@/api/planner';
+import { useCurrentUser } from '@/api/auth';
 import { useUnifiedAutocomplete, type AutocompleteResult } from '@/api/search';
 import { WEEKDAY_LABELS, type PlannerEntry } from '@/schemas/planner';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EmptyState from '@/components/shared/EmptyState';
+import UnauthGate from '@/components/shared/UnauthGate';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,6 +64,29 @@ function formatTime(t: string): string {
 // ---------------------------------------------------------------------------
 
 export default function PlannerPage() {
+  const { data: user, isLoading: userLoading } = useCurrentUser();
+
+  if (userLoading) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="h-28 rounded-xl bg-muted animate-pulse" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <UnauthGate
+        title="Gruppenstundenplan"
+        description="Melde dich an, um deine Gruppenstunden zu planen."
+      />
+    );
+  }
+
+  return <PlannerPageInner />;
+}
+
+function PlannerPageInner() {
   const { data: planners, isLoading } = usePlanners();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -75,27 +101,27 @@ export default function PlannerPage() {
   }, [planners, selectedId]);
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <ConfirmDialog
         open={deleteTargetId !== null}
         onConfirm={() => {
           if (deleteTargetId === null) return;
           deletePlanner.mutate(deleteTargetId, {
             onSuccess: () => {
-              toast.success('Planer geloescht');
+              toast.success('Planer gelöscht');
               if (selectedId === deleteTargetId) setSelectedId(null);
               setDeleteTargetId(null);
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setDeleteTargetId(null);
             },
           });
         }}
         onCancel={() => setDeleteTargetId(null)}
-        title="Planer loeschen?"
-        description="Der Planer und alle Eintraege werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Planer löschen?"
+        description="Der Planer und alle Einträge werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deletePlanner.isPending}
       />
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
@@ -165,7 +191,7 @@ export default function PlannerPage() {
                     ? 'text-white/60 hover:text-white'
                     : 'text-destructive/50 hover:text-destructive'
                 }`}
-                title="Loeschen"
+                title="Löschen"
               >
                 <span className="material-symbols-outlined text-sm">delete</span>
               </button>
@@ -173,14 +199,11 @@ export default function PlannerPage() {
           ))}
 
           {planners && planners.length === 0 && !showCreate && (
-            <div className="text-center py-6">
-              <span className="material-symbols-outlined text-3xl text-muted-foreground mb-2 block">
-                calendar_month
-              </span>
-              <p className="text-sm text-muted-foreground">
-                Erstelle deinen ersten Planer.
-              </p>
-            </div>
+            <EmptyState
+              icon="calendar_month"
+              title="Noch keine Planer"
+              description="Erstelle deinen ersten Planer."
+            />
           )}
         </div>
 
@@ -189,14 +212,11 @@ export default function PlannerPage() {
           {selectedId ? (
             <PlannerDetail plannerId={selectedId} />
           ) : (
-            <div className="text-center py-12">
-              <span className="material-symbols-outlined text-4xl text-muted-foreground mb-2 block">
-                event_note
-              </span>
-              <p className="text-muted-foreground text-sm">
-                Waehle einen Planer aus oder erstelle einen neuen.
-              </p>
-            </div>
+            <EmptyState
+              icon="event_note"
+              title="Kein Planer ausgewählt"
+              description="Wähle einen Planer aus oder erstelle einen neuen."
+            />
           )}
         </div>
       </div>
@@ -307,7 +327,19 @@ function PlannerDetail({ plannerId }: { plannerId: number }) {
     return map;
   }, [data?.entries]);
 
-  if (isLoading) return <div className="animate-pulse h-64 bg-muted rounded-lg" />;
+  if (isLoading) return (
+    <div className="space-y-4">
+      <div className="animate-pulse space-y-2">
+        <div className="h-7 w-48 bg-muted rounded" />
+        <div className="h-4 w-32 bg-muted rounded" />
+      </div>
+      <div className="space-y-2">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="animate-pulse h-14 bg-muted rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
   if (error || !data) return <ErrorDisplay error={error} title="Planer nicht gefunden" onRetry={() => refetch()} />;
 
   const canEdit = data.can_edit;
@@ -354,14 +386,14 @@ function PlannerDetail({ plannerId }: { plannerId: number }) {
               isPast={isPast}
               isCancelled={isCancelled}
               canEdit={canEdit}
-              onAddEntry={(ideaId, notes) =>
-                addEntry.mutate({ date: dateStr, session_id: ideaId, notes })
+              onAddEntry={(sessionId, notes) =>
+                addEntry.mutate({ date: dateStr, session_id: sessionId, notes })
               }
               onUpdateEntry={(entryId, updates) =>
                 updateEntry.mutate({ entryId, ...updates })
               }
               onRemoveEntry={(entryId) => removeEntry.mutate(entryId)}
-              onIdeaClick={(slug) => navigate(`/sessions/${slug}`)}
+              onSessionClick={(slug) => navigate(`/sessions/${slug}`)}
             />
           );
         })}
@@ -411,17 +443,17 @@ function CalendarSlot({
   onAddEntry,
   onUpdateEntry,
   onRemoveEntry,
-  onIdeaClick,
+  onSessionClick,
 }: {
   date: string;
   entry: PlannerEntry | null;
   isPast: boolean;
   isCancelled: boolean;
   canEdit: boolean;
-  onAddEntry: (ideaId?: number, notes?: string) => void;
+  onAddEntry: (sessionId?: number, notes?: string) => void;
   onUpdateEntry: (entryId: number, updates: Record<string, unknown>) => void;
   onRemoveEntry: (entryId: number) => void;
-  onIdeaClick: (slug: string) => void;
+  onSessionClick: (slug: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -456,7 +488,7 @@ function CalendarSlot({
               {entry.session_title ? (
                 <button
                   type="button"
-                  onClick={() => entry.session_slug && onIdeaClick(entry.session_slug)}
+                  onClick={() => entry.session_slug && onSessionClick(entry.session_slug)}
                   className="text-sm text-primary hover:underline font-medium truncate block text-left"
                 >
                   {entry.session_title}
@@ -517,8 +549,8 @@ function CalendarSlot({
       {/* Inline add form */}
       {editing && !entry && canEdit && (
         <AddEntryInline
-          onAdd={(ideaId, notes) => {
-            onAddEntry(ideaId, notes);
+          onAdd={(sessionId, notes) => {
+            onAddEntry(sessionId, notes);
             setEditing(false);
           }}
           onCancel={() => setEditing(false)}
@@ -541,14 +573,14 @@ function AddEntryInline({
   onAdd,
   onCancel,
 }: {
-  onAdd: (ideaId?: number, notes?: string) => void;
+  onAdd: (sessionId?: number, notes?: string) => void;
   onCancel: () => void;
 }) {
   const [notes, setNotes] = useState('');
-  const [ideaQuery, setIdeaQuery] = useState('');
-  const [selectedIdea, setSelectedIdea] = useState<AutocompleteResult | null>(null);
+  const [sessionQuery, setSessionQuery] = useState('');
+  const [selectedSession, setSelectedSession] = useState<AutocompleteResult | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const { data: suggestions } = useUnifiedAutocomplete(ideaQuery);
+  const { data: suggestions } = useUnifiedAutocomplete(sessionQuery);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -567,37 +599,37 @@ function AddEntryInline({
         <input
           type="text"
           placeholder="Gruppenstunde suchen..."
-          value={selectedIdea ? selectedIdea.title : ideaQuery}
+          value={selectedSession ? selectedSession.title : sessionQuery}
           onChange={(e) => {
-            setIdeaQuery(e.target.value);
-            setSelectedIdea(null);
+            setSessionQuery(e.target.value);
+            setSelectedSession(null);
             setShowSuggestions(true);
           }}
           onFocus={() => setShowSuggestions(true)}
           className="w-full px-2 py-1.5 rounded border text-sm bg-background"
           autoFocus
         />
-        {selectedIdea && (
+        {selectedSession && (
           <button
             type="button"
             onClick={() => {
-              setSelectedIdea(null);
-              setIdeaQuery('');
+              setSelectedSession(null);
+              setSessionQuery('');
             }}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <span className="material-symbols-outlined text-sm">close</span>
           </button>
         )}
-        {showSuggestions && suggestions && suggestions.length > 0 && !selectedIdea && (
+        {showSuggestions && suggestions && suggestions.length > 0 && !selectedSession && (
           <ul className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-40 overflow-y-auto">
             {suggestions.map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedIdea(item);
-                    setIdeaQuery('');
+                    setSelectedSession(item);
+                    setSessionQuery('');
                     setShowSuggestions(false);
                   }}
                   className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
@@ -618,7 +650,7 @@ function AddEntryInline({
       />
       <div className="flex gap-1">
         <button
-          onClick={() => onAdd(selectedIdea?.id, notes || undefined)}
+          onClick={() => onAdd(selectedSession?.id, notes || undefined)}
           className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded text-sm"
         >
           OK

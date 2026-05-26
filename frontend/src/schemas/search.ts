@@ -7,7 +7,7 @@ import { z } from 'zod';
 // --- Unified Search Result ---
 
 export const UnifiedSearchResultSchema = z.object({
-  result_type: z.enum(['session', 'blog', 'game', 'recipe', 'tag', 'event']),
+  result_type: z.enum(['session', 'blog', 'game', 'recipe', 'event']),
   id: z.number(),
   title: z.string(),
   slug: z.string(),
@@ -16,6 +16,7 @@ export const UnifiedSearchResultSchema = z.object({
   url: z.string(),
   score: z.number(),
   created_at: z.string(),
+  status: z.string().nullable().optional(),
   extra: z.record(z.string(), z.unknown()),
 });
 export type UnifiedSearchResult = z.infer<typeof UnifiedSearchResultSchema>;
@@ -38,6 +39,7 @@ export const UnifiedSearchFilterSchema = z.object({
   sort: z.string().default('relevant'),
   page: z.number().default(1),
   page_size: z.number().default(20),
+  scope: z.enum(['all', 'mine']).optional(),
 });
 export type UnifiedSearchFilter = z.infer<typeof UnifiedSearchFilterSchema>;
 
@@ -48,7 +50,6 @@ export const RESULT_TYPE_OPTIONS = [
   { value: 'blog', label: 'Wissensbeiträge', icon: 'article' },
   { value: 'game', label: 'Spiele', icon: 'sports_esports' },
   { value: 'recipe', label: 'Rezepte', icon: 'menu_book' },
-  { value: 'tag', label: 'Tags', icon: 'label' },
   { value: 'event', label: 'Events', icon: 'event' },
 ] as const;
 
@@ -59,6 +60,5 @@ export const RESULT_TYPE_CONFIG: Record<string, { label: string; icon: string; c
   blog: { label: 'Wissensbeitrag', icon: 'article', color: 'text-indigo-700', bgColor: 'bg-indigo-50 border-indigo-200' },
   game: { label: 'Spiel', icon: 'sports_esports', color: 'text-emerald-700', bgColor: 'bg-emerald-50 border-emerald-200' },
   recipe: { label: 'Rezept', icon: 'menu_book', color: 'text-rose-700', bgColor: 'bg-rose-50 border-rose-200' },
-  tag: { label: 'Tag', icon: 'label', color: 'text-blue-700', bgColor: 'bg-blue-50 border-blue-200' },
   event: { label: 'Event', icon: 'event', color: 'text-violet-700', bgColor: 'bg-violet-50 border-violet-200' },
 };

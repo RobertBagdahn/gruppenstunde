@@ -20,26 +20,48 @@ Das System MUST ein UserProfile für jeden registrierten Benutzer pflegen.
 
 - GIVEN ein authentifizierter Benutzer
 - WHEN der Benutzer GET `/api/profile/me/` aufruft
-- THEN werden die Profildaten zurückgegeben: `{ id, scout_name, first_name, last_name, gender, birthday, about_me, nutritional_tags, profile_picture_url, created_at, updated_at }`
+- THEN werden die Profildaten zurückgegeben: `{ id, scout_name, first_name, last_name, gender, birthday, about_me, nutritional_tags, profile_picture_url, is_public, created_at, updated_at }`
 
 #### Scenario: Profil aktualisieren
 
 - GIVEN ein authentifizierter Benutzer
-- WHEN der Benutzer PATCH `/api/profile/me/` mit partiellen Daten absendet (optionale Felder: `scout_name`, `first_name`, `last_name`, `gender`, `birthday`, `about_me`, `nutritional_tag_ids`)
+- WHEN der Benutzer PATCH `/api/profile/me/` mit partiellen Daten absendet (optionale Felder: `scout_name`, `first_name`, `last_name`, `gender`, `birthday`, `about_me`, `nutritional_tag_ids`, `is_public`)
 - THEN wird das Profil aktualisiert
-- AND das Profilbild kann separat zu Google Cloud Storage hochgeladen werden
 
 #### Scenario: Fremdes Profil anzeigen
 
 - GIVEN ein beliebiger Benutzer
 - WHEN GET `/api/profile/{userId}/` aufgerufen wird
-- THEN wird eine öffentliche Ansicht des Benutzerprofils zurückgegeben: `{ id, scout_name, first_name, about_me, profile_picture_url, created_at, ideas }` (nur veröffentlichte Ideas)
+- THEN wird eine öffentliche Ansicht des Benutzerprofils zurückgegeben wenn `is_public=true`: `{ id, scout_name, first_name, about_me, profile_picture_url, created_at, content }`
+- AND HTTP 404 wenn `is_public=false` (außer der anfragende User ist der Profilinhaber)
+
+### Requirement: Profil-Sichtbarkeit in Public-API
+
+Die Public-Profile-API MUST das `is_public` Flag respektieren.
+
+#### Scenario: Öffentliches Profil anzeigen wenn is_public=true
+
+- GIVEN ein Benutzer mit `is_public = true`
+- WHEN ein anderer Benutzer `GET /api/profile/{userId}/` aufruft
+- THEN werden die öffentlichen Profildaten zurückgegeben
+
+#### Scenario: Profil verbergen wenn is_public=false
+
+- GIVEN ein Benutzer mit `is_public = false`
+- WHEN ein anderer Benutzer `GET /api/profile/{userId}/` aufruft
+- THEN wird HTTP 404 zurückgegeben
+
+#### Scenario: Eigenes Profil immer sichtbar
+
+- GIVEN ein Benutzer mit `is_public = false`
+- WHEN der Benutzer selbst `GET /api/profile/{eigene-userId}/` aufruft
+- THEN werden die Profildaten trotzdem zurückgegeben
 
 ### Requirement: Benutzer-Einstellungen (UserPreference)
 
 Das System SHALL konfigurierbare Standard-Sucheinstellungen als `UserPreference` (OneToOne mit User) unterstützen.
 
-**Hinweis: Technische Schuld** — Im Code existieren zwei separate UserPreference-Models: `profiles.UserPreference` (ohne Difficulty-Choices) und `idea.UserPreferences` (mit DifficultyChoices). Die `idea`-Version soll entfernt und `profiles.UserPreference` als einzige Quelle verwendet werden.
+Das `profiles.UserPreference` Model ist die einzige Quelle für Benutzer-Einstellungen.
 
 #### Scenario: Standard-Einstellungen setzen
 
@@ -128,16 +150,57 @@ Das System SHALL die Suche nach Benutzern per Name oder E-Mail unterstützen.
 - THEN werden passende Benutzer mit `{ id, scout_display_name, email }` zurückgegeben
 - AND die Ergebnisse werden zum Einladen von Planer-Mitarbeitern oder Event-Teilnehmern verwendet
 
-### Requirement: Eigene Ideas auflisten
+### Requirement: Eigene Inhalte auflisten
 
-Das System SHALL Benutzern das Anzeigen ihrer eigenen erstellten Ideas ermöglichen.
+Das System SHALL Benutzern das Anzeigen ihrer eigenen erstellten Inhalte ermöglichen.
 
-#### Scenario: Eigene Ideas auflisten
+#### Scenario: Eigene Inhalte auflisten
 
-- GIVEN ein authentifizierter Benutzer, der Ideas erstellt hat
-- WHEN der Benutzer GET `/api/profile/me/ideas/` aufruft
-- THEN werden alle vom Benutzer erstellten Ideas zurückgegeben (einschließlich Entwürfe)
-- AND die Antwort enthält `{ id, title, slug, idea_type, summary, status, image_url, created_at, updated_at }` pro Idea
+- GIVEN ein authentifizierter Benutzer, der Inhalte erstellt hat
+- WHEN der Benutzer GET `/api/profile/me/content/` aufruft
+- THEN werden alle vom Benutzer erstellten Inhalte zurückgegeben (einschließlich Entwürfe)
+- AND die Antwort enthält `{ id, title, slug, content_type, summary, status, image_url, created_at, updated_at }` pro Item
+
+### Requirement: Profil-Navigation
+
+Die Profil-Navigation MUST folgende Einträge in dieser Reihenfolge enthalten:
+
+1. Mein Bereich (`/my-dashboard`) — Icon: `space_dashboard`
+2. Profil (`/profile`) — Icon: `person` — Konsolidierte Profilseite
+3. Gruppen (`/profile/groups`) — Icon: `groups`
+4. Personen (`/profile/persons`) — Icon: `family_restroom`
+5. Datenschutz (`/profile/privacy`) — Icon: `shield`
+
+#### Scenario: Navigation zeigt konsolidierte Einträge
+
+- GIVEN ein authentifizierter Benutzer
+- WHEN die Profil-Navigation angezeigt wird
+- THEN werden genau 5 Einträge angezeigt: Mein Bereich, Profil, Gruppen, Personen, Datenschutz
+- AND kein Eintrag hat ein doppeltes Label
+
+#### Scenario: Navigation-Eintrag "Profil" ist aktiv
+
+- GIVEN ein Benutzer auf `/profile`
+- WHEN die Navigation gerendert wird
+- THEN ist der Eintrag "Profil" visuell als aktiv markiert
+
+### Requirement: Privacy-Seite im Profil-Bereich
+
+Das Profil MUSS eine neue Seite unter `/profile/privacy` enthalten mit drei Abschnitten:
+
+1. **Datenübersicht**: Kategorisierte Auflistung aller gespeicherten Daten mit Anzahl pro Kategorie
+2. **Daten exportieren**: Button "Alle meine Daten herunterladen (JSON)" mit Ladeindikator
+3. **Konto löschen**: Roter Gefahrenbereich mit Beschreibung der Konsequenzen und "Konto löschen"-Button
+
+Die Seite MUSS mobile-first gestaltet sein (ab 320px).
+
+#### Scenario: Privacy-Seite zeigt alle drei Abschnitte
+- **WHEN** ein authentifizierter Nutzer `/profile/privacy` aufruft
+- **THEN** werden die Abschnitte "Datenübersicht", "Daten exportieren" und "Konto löschen" angezeigt
+
+#### Scenario: Nicht authentifizierter Nutzer wird umgeleitet
+- **WHEN** ein nicht authentifizierter Nutzer `/profile/privacy` aufruft
+- **THEN** wird er auf `/login` umgeleitet
 
 ### Requirement: Profilbild-Upload
 
@@ -150,4 +213,4 @@ Das System SHALL den Upload von Profilbildern zu Google Cloud Storage unterstüt
 - THEN wird das Bild in Google Cloud Storage gespeichert
 - AND die `profile_picture_url` im UserProfile wird aktualisiert
 - AND erlaubte Formate sind JPEG, PNG und WebP
-- AND die maximale Dateigröße beträgt 2 MB
+- AND die maximale Dateigröße beträgt 500 KB

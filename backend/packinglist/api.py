@@ -1,6 +1,7 @@
 """Django Ninja API routes for the Packing List module."""
 
 import logging
+from uuid import UUID
 
 from django.db.models import Max, Q
 from django.http import HttpResponse
@@ -11,8 +12,23 @@ from ninja.errors import HttpError
 from profiles.models import GroupMembership
 from profiles.choices import MembershipRoleChoices
 
-from .models import PackingCategory, PackingItem, PackingList
+from .models import (
+    PackingCategory,
+    PackingItem,
+    PackingList,
+    PackingListShare,
+    PackingListShareCheck,
+    VisibilityChoices,
+)
 from .schemas import (
+    AiSuggestErrorOut,
+    AiSuggestIn,
+    AiSuggestOut,
+    CatalogItemOut,
+    CatalogSuggestionsOut,
+    FullCatalogOut,
+    GeneratePackingListIn,
+    PreviewIn,
     PackingCategoryCreateIn,
     PackingCategoryOut,
     PackingCategoryUpdateIn,
@@ -24,6 +40,16 @@ from .schemas import (
     PackingListSummaryOut,
     PackingListUpdateIn,
     PaginatedPackingListOut,
+    PresetOut,
+    PreviewCategoryOut,
+    PreviewOut,
+    RandomSuggestionsOut,
+    ShareCheckUpdateIn,
+    ShareCreateIn,
+    ShareOut,
+    SharedPackingCategoryOut,
+    SharedPackingItemOut,
+    SharedPackingListOut,
     SortOrderIn,
 )
 
@@ -105,6 +131,89 @@ def list_templates(request, page: int = 1, page_size: int = 20):
     }
 
 
+@packing_list_router.get("/suggestions/categories/", response={200: dict})
+def get_suggestion_categories(request):
+    """Get all available suggestion category names from the master catalog."""
+    from .services.suggestion_service import get_all_categories
+
+    return {"categories": get_all_categories()}
+
+
+# ==========================================================================
+# Wizard: Generate, Preview, Presets, Catalog
+# ==========================================================================
+
+
+@packing_list_router.post("/generate/", response=PackingListOut)
+def generate_packing_list(request, payload: GeneratePackingListIn):
+    """Generate a packing list from wizard context using the dynamic builder."""
+    _require_auth(request)
+
+    from .services.suggestion_service import build_dynamic_list
+
+    context = payload.context.dict()
+    built = build_dynamic_list(context)
+
+    # Create the packing list with context fields
+    packing_list = PackingList.objects.create(
+        title=payload.title,
+        owner=request.user,
+        activity_type=context.get("activity"),
+        duration=context.get("duration"),
+        season=context.get("season"),
+        age_group=context.get("age_group"),
+    )
+
+    # Create categories and items from builder result
+    for sort_order, (cat_name, items) in enumerate(built.items()):
+        category = PackingCategory.objects.create(
+            packing_list=packing_list,
+            name=cat_name,
+            sort_order=sort_order,
+        )
+        for item_order, item in enumerate(items):
+            PackingItem.objects.create(
+                category=category,
+                name=item["name"],
+                quantity=item.get("quantity", ""),
+                description=item.get("description", ""),
+                is_do_not_bring=item.get("is_do_not_bring", False),
+                sort_order=item_order,
+            )
+
+    packing_list.can_edit = True
+    return packing_list
+
+
+@packing_list_router.post("/preview/", response=PreviewOut)
+def preview_packing_list(request, payload: PreviewIn):
+    """Preview the result of dynamic list generation without creating DB records."""
+    _require_auth(request)
+
+    from .services.suggestion_service import preview_dynamic_list
+
+    context = payload.context.dict()
+    result = preview_dynamic_list(context)
+    return result
+
+
+@packing_list_router.get("/presets/", response=list[PresetOut])
+def get_presets(request):
+    """Get all available presets for quick wizard selection."""
+    from .services.suggestion_service import PRESETS
+
+    return PRESETS
+
+
+@packing_list_router.get("/catalog/", response=FullCatalogOut)
+def get_full_catalog(request):
+    """Get the full catalog for client-side autocomplete."""
+    from .services.suggestion_service import get_full_catalog as _get_full_catalog
+
+    items = _get_full_catalog()
+    return {"items": items}
+
+
 @packing_list_router.post("/", response=PackingListOut)
 def create_packing_list(request, payload: PackingListCreateIn):
     """Create a new packing list."""
@@ -126,11 +235,16 @@ def create_packing_list(request, payload: PackingListCreateIn):
 
 @packing_list_router.get("/{packing_list_id}/", response=PackingListOut)
 def get_packing_list(request, packing_list_id: int):
-    """Get a packing list by ID. Publicly accessible (read-only for non-owners)."""
+    """Get a packing list by ID. Access depends on visibility setting."""
     packing_list = get_object_or_404(
-        PackingList.objects.select_related("owner", "group").prefetch_related("categories__items"),
+        PackingList.objects.select_related("owner", "group").prefetch_related("categories__items", "shares"),
         id=packing_list_id,
     )
+
+    # Templates are always publicly accessible
+    if not packing_list.is_template and packing_list.visibility == VisibilityChoices.PRIVATE:
+        if not request.user.is_authenticated or not packing_list.user_can_edit(request.user):
+            raise HttpError(404, "Packliste nicht gefunden")
 
     # Attach can_edit for the current user
     if request.user.is_authenticated:
@@ -215,17 +329,34 @@ def export_text(request, packing_list_id: int):
         lines.append(packing_list.description)
         lines.append("")
 
+    do_not_bring_items: list[PackingItem] = []
+
     for category in packing_list.categories.all():
-        lines.append(f"## {category.name}")
-        for item in category.items.all():
-            checkbox = "[x]" if item.is_checked else "[ ]"
+        regular_items = [item for item in category.items.all() if not item.is_do_not_bring]
+        dnb_items = [item for item in category.items.all() if item.is_do_not_bring]
+        do_not_bring_items.extend(dnb_items)
+
+        if regular_items:
+            lines.append(f"## {category.name}")
+            for item in regular_items:
+                checkbox = "[x]" if item.is_checked else "[ ]"
+                qty = f" ({item.quantity})" if item.quantity else ""
+                desc = f" - {item.description}" if item.description else ""
+                lines.append(f"  {checkbox} {item.name}{qty}{desc}")
+            lines.append("")
+
+    if do_not_bring_items:
+        lines.append("## Nicht mitbringen")
+        for item in do_not_bring_items:
             qty = f" ({item.quantity})" if item.quantity else ""
             desc = f" - {item.description}" if item.description else ""
-            lines.append(f"  {checkbox} {item.name}{qty}{desc}")
+            lines.append(f"  ❌ {item.name}{qty}{desc}")
         lines.append("")
 
-    total = PackingItem.objects.filter(category__packing_list=packing_list).count()
-    checked = PackingItem.objects.filter(category__packing_list=packing_list, is_checked=True).count()
+    total = PackingItem.objects.filter(category__packing_list=packing_list, is_do_not_bring=False).count()
+    checked = PackingItem.objects.filter(
+        category__packing_list=packing_list, is_checked=True, is_do_not_bring=False
+    ).count()
     lines.append(f"---")
     lines.append(f"Fortschritt: {checked}/{total} gepackt")
 
@@ -419,3 +550,219 @@ def sort_items(request, packing_list_id: int, category_id: int, payload: SortOrd
         PackingItem.objects.filter(id=item_id, category=category).update(sort_order=index)
 
     return {"success": True, "message": "Gegenstände sortiert"}
+
+
+# ==========================================================================
+# Share Link Management
+# ==========================================================================
+
+
+@packing_list_router.post("/{packing_list_id}/shares/", response=ShareOut)
+def create_share(request, packing_list_id: int, payload: ShareCreateIn):
+    """Create a share link for a packing list."""
+    _require_auth(request)
+    packing_list = get_object_or_404(PackingList, id=packing_list_id)
+    _require_edit_permission(packing_list, request.user)
+
+    share = PackingListShare.objects.create(
+        packing_list=packing_list,
+        label=payload.label,
+    )
+    return share
+
+
+@packing_list_router.get("/{packing_list_id}/shares/", response=list[ShareOut])
+def list_shares(request, packing_list_id: int):
+    """List all active share links for a packing list."""
+    _require_auth(request)
+    packing_list = get_object_or_404(PackingList, id=packing_list_id)
+    _require_edit_permission(packing_list, request.user)
+
+    return packing_list.shares.filter(is_active=True)
+
+
+@packing_list_router.delete("/{packing_list_id}/shares/{share_id}/")
+def deactivate_share(request, packing_list_id: int, share_id: int):
+    """Deactivate a share link."""
+    _require_auth(request)
+    packing_list = get_object_or_404(PackingList, id=packing_list_id)
+    _require_edit_permission(packing_list, request.user)
+
+    share = get_object_or_404(PackingListShare, id=share_id, packing_list=packing_list, is_active=True)
+    share.is_active = False
+    share.save()
+    return {"success": True, "message": "Freigabe-Link deaktiviert"}
+
+
+# ==========================================================================
+# Shared Packing List (public, via token)
+# ==========================================================================
+
+
+@packing_list_router.get("/shared/{token}/", response=SharedPackingListOut)
+def get_shared_packing_list(request, token: UUID):
+    """Load a packing list via share token. Public, no auth required."""
+    share = get_object_or_404(
+        PackingListShare.objects.select_related("packing_list__owner"),
+        token=token,
+        is_active=True,
+    )
+
+    packing_list = share.packing_list
+    check_map: dict[int, bool] = dict(share.checks.values_list("item_id", "is_checked"))
+
+    categories = []
+    for category in packing_list.categories.prefetch_related("items").all():
+        items = []
+        for item in category.items.all():
+            item.is_checked = check_map.get(item.id, False)
+            items.append(item)
+
+        categories.append(
+            SharedPackingCategoryOut(
+                id=category.id,
+                name=category.name,
+                sort_order=category.sort_order,
+                items=[SharedPackingItemOut.from_orm(i) for i in items],
+            )
+        )
+
+    owner_name = ""
+    profile = getattr(packing_list.owner, "profile", None)
+    if profile and profile.scout_display_name:
+        owner_name = profile.scout_display_name
+    else:
+        owner_name = packing_list.owner.email
+
+    return SharedPackingListOut(
+        id=packing_list.id,
+        title=packing_list.title,
+        description=packing_list.description,
+        owner_name=owner_name,
+        categories=categories,
+        share_token=str(share.token),
+        share_label=share.label,
+    )
+
+
+@packing_list_router.patch("/shared/{token}/checks/")
+def update_share_check(request, token: UUID, payload: ShareCheckUpdateIn):
+    """Update check state for a specific item on a share link."""
+    share = get_object_or_404(
+        PackingListShare.objects.select_related("packing_list"),
+        token=token,
+        is_active=True,
+    )
+
+    item = get_object_or_404(
+        PackingItem,
+        id=payload.item_id,
+        category__packing_list=share.packing_list,
+    )
+
+    if item.is_do_not_bring:
+        raise HttpError(400, "Nicht-mitbringen-Gegenstände können nicht abgehakt werden")
+
+    check, _ = PackingListShareCheck.objects.get_or_create(
+        share=share,
+        item=item,
+        defaults={"is_checked": payload.is_checked},
+    )
+    if check.is_checked != payload.is_checked:
+        check.is_checked = payload.is_checked
+        check.save()
+
+    return {"success": True, "is_checked": check.is_checked}
+
+
+# ==========================================================================
+# Suggestions (catalog + AI)
+# ==========================================================================
+
+
+@packing_list_router.get("/{packing_list_id}/suggestions/catalog/", response=CatalogSuggestionsOut)
+def get_catalog_suggestions(request, packing_list_id: int, category: str | None = None, search: str | None = None):
+    """Get item suggestions from the master catalog, excluding items already in the packing list."""
+    packing_list = get_object_or_404(
+        PackingList.objects.prefetch_related("categories__items"),
+        id=packing_list_id,
+    )
+
+    # Collect existing item names
+    existing_names = []
+    for cat in packing_list.categories.all():
+        for item in cat.items.all():
+            existing_names.append(item.name)
+
+    from .services.suggestion_service import get_catalog_suggestions as _get_catalog
+
+    result = _get_catalog(
+        existing_item_names=existing_names,
+        category_filter=category,
+        search_query=search,
+    )
+    return result
+
+
+@packing_list_router.get("/{packing_list_id}/suggestions/random/", response=RandomSuggestionsOut)
+def get_random_suggestions(request, packing_list_id: int, count: int = 8):
+    """Get random item suggestions for quick-add chips."""
+    packing_list = get_object_or_404(
+        PackingList.objects.prefetch_related("categories__items"),
+        id=packing_list_id,
+    )
+
+    existing_names = []
+    for cat in packing_list.categories.all():
+        for item in cat.items.all():
+            existing_names.append(item.name)
+
+    from .services.suggestion_service import get_random_suggestions as _get_random
+
+    items = _get_random(existing_item_names=existing_names, count=count)
+    return {"items": items}
+
+
+@packing_list_router.post("/{packing_list_id}/suggestions/ai/", response=AiSuggestOut)
+def get_ai_suggestions(request, packing_list_id: int, payload: AiSuggestIn):
+    """Use AI to suggest additional packing list items based on context."""
+    import json
+
+    from django.http import HttpResponse
+
+    _require_auth(request)
+    packing_list = get_object_or_404(
+        PackingList.objects.prefetch_related("categories__items"),
+        id=packing_list_id,
+    )
+
+    existing_items = []
+    for cat in packing_list.categories.all():
+        for item in cat.items.all():
+            existing_items.append(item.name)
+
+    from .services.suggestion_service import PackingListAISuggestionError
+    from .services.suggestion_service import get_ai_suggestions as _get_ai
+
+    try:
+        items = _get_ai(
+            packing_list_title=packing_list.title,
+            packing_list_description=packing_list.description,
+            existing_items=existing_items,
+            category_context=payload.category,
+            count=payload.count,
+        )
+        return {"items": items}
+    except PackingListAISuggestionError as exc:
+        return HttpResponse(
+            json.dumps({"detail": str(exc), "error_code": "ai_error"}),
+            status=503,
+            content_type="application/json",
+        )
+    except Exception as exc:
+        logger.exception("Unexpected AI suggestion error")
+        return HttpResponse(
+            json.dumps({"detail": "KI-Vorschlag fehlgeschlagen", "error_code": "ai_error"}),
+            status=500,
+            content_type="application/json",
+        )

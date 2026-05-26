@@ -46,6 +46,9 @@ export default function UserProfilePage() {
             src={profile.profile_picture_url}
             alt={displayName}
             className="w-20 h-20 rounded-full object-cover border-2 border-primary/20"
+            loading="lazy"
+            width={80}
+            height={80}
           />
         ) : (
           <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
@@ -90,6 +93,9 @@ export default function UserProfilePage() {
                     src={item.image_url}
                     alt={item.title}
                     className="w-20 aspect-square rounded-lg object-cover flex-shrink-0"
+                    loading="lazy"
+                    width={80}
+                    height={80}
                   />
                 )}
                 <div className="min-w-0">

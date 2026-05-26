@@ -1,0 +1,36 @@
+greeting:
+  sippentippel: |
+    Liebe Eltern, Liebe Pfadfinder,
+    wir möchten alle {participants.type} herzlich zu unserem {event.name} in {event.location} einladen. Wir wollen ein Wochenende durch {event.area} wandern und viele Abenteuer erleben.
+  lager: |
+    Liebe Eltern, Liebe Pfadfinder,
+    wir möchten alle {participants.type} herzlich zu unserem {event.name} in {event.location} einladen. Es erwarten euch spannende Tage voller Abenteuer, Lagerfeuer und Gemeinschaft.
+  hajk: |
+    Liebe Eltern, Liebe Pfadfinder,
+    wir laden alle {participants.type} herzlich zu unserem {event.name} ein. Wir werden {duration_days} Tage unterwegs sein und dabei {event.area} erkunden.
+  stammeslager: |
+    Liebe Eltern, Liebe Pfadfinder,
+    wir möchten alle {participants.type} herzlich zu unserem {event.name} in {event.location} einladen. Es wird ein unvergessliches Erlebnis mit dem ganzen Stamm.
+  heimabend_special: |
+    Liebe Eltern, Liebe Pfadfinder,
+    wir laden alle {participants.type} herzlich zu unserem besonderen Heimabend ein: {event.name}!
+  aktionstag: |
+    Liebe Eltern, Liebe Pfadfinder,
+    wir möchten alle {participants.type} herzlich zu unserem Aktionstag "{event.name}" in {event.location} einladen.
+  default: |
+    Liebe Eltern, Liebe Pfadfinder,
+    wir möchten alle {participants.type} herzlich zu unserem {event.name} in {event.location} einladen.
+
+additional_info:
+  zelt_wanderung: |
+    Wir übernachten im Zelt und suchen uns erst jeden Abend einen passenden Schlafplatz. Wir kochen selbst und tragen natürlich Zelt, Topf und Essen in unseren Rucksäcken. Jeder muss seinen Rucksack selber tragen. Jeder braucht noch 25% Platz im Rucksack für Gruppengepäck.
+  festes_haus: |
+    Wir übernachten in einem festen Haus mit Schlafräumen. Bettwäsche muss selbst mitgebracht werden. Verpflegung wird gemeinsam organisiert.
+  zeltlager: |
+    Wir übernachten in Gruppenzelten auf einem festen Lagerplatz. Verpflegung wird gemeinsam organisiert und gekocht. Bitte denkt an wetterfeste Kleidung.
+  default: |
+    Weitere Informationen folgen rechtzeitig vor der Veranstaltung.
+
+consent:
+  default: |
+    Hiermit melde ich mich/mein oben genanntes Kind verbindlich an. Der Lagerbeitrag wird bis zum Lagerbeginn bezahlt oder in bar mitgebracht. Im Notfall darf mein Kind im Krankenhaus untersucht und falls nötig auch geröntgt und operiert werden. Ich erkläre mich damit einverstanden, dass Name, Adresse, Telefonnummer und Geburtsdatum des Kindes an die Stadt {meeting_city}, das Bundesamt des Deutschen Pfadfinderbunds Mosaik und im Bedarfsfall auch an das zuständige Gesundheitsamt weitergegeben werden dürfen.

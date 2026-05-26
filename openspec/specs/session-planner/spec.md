@@ -1,17 +1,12 @@
 # session-planner Specification
 
-> **⚠️ HINWEIS: Diese Spec referenziert die alte `idea` App-Architektur.**
-> Die `idea` App wurde durch die Content/Supply-Architektur ersetzt (siehe `openspec/changes/content-base-refactor/`).
-> Mapping: `Idea (idea_type=idea)` → `session.GroupSession`, `Idea (idea_type=knowledge)` → `blog.Blog`, `Idea (idea_type=recipe)` → `recipe.Recipe`.
-> Neue Apps: `content`, `supply`, `session`, `blog`, `game`, `recipe`. Die `idea/` App existiert nicht mehr.
-
 ## Purpose
 
-Heimabend-Planungstool für Pfadfinder-Gruppenführer. Ermöglicht die Planung wöchentlicher Gruppenstunden (Heimabende) mit einem festen Wochentag und einer festen Uhrzeit. Pro Termin kann eine Idea (Typ `idea`) zugewiesen werden. Einzelne Termine können als "ausfallend" markiert werden.
+Heimabend-Planungstool für Pfadfinder-Gruppenführer. Ermöglicht die Planung wöchentlicher Gruppenstunden (Heimabende) mit einem festen Wochentag und einer festen Uhrzeit. Pro Termin kann eine GroupSession zugewiesen werden. Einzelne Termine können als "ausfallend" markiert werden.
 
 ## Context
 
-- **Django App**: `planner` (bestehend, wird refactored – der bestehende Planner wird zur Heimabend-Planung umgebaut)
+- **Django App**: `planner`
 - **API**: `/api/planner/`
 - **Frontend-Routen**: `/session-planner` (Landing-Page), `/session-planner/app` (Planer-App)
 - **Kontext**: Immer an eine UserGroup gebunden
@@ -59,18 +54,18 @@ Das System MUST vollständige CRUD-Operationen für Heimabend-Planer über `/api
 
 Das System SHALL wöchentliche Termin-Einträge innerhalb eines Planers unterstützen.
 
-#### Scenario: Eintrag mit Idea zuordnen
+#### Scenario: Eintrag mit GroupSession zuordnen
 
 - GIVEN ein Planer mit wöchentlichen Terminen
-- WHEN der Owner einem Termin eine Idea (Typ `idea`) zuordnet
-- THEN wird der PlannerEntry mit der Idea verknüpft
+- WHEN der Owner einem Termin eine GroupSession zuordnet
+- THEN wird der PlannerEntry mit der GroupSession verknüpft (FK `session` zu `session.GroupSession`)
 - AND das Datum des Eintrags wird automatisch auf den nächsten entsprechenden Wochentag gesetzt
 
 #### Scenario: Eintrag mit Notizen
 
 - GIVEN ein Termin im Planer
 - WHEN der Owner Notizen zu einem Termin hinzufügt
-- THEN werden die Notizen gespeichert (zusätzlich zur oder statt einer Idea)
+- THEN werden die Notizen gespeichert (zusätzlich zur oder statt einer GroupSession)
 
 #### Scenario: Termin als ausfallend markieren
 
@@ -89,7 +84,7 @@ Das System SHALL wöchentliche Termin-Einträge innerhalb eines Planers unterst�
 #### Scenario: Eintrag aktualisieren
 
 - GIVEN ein bestehender Eintrag
-- WHEN der Owner die Idea, Notizen oder den Status ändert
+- WHEN der Owner die GroupSession, Notizen oder den Status ändert
 - THEN wird der Eintrag aktualisiert
 
 #### Scenario: Eintrag löschen
@@ -112,7 +107,7 @@ Das System SHOULD eine Kalender-Ansicht für den Planer bereitstellen.
 #### Scenario: Leere Termine anzeigen
 
 - GIVEN ein Planer mit festem Wochentag
-- WHEN ein zukünftiger Termin noch keine Idea zugeordnet hat
+- WHEN ein zukünftiger Termin noch keine GroupSession zugeordnet hat
 - THEN wird der Termin als leerer Slot angezeigt, der befüllt werden kann
 
 ### Requirement: Zusammenarbeit

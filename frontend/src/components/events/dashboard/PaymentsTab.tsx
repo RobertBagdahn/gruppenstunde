@@ -1,7 +1,10 @@
 /**
- * PaymentsTab — Payment list with summary cards, "Zahlung erfassen" form.
+ * PaymentsTab — Payment list with summary cards, filters, and "Zahlung erfassen" form.
+ *
+ * Filters are URL-driven via query parameters:
+ * ?method=bar|paypal|...&date-from=...&date-to=...
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import type { EventDetail, Participant } from '@/schemas/event';
 import {
@@ -12,6 +15,7 @@ import {
 } from '@/api/eventDashboard';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
+import { useFilterParams, type FilterField } from './FilterBar';
 
 interface Props {
   event: EventDetail;
@@ -36,8 +40,48 @@ export default function PaymentsTab({ event }: Props) {
   const allParticipants: Participant[] =
     event.all_registrations?.flatMap((r) => r.participants) ?? [];
 
-  // Summary calculations
-  const totalReceived = (payments ?? []).reduce(
+  // Build filter fields
+  const filterFields: FilterField[] = useMemo(() => [
+    {
+      param: 'method',
+      label: 'Zahlungsmethode',
+      type: 'select' as const,
+      options: (methodChoices ?? []).map((c) => ({
+        value: c.value,
+        label: c.label,
+      })),
+    },
+    {
+      param: 'date',
+      label: 'Zeitraum',
+      type: 'date-range' as const,
+    },
+  ], [methodChoices]);
+
+  // Read filter values from URL
+  const { getValue, getDateRange } = useFilterParams(filterFields);
+  const filterMethod = getValue('method');
+  const dateRange = getDateRange('date');
+
+  // Client-side filtering
+  const filteredPayments = useMemo(() => {
+    if (!payments) return [];
+    return payments.filter((p) => {
+      if (filterMethod && p.method !== filterMethod) return false;
+      if (dateRange.from) {
+        const paymentDate = new Date(p.received_at).toISOString().slice(0, 10);
+        if (paymentDate < dateRange.from) return false;
+      }
+      if (dateRange.to) {
+        const paymentDate = new Date(p.received_at).toISOString().slice(0, 10);
+        if (paymentDate > dateRange.to) return false;
+      }
+      return true;
+    });
+  }, [payments, filterMethod, dateRange]);
+
+  // Summary calculations (on filtered payments)
+  const totalReceived = filteredPayments.reduce(
     (sum, p) => sum + parseFloat(p.amount),
     0,
   );
@@ -52,7 +96,7 @@ export default function PaymentsTab({ event }: Props) {
   const handleDelete = (paymentId: number) => {
     deletePayment.mutate(paymentId, {
       onSuccess: () => {
-        toast.success('Zahlung geloescht');
+        toast.success('Zahlung gelöscht');
         setConfirmDeleteId(null);
       },
       onError: (err) => toast.error('Fehler', { description: err.message }),
@@ -83,10 +127,15 @@ export default function PaymentsTab({ event }: Props) {
         />
       </div>
 
+      {/* Filters (URL-driven) */}
+      <PaymentFilters
+        filterFields={filterFields}
+      />
+
       {/* Actions */}
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold">
-          Zahlungen ({payments?.length ?? 0})
+          Zahlungen ({filteredPayments.length}{filteredPayments.length !== (payments ?? []).length ? ` von ${(payments ?? []).length}` : ''})
         </h3>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -122,9 +171,16 @@ export default function PaymentsTab({ event }: Props) {
           </span>
           Noch keine Zahlungen erfasst
         </div>
+      ) : filteredPayments.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          <span className="material-symbols-outlined text-3xl mb-2 block">
+            filter_list_off
+          </span>
+          Keine Zahlungen für diesen Filter
+        </div>
       ) : (
         <div className="space-y-2">
-          {(payments ?? []).map((payment) => (
+          {filteredPayments.map((payment) => (
             <div
               key={payment.id}
               className="border rounded-xl p-3 flex items-center gap-3"
@@ -171,7 +227,7 @@ export default function PaymentsTab({ event }: Props) {
               <button
                 onClick={() => setConfirmDeleteId(payment.id)}
                 className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                title="Zahlung loeschen"
+                title="Zahlung löschen"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   delete
@@ -187,9 +243,9 @@ export default function PaymentsTab({ event }: Props) {
         open={confirmDeleteId !== null}
         onConfirm={() => confirmDeleteId && handleDelete(confirmDeleteId)}
         onCancel={() => setConfirmDeleteId(null)}
-        title="Zahlung loeschen?"
-        description="Die Zahlung wird unwiderruflich geloescht und der Bezahlt-Status des Teilnehmers aktualisiert."
-        confirmLabel="Loeschen"
+        title="Zahlung löschen?"
+        description="Die Zahlung wird unwiderruflich gelöscht und der Bezahlt-Status des Teilnehmers aktualisiert."
+        confirmLabel="Löschen"
         loading={deletePayment.isPending}
       />
     </div>
@@ -319,7 +375,7 @@ function PaymentForm({
             required
             className="w-full text-sm border rounded-lg px-3 py-2 bg-background"
           >
-            <option value="">Bitte waehlen...</option>
+            <option value="">Bitte wählen...</option>
             {participants.map((p) => (
               <option key={p.id} value={String(p.id)}>
                 {p.first_name} {p.last_name}
@@ -370,7 +426,7 @@ function PaymentForm({
                   <>
                     <option value="bar">Bar</option>
                     <option value="paypal">PayPal</option>
-                    <option value="ueberweisung">Ueberweisung</option>
+                    <option value="ueberweisung">Überweisung</option>
                     <option value="sonstige">Sonstige</option>
                   </>
                 )}
@@ -436,5 +492,73 @@ function PaymentForm({
         </button>
       </div>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Payment Filters — uses useFilterParams hook (must be its own component)
+// ---------------------------------------------------------------------------
+
+function PaymentFilters({ filterFields }: { filterFields: FilterField[] }) {
+  const { getValue, getDateRange, setValue, setDateRange, activeCount, clearAll } =
+    useFilterParams(filterFields);
+
+  const methodField = filterFields.find((f) => f.param === 'method');
+  const dateField = filterFields.find((f) => f.param === 'date');
+
+  return (
+    <div className="flex flex-wrap gap-2 items-center">
+      {methodField && (
+        <select
+          value={getValue('method')}
+          onChange={(e) => setValue('method', e.target.value)}
+          className={cn(
+            'text-sm border rounded-lg px-3 py-2 bg-background',
+            getValue('method') && 'border-violet-300 bg-violet-50/50',
+          )}
+        >
+          <option value="">Zahlungsmethode</option>
+          {methodField.options?.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      )}
+      {dateField && (
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-muted-foreground shrink-0">Zeitraum:</label>
+          <input
+            type="date"
+            value={getDateRange('date').from}
+            onChange={(e) => setDateRange('date', e.target.value, getDateRange('date').to)}
+            className={cn(
+              'text-sm border rounded-lg px-2 py-1.5 bg-background w-32',
+              getDateRange('date').from && 'border-violet-300 bg-violet-50/50',
+            )}
+          />
+          <span className="text-xs text-muted-foreground">–</span>
+          <input
+            type="date"
+            value={getDateRange('date').to}
+            onChange={(e) => setDateRange('date', getDateRange('date').from, e.target.value)}
+            className={cn(
+              'text-sm border rounded-lg px-2 py-1.5 bg-background w-32',
+              getDateRange('date').to && 'border-violet-300 bg-violet-50/50',
+            )}
+          />
+        </div>
+      )}
+      {activeCount > 0 && (
+        <button
+          type="button"
+          onClick={clearAll}
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+        >
+          <span className="material-symbols-outlined text-[12px]">close</span>
+          Zurücksetzen
+        </button>
+      )}
+    </div>
   );
 }

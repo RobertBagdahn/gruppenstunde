@@ -3,44 +3,33 @@
  * MUST stay in sync with backend/profiles/api.py
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getCsrfToken, fetchWithCsrf } from '@/lib/api';
 import {
   UserProfileSchema,
+  ProfilePictureResponseSchema,
   UserGroupSchema,
   UserGroupDetailSchema,
   UserPreferenceSchema,
   JoinRequestSchema,
   GroupMemberSchema,
   PublicUserProfileSchema,
-  MyIdeaSchema,
+  GroupCorporateIdentitySchema,
+  MyContentSchema,
   type UserProfile,
   type UserProfileUpdate,
+  type ProfilePictureResponse,
   type UserPreference,
   type UserPreferenceUpdate,
   type UserGroup,
   type UserGroupDetail,
   type UserGroupCreate,
+  type GroupCorporateIdentity,
+  type GroupCorporateIdentityForm,
   type JoinRequest,
   type GroupMember,
   type PublicUserProfile,
-  type MyIdea,
+  type MyContent,
 } from '@/schemas/profile';
-
-function getCsrfToken(): string {
-  const match = document.cookie.match(/csrftoken=([^;]+)/);
-  return match ? match[1] : '';
-}
-
-async function fetchWithCsrf(url: string, options: RequestInit = {}): Promise<Response> {
-  return fetch(url, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-      ...options.headers,
-    },
-  });
-}
 
 // ==========================================================================
 // Profile
@@ -77,6 +66,51 @@ export function useUpdateMyProfile() {
     onSuccess: (profile) => {
       queryClient.setQueryData(['profile', 'me'], profile);
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+  });
+}
+
+export function useUploadProfilePicture() {
+  const queryClient = useQueryClient();
+  return useMutation<ProfilePictureResponse, Error, File>({
+    mutationFn: async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/profile/me/picture/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        body: formData,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Profilbild konnte nicht hochgeladen werden');
+      }
+      const data = await res.json();
+      return ProfilePictureResponseSchema.parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'me'] });
+    },
+  });
+}
+
+export function useDeleteProfilePicture() {
+  const queryClient = useQueryClient();
+  return useMutation<ProfilePictureResponse, Error, void>({
+    mutationFn: async () => {
+      const res = await fetchWithCsrf('/api/profile/me/picture/', {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Profilbild konnte nicht gelöscht werden');
+      }
+      const data = await res.json();
+      return ProfilePictureResponseSchema.parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'me'] });
     },
   });
 }
@@ -134,17 +168,17 @@ export function useUpdateMyPreferences() {
 }
 
 // ==========================================================================
-// My Ideas
+// My Content
 // ==========================================================================
 
-export function useMyIdeas() {
-  return useQuery<MyIdea[]>({
-    queryKey: ['profile', 'my-ideas'],
+export function useMyContent() {
+  return useQuery<MyContent[]>({
+    queryKey: ['profile', 'my-content'],
     queryFn: async () => {
-      const res = await fetch('/api/profile/me/ideas/', { credentials: 'include' });
+      const res = await fetch('/api/profile/me/content/', { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
-      return data.map((i: unknown) => MyIdeaSchema.parse(i));
+      return data.map((i: unknown) => MyContentSchema.parse(i));
     },
     staleTime: 2 * 60 * 1000,
   });
@@ -296,6 +330,91 @@ export function useLeaveGroup() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', 'my-groups'] });
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+// ==========================================================================
+// Corporate Identity
+// ==========================================================================
+
+export function useGroupCorporateIdentity(slug: string) {
+  return useQuery<GroupCorporateIdentity>({
+    queryKey: ['groups', slug, 'corporate-identity'],
+    queryFn: async () => {
+      const res = await fetch(`/api/groups/${slug}/corporate-identity/`, { credentials: 'include' });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
+      return GroupCorporateIdentitySchema.parse(data);
+    },
+    enabled: !!slug,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useUpdateGroupCorporateIdentity(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<GroupCorporateIdentity, Error, GroupCorporateIdentityForm>({
+    mutationFn: async (payload) => {
+      const res = await fetchWithCsrf(`/api/groups/${slug}/corporate-identity/`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Corporate Identity konnte nicht gespeichert werden');
+      }
+      const data = await res.json();
+      return GroupCorporateIdentitySchema.parse(data);
+    },
+    onSuccess: (ci) => {
+      queryClient.setQueryData(['groups', slug, 'corporate-identity'], ci);
+      queryClient.invalidateQueries({ queryKey: ['groups', slug] });
+    },
+  });
+}
+
+export function useUploadGroupLogo(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<GroupCorporateIdentity, Error, File>({
+    mutationFn: async (file) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const res = await fetch(`/api/groups/${slug}/corporate-identity/logo/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        body: formData,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Logo konnte nicht hochgeladen werden');
+      }
+      const data = await res.json();
+      return GroupCorporateIdentitySchema.parse(data);
+    },
+    onSuccess: (ci) => {
+      queryClient.setQueryData(['groups', slug, 'corporate-identity'], ci);
+      queryClient.invalidateQueries({ queryKey: ['groups', slug] });
+    },
+  });
+}
+
+export function useDeleteGroupLogo(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      const res = await fetchWithCsrf(`/api/groups/${slug}/corporate-identity/logo/`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Logo konnte nicht gelöscht werden');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups', slug, 'corporate-identity'] });
+      queryClient.invalidateQueries({ queryKey: ['groups', slug] });
     },
   });
 }

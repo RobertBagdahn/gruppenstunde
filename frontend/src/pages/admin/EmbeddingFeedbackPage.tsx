@@ -47,7 +47,7 @@ export default function EmbeddingFeedbackPage() {
           </p>
         </div>
         {data && (
-          <span className="text-sm text-muted-foreground">{data.total} Eintraege</span>
+           <span className="text-sm text-muted-foreground">{data.total} Einträge</span>
         )}
       </div>
 
@@ -105,7 +105,7 @@ export default function EmbeddingFeedbackPage() {
                       </span>
                     </div>
                     <div className="text-sm">
-                      <span className="text-muted-foreground">Verknuepfung: </span>
+                       <span className="text-muted-foreground">Verknüpfung: </span>
                       <span className="font-medium">
                         {item.source_title || `${CONTENT_TYPE_LABELS[item.source_content_type] ?? item.source_content_type}`}
                       </span>
@@ -133,7 +133,7 @@ export default function EmbeddingFeedbackPage() {
             disabled={page <= 1}
             className="px-3 py-1.5 rounded-md border text-sm disabled:opacity-50"
           >
-            Zurueck
+             Zurück
           </button>
           <span className="px-3 py-1.5 text-sm text-muted-foreground">
             Seite {data.page} / {data.total_pages}

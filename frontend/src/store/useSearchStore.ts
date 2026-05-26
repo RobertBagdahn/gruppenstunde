@@ -88,6 +88,3 @@ export const useSearchStore = create<SearchState>((set) => ({
       return { filters, searchQuery: filters.q ?? '' };
     }),
 }));
-
-/** @deprecated Use useSearchStore instead */
-export const useIdeaStore = useSearchStore;

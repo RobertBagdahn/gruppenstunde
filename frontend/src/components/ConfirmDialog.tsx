@@ -7,9 +7,9 @@
  *     open={showDelete}
  *     onConfirm={handleDelete}
  *     onCancel={() => setShowDelete(false)}
- *     title="Idee loeschen?"
- *     description="Diese Aktion kann nicht rueckgaengig gemacht werden."
- *     confirmLabel="Loeschen"
+ *     title="Idee löschen?"
+ *     description="Diese Aktion kann nicht rückgängig gemacht werden."
+ *     confirmLabel="Löschen"
  *     loading={deleteMutation.isPending}
  *   />
  */
@@ -32,8 +32,8 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   title = 'Bist du sicher?',
-  description = 'Diese Aktion kann nicht rueckgaengig gemacht werden.',
-  confirmLabel = 'Bestaetigen',
+  description = 'Diese Aktion kann nicht rückgängig gemacht werden.',
+  confirmLabel = 'Bestätigen',
   cancelLabel = 'Abbrechen',
   loading = false,
   variant = 'destructive',

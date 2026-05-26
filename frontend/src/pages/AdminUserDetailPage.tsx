@@ -2,17 +2,15 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAdminUserDetail } from '@/api/admin';
 
-/** Map legacy idea_type to content URL prefix */
-function contentUrlForSlug(slug: string, ideaType?: string): string {
+/** Map content_type to content URL prefix */
+function contentUrlForSlug(slug: string, contentType?: string): string {
   const prefixMap: Record<string, string> = {
-    idea: '/sessions',
-    knowledge: '/blogs',
-    game: '/games',
-    recipe: '/recipes',
     session: '/sessions',
     blog: '/blogs',
+    game: '/games',
+    recipe: '/recipes',
   };
-  const prefix = prefixMap[ideaType ?? ''] ?? '/sessions';
+  const prefix = prefixMap[contentType ?? ''] ?? '/sessions';
   return `${prefix}/${slug}`;
 }
 
@@ -86,12 +84,12 @@ export default function AdminUserDetailPage() {
         </div>
       </div>
 
-      {/* Ideas */}
+      {/* Content */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-3">
-          Beiträge <span className="text-sm text-muted-foreground font-normal">({user.ideas.length})</span>
+          Beiträge <span className="text-sm text-muted-foreground font-normal">({user.content.length})</span>
         </h2>
-        {user.ideas.length > 0 ? (
+        {user.content.length > 0 ? (
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted">
@@ -103,30 +101,30 @@ export default function AdminUserDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {user.ideas.map((idea) => (
-                  <tr key={idea.id} className="border-t">
+                {user.content.map((item) => (
+                  <tr key={item.id} className="border-t">
                     <td className="px-3 py-2">
-                      <Link to={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
-                        {idea.title}
+                      <Link to={contentUrlForSlug(item.slug, item.content_type)} className="hover:text-primary font-medium">
+                        {item.title}
                       </Link>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">
-                      {idea.idea_type === 'idea' ? 'Gruppenstunde' : idea.idea_type === 'knowledge' ? 'Wissen' : idea.idea_type === 'game' ? 'Spiel' : 'Rezept'}
+                      {item.content_type === 'session' ? 'Gruppenstunde' : item.content_type === 'blog' ? 'Wissen' : item.content_type === 'game' ? 'Spiel' : 'Rezept'}
                     </td>
                     <td className="px-3 py-2">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        idea.status === 'published' ? 'bg-green-100 text-green-700' :
-                        idea.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
-                        idea.status === 'review' ? 'bg-blue-100 text-blue-700' :
+                        item.status === 'published' ? 'bg-green-100 text-green-700' :
+                        item.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                        item.status === 'review' ? 'bg-blue-100 text-blue-700' :
                         'bg-gray-100 text-gray-700'
                       }`}>
-                        {idea.status === 'published' ? 'Veröffentlicht' :
-                         idea.status === 'draft' ? 'Entwurf' :
-                         idea.status === 'review' ? 'Review' : 'Archiviert'}
+                        {item.status === 'published' ? 'Veröffentlicht' :
+                         item.status === 'draft' ? 'Entwurf' :
+                         item.status === 'review' ? 'Review' : 'Archiviert'}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right text-muted-foreground">
-                      {new Date(idea.created_at).toLocaleDateString('de-DE')}
+                      {new Date(item.created_at).toLocaleDateString('de-DE')}
                     </td>
                   </tr>
                 ))}
@@ -159,9 +157,9 @@ export default function AdminUserDetailPage() {
                   <tr key={comment.id} className="border-t">
                     <td className="px-3 py-2 max-w-xs truncate">{comment.text}</td>
                     <td className="px-3 py-2">
-                      {comment.idea_slug ? (
-                        <Link to={contentUrlForSlug(comment.idea_slug)} className="hover:text-primary">
-                          {comment.idea_title}
+                      {comment.content_slug ? (
+                        <Link to={contentUrlForSlug(comment.content_slug)} className="hover:text-primary">
+                          {comment.content_title}
                         </Link>
                       ) : (
                         <span className="text-muted-foreground">Gelöscht</span>

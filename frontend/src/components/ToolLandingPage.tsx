@@ -39,8 +39,8 @@ export interface ToolLandingProps {
   ctaLabel: string;
   /** Route for the CTA */
   ctaRoute: string;
-  /** The sandbox/playground component */
-  sandbox: React.ReactNode;
+  /** The sandbox/playground component (optional — shows CTA section if omitted) */
+  sandbox?: React.ReactNode;
   /** Optional extra sections */
   children?: React.ReactNode;
 }
@@ -76,7 +76,7 @@ export default function ToolLandingPage({
             <img
               src={tool.mascotImg}
               alt={tool.label}
-              className="mx-auto w-36 md:w-48 mb-6 drop-shadow-2xl float-bounce"
+              className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-2xl float-bounce"
             />
           )}
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -103,13 +103,15 @@ export default function ToolLandingPage({
               <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
               {ctaLabel}
             </Link>
-            <a
-              href="#sandbox"
-              className="flex items-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-sm font-bold hover:bg-white/25 hover:scale-105 transition-all"
-            >
-              <span className="material-symbols-outlined text-[20px]">play_circle</span>
-              Ausprobieren
-            </a>
+            {sandbox && (
+              <a
+                href="#sandbox"
+                className="flex items-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-sm font-bold hover:bg-white/25 hover:scale-105 transition-all"
+              >
+                <span className="material-symbols-outlined text-[20px]">play_circle</span>
+                Ausprobieren
+              </a>
+            )}
             <a
               href="#features"
               className="flex items-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm border border-white/25 text-white rounded-full text-sm font-bold hover:bg-white/25 hover:scale-105 transition-all"
@@ -230,27 +232,29 @@ export default function ToolLandingPage({
       </section>
 
       {/* ============================================================ */}
-      {/*  SANDBOX / PLAYGROUND                                        */}
+      {/*  SANDBOX / PLAYGROUND (only if provided)                     */}
       {/* ============================================================ */}
-      <section id="sandbox" className="panel-muted py-12 md:py-16">
-        <div className="container">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
-              <span
-                className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                play_circle
-              </span>
-              Jetzt ausprobieren
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
-              Teste die wichtigsten Funktionen direkt hier – ohne Anmeldung!
-            </p>
+      {sandbox && (
+        <section id="sandbox" className="panel-muted py-12 md:py-16">
+          <div className="container">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
+                <span
+                  className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  play_circle
+                </span>
+                Jetzt ausprobieren
+              </h2>
+              <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
+                Teste die wichtigsten Funktionen direkt hier – ohne Anmeldung!
+              </p>
+            </div>
+            {sandbox}
           </div>
-          {sandbox}
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ============================================================ */}
       {/*  EXTRA SECTIONS                                              */}

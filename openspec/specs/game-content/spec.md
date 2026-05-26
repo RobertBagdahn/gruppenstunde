@@ -47,3 +47,15 @@ The system SHALL provide CRUD API endpoints for Game under `/api/games/`.
 #### Scenario: Create game
 - **WHEN** POST `/api/games/` with at least a title
 - **THEN** the system SHALL create a Game with status='draft'
+
+### Requirement: GameCard Metadaten-Anzeige
+
+Die GameCard MUSS Content-Typ-spezifische Metadaten prominent anzeigen.
+
+#### Scenario: Metadaten auf GameCard
+- **WHEN** eine GameCard in der Listenansicht gerendert wird
+- **THEN** MUSS sie folgende Metadaten anzeigen: Dauer (Uhr-Icon + Minuten), Schwierigkeit (Stern-Icons), bis zu 3 Tags als Chips
+
+#### Scenario: Kompakte Darstellung
+- **WHEN** die GameCard bei 5 Spalten gerendert wird
+- **THEN** MÜSSEN Metadaten als kompakte Icon+Text-Kombination dargestellt werden

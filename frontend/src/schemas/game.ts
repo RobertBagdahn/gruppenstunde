@@ -13,7 +13,7 @@ import { ContentMaterialItemSchema } from './supply';
 // --- Game-specific options ---
 
 export const GAME_TYPE_OPTIONS = [
-  { value: 'field_game', label: 'Gelaendespiel' },
+  { value: 'field_game', label: 'Geländespiel' },
   { value: 'group_game', label: 'Gruppenspiel' },
   { value: 'icebreaker', label: 'Kennenlernspiel' },
   { value: 'cooperation', label: 'Kooperationsspiel' },
@@ -25,11 +25,11 @@ export const GAME_TYPE_OPTIONS = [
 
 export const PLAY_AREA_OPTIONS = [
   { value: 'indoor', label: 'Drinnen' },
-  { value: 'outdoor', label: 'Draussen' },
+  { value: 'outdoor', label: 'Draußen' },
   { value: 'field', label: 'Wiese / Feld' },
   { value: 'forest', label: 'Wald' },
   { value: 'gym', label: 'Turnhalle' },
-  { value: 'any', label: 'Ueberall' },
+  { value: 'any', label: 'Überall' },
 ] as const;
 
 // --- List schema ---

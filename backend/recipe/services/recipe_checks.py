@@ -1,8 +1,11 @@
-"""Recipe checks, hint matching, and cache recalculation service.
+"""Recipe nutrition helpers, hint matching, and cache recalculation service.
 
-Evaluates recipes against RecipeHint rules and provides
-4-dimension ratings (fulfillment, cost, health, taste).
-Also provides denormalized cache recalculation for Recipe model.
+Provides aggregate nutritional value computation (`get_recipe_nutritional_values`)
+used across nutrition-related services, hint matching against RecipeHint rules,
+and denormalized cache recalculation for the Recipe model.
+
+Note: The former 4-dimension `get_recipe_checks` aggregator has been removed
+(see change `recipe-detail-cleanup`). This module is now a pure nutrition helper.
 """
 
 from __future__ import annotations
@@ -17,30 +20,82 @@ if TYPE_CHECKING:
 
 from recipe.models import RecipeHint, RecipeItem
 
+# Micronutrient fields tracked on Ingredient — used for aggregation
+MICRONUTRIENT_FIELDS = [
+    "vitamin_a_mg",
+    "vitamin_b1_mg",
+    "vitamin_b2_mg",
+    "vitamin_b6_mg",
+    "vitamin_b12_ug",
+    "vitamin_c_mg",
+    "vitamin_d_ug",
+    "vitamin_e_mg",
+    "vitamin_k_ug",
+    "niacin_mg",
+    "folate_ug",
+    "pantothenic_acid_mg",
+    "biotin_ug",
+    "calcium_mg",
+    "iron_mg",
+    "magnesium_mg",
+    "zinc_mg",
+    "potassium_mg",
+    "phosphorus_mg",
+    "iodine_ug",
+    "selenium_ug",
+    "copper_mg",
+    "manganese_mg",
+    "chromium_ug",
+    "fluoride_mg",
+]
+
+# Cached micronutrient fields on Recipe (subset of most important ones)
+CACHED_MICRONUTRIENT_FIELDS = [
+    "vitamin_a_mg",
+    "vitamin_c_mg",
+    "vitamin_d_ug",
+    "vitamin_b12_ug",
+    "calcium_mg",
+    "iron_mg",
+    "magnesium_mg",
+    "zinc_mg",
+    "potassium_mg",
+    "folate_ug",
+]
+
 
 def get_recipe_nutritional_values(recipe: "Recipe") -> dict[str, float]:
     """Aggregate nutritional values for a recipe (per 100g of total recipe).
 
     Sums all RecipeItem contributions weighted by quantity and portion weight,
-    then normalizes to per-100g values.
+    then normalizes to per-100g values.  Includes macronutrients **and**
+    micronutrients (vitamins / minerals).
     """
     items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
 
     total_weight_g = 0.0
-    totals: dict[str, float] = {
-        "energy_kj": 0.0,
-        "protein_g": 0.0,
-        "fat_g": 0.0,
-        "fat_sat_g": 0.0,
-        "carbohydrate_g": 0.0,
-        "sugar_g": 0.0,
-        "fibre_g": 0.0,
-        "salt_g": 0.0,
-        "sodium_mg": 0.0,
-        "fructose_g": 0.0,
-        "lactose_g": 0.0,
-        "fruit_factor": 0.0,
-    }
+
+    # Macronutrient totals
+    macro_fields = [
+        "energy_kj",
+        "protein_g",
+        "fat_g",
+        "fat_sat_g",
+        "carbohydrate_g",
+        "sugar_g",
+        "fibre_g",
+        "salt_g",
+        "sodium_mg",
+        "fructose_g",
+        "lactose_g",
+    ]
+
+    totals: dict[str, float] = {f: 0.0 for f in macro_fields}
+    totals["fruit_factor"] = 0.0
+
+    # Micronutrient totals (vitamins + minerals)
+    for field in MICRONUTRIENT_FIELDS:
+        totals[field] = 0.0
 
     for item in items:
         ingredient = item.ingredient or (item.portion.ingredient if item.portion else None)
@@ -86,9 +141,39 @@ def match_recipe_hints(
 ) -> list[dict]:
     """Match RecipeHint rules against recipe nutritional values.
 
-    Returns list of {hint, actual_value, message} for each matched rule.
+    Supports all macronutrient and micronutrient parameters, plus
+    ``weight_g`` (total recipe weight) and ``nutri_class``.
+    Returns list of {hint, actual_value, message, improvement_text}
+    for each matched rule.
     """
     values = get_recipe_nutritional_values(recipe)
+
+    # Add special computed parameters that are not per-100g nutrient fields
+    # Total weight needs to be calculated separately
+    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
+    total_weight_g = 0.0
+    for item in items:
+        if item.portion and item.portion.weight_g:
+            total_weight_g += item.quantity * item.portion.weight_g
+        elif item.portion and item.portion.measuring_unit:
+            total_weight_g += item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
+    values["weight_g"] = total_weight_g
+
+    # Add nutri_class from cached value or compute it
+    if recipe.cached_nutri_class:
+        values["nutri_class"] = float(recipe.cached_nutri_class)
+    else:
+        from supply.services.nutri_service import calculate_nutri_score as _calc_ns
+
+        class _AggIngredient:
+            pass
+
+        agg = _AggIngredient()
+        for k, v in values.items():
+            setattr(agg, k, v)
+        agg.physical_viscosity = "solid"
+        _ns_total, ns_class = _calc_ns(agg)
+        values["nutri_class"] = float(ns_class)
 
     hints = RecipeHint.objects.all()
     if recipe_objective:
@@ -119,6 +204,7 @@ def match_recipe_hints(
                     "hint": hint,
                     "actual_value": round(actual, 2),
                     "message": hint.description or hint.name,
+                    "improvement_text": hint.improvement_text or "",
                 }
             )
 
@@ -139,98 +225,15 @@ def models_Q_recipe_type_blank_or_match(recipe_type: str):
     return Q(recipe_type="") | Q(recipe_type=recipe_type)
 
 
-def get_recipe_checks(recipe: "Recipe") -> list[dict]:
-    """Get 4-dimension recipe checks.
-
-    Returns list of {label, value, color, score} for:
-    1. Fulfillment (energy vs target)
-    2. Cost (price estimate)
-    3. Health (nutri-score based)
-    4. Taste (placeholder)
-    """
-    values = get_recipe_nutritional_values(recipe)
-    checks = []
-
-    # 1. Fulfillment (energy)
-    energy = values.get("energy_kj", 0)
-    # Target: ~2500 kJ per meal (roughly 1/3 of 7500 kJ daily)
-    target_kj = 2500
-    if energy > 0:
-        ratio = energy / target_kj
-        if ratio < 0.7:
-            checks.append({"label": "Sättigung", "value": "Gering", "color": "orange", "score": ratio})
-        elif ratio < 1.3:
-            checks.append({"label": "Sättigung", "value": "Gut", "color": "green", "score": ratio})
-        else:
-            checks.append({"label": "Sättigung", "value": "Sehr hoch", "color": "red", "score": ratio})
-    else:
-        checks.append({"label": "Sättigung", "value": "Keine Daten", "color": "gray", "score": 0})
-
-    # 2. Cost
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
-    total_price = 0.0
-    has_prices = False
-    for item in items:
-        ingredient = item.ingredient or (item.portion.ingredient if item.portion else None)
-        if ingredient and ingredient.price_per_kg:
-            has_prices = True
-            weight_g = 0.0
-            if item.portion and item.portion.weight_g:
-                weight_g = item.quantity * item.portion.weight_g
-            price = float(ingredient.price_per_kg) * weight_g / 1000.0
-            total_price += price
-
-    if has_prices:
-        if total_price < 3.0:
-            checks.append({"label": "Preis", "value": f"{total_price:.2f} EUR", "color": "green", "score": total_price})
-        elif total_price < 8.0:
-            checks.append(
-                {"label": "Preis", "value": f"{total_price:.2f} EUR", "color": "orange", "score": total_price}
-            )
-        else:
-            checks.append({"label": "Preis", "value": f"{total_price:.2f} EUR", "color": "red", "score": total_price})
-    else:
-        checks.append({"label": "Preis", "value": "Keine Preisdaten", "color": "gray", "score": 0})
-
-    # 3. Health (nutri-score based)
-    from supply.services.nutri_service import calculate_nutri_score as _calc_ns
-
-    # Calculate aggregate nutri-score for recipe
-    # Create a mock object with aggregate values
-    class _AggIngredient:
-        pass
-
-    agg = _AggIngredient()
-    for k, v in values.items():
-        setattr(agg, k, v)
-    agg.physical_viscosity = "solid"
-
-    ns_total, ns_class = _calc_ns(agg)
-    labels = {1: "A", 2: "B", 3: "C", 4: "D", 5: "E"}
-    colors = {1: "green", 2: "green", 3: "yellow", 4: "orange", 5: "red"}
-    checks.append(
-        {
-            "label": "Gesundheit",
-            "value": f"Nutri-Score {labels.get(ns_class, '?')}",
-            "color": colors.get(ns_class, "gray"),
-            "score": ns_class,
-        }
-    )
-
-    # 4. Taste (placeholder)
-    checks.append({"label": "Geschmack", "value": "Keine Bewertung", "color": "gray", "score": 0})
-
-    return checks
-
-
 def recalculate_recipe_cache(recipe: "Recipe") -> None:
     """Recalculate and store denormalized nutritional values on Recipe.
 
-    Computes aggregated per-100g nutritional values, nutri-score class,
-    and total price, then saves them to the cache fields.
+    Computes aggregated per-100g nutritional values (macro + micro),
+    nutri-score class, and total price, then saves them to the cache fields.
     """
     values = get_recipe_nutritional_values(recipe)
 
+    # Macronutrient cache fields
     recipe.cached_energy_kj = values.get("energy_kj")
     recipe.cached_protein_g = values.get("protein_g")
     recipe.cached_fat_g = values.get("fat_g")
@@ -238,6 +241,11 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     recipe.cached_sugar_g = values.get("sugar_g")
     recipe.cached_fibre_g = values.get("fibre_g")
     recipe.cached_salt_g = values.get("salt_g")
+
+    # Micronutrient cache fields (top-10 vitamins/minerals)
+    for field in CACHED_MICRONUTRIENT_FIELDS:
+        cached_field = f"cached_{field}"
+        setattr(recipe, cached_field, values.get(field))
 
     # Calculate nutri-score class
     from supply.services.nutri_service import calculate_nutri_score as _calc_ns
@@ -270,17 +278,20 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     recipe.cached_price_total = total_price if has_prices else None
     recipe.cached_at = timezone.now()
 
-    recipe.save(
-        update_fields=[
-            "cached_energy_kj",
-            "cached_protein_g",
-            "cached_fat_g",
-            "cached_carbohydrate_g",
-            "cached_sugar_g",
-            "cached_fibre_g",
-            "cached_salt_g",
-            "cached_nutri_class",
-            "cached_price_total",
-            "cached_at",
-        ]
-    )
+    update_fields = [
+        "cached_energy_kj",
+        "cached_protein_g",
+        "cached_fat_g",
+        "cached_carbohydrate_g",
+        "cached_sugar_g",
+        "cached_fibre_g",
+        "cached_salt_g",
+        "cached_nutri_class",
+        "cached_price_total",
+        "cached_at",
+    ]
+    # Add micronutrient cache fields
+    for field in CACHED_MICRONUTRIENT_FIELDS:
+        update_fields.append(f"cached_{field}")
+
+    recipe.save(update_fields=update_fields)

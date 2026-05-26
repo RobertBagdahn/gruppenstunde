@@ -105,7 +105,7 @@ export default function ShoppingListDetailPage() {
           title="Einkaufsliste nicht gefunden"
           onRetry={() => refetch()}
           onBack={() => navigate('/shopping-lists')}
-          backLabel="Zurueck"
+          backLabel="Zurück"
         />
       </div>
     );
@@ -176,7 +176,7 @@ export default function ShoppingListDetailPage() {
         onConfirm={() => {
           deleteList.mutate(listId, {
             onSuccess: () => {
-              toast.success('Einkaufsliste geloescht');
+              toast.success('Einkaufsliste gelöscht');
               navigate('/shopping-lists');
             },
             onError: (err) => {
@@ -186,9 +186,9 @@ export default function ShoppingListDetailPage() {
           });
         }}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Einkaufsliste loeschen?"
-        description="Alle Eintraege werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Einkaufsliste löschen?"
+        description="Alle Einträge werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deleteList.isPending}
       />
 
@@ -281,7 +281,7 @@ export default function ShoppingListDetailPage() {
             shopping_bag
           </span>
           <p className="text-muted-foreground text-sm">
-            Diese Liste ist noch leer. Fuege Eintraege hinzu.
+            Diese Liste ist noch leer. Füge Einträge hinzu.
           </p>
         </div>
       ) : (
@@ -332,7 +332,7 @@ export default function ShoppingListDetailPage() {
                 disabled={addItem.isPending || !newItemName.trim()}
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
-                Hinzufuegen
+                Hinzufügen
               </button>
               <button
                 type="button"
@@ -352,7 +352,7 @@ export default function ShoppingListDetailPage() {
               className="flex items-center gap-1.5 text-sm text-primary font-medium hover:underline"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
-              Eintrag hinzufuegen
+              Eintrag hinzufügen
             </button>
           )}
         </div>

@@ -1,11 +1,17 @@
-"""Group, membership, and join request models."""
+"""Group, membership, join request, and corporate identity models."""
 
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from ..choices import MembershipRoleChoices
+
+hex_color_validator = RegexValidator(
+    regex=r"^#[0-9a-fA-F]{6}$",
+    message=_("Farbe muss ein gültiger Hex-Wert sein (z.B. #4a3a6b)"),
+)
 
 
 class UserGroup(models.Model):
@@ -189,3 +195,79 @@ class GroupJoinRequest(models.Model):
     def __str__(self):
         status = "ausstehend" if self.approved is None else ("genehmigt" if self.approved else "abgelehnt")
         return f"{self.user} → {self.group} ({status})"
+
+
+class GroupCorporateIdentity(models.Model):
+    """Corporate identity / branding for a group (colors, logo, text blocks)."""
+
+    group = models.OneToOneField(
+        UserGroup,
+        on_delete=models.CASCADE,
+        related_name="corporate_identity",
+        verbose_name=_("Gruppe"),
+    )
+    primary_color = models.CharField(
+        max_length=7,
+        default="#4a3a6b",
+        validators=[hex_color_validator],
+        verbose_name=_("Primärfarbe"),
+    )
+    secondary_color = models.CharField(
+        max_length=7,
+        default="#e8e4f0",
+        validators=[hex_color_validator],
+        verbose_name=_("Sekundärfarbe"),
+    )
+    logo = models.ImageField(
+        upload_to="groups/logos/",
+        blank=True,
+        default="",
+        verbose_name=_("Logo"),
+        help_text=_("Max. 500KB"),
+    )
+    slogan = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name=_("Slogan"),
+    )
+    greeting_text = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Anrede-Text"),
+        help_text=_("Anrede-Textbaustein für Briefe und E-Mails"),
+    )
+    footer_text = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Fußzeile"),
+        help_text=_("Impressum / Kontakt-Fußzeile"),
+    )
+    payment_info = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Zahlungsdaten"),
+        help_text=_("Kontodaten, PayPal, etc."),
+    )
+    signature_text = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Unterschrift"),
+        help_text=_("Unterschrift-Text für Briefe"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Corporate Identity")
+        verbose_name_plural = _("Corporate Identities")
+
+    def __str__(self) -> str:
+        return f"CI: {self.group.name}"
+
+    @property
+    def logo_url(self) -> str:
+        """Return the logo URL or empty string."""
+        if self.logo:
+            return self.logo.url
+        return ""

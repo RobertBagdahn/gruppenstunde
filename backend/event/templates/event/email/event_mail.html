@@ -1,0 +1,17 @@
+{% extends "event/email/base.html" %}
+{% comment %}
+Event mail template — used for manual emails sent by organizers.
+Additional context:
+  subject: email subject
+  body: email body (already placeholder-resolved)
+{% endcomment %}
+
+{% block title %}{{ subject }}{% endblock %}
+
+{% block content %}
+{% if ci_greeting_text %}
+<div style="white-space: pre-line; margin-bottom: 15px; color: #555555;">{{ ci_greeting_text }}</div>
+{% endif %}
+
+<div style="white-space: pre-line;">{{ body }}</div>
+{% endblock %}

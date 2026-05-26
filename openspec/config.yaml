@@ -6,20 +6,48 @@ context: |
   und Module, die Gruppenfuehrer bei ihrer Arbeit unterstuetzen.
 
   Plattform-Architektur (Module):
-    Zentral: Auth & User, Profil, Gruppen, Suche, Admin, Statische Seiten
-    Modul 1 - Ideen & Wissen (idea App): Drei Idea-Typen (Lern-Idee, Rezept, Wissensbeitrag)
-      mit gleicher Basis-Datenstruktur, gemeinsam suchbar. Unterschied: Lern-Ideen haben Material,
-      Rezepte haben Zutaten (RecipeItem) + optional Material, Wissensbeitraege haben keines.
-      Enthaelt ausserdem die Zutatendatenbank (Ingredient, Portion, Price, NutritionalTag,
-      RetailSection, MeasuringUnit) mit Nutri-Score-Berechnung, Preiskaskade, Rezept-Checks
-      und KI-Autovervollstaendigung (siehe ingredient-database/spec.md).
-    Modul 2 - Events (event App): Pfadfinderveranstaltungen mit Buchungsoptionen,
-      Teilnehmerverwaltung, Einladungen. Top-Level unter /events.
-    Modul 3 - Planung (planner App): Heimabend-Planung (woechentliche Gruppenstunden
-      mit festem Wochentag/Uhrzeit, Ideas zuordnen) und Essensplan (Tage, Mahlzeiten,
-      Rezepte zuordnen). Unter /planning/.
-    Modul 4 - Packlisten (packinglist App, NEU): Packlisten mit Kategorien und Items,
-      editierbar fuer Owner/Gruppen-Admins, oeffentlich teilbar per Link. Unter /packing-lists.
+    Zentral: Auth & User (core, profiles), Profil, Gruppen, Suche, Admin, Statische Seiten
+
+    Content-System (content App + konkrete Typen):
+      Abstrakte Basis-Klasse Content mit gemeinsamen Feldern (Titel, Slug, Beschreibung,
+      Schwierigkeit, Kosten, Dauer, Status, Bild, Tags, Pfadfinderstufen, Autoren).
+      Vier konkrete Content-Typen:
+        - Gruppenstunde (session.GroupSession): session_type, min/max_participants, location_type
+        - Blog (blog.Blog): blog_type, reading_time_minutes, show_table_of_contents
+        - Spiel (game.Game): game_type, min/max_players, play_area, game_duration_minutes, rules
+        - Rezept (recipe.Recipe): recipe_type, servings, cached Naehrwerte, Nutri-Score, Preis
+      Generische Features: Kommentare, Emotionen, Views, Content-Linking, Embeddings,
+      Approval-Workflow, AI-Services (Textverbesserung, Tag-Vorschlaege, Refurbish, Bildgenerierung).
+
+    Supply-System (supply App):
+      Abstrakte Basis-Klasse Supply fuer Material (erbt von Supply).
+      Ingredient ist standalone (models.Model) mit 30+ Naehrwert/Score-Feldern.
+      Zusaetzlich: Portionen, Messeinheiten, Naehrstoff-Tags, Einzelhandelsabteilungen,
+      DGE-Referenzwerte, Norm-Person-Berechnung.
+
+    Rezepte (recipe App): Recipe erbt von Content, hat RecipeItems (Zutaten mit Portionen),
+      HealthRules (konfigurierbare Ampel-Schwellenwerte), Cockpit-Dashboard,
+      Inspi-Score, RecipeHints, cached Naehrwerte mit Signal-basierter Invalidierung.
+
+    Events (event App): Pfadfinderveranstaltungen mit Buchungsoptionen,
+      Teilnehmerverwaltung, Einladungen, Zahlungen, Budget, Tagesplan, Zeitleiste,
+      Labels, Custom Fields, Warteliste, Anwesenheit, Zimmerzuordnung, Elternzugang,
+      Gast-Registrierung, QR-Codes, Mail, Export, WhatsApp-Integration.
+      Top-Level unter /events.
+
+    Planung (planner App):
+      - Heimabend-Planung: Woechentliche Gruppenstunden mit festem Wochentag/Uhrzeit,
+        GroupSessions zuordnen. Unter /session-planner.
+      - Essensplan (MealPlan): Tage mit Mahlzeiten planen, Rezepte zuordnen,
+        Naehrstoff-Cockpit, Einkaufslisten. Unter /meal-plans.
+
+    Packlisten (packinglist App): Packlisten mit Kategorien und Items,
+      editierbar fuer Owner/Gruppen-Admins, oeffentlich teilbar per Link,
+      AI-Wizard, Klonen. Unter /packing-lists.
+
+    Einkaufslisten (shopping App): Kollaborative Einkaufslisten mit WebSocket-
+      Echtzeit-Updates, rollenbasiertem Zugriff (Owner/Admin/Editor/Viewer),
+      Export aus Rezepten und MealPlans. Unter /shopping-lists.
 
   Tech-Stack:
     Backend: Django 5.1, Django Ninja (REST), Pydantic v2, Python 3.13, uvicorn
@@ -28,7 +56,7 @@ context: |
     Datenbank: PostgreSQL 15 mit pgvector-Erweiterung
     KI: Google Gemini 3.1 Flash-Lite (text-embedding-001 fuer Embeddings)
     Speicher: Google Cloud Storage (Medien-Uploads)
-    Hosting: Google Cloud Run (Migration von App Engine)
+    Hosting: Google Cloud Run
     IaC: OpenTofu (terraform/-Verzeichnis)
     CI/CD: Google Cloud Build (nicht GitHub Actions)
     Container: Podman lokal, Docker in Cloud Build
@@ -40,6 +68,9 @@ context: |
     - Pydantic-Schemas (Backend) synchron 1:1 mit Zod-Schemas (Frontend)
     - Paginierte Antworten: { items, total, page, page_size, total_pages }
     - URL-gesteuerter State fuer Filter, Suche, Paginierung
+    - Hybrid Package-Struktur: Grosse Apps (content, supply, recipe, event, profiles, planner)
+      verwenden Packages fuer models/, api/, schemas/. Kleine Apps (session, blog, game)
+      behalten einzelne Dateien.
 
   Querschnittsthemen:
     - Fehlerbehandlung: error-handling/spec.md (einheitliches JSON-Fehlerformat,
@@ -53,7 +84,6 @@ context: |
       - UI-Texte (Labels, Buttons, Fehlermeldungen, Toasts): Deutsch
       - Git Commit Messages: Englisch, Conventional Commits (feat:, fix:, refactor:, docs:, chore:, test:)
       - URLs/Routen: Englische Pfade, kebab-case
-      - URL Query-Parameter: kebab-case (z.B. ?page-size=20&idea-type=recipe)
     Namenskonventionen:
       - TypeScript Variablen: camelCase
       - React Komponenten: PascalCase
@@ -62,15 +92,16 @@ context: |
       - CSS: Ausschliesslich Tailwind-Klassen, kein Inline-CSS, kein CSS-Modules
       - Bedingte CSS-Klassen: cn() Helper (clsx/tailwind-merge)
     Terminologie:
-      - "Idea" (niemals "Activity", "Gruppenstunde" oder "Heimabend")
-      - Drei Idea-Typen: idea (Lern-Idee), knowledge (Wissensartikel), recipe (Rezept)
+      - Content-Typen: GroupSession (Gruppenstunde), Blog, Game (Spiel), Recipe (Rezept)
+      - Supply-Typen: Material, Ingredient (Zutat)
+      - Die alte "Idea" App existiert nicht mehr. Niemals "Idea" fuer Content-Typen verwenden.
     Code-Qualitaet:
       - Kommentare: Nur "Warum", nie "Was" — Code soll selbsterklaerend sein
       - TypeScript: Kein "any", strict mode
       - Python: Type Hints fuer alle Funktionen
       - Kein console.log / print in Production-Code
-    Allgemein:
       - Python-Befehle: immer ueber "uv run"
+    Allgemein:
       - Mobile-First-Design (320px Minimum)
       - Keine Rueckwaertskompatibilitaet noetig (aktive Entwicklung)
     Styling:
@@ -82,16 +113,10 @@ context: |
       - Eingabe: MarkdownEditor (basierend auf @uiw/react-md-editor)
       - Darstellung: MarkdownRenderer (basierend auf react-markdown + remark-gfm)
       - Verboten: dangerouslySetInnerHTML, Tiptap, HTML-Editoren
-      - PDF-Export: jspdf + html2canvas (clientseitig)
     State Management:
       - Server-State: TanStack Query v5
       - Client-State (Auth, UI): Zustand v5
       - URL-State: Query-Parameter fuer Filter, Suche, Paginierung, Ansichtsmodi
-    Testing:
-      - Backend: pytest fuer alle API-Endpunkte und Models
-      - Frontend: Vitest fuer Hooks und Utils (keine Komponenten-Tests)
-      - Pre-Commit Hooks: ruff, black, mypy
-      - Pre-Push Hooks: pytest (nur schnelle Tests)
     Pagination:
       - Alle Listen-Endpunkte MUESSEN paginiert sein
       - Standard: page=1, page_size=20
@@ -106,12 +131,6 @@ context: |
       - Upload-Limit: max 500KB
       - Serverseitige Konvertierung zu WebP, mehrere Groessen generieren
       - Frontend: Lazy Loading (loading="lazy")
-    API-Versioning:
-      - Aktuell kein Versioning (aktive Entwicklung)
-      - Spaeter /api/v1/ als Prefix geplant
-    Projektstruktur Frontend:
-      - Feature-basierte Ordnerstruktur: features/{modul}/components, hooks, api
-      - Geteilte Komponenten in shared/components, shared/hooks, shared/utils
 
 rules:
   proposal:

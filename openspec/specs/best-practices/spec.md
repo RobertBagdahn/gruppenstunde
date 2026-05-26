@@ -1,10 +1,5 @@
 # best-practices Specification
 
-> **⚠️ HINWEIS: Diese Spec referenziert die alte `idea` App-Architektur.**
-> Die `idea` App wurde durch die Content/Supply-Architektur ersetzt (siehe `openspec/changes/content-base-refactor/`).
-> Mapping: `Idea (idea_type=idea)` → `session.GroupSession`, `Idea (idea_type=knowledge)` → `blog.Blog`, `Idea (idea_type=recipe)` → `recipe.Recipe`.
-> Neue Apps: `content`, `supply`, `session`, `blog`, `game`, `recipe`. Die `idea/` App existiert nicht mehr.
-
 ## Purpose
 
 Querschnittsspezifikation für UI-Patterns, Code-Konventionen, Formular-Handling, State Management, Bildverarbeitung, Accessibility und Testing-Standards der Inspi-Plattform. Definiert verbindliche Regeln für konsistente Implementierung über alle Module hinweg.
@@ -48,57 +43,70 @@ Alle Formulare MUST react-hook-form mit Zod-Resolver verwenden.
 
 ### Requirement: Loading States
 
-Das Frontend MUST kontextabhängige Loading-States anzeigen.
+Das Frontend MUST kontextabhaengige Loading-States mit strukturierten Skeleton-Loadern anzeigen, die die finale Inhaltsstruktur widerspiegeln.
 
 #### Scenario: Initiales Laden von Listen und Seiten
 
-- GIVEN eine Seite wird zum ersten Mal geladen
-- WHEN Daten per TanStack Query abgerufen werden
-- THEN werden Skeleton-Loader in der Form des erwarteten Inhalts angezeigt
-- AND Skeletons müssen die tatsächliche Inhaltsstruktur widerspiegeln (Cards, Text-Zeilen, etc.)
-- AND es wird KEIN leeres Layout ohne Feedback angezeigt
+- **WHEN** eine Seite zum ersten Mal geladen wird
+- **THEN** werden Skeleton-Loader in der Form des erwarteten Inhalts angezeigt
+- **THEN** Skeletons muessen die tatsaechliche Inhaltsstruktur widerspiegeln (Cards, Text-Zeilen, etc.)
+- **THEN** jeder Skeleton MUST mindestens 3 unterscheidbare Platzhalter-Bereiche haben
+- **THEN** einzelne undifferenzierte `animate-pulse` Bloecke sind VERBOTEN
+- **THEN** es wird KEIN leeres Layout ohne Feedback angezeigt
 
-#### Scenario: Aktionen (Speichern, Löschen, etc.)
+#### Scenario: Aktionen (Speichern, Loeschen, etc.)
 
-- GIVEN ein Benutzer führt eine Mutation aus (Erstellen, Bearbeiten, Löschen)
-- WHEN die API-Anfrage läuft
-- THEN wird ein Spinner im auslösenden Button angezeigt
-- AND der Button ist während der Anfrage deaktiviert
-- AND andere Interaktionen auf der Seite bleiben möglich
+- **WHEN** ein Benutzer eine Mutation ausfuehrt (Erstellen, Bearbeiten, Loeschen)
+- **THEN** wird ein Spinner im ausloesenden Button angezeigt
+- **THEN** der Button ist waehrend der Anfrage deaktiviert
+- **THEN** andere Interaktionen auf der Seite bleiben moeglich
 
 #### Scenario: Nachladen (Mehr laden)
 
-- GIVEN eine paginierte Liste mit "Mehr laden"-Button
-- WHEN der Benutzer "Mehr laden" klickt
-- THEN wird ein Spinner im Button angezeigt
-- AND die bestehenden Einträge bleiben sichtbar
-- AND neue Einträge werden unterhalb angehängt
+- **WHEN** eine paginierte Liste einen "Mehr laden"-Button hat
+- **THEN** wird ein Spinner im Button angezeigt beim Laden
+- **THEN** die bestehenden Eintraege bleiben sichtbar
+- **THEN** neue Eintraege werden unterhalb angehaengt
 
 ### Requirement: Empty States
 
-Das Frontend MUST leere Zustände mit Illustration, Text und Handlungsaufforderung anzeigen.
+Das Frontend MUST leere Zustaende mit der shared `<EmptyState>` Komponente anzeigen. Alle Seiten MUST die gleiche Komponente verwenden fuer konsistente Darstellung.
 
 #### Scenario: Leere Liste (keine Daten vorhanden)
 
-- GIVEN eine Listen-Seite ohne Einträge (z.B. keine Ideas, keine Events)
-- WHEN die API eine leere Liste zurückgibt
-- THEN wird ein Empty-State angezeigt mit:
-  - Passendem Icon oder Illustration
-  - Erklärungstext auf Deutsch (z.B. "Noch keine Ideen vorhanden")
-  - CTA-Button zum Erstellen (z.B. "Erste Idee erstellen")
-- AND der CTA-Button ist nur sichtbar, wenn der Benutzer die Berechtigung hat
+- **WHEN** eine Listen-Seite keine Eintraege hat (z.B. keine Sessions, keine Events)
+- **THEN** wird die shared `<EmptyState>` Komponente gerendert mit:
+  - Maskottchen-Bild (bevorzugt) ODER Material Symbols Icon
+  - Titel als Heading auf Deutsch (z.B. "Noch keine Gruppenstunden vorhanden")
+  - Beschreibungstext auf Deutsch
+  - CTA-Button zum Erstellen (z.B. "Erste Gruppenstunde erstellen"), nur sichtbar wenn der Benutzer die Berechtigung hat
+- **THEN** die Komponente SHALL zentriert dargestellt werden mit angemessenem Abstand
 
 #### Scenario: Leere Suchergebnisse
 
-- GIVEN eine Suche, die keine Ergebnisse liefert
-- WHEN die API `{ items: [], total: 0 }` zurückgibt
-- THEN wird angezeigt: "Keine Ergebnisse für '{suchbegriff}'"
-- AND Vorschläge werden angezeigt: "Versuche einen anderen Suchbegriff oder weniger Filter"
-- AND die aktiven Filter werden als Chips angezeigt mit Möglichkeit, sie zu entfernen
+- **WHEN** eine Suche keine Ergebnisse liefert
+- **THEN** wird die shared `<EmptyState>` Komponente gerendert mit:
+  - Maskottchen-Bild
+  - Text: "Keine Ergebnisse fuer '{suchbegriff}'"
+  - Beschreibung: "Versuche einen anderen Suchbegriff oder weniger Filter"
+- **THEN** die aktiven Filter werden als Chips angezeigt mit Moeglichkeit, sie zu entfernen
 
 ### Requirement: Pagination
 
 Alle Listen MUST Pagination mit "Mehr laden"-Pattern verwenden.
+
+### Requirement: Container width standard
+
+Die best-practices SHALL drei standardisierte Container-Breiten-Tiers definieren, die alle Seiten verwenden MUESSEN.
+
+#### Scenario: Container-Tier Zuordnung
+
+- **WHEN** eine neue Seite implementiert wird
+- **THEN** MUST sie einen der drei Container-Tiers verwenden:
+  - `max-w-7xl` fuer Grid-Listenseiten (Sessions, Games, Blogs, Recipes, Search)
+  - `max-w-5xl` fuer Dashboard/Management-Seiten (Events, Ingredients, MealEvents)
+  - `max-w-3xl` fuer Detail/Formular-Seiten (Create, Edit, GroupDetail)
+- **THEN** der Container MUST `mx-auto px-4 sm:px-6 lg:px-8` fuer konsistentes Padding verwenden
 
 #### Scenario: Standard-Pagination
 
@@ -228,7 +236,7 @@ Die Anwendung MUST eine klare Trennung zwischen Server-State und Client-State ha
 - THEN wird der Zustand über URL Query-Parameter abgebildet
 - AND Seiten sind bookmarkbar und teilbar
 - AND der Browser-Back-Button funktioniert korrekt
-- AND URL-Parameter verwenden kebab-case: `?idea-type=recipe&scout-level=woelfling&page-size=20`
+- AND URL-Parameter verwenden kebab-case: `?type=session&scout-level=woelfling&page-size=20`
 
 ### Requirement: Inhaltsformat (Markdown statt HTML)
 
@@ -299,7 +307,7 @@ Alle Entwickler MUST die folgenden Code-Konventionen einhalten.
 - THEN wird Conventional Commits verwendet:
   - `feat: add meal plan creation flow`
   - `fix: correct pagination offset in search`
-  - `refactor: extract idea card into shared component`
+  - `refactor: extract content card into shared component`
   - `docs: update API endpoint documentation`
   - `chore: update dependencies`
   - `test: add pytest cases for event booking`
@@ -403,3 +411,62 @@ Alle Datums- und Zeitangaben MUST konsistent behandelt werden.
 - **Storybook**: Komponentenbibliothek für geteilte UI-Komponenten (später)
 - **Lighthouse CI**: Automatische Performance- und Accessibility-Checks in Cloud Build
 - **Bundle-Analyse**: Automatische Bundle-Size-Checks bei PRs
+
+
+---
+
+# Umlaut Correction
+
+## MODIFIED Requirements
+
+### Requirement: Konsistente Umlaut-Verwendung
+
+Alle deutschen Texte in der Codebase MÜSSEN korrekte Umlaute verwenden.
+
+#### Scenario: UI-Labels und Fehlermeldungen
+- **WHEN** ein deutscher Text in einem UI-Label, Button, Tooltip oder einer Fehlermeldung angezeigt wird
+- **THEN** MUSS er korrekte Umlaute verwenden: ä (nicht ae), ö (nicht oe), ü (nicht ue), ß (nicht ss, wo grammatikalisch korrekt)
+
+#### Scenario: Seed-Daten
+- **WHEN** deutsche Texte in Seed-Daten (Rezeptnamen, Zutatennamen, Beschreibungen) verwendet werden
+- **THEN** MÜSSEN sie korrekte Umlaute verwenden
+
+#### Scenario: Backend-Strings
+- **WHEN** deutsche Texte in Python-Strings (Fehlermeldungen, Labels, Descriptions) verwendet werden
+- **THEN** MÜSSEN sie korrekte Umlaute verwenden
+- **THEN** DÜRFEN englische Variablennamen, Funktionsnamen und Kommentare NICHT geändert werden
+
+
+---
+
+# TypeScript Config
+
+## Requirements
+
+### Requirement: All frontend config files MUST use TypeScript
+
+The frontend project SHALL NOT contain any `.js` source or config files. All configuration files (Vite, PostCSS, etc.) MUST use `.ts` extensions with proper type annotations.
+
+#### Scenario: No .js files in frontend root
+- **WHEN** listing files in `frontend/` (excluding `node_modules/`, `dist/`)
+- **THEN** no files with `.js` extension SHALL exist
+
+#### Scenario: PostCSS config is TypeScript
+- **WHEN** Vite resolves the PostCSS configuration
+- **THEN** it MUST load `postcss.config.ts` (not a `.js` variant)
+
+#### Scenario: Vite config is TypeScript only
+- **WHEN** Vite resolves its configuration file
+- **THEN** it MUST load `vite.config.ts` with no duplicate `.js` or `.d.ts` variants present
+
+### Requirement: Build and dev server MUST work after conversion
+
+The frontend build pipeline SHALL continue to function correctly after removing `.js` config files.
+
+#### Scenario: Development server starts successfully
+- **WHEN** running `npm run dev` in the frontend directory
+- **THEN** Vite dev server MUST start without config resolution errors
+
+#### Scenario: Production build completes successfully
+- **WHEN** running `npm run build` in the frontend directory
+- **THEN** the build MUST complete without errors related to config resolution

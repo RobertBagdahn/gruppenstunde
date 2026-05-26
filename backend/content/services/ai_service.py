@@ -57,6 +57,13 @@ class AiInvalidResponseError(Exception):
     error_code = "AI_INVALID_RESPONSE"
 
 
+class AiRateLimitError(Exception):
+    """Gemini API rate limit exceeded (429)."""
+
+    detail = "Die KI ist gerade überlastet. Bitte versuche es in einer Minute erneut."
+    error_code = "AI_RATE_LIMITED"
+
+
 GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
 GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
 
@@ -223,16 +230,23 @@ class ContentAIService:
         )
 
         from google.genai import types
+        from google.genai.errors import ClientError
 
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=ImproveTextOutput,
-                http_options=types.HttpOptions(timeout=AI_REFURBISH_TIMEOUT_SECONDS * 1000),
-            ),
-        )
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=ImproveTextOutput,
+                    http_options=types.HttpOptions(timeout=AI_REFURBISH_TIMEOUT_SECONDS * 1000),
+                ),
+            )
+        except ClientError as exc:
+            if exc.code == 429:
+                raise AiRateLimitError() from exc
+            raise
+
         result = ImproveTextOutput.model_validate_json(response.text)
         logger.info("AI improve_text result: %s", result.text[:200])
         return result.text

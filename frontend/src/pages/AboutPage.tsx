@@ -24,7 +24,6 @@ export default function AboutPage() {
     { src: '/images/inspi_baby_tea.png', alt: 'Inspi Baby Tee' },
     { src: '/images/inspi_cook.png', alt: 'Inspi Kochen' },
     { src: '/images/inspi_food.webp', alt: 'Inspi Essen' },
-    { src: '/images/inspi_front_kopfhoerer.webp', alt: 'Inspi Kopfhörer' },
     { src: '/images/inspi_garden.png', alt: 'Inspi Garten' },
     { src: '/images/inspi_reading.png', alt: 'Inspi Lesen' },
     { src: '/images/inspi_sleeping_bag.png', alt: 'Inspi Schlafsack' },
@@ -48,7 +47,7 @@ export default function AboutPage() {
           <img
             src="/images/inspi_baby_space.png"
             alt="Inspi Baby Weltraum"
-            className="mx-auto h-48 md:h-64 mb-8 drop-shadow-lg"
+            className="mx-auto w-48 md:w-64 h-auto mb-8 drop-shadow-lg"
           />
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
             Über das Projekt
@@ -135,6 +134,9 @@ export default function AboutPage() {
                 <img
                   src={img.src}
                   alt={img.alt}
+                  loading="lazy"
+                  width={200}
+                  height={200}
                   className="max-h-full max-w-full object-contain transition-transform group-hover:scale-110"
                 />
               </div>

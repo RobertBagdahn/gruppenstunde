@@ -100,7 +100,7 @@ export default function EditRecipePage() {
 
   if (isLoading) {
     return (
-      <div className="container py-8 max-w-3xl">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-40 bg-muted rounded" />
@@ -112,7 +112,7 @@ export default function EditRecipePage() {
 
   if (error || !recipe) {
     return (
-      <div className="container py-8 max-w-3xl text-center">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
         <p className="text-destructive">Rezept nicht gefunden.</p>
       </div>
     );
@@ -120,14 +120,14 @@ export default function EditRecipePage() {
 
   if (!recipe.can_edit) {
     return (
-      <div className="container py-8 max-w-3xl text-center">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
         <p className="text-destructive">Du hast keine Berechtigung, dieses Rezept zu bearbeiten.</p>
       </div>
     );
   }
 
   return (
-    <div className="container py-8 max-w-3xl">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 text-white">
@@ -219,7 +219,7 @@ export default function EditRecipePage() {
           <MarkdownEditor
             value={description}
             onChange={setDescription}
-            placeholder="Beschreibe die Zubereitung Schritt fuer Schritt..."
+            placeholder="Beschreibe die Zubereitung Schritt für Schritt..."
           />
         </div>
 

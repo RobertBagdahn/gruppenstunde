@@ -168,8 +168,8 @@ export default function ContentComments({
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
             {isAuthenticated
-              ? 'Dein Kommentar wird sofort veroeffentlicht.'
-              : 'Anonyme Kommentare werden nach Pruefung freigeschaltet.'}
+               ? 'Dein Kommentar wird sofort veröffentlicht.'
+               : 'Anonyme Kommentare werden nach Prüfung freigeschaltet.'}
           </p>
           <button
             type="submit"

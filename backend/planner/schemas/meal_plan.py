@@ -1,4 +1,4 @@
-"""MealEvent-related schemas."""
+"""MealPlan-related schemas."""
 
 import datetime as dt
 
@@ -53,7 +53,7 @@ class MealDayBulkCreateIn(Schema):
     date: dt.date
 
 
-class MealEventOut(Schema):
+class MealPlanOut(Schema):
     id: int
     name: str
     slug: str
@@ -79,7 +79,7 @@ class MealEventOut(Schema):
         return obj.meals.count()
 
 
-class MealEventCreateIn(Schema):
+class MealPlanCreateIn(Schema):
     name: str
     description: str = ""
     norm_portions: int = 10
@@ -90,7 +90,7 @@ class MealEventCreateIn(Schema):
     num_days: int = 3
 
 
-class MealEventUpdateIn(Schema):
+class MealPlanUpdateIn(Schema):
     name: str | None = None
     description: str | None = None
     norm_portions: int | None = None
@@ -98,7 +98,7 @@ class MealEventUpdateIn(Schema):
     reserve_factor: float | None = None
 
 
-class MealEventDetailOut(Schema):
+class MealPlanDetailOut(Schema):
     id: int
     name: str
     slug: str
@@ -122,6 +122,7 @@ class MealEventDetailOut(Schema):
 
 
 class NutritionSummaryOut(Schema):
+    # Total values (entire MealPlan, all portions)
     energy_kj: float = 0.0
     protein_g: float = 0.0
     fat_g: float = 0.0
@@ -130,10 +131,26 @@ class NutritionSummaryOut(Schema):
     fibre_g: float = 0.0
     salt_g: float = 0.0
 
+    # Per Normportion values (total / norm_portions)
+    per_portion_energy_kj: float = 0.0
+    per_portion_protein_g: float = 0.0
+    per_portion_fat_g: float = 0.0
+    per_portion_carbohydrate_g: float = 0.0
+    per_portion_sugar_g: float = 0.0
+    per_portion_fibre_g: float = 0.0
+    per_portion_salt_g: float = 0.0
+
+    # Scaling metadata
+    norm_portions: int = 1
+    activity_factor: float = 1.0
+    reserve_factor: float = 1.0
+    scaling_factor: float = 1.0
+
 
 class ShoppingListItemOut(Schema):
     ingredient_id: int | None = None
     ingredient_name: str
+    ingredient_slug: str = ""
     total_quantity_g: float
     unit: str = "g"
     retail_section: str = ""

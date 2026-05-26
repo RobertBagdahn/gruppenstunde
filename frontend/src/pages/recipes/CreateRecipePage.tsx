@@ -108,7 +108,7 @@ export default function CreateRecipePage() {
             <div className="flex items-start gap-2.5">
               <span className="material-symbols-outlined text-blue-500 text-[20px] mt-0.5">info</span>
               <p className="text-xs text-blue-700">
-                Zutaten, Bilder und weitere Details kannst du nach dem Erstellen hinzufuegen.
+                 Zutaten, Bilder und weitere Details kannst du nach dem Erstellen hinzufügen.
                 Das Rezept wird als Entwurf gespeichert.
               </p>
             </div>

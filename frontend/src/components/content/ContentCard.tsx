@@ -1,11 +1,13 @@
 /**
  * ContentCard — Generic content card used across all content types.
- * Displays image, title, summary, tags, difficulty, execution time, and type badge.
+ * Displays image, title, summary, tags, difficulty, execution time, type badge,
+ * and scout level badges. Compact layout optimized for 5-column grids.
  * Optionally shows edit/delete action icons for authorized users.
  */
 import { Link } from 'react-router-dom';
-import type { ContentListItem, Tag } from '@/schemas/content';
+import type { ContentListItem, Tag, ScoutLevel } from '@/schemas/content';
 import { DIFFICULTY_OPTIONS, EXECUTION_TIME_OPTIONS } from '@/schemas/content';
+import { cn } from '@/lib/utils';
 
 interface ContentCardProps {
   /** The content item to display */
@@ -35,6 +37,17 @@ const TAG_COLORS = [
   'bg-violet-500/15 text-violet-600 border border-violet-500/20',
   'bg-rose-500/15 text-rose-600 border border-rose-500/20',
 ];
+
+const SCOUT_LEVEL_COLORS: Record<string, string> = {
+  'Wölflinge': 'bg-orange-50 text-orange-700 border border-orange-300',
+  'Jungpfadfinder': 'bg-blue-50 text-blue-700 border border-blue-300',
+  'Pfadfinder': 'bg-green-50 text-green-700 border border-green-300',
+  'Rover': 'bg-red-50 text-red-700 border border-red-300',
+};
+
+function getScoutLevelColor(name: string): string {
+  return SCOUT_LEVEL_COLORS[name] ?? 'bg-gray-50 text-gray-700 border border-gray-300';
+}
 
 export default function ContentCard({
   content,
@@ -66,13 +79,16 @@ export default function ContentCard({
           src={content.image_url || '/images/inspi_flying.png'}
           alt={content.title}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className={cn(
+            "w-full h-full transition-transform duration-500 group-hover:scale-110",
+            content.image_url ? "object-cover" : "object-contain p-4 bg-muted/30"
+          )}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         {/* Like badge */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-extrabold text-rose-500 shadow-md">
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-extrabold text-rose-500 shadow-md">
           <span
-            className="material-symbols-outlined text-[16px]"
+            className="material-symbols-outlined text-[14px]"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
             favorite
@@ -82,17 +98,17 @@ export default function ContentCard({
         {/* Type badge */}
         {typeLabel && (
           <div
-            className={`absolute top-3 left-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-extrabold shadow-md ${typeBadgeColor}`}
+            className={`absolute top-2 left-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-extrabold shadow-md ${typeBadgeColor}`}
           >
             {typeIcon && (
-              <span className="material-symbols-outlined text-[14px]">{typeIcon}</span>
+              <span className="material-symbols-outlined text-[12px]">{typeIcon}</span>
             )}
             {typeLabel}
           </div>
         )}
         {/* Admin action icons */}
         {hasActions && (
-          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <div className="absolute bottom-2 left-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             {canEdit && onEdit && (
               <button
                 onClick={(e) => {
@@ -100,10 +116,10 @@ export default function ContentCard({
                   e.stopPropagation();
                   onEdit();
                 }}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm text-foreground shadow-md hover:bg-white transition-colors"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-foreground shadow-md hover:bg-white transition-colors"
                 title="Bearbeiten"
               >
-                <span className="material-symbols-outlined text-[16px]">edit</span>
+                <span className="material-symbols-outlined text-[14px]">edit</span>
               </button>
             )}
             {canDelete && onDelete && (
@@ -113,57 +129,81 @@ export default function ContentCard({
                   e.stopPropagation();
                   onDelete();
                 }}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm text-destructive shadow-md hover:bg-white transition-colors"
-                title="Loeschen"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-destructive shadow-md hover:bg-white transition-colors"
+                title="Löschen"
               >
-                <span className="material-symbols-outlined text-[16px]">delete</span>
+                <span className="material-symbols-outlined text-[14px]">delete</span>
               </button>
             )}
           </div>
         )}
       </div>
 
-      <div className="p-5">
-        <h3 className="font-extrabold text-base group-hover:text-primary transition-colors line-clamp-2">
+      <div className="p-3">
+        <h3 className="font-extrabold text-sm group-hover:text-primary transition-colors truncate">
           {content.title}
         </h3>
 
-        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{content.summary}</p>
+        {content.summary && (
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{content.summary}</p>
+        )}
+
+        {/* Scout Level Badges */}
+        {content.scout_levels.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {content.scout_levels.slice(0, 2).map((level: ScoutLevel) => (
+              <span
+                key={level.id}
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${getScoutLevelColor(level.name)}`}
+              >
+                {level.icon && <span className="material-symbols-outlined text-[11px] mr-0.5">{level.icon}</span>}
+                {level.name}
+              </span>
+            ))}
+            {content.scout_levels.length > 2 && (
+              <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 text-[10px] font-bold">
+                +{content.scout_levels.length - 2}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {content.tags.slice(0, 3).map((tag: Tag, index: number) => (
-            <span
-              key={tag.id}
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${TAG_COLORS[index % TAG_COLORS.length]}`}
-            >
-              {tag.icon && (
-                <span className="material-symbols-outlined text-[14px] mr-1">{tag.icon}</span>
-              )}
-              {tag.name}
-            </span>
-          ))}
-          {content.tags.length > 3 && (
-            <span className="inline-flex items-center rounded-full bg-secondary/20 text-secondary-foreground border border-secondary/30 px-2.5 py-0.5 text-xs font-bold">
-              +{content.tags.length - 3}
-            </span>
-          )}
-        </div>
+        {content.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {content.tags.slice(0, 3).map((tag: Tag, index: number) => (
+              <span
+                key={tag.id}
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${TAG_COLORS[index % TAG_COLORS.length]}`}
+              >
+                {tag.icon && (
+                  <span className="material-symbols-outlined text-[11px] mr-0.5">{tag.icon}</span>
+                )}
+                {tag.name}
+              </span>
+            ))}
+            {content.tags.length > 3 && (
+              <span className="inline-flex items-center rounded-full bg-secondary/20 text-secondary-foreground border border-secondary/30 px-2 py-0.5 text-[10px] font-bold">
+                +{content.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Meta info */}
-        <div className="flex items-center gap-3 mt-4 pt-3 border-t border-border/50 text-xs font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1.5 bg-[hsl(174,60%,41%)]/10 rounded-full px-2.5 py-1">
+        <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-border/50 text-[11px] font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1 bg-[hsl(174,60%,41%)]/10 rounded-full px-2 py-0.5">
             <span
-              className="material-symbols-outlined text-[16px] text-[hsl(174,60%,41%)]"
+              className="material-symbols-outlined text-[13px] text-[hsl(174,60%,41%)]"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               schedule
             </span>
             {timeLabel}
           </span>
-          <span className="flex items-center gap-1.5 bg-accent/10 rounded-full px-2.5 py-1">
+          <span className="flex items-center gap-1 bg-accent/10 rounded-full px-2 py-0.5">
             <span
-              className="material-symbols-outlined text-[16px] text-accent"
+              className="material-symbols-outlined text-[13px] text-accent"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               signal_cellular_alt

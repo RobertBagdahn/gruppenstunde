@@ -67,6 +67,21 @@ class HintParameterChoices(models.TextChoices):
     FRUCTOSE_G = "fructose_g", _("Fructose (g)")
     LACTOSE_G = "lactose_g", _("Laktose (g)")
     FRUIT_FACTOR = "fruit_factor", _("Obst-/Gemüse-Anteil")
+    # Extended parameters
+    WEIGHT_G = "weight_g", _("Gewicht (g)")
+    NUTRI_CLASS = "nutri_class", _("Nutri-Score Klasse")
+    # Vitamins
+    VITAMIN_A_MG = "vitamin_a_mg", _("Vitamin A (mg)")
+    VITAMIN_C_MG = "vitamin_c_mg", _("Vitamin C (mg)")
+    VITAMIN_D_UG = "vitamin_d_ug", _("Vitamin D (µg)")
+    VITAMIN_B12_UG = "vitamin_b12_ug", _("Vitamin B12 (µg)")
+    FOLATE_UG = "folate_ug", _("Folat (µg)")
+    # Minerals
+    CALCIUM_MG = "calcium_mg", _("Calcium (mg)")
+    IRON_MG = "iron_mg", _("Eisen (mg)")
+    MAGNESIUM_MG = "magnesium_mg", _("Magnesium (mg)")
+    ZINC_MG = "zinc_mg", _("Zink (mg)")
+    POTASSIUM_MG = "potassium_mg", _("Kalium (mg)")
 
 
 class HintMinMaxChoices(models.TextChoices):

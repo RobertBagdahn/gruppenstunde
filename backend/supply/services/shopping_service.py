@@ -1,6 +1,6 @@
 """Shopping list generation service.
 
-Aggregates ingredients from MealEvent -> Meal -> MealItem -> Recipe -> RecipeItem,
+Aggregates ingredients from MealPlan -> Meal -> MealItem -> Recipe -> RecipeItem,
 groups by RetailSection, sums quantities, and estimates prices.
 """
 
@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from planner.models import MealEvent
+    from planner.models import MealPlan
 
 
 @dataclass
@@ -20,7 +20,8 @@ class ShoppingListItem:
 
     ingredient_id: int
     ingredient_name: str
-    total_quantity_g: float
+    ingredient_slug: str = ""
+    total_quantity_g: float = 0.0
     unit: str = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
@@ -29,19 +30,19 @@ class ShoppingListItem:
 
 
 def generate_shopping_list(
-    meal_event: "MealEvent",
+    meal_plan: "MealPlan",
     scaling_override: float | None = None,
 ) -> list[ShoppingListItem]:
-    """Generate an aggregated shopping list for a meal event.
+    """Generate an aggregated shopping list for a meal plan.
 
-    Collects all MealItems from all Meals of the event,
+    Collects all MealItems from all Meals of the plan,
     aggregates identical ingredients (summing quantities), groups by
     RetailSection, and estimates prices from Ingredient.price_per_kg.
 
     Args:
-        meal_event: The MealEvent to generate a shopping list for
+        meal_plan: The MealPlan to generate a shopping list for
         scaling_override: Optional override for the scaling factor
-            (defaults to meal_event.scaling_factor)
+            (defaults to meal_plan.scaling_factor)
 
     Returns:
         Sorted list of ShoppingListItem grouped by retail section, then name
@@ -50,11 +51,11 @@ def generate_shopping_list(
     from recipe.models import RecipeItem
     from supply.services.price_service import get_portion_price
 
-    scaling = scaling_override if scaling_override is not None else meal_event.scaling_factor
+    scaling = scaling_override if scaling_override is not None else meal_plan.scaling_factor
 
     # Collect all MealItems
     meal_items = MealItem.objects.filter(
-        meal__meal_event=meal_event,
+        meal__meal_plan=meal_plan,
     ).select_related("recipe", "meal")
 
     # Aggregate: ingredient_id -> ShoppingListItem
@@ -82,6 +83,7 @@ def generate_shopping_list(
                 aggregated[ing.id] = ShoppingListItem(
                     ingredient_id=ing.id,
                     ingredient_name=ing.name,
+                    ingredient_slug=ing.slug if hasattr(ing, "slug") else "",
                     total_quantity_g=weight_g,
                     unit="g",
                     retail_section=section_name,

@@ -52,22 +52,25 @@ export default function MaterialPage() {
         <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
           <span className="material-symbols-outlined text-primary">lightbulb</span>
           Beiträge mit diesem Material
-          <span className="text-sm font-normal text-muted-foreground">({material.ideas.length})</span>
+          <span className="text-sm font-normal text-muted-foreground">({material.contents.length})</span>
         </h2>
 
-        {material.ideas.length > 0 ? (
+        {material.contents.length > 0 ? (
           <div className="space-y-3">
-            {material.ideas.map((idea) => (
+            {material.contents.map((item) => (
               <Link
-                key={idea.id}
-                to={getContentUrl(idea.content_type ?? 'session', idea.slug)}
+                key={item.id}
+                to={getContentUrl(item.content_type ?? 'session', item.slug)}
                 className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:border-primary hover:shadow-glow transition-all"
               >
-                {idea.image_url ? (
+                {item.image_url ? (
                   <img
-                    src={idea.image_url}
-                    alt={idea.title}
+                    src={item.image_url}
+                    alt={item.title}
                     className="w-16 aspect-square rounded-lg object-cover flex-shrink-0"
+                    loading="lazy"
+                    width={64}
+                    height={64}
                   />
                 ) : (
                   <div className="w-16 aspect-square rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
@@ -75,8 +78,8 @@ export default function MaterialPage() {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-semibold truncate">{idea.title}</p>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{idea.summary}</p>
+                  <p className="font-semibold truncate">{item.title}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{item.summary}</p>
                 </div>
               </Link>
             ))}

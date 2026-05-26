@@ -1,15 +1,16 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
-import { useMyIdeas, useMyGroups, useMyProfile } from '@/api/profile';
+import { useMyContent, useMyGroups, useMyProfile } from '@/api/profile';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useMyInvitedEvents, useMyRegisteredEvents, usePersons } from '@/api/events';
 import { usePlanners } from '@/api/planner';
 import type { Person } from '@/schemas/event';
-import type { MyIdea } from '@/schemas/profile';
+import type { MyContent } from '@/schemas/profile';
 import type { EventList } from '@/schemas/event';
-import type { Planner } from '@/schemas/planner';
-import type { UserGroup } from '@/schemas/profile';
-import { getContentUrl, getContentTypeLabel } from '@/schemas/content';
+
+import { getContentUrl } from '@/schemas/content';
+import { cn } from '@/lib/utils';
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
   session: 'Gruppenstunde',
@@ -20,13 +21,13 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: 'Entwurf', color: 'bg-yellow-100 text-yellow-800' },
-  published: { label: 'Veröffentlicht', color: 'bg-green-100 text-green-800' },
+  published: { label: 'Veroeffentlicht', color: 'bg-green-100 text-green-800' },
   archived: { label: 'Archiviert', color: 'bg-gray-100 text-gray-800' },
-  review: { label: 'In Prüfung', color: 'bg-blue-100 text-blue-800' },
+  review: { label: 'In Pruefung', color: 'bg-blue-100 text-blue-800' },
 };
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '–';
+  if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('de-DE', {
     day: '2-digit',
     month: '2-digit',
@@ -38,184 +39,42 @@ function SectionHeader({
   icon,
   title,
   count,
-  iconColor = 'text-primary',
-  badgeBg = 'bg-primary/10',
-  badgeText = 'text-primary',
+  action,
 }: {
   icon: string;
   title: string;
   count?: number;
-  iconColor?: string;
-  badgeBg?: string;
-  badgeText?: string;
+  action?: { label: string; to: string };
 }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className={`material-symbols-outlined ${iconColor} text-[22px]`}>{icon}</span>
-      <h2 className="text-lg font-bold">{title}</h2>
-      {count !== undefined && (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeBg} ${badgeText}`}>
-          {count}
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-muted-foreground text-[18px]">
+          {icon}
         </span>
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {count !== undefined && (
+          <span className="text-xs text-muted-foreground">({count})</span>
+        )}
+      </div>
+      {action && (
+        <Link to={action.to} className="text-xs text-primary hover:underline">
+          {action.label}
+        </Link>
       )}
     </div>
   );
 }
 
-function EmptyState({ icon, text }: { icon: string; text: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
-      <span className="material-symbols-outlined text-[32px] mb-1">{icon}</span>
-      <p className="text-sm">{text}</p>
-    </div>
-  );
+function EmptyRow({ text }: { text: string }) {
+  return <p className="text-xs text-muted-foreground py-2 pl-1">{text}</p>;
 }
 
-function EventCard({ event, badge }: { event: EventList; badge?: string }) {
+function SkeletonRow() {
   return (
-    <Link
-      to={`/events/app`}
-      className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-    >
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-violet-100 text-violet-600 shrink-0">
-        <span className="material-symbols-outlined text-[22px]">celebration</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-medium text-sm truncate">{event.name}</p>
-          {badge && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-600 font-medium">
-              {badge}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-          {event.start_date && (
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-              {formatDate(event.start_date)}
-            </span>
-          )}
-          {event.location && (
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">location_on</span>
-              {event.location}
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function IdeaCard({ idea }: { idea: MyIdea }) {
-  const status = STATUS_LABELS[idea.status] ?? { label: idea.status, color: 'bg-gray-100 text-gray-800' };
-  return (
-    <Link
-      to={getContentUrl(idea.content_type, idea.slug)}
-      className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-    >
-      {idea.image_url ? (
-        <img src={idea.image_url} alt="" className="w-10 aspect-square rounded-lg object-cover shrink-0" />
-      ) : (
-        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-sky-100 text-sky-600 shrink-0">
-          <span className="material-symbols-outlined text-[22px]">lightbulb</span>
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-medium text-sm truncate">{idea.title}</p>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${status.color}`}>
-            {status.label}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {CONTENT_TYPE_LABELS[idea.content_type] ?? idea.content_type}
-          </span>
-        </div>
-        {idea.summary && (
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{idea.summary}</p>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-function PlannerCard({ planner }: { planner: Planner }) {
-  return (
-    <Link
-      to="/session-planner/app"
-      className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-    >
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 shrink-0">
-        <span className="material-symbols-outlined text-[22px]">calendar_month</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">{planner.title}</p>
-        <p className="text-xs text-muted-foreground">
-          Erstellt am {formatDate(planner.created_at)}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
-function GroupCard({ group }: { group: UserGroup }) {
-  return (
-    <Link
-      to={`/groups/${group.slug}`}
-      className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-    >
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-sky-100 text-sky-600 shrink-0">
-        <span className="material-symbols-outlined text-[22px]">groups</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">{group.name}</p>
-        <p className="text-xs text-muted-foreground">
-          {group.member_count} {group.member_count === 1 ? 'Mitglied' : 'Mitglieder'}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
-function PersonCardSmall({ person }: { person: Person }) {
-  return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-      <div className={`flex items-center justify-center w-10 h-10 rounded-full text-white text-sm font-bold shrink-0 ${
-        person.is_owner
-          ? 'bg-gradient-to-br from-primary to-[hsl(174,60%,41%)]'
-          : 'bg-muted-foreground/30 text-muted-foreground'
-      }`}>
-        {(person.first_name[0] ?? '?').toUpperCase()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-medium text-sm">
-            {person.first_name} {person.last_name}
-          </p>
-          {person.is_owner && (
-            <span className="text-xs bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded-full font-medium">Ich</span>
-          )}
-          {person.scout_name && (
-            <span className="text-xs text-muted-foreground">„{person.scout_name}"</span>
-          )}
-        </div>
-        {person.email && (
-          <p className="text-xs text-muted-foreground mt-0.5">{person.email}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SkeletonCard() {
-  return (
-    <div className="animate-pulse flex items-start gap-3 p-3 rounded-lg border">
-      <div className="w-10 h-10 rounded-lg bg-muted" />
-      <div className="flex-1 space-y-2">
-        <div className="h-4 bg-muted rounded w-2/3" />
-        <div className="h-3 bg-muted rounded w-1/3" />
-      </div>
+    <div className="animate-pulse flex items-center gap-2 py-2">
+      <div className="h-3 bg-muted rounded w-1/3" />
+      <div className="h-3 bg-muted rounded w-1/5 ml-auto" />
     </div>
   );
 }
@@ -225,7 +84,7 @@ export default function MyDashboardPage() {
   const { data: profile } = useMyProfile();
   const { data: invitedEvents, isLoading: invitedLoading } = useMyInvitedEvents();
   const { data: registeredEvents, isLoading: registeredLoading } = useMyRegisteredEvents();
-  const { data: myIdeas, isLoading: ideasLoading } = useMyIdeas();
+  const { data: myContent, isLoading: contentLoading } = useMyContent();
   const { data: planners, isLoading: plannersLoading } = usePlanners();
   const { data: groups, isLoading: groupsLoading } = useMyGroups();
   const { data: persons, isLoading: personsLoading } = usePersons();
@@ -239,7 +98,7 @@ export default function MyDashboardPage() {
 
   if (userLoading || !user) {
     return (
-      <div className="container py-8 max-w-3xl">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-32 bg-muted rounded" />
@@ -248,125 +107,154 @@ export default function MyDashboardPage() {
     );
   }
 
-  const displayName = profile?.scout_name || profile?.first_name || user.first_name || user.email;
+  const displayName =
+    profile?.scout_name || profile?.first_name || user.first_name || user.email;
 
   return (
-    <div className="container py-6 sm:py-8 max-w-3xl space-y-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary to-[hsl(174,60%,41%)] text-white text-xl font-bold">
-          {(displayName[0] ?? '?').toUpperCase()}
-        </div>
+        <Avatar className="w-10 h-10 ring-2 ring-primary/20 ring-offset-2">
+          <AvatarImage src={profile?.profile_picture_url ?? undefined} alt={displayName} />
+          <AvatarFallback className="text-sm font-bold bg-gradient-to-br from-primary to-[hsl(174,60%,41%)] text-white">
+            {(displayName[0] ?? '?').toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Mein Bereich</h1>
-          <p className="text-sm text-muted-foreground">Hallo, {displayName}!</p>
+          <h1 className="text-lg font-bold">Mein Bereich</h1>
+          <p className="text-xs text-muted-foreground">Hallo, {displayName}!</p>
         </div>
       </div>
 
       {/* Quick links */}
       <div className="flex flex-wrap gap-2">
-        <Link to="/profile/name" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border rounded-lg hover:bg-muted/50 transition-colors">
-          <span className="material-symbols-outlined text-[16px]">badge</span>
-          Profil bearbeiten
+        <Link
+          to="/profile"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-card border rounded-lg hover:bg-muted/50 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[14px]">badge</span>
+          Profil
         </Link>
-        <Link to="/profile/settings" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border rounded-lg hover:bg-muted/50 transition-colors">
-          <span className="material-symbols-outlined text-[16px]">settings</span>
-          Einstellungen
-        </Link>
-        <Link to="/profile/groups" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border rounded-lg hover:bg-muted/50 transition-colors">
-          <span className="material-symbols-outlined text-[16px]">groups</span>
+        <Link
+          to="/profile/groups"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-card border rounded-lg hover:bg-muted/50 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[14px]">groups</span>
           Gruppen
         </Link>
-        <Link to="/profile/persons" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-card border rounded-lg hover:bg-muted/50 transition-colors">
-          <span className="material-symbols-outlined text-[16px]">people</span>
+        <Link
+          to="/profile/persons"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-card border rounded-lg hover:bg-muted/50 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[14px]">people</span>
           Personen
         </Link>
-        <Link to="/create" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-sky-100 text-sky-600 border border-sky-200 rounded-lg hover:bg-sky-200 transition-colors">
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          Neue Idee
+        <Link
+          to="/create"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-sky-100 text-sky-600 border border-sky-200 rounded-lg hover:bg-sky-200 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[14px]">add</span>
+          Erstellen
         </Link>
       </div>
 
-      {/* Eingeladene Events */}
-      <section>
-        <SectionHeader icon="mail" title="Eingeladene Veranstaltungen" count={invitedEvents?.length} iconColor="text-violet-600" badgeBg="bg-violet-100" badgeText="text-violet-600" />
-        <div className="space-y-2">
-          {invitedLoading && <><SkeletonCard /><SkeletonCard /></>}
-          {!invitedLoading && (!invitedEvents || invitedEvents.length === 0) && (
-            <EmptyState icon="inbox" text="Keine Einladungen vorhanden" />
-          )}
-          {invitedEvents?.map((event) => (
-            <EventCard key={event.id} event={event} badge="Eingeladen" />
+      {/* Aktionen (Events) */}
+      <section className="rounded-xl border p-4">
+        <SectionHeader
+          icon="celebration"
+          title="Meine Aktionen"
+          count={(invitedEvents?.length ?? 0) + (registeredEvents?.length ?? 0)}
+          action={{ label: 'Alle Aktionen', to: '/events/app' }}
+        />
+        <div className="divide-y">
+          {invitedLoading && <SkeletonRow />}
+          {registeredLoading && <SkeletonRow />}
+          {invitedEvents?.map((ev) => (
+            <EventRow key={`inv-${ev.id}`} event={ev} badge="Eingeladen" />
           ))}
+          {registeredEvents?.map((ev) => (
+            <EventRow key={`reg-${ev.id}`} event={ev} badge="Angemeldet" />
+          ))}
+          {!invitedLoading &&
+            !registeredLoading &&
+            (invitedEvents?.length ?? 0) + (registeredEvents?.length ?? 0) === 0 && (
+              <EmptyRow text="Keine Aktionen vorhanden" />
+            )}
         </div>
       </section>
 
-      {/* Angemeldete Events */}
-      <section>
-        <SectionHeader icon="how_to_reg" title="Angemeldete Veranstaltungen" count={registeredEvents?.length} iconColor="text-violet-600" badgeBg="bg-violet-100" badgeText="text-violet-600" />
-        <div className="space-y-2">
-          {registeredLoading && <><SkeletonCard /><SkeletonCard /></>}
-          {!registeredLoading && (!registeredEvents || registeredEvents.length === 0) && (
-            <EmptyState icon="event_busy" text="Noch keine Anmeldungen" />
+      {/* Meine Beiträge */}
+      <section className="rounded-xl border p-4">
+        <SectionHeader
+          icon="lightbulb"
+          title="Meine Beiträge"
+          count={myContent?.length}
+          action={{ label: 'Neuer Beitrag', to: '/create' }}
+        />
+        <div className="divide-y">
+          {contentLoading && (
+            <>
+              <SkeletonRow />
+              <SkeletonRow />
+            </>
           )}
-          {registeredEvents?.map((event) => (
-            <EventCard key={event.id} event={event} badge="Angemeldet" />
-          ))}
-        </div>
-      </section>
-
-      {/* Meine Ideen */}
-      <section>
-        <SectionHeader icon="lightbulb" title="Meine Ideen" count={myIdeas?.length} iconColor="text-sky-600" badgeBg="bg-sky-100" badgeText="text-sky-600" />
-        <div className="space-y-2">
-          {ideasLoading && <><SkeletonCard /><SkeletonCard /></>}
-          {!ideasLoading && (!myIdeas || myIdeas.length === 0) && (
-            <EmptyState icon="draw" text="Du hast noch keine Ideen erstellt" />
+          {!contentLoading && (!myContent || myContent.length === 0) && (
+            <EmptyRow text="Noch keine Beiträge erstellt" />
           )}
-          {myIdeas?.map((idea) => (
-            <IdeaCard key={idea.id} idea={idea} />
+          {myContent?.map((item) => (
+            <ContentRow key={item.id} content={item} />
           ))}
         </div>
       </section>
 
       {/* Quartalsplaner */}
-      <section>
-        <SectionHeader icon="calendar_month" title="Meine Quartalsplaner" count={planners?.length} iconColor="text-emerald-600" badgeBg="bg-emerald-100" badgeText="text-emerald-600" />
-        <div className="space-y-2">
-          {plannersLoading && <><SkeletonCard /><SkeletonCard /></>}
+      <section className="rounded-xl border p-4">
+        <SectionHeader
+          icon="calendar_month"
+          title="Quartalsplaner"
+          count={planners?.length}
+          action={{ label: 'Zum Planer', to: '/session-planner/app' }}
+        />
+        <div className="divide-y">
+          {plannersLoading && <SkeletonRow />}
           {!plannersLoading && (!planners || planners.length === 0) && (
-            <EmptyState icon="event_note" text="Noch keine Quartalsplaner erstellt" />
+            <EmptyRow text="Noch kein Quartalsplan erstellt" />
           )}
-          {planners?.map((planner) => (
-            <PlannerCard key={planner.id} planner={planner} />
+          {planners?.map((p) => (
+            <Link
+              key={p.id}
+              to="/session-planner/app"
+              className="flex items-center justify-between py-2 text-sm hover:text-primary transition-colors"
+            >
+              <span className="truncate">{p.title}</span>
+              <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                {formatDate(p.created_at)}
+              </span>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* Meine Personen */}
-      <section>
-        <div className="flex items-center justify-between">
-          <SectionHeader icon="people" title="Meine Personen" count={persons?.length} iconColor="text-amber-600" badgeBg="bg-amber-100" badgeText="text-amber-600" />
-          <Link
-            to="/profile/persons"
-            className="text-xs text-primary hover:underline flex items-center gap-0.5"
-          >
-            Alle verwalten
-            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-          </Link>
-        </div>
-        <div className="space-y-2">
-          {personsLoading && <><SkeletonCard /><SkeletonCard /></>}
+      {/* Personen */}
+      <section className="rounded-xl border p-4">
+        <SectionHeader
+          icon="people"
+          title="Personen"
+          count={persons?.length}
+          action={{ label: 'Verwalten', to: '/profile/persons' }}
+        />
+        <div className="divide-y">
+          {personsLoading && <SkeletonRow />}
           {!personsLoading && (!persons || persons.length === 0) && (
-            <EmptyState icon="person_add" text="Noch keine Personen angelegt" />
+            <EmptyRow text="Keine Personen angelegt" />
           )}
-          {persons?.slice(0, 5).map((person) => (
-            <PersonCardSmall key={person.id} person={person} />
+          {persons?.slice(0, 5).map((p) => (
+            <PersonRow key={p.id} person={p} />
           ))}
           {persons && persons.length > 5 && (
             <Link
               to="/profile/persons"
-              className="block text-center text-sm text-primary hover:underline py-2"
+              className="block text-xs text-primary hover:underline py-2 text-center"
             >
               Alle {persons.length} Personen anzeigen
             </Link>
@@ -374,19 +262,125 @@ export default function MyDashboardPage() {
         </div>
       </section>
 
-      {/* Meine Gruppen */}
-      <section>
-        <SectionHeader icon="groups" title="Meine Gruppen" count={groups?.length} iconColor="text-sky-600" badgeBg="bg-sky-100" badgeText="text-sky-600" />
-        <div className="space-y-2">
-          {groupsLoading && <><SkeletonCard /><SkeletonCard /></>}
+      {/* Gruppen */}
+      <section className="rounded-xl border p-4">
+        <SectionHeader
+          icon="groups"
+          title="Gruppen"
+          count={groups?.length}
+          action={{ label: 'Alle Gruppen', to: '/profile/groups' }}
+        />
+        <div className="divide-y">
+          {groupsLoading && <SkeletonRow />}
           {!groupsLoading && (!groups || groups.length === 0) && (
-            <EmptyState icon="group_off" text="Du bist noch keiner Gruppe beigetreten" />
+            <EmptyRow text="Keiner Gruppe beigetreten" />
           )}
-          {groups?.map((group) => (
-            <GroupCard key={group.id} group={group} />
+          {groups?.map((g) => (
+            <Link
+              key={g.id}
+              to={`/groups/${g.slug}`}
+              className="flex items-center justify-between py-2 text-sm hover:text-primary transition-colors"
+            >
+              <span className="truncate">{g.name}</span>
+              <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                {g.member_count} {g.member_count === 1 ? 'Mitglied' : 'Mitglieder'}
+              </span>
+            </Link>
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// List rows
+// ---------------------------------------------------------------------------
+
+function EventRow({ event, badge }: { event: EventList; badge: string }) {
+  return (
+    <Link
+      to="/events/app"
+      className="flex items-center justify-between py-2 text-sm hover:text-primary transition-colors gap-2"
+    >
+      <span className="truncate font-medium">{event.name}</span>
+      <div className="flex items-center gap-2 shrink-0">
+        {event.start_date && (
+          <span className="text-xs text-muted-foreground">{formatDate(event.start_date)}</span>
+        )}
+        <span
+          className={cn(
+            'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+            badge === 'Eingeladen'
+              ? 'bg-violet-100 text-violet-600'
+              : 'bg-green-100 text-green-700',
+          )}
+        >
+          {badge}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function ContentRow({ content }: { content: MyContent }) {
+  const status = STATUS_LABELS[content.status] ?? {
+    label: content.status,
+    color: 'bg-gray-100 text-gray-800',
+  };
+  return (
+    <Link
+      to={getContentUrl(content.content_type, content.slug)}
+      className="flex items-center justify-between py-2 text-sm hover:text-primary transition-colors gap-2"
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="truncate font-medium">{content.title}</span>
+        <span className="text-[10px] text-muted-foreground shrink-0">
+          {CONTENT_TYPE_LABELS[content.content_type] ?? content.content_type}
+        </span>
+      </div>
+      <span
+        className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0', status.color)}
+      >
+        {status.label}
+      </span>
+    </Link>
+  );
+}
+
+function PersonRow({ person }: { person: Person }) {
+  return (
+    <div className="flex items-center justify-between py-2 text-sm gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <div
+          className={cn(
+            'flex items-center justify-center w-6 h-6 rounded-full text-white text-[10px] font-bold shrink-0',
+            person.is_owner
+              ? 'bg-gradient-to-br from-primary to-[hsl(174,60%,41%)]'
+              : 'bg-muted-foreground/30 text-muted-foreground',
+          )}
+        >
+          {(person.first_name[0] ?? '?').toUpperCase()}
+        </div>
+        <span className="truncate">
+          {person.first_name} {person.last_name}
+        </span>
+        {person.scout_name && (
+          <span className="text-xs text-muted-foreground shrink-0">
+            "{person.scout_name}"
+          </span>
+        )}
+        {person.is_owner && (
+          <span className="text-[10px] bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+            Ich
+          </span>
+        )}
+      </div>
+      {person.email && (
+        <span className="text-xs text-muted-foreground truncate max-w-[140px] shrink-0">
+          {person.email}
+        </span>
+      )}
     </div>
   );
 }

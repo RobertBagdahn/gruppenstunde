@@ -78,6 +78,42 @@ function NutritionRow({
 }
 
 // ---------------------------------------------------------------------------
+// Collapsible Nutrition Group (for Vitamins / Minerals)
+// ---------------------------------------------------------------------------
+function CollapsibleNutritionGroup({
+  title,
+  icon,
+  iconColor,
+  children,
+}: {
+  title: string;
+  icon: string;
+  iconColor: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3 border rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-2 p-2.5 text-left hover:bg-muted/50 transition-colors"
+      >
+        <span className="flex items-center gap-1.5 text-sm font-semibold">
+          <span className={`material-symbols-outlined text-base ${iconColor}`}>{icon}</span>
+          {title}
+        </span>
+        <span
+          className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        >
+          expand_more
+        </span>
+      </button>
+      {open && <div className="px-3 pb-2">{children}</div>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Portion Card
 // ---------------------------------------------------------------------------
 function PortionCard({
@@ -166,7 +202,7 @@ function PortionCard({
             <button
               onClick={() => setConfirmDelete(true)}
               className="text-destructive/60 hover:text-destructive rounded p-1 transition"
-              title="Loeschen"
+              title="Löschen"
             >
               <span className="material-symbols-outlined text-sm">delete</span>
             </button>
@@ -179,7 +215,7 @@ function PortionCard({
         onConfirm={() => {
           deletePortion.mutate(portion.id, {
             onSuccess: () => {
-              toast.success('Portion geloescht');
+              toast.success('Portion gelöscht');
               setConfirmDelete(false);
             },
             onError: (err: Error) => {
@@ -189,9 +225,9 @@ function PortionCard({
           });
         }}
         onCancel={() => setConfirmDelete(false)}
-        title="Portion loeschen?"
-        description="Die Portion wird unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Portion löschen?"
+        description="Die Portion wird unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deletePortion.isPending}
       />
     </div>
@@ -252,7 +288,7 @@ export default function IngredientDetailPage() {
           title="Zutat nicht gefunden"
           description="Die Zutat existiert nicht oder wurde entfernt."
           onBack={() => navigate('/ingredients')}
-          backLabel="Zurueck zur Uebersicht"
+          backLabel="Zurück zur Übersicht"
           onRetry={() => refetch()}
         />
       </div>
@@ -262,11 +298,11 @@ export default function IngredientDetailPage() {
   const handleDelete = () => {
     deleteIngredient.mutate(ingredient.slug, {
       onSuccess: () => {
-        toast.success('Zutat geloescht');
+        toast.success('Zutat gelöscht');
         navigate('/ingredients');
       },
       onError: (err) => {
-        toast.error('Fehler beim Loeschen', { description: err.message });
+        toast.error('Fehler beim Löschen', { description: err.message });
         setShowDeleteConfirm(false);
       },
     });
@@ -279,7 +315,7 @@ export default function IngredientDetailPage() {
       { name: trimmed, quantity: Number(newPortionQuantity) || 100 },
       {
         onSuccess: () => {
-          toast.success('Portion hinzugefuegt');
+          toast.success('Portion hinzugefügt');
           setNewPortionName('');
           setNewPortionQuantity('100');
           setShowAddPortion(false);
@@ -296,7 +332,7 @@ export default function IngredientDetailPage() {
       { name: trimmed },
       {
         onSuccess: () => {
-          toast.success('Alias hinzugefuegt');
+          toast.success('Alias hinzugefügt');
           setNewAliasName('');
           setShowAddAlias(false);
         },
@@ -384,7 +420,7 @@ export default function IngredientDetailPage() {
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="p-2 rounded-md hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
-              title="Zutat loeschen"
+              title="Zutat löschen"
             >
               <span className="material-symbols-outlined text-lg">delete</span>
             </button>
@@ -450,13 +486,13 @@ export default function IngredientDetailPage() {
         <div className="border rounded-lg p-4 bg-card">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-lg">nutrition</span>
-            Naehrwerte pro 100g
+            Nährwerte pro 100g
           </h2>
           <div>
             <NutritionRow label="Energie" value={ingredient.energy_kj} unit="kJ" />
             <NutritionRow label="Protein" value={ingredient.protein_g} unit="g" />
             <NutritionRow label="Fett" value={ingredient.fat_g} unit="g" />
-            <NutritionRow label="  davon gesaettigte Fettsaeuren" value={ingredient.fat_sat_g} unit="g" />
+            <NutritionRow label="  davon gesättigte Fettsäuren" value={ingredient.fat_sat_g} unit="g" />
             <NutritionRow label="Kohlenhydrate" value={ingredient.carbohydrate_g} unit="g" />
             <NutritionRow label="  davon Zucker" value={ingredient.sugar_g} unit="g" />
             <NutritionRow label="Ballaststoffe" value={ingredient.fibre_g} unit="g" />
@@ -465,6 +501,43 @@ export default function IngredientDetailPage() {
             <NutritionRow label="Fructose" value={ingredient.fructose_g} unit="g" />
             <NutritionRow label="Lactose" value={ingredient.lactose_g} unit="g" />
           </div>
+
+          {/* Vitamins */}
+          {(ingredient.vitamin_a_mg != null || ingredient.vitamin_b1_mg != null || ingredient.vitamin_c_mg != null) && (
+            <CollapsibleNutritionGroup title="Vitamine" icon="medication" iconColor="text-amber-600">
+              <NutritionRow label="Vitamin A" value={ingredient.vitamin_a_mg ?? null} unit="mg" />
+              <NutritionRow label="Vitamin B1" value={ingredient.vitamin_b1_mg ?? null} unit="mg" />
+              <NutritionRow label="Vitamin B2" value={ingredient.vitamin_b2_mg ?? null} unit="mg" />
+              <NutritionRow label="Vitamin B6" value={ingredient.vitamin_b6_mg ?? null} unit="mg" />
+              <NutritionRow label="Vitamin B12" value={ingredient.vitamin_b12_ug ?? null} unit={'\u00B5g'} />
+              <NutritionRow label="Vitamin C" value={ingredient.vitamin_c_mg ?? null} unit="mg" />
+              <NutritionRow label="Vitamin D" value={ingredient.vitamin_d_ug ?? null} unit={'\u00B5g'} />
+              <NutritionRow label="Vitamin E" value={ingredient.vitamin_e_mg ?? null} unit="mg" />
+              <NutritionRow label="Vitamin K" value={ingredient.vitamin_k_ug ?? null} unit={'\u00B5g'} />
+              <NutritionRow label="Niacin" value={ingredient.niacin_mg ?? null} unit="mg" />
+              <NutritionRow label="Folat" value={ingredient.folate_ug ?? null} unit={'\u00B5g'} />
+              <NutritionRow label="Pantothensäure" value={ingredient.pantothenic_acid_mg ?? null} unit="mg" />
+              <NutritionRow label="Biotin" value={ingredient.biotin_ug ?? null} unit={'\u00B5g'} />
+            </CollapsibleNutritionGroup>
+          )}
+
+          {/* Minerals */}
+          {(ingredient.calcium_mg != null || ingredient.iron_mg != null || ingredient.magnesium_mg != null) && (
+            <CollapsibleNutritionGroup title="Mineralstoffe" icon="diamond" iconColor="text-cyan-600">
+              <NutritionRow label="Calcium" value={ingredient.calcium_mg ?? null} unit="mg" />
+              <NutritionRow label="Eisen" value={ingredient.iron_mg ?? null} unit="mg" />
+              <NutritionRow label="Magnesium" value={ingredient.magnesium_mg ?? null} unit="mg" />
+              <NutritionRow label="Zink" value={ingredient.zinc_mg ?? null} unit="mg" />
+              <NutritionRow label="Kalium" value={ingredient.potassium_mg ?? null} unit="mg" />
+              <NutritionRow label="Phosphor" value={ingredient.phosphorus_mg ?? null} unit="mg" />
+              <NutritionRow label="Jod" value={ingredient.iodine_ug ?? null} unit={'\u00B5g'} />
+              <NutritionRow label="Selen" value={ingredient.selenium_ug ?? null} unit={'\u00B5g'} />
+              <NutritionRow label="Kupfer" value={ingredient.copper_mg ?? null} unit="mg" />
+              <NutritionRow label="Mangan" value={ingredient.manganese_mg ?? null} unit="mg" />
+              <NutritionRow label="Chrom" value={ingredient.chromium_ug ?? null} unit={'\u00B5g'} />
+              <NutritionRow label="Fluorid" value={ingredient.fluoride_mg ?? null} unit="mg" />
+            </CollapsibleNutritionGroup>
+          )}
         </div>
 
         {/* Scores & Physical */}
@@ -506,7 +579,7 @@ export default function IngredientDetailPage() {
                 <span className="text-sm font-medium">{ingredient.physical_density} g/ml</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
-                <span className="text-sm text-muted-foreground">Viskositaet</span>
+                <span className="text-sm text-muted-foreground">Viskosität</span>
                 <span className="text-sm font-medium">{ingredient.physical_viscosity || '\u2014'}</span>
               </div>
               <NutritionRow label="Haltbarkeit" value={ingredient.durability_in_days} unit="Tage" />
@@ -553,7 +626,7 @@ export default function IngredientDetailPage() {
               className="flex items-center gap-1 text-sm text-primary hover:underline"
             >
               <span className="material-symbols-outlined text-lg">add</span>
-              Portion hinzufuegen
+              Portion hinzufügen
             </button>
           )}
         </div>
@@ -564,7 +637,7 @@ export default function IngredientDetailPage() {
               <input
                 value={newPortionName}
                 onChange={(e) => setNewPortionName(e.target.value)}
-                placeholder="Portionsname (z.B. Stueck, Tasse, EL)"
+                placeholder="Portionsname (z.B. Stück, Tasse, EL)"
                 className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddPortion(); }}
                 autoFocus
@@ -581,7 +654,7 @@ export default function IngredientDetailPage() {
                 disabled={!newPortionName.trim() || createPortion.isPending}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
               >
-                Hinzufuegen
+                Hinzufügen
               </button>
             </div>
           </div>
@@ -611,7 +684,7 @@ export default function IngredientDetailPage() {
               className="flex items-center gap-1 text-sm text-primary hover:underline"
             >
               <span className="material-symbols-outlined text-lg">add</span>
-              Alias hinzufuegen
+              Alias hinzufügen
             </button>
           )}
         </div>
@@ -631,7 +704,7 @@ export default function IngredientDetailPage() {
               disabled={!newAliasName.trim() || createAlias.isPending}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
             >
-              Hinzufuegen
+              Hinzufügen
             </button>
           </div>
         )}
@@ -674,9 +747,9 @@ export default function IngredientDetailPage() {
         open={showDeleteConfirm}
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Zutat loeschen?"
-        description="Die Zutat und alle zugehoerigen Portionen und Aliase werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Zutat löschen?"
+        description="Die Zutat und alle zugehörigen Portionen und Aliase werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deleteIngredient.isPending}
       />
 
@@ -687,7 +760,7 @@ export default function IngredientDetailPage() {
           if (deleteAliasId === null) return;
           deleteAlias.mutate(deleteAliasId, {
             onSuccess: () => {
-              toast.success('Alias geloescht');
+              toast.success('Alias gelöscht');
               setDeleteAliasId(null);
             },
             onError: (err) => {
@@ -697,9 +770,9 @@ export default function IngredientDetailPage() {
           });
         }}
         onCancel={() => setDeleteAliasId(null)}
-        title="Alias loeschen?"
+        title="Alias löschen?"
         description="Der alternative Name wird entfernt."
-        confirmLabel="Loeschen"
+        confirmLabel="Löschen"
         loading={deleteAlias.isPending}
       />
     </div>

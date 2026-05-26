@@ -158,3 +158,10 @@ ACCOUNT_EMAIL_VERIFICATION = "optional"
 # Google Cloud / Vertex AI
 GOOGLE_CLOUD_PROJECT = env("GOOGLE_CLOUD_PROJECT", default="")
 VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="global")
+
+# WhatsApp (neonize)
+WHATSAPP_RATE_LIMIT_PER_HOUR = env.int("WHATSAPP_RATE_LIMIT_PER_HOUR", default=50)
+
+# Build neonize PostgreSQL connection string from individual DB env vars
+_db = DATABASES["default"]
+WHATSAPP_DB_URL = f"postgres://{_db['USER']}:{_db['PASSWORD']}@{_db['HOST']}:{_db['PORT']}/{_db['NAME']}"

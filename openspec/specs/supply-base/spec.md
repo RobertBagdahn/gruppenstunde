@@ -20,18 +20,13 @@ The system SHALL provide a `Material` model inheriting from `Supply` for tools a
 - **THEN** the page SHALL display: name, description, image, category, purchase links
 - **THEN** a "Wo wird das verwendet" section SHALL list all content items using this material
 
-### Requirement: Ingredient inherits from Supply
-The existing `Ingredient` model SHALL inherit from the `Supply` abstract base class. All existing Ingredient fields (nutritional values, scores, price_per_kg) SHALL be preserved. The separate `Price` model SHALL be removed — `price_per_kg` on Ingredient is the sole price field. The `is_standalone_food` BooleanField SHALL be added.
-
-#### Scenario: Ingredient with standalone food flag
-- **WHEN** an Ingredient has is_standalone_food=True
-- **THEN** the ingredient SHALL appear in recipe search results with a "Einzelzutat" badge
-- **THEN** clicking SHALL navigate to the ingredient detail page at `/ingredients/:slug`
+### Requirement: Ingredient Model (standalone)
+The `Ingredient` model SHALL be a standalone Django model (`models.Model`), NOT inheriting from `Supply`. This is because Ingredient has 30+ nutritional/score fields that have nothing in common with Material. Ingredient has its own fields: name, slug, description, plus nutritional values per 100g (11 macronutrient fields, 13 vitamin fields, 12 mineral fields), scores (child_score, scout_score, environmental_score, nova_score, fruit_factor, nutri_score, nutri_class), price_per_kg, physical properties, external references (fdc_id, ean), and relations (retail_section FK, nutritional_tags M2M, ingredient_ref self-FK). The separate `Price` model SHALL NOT exist — `price_per_kg` on Ingredient is the sole price field.
 
 #### Scenario: Ingredient detail page
 - **WHEN** a user navigates to `/ingredients/:slug`
 - **THEN** the page SHALL display: name, description, nutritional values, portions, price_per_kg
-- **THEN** a "Wo wird das verwendet" section SHALL list all recipes and meal events using this ingredient
+- **THEN** a "Wo wird das verwendet" section SHALL list all recipes and meal plans using this ingredient
 
 ### Requirement: ContentMaterialItem Model
 The system SHALL provide a `ContentMaterialItem` model for assigning Materials to content items (GroupSession, Recipe). Fields: content_type (FK to ContentType), object_id (PositiveIntegerField), material (FK to Material), quantity (DecimalField), quantity_per_person (BooleanField, default True), unit (CharField, optional), sort_order (PositiveIntegerField).

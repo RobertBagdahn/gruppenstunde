@@ -6,7 +6,14 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from ..choices import GenderChoices, ParticipantVisibilityChoices
+from ..choices import (
+    EventColorChoices,
+    EventIconChoices,
+    EventPhaseChoices,
+    GenderChoices,
+    ParticipantVisibilityChoices,
+    RegistrationDeletionReason,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -23,6 +30,8 @@ class EventLocation(models.Model):
     city = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Stadt"))
     state = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Bundesland"))
     country = models.CharField(max_length=100, blank=True, default="Deutschland", verbose_name=_("Land"))
+    latitude = models.FloatField(null=True, blank=True, verbose_name=_("Breitengrad"))
+    longitude = models.FloatField(null=True, blank=True, verbose_name=_("Längengrad"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -59,6 +68,61 @@ class EventLocation(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# Meeting Point
+# ---------------------------------------------------------------------------
+
+
+class MeetingPoint(models.Model):
+    """A reusable meeting/pickup point with private visibility (per user or group)."""
+
+    name = models.CharField(max_length=200, verbose_name=_("Name"))
+    street = models.CharField(max_length=200, blank=True, default="", verbose_name=_("Straße"))
+    zip_code = models.CharField(max_length=10, blank=True, default="", verbose_name=_("PLZ"))
+    city = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Stadt"))
+    latitude = models.FloatField(null=True, blank=True, verbose_name=_("Breitengrad"))
+    longitude = models.FloatField(null=True, blank=True, verbose_name=_("Längengrad"))
+    description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_meeting_points",
+        verbose_name=_("Erstellt von"),
+    )
+    group = models.ForeignKey(
+        "profiles.UserGroup",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="meeting_points",
+        verbose_name=_("Gruppe"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Treffpunkt")
+        verbose_name_plural = _("Treffpunkte")
+        ordering = ["name"]
+
+    def __str__(self):
+        parts = [self.name]
+        if self.city:
+            parts.append(self.city)
+        return ", ".join(parts)
+
+    @property
+    def full_address(self) -> str:
+        parts = []
+        if self.street:
+            parts.append(self.street)
+        if self.zip_code and self.city:
+            parts.append(f"{self.zip_code} {self.city}")
+        elif self.city:
+            parts.append(self.city)
+        return ", ".join(parts)
+
+
+# ---------------------------------------------------------------------------
 # Event
 # ---------------------------------------------------------------------------
 
@@ -69,6 +133,31 @@ class Event(models.Model):
     name = models.CharField(max_length=100, verbose_name=_("Name"))
     slug = models.SlugField(max_length=120, unique=True, blank=True, verbose_name=_("Slug"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
+    color = models.CharField(
+        max_length=20,
+        choices=EventColorChoices.choices,
+        default=EventColorChoices.BLUE,
+        verbose_name=_("Farbe"),
+    )
+    icon = models.CharField(
+        max_length=30,
+        choices=EventIconChoices.choices,
+        default=EventIconChoices.TENT,
+        verbose_name=_("Icon"),
+    )
+    is_template = models.BooleanField(
+        default=False,
+        verbose_name=_("Vorlage"),
+        help_text=_("Event als Vorlage verwenden (wird nicht veröffentlicht)"),
+    )
+    manual_phase = models.CharField(
+        max_length=20,
+        choices=EventPhaseChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Manuelle Phase"),
+        help_text=_("Überschreibt die automatisch berechnete Phase"),
+    )
     location = models.CharField(max_length=200, blank=True, default="", verbose_name=_("Ort"))
     event_location = models.ForeignKey(
         EventLocation,
@@ -84,6 +173,11 @@ class Event(models.Model):
     registration_deadline = models.DateTimeField(null=True, blank=True, verbose_name=_("Anmeldeschluss"))
     registration_start = models.DateTimeField(null=True, blank=True, verbose_name=_("Anmeldestart"))
     is_public = models.BooleanField(default=False, verbose_name=_("Öffentlich"))
+    guest_registration_enabled = models.BooleanField(
+        default=False,
+        verbose_name=_("Gastregistrierung"),
+        help_text=_("Erlaubt Anmeldung ohne Account per Link"),
+    )
     participant_visibility = models.CharField(
         max_length=20,
         choices=ParticipantVisibilityChoices.choices,
@@ -109,6 +203,22 @@ class Event(models.Model):
         related_name="invited_events",
         verbose_name=_("Eingeladene Gruppen"),
     )
+    meeting_point = models.ForeignKey(
+        MeetingPoint,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="events_as_meeting_point",
+        verbose_name=_("Treffpunkt"),
+    )
+    pickup_point = models.ForeignKey(
+        MeetingPoint,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="events_as_pickup_point",
+        verbose_name=_("Abholpunkt"),
+    )
     packing_list = models.ForeignKey(
         "packinglist.PackingList",
         on_delete=models.SET_NULL,
@@ -116,6 +226,14 @@ class Event(models.Model):
         blank=True,
         related_name="events",
         verbose_name=_("Packliste"),
+    )
+    meal_plan = models.ForeignKey(
+        "planner.MealPlan",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="events",
+        verbose_name=_("Essensplan"),
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -132,6 +250,12 @@ class Event(models.Model):
         verbose_name = _("Veranstaltung")
         verbose_name_plural = _("Veranstaltungen")
         ordering = ["-start_date"]
+        indexes = [
+            models.Index(
+                fields=["is_public", "is_template", "start_date"],
+                name="event_public_landing_idx",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -147,6 +271,14 @@ class Event(models.Model):
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             self.slug = slug
+        else:
+            # Validate uniqueness for user-provided slugs
+            if Event.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                base_slug = self.slug
+                counter = 1
+                while Event.objects.filter(slug=f"{base_slug}-{counter}").exclude(pk=self.pk).exists():
+                    counter += 1
+                self.slug = f"{base_slug}-{counter}"
         super().save(*args, **kwargs)
 
     def user_can_manage(self, user) -> bool:
@@ -173,27 +305,65 @@ class Event(models.Model):
             return True
         return False
 
+    def user_is_personally_invited(self, user) -> bool:
+        """Check if user has received a *personal* invitation to this event.
+
+        Stricter than `user_is_invited`: considers only explicit invitations via
+        `invited_users` or `invited_groups` (through active `GroupMembership`).
+        Managers (`responsible_persons`, `created_by`), staff and public visibility
+        do NOT count as personally invited.
+
+        Used by the "Anmeldung steht aus" badge on event cards.
+        """
+        if user is None or not getattr(user, "is_authenticated", False):
+            return False
+        if self.invited_users.filter(pk=user.pk).exists():
+            return True
+        from profiles.models import GroupMembership
+
+        user_group_ids = GroupMembership.objects.filter(
+            user=user, is_active=True
+        ).values_list("group_id", flat=True)
+        if self.invited_groups.filter(pk__in=user_group_ids).exists():
+            return True
+        return False
+
     def compute_phase(self) -> str:
         """Compute the current event phase based on date fields.
 
+        If manual_phase is set, it overrides the automatic computation.
         Returns one of: draft, pre_registration, registration,
         pre_event, running, completed.
         """
+        if self.manual_phase:
+            return self.manual_phase
+
         now = timezone.now()
 
-        if self.end_date and now > self.end_date:
+        def _aware(dt):
+            """Ensure datetime is timezone-aware."""
+            if dt is not None and timezone.is_naive(dt):
+                return timezone.make_aware(dt)
+            return dt
+
+        end = _aware(self.end_date)
+        start = _aware(self.start_date)
+        deadline = _aware(self.registration_deadline)
+        reg_start = _aware(self.registration_start)
+
+        if end and now > end:
             return "completed"
 
-        if self.start_date and now >= self.start_date:
+        if start and now >= start:
             return "running"
 
-        if self.registration_deadline and now > self.registration_deadline:
+        if deadline and now > deadline:
             return "pre_event"
 
-        if self.registration_start and now >= self.registration_start:
+        if reg_start and now >= reg_start:
             return "registration"
 
-        if self.registration_start and now < self.registration_start:
+        if reg_start and now < reg_start:
             return "pre_registration"
 
         return "draft"
@@ -220,6 +390,18 @@ class BookingOption(models.Model):
         default=False,
         verbose_name=_("System-Option"),
         help_text=_("Automatisch erstellte Option, nicht editierbar"),
+    )
+    bookable_from = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Buchbar ab"),
+        help_text=_("Leer = sofort buchbar"),
+    )
+    bookable_till = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Buchbar bis"),
+        help_text=_("Leer = bis zum Anmeldeschluss buchbar"),
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -248,6 +430,16 @@ class BookingOption(models.Model):
             return False
         return self.current_participant_count >= self.max_participants
 
+    @property
+    def is_bookable(self) -> bool:
+        """Check if this option is currently bookable based on time window."""
+        now = timezone.now()
+        if self.bookable_from and now < self.bookable_from:
+            return False
+        if self.bookable_till and now > self.bookable_till:
+            return False
+        return True
+
 
 # ---------------------------------------------------------------------------
 # Person (managed by user, template for participants)
@@ -270,6 +462,7 @@ class Person(models.Model):
     zip_code = models.CharField(max_length=10, blank=True, default="", verbose_name=_("PLZ"))
     city = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Stadt"))
     email = models.EmailField(blank=True, default="", verbose_name=_("E-Mail"))
+    phone_number = models.CharField(max_length=20, blank=True, default="", verbose_name=_("Telefonnummer"))
     birthday = models.DateField(null=True, blank=True, verbose_name=_("Geburtstag"))
     gender = models.CharField(
         max_length=20,
@@ -304,6 +497,13 @@ class Person(models.Model):
 # ---------------------------------------------------------------------------
 
 
+class ActiveRegistrationManager(models.Manager):
+    """Default manager that excludes soft-deleted registrations."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
 class Registration(models.Model):
     """A user's registration for an event (contains participants)."""
 
@@ -319,8 +519,31 @@ class Registration(models.Model):
         related_name="registrations",
         verbose_name=_("Event"),
     )
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Gelöscht am"),
+    )
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="deleted_registrations",
+        verbose_name=_("Gelöscht von"),
+    )
+    deleted_reason = models.CharField(
+        max_length=20,
+        choices=RegistrationDeletionReason.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Löschgrund"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = ActiveRegistrationManager()
+    objects_all = models.Manager()
 
     class Meta:
         verbose_name = _("Anmeldung")
@@ -369,6 +592,7 @@ class Participant(models.Model):
     zip_code = models.CharField(max_length=10, blank=True, default="", verbose_name=_("PLZ"))
     city = models.CharField(max_length=100, blank=True, default="", verbose_name=_("Stadt"))
     email = models.EmailField(blank=True, default="", verbose_name=_("E-Mail"))
+    phone_number = models.CharField(max_length=20, blank=True, default="", verbose_name=_("Telefonnummer"))
     birthday = models.DateField(null=True, blank=True, verbose_name=_("Geburtstag"))
     gender = models.CharField(
         max_length=20,
@@ -434,6 +658,7 @@ class Participant(models.Model):
             zip_code=person.zip_code,
             city=person.city,
             email=person.email,
+            phone_number=person.phone_number,
             birthday=person.birthday,
             gender=person.gender,
         )

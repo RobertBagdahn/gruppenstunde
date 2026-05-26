@@ -12,7 +12,7 @@ from .meal_plan import (
     MEAL_TYPE_DAY_FACTORS,
     MEAL_TYPE_DEFAULT_TIMES,
     Meal,
-    MealEvent,
+    MealPlan,
     MealItem,
     MealTypeChoices,
 )
@@ -23,7 +23,7 @@ __all__ = [
     "MEAL_TYPE_DAY_FACTORS",
     "MEAL_TYPE_DEFAULT_TIMES",
     "Meal",
-    "MealEvent",
+    "MealPlan",
     "MealItem",
     "MealTypeChoices",
     "Planner",

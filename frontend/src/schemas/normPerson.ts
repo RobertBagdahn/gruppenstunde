@@ -39,7 +39,7 @@ export const NormPersonReferenceSchema = z.object({
 export type NormPersonReference = z.infer<typeof NormPersonReferenceSchema>;
 
 // ---------------------------------------------------------------------------
-// DGE Reference Point (one age group, one gender)
+// DGE Reference Point (one age group, one gender — basic macro fields)
 // ---------------------------------------------------------------------------
 
 export const DgeReferencePointSchema = z.object({
@@ -54,6 +54,58 @@ export const DgeReferencePointSchema = z.object({
 });
 
 export type DgeReferencePoint = z.infer<typeof DgeReferencePointSchema>;
+
+// ---------------------------------------------------------------------------
+// DGE Reference (full model with all macro/vitamin/mineral values)
+// Matches backend DgeReferenceOut schema
+// ---------------------------------------------------------------------------
+
+export const DgeReferenceSchema = z.object({
+  id: z.number(),
+  age_min: z.number(),
+  age_max: z.number(),
+  gender: z.string(),
+  // Macronutrients
+  energy_kj: z.number().nullable(),
+  protein_g: z.number().nullable(),
+  fat_g: z.number().nullable(),
+  carbohydrate_g: z.number().nullable(),
+  fibre_g: z.number().nullable(),
+  // Max limits
+  sugar_g_max: z.number().nullable(),
+  salt_g_max: z.number().nullable(),
+  fat_sat_g_max: z.number().nullable(),
+  sodium_mg_max: z.number().nullable(),
+  // Vitamins
+  vitamin_a_mg: z.number().nullable(),
+  vitamin_b1_mg: z.number().nullable(),
+  vitamin_b2_mg: z.number().nullable(),
+  vitamin_b6_mg: z.number().nullable(),
+  vitamin_b12_ug: z.number().nullable(),
+  vitamin_c_mg: z.number().nullable(),
+  vitamin_d_ug: z.number().nullable(),
+  vitamin_e_mg: z.number().nullable(),
+  vitamin_k_ug: z.number().nullable(),
+  niacin_mg: z.number().nullable(),
+  folate_ug: z.number().nullable(),
+  pantothenic_acid_mg: z.number().nullable(),
+  biotin_ug: z.number().nullable(),
+  // Minerals
+  calcium_mg: z.number().nullable(),
+  iron_mg: z.number().nullable(),
+  magnesium_mg: z.number().nullable(),
+  zinc_mg: z.number().nullable(),
+  potassium_mg: z.number().nullable(),
+  phosphorus_mg: z.number().nullable(),
+  iodine_ug: z.number().nullable(),
+  selenium_ug: z.number().nullable(),
+  copper_mg: z.number().nullable(),
+  manganese_mg: z.number().nullable(),
+  chromium_ug: z.number().nullable(),
+  fluoride_mg: z.number().nullable(),
+});
+
+export type DgeReference = z.infer<typeof DgeReferenceSchema>;
 
 // ---------------------------------------------------------------------------
 // Curves response (with DGE reference array)

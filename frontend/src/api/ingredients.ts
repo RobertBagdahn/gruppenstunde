@@ -25,4 +25,4 @@ export {
 } from './supplies';
 
 // Re-export recipe analysis hooks from recipes.ts (they stayed there)
-export { useRecipeChecks, useRecipeHints, useRecipeNutriScore } from './recipes';
+export { useRecipeNutriScore } from './recipes';

@@ -1,7 +1,7 @@
 /**
  * CockpitDashboard — grid of TrafficLightIndicators with summary and tips.
  *
- * Full cockpit view for MealEvent, day, or meal level.
+ * Full cockpit view for MealPlan, day, or meal level.
  * Supports mobile-responsive compact mode.
  */
 import type { CockpitDashboard as CockpitDashboardType } from '@/schemas/cockpit';

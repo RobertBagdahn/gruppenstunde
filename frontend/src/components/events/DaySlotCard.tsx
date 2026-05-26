@@ -57,7 +57,7 @@ export default function DaySlotCard({ slot, eventSlug, isManager }: DaySlotCardP
   function handleDelete() {
     deleteSlot.mutate(slot.id, {
       onSuccess: () => {
-        toast.success('Eintrag geloescht');
+        toast.success('Eintrag gelöscht');
         setShowDeleteConfirm(false);
       },
       onError: (err) => {
@@ -124,9 +124,9 @@ export default function DaySlotCard({ slot, eventSlug, isManager }: DaySlotCardP
         open={showDeleteConfirm}
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Eintrag loeschen?"
-        description={`"${slot.title}" wird unwiderruflich geloescht.`}
-        confirmLabel="Loeschen"
+        title="Eintrag löschen?"
+        description={`"${slot.title}" wird unwiderruflich gelöscht.`}
+        confirmLabel="Löschen"
         loading={deleteSlot.isPending}
       />
       <div className="flex items-start gap-3 group">
@@ -175,7 +175,7 @@ export default function DaySlotCard({ slot, eventSlug, isManager }: DaySlotCardP
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="p-1 rounded hover:bg-destructive/10 text-destructive"
-                  title="Loeschen"
+                   title="Löschen"
                 >
                   <span className="material-symbols-outlined text-[16px]">delete</span>
                 </button>

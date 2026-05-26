@@ -7,7 +7,7 @@ export default function ImpressumPage() {
           <img
             src="/images/inspi_teacher.webp"
             alt="Inspi Teacher"
-            className="mx-auto h-36 md:h-48 mb-6 drop-shadow-lg"
+            className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-lg"
           />
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Impressum</h1>
         </div>
@@ -112,6 +112,9 @@ export default function ImpressumPage() {
                   alt="Creative Commons Lizenzvertrag"
                   className="border-0"
                   src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png"
+                  loading="lazy"
+                  width={88}
+                  height={31}
                 />
               </a>
               <p className="text-sm text-muted-foreground">

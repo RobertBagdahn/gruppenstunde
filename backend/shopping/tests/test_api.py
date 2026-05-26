@@ -374,12 +374,12 @@ class TestCreateFromRecipe:
         from recipe.tests import make_recipe
 
         recipe = make_recipe(servings=1)
-        rs = make_retail_section(name="Obst & Gemuese")
+        rs = make_retail_section(name="Obst & Gemüse")
         mu = make_measuring_unit()
         ing1 = make_ingredient(name="Mehl", retail_section=rs)
         ing2 = make_ingredient(name="Butter", retail_section=rs)
         p1 = make_portion(ing1, name="100g", quantity=1.0, weight_g=100, measuring_unit=mu)
-        p2 = make_portion(ing2, name="250g Stueck", quantity=1.0, weight_g=250, measuring_unit=mu)
+        p2 = make_portion(ing2, name="250g Stück", quantity=1.0, weight_g=250, measuring_unit=mu)
 
         from recipe.models import RecipeItem
 
@@ -417,20 +417,20 @@ class TestCreateFromRecipe:
 
 
 # ---------------------------------------------------------------------------
-# 14.4 — Export from MealEvent
+# 14.4 — Export from MealPlan
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-class TestCreateFromMealEvent:
+class TestCreateFromMealPlan:
     @pytest.fixture
-    def meal_event_with_data(self, user):
-        """Create a MealEvent with meals and recipe items."""
-        from planner.tests import make_meal, make_meal_event, make_meal_item
+    def meal_plan_with_data(self, user):
+        """Create a MealPlan with meals and recipe items."""
+        from planner.tests import make_meal, make_meal_item, make_meal_plan
         from recipe.tests import make_recipe
 
-        me = make_meal_event(created_by=user)
-        meal = make_meal(meal_event=me)
+        me = make_meal_plan(created_by=user)
+        meal = make_meal(meal_plan=me)
 
         # Create recipe with items
         recipe = make_recipe(servings=1)
@@ -445,10 +445,10 @@ class TestCreateFromMealEvent:
         make_meal_item(meal=meal, recipe=recipe)
         return me
 
-    def test_create_list_from_meal_event(self, client_alice, meal_event_with_data):
-        me = meal_event_with_data
+    def test_create_list_from_meal_plan(self, client_alice, meal_plan_with_data):
+        me = meal_plan_with_data
         res = client_alice.post(
-            f"/api/shopping-lists/from-meal-event/{me.id}/",
+            f"/api/shopping-lists/from-meal-plan/{me.id}/",
             data="{}",
             content_type="application/json",
         )

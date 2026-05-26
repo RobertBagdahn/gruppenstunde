@@ -76,7 +76,7 @@ export default function EventDayPlan({
             className="text-xs text-primary hover:underline flex items-center gap-0.5"
           >
             <span className="material-symbols-outlined text-[14px]">add</span>
-            Eintrag hinzufuegen
+             Eintrag hinzufügen
           </button>
         )}
       </div>
@@ -87,7 +87,7 @@ export default function EventDayPlan({
             event_note
           </span>
           <p className="text-sm text-muted-foreground">
-            Noch keine Eintraege im Tagesplan.
+             Noch keine Einträge im Tagesplan.
           </p>
           {isManager && (
             <button
@@ -113,7 +113,7 @@ export default function EventDayPlan({
                     <button
                       onClick={() => handleAddForDate(dateStr)}
                       className="p-1 rounded hover:bg-muted"
-                      title="Eintrag hinzufuegen"
+                       title="Eintrag hinzufügen"
                     >
                       <span className="material-symbols-outlined text-[16px] text-muted-foreground">
                         add_circle

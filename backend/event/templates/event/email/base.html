@@ -1,0 +1,83 @@
+{% comment %}
+Base email template with corporate identity styling.
+Context variables:
+  ci_primary_color: hex color (e.g. #4a3a6b)
+  ci_secondary_color: hex color (e.g. #e8e4f0)
+  ci_logo_url: URL to logo image or empty string
+  ci_group_name: name of the group
+  ci_slogan: group slogan
+  ci_footer_text: footer / impressum text
+  ci_payment_info: payment information
+  ci_signature_text: signature text
+{% endcomment %}<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ ci_group_name }}{% endblock %}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.5; color: #333333;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f4;">
+    <tr>
+      <td align="center" style="padding: 20px 10px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; max-width: 600px; width: 100%;">
+
+          {# --- HEADER --- #}
+          <tr>
+            <td style="background-color: {{ ci_primary_color|default:'#4a3a6b' }}; padding: 20px 30px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  {% if ci_logo_url %}
+                  <td width="60" valign="middle" style="padding-right: 15px;">
+                    <img src="{{ ci_logo_url }}" alt="{{ ci_group_name }}" width="50" height="50" style="display: block; border-radius: 6px; width: 50px; height: 50px; object-fit: contain;">
+                  </td>
+                  {% endif %}
+                  <td valign="middle">
+                    <div style="color: #ffffff; font-size: 20px; font-weight: bold; line-height: 1.3;">{{ ci_group_name|default:"gruppenstunde.de" }}</div>
+                    {% if ci_slogan %}
+                    <div style="color: rgba(255, 255, 255, 0.85); font-size: 13px; margin-top: 2px;">{{ ci_slogan }}</div>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          {# --- CONTENT --- #}
+          <tr>
+            <td style="padding: 30px;">
+              {% block content %}{% endblock %}
+            </td>
+          </tr>
+
+          {# --- SIGNATURE --- #}
+          {% if ci_signature_text %}
+          <tr>
+            <td style="padding: 0 30px 20px 30px;">
+              <div style="white-space: pre-line; color: #555555; font-size: 14px;">{{ ci_signature_text }}</div>
+            </td>
+          </tr>
+          {% endif %}
+
+          {# --- PAYMENT INFO --- #}
+          {% block payment_section %}{% endblock %}
+
+          {# --- FOOTER --- #}
+          <tr>
+            <td style="background-color: {{ ci_secondary_color|default:'#e8e4f0' }}; padding: 20px 30px; border-top: 2px solid {{ ci_primary_color|default:'#4a3a6b' }};">
+              {% if ci_footer_text %}
+              <div style="white-space: pre-line; color: #666666; font-size: 12px; line-height: 1.6;">{{ ci_footer_text }}</div>
+              {% else %}
+              <div style="color: #666666; font-size: 12px; text-align: center;">
+                gruppenstunde.de &mdash; Die Plattform f&uuml;r Pfadfinder-Gruppenf&uuml;hrer
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

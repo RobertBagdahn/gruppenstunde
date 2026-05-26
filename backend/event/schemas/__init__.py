@@ -1,6 +1,24 @@
 """Event schemas package — re-exports all schemas for backward compatibility."""
 
+from .attendance import (
+    AttendanceRecordCreateIn,
+    AttendanceRecordOut,
+    BatchCheckInIn,
+    PaginatedAttendanceRecordOut,
+)
+from .budget import (
+    BudgetItemCreateIn,
+    BudgetItemOut,
+    BudgetItemUpdateIn,
+    BudgetSummaryOut,
+)
+from .checklist import (
+    ChecklistItemOut,
+    ChecklistOut,
+)
 from .core import (
+    AdminRegisterIn,
+    AdminRegisterPersonIn,
     BookingOptionCreateIn,
     BookingOptionOut,
     BookingOptionUpdateIn,
@@ -15,13 +33,21 @@ from .core import (
     EventUpdateIn,
     GenerateInvitationIn,
     GenerateInvitationOut,
+    GuestRegistrationIn,
+    GuestRegistrationOut,
+    GuestRegistrationPersonIn,
+    InlinePersonDataIn,
     InvitationCountsOut,
     InvitationStatusOut,
     InviteGroupIn,
+    MeetingPointCreateIn,
+    MeetingPointOut,
+    MeetingPointUpdateIn,
     OptionStatsOut,
     PaginatedEventListOut,
     PaginatedInvitationStatusOut,
     PaginatedLocationOut,
+    PaginatedMeetingPointOut,
     PaginatedParticipantOut,
     PaginatedPersonOut,
     ParticipantOut,
@@ -54,6 +80,10 @@ from .export import (
     ExportConfigIn,
     ExportFilterIn,
 )
+from .import_data import (
+    ImportPreviewOut,
+    ImportResultOut,
+)
 from .labels import (
     LabelAssignIn,
     LabelCreateIn,
@@ -66,19 +96,65 @@ from .mail import (
     MailFilterIn,
     MailResultOut,
 )
+from .messaging import (
+    MessageFilterIn,
+    MessagePreviewOut,
+    RecipientPreviewOut,
+    SendMessageIn,
+    SendMessageResultOut,
+)
+from .messaging import FailedRecipientOut as MessagingFailedRecipientOut
+from .parent_access import (
+    BatchParentAccessTokenCreateIn,
+    PaginatedParentAccessTokenOut,
+    ParentAccessTokenCreateIn,
+    ParentAccessTokenOut,
+)
 from .payment import (
     PaymentCreateIn,
     PaymentOut,
+)
+from .room_assignment import (
+    RoomAssignmentCreateIn,
+    RoomAssignmentOut,
+    RoomAssignmentUpdateIn,
+    RoomAssignParticipantIn,
 )
 from .stats import (
     StatsOut,
 )
 from .timeline import TimelineEntryOut
+from .waitlist import (
+    PaginatedWaitlistEntryOut,
+    WaitlistEntryCreateIn,
+    WaitlistEntryOut,
+)
+from .whatsapp import (
+    MessageTemplateCreateIn,
+    MessageTemplateOut,
+    MessageTemplateUpdateIn,
+    WhatsAppConnectIn,
+    WhatsAppConnectionStatusOut,
+    WhatsAppQRResponseOut,
+    WhatsAppStatsOut,
+)
 
 __all__ = [
+    "AdminRegisterIn",
+    "AdminRegisterPersonIn",
+    "AttendanceRecordCreateIn",
+    "AttendanceRecordOut",
+    "BatchCheckInIn",
+    "BatchParentAccessTokenCreateIn",
     "BookingOptionCreateIn",
     "BookingOptionOut",
     "BookingOptionUpdateIn",
+    "BudgetItemCreateIn",
+    "BudgetItemOut",
+    "BudgetItemUpdateIn",
+    "BudgetSummaryOut",
+    "ChecklistItemOut",
+    "ChecklistOut",
     "ChoiceOut",
     "CustomFieldCreateIn",
     "CustomFieldOut",
@@ -100,8 +176,15 @@ __all__ = [
     "ExportColumnOut",
     "ExportConfigIn",
     "ExportFilterIn",
+    "FailedRecipientOut",
     "GenerateInvitationIn",
     "GenerateInvitationOut",
+    "GuestRegistrationIn",
+    "GuestRegistrationOut",
+    "GuestRegistrationPersonIn",
+    "ImportPreviewOut",
+    "ImportResultOut",
+    "InlinePersonDataIn",
     "InvitationCountsOut",
     "InvitationStatusOut",
     "InviteGroupIn",
@@ -112,13 +195,27 @@ __all__ = [
     "MailCreateIn",
     "MailFilterIn",
     "MailResultOut",
-    "FailedRecipientOut",
+    "MeetingPointCreateIn",
+    "MeetingPointOut",
+    "MeetingPointUpdateIn",
+    "MessageFilterIn",
+    "MessagePreviewOut",
+    "MessageTemplateCreateIn",
+    "MessageTemplateOut",
+    "MessageTemplateUpdateIn",
+    "MessagingFailedRecipientOut",
     "OptionStatsOut",
+    "PaginatedAttendanceRecordOut",
     "PaginatedEventListOut",
     "PaginatedInvitationStatusOut",
     "PaginatedLocationOut",
+    "PaginatedMeetingPointOut",
+    "PaginatedParentAccessTokenOut",
     "PaginatedParticipantOut",
     "PaginatedPersonOut",
+    "PaginatedWaitlistEntryOut",
+    "ParentAccessTokenCreateIn",
+    "ParentAccessTokenOut",
     "ParticipantOut",
     "ParticipantStatsOut",
     "ParticipantUpdateIn",
@@ -127,11 +224,24 @@ __all__ = [
     "PersonCreateIn",
     "PersonOut",
     "PersonUpdateIn",
+    "RecipientPreviewOut",
     "RegisterIn",
     "RegisterPersonIn",
     "RegistrationOut",
     "ResponsiblePersonOut",
+    "RoomAssignmentCreateIn",
+    "RoomAssignmentOut",
+    "RoomAssignmentUpdateIn",
+    "RoomAssignParticipantIn",
+    "SendMessageIn",
+    "SendMessageResultOut",
     "StatsOut",
     "TimelineEntryOut",
     "UserRegistrationOut",
+    "WaitlistEntryCreateIn",
+    "WaitlistEntryOut",
+    "WhatsAppConnectIn",
+    "WhatsAppConnectionStatusOut",
+    "WhatsAppQRResponseOut",
+    "WhatsAppStatsOut",
 ]

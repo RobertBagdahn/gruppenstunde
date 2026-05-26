@@ -1,4 +1,4 @@
-"""Nutrition-related schemas (NutriScore, Hints, Checks, Breakdown)."""
+"""Nutrition-related schemas (NutriScore, Hints, Breakdown, Improvements, Suggestions)."""
 
 from ninja import Schema
 
@@ -10,6 +10,7 @@ class RecipeHintOut(Schema):
     id: int
     name: str
     description: str
+    improvement_text: str
     parameter: str
     min_value: float | None
     max_value: float | None
@@ -19,21 +20,7 @@ class RecipeHintOut(Schema):
     recipe_objective: str
 
 
-class RecipeHintMatchOut(Schema):
-    """A hint that matched against recipe nutritional values."""
-
-    hint: RecipeHintOut
-    actual_value: float
-    message: str
-
-
-class RecipeCheckOut(Schema):
-    """Recipe check result for one dimension."""
-
-    label: str
-    value: str
-    color: str
-    score: float
+# --- Nutri Score Schemas ---
 
 
 class NutriScoreDetailOut(Schema):
@@ -45,6 +32,14 @@ class NutriScoreDetailOut(Schema):
     nutri_class: int
     nutri_label: str
     details: dict = {}
+
+
+class ContributionOut(Schema):
+    """Per-item contribution to a single nutritional parameter."""
+
+    parameter: str  # enum: energy, protein, fat, sat_fat, carbs, sugar, salt, fiber
+    absolute: float
+    percent_of_recipe: float  # 0–100
 
 
 class RecipeItemNutritionOut(Schema):
@@ -67,6 +62,35 @@ class RecipeItemNutritionOut(Schema):
     fibre_g: float
     salt_g: float
     weight_pct: float  # percentage of total recipe weight
+    # Vitamins
+    vitamin_a_mg: float | None = None
+    vitamin_b1_mg: float | None = None
+    vitamin_b2_mg: float | None = None
+    vitamin_b6_mg: float | None = None
+    vitamin_b12_ug: float | None = None
+    vitamin_c_mg: float | None = None
+    vitamin_d_ug: float | None = None
+    vitamin_e_mg: float | None = None
+    vitamin_k_ug: float | None = None
+    niacin_mg: float | None = None
+    folate_ug: float | None = None
+    pantothenic_acid_mg: float | None = None
+    biotin_ug: float | None = None
+    # Minerals
+    calcium_mg: float | None = None
+    iron_mg: float | None = None
+    magnesium_mg: float | None = None
+    zinc_mg: float | None = None
+    potassium_mg: float | None = None
+    phosphorus_mg: float | None = None
+    iodine_ug: float | None = None
+    selenium_ug: float | None = None
+    copper_mg: float | None = None
+    manganese_mg: float | None = None
+    chromium_ug: float | None = None
+    fluoride_mg: float | None = None
+    # Per-item contributions to nutritional parameters
+    contributions: list[ContributionOut] = []
 
 
 class RecipeNutritionBreakdownOut(Schema):
@@ -83,8 +107,80 @@ class RecipeNutritionBreakdownOut(Schema):
     total_sugar_g: float
     total_fibre_g: float
     total_salt_g: float
+    # Micronutrient totals
+    total_vitamin_a_mg: float | None = None
+    total_vitamin_c_mg: float | None = None
+    total_vitamin_d_ug: float | None = None
+    total_vitamin_b12_ug: float | None = None
+    total_calcium_mg: float | None = None
+    total_iron_mg: float | None = None
+    total_magnesium_mg: float | None = None
+    total_zinc_mg: float | None = None
+    total_potassium_mg: float | None = None
+    total_folate_ug: float | None = None
+    # Per-serving values
     per_serving_energy_kcal: float | None
     per_serving_protein_g: float | None
     per_serving_fat_g: float | None
     per_serving_carbohydrate_g: float | None
+    per_serving_vitamin_c_mg: float | None = None
+    per_serving_calcium_mg: float | None = None
+    per_serving_iron_mg: float | None = None
+    # DGE coverage percentages (nutrient -> %)
+    dge_coverage: dict[str, float | None] = {}
+    positive_traits: list[str] = []
     items: list[RecipeItemNutritionOut]
+
+
+# --- Improvement Ranking Schemas ---
+
+
+class SuggestedIngredientOut(Schema):
+    """Ingredient contributing most to a parameter, attached to an improvement item."""
+
+    id: int
+    name: str
+    contribution_g: float
+
+
+class ImprovementOut(Schema):
+    """A single ranked improvement suggestion for a recipe."""
+
+    parameter: str
+    parameter_label: str
+    current_value: float
+    threshold_value: float
+    delta: float
+    unit: str
+    direction: str  # "reduce" | "increase"
+    impact_score: float  # 0–100
+    suggested_ingredients: list[SuggestedIngredientOut]
+    source: str  # "nutri_score" | "recipe_hint" | "merged"
+    recommendation_text: str
+
+
+class ImprovementListOut(Schema):
+    """Ranked list of improvements with all-good signalling."""
+
+    items: list[ImprovementOut]
+    all_good: bool
+    message: str = ""
+
+
+# --- LLM Suggestion Schemas ---
+
+
+class LlmSuggestionRequestIn(Schema):
+    """Request body for LLM suggestion endpoint."""
+
+    objective: str
+
+
+class LlmSuggestionOut(Schema):
+    """A single LLM-generated ingredient suggestion."""
+
+    ingredient_name: str
+    recommended_amount: float
+    unit: str
+    reasoning: str
+    expected_improvement: str

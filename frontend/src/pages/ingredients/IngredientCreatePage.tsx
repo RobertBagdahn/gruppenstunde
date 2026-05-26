@@ -220,7 +220,7 @@ export default function IngredientCreatePage() {
                 className={inputClass}
               >
                 <option value="draft">Entwurf</option>
-                <option value="published">Veroeffentlicht</option>
+                <option value="published">Veröffentlicht</option>
               </select>
             </Field>
             <Field label="Supermarkt-Abteilung">
@@ -240,8 +240,8 @@ export default function IngredientCreatePage() {
           </div>
         </FormSection>
 
-        {/* Naehrwerte */}
-        <FormSection title="Naehrwerte pro 100g" icon="nutrition">
+        {/* Nährwerte */}
+        <FormSection title="Nährwerte pro 100g" icon="nutrition">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Field label="Energie (kJ)">
               <input type="number" step="0.1" value={energyKj} onChange={(e) => setEnergyKj(e.target.value)} className={inputClass} />

@@ -1,13 +1,15 @@
 import { useParams, Link } from 'react-router-dom';
 import { useGroupDetail } from '@/api/profile';
+import { useCurrentUser } from '@/api/auth';
 
 export default function GroupDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: group, isLoading, error } = useGroupDetail(slug || '');
+  const { data: user } = useCurrentUser();
 
   if (isLoading) {
     return (
-      <div className="container py-8 max-w-2xl">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-4 bg-muted rounded w-2/3" />
@@ -19,7 +21,7 @@ export default function GroupDetailPage() {
 
   if (error || !group) {
     return (
-      <div className="container py-8 max-w-2xl">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-card rounded-xl border p-8 text-center">
           <span className="material-symbols-outlined text-[48px] text-muted-foreground/40 mb-3 block">
             error
@@ -37,9 +39,11 @@ export default function GroupDetailPage() {
   }
 
   const ancestors = [...(group.ancestors || [])].reverse();
+  const isAdmin =
+    user && group.members.some((m) => m.user_id === user.id && m.role === 'admin');
 
   return (
-    <div className="container py-8 max-w-2xl">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4 flex-wrap">
         <Link to="/profile/groups" className="hover:text-primary transition-colors">
@@ -61,16 +65,28 @@ export default function GroupDetailPage() {
       </nav>
 
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary">
-          <span className="material-symbols-outlined text-[28px]">groups</span>
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary">
+            <span className="material-symbols-outlined text-[28px]">groups</span>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">{group.name}</h1>
+            {group.description && (
+              <p className="text-sm text-muted-foreground mt-0.5">{group.description}</p>
+            )}
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">{group.name}</h1>
-          {group.description && (
-            <p className="text-sm text-muted-foreground mt-0.5">{group.description}</p>
-          )}
-        </div>
+        {isAdmin && (
+          <Link
+            to={`/groups/${slug}/settings/corporate-identity`}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors shrink-0"
+            title="Corporate Identity verwalten"
+          >
+            <span className="material-symbols-outlined text-[18px]">palette</span>
+            <span className="hidden sm:inline">CI-Einstellungen</span>
+          </Link>
+        )}
       </div>
 
       {/* Stats */}

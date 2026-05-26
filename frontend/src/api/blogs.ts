@@ -241,3 +241,72 @@ export function useToggleBlogEmotion(blogId: number) {
     },
   });
 }
+
+// --- Image Management Hooks ---
+
+export function useUploadBlogImage(blogId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch(`${API_BASE}/${blogId}/image/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        body: formData,
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json() as Promise<{ image_url: string }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blog', blogId] });
+      queryClient.invalidateQueries({ queryKey: ['blog', 'slug'] });
+      queryClient.invalidateQueries({ queryKey: ['blogs'] });
+    },
+  });
+}
+
+export function useDeleteBlogImage(blogId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${API_BASE}/${blogId}/image/`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json() as Promise<{ image_url: null }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blog', blogId] });
+      queryClient.invalidateQueries({ queryKey: ['blog', 'slug'] });
+      queryClient.invalidateQueries({ queryKey: ['blogs'] });
+    },
+  });
+}
+
+export function useSetBlogImageFromUrl(blogId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (imageUrl: string) => {
+      const res = await fetch(`${API_BASE}/${blogId}/image-from-url/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify({ image_url: imageUrl }),
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json() as Promise<{ image_url: string }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blog', blogId] });
+      queryClient.invalidateQueries({ queryKey: ['blog', 'slug'] });
+      queryClient.invalidateQueries({ queryKey: ['blogs'] });
+    },
+  });
+}

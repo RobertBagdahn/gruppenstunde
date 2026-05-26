@@ -17,6 +17,7 @@ export const UserProfileSchema = z.object({
   about_me: z.string(),
   nutritional_tags: z.array(NutritionalTagSchema),
   profile_picture_url: z.string().nullable().optional(),
+  is_public: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -30,8 +31,14 @@ export const UserProfileUpdateSchema = z.object({
   birthday: z.string().nullable().optional(),
   about_me: z.string().optional(),
   nutritional_tag_ids: z.array(z.number()).optional(),
+  is_public: z.boolean().optional(),
 });
 export type UserProfileUpdate = z.infer<typeof UserProfileUpdateSchema>;
+
+export const ProfilePictureResponseSchema = z.object({
+  profile_picture_url: z.string().nullable(),
+});
+export type ProfilePictureResponse = z.infer<typeof ProfilePictureResponseSchema>;
 
 // --- User Preferences ---
 
@@ -67,11 +74,6 @@ export const PublicContentSchema = z.object({
 });
 export type PublicContent = z.infer<typeof PublicContentSchema>;
 
-/** @deprecated Use PublicContentSchema */
-export const PublicIdeaSchema = PublicContentSchema;
-/** @deprecated Use PublicContent */
-export type PublicIdea = PublicContent;
-
 export const MyContentSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -85,11 +87,6 @@ export const MyContentSchema = z.object({
 });
 export type MyContent = z.infer<typeof MyContentSchema>;
 
-/** @deprecated Use MyContentSchema */
-export const MyIdeaSchema = MyContentSchema;
-/** @deprecated Use MyContent */
-export type MyIdea = MyContent;
-
 export const PublicUserProfileSchema = z.object({
   id: z.number(),
   scout_name: z.string(),
@@ -100,6 +97,33 @@ export const PublicUserProfileSchema = z.object({
   contents: z.array(PublicContentSchema).default([]),
 });
 export type PublicUserProfile = z.infer<typeof PublicUserProfileSchema>;
+
+// --- Corporate Identity ---
+
+export const GroupCorporateIdentitySchema = z.object({
+  primary_color: z.string(),
+  secondary_color: z.string(),
+  logo_url: z.string().default(''),
+  slogan: z.string(),
+  greeting_text: z.string(),
+  footer_text: z.string(),
+  payment_info: z.string(),
+  signature_text: z.string(),
+});
+export type GroupCorporateIdentity = z.infer<typeof GroupCorporateIdentitySchema>;
+
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
+export const GroupCorporateIdentityFormSchema = z.object({
+  primary_color: z.string().regex(HEX_COLOR_REGEX, 'Farbe muss ein gültiger Hex-Wert sein (z.B. #4a3a6b)').default('#4a3a6b'),
+  secondary_color: z.string().regex(HEX_COLOR_REGEX, 'Farbe muss ein gültiger Hex-Wert sein (z.B. #e8e4f0)').default('#e8e4f0'),
+  slogan: z.string().max(200).default(''),
+  greeting_text: z.string().default(''),
+  footer_text: z.string().default(''),
+  payment_info: z.string().default(''),
+  signature_text: z.string().default(''),
+});
+export type GroupCorporateIdentityForm = z.infer<typeof GroupCorporateIdentityFormSchema>;
 
 // --- Groups ---
 
@@ -161,6 +185,7 @@ export const UserGroupDetailSchema = z.object({
   updated_at: z.string(),
   members: z.array(GroupMemberSchema),
   inherited_member_count: z.number().default(0),
+  corporate_identity: GroupCorporateIdentitySchema.nullable().optional(),
 });
 export type UserGroupDetail = z.infer<typeof UserGroupDetailSchema>;
 

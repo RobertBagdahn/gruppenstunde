@@ -2,6 +2,8 @@
 Search-related schemas (extracted from api.py inline schemas).
 """
 
+from typing import Literal
+
 from ninja import Schema
 
 
@@ -11,6 +13,7 @@ class UnifiedSearchFilterIn(Schema):
     sort: str = "relevant"
     page: int = 1
     page_size: int = 20
+    scope: Literal["all", "mine"] = "all"
 
 
 class UnifiedSearchResultOut(Schema):
@@ -23,6 +26,7 @@ class UnifiedSearchResultOut(Schema):
     url: str
     score: float
     created_at: str
+    status: str | None = None
     extra: dict
 
 

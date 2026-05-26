@@ -1,8 +1,15 @@
+import uuid
+
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+class VisibilityChoices(models.TextChoices):
+    PRIVATE = "private", _("Privat")
+    LINK_ONLY = "link_only", _("Per Link zugänglich")
 
 
 class PackingList(models.Model):
@@ -29,6 +36,39 @@ class PackingList(models.Model):
         verbose_name=_("Vorlage"),
         help_text=_("Vorlagen können von allen Benutzern geklont werden."),
     )
+    visibility = models.CharField(
+        max_length=20,
+        choices=VisibilityChoices.choices,
+        default=VisibilityChoices.LINK_ONLY,
+        verbose_name=_("Sichtbarkeit"),
+    )
+
+    # Context fields for wizard-generated packing lists
+    activity_type = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        verbose_name=_("Aktivitätstyp"),
+    )
+    duration = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        verbose_name=_("Dauer"),
+    )
+    season = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        verbose_name=_("Jahreszeit"),
+    )
+    age_group = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        verbose_name=_("Altersstufe"),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -80,6 +120,7 @@ class PackingList(models.Model):
                     quantity=item.quantity,
                     description=item.description,
                     is_checked=False,
+                    is_do_not_bring=item.is_do_not_bring,
                     sort_order=item.sort_order,
                 )
         return new_list
@@ -121,6 +162,11 @@ class PackingItem(models.Model):
     quantity = models.CharField(max_length=50, blank=True, default="", verbose_name=_("Menge"))
     description = models.CharField(max_length=500, blank=True, default="", verbose_name=_("Beschreibung"))
     is_checked = models.BooleanField(default=False, verbose_name=_("Gepackt"))
+    is_do_not_bring = models.BooleanField(
+        default=False,
+        verbose_name=_("Nicht mitbringen"),
+        help_text=_("Markiert Gegenstände, die nicht mitgebracht werden sollen."),
+    )
     sort_order = models.IntegerField(default=0, verbose_name=_("Sortierung"))
 
     # Optional link to a supply item (Material, Ingredient, etc.)
@@ -152,3 +198,65 @@ class PackingItem(models.Model):
         if self.quantity:
             label = f"{self.quantity}x {self.name}"
         return label
+
+
+class PackingListShare(models.Model):
+    """A share link for a packing list with its own check state."""
+
+    packing_list = models.ForeignKey(
+        PackingList,
+        on_delete=models.CASCADE,
+        related_name="shares",
+        verbose_name=_("Packliste"),
+    )
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        verbose_name=_("Token"),
+    )
+    label = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        verbose_name=_("Bezeichnung"),
+        help_text=_("z.B. 'Für Max' oder 'Trupplink'"),
+    )
+    is_active = models.BooleanField(default=True, verbose_name=_("Aktiv"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Packlisten-Freigabe")
+        verbose_name_plural = _("Packlisten-Freigaben")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        label = self.label or str(self.token)[:8]
+        return f"{self.packing_list.title}: {label}"
+
+
+class PackingListShareCheck(models.Model):
+    """Check state for a specific item within a share link."""
+
+    share = models.ForeignKey(
+        PackingListShare,
+        on_delete=models.CASCADE,
+        related_name="checks",
+        verbose_name=_("Freigabe"),
+    )
+    item = models.ForeignKey(
+        PackingItem,
+        on_delete=models.CASCADE,
+        related_name="share_checks",
+        verbose_name=_("Gegenstand"),
+    )
+    is_checked = models.BooleanField(default=False, verbose_name=_("Gepackt"))
+
+    class Meta:
+        verbose_name = _("Freigabe-Check")
+        verbose_name_plural = _("Freigabe-Checks")
+        unique_together = [("share", "item")]
+
+    def __str__(self):
+        status = "✓" if self.is_checked else "○"
+        return f"{status} {self.item.name} ({self.share})"

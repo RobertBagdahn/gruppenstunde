@@ -68,7 +68,7 @@ function CurrentRegistration({ event }: Props) {
   if (!myReg) return null;
 
   const handleRemove = (participantId: number) => {
-    removeParticipant.mutate(participantId, {
+    removeParticipant.mutate({ participantId, reason: 'cancel' }, {
       onSuccess: () => {
         toast.success('Teilnehmer abgemeldet');
         setConfirmRemoveId(null);
@@ -87,7 +87,7 @@ function CurrentRegistration({ event }: Props) {
         setShowUnregisterAll(false);
         return;
       }
-      removeParticipant.mutate(ids[idx], {
+      removeParticipant.mutate({ participantId: ids[idx], reason: 'cancel' }, {
         onSuccess: () => {
           idx++;
           removeNext();
@@ -197,7 +197,9 @@ function RegisterForm({ event, isAdditional }: Props & { isAdditional?: boolean 
   );
   const availablePersons = (persons ?? []).filter((p) => !registeredPersonIds.has(p.id));
 
-  const availableOptions = event.booking_options.filter((opt) => !opt.is_full || opt.is_system);
+  const availableOptions = event.booking_options.filter(
+    (opt) => opt.is_bookable && (!opt.is_full || opt.is_system),
+  );
 
   const addPerson = (personId: number) => {
     if (selectedPersons.find((s) => s.personId === personId)) return;

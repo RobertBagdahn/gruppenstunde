@@ -16,8 +16,8 @@ export default function CreateGamePage() {
   const createGame = useCreateGame();
 
   // Game-specific state
-  const [gameType, setGameType] = useState('');
-  const [playArea, setPlayArea] = useState('');
+  const [gameType, setGameType] = useState('group_game');
+  const [playArea, setPlayArea] = useState('outdoor');
   const [minPlayers, setMinPlayers] = useState('');
   const [maxPlayers, setMaxPlayers] = useState('');
   const [gameDuration, setGameDuration] = useState('');

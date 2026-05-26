@@ -12,14 +12,22 @@ import {
   BookingOptionSchema,
   ChoiceSchema,
   EventLocationSchema,
+  MeetingPointSchema,
   GenerateInvitationSchema,
+  GuestRegistrationResponseSchema,
   PaginatedEventListSchema,
   PaginatedPersonSchema,
   PaginatedLocationSchema,
+  PaginatedMeetingPointSchema,
   PaginatedInvitationStatusSchema,
+  SlugCheckSchema,
   type Person,
   type Choice,
   type EventLocation,
+  type MeetingPoint,
+  type GuestRegistration,
+  type SlugCheck,
+  type EventList,
 } from '@/schemas/event';
 
 
@@ -75,11 +83,15 @@ async function patchJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>):
   return schema.parse(await res.json());
 }
 
-async function deleteJson(url: string): Promise<void> {
+async function deleteJson(url: string, body?: unknown): Promise<void> {
   const res = await fetch(url, {
     method: 'DELETE',
     credentials: 'include',
-    headers: { 'X-CSRFToken': getCsrfToken() },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -178,6 +190,18 @@ export function useEvents() {
   });
 }
 
+/**
+ * Fetch up to 12 public events for the anonymous landing page.
+ * No authentication required. Upcoming events first, recent past events as fallback.
+ */
+export function usePublicLandingEvents() {
+  return useQuery({
+    queryKey: ['events', 'public-landing'],
+    queryFn: () => fetchJson(`${EVENTS_BASE}/public-landing/`, z.array(EventListSchema)),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useMyInvitedEvents() {
   return useQuery({
     queryKey: ['events', 'my-invited'],
@@ -210,6 +234,8 @@ export function useCreateEvent() {
       description?: string;
       location?: string;
       event_location_id?: number | null;
+      meeting_point_id?: number | null;
+      pickup_point_id?: number | null;
       invitation_text?: string;
       start_date?: string | null;
       end_date?: string | null;
@@ -232,14 +258,22 @@ export function useUpdateEvent(slug: string) {
       description: string;
       location: string;
       event_location_id: number | null;
+      meeting_point_id: number | null;
+      pickup_point_id: number | null;
       invitation_text: string;
       start_date: string | null;
       end_date: string | null;
       registration_deadline: string | null;
       registration_start: string | null;
       is_public: boolean;
+      guest_registration_enabled: boolean;
       packing_list_id: number | null;
       participant_visibility: string;
+      color: string;
+      icon: string;
+      is_template: boolean;
+      manual_phase: string | null;
+      meal_plan_id: number | null;
     }>) => patchJson(`${EVENTS_BASE}/${encodeURIComponent(slug)}/`, body, EventListSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -270,6 +304,8 @@ export function useCreateBookingOption(eventSlug: string) {
       description?: string;
       price?: string;
       max_participants?: number;
+      bookable_from?: string | null;
+      bookable_till?: string | null;
     }) => postJson(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/booking-options/`, body, BookingOptionSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventSlug] });
@@ -287,6 +323,8 @@ export function useUpdateBookingOption(eventSlug: string) {
       description?: string;
       price?: string;
       max_participants?: number;
+      bookable_from?: string | null;
+      bookable_till?: string | null;
     }) => patchJson(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/booking-options/${optionId}/`, body, BookingOptionSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventSlug] });
@@ -324,11 +362,38 @@ export function useRegisterForEvent(eventSlug: string) {
   });
 }
 
+export function useAdminRegister(eventSlug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      persons: {
+        person_id?: number | null;
+        person_data?: {
+          first_name: string;
+          last_name: string;
+          scout_name?: string;
+          email?: string;
+          birthday?: string | null;
+          gender?: string;
+        } | null;
+        booking_option_id?: number | null;
+      }[];
+    }) => postJson(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/register-admin/`, body, RegistrationSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event', eventSlug] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
 export function useRemoveParticipant(eventSlug: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (participantId: number) =>
-      deleteJson(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/participants/${participantId}/`),
+    mutationFn: ({ participantId, reason }: { participantId: number; reason?: string }) =>
+      deleteJson(
+        `${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/participants/${participantId}/`,
+        reason ? { reason } : undefined,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventSlug] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -415,6 +480,69 @@ export function useCreateLocation() {
 }
 
 // ==========================================================================
+// Meeting Points
+// ==========================================================================
+
+const MEETING_POINTS_BASE = '/api/meeting-points';
+
+export function useMeetingPoints() {
+  return useQuery<MeetingPoint[]>({
+    queryKey: ['meeting-points'],
+    queryFn: async () => {
+      const result = await fetchJson(`${MEETING_POINTS_BASE}/`, PaginatedMeetingPointSchema);
+      return result.items;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateMeetingPoint() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      name: string;
+      street?: string;
+      zip_code?: string;
+      city?: string;
+      description?: string;
+      group_id?: number | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    }) => postJson(`${MEETING_POINTS_BASE}/`, body, MeetingPointSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meeting-points'] });
+    },
+  });
+}
+
+export function useUpdateMeetingPoint() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: {
+      id: number;
+      name?: string;
+      street?: string;
+      zip_code?: string;
+      city?: string;
+      description?: string;
+    }) => patchJson(`${MEETING_POINTS_BASE}/${id}/`, body, MeetingPointSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meeting-points'] });
+    },
+  });
+}
+
+export function useDeleteMeetingPoint() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteJson(`${MEETING_POINTS_BASE}/${id}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meeting-points'] });
+    },
+  });
+}
+
+// ==========================================================================
 // AI Invitation Text
 // ==========================================================================
 
@@ -472,5 +600,142 @@ export function useParticipantVisibilityChoices() {
     queryKey: ['choices', 'participant-visibility'],
     queryFn: () => fetchJson(`${EVENTS_BASE}/choices/participant-visibility/`, z.array(ChoiceSchema)),
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+// ==========================================================================
+// Guest Registration (public, no auth required)
+// ==========================================================================
+
+export function useGuestRegistration(eventSlug: string) {
+  return useMutation({
+    mutationFn: (body: GuestRegistration) =>
+      postJson(
+        `${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/register-guest/`,
+        body,
+        GuestRegistrationResponseSchema,
+      ),
+  });
+}
+
+/**
+ * Fetch public event details for guest registration.
+ * Uses the same endpoint as useEvent but works without auth.
+ */
+export function usePublicEvent(slug: string) {
+  return useQuery({
+    queryKey: ['event', slug],
+    queryFn: () => fetchJson(`${EVENTS_BASE}/${encodeURIComponent(slug)}/`, EventDetailSchema),
+    enabled: slug.length > 0,
+  });
+}
+
+// ==========================================================================
+// Invitation PDF
+// ==========================================================================
+
+export function useDownloadInvitationPdf(eventSlug: string) {
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      const res = await fetch(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/invitation-pdf/`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'PDF konnte nicht heruntergeladen werden');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `einladung-${eventSlug}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
+  });
+}
+
+export interface SendInvitationPayload {
+  recipient_type: 'groups' | 'selected';
+  user_ids?: number[];
+  subject?: string;
+}
+
+export interface SendInvitationResult {
+  sent_count: number;
+  failed_count: number;
+}
+
+export function useSendInvitation(eventSlug: string) {
+  return useMutation<SendInvitationResult, Error, SendInvitationPayload>({
+    mutationFn: async (payload) => {
+      const res = await fetch(`${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/send-invitation/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Einladung konnte nicht verschickt werden');
+      }
+      return res.json() as Promise<SendInvitationResult>;
+    },
+  });
+}
+
+// ==========================================================================
+// Slug Check (8.1)
+// ==========================================================================
+
+export function useCheckSlug(slug: string, enabled = true) {
+  return useQuery<SlugCheck>({
+    queryKey: ['events', 'check-slug', slug],
+    queryFn: () =>
+      fetchJson(
+        `${EVENTS_BASE}/check-slug/?slug=${encodeURIComponent(slug)}`,
+        SlugCheckSchema,
+      ),
+    enabled: enabled && slug.length > 0,
+    staleTime: 5000,
+  });
+}
+
+// ==========================================================================
+// Duplicate Event (8.2)
+// ==========================================================================
+
+export function useDuplicateEvent(eventSlug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<EventList, Error, { date_shift_weeks?: number }>({
+    mutationFn: (body) =>
+      postJson(
+        `${EVENTS_BASE}/${encodeURIComponent(eventSlug)}/duplicate/`,
+        body,
+        EventListSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+}
+
+// ==========================================================================
+// Event Templates (8.3)
+// ==========================================================================
+
+export function useEventTemplates(page = 1, pageSize = 20) {
+  return useQuery({
+    queryKey: ['events', 'templates', page, pageSize],
+    queryFn: () =>
+      fetchJson(
+        `${EVENTS_BASE}/templates/?page=${page}&page_size=${pageSize}`,
+        PaginatedEventListSchema,
+      ),
   });
 }

@@ -97,6 +97,58 @@ class InvitationStatusOut(Schema):
 
 
 # ---------------------------------------------------------------------------
+# Meeting Point Schemas
+# ---------------------------------------------------------------------------
+
+
+class MeetingPointOut(Schema):
+    id: int
+    name: str
+    street: str
+    zip_code: str
+    city: str
+    description: str
+    latitude: float | None = None
+    longitude: float | None = None
+    group_id: int | None = None
+    full_address: str = ""
+    created_at: datetime
+    updated_at: datetime
+
+    @staticmethod
+    def resolve_full_address(obj) -> str:
+        parts = []
+        if obj.street:
+            parts.append(obj.street)
+        if obj.zip_code and obj.city:
+            parts.append(f"{obj.zip_code} {obj.city}")
+        elif obj.city:
+            parts.append(obj.city)
+        return ", ".join(parts)
+
+
+class MeetingPointCreateIn(Schema):
+    name: str
+    street: str = ""
+    zip_code: str = ""
+    city: str = ""
+    description: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
+    group_id: int | None = None
+
+
+class MeetingPointUpdateIn(Schema):
+    name: str | None = None
+    street: str | None = None
+    zip_code: str | None = None
+    city: str | None = None
+    description: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+# ---------------------------------------------------------------------------
 # Event Location Schemas
 # ---------------------------------------------------------------------------
 
@@ -109,6 +161,8 @@ class EventLocationOut(Schema):
     city: str
     state: str
     country: str
+    latitude: float | None = None
+    longitude: float | None = None
     description: str
     created_at: datetime
     updated_at: datetime
@@ -132,6 +186,8 @@ class EventLocationCreateIn(Schema):
     city: str = ""
     state: str = ""
     country: str = "Deutschland"
+    latitude: float | None = None
+    longitude: float | None = None
     description: str = ""
 
 
@@ -142,6 +198,8 @@ class EventLocationUpdateIn(Schema):
     city: str | None = None
     state: str | None = None
     country: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     description: str | None = None
 
 
@@ -159,6 +217,7 @@ class PersonOut(Schema):
     zip_code: str
     city: str
     email: str
+    phone_number: str
     birthday: date | None
     gender: str
     nutritional_tags: list[NutritionalTagOut]
@@ -179,6 +238,7 @@ class PersonCreateIn(Schema):
     zip_code: str = ""
     city: str = ""
     email: str = ""
+    phone_number: str = ""
     birthday: date | None = None
     gender: str = "no_answer"
     nutritional_tag_ids: list[int] = []
@@ -193,6 +253,7 @@ class PersonUpdateIn(Schema):
     zip_code: str | None = None
     city: str | None = None
     email: str | None = None
+    phone_number: str | None = None
     birthday: date | None = None
     gender: str | None = None
     nutritional_tag_ids: list[int] | None = None
@@ -212,6 +273,9 @@ class BookingOptionOut(Schema):
     current_participant_count: int
     is_full: bool
     is_system: bool
+    bookable_from: datetime | None = None
+    bookable_till: datetime | None = None
+    is_bookable: bool
     created_at: datetime
 
 
@@ -220,6 +284,15 @@ class BookingOptionCreateIn(Schema):
     description: str = ""
     price: Decimal = Decimal("0.00")
     max_participants: int = 0
+    bookable_from: datetime | None = None
+    bookable_till: datetime | None = None
+
+    @field_validator("bookable_from", "bookable_till", mode="after")
+    @classmethod
+    def make_aware_booking(cls, v):
+        if v is not None and isinstance(v, datetime) and v.tzinfo is None:
+            return _tz.make_aware(v)
+        return v
 
 
 class BookingOptionUpdateIn(Schema):
@@ -227,6 +300,15 @@ class BookingOptionUpdateIn(Schema):
     description: str | None = None
     price: Decimal | None = None
     max_participants: int | None = None
+    bookable_from: datetime | None = None
+    bookable_till: datetime | None = None
+
+    @field_validator("bookable_from", "bookable_till", mode="after")
+    @classmethod
+    def make_aware_booking(cls, v):
+        if v is not None and isinstance(v, datetime) and v.tzinfo is None:
+            return _tz.make_aware(v)
+        return v
 
 
 # ---------------------------------------------------------------------------
@@ -246,6 +328,7 @@ class ParticipantOut(Schema):
     zip_code: str
     city: str
     email: str
+    phone_number: str
     birthday: date | None
     gender: str
     nutritional_tags: list[NutritionalTagOut]
@@ -283,6 +366,7 @@ class ParticipantUpdateIn(Schema):
     address: str | None = None
     zip_code: str | None = None
     email: str | None = None
+    phone_number: str | None = None
     birthday: date | None = None
     gender: str | None = None
     nutritional_tag_ids: list[int] | None = None
@@ -343,8 +427,15 @@ class EventListOut(Schema):
     name: str
     slug: str
     description: str
+    color: str = "blue"
+    icon: str = "tent"
+    is_template: bool = False
+    manual_phase: str | None = None
+    meal_plan_id: int | None = None
     location: str
     event_location: EventLocationOut | None = None
+    meeting_point: MeetingPointOut | None = None
+    pickup_point: MeetingPointOut | None = None
     start_date: datetime | None
     end_date: datetime | None
     registration_deadline: datetime | None
@@ -355,11 +446,20 @@ class EventListOut(Schema):
     participant_count: int = 0
     phase: str = "draft"
     is_registered: bool = False
+    is_invited: bool = False
     created_at: datetime
 
     @staticmethod
     def resolve_event_location(obj):
         return obj.event_location
+
+    @staticmethod
+    def resolve_meeting_point(obj):
+        return obj.meeting_point
+
+    @staticmethod
+    def resolve_pickup_point(obj):
+        return obj.pickup_point
 
     @staticmethod
     def resolve_booking_options(obj) -> list:
@@ -387,20 +487,33 @@ class EventListOut(Schema):
     def resolve_is_registered(obj) -> bool:
         return getattr(obj, "_is_registered", False)
 
+    @staticmethod
+    def resolve_is_invited(obj) -> bool:
+        return getattr(obj, "_is_invited", False)
+
 
 class EventDetailOut(Schema):
     id: int
     name: str
     slug: str
     description: str
+    color: str = "blue"
+    icon: str = "tent"
+    is_template: bool = False
+    manual_phase: str | None = None
+    meal_plan_id: int | None = None
     location: str
     event_location: EventLocationOut | None = None
+    meeting_point: MeetingPointOut | None = None
+    pickup_point: MeetingPointOut | None = None
     invitation_text: str
     start_date: datetime | None
     end_date: datetime | None
     registration_deadline: datetime | None
     registration_start: datetime | None
     is_public: bool
+    guest_registration_enabled: bool = False
+    guest_registration_url: str | None = None
     participant_visibility: str = "none"
     booking_options: list[BookingOptionOut]
     day_slots: list[EventDaySlotOut] = []
@@ -422,6 +535,14 @@ class EventDetailOut(Schema):
     @staticmethod
     def resolve_event_location(obj):
         return obj.event_location
+
+    @staticmethod
+    def resolve_meeting_point(obj):
+        return obj.meeting_point
+
+    @staticmethod
+    def resolve_pickup_point(obj):
+        return obj.pickup_point
 
     @staticmethod
     def resolve_booking_options(obj) -> list:
@@ -457,8 +578,14 @@ class EventDetailOut(Schema):
 class EventCreateIn(Schema):
     name: str
     description: str = ""
+    color: str = "blue"
+    icon: str = "tent"
+    is_template: bool = False
+    manual_phase: str | None = None
     location: str = ""
     event_location_id: int | None = None
+    meeting_point_id: int | None = None
+    pickup_point_id: int | None = None
     invitation_text: str = ""
     start_date: datetime | None = None
     end_date: datetime | None = None
@@ -466,9 +593,13 @@ class EventCreateIn(Schema):
     registration_start: datetime | None = None
     is_public: bool = False
     packing_list_id: int | None = None
+    meal_plan_id: int | None = None
+    group_id: int | None = None
+    invited_user_ids: list[int] | None = None
+    invited_group_ids: list[int] | None = None
     booking_options: list[BookingOptionCreateIn] | None = None
 
-    @field_validator("start_date", "end_date", "registration_deadline", "registration_start", mode="before")
+    @field_validator("start_date", "end_date", "registration_deadline", "registration_start", mode="after")
     @classmethod
     def make_aware(cls, v):
         if v is not None and isinstance(v, datetime) and v.tzinfo is None:
@@ -479,18 +610,26 @@ class EventCreateIn(Schema):
 class EventUpdateIn(Schema):
     name: str | None = None
     description: str | None = None
+    color: str | None = None
+    icon: str | None = None
+    is_template: bool | None = None
+    manual_phase: str | None = None
     location: str | None = None
     event_location_id: int | None = None
+    meeting_point_id: int | None = None
+    pickup_point_id: int | None = None
     invitation_text: str | None = None
     start_date: datetime | None = None
     end_date: datetime | None = None
     registration_deadline: datetime | None = None
     registration_start: datetime | None = None
     is_public: bool | None = None
+    guest_registration_enabled: bool | None = None
     packing_list_id: int | None = None
+    meal_plan_id: int | None = None
     participant_visibility: str | None = None
 
-    @field_validator("start_date", "end_date", "registration_deadline", "registration_start", mode="before")
+    @field_validator("start_date", "end_date", "registration_deadline", "registration_start", mode="after")
     @classmethod
     def make_aware(cls, v):
         if v is not None and isinstance(v, datetime) and v.tzinfo is None:
@@ -530,6 +669,14 @@ class PaginatedEventListOut(Schema):
     total_pages: int
 
 
+class PaginatedMeetingPointOut(Schema):
+    items: list[MeetingPointOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 class PaginatedPersonOut(Schema):
     items: list[PersonOut]
     total: int
@@ -560,3 +707,54 @@ class PaginatedParticipantOut(Schema):
     page: int
     page_size: int
     total_pages: int
+
+
+# ---------------------------------------------------------------------------
+# Guest Registration Schemas
+# ---------------------------------------------------------------------------
+
+
+class GuestRegistrationPersonIn(Schema):
+    first_name: str
+    last_name: str
+    scout_name: str = ""
+    phone_number: str = ""
+    birthday: date | None = None
+    gender: str = "no_answer"
+    booking_option_id: int
+
+
+class GuestRegistrationIn(Schema):
+    persons: list[GuestRegistrationPersonIn]
+    email: str
+
+
+class GuestRegistrationOut(Schema):
+    registration_id: int
+    participant_count: int
+    email: str
+
+
+# ---------------------------------------------------------------------------
+# Admin Registration Schemas
+# ---------------------------------------------------------------------------
+
+
+class InlinePersonDataIn(Schema):
+    first_name: str
+    last_name: str
+    scout_name: str = ""
+    email: str = ""
+    phone_number: str = ""
+    birthday: date | None = None
+    gender: str = "no_answer"
+
+
+class AdminRegisterPersonIn(Schema):
+    person_id: int | None = None
+    person_data: InlinePersonDataIn | None = None
+    booking_option_id: int | None = None
+
+
+class AdminRegisterIn(Schema):
+    persons: list[AdminRegisterPersonIn]

@@ -7,7 +7,15 @@
 import type { EventDetail } from '@/schemas/event';
 import { useEventTimeline } from '@/api/eventDashboard';
 import { useEventStats } from '@/api/eventDashboard';
+import { useWaitlist, useJoinWaitlist } from '@/api/eventDashboard';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { useState } from 'react';
+import PhaseGuidanceBanner from '@/components/events/PhaseGuidanceBanner';
+import ChecklistCard from './ChecklistCard';
+import BudgetCard from './BudgetCard';
+import LocationDetailDialog from '@/components/events/LocationDetailDialog';
+import { useMealPlans } from '@/api/mealPlans';
 
 interface Props {
   event: EventDetail;
@@ -34,8 +42,14 @@ export default function OverviewTab({ event, isManager }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Phase Guidance Banner */}
+      <PhaseGuidanceBanner event={event} isManager={isManager} />
+
       {/* Registration Status Card (member) */}
       <RegistrationStatusCard event={event} onGoToRegistration={() => setSearchParams({ tab: 'registration' }, { replace: true })} />
+
+      {/* Waitlist: show "join" button for full booking options + show status if on waitlist */}
+      <WaitlistSection event={event} />
 
       {/* KPI Cards (manager) */}
       {isManager && (
@@ -68,6 +82,20 @@ export default function OverviewTab({ event, isManager }: Props) {
         </div>
       )}
 
+      {/* Publish Checklist (manager) */}
+      {isManager && <ChecklistCard slug={event.slug} />}
+
+      {/* Budget Summary (manager) */}
+      {isManager && (
+        <BudgetCard
+          slug={event.slug}
+          onGoToBudget={() => setSearchParams({ tab: 'activity' }, { replace: true })}
+        />
+      )}
+
+      {/* Meal Plan Summary (manager, when linked) */}
+      {isManager && event.meal_plan_id && <MealPlanSummaryCard mealPlanId={event.meal_plan_id} />}
+
       {/* Invitation summary (manager) */}
       {isManager && event.invitation_counts && (
         <div className="rounded-xl border p-4">
@@ -88,6 +116,36 @@ export default function OverviewTab({ event, isManager }: Props) {
               <p className="text-2xl font-bold text-amber-600">{event.invitation_counts.pending}</p>
               <p className="text-xs text-muted-foreground">Offen</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Registration Hint (manager, when enabled) */}
+      {isManager && event.guest_registration_enabled && (
+        <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-4">
+          <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-violet-700 dark:text-violet-400">
+            <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+            Gastregistrierung aktiv
+          </h3>
+          <p className="text-xs text-muted-foreground mb-2">
+             Gäste können sich über den Anmeldelink ohne Account registrieren.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="text-xs bg-background border rounded px-2 py-1 flex-1 truncate">
+              {`${window.location.origin}/events/${event.slug}/register`}
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/events/${event.slug}/register`,
+                );
+                toast.success('Link kopiert!');
+              }}
+              className="px-2 py-1 text-xs font-medium rounded border hover:bg-muted transition-colors flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[14px]">content_copy</span>
+              Kopieren
+            </button>
           </div>
         </div>
       )}
@@ -116,6 +174,11 @@ export default function OverviewTab({ event, isManager }: Props) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Meeting & Pickup Points (all users) — clickable to open detail dialog */}
+      {(event.meeting_point || event.pickup_point || event.event_location) && (
+        <LocationSection event={event} />
       )}
 
       {/* Event Info (non-manager) */}
@@ -259,6 +322,235 @@ function RegistrationStatusCard({
 }
 
 // ---------------------------------------------------------------------------
+// Waitlist Section (17.1 + 17.2)
+// ---------------------------------------------------------------------------
+
+function WaitlistSection({ event }: { event: EventDetail }) {
+  const { data: waitlistData } = useWaitlist(event.slug, 1, 100);
+  const joinWaitlist = useJoinWaitlist(event.slug);
+  const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+
+  // Find booking options that are full
+  const fullOptions = event.booking_options.filter((opt) => opt.is_full && !opt.is_system);
+
+  // Check if current user is already on the waitlist
+  const myWaitlistEntries = waitlistData?.items ?? [];
+
+  const isRegistered = event.my_registration && event.my_registration.participants.length > 0;
+
+  // If user is on the waitlist, show status
+  if (myWaitlistEntries.length > 0) {
+    return (
+      <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600">
+            <span className="material-symbols-outlined text-[22px]">hourglass_top</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Auf der Warteliste</p>
+            <p className="text-xs text-muted-foreground">
+              {myWaitlistEntries.length === 1
+                ? `Du stehst auf der Warteliste für "${myWaitlistEntries[0].booking_option_name}"`
+                : `Du stehst auf ${myWaitlistEntries.length} Wartelisten`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Du wirst benachrichtigt, sobald ein Platz frei wird.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If no full options or user is already registered, don't show
+  if (fullOptions.length === 0 || isRegistered) return null;
+
+  const handleJoin = () => {
+    if (!selectedOptionId) return;
+    joinWaitlist.mutate(
+      { booking_option_id: selectedOptionId },
+      {
+        onSuccess: () => toast.success('Auf die Warteliste gesetzt!'),
+        onError: (err) => toast.error('Fehler', { description: err.message }),
+      },
+    );
+  };
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-100 text-amber-600">
+          <span className="material-symbols-outlined text-[22px]">playlist_add</span>
+        </div>
+        <div>
+          <p className="text-sm font-semibold">Buchungsoptionen ausgebucht</p>
+          <p className="text-xs text-muted-foreground">
+            Einige Optionen sind voll. Du kannst dich auf die Warteliste setzen.
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <select
+          value={selectedOptionId ?? ''}
+          onChange={(e) => setSelectedOptionId(e.target.value ? Number(e.target.value) : null)}
+          className="w-full sm:w-auto text-sm border rounded-lg px-3 py-2 bg-background"
+        >
+          <option value="">Buchungsoption wählen...</option>
+          {fullOptions.map((opt) => (
+            <option key={opt.id} value={opt.id}>
+              {opt.name} (ausgebucht)
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={handleJoin}
+          disabled={!selectedOptionId || joinWaitlist.isPending}
+          className="px-4 py-2 text-sm font-medium rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <span className="material-symbols-outlined text-[16px]">playlist_add</span>
+          {joinWaitlist.isPending ? 'Wird eingetragen...' : 'Auf Warteliste setzen'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Location Section (clickable locations with detail dialog)
+// ---------------------------------------------------------------------------
+
+function LocationSection({ event }: { event: EventDetail }) {
+  const [selectedLocation, setSelectedLocation] = useState<{
+    name: string;
+    address?: string;
+    description?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    label: string;
+  } | null>(null);
+
+  return (
+    <>
+      <div className="rounded-xl border p-4">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">pin_drop</span>
+          Orte & Treffpunkte
+        </h3>
+        <div className="space-y-3">
+          {/* Event Location */}
+          {event.event_location && (
+            <button
+              onClick={() => {
+                const loc = event.event_location!;
+                const addr = [loc.street, loc.zip_code, loc.city].filter(Boolean).join(', ');
+                setSelectedLocation({
+                  name: loc.name,
+                  address: addr || undefined,
+                  description: loc.description,
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                  label: 'Veranstaltungsort',
+                });
+              }}
+              className="w-full text-left flex items-start gap-2 p-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors group"
+            >
+              <span className="material-symbols-outlined text-[16px] mt-0.5 text-violet-600">
+                location_on
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium group-hover:text-violet-700 transition-colors">
+                  {event.event_location.name}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {[event.event_location.street, event.event_location.zip_code, event.event_location.city].filter(Boolean).join(', ')}
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-[14px] text-muted-foreground mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                open_in_new
+              </span>
+            </button>
+          )}
+
+          {/* Meeting Point */}
+          {event.meeting_point && (
+            <button
+              onClick={() =>
+                setSelectedLocation({
+                  name: event.meeting_point!.name,
+                  address: event.meeting_point!.full_address,
+                  description: event.meeting_point!.description,
+                  latitude: event.meeting_point!.latitude,
+                  longitude: event.meeting_point!.longitude,
+                  label: 'Treffpunkt',
+                })
+              }
+              className="w-full text-left flex items-start gap-2 p-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors group"
+            >
+              <span className="material-symbols-outlined text-[16px] mt-0.5 text-green-600">
+                trip_origin
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium group-hover:text-green-700 transition-colors">
+                  {event.meeting_point.name}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {event.meeting_point.full_address}
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-[14px] text-muted-foreground mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                open_in_new
+              </span>
+            </button>
+          )}
+
+          {/* Pickup Point */}
+          {event.pickup_point && (
+            <button
+              onClick={() =>
+                setSelectedLocation({
+                  name: event.pickup_point!.name,
+                  address: event.pickup_point!.full_address,
+                  description: event.pickup_point!.description,
+                  latitude: event.pickup_point!.latitude,
+                  longitude: event.pickup_point!.longitude,
+                  label: 'Abholpunkt',
+                })
+              }
+              className="w-full text-left flex items-start gap-2 p-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors group"
+            >
+              <span className="material-symbols-outlined text-[16px] mt-0.5 text-red-600">
+                flag
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium group-hover:text-red-700 transition-colors">
+                  {event.pickup_point.name}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {event.pickup_point.full_address}
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-[14px] text-muted-foreground mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                open_in_new
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Detail dialog */}
+      {selectedLocation && (
+        <LocationDetailDialog
+          location={selectedLocation}
+          open={true}
+          onClose={() => setSelectedLocation(null)}
+          label={selectedLocation.label}
+        />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Mini Registration Chart
 // ---------------------------------------------------------------------------
 
@@ -301,6 +593,41 @@ function MiniRegistrationChart({
       <p className="text-xs text-muted-foreground mt-2 text-right">
         Aktuell: {displayPoints[displayPoints.length - 1]?.cumulative_count ?? 0} Anmeldungen
       </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Meal Plan Summary Card (24.3 + 24.4)
+// ---------------------------------------------------------------------------
+
+function MealPlanSummaryCard({ mealPlanId }: { mealPlanId: number }) {
+  const { data: mealPlans } = useMealPlans();
+  const mealPlan = mealPlans?.find((me) => me.id === mealPlanId);
+
+  if (!mealPlan) return null;
+
+  return (
+    <div className="rounded-xl border p-4">
+      <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+        <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
+        Essensplan
+      </h3>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">{mealPlan.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {mealPlan.meals_count} Mahlzeiten &middot; {mealPlan.norm_portions} Portionen
+          </p>
+        </div>
+        <a
+          href={`/meal-plans/${mealPlan.id}`}
+          className="text-sm text-violet-600 hover:text-violet-800 flex items-center gap-1"
+        >
+          Öffnen
+          <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+        </a>
+      </div>
     </div>
   );
 }

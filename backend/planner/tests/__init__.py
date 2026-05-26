@@ -8,8 +8,8 @@ from model_bakery import baker
 from planner.models import (
     EntryStatusChoices,
     Meal,
-    MealEvent,
     MealItem,
+    MealPlan,
     MealTypeChoices,
     Planner,
     PlannerCollaborator,
@@ -77,11 +77,11 @@ def make_planner_collaborator(planner: Planner | None = None, user=None, **kwarg
 
 
 # ---------------------------------------------------------------------------
-# MealEvent
+# MealPlan
 # ---------------------------------------------------------------------------
 
 
-def make_meal_event(created_by=None, **kwargs) -> MealEvent:
+def make_meal_plan(created_by=None, **kwargs) -> MealPlan:
     if created_by is None:
         from django.contrib.auth import get_user_model
 
@@ -95,7 +95,7 @@ def make_meal_event(created_by=None, **kwargs) -> MealEvent:
         "reserve_factor": 1.1,
     }
     defaults.update(kwargs)
-    return baker.make(MealEvent, created_by=created_by, **defaults)
+    return baker.make(MealPlan, created_by=created_by, **defaults)
 
 
 # ---------------------------------------------------------------------------
@@ -103,9 +103,9 @@ def make_meal_event(created_by=None, **kwargs) -> MealEvent:
 # ---------------------------------------------------------------------------
 
 
-def make_meal(meal_event: MealEvent | None = None, **kwargs) -> Meal:
-    if meal_event is None:
-        meal_event = make_meal_event()
+def make_meal(meal_plan: MealPlan | None = None, **kwargs) -> Meal:
+    if meal_plan is None:
+        meal_plan = make_meal_plan()
     today = datetime.date.today()
     defaults = {
         "start_datetime": timezone.make_aware(datetime.datetime.combine(today, datetime.time(12, 0))),
@@ -114,7 +114,7 @@ def make_meal(meal_event: MealEvent | None = None, **kwargs) -> Meal:
         "day_part_factor": 0.35,
     }
     defaults.update(kwargs)
-    return baker.make(Meal, meal_event=meal_event, **defaults)
+    return baker.make(Meal, meal_plan=meal_plan, **defaults)
 
 
 # ---------------------------------------------------------------------------

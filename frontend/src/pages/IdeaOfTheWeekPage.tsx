@@ -115,7 +115,12 @@ export default function IdeaOfTheWeekPage() {
 
       {/* Entries */}
       {isLoading ? (
-        <div className="animate-pulse h-64 bg-muted rounded" />
+          <div className="space-y-4">
+            <div className="animate-pulse h-48 bg-muted rounded-xl" />
+            <div className="animate-pulse h-6 w-3/4 bg-muted rounded" />
+            <div className="animate-pulse h-4 w-full bg-muted rounded" />
+            <div className="animate-pulse h-4 w-2/3 bg-muted rounded" />
+          </div>
       ) : entries && entries.length > 0 ? (
         <div className="space-y-2">
           {entries.map((entry) => (

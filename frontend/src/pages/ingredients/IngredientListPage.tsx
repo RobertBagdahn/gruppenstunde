@@ -5,7 +5,9 @@ import { useCurrentUser } from '@/api/auth';
 import { useIngredients, useRetailSections, useDeleteIngredient } from '@/api/ingredients';
 import { NUTRI_SCORE_COLORS } from '@/schemas/ingredient';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ListPageHero from '@/components/shared/ListPageHero';
 
 export default function IngredientListPage() {
   const navigate = useNavigate();
@@ -82,13 +84,16 @@ export default function IngredientListPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-2xl text-primary">egg_alt</span>
-          <h1 className="text-2xl font-bold">Zutatendatenbank</h1>
-        </div>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <ListPageHero
+        title="Zutatendatenbank"
+        description="Verwalte alle Zutaten mit Naehrwerten, Preisen und Nutri-Score."
+        icon="egg_alt"
+        gradientClasses="bg-gradient-to-br from-amber-500 to-orange-600"
+      />
+
+      {/* Actions */}
+      <div className="flex justify-end mb-6">
         <button
           onClick={() => navigate('/ingredients/new')}
           className="flex items-center gap-1 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90 transition"
@@ -141,7 +146,7 @@ export default function IngredientListPage() {
           className="px-3 py-2 rounded-md border text-sm bg-background min-w-[130px]"
         >
           <option value="">Alle Status</option>
-          <option value="published">Veroeffentlicht</option>
+           <option value="published">Veröffentlicht</option>
           <option value="draft">Entwurf</option>
           <option value="archived">Archiviert</option>
         </select>
@@ -171,7 +176,7 @@ export default function IngredientListPage() {
           <p className="text-muted-foreground text-sm mb-4">
             {name || retailSection || status
               ? 'Versuche andere Filterkriterien.'
-              : 'Erstelle deine erste Zutat fuer die Datenbank.'}
+               : 'Erstelle deine erste Zutat für die Datenbank.'}
           </p>
           {!name && !retailSection && !status && (
             <button
@@ -248,7 +253,7 @@ export default function IngredientListPage() {
                         handleDelete(ingredient.slug);
                       }}
                       className="text-destructive/60 hover:text-destructive rounded p-1 shrink-0"
-                      title="Loeschen"
+                       title="Löschen"
                     >
                       <span className="material-symbols-outlined text-lg">delete</span>
                     </button>
@@ -259,32 +264,11 @@ export default function IngredientListPage() {
           </div>
 
           {/* Pagination */}
-          {data.total_pages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <p className="text-sm text-muted-foreground">
-                {data.total} Zutaten, Seite {data.page} von {data.total_pages}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page <= 1}
-                  className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50 hover:bg-muted transition"
-                >
-                  <span className="material-symbols-outlined text-lg">chevron_left</span>
-                </button>
-                <span className="text-sm font-medium px-2">
-                  {data.page}
-                </span>
-                <button
-                  onClick={() => setPage(Math.min(data.total_pages, page + 1))}
-                  disabled={page >= data.total_pages}
-                  className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50 hover:bg-muted transition"
-                >
-                  <span className="material-symbols-outlined text-lg">chevron_right</span>
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={data.page}
+            totalPages={data.total_pages}
+            onPageChange={setPage}
+          />
         </>
       )}
 
@@ -294,19 +278,19 @@ export default function IngredientListPage() {
           if (deleteTarget === null) return;
           deleteIngredient.mutate(deleteTarget, {
             onSuccess: () => {
-              toast.success('Zutat geloescht');
+              toast.success('Zutat gelöscht');
               setDeleteTarget(null);
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setDeleteTarget(null);
             },
           });
         }}
         onCancel={() => setDeleteTarget(null)}
-        title="Zutat loeschen?"
-        description="Die Zutat und alle zugehoerigen Portionen und Preise werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Zutat löschen?"
+        description="Die Zutat und alle zugehörigen Portionen und Preise werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deleteIngredient.isPending}
       />
     </div>

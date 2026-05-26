@@ -44,13 +44,13 @@ async function postJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): 
 // --- Statistics ---
 
 const StatsSchema = z.object({
-  total_ideas: z.number(),
-  published_ideas: z.number(),
+  total_content: z.number(),
+  published_content: z.number(),
   total_users: z.number(),
   total_comments: z.number(),
   pending_comments: z.number(),
   views_last_30_days: z.number(),
-  top_ideas: z.array(z.object({
+  top_content: z.array(z.object({
     id: z.number(),
     title: z.string(),
     slug: z.string(),
@@ -156,12 +156,12 @@ export function useAdminUsers() {
 
 // --- User Detail ---
 
-const AdminUserIdeaSchema = z.object({
+const AdminUserContentSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
   status: z.string(),
-  idea_type: z.string(),
+  content_type: z.string(),
   created_at: z.string(),
 });
 
@@ -170,8 +170,8 @@ const AdminUserCommentSchema = z.object({
   text: z.string(),
   status: z.string(),
   created_at: z.string(),
-  idea_title: z.string().nullable(),
-  idea_slug: z.string().nullable(),
+  content_title: z.string().nullable(),
+  content_slug: z.string().nullable(),
 });
 
 const AdminUserDetailSchema = z.object({
@@ -183,7 +183,7 @@ const AdminUserDetailSchema = z.object({
   is_active: z.boolean(),
   date_joined: z.string(),
   last_login: z.string().nullable(),
-  ideas: z.array(AdminUserIdeaSchema),
+  content: z.array(AdminUserContentSchema),
   comments: z.array(AdminUserCommentSchema),
 });
 export type AdminUserDetail = z.infer<typeof AdminUserDetailSchema>;
@@ -204,8 +204,8 @@ const InstagramSchema = z.object({
 
 export function useInstagramExport() {
   return useMutation({
-    mutationFn: (ideaId: number) =>
-      postJson(`${API_BASE}/instagram-export/`, { idea_id: ideaId }, InstagramSchema),
+    mutationFn: (contentId: number) =>
+      postJson(`${API_BASE}/instagram-export/`, { content_id: contentId }, InstagramSchema),
   });
 }
 
@@ -214,8 +214,8 @@ export function useInstagramExport() {
 const RecentViewSchema = z.object({
   id: z.number(),
   created_at: z.string(),
-  idea_title: z.string().nullable(),
-  idea_slug: z.string().nullable(),
+  content_title: z.string().nullable(),
+  content_slug: z.string().nullable(),
   user_email: z.string().nullable(),
 });
 
@@ -227,12 +227,12 @@ const RecentSearchSchema = z.object({
   user_email: z.string().nullable(),
 });
 
-const RecentIdeaSchema = z.object({
+const RecentContentSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
   status: z.string(),
-  idea_type: z.string(),
+  content_type: z.string(),
   created_at: z.string(),
   author_email: z.string().nullable(),
 });
@@ -240,7 +240,7 @@ const RecentIdeaSchema = z.object({
 const RecentActivitySchema = z.object({
   recent_views: z.array(RecentViewSchema),
   recent_searches: z.array(RecentSearchSchema),
-  recent_ideas: z.array(RecentIdeaSchema),
+  recent_content: z.array(RecentContentSchema),
 });
 export type RecentActivity = z.infer<typeof RecentActivitySchema>;
 
@@ -253,14 +253,14 @@ export function useRecentActivity() {
 
 // --- Trending (7 days) ---
 
-const TrendingIdeaViewsSchema = z.object({
+const TrendingContentViewsSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
   views_7d: z.number(),
 });
 
-const TrendingIdeaLikesSchema = z.object({
+const TrendingContentLikesSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
@@ -268,8 +268,8 @@ const TrendingIdeaLikesSchema = z.object({
 });
 
 const TrendingSchema = z.object({
-  most_viewed: z.array(TrendingIdeaViewsSchema),
-  most_liked: z.array(TrendingIdeaLikesSchema),
+  most_viewed: z.array(TrendingContentViewsSchema),
+  most_liked: z.array(TrendingContentLikesSchema),
 });
 export type Trending = z.infer<typeof TrendingSchema>;
 

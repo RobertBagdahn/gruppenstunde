@@ -1,0 +1,62 @@
+{% extends "event/email/base.html" %}
+{% comment %}
+Registration confirmation template.
+Additional context:
+  event_name: name of the event
+  participants: list of dicts with first_name, last_name, booking_option, price
+  date_info: formatted date string
+  location_info: formatted location string
+{% endcomment %}
+
+{% block title %}Anmeldebestätigung: {{ event_name }}{% endblock %}
+
+{% block content %}
+<h2 style="color: {{ ci_primary_color|default:'#4a3a6b' }}; font-size: 20px; margin: 0 0 15px 0;">Anmeldebestätigung</h2>
+
+<p>Hallo,</p>
+<p>die Anmeldung f&uuml;r <strong>&bdquo;{{ event_name }}&ldquo;</strong> war erfolgreich.</p>
+
+<h3 style="color: {{ ci_primary_color|default:'#4a3a6b' }}; font-size: 16px; margin: 20px 0 10px 0;">Angemeldete Personen</h3>
+<table role="presentation" width="100%" cellpadding="8" cellspacing="0" border="0" style="border: 1px solid #e0e0e0; border-radius: 4px;">
+  <tr style="background-color: {{ ci_secondary_color|default:'#e8e4f0' }};">
+    <td style="font-weight: bold; font-size: 13px;">Name</td>
+    <td style="font-weight: bold; font-size: 13px;">Buchungsoption</td>
+    <td style="font-weight: bold; font-size: 13px; text-align: right;">Preis</td>
+  </tr>
+  {% for p in participants %}
+  <tr style="{% if forloop.counter|divisibleby:2 %}background-color: #fafafa;{% endif %}">
+    <td style="font-size: 14px;">{{ p.first_name }} {{ p.last_name }}</td>
+    <td style="font-size: 14px;">{{ p.booking_option }}</td>
+    <td style="font-size: 14px; text-align: right;">{{ p.price }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% if date_info %}
+<div style="margin-top: 20px;">
+  <strong>Datum:</strong><br>
+  <span style="white-space: pre-line;">{{ date_info }}</span>
+</div>
+{% endif %}
+
+{% if location_info %}
+<div style="margin-top: 10px;">
+  <strong>Ort:</strong> {{ location_info }}
+</div>
+{% endif %}
+
+<p style="margin-top: 25px;">Viele Gr&uuml;&szlig;e,<br>Das Team von {{ event_name }}</p>
+{% endblock %}
+
+{% block payment_section %}
+{% if ci_payment_info %}
+<tr>
+  <td style="padding: 0 30px 20px 30px;">
+    <div style="background-color: #f9f9f9; border-left: 3px solid {{ ci_primary_color|default:'#4a3a6b' }}; padding: 15px; border-radius: 4px;">
+      <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: {{ ci_primary_color|default:'#4a3a6b' }};">Zahlungsinformationen</div>
+      <div style="white-space: pre-line; font-size: 13px; color: #555555;">{{ ci_payment_info }}</div>
+    </div>
+  </td>
+</tr>
+{% endif %}
+{% endblock %}

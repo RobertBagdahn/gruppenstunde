@@ -12,8 +12,8 @@ import { z } from 'zod';
 export const MATERIAL_CATEGORY_OPTIONS = [
   { value: 'tools', label: 'Werkzeuge' },
   { value: 'crafting', label: 'Bastelmaterial' },
-  { value: 'kitchen', label: 'Kuechenbedarf' },
-  { value: 'outdoor', label: 'Outdoor-Ausruestung' },
+  { value: 'kitchen', label: 'Küchenbedarf' },
+  { value: 'outdoor', label: 'Outdoor-Ausrüstung' },
   { value: 'stationery', label: 'Schreibwaren' },
   { value: 'other', label: 'Sonstiges' },
 ] as const;
@@ -187,6 +187,35 @@ export const IngredientDetailSchema = z.object({
   nova_score: z.number().nullable(),
   fruit_factor: z.number().nullable(),
 
+  // Vitamins
+  vitamin_a_mg: z.number().nullable().optional(),
+  vitamin_b1_mg: z.number().nullable().optional(),
+  vitamin_b2_mg: z.number().nullable().optional(),
+  vitamin_b6_mg: z.number().nullable().optional(),
+  vitamin_b12_ug: z.number().nullable().optional(),
+  vitamin_c_mg: z.number().nullable().optional(),
+  vitamin_d_ug: z.number().nullable().optional(),
+  vitamin_e_mg: z.number().nullable().optional(),
+  vitamin_k_ug: z.number().nullable().optional(),
+  niacin_mg: z.number().nullable().optional(),
+  folate_ug: z.number().nullable().optional(),
+  pantothenic_acid_mg: z.number().nullable().optional(),
+  biotin_ug: z.number().nullable().optional(),
+
+  // Minerals
+  calcium_mg: z.number().nullable().optional(),
+  iron_mg: z.number().nullable().optional(),
+  magnesium_mg: z.number().nullable().optional(),
+  zinc_mg: z.number().nullable().optional(),
+  potassium_mg: z.number().nullable().optional(),
+  phosphorus_mg: z.number().nullable().optional(),
+  iodine_ug: z.number().nullable().optional(),
+  selenium_ug: z.number().nullable().optional(),
+  copper_mg: z.number().nullable().optional(),
+  manganese_mg: z.number().nullable().optional(),
+  chromium_ug: z.number().nullable().optional(),
+  fluoride_mg: z.number().nullable().optional(),
+
   // Calculated
   nutri_score: z.number().nullable(),
   nutri_class: z.number().nullable(),
@@ -227,6 +256,7 @@ export const RecipeHintSchema = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string(),
+  improvement_text: z.string().default(''),
   parameter: z.string(),
   min_value: z.number().nullable(),
   max_value: z.number().nullable(),
@@ -241,16 +271,9 @@ export const RecipeHintMatchSchema = z.object({
   hint: RecipeHintSchema,
   actual_value: z.number(),
   message: z.string(),
+  improvement_text: z.string().default(''),
 });
 export type RecipeHintMatch = z.infer<typeof RecipeHintMatchSchema>;
-
-export const RecipeCheckSchema = z.object({
-  label: z.string(),
-  value: z.string(),
-  color: z.string(),
-  score: z.number(),
-});
-export type RecipeCheck = z.infer<typeof RecipeCheckSchema>;
 
 export const NutriScoreDetailSchema = z.object({
   negative_points: z.number(),
@@ -272,16 +295,17 @@ export const NUTRI_SCORE_COLORS: Record<number, { bg: string; text: string; labe
   5: { bg: 'bg-red-500', text: 'text-white', label: 'E' },
 };
 
-// --- Legacy Material Name schemas (used by api/materials.ts) ---
+// --- Legacy Material Content schemas (used by api/materials.ts) ---
 
-export const MaterialIdeaSchema = z.object({
+export const MaterialContentSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
   summary: z.string(),
   image_url: z.string().nullable().optional(),
+  content_type: z.string().optional(),
 });
-export type MaterialIdea = z.infer<typeof MaterialIdeaSchema>;
+export type MaterialContent = z.infer<typeof MaterialContentSchema>;
 
 export const MaterialNameDetailSchema = z.object({
   id: z.number(),
@@ -289,7 +313,7 @@ export const MaterialNameDetailSchema = z.object({
   slug: z.string(),
   description: z.string(),
   default_unit: z.string().nullable(),
-  ideas: z.array(MaterialIdeaSchema),
+  contents: z.array(MaterialContentSchema),
 });
 export type MaterialNameDetail = z.infer<typeof MaterialNameDetailSchema>;
 

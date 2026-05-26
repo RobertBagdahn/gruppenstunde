@@ -1,0 +1,23 @@
+wanderung:
+  - "festes Schuhwerk"
+  - "Regenjacke"
+  - "Schlafsack"
+  - "Isomatte"
+  - "Wechselkleidung"
+  - "Krankenkassenkarte"
+  - "Kluft"
+  - "Hygieneartikel"
+
+lager_haus:
+  - "Schlafsack"
+  - "Bettwäsche"
+  - "Wechselkleidung"
+  - "Krankenkassenkarte"
+  - "Kluft"
+  - "Hygieneartikel"
+  - "Sonnencreme"
+
+minimal:
+  - "Wechselkleidung"
+  - "Krankenkassenkarte"
+  - "Kluft"

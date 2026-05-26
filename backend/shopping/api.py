@@ -78,14 +78,14 @@ def _require_admin(shopping_list: ShoppingList, user) -> str:
     """Require at least admin access. Returns the role."""
     role = _require_access(shopping_list, user)
     if role not in ("owner", CollaboratorRole.ADMIN):
-        raise HttpError(403, "Nur Admins und Besitzer koennen das aendern")
+        raise HttpError(403, "Nur Admins und Besitzer können das ändern")
     return role
 
 
 def _require_owner(shopping_list: ShoppingList, user) -> None:
     """Require owner access."""
     if shopping_list.owner_id != user.id:
-        raise HttpError(403, "Nur der Besitzer kann die Liste loeschen")
+        raise HttpError(403, "Nur der Besitzer kann die Liste löschen")
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ def delete_shopping_list(request, shopping_list_id: int):
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_owner(shopping_list, request.user)
     shopping_list.delete()
-    return {"success": True, "message": "Einkaufsliste geloescht"}
+    return {"success": True, "message": "Einkaufsliste gelöscht"}
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +249,7 @@ def delete_item(request, shopping_list_id: int, item_id: int):
     _require_edit(shopping_list, request.user)
     item = get_object_or_404(ShoppingListItem, id=item_id, shopping_list=shopping_list)
     item.delete()
-    return {"success": True, "message": "Eintrag geloescht"}
+    return {"success": True, "message": "Eintrag gelöscht"}
 
 
 # ---------------------------------------------------------------------------
@@ -275,7 +275,7 @@ def add_collaborator(request, shopping_list_id: int, payload: CollaboratorCreate
         raise HttpError(404, "Nutzer nicht gefunden")
 
     if user.id == shopping_list.owner_id:
-        raise HttpError(400, "Der Besitzer kann nicht als Mitglied hinzugefuegt werden")
+        raise HttpError(400, "Der Besitzer kann nicht als Mitglied hinzugefügt werden")
 
     if ShoppingListCollaborator.objects.filter(shopping_list=shopping_list, user=user).exists():
         raise HttpError(400, "Nutzer ist bereits Mitglied")
@@ -283,7 +283,7 @@ def add_collaborator(request, shopping_list_id: int, payload: CollaboratorCreate
     # Validate role
     valid_roles = [r.value for r in CollaboratorRole]
     if payload.role not in valid_roles:
-        raise HttpError(400, f"Ungueltige Rolle: {payload.role}")
+        raise HttpError(400, f"Ungültige Rolle: {payload.role}")
 
     collab = ShoppingListCollaborator.objects.create(
         shopping_list=shopping_list,
@@ -312,7 +312,7 @@ def update_collaborator(
 
     valid_roles = [r.value for r in CollaboratorRole]
     if payload.role not in valid_roles:
-        raise HttpError(400, f"Ungueltige Rolle: {payload.role}")
+        raise HttpError(400, f"Ungültige Rolle: {payload.role}")
 
     collab.role = payload.role
     collab.save()
@@ -332,7 +332,7 @@ def remove_collaborator(request, shopping_list_id: int, collab_id: int):
 
 
 # ---------------------------------------------------------------------------
-# Export from Recipe / MealEvent (7.13 – 7.14)
+# Export from Recipe / MealPlan (7.13 – 7.14)
 # ---------------------------------------------------------------------------
 
 
@@ -386,24 +386,24 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
     return shopping_list
 
 
-@shopping_router.post("/from-meal-event/{meal_event_id}/", response=ShoppingListDetailOut)
-def create_from_meal_event(request, meal_event_id: int):
-    """Create a persistent shopping list from a MealEvent."""
+@shopping_router.post("/from-meal-plan/{meal_plan_id}/", response=ShoppingListDetailOut)
+def create_from_meal_plan(request, meal_plan_id: int):
+    """Create a persistent shopping list from a MealPlan."""
     _require_auth(request)
 
-    from planner.models import MealEvent
+    from planner.models import MealPlan
 
-    meal_event = get_object_or_404(MealEvent, id=meal_event_id)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
 
     from supply.services.shopping_service import generate_shopping_list
 
-    transient_items = generate_shopping_list(meal_event)
+    transient_items = generate_shopping_list(meal_plan)
 
     shopping_list = ShoppingList.objects.create(
-        name=f"Einkaufsliste: {meal_event.name}",
+        name=f"Einkaufsliste: {meal_plan.name}",
         owner=request.user,
         source_type=SourceType.MEAL_EVENT,
-        source_id=meal_event.id,
+        source_id=meal_plan.id,
     )
 
     from supply.models.ingredient import Ingredient

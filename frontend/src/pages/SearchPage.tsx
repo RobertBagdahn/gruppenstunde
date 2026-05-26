@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useUnifiedSearch } from '@/api/search';
+import { useCurrentUser } from '@/api/auth';
 import { useSearchStore } from '@/store/useSearchStore';
 import SearchBar from '@/components/SearchBar';
 import { SearchTabs } from '@/components/search/SearchTabs';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import Pagination from '@/components/shared/Pagination';
+import ListPageHero from '@/components/shared/ListPageHero';
+import EmptyState from '@/components/shared/EmptyState';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   RESULT_TYPE_CONFIG,
   type UnifiedSearchResult,
@@ -42,6 +48,7 @@ function filtersToSearchParams(filters: Partial<UnifiedSearchFilter>): URLSearch
   }
   if (filters.sort && filters.sort !== 'relevant') params.set('sort', filters.sort);
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));
+  if (filters.scope === 'mine') params.set('scope', 'mine');
   return params;
 }
 
@@ -59,6 +66,8 @@ function searchParamsToFilters(params: URLSearchParams): Partial<UnifiedSearchFi
   if (sort) filters.sort = sort;
   const page = params.get('page');
   if (page) filters.page = Number(page);
+  const scope = params.get('scope');
+  if (scope === 'mine') filters.scope = 'mine';
   return filters;
 }
 
@@ -67,11 +76,12 @@ function searchParamsToFilters(params: URLSearchParams): Partial<UnifiedSearchFi
 /* ------------------------------------------------------------------ */
 function ResultCard({ result }: { result: UnifiedSearchResult }) {
   const config = RESULT_TYPE_CONFIG[result.result_type];
-  const linkTo = result.url;
 
   return (
-    <Link
-      to={linkTo}
+    <EntityLink
+      type={result.result_type as EntityType}
+      slug={result.slug}
+      name={result.title}
       className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border/50 hover:border-primary/40 hover:shadow-colorful"
     >
       {/* Image area (or placeholder) */}
@@ -106,18 +116,14 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
           </div>
         )}
 
-        {/* Like score for ideas */}
-        {result.result_type === 'idea' && extra(result, 'like_score') != null && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-extrabold text-rose-500 shadow-md">
-            <span
-              className="material-symbols-outlined text-[16px]"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              favorite
-            </span>
-            {extra(result, 'like_score')}
+        {/* Draft badge */}
+        {result.status === 'draft' && (
+          <div className="absolute top-3 right-3 flex items-center gap-1 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-extrabold shadow-md border bg-amber-50 border-amber-300 text-amber-700">
+            <span className="material-symbols-outlined text-[14px]">edit_note</span>
+            Entwurf
           </div>
         )}
+
       </div>
 
       <div className="p-5">
@@ -173,20 +179,6 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
             </span>
           )}
 
-          {/* Idea: difficulty + time */}
-          {result.result_type === 'idea' && extra(result, 'execution_time') && (
-            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
-              <span className="material-symbols-outlined text-[14px]">schedule</span>
-              {extra(result, 'execution_time')}
-            </span>
-          )}
-          {result.result_type === 'idea' && extra(result, 'difficulty') && (
-            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
-              <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
-              {extra(result, 'difficulty')}
-            </span>
-          )}
-
           {/* Recipe: type + servings */}
           {result.result_type === 'recipe' && extra(result, 'recipe_type') && (
             <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
@@ -198,15 +190,6 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
             <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
               <span className="material-symbols-outlined text-[14px]">group</span>
               {extra(result, 'servings')} Portionen
-            </span>
-          )}
-
-          {/* Tag: icon */}
-          {result.result_type === 'tag' && extra(result, 'icon') && (
-            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
-              <span className="material-symbols-outlined text-[14px]">
-                {extra(result, 'icon')}
-              </span>
             </span>
           )}
 
@@ -229,7 +212,7 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
           )}
         </div>
       </div>
-    </Link>
+    </EntityLink>
   );
 }
 
@@ -240,6 +223,8 @@ export default function SearchPage() {
   const { searchQuery } = useSearchStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialized = useRef(false);
+  const { data: currentUser } = useCurrentUser();
+  const isAuthenticated = !!currentUser;
 
   // Local filter state (unified search filters)
   const [filters, setFilters] = useState<Partial<UnifiedSearchFilter>>(() => {
@@ -249,7 +234,7 @@ export default function SearchPage() {
     return { sort: 'relevant', page: 1, page_size: 20 };
   });
 
-  // Pick up q from the IdeaStore (set by SearchBar)
+  // Pick up q from the SearchStore (set by SearchBar)
   useEffect(() => {
     if (searchQuery !== (filters.q ?? '')) {
       setFilters((prev) => ({ ...prev, q: searchQuery || undefined, page: 1 }));
@@ -263,7 +248,7 @@ export default function SearchPage() {
       if (searchParams.toString()) {
         const parsed = searchParamsToFilters(searchParams);
         setFilters(parsed);
-        // Also sync q back to IdeaStore for the SearchBar
+        // Also sync q back to SearchStore for the SearchBar
         if (parsed.q) {
           useSearchStore.getState().setSearchQuery(parsed.q);
         }
@@ -288,7 +273,12 @@ export default function SearchPage() {
     };
   }, [filters.q]);
 
-  const { data, isLoading, error, refetch } = useUnifiedSearch(filters);
+  // For anonymous users, strip scope=mine (task 5.5)
+  const effectiveFilters = !isAuthenticated && filters.scope === 'mine'
+    ? { ...filters, scope: undefined as UnifiedSearchFilter['scope'] }
+    : filters;
+
+  const { data, isLoading, error, refetch } = useUnifiedSearch(effectiveFilters);
 
   /* -- Filter helpers ------------------------------------------------ */
   function setFilter<K extends keyof UnifiedSearchFilter>(key: K, value: UnifiedSearchFilter[K]) {
@@ -302,35 +292,20 @@ export default function SearchPage() {
   const activeTypes = filters.result_types ?? [];
   const typeCounts = data?.type_counts ?? {};
 
-  /* -- Total label --------------------------------------------------- */
-  function getTotalLabel(total: number): string {
-    return `${total} Ergebnis${total !== 1 ? 'se' : ''} gefunden`;
-  }
-
   return (
-    <div className="container py-4 md:py-8 px-3 md:px-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl gradient-hero p-4 md:p-8 mb-4 md:mb-8 shadow-lg">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 hidden md:block" />
-        <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/4 hidden md:block" />
-        <div className="absolute top-10 right-40 w-20 h-20 bg-[hsl(45,93%,58%)]/20 rounded-full hidden md:block" />
-        <div className="relative flex items-center gap-4">
-          <img
-            src="/images/Inspi_filter.png"
-            alt="Inspi Suche"
-            className="h-20 md:h-28 drop-shadow-lg hidden sm:block"
-          />
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">Suchen</h1>
-            {data && (
-              <span className="inline-flex items-center gap-1.5 mt-2 bg-white/20 backdrop-blur-sm text-white text-sm font-medium rounded-full px-4 py-1.5">
-                <span className="material-symbols-outlined text-[18px]">search</span>
-                {getTotalLabel(data.total)}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+      <ListPageHero
+        title="Suchen"
+        description=""
+        icon="search"
+        gradientClasses="gradient-hero"
+        mascotSrc="/images/inspi_filter.png"
+        mascotAlt="Inspi Suche"
+        totalCount={data?.total}
+        countLabel="Ergebnis"
+        countIcon="search"
+      />
 
       {/* Search Bar */}
       <div className="mb-4 md:mb-6 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 rounded-2xl p-4 md:p-6 border border-primary/10">
@@ -353,8 +328,28 @@ export default function SearchPage() {
           totalCount={data?.total ?? 0}
         />
 
-        {/* Sort */}
-        <div className="flex items-center gap-2 self-end">
+        {/* Sort + Mine toggle */}
+        <div className="flex items-center gap-4 self-end">
+          {/* Mine toggle (only for authenticated users) */}
+          {isAuthenticated && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id="scope-mine"
+                checked={filters.scope === 'mine'}
+                onCheckedChange={(checked) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    scope: checked ? 'mine' : undefined,
+                    page: 1,
+                  }))
+                }
+              />
+              <Label htmlFor="scope-mine" className="text-sm font-medium cursor-pointer whitespace-nowrap">
+                Nur meine Beiträge
+              </Label>
+            </div>
+          )}
+
           <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
           <select
             value={filters.sort ?? 'relevant'}
@@ -374,53 +369,37 @@ export default function SearchPage() {
       {error ? (
         <ErrorDisplay error={error} onRetry={() => refetch()} />
       ) : isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-xl border bg-gradient-to-br from-primary/10 via-muted/50 to-secondary/10 animate-pulse h-72"
+              className="rounded-xl border bg-gradient-to-br from-primary/10 via-muted/50 to-secondary/10 animate-pulse h-96"
             />
           ))}
         </div>
       ) : data?.items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-gradient-to-br from-primary/5 via-card to-accent/5 rounded-xl border border-dashed border-primary/30">
-          <img
-            src="/images/inspi_question.png"
-            alt="Keine Ergebnisse"
-            className="w-40 h-40 object-contain mb-6 drop-shadow-md"
-          />
-          <p className="text-lg font-semibold text-foreground">Keine Ergebnisse gefunden</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Versuch es mit anderen Suchbegriffen oder Filtern.
-          </p>
-        </div>
+        <EmptyState
+          mascotSrc="/images/inspi_question.png"
+          mascotAlt="Keine Ergebnisse"
+          title="Keine Ergebnisse gefunden"
+          description="Versuch es mit anderen Suchbegriffen oder Filtern."
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data?.items.map((result) => (
-            <ResultCard key={`${result.result_type}-${result.id}`} result={result} />
-          ))}
-        </div>
+        <EntityLinkContext.Provider value="list">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {data?.items.map((result) => (
+              <ResultCard key={`${result.result_type}-${result.id}`} result={result} />
+            ))}
+          </div>
+        </EntityLinkContext.Provider>
       )}
 
       {/* Pagination */}
-      {data && data.total_pages > 1 && (
-        <div className="flex justify-center gap-2 mt-10 bg-gradient-to-r from-transparent via-primary/5 to-transparent py-4 rounded-xl">
-          {Array.from({ length: data.total_pages }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setFilter('page', i + 1)}
-              className={cn(
-                'w-10 h-10 rounded-full text-sm font-medium transition-all',
-                filters.page === i + 1
-                  ? 'gradient-primary text-white shadow-lg shadow-primary/30 scale-110'
-                  : 'border bg-card hover:bg-primary/10 hover:text-primary hover:border-primary/30',
-              )}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
-      )}
+      <Pagination
+        currentPage={filters.page ?? 1}
+        totalPages={data?.total_pages ?? 1}
+        onPageChange={(page) => setFilter('page', page)}
+      />
     </div>
   );
 }

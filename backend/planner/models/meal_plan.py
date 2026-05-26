@@ -1,4 +1,4 @@
-"""MealEvent, Meal, and MealItem models."""
+"""MealPlan, Meal, and MealItem models."""
 
 import datetime as dt
 
@@ -44,8 +44,8 @@ MEAL_TYPE_DEFAULT_TIMES: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
 }
 
 
-class MealEvent(models.Model):
-    """Meal event plan for scout events or standalone use."""
+class MealPlan(models.Model):
+    """Meal plan for scout events or standalone use."""
 
     name = models.CharField(max_length=200, verbose_name=_("Name"))
     slug = models.SlugField(max_length=220, unique=True, blank=True, verbose_name=_("Slug"))
@@ -58,13 +58,13 @@ class MealEvent(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="meal_events",
+        related_name="meal_plans",
         verbose_name=_("Event"),
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="meal_events",
+        related_name="meal_plans",
         verbose_name=_("Erstellt von"),
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -83,10 +83,10 @@ class MealEvent(models.Model):
         if not self.slug:
             base_slug = slugify(self.name, allow_unicode=False)
             if not base_slug:
-                base_slug = "meal-event"
+                base_slug = "meal-plan"
             slug = base_slug
             counter = 1
-            while MealEvent.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            while MealPlan.objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
             self.slug = slug
@@ -105,7 +105,7 @@ class MealEvent(models.Model):
             start_dt = timezone.make_aware(dt.datetime.combine(date, dt.time(times[0][0], times[0][1])))
             end_dt = timezone.make_aware(dt.datetime.combine(date, dt.time(times[1][0], times[1][1])))
             meal, _created = Meal.objects.get_or_create(
-                meal_event=self,
+                meal_plan=self,
                 start_datetime__date=date,
                 meal_type=meal_type,
                 defaults={
@@ -121,11 +121,12 @@ class MealEvent(models.Model):
 class Meal(models.Model):
     """A single meal (e.g. breakfast, lunch) with start and end datetime."""
 
-    meal_event = models.ForeignKey(
-        MealEvent,
+    meal_plan = models.ForeignKey(
+        MealPlan,
         on_delete=models.CASCADE,
         related_name="meals",
         verbose_name=_("Essensplan"),
+        db_column="meal_event_id",
     )
     start_datetime = models.DateTimeField(
         db_index=True,
@@ -155,11 +156,11 @@ class Meal(models.Model):
         return f"{date_str} – {self.get_meal_type_display()}"
 
     def clean(self) -> None:
-        """Validate uniqueness of (meal_event, date, meal_type)."""
-        if self.start_datetime and self.meal_event_id:
+        """Validate uniqueness of (meal_plan, date, meal_type)."""
+        if self.start_datetime and self.meal_plan_id:
             date = self.start_datetime.date()
             qs = Meal.objects.filter(
-                meal_event=self.meal_event,
+                meal_plan=self.meal_plan,
                 start_datetime__date=date,
                 meal_type=self.meal_type,
             )

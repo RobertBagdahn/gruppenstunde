@@ -1,13 +1,15 @@
-"""Nutrition-related endpoints (NutriScore, Breakdown, Checks, Hints)."""
+"""Nutrition-related endpoints (NutriScore, Breakdown, Hints, Improvements, Suggestions)."""
 
 from django.shortcuts import get_object_or_404
 from ninja import Router
+from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
+    ImprovementListOut,
+    LlmSuggestionOut,
+    LlmSuggestionRequestIn,
     NutriScoreDetailOut,
-    RecipeCheckOut,
-    RecipeHintMatchOut,
     RecipeNutritionBreakdownOut,
 )
 
@@ -15,46 +17,8 @@ router = Router()
 
 
 # ==========================================================================
-# Recipe Analysis (Nutri-Score, Hints, Checks)
+# Recipe Analysis (Nutri-Score)
 # ==========================================================================
-
-
-@router.get("/{recipe_id}/recipe-checks/", response=list[RecipeCheckOut])
-def get_recipe_checks(request, recipe_id: int):
-    """Get 4-dimension recipe checks."""
-    from recipe.services.recipe_checks import get_recipe_checks as _get_checks
-
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    return _get_checks(recipe)
-
-
-@router.get("/{recipe_id}/recipe-hints/", response=list[RecipeHintMatchOut])
-def get_recipe_hints(request, recipe_id: int, recipe_objective: str = ""):
-    """Get recipe improvement hints."""
-    from recipe.services.recipe_checks import match_recipe_hints
-
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    matches = match_recipe_hints(recipe, recipe_objective)
-
-    return [
-        {
-            "hint": {
-                "id": m["hint"].id,
-                "name": m["hint"].name,
-                "description": m["hint"].description,
-                "parameter": m["hint"].parameter,
-                "min_value": m["hint"].min_value,
-                "max_value": m["hint"].max_value,
-                "min_max": m["hint"].min_max,
-                "hint_level": m["hint"].hint_level,
-                "recipe_type": m["hint"].recipe_type,
-                "recipe_objective": m["hint"].recipe_objective,
-            },
-            "actual_value": m["actual_value"],
-            "message": m["message"],
-        }
-        for m in matches
-    ]
 
 
 @router.get("/{recipe_id}/nutri-score/", response=NutriScoreDetailOut)
@@ -78,17 +42,54 @@ def get_recipe_nutri_score(request, recipe_id: int):
 
 
 # ==========================================================================
+# Unified Improvement Ranking
+# ==========================================================================
+
+
+@router.get("/{recipe_id}/improvements/", response=ImprovementListOut)
+def get_recipe_improvements(request, recipe_id: int):
+    """Get ranked improvement suggestions (merged Nutri-Score + RecipeHint)."""
+    from recipe.services.improvement_ranking_service import compute_improvement_ranking
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    return compute_improvement_ranking(recipe)
+
+
+# ==========================================================================
+# LLM Suggestions
+# ==========================================================================
+
+
+@router.post("/{recipe_id}/suggestions/", response=list[LlmSuggestionOut])
+def get_llm_suggestions(request, recipe_id: int, body: LlmSuggestionRequestIn):
+    """Get LLM-generated ingredient suggestions for a recipe improvement objective."""
+    if not request.user.is_authenticated:
+        raise HttpError(401, "Anmeldung erforderlich")
+
+    from recipe.services.suggestion_service import get_suggestions
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    return get_suggestions(recipe, body.objective, request.user)
+
+
+# ==========================================================================
 # Nutritional Breakdown (per ingredient)
 # ==========================================================================
 
 
 @router.get("/{recipe_id}/nutrition-breakdown/", response=RecipeNutritionBreakdownOut)
-def get_recipe_nutrition_breakdown(request, recipe_id: int):
-    """Get detailed nutritional breakdown per ingredient for a recipe."""
+def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = None, gender: str | None = None):
+    """Get detailed nutritional breakdown per ingredient for a recipe.
+
+    Optional ``age`` and ``gender`` query params select a DGE reference row
+    so that ``dge_coverage`` percentages can be returned.
+    """
     recipe = get_object_or_404(Recipe, id=recipe_id)
     items = RecipeItem.objects.filter(recipe=recipe).select_related(
         "portion", "portion__ingredient", "ingredient", "measuring_unit"
     )
+
+    from recipe.services.recipe_checks import MICRONUTRIENT_FIELDS
 
     result_items = []
     total_weight_g = 0.0
@@ -104,6 +105,8 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int):
         "fibre_g": 0.0,
         "salt_g": 0.0,
     }
+    # Micronutrient totals
+    micro_totals: dict[str, float] = {f: 0.0 for f in MICRONUTRIENT_FIELDS}
 
     # First pass: calculate weights
     item_data = []
@@ -137,40 +140,118 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int):
             item_nutrition[field] = contribution
             totals[field] += contribution
 
+        # Micronutrient contributions for this item
+        item_micro = {}
+        for field in MICRONUTRIENT_FIELDS:
+            val = getattr(ingredient, field, None)
+            if val is not None:
+                contribution = val * factor
+                item_micro[field] = contribution
+                micro_totals[field] += contribution
+            else:
+                item_micro[field] = None
+
         energy_kcal = item_nutrition["energy_kj"] / 4.184
 
-        item_data.append(
-            {
-                "recipe_item_id": item.id,
-                "ingredient_id": ingredient.id,
-                "ingredient_name": ingredient.name,
-                "quantity": item.quantity,
-                "portion_name": str(item.portion)
-                if item.portion
-                else (item.measuring_unit.name if item.measuring_unit else "Stück"),
-                "weight_g": round(weight_g, 1),
-                "price_eur": round(item_price, 2) if item_price is not None else None,
-                "energy_kj": round(item_nutrition["energy_kj"], 1),
-                "energy_kcal": round(energy_kcal, 1),
-                "protein_g": round(item_nutrition["protein_g"], 1),
-                "fat_g": round(item_nutrition["fat_g"], 1),
-                "fat_sat_g": round(item_nutrition["fat_sat_g"], 1),
-                "carbohydrate_g": round(item_nutrition["carbohydrate_g"], 1),
-                "sugar_g": round(item_nutrition["sugar_g"], 1),
-                "fibre_g": round(item_nutrition["fibre_g"], 1),
-                "salt_g": round(item_nutrition["salt_g"], 1),
-                "weight_pct": 0.0,
-            }
-        )
+        item_entry = {
+            "recipe_item_id": item.id,
+            "ingredient_id": ingredient.id,
+            "ingredient_name": ingredient.name,
+            "quantity": item.quantity,
+            "portion_name": str(item.portion)
+            if item.portion
+            else (item.measuring_unit.name if item.measuring_unit else "Stück"),
+            "weight_g": round(weight_g, 1),
+            "price_eur": round(item_price, 2) if item_price is not None else None,
+            "energy_kj": round(item_nutrition["energy_kj"], 1),
+            "energy_kcal": round(energy_kcal, 1),
+            "protein_g": round(item_nutrition["protein_g"], 1),
+            "fat_g": round(item_nutrition["fat_g"], 1),
+            "fat_sat_g": round(item_nutrition["fat_sat_g"], 1),
+            "carbohydrate_g": round(item_nutrition["carbohydrate_g"], 1),
+            "sugar_g": round(item_nutrition["sugar_g"], 1),
+            "fibre_g": round(item_nutrition["fibre_g"], 1),
+            "salt_g": round(item_nutrition["salt_g"], 1),
+            "weight_pct": 0.0,
+        }
+        # Add micronutrient values to item
+        for field in MICRONUTRIENT_FIELDS:
+            val = item_micro[field]
+            item_entry[field] = round(val, 3) if val is not None else None
 
-    # Second pass: calculate weight percentages
+        item_data.append(item_entry)
+
+    # Second pass: calculate weight percentages and contributions
     for item in item_data:
         if total_weight_g > 0:
             item["weight_pct"] = round(item["weight_g"] / total_weight_g * 100, 1)
+
+        # Compute per-item contributions for each nutritional parameter
+        contributions = []
+        param_mapping = [
+            ("energy", "energy_kj"),
+            ("protein", "protein_g"),
+            ("fat", "fat_g"),
+            ("sat_fat", "fat_sat_g"),
+            ("carbs", "carbohydrate_g"),
+            ("sugar", "sugar_g"),
+            ("salt", "salt_g"),
+            ("fiber", "fibre_g"),
+        ]
+        for param_key, field_key in param_mapping:
+            item_val = item.get(field_key, 0.0)
+            recipe_total = totals.get(field_key, 0.0)
+            pct = round(item_val / recipe_total * 100, 1) if recipe_total > 0 else 0.0
+            contributions.append({
+                "parameter": param_key,
+                "absolute": round(item_val, 1),
+                "percent_of_recipe": pct,
+            })
+        item["contributions"] = contributions
+
         result_items.append(item)
 
     total_energy_kcal = totals["energy_kj"] / 4.184
     servings = recipe.servings or 1
+
+    # Build DGE coverage if age/gender provided
+    dge_coverage: dict[str, float | None] = {}
+    if age is not None and gender:
+        from supply.models import DgeReference
+
+        ref = DgeReference.objects.filter(
+            age_min__lte=age,
+            age_max__gte=age,
+            gender=gender,
+        ).first()
+        if ref:
+            # Coverage = total recipe value / (daily reference * servings share)
+            # We compare total recipe values against daily reference
+            coverage_fields = [
+                "energy_kj",
+                "protein_g",
+                "fat_g",
+                "carbohydrate_g",
+                "fibre_g",
+            ] + MICRONUTRIENT_FIELDS
+            for field in coverage_fields:
+                ref_val = getattr(ref, field, None)
+                if ref_val and ref_val > 0:
+                    if field in totals:
+                        actual = totals[field]
+                    else:
+                        actual = micro_totals.get(field, 0.0)
+                    dge_coverage[field] = round(actual / ref_val * 100, 1)
+
+    # Helper to get rounded micronutrient total or None
+    def _micro_total(field: str) -> float | None:
+        val = micro_totals.get(field, 0.0)
+        return round(val, 3) if val else None
+
+    # Compute positive health traits
+    from recipe.services.health_traits_service import compute_positive_traits
+
+    positive_traits = compute_positive_traits(recipe)
 
     return {
         "total_weight_g": round(total_weight_g, 1),
@@ -184,9 +265,27 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int):
         "total_sugar_g": round(totals["sugar_g"], 1),
         "total_fibre_g": round(totals["fibre_g"], 1),
         "total_salt_g": round(totals["salt_g"], 1),
+        # Micronutrient totals
+        "total_vitamin_a_mg": _micro_total("vitamin_a_mg"),
+        "total_vitamin_c_mg": _micro_total("vitamin_c_mg"),
+        "total_vitamin_d_ug": _micro_total("vitamin_d_ug"),
+        "total_vitamin_b12_ug": _micro_total("vitamin_b12_ug"),
+        "total_calcium_mg": _micro_total("calcium_mg"),
+        "total_iron_mg": _micro_total("iron_mg"),
+        "total_magnesium_mg": _micro_total("magnesium_mg"),
+        "total_zinc_mg": _micro_total("zinc_mg"),
+        "total_potassium_mg": _micro_total("potassium_mg"),
+        "total_folate_ug": _micro_total("folate_ug"),
+        # Per-serving values
         "per_serving_energy_kcal": round(total_energy_kcal / servings, 1),
         "per_serving_protein_g": round(totals["protein_g"] / servings, 1),
         "per_serving_fat_g": round(totals["fat_g"] / servings, 1),
         "per_serving_carbohydrate_g": round(totals["carbohydrate_g"] / servings, 1),
+        "per_serving_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0) / servings, 3) or None,
+        "per_serving_calcium_mg": round(micro_totals.get("calcium_mg", 0.0) / servings, 3) or None,
+        "per_serving_iron_mg": round(micro_totals.get("iron_mg", 0.0) / servings, 3) or None,
+        # DGE coverage
+        "dge_coverage": dge_coverage,
+        "positive_traits": positive_traits,
         "items": result_items,
     }

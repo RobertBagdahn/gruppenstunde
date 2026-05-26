@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EmptyState from '@/components/shared/EmptyState';
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '–';
@@ -56,6 +57,7 @@ function PersonForm({
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
     person?.nutritional_tags?.map((t) => t.id) ?? []
   );
+  const [phoneNumber, setPhoneNumber] = useState(person?.phone_number ?? '');
   const [address, setAddress] = useState(person?.address ?? '');
   const [zipCode, setZipCode] = useState(person?.zip_code ?? '');
   const [isOwner, setIsOwner] = useState(person?.is_owner ?? false);
@@ -70,6 +72,7 @@ function PersonForm({
       last_name: lastName.trim(),
       scout_name: scoutName.trim(),
       email: email.trim(),
+      phone_number: phoneNumber.trim() || null,
       birthday: birthday || null,
       gender,
       nutritional_tag_ids: selectedTagIds,
@@ -136,6 +139,19 @@ function PersonForm({
             className="w-full px-3 py-2 rounded-md border text-sm bg-background"
             placeholder="E-Mail"
           />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Telefonnummer</label>
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="w-full px-3 py-2 rounded-md border text-sm bg-background"
+            placeholder="+49 151 12345678"
+          />
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Internationales Format, z.B. +49 151 12345678
+          </p>
         </div>
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Geburtstag</label>
@@ -276,19 +292,19 @@ function PersonCard({
         onConfirm={() => {
           deletePerson.mutate(person.id, {
             onSuccess: () => {
-              toast.success('Person geloescht');
+              toast.success('Person gelöscht');
               setShowDeleteConfirm(false);
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setShowDeleteConfirm(false);
             },
           });
         }}
         onCancel={() => setShowDeleteConfirm(false)}
-        title={`„${person.first_name} ${person.last_name}" loeschen?`}
-        description="Diese Aktion kann nicht rueckgaengig gemacht werden."
-        confirmLabel="Loeschen"
+        title={`„${person.first_name} ${person.last_name}" löschen?`}
+        description="Diese Aktion kann nicht rückgängig gemacht werden."
+        confirmLabel="Löschen"
         loading={deletePerson.isPending}
       />
       <div
@@ -324,6 +340,12 @@ function PersonCard({
               <span className="flex items-center gap-1">
                 <span className="material-symbols-outlined text-[14px]">mail</span>
                 {person.email}
+              </span>
+            )}
+            {person.phone_number && (
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">phone</span>
+                {person.phone_number}
               </span>
             )}
             {person.birthday && (
@@ -362,6 +384,12 @@ function PersonCard({
               <div>
                 <p className="text-xs text-muted-foreground">PLZ</p>
                 <p>{person.zip_code}</p>
+              </div>
+            )}
+            {person.phone_number && (
+              <div>
+                <p className="text-xs text-muted-foreground">Telefon</p>
+                <p>{person.phone_number}</p>
               </div>
             )}
             <div>
@@ -418,7 +446,7 @@ export default function PersonsPage() {
 
   if (userLoading || !user) {
     return (
-      <div className="container py-8 max-w-3xl">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-32 bg-muted rounded" />
@@ -431,13 +459,13 @@ export default function PersonsPage() {
   const otherPersons = persons?.filter((p) => !p.is_owner) ?? [];
 
   return (
-    <div className="container py-6 sm:py-8 max-w-3xl space-y-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Meine Personen</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Verwalte deine Personen für Veranstaltungsanmeldungen
+            Verwalte deine Personen für Aktionsanmeldungen
           </p>
         </div>
         <button
@@ -454,7 +482,7 @@ export default function PersonsPage() {
       <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10">
         <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">info</span>
         <p className="text-sm text-muted-foreground">
-          Hier kannst du Personen anlegen, die du bei Veranstaltungen anmelden möchtest –
+          Hier kannst du Personen anlegen, die du bei Aktionen anmelden möchtest –
           z.B. dich selbst, Familienmitglieder oder Freunde. Die Daten werden bei der Anmeldung
           automatisch übernommen.
         </p>
@@ -505,17 +533,13 @@ export default function PersonsPage() {
             </>
           )}
           {!personsLoading && otherPersons.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground border rounded-xl border-dashed">
-              <span className="material-symbols-outlined text-[36px] mb-2">group_add</span>
-              <p className="text-sm">Noch keine weiteren Personen angelegt</p>
-              <button
-                onClick={() => { setShowForm(true); setEditingPerson(null); }}
-                className="mt-3 text-sm text-primary hover:underline flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[16px]">add</span>
-                Person hinzufügen
-              </button>
-            </div>
+            <EmptyState
+              icon="group_add"
+              title="Noch keine weiteren Personen"
+              description="Lege weitere Personen an, die du bei Aktionen anmelden möchtest."
+              ctaLabel="Person hinzufügen"
+              onCtaClick={() => { setShowForm(true); setEditingPerson(null); }}
+            />
           )}
           {otherPersons.map((person) => (
             <PersonCard

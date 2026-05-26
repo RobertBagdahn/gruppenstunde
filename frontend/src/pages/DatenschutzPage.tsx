@@ -1,4 +1,9 @@
+import { Link } from 'react-router-dom';
+import { useCurrentUser } from '@/api/auth';
+
 export default function DatenschutzPage() {
+  const { data: user } = useCurrentUser();
+
   return (
     <div>
       {/* Hero */}
@@ -7,7 +12,7 @@ export default function DatenschutzPage() {
           <img
             src="/images/inspi_baby_cookie.png"
             alt="Inspi Baby Keks"
-            className="mx-auto h-36 md:h-48 mb-6 drop-shadow-lg"
+            className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-lg"
           />
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Datenschutz</h1>
           <p className="mt-4 text-lg text-white/85 max-w-2xl mx-auto">
@@ -15,6 +20,31 @@ export default function DatenschutzPage() {
           </p>
         </div>
       </section>
+
+      {/* Logged-in user banner */}
+      {user && (
+        <section className="container py-6">
+          <div className="max-w-3xl mx-auto">
+            <Link
+              to="/profile/privacy"
+              className="flex items-center gap-4 rounded-xl border border-primary/30 bg-primary/5 p-4 hover:bg-primary/10 transition-colors group"
+            >
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary shrink-0">
+                <span className="material-symbols-outlined text-[22px]">shield</span>
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-foreground">Meine Daten & Datenschutz</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Sieh dir an, welche Daten wir über dich gespeichert haben, exportiere sie oder lösche dein Konto.
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-[20px] text-muted-foreground group-hover:text-primary transition-colors ml-auto shrink-0">
+                arrow_forward
+              </span>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Content */}
       <section className="container py-12 md:py-16">

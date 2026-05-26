@@ -2,11 +2,14 @@
 
 from django.db.models import F, Q, Sum
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from ninja import Schema
 from ninja.errors import HttpError
 
 from event.models import BookingOption, Event, Participant, Person, Registration
-from event.choices import TimelineActionChoices
+from event.choices import GenderChoices, TimelineActionChoices
 from event.schemas import (
+    AdminRegisterIn,
     PaginatedParticipantOut,
     ParticipantOut,
     ParticipantUpdateIn,
@@ -17,6 +20,10 @@ from event.services.timeline import TimelineService
 
 from .events import event_router
 from .helpers import require_auth, require_event_manager
+
+
+class RemoveParticipantIn(Schema):
+    reason: str = "cancel"
 
 
 # ==========================================================================
@@ -33,8 +40,16 @@ def register_for_event(request, event_slug: str, payload: RegisterIn):
     if not event.user_is_invited(request.user):
         raise HttpError(403, "Du bist nicht für dieses Event eingeladen")
 
-    # Get or create registration
-    registration, _ = Registration.objects.get_or_create(user=request.user, event=event)
+    # Get or create registration (reactivate if soft-deleted)
+    try:
+        registration = Registration.objects_all.get(user=request.user, event=event)
+        if registration.deleted_at is not None:
+            registration.deleted_at = None
+            registration.deleted_by = None
+            registration.deleted_reason = ""
+            registration.save()
+    except Registration.DoesNotExist:
+        registration = Registration.objects_all.create(user=request.user, event=event)
 
     for entry in payload.persons:
         person = get_object_or_404(Person, id=entry.person_id)
@@ -51,7 +66,9 @@ def register_for_event(request, event_slug: str, payload: RegisterIn):
         if entry.booking_option_id:
             booking_option = get_object_or_404(BookingOption, id=entry.booking_option_id, event=event)
             if booking_option.is_system:
-                raise HttpError(400, "Diese Buchungsoption ist nicht verfuegbar.")
+                raise HttpError(400, "Diese Buchungsoption ist nicht verfügbar.")
+            if not booking_option.is_bookable:
+                raise HttpError(400, "Diese Buchungsoption ist nicht mehr verfügbar.")
             if booking_option.is_full:
                 raise HttpError(400, f"Buchungsoption '{booking_option.name}' ist voll")
 
@@ -66,21 +83,62 @@ def register_for_event(request, event_slug: str, payload: RegisterIn):
             user=request.user,
         )
 
-    return Registration.objects.prefetch_related("participants__booking_option").get(pk=registration.pk)
+    result = Registration.objects.prefetch_related("participants__booking_option").get(pk=registration.pk)
+
+    # Send confirmation email
+    from event.services.mail import MailService
+
+    MailService.send_registration_confirmation(event, result)
+
+    return result
 
 
 @event_router.post("/{event_slug}/register-admin/", response=RegistrationOut)
-def register_admin(request, event_slug: str, payload: RegisterIn):
-    """Admin: Register any person for an event."""
+def register_admin(request, event_slug: str, payload: AdminRegisterIn):
+    """Admin: Register persons for an event with inline person creation support."""
     require_auth(request)
     event = get_object_or_404(Event, slug=event_slug)
     require_event_manager(event, request.user)
 
-    for entry in payload.persons:
-        person = get_object_or_404(Person, id=entry.person_id)
+    from event.services.guest_registration import GuestRegistrationService
 
-        # Find or create registration for the person's owner
-        registration, _ = Registration.objects.get_or_create(user=person.user, event=event)
+    last_registration = None
+
+    for entry in payload.persons:
+        if entry.person_id:
+            # Existing person mode
+            person = get_object_or_404(Person, id=entry.person_id)
+            user = person.user
+        elif entry.person_data:
+            # Inline person creation mode
+            pdata = entry.person_data
+            if pdata.email:
+                user = GuestRegistrationService.create_or_get_user(pdata.email)
+            else:
+                user = request.user
+
+            person = Person.objects.create(
+                user=user,
+                first_name=pdata.first_name,
+                last_name=pdata.last_name,
+                scout_name=pdata.scout_name,
+                email=pdata.email,
+                birthday=pdata.birthday,
+                gender=pdata.gender,
+            )
+        else:
+            raise HttpError(400, "Entweder person_id oder person_data muss angegeben werden.")
+
+        # Find or create registration for the person's owner (reactivate if soft-deleted)
+        try:
+            registration = Registration.objects_all.get(user=user, event=event)
+            if registration.deleted_at is not None:
+                registration.deleted_at = None
+                registration.deleted_by = None
+                registration.deleted_reason = ""
+                registration.save()
+        except Registration.DoesNotExist:
+            registration = Registration.objects_all.create(user=user, event=event)
 
         if Participant.objects.filter(registration=registration, person=person).exists():
             continue
@@ -88,18 +146,29 @@ def register_admin(request, event_slug: str, payload: RegisterIn):
         booking_option = None
         if entry.booking_option_id:
             booking_option = get_object_or_404(BookingOption, id=entry.booking_option_id, event=event)
-            # Managers bypass is_full check — they can assign any option including system options
+            # Managers bypass is_full, is_bookable, and is_system checks
 
         Participant.create_from_person(registration, person, booking_option)
+        last_registration = registration
 
-    # Return the first registration for response
-    reg = Registration.objects.filter(event=event).prefetch_related("participants__booking_option").first()
+    # Return the last registration for response
+    if last_registration:
+        reg = Registration.objects.prefetch_related("participants__booking_option").get(pk=last_registration.pk)
+    else:
+        reg = Registration.objects.filter(event=event).prefetch_related("participants__booking_option").first()
+
+    # Send confirmation email
+    if reg:
+        from event.services.mail import MailService
+
+        MailService.send_registration_confirmation(event, reg)
+
     return reg
 
 
 @event_router.delete("/{event_slug}/participants/{participant_id}/")
-def remove_participant(request, event_slug: str, participant_id: int):
-    """Remove a participant from an event."""
+def remove_participant(request, event_slug: str, participant_id: int, payload: RemoveParticipantIn = None):
+    """Remove a participant from an event (soft-delete)."""
     require_auth(request)
     event = get_object_or_404(Event, slug=event_slug)
     participant = get_object_or_404(Participant, id=participant_id, registration__event=event)
@@ -109,24 +178,29 @@ def remove_participant(request, event_slug: str, participant_id: int):
         raise HttpError(403, "Zugriff verweigert")
 
     registration = participant.registration
+    reason = payload.reason if payload else "cancel"
 
     # Log timeline before deletion
     TimelineService.log(
         event=event,
         action_type=TimelineActionChoices.UNREGISTERED,
         description=f"{participant.first_name} {participant.last_name} abgemeldet",
-        participant=None,  # participant is about to be deleted
+        participant=None,
         user=request.user,
         metadata={
             "participant_name": f"{participant.first_name} {participant.last_name}",
+            "reason": reason,
         },
     )
 
     participant.delete()
 
-    # Clean up empty registration
+    # Soft-delete empty registration
     if not registration.participants.exists():
-        registration.delete()
+        registration.deleted_at = timezone.now()
+        registration.deleted_by = request.user
+        registration.deleted_reason = reason
+        registration.save()
 
     return {"success": True, "message": "Teilnehmer entfernt"}
 
@@ -157,7 +231,10 @@ def update_participant(request, event_slug: str, participant_id: int, payload: P
             new_option = get_object_or_404(BookingOption, id=option_id, event=event)
             # Non-managers cannot assign system options
             if new_option.is_system and not is_manager:
-                raise HttpError(400, "Diese Buchungsoption ist nicht verfuegbar.")
+                raise HttpError(400, "Diese Buchungsoption ist nicht verfügbar.")
+            # Non-managers cannot assign expired options
+            if not new_option.is_bookable and not is_manager:
+                raise HttpError(400, "Diese Buchungsoption ist nicht mehr verfügbar.")
             # Non-managers cannot assign full options
             if new_option.is_full and not is_manager:
                 raise HttpError(400, f"Buchungsoption '{new_option.name}' ist voll")

@@ -2,14 +2,11 @@
 Email service — Notifications for the content approval workflow.
 
 Sends emails for:
-- submitted → all staff users ("Neuer Content zur Freigabe")
-- approved → author ("Dein Beitrag wurde veröffentlicht")
-- rejected → author with reason ("Dein Beitrag wurde abgelehnt")
+- submitted -> all staff users ("Neuer Content zur Freigabe")
+- approved -> author ("Dein Beitrag wurde veröffentlicht")
+- rejected -> author with reason ("Dein Beitrag wurde abgelehnt")
 
-Uses Django's built-in send_mail. Backend is configured in settings:
-- Development: console.EmailBackend (prints to stdout)
-- Test: locmem.EmailBackend (stored in django.core.mail.outbox)
-- Production: SMTP backend (Gmail / SendGrid)
+Uses Django's built-in send_mail with HTML templates.
 """
 
 import logging
@@ -17,6 +14,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +22,27 @@ User = get_user_model()
 
 DEFAULT_FROM_EMAIL = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@gruppenstunde.de")
 SITE_NAME = "Inspi – gruppenstunde.de"
+
+# Default CI context for platform-level emails (no group context)
+_PLATFORM_CI = {
+    "ci_group_name": "gruppenstunde.de",
+    "ci_primary_color": "#4a3a6b",
+    "ci_secondary_color": "#e8e4f0",
+    "ci_logo_url": "",
+    "ci_slogan": "Die Plattform für Pfadfinder-Gruppenführer",
+    "ci_greeting_text": "",
+    "ci_footer_text": "",
+    "ci_payment_info": "",
+    "ci_signature_text": "",
+}
+
+
+def _render_notification(subject: str, body: str) -> str:
+    """Render the notification HTML template with platform CI."""
+    return render_to_string(
+        "content/email/notification.html",
+        {**_PLATFORM_CI, "subject": subject, "notification_body": body},
+    )
 
 
 def _get_content_type_label(content_obj) -> str:
@@ -93,6 +112,8 @@ def notify_submission(content_obj) -> int:
         f"{SITE_NAME}"
     )
 
+    html_message = _render_notification(subject, message)
+
     staff_emails = list(
         User.objects.filter(is_staff=True, is_active=True).exclude(email="").values_list("email", flat=True)
     )
@@ -106,6 +127,7 @@ def notify_submission(content_obj) -> int:
         message=message,
         from_email=DEFAULT_FROM_EMAIL,
         recipient_list=staff_emails,
+        html_message=html_message,
         fail_silently=True,
     )
 
@@ -148,11 +170,14 @@ def notify_approval(content_obj) -> int:
         f"{SITE_NAME}"
     )
 
+    html_message = _render_notification(subject, message)
+
     sent = send_mail(
         subject=subject,
         message=message,
         from_email=DEFAULT_FROM_EMAIL,
         recipient_list=[author_email],
+        html_message=html_message,
         fail_silently=True,
     )
 
@@ -199,11 +224,14 @@ def notify_rejection(content_obj, reason: str = "") -> int:
         f"{SITE_NAME}"
     )
 
+    html_message = _render_notification(subject, message)
+
     sent = send_mail(
         subject=subject,
         message=message,
         from_email=DEFAULT_FROM_EMAIL,
         recipient_list=[author_email],
+        html_message=html_message,
         fail_silently=True,
     )
 

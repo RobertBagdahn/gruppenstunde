@@ -5,12 +5,12 @@ import datetime
 import pytest
 from django.utils import timezone
 
-from planner.tests import make_meal, make_meal_event, make_meal_item
+from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.models import HealthRule
 from recipe.services.cockpit_service import (
     evaluate_day_cockpit,
     evaluate_meal_cockpit,
-    evaluate_meal_event_cockpit,
+    evaluate_meal_plan_cockpit,
 )
 from recipe.tests import make_health_rule
 
@@ -45,9 +45,9 @@ class TestCockpitService:
 
     def test_evaluate_day_cockpit(self):
         """Day cockpit evaluates day-scoped rules."""
-        meal_event = make_meal_event()
+        meal_plan = make_meal_plan()
         today = datetime.date.today()
-        make_meal(meal_event=meal_event)
+        make_meal(meal_plan=meal_plan)
         make_health_rule(
             name="Day Energy",
             parameter="energy_kj",
@@ -55,14 +55,14 @@ class TestCockpitService:
             threshold_green=9000.0,
             threshold_yellow=12000.0,
         )
-        result = evaluate_day_cockpit(meal_event, today)
+        result = evaluate_day_cockpit(meal_plan, today)
         assert len(result["evaluations"]) == 1
         assert result["evaluations"][0]["parameter"] == "energy_kj"
 
-    def test_evaluate_meal_event_cockpit(self):
-        """MealEvent cockpit evaluates meal_event-scoped rules."""
-        meal_event = make_meal_event()
-        make_meal(meal_event=meal_event)
+    def test_evaluate_meal_plan_cockpit(self):
+        """MealPlan cockpit evaluates meal_event-scoped rules."""
+        meal_plan = make_meal_plan()
+        make_meal(meal_plan=meal_plan)
         make_health_rule(
             name="Event Nutri",
             parameter="nutri_class",
@@ -70,7 +70,7 @@ class TestCockpitService:
             threshold_green=2.5,
             threshold_yellow=3.5,
         )
-        result = evaluate_meal_event_cockpit(meal_event)
+        result = evaluate_meal_plan_cockpit(meal_plan)
         assert len(result["evaluations"]) == 1
 
     def test_inactive_rules_excluded(self):

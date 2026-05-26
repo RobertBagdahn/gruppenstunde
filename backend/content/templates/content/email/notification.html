@@ -1,0 +1,12 @@
+{% extends "event/email/base.html" %}
+{% comment %}
+Content notification template — used for approval workflow emails.
+Additional context:
+  notification_body: the main message text
+{% endcomment %}
+
+{% block title %}{{ subject }}{% endblock %}
+
+{% block content %}
+<div style="white-space: pre-line;">{{ notification_body }}</div>
+{% endblock %}

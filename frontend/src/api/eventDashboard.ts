@@ -13,6 +13,18 @@ import {
   ExportColumnSchema,
   StatsSchema,
   MailResultSchema,
+  ChecklistSchema,
+  WaitlistEntrySchema,
+  PaginatedWaitlistEntrySchema,
+  AttendanceRecordSchema,
+  PaginatedAttendanceRecordSchema,
+  RoomAssignmentSchema,
+  ParentAccessTokenSchema,
+  PaginatedParentAccessTokenSchema,
+  BudgetItemSchema,
+  BudgetSummarySchema,
+  ImportPreviewSchema,
+  ImportResultSchema,
   type TimelineEntry,
   type Payment,
   type CustomField,
@@ -23,6 +35,18 @@ import {
   type Stats,
   type MailCreate,
   type MailResult,
+  type Checklist,
+  type WaitlistEntry,
+  type WaitlistEntryCreate,
+  type AttendanceRecord,
+  type RoomAssignment,
+  type RoomAssignmentCreate,
+  type ParentAccessToken,
+  type BudgetItem,
+  type BudgetItemCreate,
+  type BudgetSummary,
+  type ImportPreview,
+  type ImportResult,
 } from '@/schemas/event';
 
 const EVENTS_BASE = '/api/events';
@@ -97,6 +121,12 @@ const dashboardKeys = {
   participants: (slug: string) => ['events', slug, 'participants'] as const,
   exportColumns: (slug: string) => ['events', slug, 'export-columns'] as const,
   stats: (slug: string) => ['events', slug, 'stats'] as const,
+  checklist: (slug: string) => ['events', slug, 'checklist'] as const,
+  waitlist: (slug: string) => ['events', slug, 'waitlist'] as const,
+  attendance: (slug: string) => ['events', slug, 'attendance'] as const,
+  rooms: (slug: string) => ['events', slug, 'rooms'] as const,
+  parentTokens: (slug: string) => ['events', slug, 'parent-access'] as const,
+  budget: (slug: string) => ['events', slug, 'budget'] as const,
 };
 
 // ==========================================================================
@@ -383,6 +413,333 @@ export function useSendMail(slug: string) {
       postJson(`${EVENTS_BASE}/${slug}/send-mail/`, body, MailResultSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: dashboardKeys.timeline(slug) });
+    },
+  });
+}
+
+// ==========================================================================
+// Checklist (8.4)
+// ==========================================================================
+
+export function useEventChecklist(slug: string) {
+  return useQuery<Checklist>({
+    queryKey: dashboardKeys.checklist(slug),
+    queryFn: () => fetchJson(`${EVENTS_BASE}/${slug}/checklist/`, ChecklistSchema),
+    enabled: !!slug,
+  });
+}
+
+// ==========================================================================
+// Waitlist (8.5)
+// ==========================================================================
+
+export function useWaitlist(slug: string, page = 1, pageSize = 20) {
+  return useQuery({
+    queryKey: [...dashboardKeys.waitlist(slug), page, pageSize],
+    queryFn: () =>
+      fetchJson(
+        `${EVENTS_BASE}/${slug}/waitlist/?page=${page}&page_size=${pageSize}`,
+        PaginatedWaitlistEntrySchema,
+      ),
+    enabled: !!slug,
+  });
+}
+
+export function useJoinWaitlist(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<WaitlistEntry, Error, WaitlistEntryCreate>({
+    mutationFn: (body) =>
+      postJson(`${EVENTS_BASE}/${slug}/waitlist/`, body, WaitlistEntrySchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.waitlist(slug) });
+      queryClient.invalidateQueries({ queryKey: ['events', slug] });
+    },
+  });
+}
+
+export function useRemoveFromWaitlist(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: (entryId) =>
+      deleteJson(`${EVENTS_BASE}/${slug}/waitlist/${entryId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.waitlist(slug) });
+    },
+  });
+}
+
+// ==========================================================================
+// Attendance (8.6)
+// ==========================================================================
+
+export function useAttendanceList(slug: string, page = 1, pageSize = 50) {
+  return useQuery({
+    queryKey: [...dashboardKeys.attendance(slug), page, pageSize],
+    queryFn: () =>
+      fetchJson(
+        `${EVENTS_BASE}/${slug}/attendance/?page=${page}&page_size=${pageSize}`,
+        PaginatedAttendanceRecordSchema,
+      ),
+    enabled: !!slug,
+  });
+}
+
+export function useCheckIn(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<AttendanceRecord, Error, { participant_id: number }>({
+    mutationFn: (body) =>
+      postJson(`${EVENTS_BASE}/${slug}/attendance/check-in/`, body, AttendanceRecordSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.attendance(slug) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.timeline(slug) });
+    },
+  });
+}
+
+export function useBatchCheckIn(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<AttendanceRecord[], Error, { participant_ids: number[] }>({
+    mutationFn: (body) =>
+      postJson(
+        `${EVENTS_BASE}/${slug}/attendance/batch-check-in/`,
+        body,
+        z.array(AttendanceRecordSchema),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.attendance(slug) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.timeline(slug) });
+    },
+  });
+}
+
+export function useCheckOut(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<AttendanceRecord, Error, number>({
+    mutationFn: (participantId) =>
+      patchJson(
+        `${EVENTS_BASE}/${slug}/attendance/${participantId}/check-out/`,
+        {},
+        AttendanceRecordSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.attendance(slug) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.timeline(slug) });
+    },
+  });
+}
+
+// ==========================================================================
+// Room Assignment (8.7)
+// ==========================================================================
+
+export function useRooms(slug: string) {
+  return useQuery<RoomAssignment[]>({
+    queryKey: dashboardKeys.rooms(slug),
+    queryFn: () =>
+      fetchJson(`${EVENTS_BASE}/${slug}/rooms/`, z.array(RoomAssignmentSchema)),
+    enabled: !!slug,
+  });
+}
+
+export function useCreateRoom(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<RoomAssignment, Error, RoomAssignmentCreate>({
+    mutationFn: (body) =>
+      postJson(`${EVENTS_BASE}/${slug}/rooms/`, body, RoomAssignmentSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.rooms(slug) });
+    },
+  });
+}
+
+export function useUpdateRoom(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<RoomAssignment, Error, { roomId: number; name?: string; capacity?: number; description?: string; sort_order?: number }>({
+    mutationFn: ({ roomId, ...body }) =>
+      patchJson(`${EVENTS_BASE}/${slug}/rooms/${roomId}/`, body, RoomAssignmentSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.rooms(slug) });
+    },
+  });
+}
+
+export function useDeleteRoom(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: (roomId) =>
+      deleteJson(`${EVENTS_BASE}/${slug}/rooms/${roomId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.rooms(slug) });
+    },
+  });
+}
+
+export function useAssignParticipant(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<RoomAssignment, Error, { roomId: number; participant_id: number }>({
+    mutationFn: ({ roomId, ...body }) =>
+      patchJson(`${EVENTS_BASE}/${slug}/rooms/${roomId}/assign/`, body, RoomAssignmentSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.rooms(slug) });
+    },
+  });
+}
+
+export function useUnassignParticipant(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<RoomAssignment, Error, { roomId: number; participant_id: number }>({
+    mutationFn: ({ roomId, ...body }) =>
+      patchJson(`${EVENTS_BASE}/${slug}/rooms/${roomId}/unassign/`, body, RoomAssignmentSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.rooms(slug) });
+    },
+  });
+}
+
+// ==========================================================================
+// Parent Access (8.8)
+// ==========================================================================
+
+export function useParentTokens(slug: string, page = 1, pageSize = 20) {
+  return useQuery({
+    queryKey: [...dashboardKeys.parentTokens(slug), page, pageSize],
+    queryFn: () =>
+      fetchJson(
+        `${EVENTS_BASE}/${slug}/parent-access/?page=${page}&page_size=${pageSize}`,
+        PaginatedParentAccessTokenSchema,
+      ),
+    enabled: !!slug,
+  });
+}
+
+export function useCreateParentToken(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<ParentAccessToken, Error, { participant_id: number; email?: string; expires_in_days?: number }>({
+    mutationFn: (body) =>
+      postJson(`${EVENTS_BASE}/${slug}/parent-access/`, body, ParentAccessTokenSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.parentTokens(slug) });
+    },
+  });
+}
+
+export function useBatchCreateParentTokens(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<ParentAccessToken[], Error, { email_field?: string; expires_in_days?: number }>({
+    mutationFn: (body) =>
+      postJson(
+        `${EVENTS_BASE}/${slug}/parent-access/batch/`,
+        body,
+        z.array(ParentAccessTokenSchema),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.parentTokens(slug) });
+    },
+  });
+}
+
+export function useRevokeParentToken(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: (tokenId) =>
+      deleteJson(`${EVENTS_BASE}/${slug}/parent-access/${tokenId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.parentTokens(slug) });
+    },
+  });
+}
+
+// ==========================================================================
+// Budget (8.9)
+// ==========================================================================
+
+export function useBudgetSummary(slug: string) {
+  return useQuery<BudgetSummary>({
+    queryKey: dashboardKeys.budget(slug),
+    queryFn: () => fetchJson(`${EVENTS_BASE}/${slug}/budget/`, BudgetSummarySchema),
+    enabled: !!slug,
+  });
+}
+
+export function useCreateBudgetItem(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<BudgetItem, Error, BudgetItemCreate>({
+    mutationFn: (body) =>
+      postJson(`${EVENTS_BASE}/${slug}/budget/items/`, body, BudgetItemSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.budget(slug) });
+    },
+  });
+}
+
+export function useUpdateBudgetItem(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<BudgetItem, Error, { itemId: number; description?: string; amount?: string; category?: string; is_expense?: boolean }>({
+    mutationFn: ({ itemId, ...body }) =>
+      patchJson(`${EVENTS_BASE}/${slug}/budget/items/${itemId}/`, body, BudgetItemSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.budget(slug) });
+    },
+  });
+}
+
+export function useDeleteBudgetItem(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: (itemId) =>
+      deleteJson(`${EVENTS_BASE}/${slug}/budget/items/${itemId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.budget(slug) });
+    },
+  });
+}
+
+// ==========================================================================
+// Import (8.10)
+// ==========================================================================
+
+export function useImportPreview(slug: string) {
+  return useMutation<ImportPreview, Error, File>({
+    mutationFn: async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${EVENTS_BASE}/${slug}/import/preview/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `API error: ${res.status}`);
+      }
+      return ImportPreviewSchema.parse(await res.json());
+    },
+  });
+}
+
+export function useImportParticipants(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation<ImportResult, Error, File>({
+    mutationFn: async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${EVENTS_BASE}/${slug}/import/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `API error: ${res.status}`);
+      }
+      return ImportResultSchema.parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.participants(slug) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.timeline(slug) });
+      queryClient.invalidateQueries({ queryKey: ['events', slug] });
     },
   });
 }

@@ -1,15 +1,18 @@
-"""Group CRUD, membership, and join request API endpoints."""
+"""Group CRUD, membership, join request, and corporate identity API endpoints."""
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Router
+from ninja import File, Router
 from ninja.errors import HttpError
+from ninja.files import UploadedFile
 
 from profiles.choices import MembershipRoleChoices
-from profiles.models import GroupJoinRequest, GroupMembership, UserGroup
+from profiles.models import GroupCorporateIdentity, GroupJoinRequest, GroupMembership, UserGroup
 from profiles.schemas import (
     AddMemberIn,
+    GroupCorporateIdentityIn,
+    GroupCorporateIdentityOut,
     GroupMemberOut,
     JoinByCodeIn,
     JoinRequestDecisionIn,
@@ -270,3 +273,79 @@ def decide_join_request(request, group_slug: str, request_id: int, payload: Join
         )
 
     return join_request
+
+
+# --- Corporate Identity ---
+
+_CI_DEFAULTS = {
+    "primary_color": "#4a3a6b",
+    "secondary_color": "#e8e4f0",
+    "logo_url": "",
+    "slogan": "",
+    "greeting_text": "",
+    "footer_text": "",
+    "payment_info": "",
+    "signature_text": "",
+}
+
+
+@group_router.get("/{group_slug}/corporate-identity/", response=GroupCorporateIdentityOut)
+def get_corporate_identity(request, group_slug: str):
+    """Get the corporate identity for a group (returns defaults if none configured)."""
+    _require_auth(request)
+    group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
+    try:
+        return group.corporate_identity
+    except GroupCorporateIdentity.DoesNotExist:
+        return _CI_DEFAULTS
+
+
+@group_router.put("/{group_slug}/corporate-identity/", response=GroupCorporateIdentityOut)
+def update_corporate_identity(request, group_slug: str, payload: GroupCorporateIdentityIn):
+    """Create or update the corporate identity for a group (admin only)."""
+    _require_auth(request)
+    group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
+    _require_group_admin(group, request.user)
+
+    ci, _created = GroupCorporateIdentity.objects.update_or_create(
+        group=group,
+        defaults=payload.dict(),
+    )
+    return ci
+
+
+MAX_LOGO_SIZE = 500 * 1024  # 500KB
+
+
+@group_router.post("/{group_slug}/corporate-identity/logo/", response=GroupCorporateIdentityOut)
+def upload_logo(request, group_slug: str, file: UploadedFile = File(...)):
+    """Upload a logo for the group's corporate identity (admin only, max 500KB)."""
+    _require_auth(request)
+    group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
+    _require_group_admin(group, request.user)
+
+    if file.size > MAX_LOGO_SIZE:
+        raise HttpError(400, "Logo darf maximal 500KB groß sein")
+
+    ci, _created = GroupCorporateIdentity.objects.get_or_create(group=group)
+    ci.logo.save(file.name, file, save=True)
+    return ci
+
+
+@group_router.delete("/{group_slug}/corporate-identity/logo/")
+def delete_logo(request, group_slug: str):
+    """Remove the logo from a group's corporate identity (admin only)."""
+    _require_auth(request)
+    group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
+    _require_group_admin(group, request.user)
+
+    try:
+        ci = group.corporate_identity
+    except GroupCorporateIdentity.DoesNotExist:
+        raise HttpError(404, "Keine Corporate Identity vorhanden")
+
+    if ci.logo:
+        ci.logo.delete(save=False)
+    ci.logo = ""
+    ci.save(update_fields=["logo"])
+    return {"success": True, "message": "Logo entfernt"}

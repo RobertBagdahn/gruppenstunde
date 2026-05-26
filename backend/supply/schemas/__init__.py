@@ -10,6 +10,7 @@ from .materials import (
     PaginatedMaterialOut,
 )
 from .reference import (
+    DgeReferenceOut,
     MeasuringUnitOut,
     NutritionalTagOut,
     RetailSectionOut,
@@ -38,6 +39,7 @@ __all__ = [
     "AliasCreateIn",
     "ContentMaterialItemIn",
     "ContentMaterialItemOut",
+    "DgeReferenceOut",
     "DgeReferencePointOut",
     "IngredientAliasOut",
     "IngredientCreateIn",

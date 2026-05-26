@@ -61,7 +61,7 @@ function getErrorInfo(error: Error | null | undefined): {
     return {
       title: 'Serverfehler',
       description:
-        'Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es spaeter erneut.',
+        'Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut.',
       icon: 'error',
     };
   }
@@ -79,7 +79,7 @@ export default function ErrorDisplay({
   description,
   onRetry,
   onBack,
-  backLabel = 'Zurueck',
+   backLabel = 'Zurück',
   variant = 'full',
   icon,
 }: ErrorDisplayProps) {

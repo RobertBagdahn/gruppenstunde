@@ -102,6 +102,19 @@ if not request.user.is_authenticated or not request.user.is_staff:
 ## Qualitäts-Checkliste – Backend
 
 - [ ] Pydantic Schemas aktuell (→ Frontend Zod Schemas synchronisieren)
+
+## Search-Konventionen
+
+- **Unified Search**: `/api/content/search/` durchsucht alle Content-Typen (session, blog, game, recipe, event)
+- **`scope`-Parameter**: `all` (Default) oder `mine`. Bei `scope=mine` werden pro Typ user-spezifische Filter angewandt:
+  - session/blog/game: `created_by=user OR authors=user`
+  - recipe: `owner=user OR authors=user`
+  - event: `created_by OR responsible_persons OR invited_users OR invited_groups (via GroupMembership) OR registrations`
+- **Draft-Sichtbarkeit**: Bei `scope=mine` werden eigene Drafts (status=draft) mit zurückgegeben
+- **Templates**: Events mit `is_template=True` werden immer aus Search-Ergebnissen ausgeschlossen
+- **Anonyme User**: `scope=mine` wird ignoriert (fallback auf `all`)
+- **Implementierung**: `content/services/search_service.py` → `apply_mine_filter()`, `unified_search()`
+- Spec: `openspec/changes/search-mine-scope-filter/specs/search/spec.md`
 - [ ] Type Hints in allen Python Funktionen
 - [ ] API-Endpunkte haben Pydantic Schema Responses
 - [ ] Keine print Statements

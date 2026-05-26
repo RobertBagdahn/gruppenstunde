@@ -99,7 +99,7 @@
 
   /* Card hover */
   .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;
   }
 
   /* Shell – white header */
@@ -174,6 +174,8 @@
   /* Hide navigation, buttons, and interactive elements */
   header, nav, footer,
   .print\:hidden,
+  .no-print,
+  [data-print-hide],
   button:not([data-print-visible]),
   [data-no-print] {
     display: none !important;
@@ -183,7 +185,13 @@
   body {
     background: white !important;
     color: black !important;
-    font-size: 12pt;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* A4 page margins */
+  @page {
+    margin: 2cm;
   }
 
   /* Remove card shadows and borders for clean look */
@@ -213,6 +221,13 @@
     page-break-inside: avoid;
   }
 
+  /* Recipe-specific break rules */
+  .recipe-ingredients,
+  .recipe-step {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   /* Ensure sufficient contrast */
   .text-muted-foreground {
     color: #555 !important;
@@ -223,9 +238,20 @@
     transition: none !important;
     transform: none !important;
   }
+}
 
-  /* Adjust page margins */
-  @page {
-    margin: 1.5cm;
-  }
+/* Print-preview mode on screen (data-mode="print") */
+[data-mode="print"] .no-print:not([data-print-toolbar]),
+[data-mode="print"] [data-print-hide] {
+  display: none !important;
+}
+
+[data-mode="print"] {
+  font-size: 11pt;
+  line-height: 1.4;
+}
+
+[data-mode="print"] .recipe-ingredients,
+[data-mode="print"] .recipe-step {
+  break-inside: avoid;
 }

@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { EntityLink } from '@/components/shared/EntityLink';
+import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
+import { useBlocker } from '@/hooks/useBlocker';
 import { useCreateFromRecipe } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import {
@@ -7,18 +10,21 @@ import {
   useRecipeComments,
   useCreateRecipeComment,
   useRecipeEmotion,
-  useRecipeChecks,
-  useRecipeHints,
   useRecipeNutriScore,
   useRecipeNutritionBreakdown,
   useUpdateRecipe,
   useDeleteRecipe,
+  useForkRecipe,
+  useForkAndSaveRecipe,
+  useUpdateVisibility,
+  useUploadRecipeImage,
+  useDeleteRecipeImage,
+  useSetRecipeImageFromUrl,
 } from '@/api/recipes';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
-  RECIPE_COSTS_OPTIONS,
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
@@ -26,16 +32,32 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ContentComments from '@/components/content/ContentComments';
 import ContentEmotions from '@/components/content/ContentEmotions';
+import ContentAuthorSection from '@/components/content/ContentAuthorSection';
 import InlineEditor from '@/components/content/InlineEditor';
+import TitleImageEditor from '@/components/content/TitleImageEditor';
 import IngredientList from '@/components/supply/IngredientList';
 import { ContentLinkSection } from '@/components/content/ContentLinkSection';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Breadcrumb from '@/components/Breadcrumb';
+import RecipeImprovements from '@/components/recipe/RecipeImprovements';
+import RecipeBadge from '@/components/recipe/RecipeBadge';
+import RecipeHeaderInfo from '@/components/recipe/RecipeHeaderInfo';
+import RecipeSidebar from '@/components/recipe/RecipeSidebar';
+import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
+import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
+import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
+import { PositiveTraitsBadges } from '@/components/recipe/PositiveTraitsBadges';
+import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
+import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { formatWeight } from '@/utils/formatWeight';
+
+const LazyNutritionPieChart = lazy(() => import('@/components/charts/NutritionPieChart'));
 
 // Scout level colors
 const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  Woelflinge: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
+  Wölflinge: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
   Jungpfadfinder: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-700' },
   Pfadfinder: { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700' },
   Rover: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700' },
@@ -113,7 +135,134 @@ function MacroBar({
         <div
           className={`h-full rounded-full transition-all duration-500 ${color}`}
           style={{ width: `${pct}%` }}
-        />
+         />
+      </div>
+    </div>
+  );
+}
+
+// --- Collapsible Micronutrient Section (Vitamins / Minerals) ---
+function MicronutrientSection({
+  title,
+  icon,
+  accentColor,
+  nutrients,
+  dgeCoverage,
+  servings,
+}: {
+  title: string;
+  icon: string;
+  accentColor: string;
+  nutrients: Array<{
+    label: string;
+    value: number | null | undefined;
+    unit: string;
+    dgeKey: string;
+  }>;
+  dgeCoverage: Record<string, number | null>;
+  servings: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasAnyValue = nutrients.some((n) => n.value != null && n.value > 0);
+  if (!hasAnyValue) return null;
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          <span className={`material-symbols-outlined text-base ${accentColor}`}>{icon}</span>
+          {title}
+        </span>
+        <span
+          className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        >
+          expand_more
+        </span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2">
+          {nutrients.map((n) => {
+            if (n.value == null || n.value <= 0) return null;
+            const perServing = n.value / servings;
+            const coverage = dgeCoverage[n.dgeKey] ?? null;
+            return (
+              <div key={n.dgeKey} className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium">{n.label}</span>
+                  <span className="text-muted-foreground">
+                    {perServing < 0.1 ? perServing.toFixed(3) : perServing.toFixed(1)} {n.unit}/Portion
+                    {coverage != null && (
+                      <span className={`ml-2 font-semibold ${coverage >= 80 ? 'text-green-600' : coverage >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                        {coverage.toFixed(0)}% DGE
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {coverage != null && (
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        coverage >= 80 ? 'bg-green-500' : coverage >= 40 ? 'bg-amber-400' : 'bg-red-400'
+                      }`}
+                      style={{ width: `${Math.min(coverage, 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Collapsible accordion showing per-parameter contribution panels. */
+function CollapsibleContributions({ items }: { items: RecipeItemNutrition[] }) {
+  const [openParam, setOpenParam] = useState<string | null>(null);
+
+  const parameters = ['energy', 'protein', 'fat', 'sat_fat', 'carbs', 'sugar', 'salt', 'fiber'] as const;
+  const units: Record<string, string> = {
+    energy: 'kJ', protein: 'g', fat: 'g', sat_fat: 'g',
+    carbs: 'g', sugar: 'g', salt: 'g', fiber: 'g',
+  };
+
+  if (items.length === 0) return null;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold mb-3">Zutaten-Beitr&auml;ge pro N&auml;hrwert</h3>
+      <div className="border rounded-lg divide-y">
+        {parameters.map((param) => {
+          const isOpen = openParam === param;
+          return (
+            <div key={param}>
+              <button
+                onClick={() => setOpenParam(isOpen ? null : param)}
+                className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-sm font-medium">{PARAMETER_LABELS[param] ?? param}</span>
+                <span
+                  className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                >
+                  expand_more
+                </span>
+              </button>
+              {isOpen && (
+                <div className="px-3 pb-3">
+                  <NutritionContributionPanel
+                    parameter={param}
+                    items={items}
+                    unit={units[param]}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -122,6 +271,8 @@ function MacroBar({
 export default function RecipeDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mode = searchParams.get('mode');
 
   const { data: recipe, isLoading, error, refetch } = useRecipeBySlug(slug ?? '');
   const recipeId = recipe?.id ?? 0;
@@ -131,18 +282,57 @@ export default function RecipeDetailPage() {
   const createEmotion = useRecipeEmotion(recipeId);
   const updateRecipe = useUpdateRecipe(recipeId);
   const deleteRecipe = useDeleteRecipe();
-  const { data: checks } = useRecipeChecks(recipeId);
   const { data: nutriScore } = useRecipeNutriScore(recipeId);
-  const { data: hints } = useRecipeHints(recipeId);
   const { data: nutritionBreakdown } = useRecipeNutritionBreakdown(recipeId);
+  const forkRecipe = useForkRecipe(recipeId);
+  const forkAndSaveRecipe = useForkAndSaveRecipe(recipeId);
+  const updateVisibility = useUpdateVisibility(recipeId);
+  const uploadImage = useUploadRecipeImage(recipeId);
+  const deleteImage = useDeleteRecipeImage(recipeId);
+  const setImageFromUrl = useSetRecipeImageFromUrl(recipeId);
 
   const [servingsMultiplier, setServingsMultiplier] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showShoppingExport, setShowShoppingExport] = useState(false);
   const [exportServings, setExportServings] = useState(1);
+  const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
+  const [portionSheetOpen, setPortionSheetOpen] = useState(false);
+
+  // Zubereitung section: default open on desktop (>=1024px), closed on mobile
+  const [descriptionDefaultOpen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches,
+  );
 
   const { data: currentUser } = useCurrentUser();
   const createFromRecipe = useCreateFromRecipe();
+
+  // Recipe modification store
+  const isDirty = useRecipeModificationStore((s) => s.isDirty);
+  const modifiedItems = useRecipeModificationStore((s) => s.modifiedItems);
+  const modifiedServings = useRecipeModificationStore((s) => s.modifiedServings);
+  const initializeModifications = useRecipeModificationStore((s) => s.initialize);
+  const resetModifications = useRecipeModificationStore((s) => s.reset);
+  const scaleToNormPortion = useRecipeModificationStore((s) => s.scaleToNormPortion);
+
+  // Initialize modification store when nutrition breakdown data loads
+  useEffect(() => {
+    if (nutritionBreakdown && recipe && !isDirty) {
+      initializeModifications(nutritionBreakdown.items, recipe.servings);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nutritionBreakdown, recipe, initializeModifications]);
+
+  // Leave confirmation when modifications are present (10.6)
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
   useDocumentMeta({
     title: recipe?.title,
@@ -150,6 +340,88 @@ export default function RecipeDetailPage() {
     url: slug ? `/recipes/${slug}` : undefined,
     image: recipe?.image_url,
   });
+
+  // Nutrition helpers — use modified items when store is dirty
+  // Must be before early returns to maintain consistent hook order
+  const nb = useMemo(() => {
+    if (!nutritionBreakdown) return null;
+    if (!isDirty) return nutritionBreakdown;
+
+    // Recompute totals from modified items
+    const items = modifiedItems;
+    const totalWeightG = items.reduce((s, i) => s + i.weight_g, 0);
+    const totalPriceItems = items.filter((i) => i.price_eur !== null);
+    const totalPriceEur = totalPriceItems.length > 0 ? totalPriceItems.reduce((s, i) => s + (i.price_eur ?? 0), 0) : null;
+    const totalEnergyKj = items.reduce((s, i) => s + i.energy_kj, 0);
+    const totalEnergyKcal = items.reduce((s, i) => s + i.energy_kcal, 0);
+    const totalProteinG = items.reduce((s, i) => s + i.protein_g, 0);
+    const totalFatG = items.reduce((s, i) => s + i.fat_g, 0);
+    const totalFatSatG = items.reduce((s, i) => s + i.fat_sat_g, 0);
+    const totalCarbohydrateG = items.reduce((s, i) => s + i.carbohydrate_g, 0);
+    const totalSugarG = items.reduce((s, i) => s + i.sugar_g, 0);
+    const totalFibreG = items.reduce((s, i) => s + i.fibre_g, 0);
+    const totalSaltG = items.reduce((s, i) => s + i.salt_g, 0);
+    const servings = modifiedServings ?? 1;
+
+    // Recompute weight_pct
+    const itemsWithPct = items.map((i) => ({
+      ...i,
+      weight_pct: totalWeightG > 0 ? (i.weight_g / totalWeightG) * 100 : 0,
+    }));
+
+    return {
+      total_weight_g: totalWeightG,
+      total_price_eur: totalPriceEur,
+      total_energy_kj: totalEnergyKj,
+      total_energy_kcal: totalEnergyKcal,
+      total_protein_g: totalProteinG,
+      total_fat_g: totalFatG,
+      total_fat_sat_g: totalFatSatG,
+      total_carbohydrate_g: totalCarbohydrateG,
+      total_sugar_g: totalSugarG,
+      total_fibre_g: totalFibreG,
+      total_salt_g: totalSaltG,
+      // Micronutrient totals (from modified items)
+      total_vitamin_a_mg: items.reduce((s, i) => s + (i.vitamin_a_mg ?? 0), 0) || null,
+      total_vitamin_c_mg: items.reduce((s, i) => s + (i.vitamin_c_mg ?? 0), 0) || null,
+      total_vitamin_d_ug: items.reduce((s, i) => s + (i.vitamin_d_ug ?? 0), 0) || null,
+      total_vitamin_b12_ug: items.reduce((s, i) => s + (i.vitamin_b12_ug ?? 0), 0) || null,
+      total_calcium_mg: items.reduce((s, i) => s + (i.calcium_mg ?? 0), 0) || null,
+      total_iron_mg: items.reduce((s, i) => s + (i.iron_mg ?? 0), 0) || null,
+      total_magnesium_mg: items.reduce((s, i) => s + (i.magnesium_mg ?? 0), 0) || null,
+      total_zinc_mg: items.reduce((s, i) => s + (i.zinc_mg ?? 0), 0) || null,
+      total_potassium_mg: items.reduce((s, i) => s + (i.potassium_mg ?? 0), 0) || null,
+      total_folate_ug: items.reduce((s, i) => s + (i.folate_ug ?? 0), 0) || null,
+      per_serving_energy_kcal: totalEnergyKcal / servings,
+      per_serving_protein_g: totalProteinG / servings,
+      per_serving_fat_g: totalFatG / servings,
+      per_serving_carbohydrate_g: totalCarbohydrateG / servings,
+      dge_coverage: nutritionBreakdown.dge_coverage ?? {},
+      items: itemsWithPct,
+    };
+  }, [nutritionBreakdown, isDirty, modifiedItems, modifiedServings]);
+  const effectiveServings = (isDirty ? modifiedServings : recipe?.servings) ?? 1;
+  const topIngredientsByWeight = nb
+    ? [...nb.items].sort((a, b) => b.weight_g - a.weight_g)
+    : [];
+  const topIngredientsByPrice = nb
+    ? [...nb.items].filter((i) => i.price_eur !== null).sort((a, b) => (b.price_eur ?? 0) - (a.price_eur ?? 0))
+    : [];
+  const topIngredientsByCalories = nb
+    ? [...nb.items].sort((a, b) => b.energy_kcal - a.energy_kcal)
+    : [];
+
+  // Build ingredient_id → slug lookup from recipe items for nutrition links
+  // Must be before early returns to maintain consistent hook order
+  const ingredientSlugById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const item of recipe?.recipe_items ?? []) {
+      if (item.ingredient_id && item.ingredient_slug) {
+        map.set(item.ingredient_id, item.ingredient_slug);
+      }
+    }
+    return map;
+  }, [recipe?.recipe_items]);
 
   if (isLoading) {
     return (
@@ -172,11 +444,23 @@ export default function RecipeDetailPage() {
           title="Rezept nicht gefunden"
           onRetry={() => refetch()}
           onBack={() => navigate(-1)}
-          backLabel="Zurueck"
+          backLabel="Zurück"
         />
       </div>
     );
   }
+
+  // Cooking Mode — render fullscreen overlay, skip everything else
+  if (mode === 'cooking') {
+    return (
+      <RecipeCookingMode
+        recipe={recipe}
+        servingsMultiplier={servingsMultiplier}
+        onServingsChange={setServingsMultiplier}
+      />
+    );
+  }
+
 
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
   const difficultyLabel =
@@ -184,8 +468,6 @@ export default function RecipeDetailPage() {
   const timeLabel =
     RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
     recipe.execution_time;
-  const costsLabel =
-    RECIPE_COSTS_OPTIONS.find((c) => c.value === recipe.costs_rating)?.label ?? recipe.costs_rating;
   const prepTimeLabel =
     RECIPE_PREPARATION_TIME_OPTIONS.find((p) => p.value === recipe.preparation_time)?.label ??
     recipe.preparation_time;
@@ -193,50 +475,98 @@ export default function RecipeDetailPage() {
   // Group tags by parent
   const topicTags = recipe.tags.filter((t) => t.parent_name === 'Themen');
 
-  // Nutrition helpers
-  const nb = nutritionBreakdown;
-  const topIngredientsByWeight = nb
-    ? [...nb.items].sort((a, b) => b.weight_g - a.weight_g)
-    : [];
-  const topIngredientsByPrice = nb
-    ? [...nb.items].filter((i) => i.price_eur !== null).sort((a, b) => (b.price_eur ?? 0) - (a.price_eur ?? 0))
-    : [];
-  const topIngredientsByCalories = nb
-    ? [...nb.items].sort((a, b) => b.energy_kcal - a.energy_kcal)
-    : [];
+  // Reusable handler to open the shopping list export dialog
+  const handleOpenShoppingList = () => {
+    setExportServings((recipe.servings ?? 1) * servingsMultiplier);
+    setShowShoppingExport(true);
+  };
 
   return (
-    <article className="container py-8 max-w-3xl">
+    <EntityLinkContext.Provider value="detail">
+    <article
+      className="container py-8 mx-auto max-w-7xl lg:grid lg:grid-cols-[1fr_320px] lg:gap-8 pb-20 lg:pb-0"
+      {...(mode === 'print' ? { 'data-mode': 'print' } : {})}
+    >
+      <main className="min-w-0 max-w-3xl">
+      {/* Print toolbar */}
+      {mode === 'print' && (
+        <div className="no-print flex items-center justify-between gap-4 mb-6 p-3 bg-muted rounded-lg border">
+          <button
+            type="button"
+            onClick={() => {
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete('mode');
+                return next;
+              }, { replace: true });
+            }}
+            className="flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Zurück
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">print</span>
+            Drucken
+          </button>
+        </div>
+      )}
       {/* Delete Confirmation */}
       <ConfirmDialog
         open={showDeleteConfirm}
         onConfirm={() => {
           deleteRecipe.mutate(recipeId, {
             onSuccess: () => {
-              toast.success('Rezept geloescht');
+              toast.success('Rezept gelöscht');
               setShowDeleteConfirm(false);
               navigate('/recipes');
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setShowDeleteConfirm(false);
             },
           });
         }}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Rezept loeschen?"
-        description="Das Rezept wird geloescht und ist nicht mehr sichtbar."
-        confirmLabel="Loeschen"
+        title="Rezept löschen?"
+        description="Das Rezept wird gelöscht und ist nicht mehr sichtbar."
+        confirmLabel="Löschen"
         loading={deleteRecipe.isPending}
       />
 
-      {/* Recipe Type Badge */}
-      {typeOpt && (
-        <p className="inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 uppercase tracking-wide bg-rose-50 rounded-full px-3 py-1 border border-rose-200 mb-3">
-          <span className="material-symbols-outlined text-[16px]">{typeOpt.icon}</span>
-          {typeOpt.label}
-        </p>
-      )}
+      {/* Leave Confirmation when modifications present (10.6) */}
+      <ConfirmDialog
+        open={blocker.state === 'blocked'}
+        onConfirm={() => blocker.proceed?.()}
+        onCancel={() => blocker.reset?.()}
+        title="Änderungen verwerfen?"
+        description="Du hast das Rezept modifiziert. Wenn du die Seite verlässt, gehen alle Änderungen verloren."
+        confirmLabel="Verwerfen"
+      />
+
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: 'Startseite', href: '/' },
+          { label: 'Rezepte', href: '/recipes' },
+          { label: recipe.title },
+        ]}
+      />
+
+      {/* Recipe Type Badge + Recipe Badge */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        {typeOpt && (
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 uppercase tracking-wide bg-rose-50 rounded-full px-3 py-1 border border-rose-200">
+            <span className="material-symbols-outlined text-[16px]">{typeOpt.icon}</span>
+            {typeOpt.label}
+          </p>
+        )}
+        <RecipeBadge badge={recipe.recipe_badge} />
+      </div>
 
       {/* Title + Edit + Delete */}
       <div className="flex items-start justify-between gap-4">
@@ -256,24 +586,173 @@ export default function RecipeDetailPage() {
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
-              title="Rezept loeschen"
+              title="Rezept löschen"
             >
               <span className="material-symbols-outlined text-[18px]">delete</span>
-              <span className="hidden sm:inline">Loeschen</span>
+              <span className="hidden sm:inline">Löschen</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Hero Image */}
-      <div className="mt-6 rounded-xl overflow-hidden shadow-soft max-w-lg mx-auto relative aspect-square">
-        <img
-          src={recipe.image_url || '/images/inspi_cook.png'}
-          alt={recipe.title}
-          className="w-full h-full object-cover"
+      <div className="mt-6">
+        <TitleImageEditor
+          contentType="recipe"
+          imageUrl={recipe.image_url}
+          canEdit={recipe.can_edit}
+          title={recipe.title}
+          summary={recipe.summary}
+          fallbackImage="/images/inspi_cook.png"
+          uploadMutation={uploadImage}
+          deleteMutation={deleteImage}
+          setFromUrlMutation={setImageFromUrl}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
       </div>
+
+      {/* Modification Indicator (10.5) + Save Buttons */}
+      {isDirty && (
+        <div className="mt-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-600">edit_note</span>
+              <span className="text-sm font-medium text-amber-800">Rezept modifiziert</span>
+            </div>
+            <button
+              type="button"
+              onClick={resetModifications}
+              className="text-xs font-medium text-amber-700 hover:text-amber-900 underline"
+            >
+              Zurücksetzen
+            </button>
+          </div>
+
+          {/* Save actions */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* Fork as new version — available to all logged-in users */}
+            {currentUser && (
+              <button
+                type="button"
+                disabled={forkAndSaveRecipe.isPending}
+                onClick={() => {
+                  const itemsPayload = modifiedItems.map((mod) => {
+                    const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
+                    return {
+                      portion_id: orig?.portion_id ?? null,
+                      ingredient_id: mod.ingredient_id,
+                      quantity: mod.quantity,
+                      measuring_unit_id: orig?.measuring_unit_id ?? null,
+                      sort_order: orig?.sort_order ?? 0,
+                      note: orig?.note ?? '',
+                      quantity_type: orig?.quantity_type ?? 'weight',
+                    };
+                  });
+                  forkAndSaveRecipe.mutate(
+                    { servings: modifiedServings, recipe_items: itemsPayload },
+                    {
+                      onSuccess: (savedRecipe) => {
+                        resetModifications();
+                        toast.success('Neue Version gespeichert');
+                        navigate(`/recipes/${savedRecipe.slug}`);
+                      },
+                      onError: (err) => {
+                        toast.error('Fehler beim Speichern', { description: err.message });
+                      },
+                    },
+                  );
+                }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                {forkAndSaveRecipe.isPending ? 'Wird gespeichert...' : 'Als neue Version speichern'}
+              </button>
+            )}
+
+            {/* Update current recipe — only for owner/admin */}
+            {recipe.can_edit && (
+              <button
+                type="button"
+                disabled={updateRecipe.isPending}
+                onClick={() => {
+                  const itemsPayload = modifiedItems.map((mod) => {
+                    const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
+                    return {
+                      portion_id: orig?.portion_id ?? null,
+                      ingredient_id: mod.ingredient_id,
+                      quantity: mod.quantity,
+                      measuring_unit_id: orig?.measuring_unit_id ?? null,
+                      sort_order: orig?.sort_order ?? 0,
+                      note: orig?.note ?? '',
+                      quantity_type: orig?.quantity_type ?? 'weight',
+                    };
+                  });
+                  updateRecipe.mutate(
+                    {
+                      servings: modifiedServings ?? undefined,
+                      recipe_items: itemsPayload,
+                    },
+                    {
+                      onSuccess: () => {
+                        resetModifications();
+                        toast.success('Rezept aktualisiert');
+                      },
+                      onError: (err) => {
+                        toast.error('Fehler beim Aktualisieren', { description: err.message });
+                      },
+                    },
+                  );
+                }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[18px]">save</span>
+                {updateRecipe.isPending ? 'Wird gespeichert...' : 'Rezept aktualisieren'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Portion Normalization Hint (10.4) */}
+      {nb && (isDirty ? modifiedServings : recipe.servings) && (isDirty ? modifiedServings : recipe.servings)! > 0 && (() => {
+        // DGE reference: 15yo male, PAL 1.5 = 12000 kJ daily
+        const dailyEnergyKj = 12000;
+        const mealFractions: Record<string, number> = {
+          breakfast: 0.25, warm_meal: 0.35, cold_meal: 0.25,
+          dessert: 0.10, side_dish: 0.10, snack: 0.10, drink: 0.05,
+        };
+        const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
+        const expectedEnergyKj = dailyEnergyKj * fraction;
+        const effectiveServings = (isDirty ? modifiedServings : recipe.servings) ?? 1;
+        const perServingEnergyKj = nb.total_energy_kj / effectiveServings;
+        const ratio = perServingEnergyKj / expectedEnergyKj;
+
+        if (ratio > 1.5) {
+          const normFactor = expectedEnergyKj / perServingEnergyKj;
+          return (
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-orange-300 bg-orange-50 p-4">
+              <div className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-orange-600 mt-0.5">warning</span>
+                <div>
+                  <p className="text-sm font-medium text-orange-800">
+                    Diese Portion ist groesser als eine Normportion
+                  </p>
+                  <p className="text-xs text-orange-600 mt-0.5">
+                    Energie pro Portion: {Math.round(perServingEnergyKj)} kJ (Referenz: {Math.round(expectedEnergyKj)} kJ)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => scaleToNormPortion(normFactor)}
+                className="shrink-0 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-700 transition-colors"
+              >
+                Auf Normportion skalieren
+              </button>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Info Boxes */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
@@ -303,26 +782,25 @@ export default function RecipeDetailPage() {
         ) : (
           <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-5">
             <span className="material-symbols-outlined text-3xl text-rose-600">groups</span>
-            <span className="text-base font-bold">Fuer alle</span>
+            <span className="text-base font-bold">Für alle</span>
             <span className="text-xs text-muted-foreground">Altersgruppe</span>
           </div>
         )}
 
-        {/* Servings */}
-        <div className="flex flex-col items-center text-center gap-1 bg-emerald-50 rounded-xl border border-emerald-200 p-5">
-          <span className="material-symbols-outlined text-3xl text-emerald-600">group</span>
-          <span className="text-base font-bold">
-            {recipe.servings
-              ? recipe.servings * servingsMultiplier
-              : '–'}
-          </span>
-          <span className="text-xs text-muted-foreground">Portionen</span>
-          {servingsMultiplier !== 1 && recipe.servings && (
-            <span className="text-xs text-emerald-600 font-medium">
-              ({servingsMultiplier}x)
-            </span>
-          )}
-        </div>
+        {/* Nutri-Score Badge */}
+        {recipe.cached_nutri_class != null && (() => {
+          const label = ['A', 'B', 'C', 'D', 'E'][recipe.cached_nutri_class - 1];
+          const colors = label ? NUTRI_SCORE_COLORS[label] : null;
+          if (!colors) return null;
+          return (
+            <div className="flex flex-col items-center text-center gap-2 bg-card rounded-xl border p-5">
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">Nutri-Score</span>
+              <span className={`${colors.bg} ${colors.text} text-2xl font-extrabold px-5 py-2 rounded-md`}>
+                {label}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Views */}
         <div className="flex flex-col items-center text-center gap-1 bg-violet-50 rounded-xl border border-violet-200 p-5">
@@ -344,6 +822,14 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
+      {/* Header Info (Nutri + Price) — mobile only, desktop uses sidebar */}
+      <div className="mt-4">
+        <RecipeHeaderInfo
+          nutriClass={recipe.cached_nutri_class}
+          priceTotal={recipe.cached_price_total}
+        />
+      </div>
+
       {/* Summary */}
       {recipe.summary && (
         <InlineEditor
@@ -362,55 +848,6 @@ export default function RecipeDetailPage() {
         </InlineEditor>
       )}
 
-      {/* Authors */}
-      {recipe.authors && recipe.authors.length > 0 && (
-        <section className="mt-6 bg-card rounded-xl border p-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            <span className="material-symbols-outlined text-[18px]">person</span>
-            {recipe.authors.length === 1 ? 'Autor' : 'Autoren'}
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            {recipe.authors?.map((author, idx) => {
-              const inner = (
-                <div className="flex items-center gap-3">
-                  {author.profile_picture_url ? (
-                    <img
-                      src={author.profile_picture_url}
-                      alt={author.display_name}
-                      className="w-10 h-10 rounded-full object-cover border"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary/10 border flex items-center justify-center">
-                      <span className="material-symbols-outlined text-primary text-[20px]">
-                        person
-                      </span>
-                    </div>
-                  )}
-                  <span className="text-sm font-medium">{author.display_name}</span>
-                </div>
-              );
-
-              if (author.is_registered && author.id) {
-                return (
-                  <Link
-                    key={author.id}
-                    to={`/user/${author.id}`}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-muted transition-colors"
-                  >
-                    {inner}
-                  </Link>
-                );
-              }
-              return (
-                <div key={idx} className="flex items-center gap-3 rounded-lg px-3 py-2">
-                  {inner}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {/* Topic Tags */}
       {topicTags.length > 0 && (
         <section className="mt-6 bg-card rounded-xl border p-6">
@@ -419,35 +856,15 @@ export default function RecipeDetailPage() {
             Themen
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {topicTags.map((tag, idx) => {
-              const colors = [
-                'bg-primary/10 text-primary border-primary/30 hover:bg-primary hover:text-white',
-                'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-600 hover:text-white',
-                'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-600 hover:text-white',
-                'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-600 hover:text-white',
-                'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-600 hover:text-white',
-                'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-600 hover:text-white',
-                'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-600 hover:text-white',
-                'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-600 hover:text-white',
-              ];
-              const sizes = ['text-sm px-3 py-1', 'text-base px-4 py-1.5', 'text-lg px-5 py-2'];
-              const sizeIdx = (tag.name.length + idx) % sizes.length;
-              const colorIdx = idx % colors.length;
-              return (
-                <Link
-                  key={tag.id}
-                  to={`/recipes?tag_slugs=${tag.slug}`}
-                  className={`rounded-full border font-medium transition-all duration-200 cursor-pointer hover:shadow-md hover:scale-105 ${sizes[sizeIdx]} ${colors[colorIdx]}`}
-                >
-                  {tag.icon && (
-                    <span className="material-symbols-outlined text-[14px] mr-1 align-middle">
-                      {tag.icon}
-                    </span>
-                  )}
-                  {tag.name}
-                </Link>
-              );
-            })}
+            {topicTags.map((tag) => (
+              <EntityLink
+                key={tag.id}
+                type="tag"
+                slug={tag.slug}
+                name={tag.name}
+                variant="chip"
+              />
+            ))}
           </div>
         </section>
       )}
@@ -464,11 +881,18 @@ export default function RecipeDetailPage() {
           <span className="text-base font-bold">{timeLabel}</span>
           <span className="text-xs text-muted-foreground">Kochzeit</span>
         </div>
-        <div className="flex flex-col items-center text-center gap-1 bg-yellow-50 rounded-xl border border-yellow-200 p-5">
-          <span className="material-symbols-outlined text-3xl text-yellow-600">euro</span>
-          <span className="text-base font-bold">{costsLabel}</span>
-          <span className="text-xs text-muted-foreground">Kosten pro Person</span>
-        </div>
+        {recipe.cached_price_total != null && (
+          <div className="flex flex-col items-center text-center gap-1 bg-yellow-50 rounded-xl border border-yellow-200 p-5">
+            <span className="material-symbols-outlined text-3xl text-yellow-600">euro</span>
+            <span className="text-base font-bold">
+              {recipe.cached_price_total.toLocaleString('de-DE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })} €
+            </span>
+            <span className="text-xs text-muted-foreground">Gesamtkosten</span>
+          </div>
+        )}
         <div className="flex flex-col items-center text-center gap-1 bg-indigo-50 rounded-xl border border-indigo-200 p-5">
           <span className="material-symbols-outlined text-3xl text-indigo-600">pending_actions</span>
           <span className="text-base font-bold">{prepTimeLabel}</span>
@@ -476,78 +900,12 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
-      {/* Nutri-Score */}
-      {nutriScore && (
-        <div className="mt-6 bg-card rounded-xl border p-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">health_and_safety</span>
-            Nutri-Score
-          </h2>
-          <div className="flex items-center gap-4">
-            <div className="flex gap-1">
-              {['A', 'B', 'C', 'D', 'E'].map((grade) => {
-                const isActive = nutriScore.nutri_label === grade;
-                const colors = NUTRI_SCORE_COLORS[grade];
-                return (
-                  <div
-                    key={grade}
-                    className={`flex items-center justify-center font-bold rounded-lg transition-all ${
-                      isActive
-                        ? `${colors.bg} ${colors.text} w-12 h-12 text-xl shadow-lg scale-110`
-                        : `${colors.bg}/20 text-muted-foreground w-10 h-10 text-sm opacity-40`
-                    }`}
-                  >
-                    {grade}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">
-                Nutri-Score {nutriScore.nutri_label}
-              </p>
-              <p>
-                {nutriScore.total_points} Punkte ({nutriScore.negative_points} negativ, {nutriScore.positive_points} positiv)
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Recipe Checks (4-dimension assessment) */}
-      {checks && checks.length > 0 && (
-        <div className="mt-6 bg-card rounded-xl border p-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">assessment</span>
-            Bewertung
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {checks.map((check) => (
-              <div
-                key={check.label}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border"
-                style={{ borderColor: check.color + '40', backgroundColor: check.color + '10' }}
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                  style={{ backgroundColor: check.color }}
-                >
-                  {check.score}
-                </div>
-                <span className="text-xs font-medium text-center">{check.label}</span>
-                <span className="text-xs text-muted-foreground text-center">{check.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Nutritional Tags */}
       {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
         <section className="mt-6 bg-card rounded-xl border p-6">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
             <span className="material-symbols-outlined text-[18px]">nutrition</span>
-            Allergene & Ernaehrungshinweise
+            Allergene & Ernährungshinweise
           </h2>
           <div className="flex flex-wrap gap-2">
             {recipe.nutritional_tags?.map((nt) => (
@@ -567,17 +925,27 @@ export default function RecipeDetailPage() {
         <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
           <span className="material-symbols-outlined text-rose-500">egg_alt</span>
           Zutaten
-          {recipe.servings && (
-            <span className="text-sm font-normal text-muted-foreground">
-              fuer {recipe.servings * servingsMultiplier} Portionen
-            </span>
-          )}
+          {recipe.servings && (() => {
+            const count = isDirty
+              ? (modifiedServings ?? 1)
+              : recipe.servings * servingsMultiplier;
+            return (
+              <span className="text-sm font-normal text-muted-foreground">
+                für {count} {count === 1 ? 'Portion' : 'Portionen'}
+              </span>
+            );
+          })()}
         </h2>
 
         <IngredientList
-          items={recipe.recipe_items ?? []}
-          servings={recipe.servings}
-          servingsMultiplier={servingsMultiplier}
+          items={isDirty
+            ? (recipe.recipe_items ?? []).map((item) => {
+                const mod = modifiedItems.find((m) => m.recipe_item_id === item.id);
+                return mod ? { ...item, quantity: mod.quantity } : item;
+              })
+            : (recipe.recipe_items ?? [])}
+          servings={isDirty ? (modifiedServings ?? recipe.servings) : recipe.servings}
+          servingsMultiplier={isDirty ? 1 : servingsMultiplier}
           onServingsChange={setServingsMultiplier}
         />
 
@@ -586,12 +954,7 @@ export default function RecipeDetailPage() {
           <div className="mt-4 pt-4 border-t">
             <button
               type="button"
-              onClick={() => {
-                setExportServings(
-                  (recipe.servings ?? 1) * servingsMultiplier,
-                );
-                setShowShoppingExport(true);
-              }}
+              onClick={handleOpenShoppingList}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center md:w-auto"
             >
               <span className="material-symbols-outlined text-[18px]">
@@ -684,13 +1047,14 @@ export default function RecipeDetailPage() {
           isSaving={updateRecipe.isPending}
           className="mt-6"
         >
-          <div className="bg-card rounded-xl border p-6">
-            <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
-              <span className="material-symbols-outlined text-primary">description</span>
-              Zubereitung
-            </h2>
+          <AnalysisSection
+            icon="description"
+            title="Zubereitung"
+            defaultOpen={descriptionDefaultOpen}
+            accentColor="text-primary"
+          >
             <MarkdownRenderer content={recipe.description} />
-          </div>
+          </AnalysisSection>
         </InlineEditor>
       )}
 
@@ -700,6 +1064,87 @@ export default function RecipeDetailPage() {
           <MarkdownRenderer content={recipe.summary_long} />
         </div>
       )}
+
+      {/* Als persönliches Rezept speichern (12.6) */}
+      {currentUser && !recipe.can_edit && (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => {
+              forkRecipe.mutate(undefined, {
+                onSuccess: (forkedRecipe) => {
+                  toast.success('Rezept als persönliche Kopie gespeichert');
+                  navigate(`/recipes/${forkedRecipe.slug}`);
+                },
+                onError: (err) => {
+                  toast.error('Fehler beim Speichern', { description: err.message });
+                },
+              });
+            }}
+            disabled={forkRecipe.isPending}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-lg">content_copy</span>
+            {forkRecipe.isPending ? 'Wird gespeichert...' : 'Als persönliches Rezept speichern'}
+          </button>
+        </div>
+      )}
+
+      {/* Visibility UI for recipe owner (13.6) */}
+      {recipe.is_owner && recipe.visibility && (
+        <div className="mt-6 bg-card rounded-xl border p-5">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            <span className="material-symbols-outlined text-[18px]">visibility</span>
+            Sichtbarkeit
+          </h3>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <select
+              value={recipe.visibility}
+              onChange={(e) => setShowVisibilityConfirm(e.target.value)}
+              className="w-full sm:w-auto rounded-lg border bg-background px-3 py-2 text-sm"
+            >
+              <option value="private">Privat – nur für mich</option>
+              <option value="group">Gruppe – für meine Gruppe</option>
+              <option value="public">Öffentlich – für alle sichtbar</option>
+            </select>
+            <span className="text-xs text-muted-foreground">
+              {recipe.visibility === 'private' && 'Nur du kannst dieses Rezept sehen.'}
+              {recipe.visibility === 'group' && 'Mitglieder deiner Gruppe können dieses Rezept sehen.'}
+              {recipe.visibility === 'public' && 'Dieses Rezept ist für alle sichtbar.'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Visibility Change Confirmation (13.6) */}
+      <ConfirmDialog
+        open={showVisibilityConfirm !== null}
+        onConfirm={() => {
+          if (showVisibilityConfirm) {
+            updateVisibility.mutate(showVisibilityConfirm, {
+              onSuccess: () => {
+                toast.success('Sichtbarkeit geändert');
+                setShowVisibilityConfirm(null);
+              },
+              onError: (err) => {
+                toast.error('Fehler', { description: err.message });
+                setShowVisibilityConfirm(null);
+              },
+            });
+          }
+        }}
+        onCancel={() => setShowVisibilityConfirm(null)}
+        title="Sichtbarkeit ändern?"
+        description={
+          showVisibilityConfirm === 'public'
+            ? 'Wenn du das Rezept öffentlich machst, wird es zur Prüfung eingereicht und ist nach Freigabe für alle sichtbar.'
+            : showVisibilityConfirm === 'group'
+              ? 'Das Rezept wird für Mitglieder deiner Gruppe sichtbar.'
+              : 'Das Rezept wird nur noch für dich sichtbar sein.'
+        }
+        confirmLabel="Ändern"
+        loading={updateVisibility.isPending}
+      />
 
       {/* ============================================================ */}
       {/* ANALYSIS SECTIONS (collapsible) */}
@@ -720,9 +1165,8 @@ export default function RecipeDetailPage() {
               {recipe.servings && (
                 <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                   <p className="text-2xl font-extrabold text-emerald-700">
-                    {(nb.total_price_eur / (recipe.servings * servingsMultiplier)).toFixed(2)} EUR
+                    {(nb.total_price_eur / (effectiveServings * servingsMultiplier)).toFixed(2)} EUR
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">pro Portion</p>
                 </div>
               )}
               <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
@@ -743,6 +1187,7 @@ export default function RecipeDetailPage() {
                       key={item.recipe_item_id}
                       item={item}
                       totalPrice={nb.total_price_eur ?? 1}
+                      ingredientSlugById={ingredientSlugById}
                     />
                   ))}
                 </div>
@@ -763,9 +1208,9 @@ export default function RecipeDetailPage() {
             {/* Macro overview per serving */}
             <div>
               <h3 className="text-sm font-semibold mb-3">
-                Naehrwerte pro Portion{' '}
+                Nährwerte pro Portion{' '}
                 <span className="font-normal text-muted-foreground">
-                  ({Math.round(nb.total_weight_g / (recipe.servings || 1))} g)
+                  ({formatWeight(nb.total_weight_g / effectiveServings)})
                 </span>
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -804,9 +1249,25 @@ export default function RecipeDetailPage() {
               </div>
             </div>
 
+            {/* Macro pie chart */}
+            {(nb.per_serving_protein_g || nb.per_serving_fat_g || nb.per_serving_carbohydrate_g) && (
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Makronährstoff-Verteilung</h3>
+                <div className="bg-muted/30 rounded-xl p-4">
+                  <Suspense fallback={<div className="h-[260px] bg-muted rounded-xl animate-pulse" />}>
+                    <LazyNutritionPieChart
+                      proteinG={nb.per_serving_protein_g ?? 0}
+                      fatG={nb.per_serving_fat_g ?? 0}
+                      carbsG={nb.per_serving_carbohydrate_g ?? 0}
+                    />
+                  </Suspense>
+                </div>
+              </div>
+            )}
+
             {/* Macro bars (total) */}
             <div>
-              <h3 className="text-sm font-semibold mb-3">Gesamtnaehrwerte</h3>
+              <h3 className="text-sm font-semibold mb-3">Gesamtnährwerte</h3>
               <div className="space-y-3 bg-muted/30 rounded-xl p-4">
                 <MacroBar
                   label="Protein"
@@ -821,7 +1282,7 @@ export default function RecipeDetailPage() {
                   color="bg-amber-500"
                 />
                 <MacroBar
-                  label="davon gesaettigt"
+                  label="davon gesättigt"
                   value={nb.total_fat_sat_g}
                   max={nb.total_fat_g || 1}
                   color="bg-amber-300"
@@ -853,6 +1314,9 @@ export default function RecipeDetailPage() {
               </div>
             </div>
 
+            {/* Contribution panels per parameter (collapsible) */}
+            <CollapsibleContributions items={nb.items} />
+
             {/* Top calorie contributors */}
             {topIngredientsByCalories.length > 0 && (
               <div>
@@ -860,13 +1324,14 @@ export default function RecipeDetailPage() {
                 <div className="space-y-2">
                   {topIngredientsByCalories.slice(0, 8).map((item) => (
                     <div key={item.recipe_item_id} className="flex items-center gap-3">
-                      {item.ingredient_id ? (
-                        <Link
-                          to={`/ingredients/${item.ingredient_id}`}
-                          className="text-sm font-medium hover:text-primary transition-colors w-32 truncate underline-offset-2 hover:underline"
-                        >
-                          {item.ingredient_name}
-                        </Link>
+                      {item.ingredient_id && ingredientSlugById.get(item.ingredient_id) ? (
+                        <EntityLink
+                          type="ingredient"
+                          slug={ingredientSlugById.get(item.ingredient_id)!}
+                          name={item.ingredient_name}
+                          variant="muted"
+                          className="text-sm font-medium w-32 truncate"
+                        />
                       ) : (
                         <span className="text-sm font-medium w-32 truncate">
                           {item.ingredient_name}
@@ -888,6 +1353,38 @@ export default function RecipeDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Collapsible Vitamins section */}
+            <MicronutrientSection
+              title="Vitamine"
+              icon="medication"
+              accentColor="text-amber-600"
+              nutrients={[
+                { label: 'Vitamin A', value: nb.total_vitamin_a_mg, unit: 'mg', dgeKey: 'vitamin_a_mg' },
+                { label: 'Vitamin C', value: nb.total_vitamin_c_mg, unit: 'mg', dgeKey: 'vitamin_c_mg' },
+                { label: 'Vitamin D', value: nb.total_vitamin_d_ug, unit: '\u00B5g', dgeKey: 'vitamin_d_ug' },
+                { label: 'Vitamin B12', value: nb.total_vitamin_b12_ug, unit: '\u00B5g', dgeKey: 'vitamin_b12_ug' },
+                { label: 'Folat', value: nb.total_folate_ug, unit: '\u00B5g', dgeKey: 'folate_ug' },
+              ]}
+              dgeCoverage={nb.dge_coverage}
+              servings={effectiveServings}
+            />
+
+            {/* Collapsible Minerals section */}
+            <MicronutrientSection
+              title="Mineralstoffe"
+              icon="diamond"
+              accentColor="text-cyan-600"
+              nutrients={[
+                { label: 'Calcium', value: nb.total_calcium_mg, unit: 'mg', dgeKey: 'calcium_mg' },
+                { label: 'Eisen', value: nb.total_iron_mg, unit: 'mg', dgeKey: 'iron_mg' },
+                { label: 'Magnesium', value: nb.total_magnesium_mg, unit: 'mg', dgeKey: 'magnesium_mg' },
+                { label: 'Zink', value: nb.total_zinc_mg, unit: 'mg', dgeKey: 'zinc_mg' },
+                { label: 'Kalium', value: nb.total_potassium_mg, unit: 'mg', dgeKey: 'potassium_mg' },
+              ]}
+              dgeCoverage={nb.dge_coverage}
+              servings={effectiveServings}
+            />
           </div>
         </AnalysisSection>
       )}
@@ -934,7 +1431,7 @@ export default function RecipeDetailPage() {
                     </span>
                   </div>
                   <p className="text-xs text-red-600 mt-1">
-                    Energie, Zucker, gesaettigte Fettsaeuren, Natrium
+                    Energie, Zucker, gesättigte Fettsäuren, Natrium
                   </p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-lg border border-green-200">
@@ -945,19 +1442,22 @@ export default function RecipeDetailPage() {
                     </span>
                   </div>
                   <p className="text-xs text-green-600 mt-1">
-                    Ballaststoffe, Protein, Obst/Gemuese-Anteil
+                    Ballaststoffe, Protein, Obst/Gemüse-Anteil
                   </p>
                 </div>
               </div>
             </div>
 
+            {/* Positive health trait badges */}
+            <PositiveTraitsBadges traits={nb.positive_traits ?? []} />
+
             {/* Health indicators */}
             <div>
-              <h3 className="text-sm font-semibold mb-3">Gesundheitsindikatoren pro Portion</h3>
+              <h3 className="text-sm font-semibold mb-3">Gesundheitsindikatoren</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <HealthIndicator
                   label="Zucker"
-                  value={nb.total_sugar_g / (recipe.servings || 1)}
+                  value={nb.total_sugar_g / effectiveServings}
                   max={25}
                   unit="g"
                   goodBelow={10}
@@ -965,7 +1465,7 @@ export default function RecipeDetailPage() {
                 />
                 <HealthIndicator
                   label="Ges. Fett"
-                  value={nb.total_fat_sat_g / (recipe.servings || 1)}
+                  value={nb.total_fat_sat_g / effectiveServings}
                   max={20}
                   unit="g"
                   goodBelow={6}
@@ -973,7 +1473,7 @@ export default function RecipeDetailPage() {
                 />
                 <HealthIndicator
                   label="Salz"
-                  value={nb.total_salt_g / (recipe.servings || 1)}
+                  value={nb.total_salt_g / effectiveServings}
                   max={6}
                   unit="g"
                   goodBelow={1.5}
@@ -981,7 +1481,7 @@ export default function RecipeDetailPage() {
                 />
                 <HealthIndicator
                   label="Ballaststoffe"
-                  value={nb.total_fibre_g / (recipe.servings || 1)}
+                  value={nb.total_fibre_g / effectiveServings}
                   max={10}
                   unit="g"
                   goodBelow={999}
@@ -1007,6 +1507,12 @@ export default function RecipeDetailPage() {
                 />
               </div>
             </div>
+
+            {/* Unified Improvements (Nutri-Score + RecipeHints, top 5) */}
+            <div>
+              <h3 className="text-sm font-semibold mb-3">Verbesserungsvorschläge</h3>
+              <RecipeImprovements recipeId={recipeId} breakdownItems={nb?.items ?? []} />
+            </div>
           </div>
         </AnalysisSection>
       )}
@@ -1023,10 +1529,10 @@ export default function RecipeDetailPage() {
               <span className="material-symbols-outlined text-2xl text-indigo-600">scale</span>
               <div>
                 <p className="text-lg font-bold text-indigo-700">
-                  {nb.total_weight_g.toFixed(0)} g
+                  {formatWeight(nb.total_weight_g)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Gesamtgewicht ({Math.round(nb.total_weight_g / (recipe.servings || 1))} g pro Portion)
+                  Gesamtgewicht ({formatWeight(nb.total_weight_g / effectiveServings)})
                 </p>
               </div>
             </div>
@@ -1034,13 +1540,14 @@ export default function RecipeDetailPage() {
             <div className="space-y-2">
               {topIngredientsByWeight.map((item) => (
                 <div key={item.recipe_item_id} className="flex items-center gap-3">
-                  {item.ingredient_id ? (
-                    <Link
-                      to={`/ingredients/${item.ingredient_id}`}
-                      className="text-sm font-medium hover:text-primary transition-colors w-32 truncate underline-offset-2 hover:underline"
-                    >
-                      {item.ingredient_name}
-                    </Link>
+                  {item.ingredient_id && ingredientSlugById.get(item.ingredient_id) ? (
+                    <EntityLink
+                      type="ingredient"
+                      slug={ingredientSlugById.get(item.ingredient_id)!}
+                      name={item.ingredient_name}
+                      variant="muted"
+                      className="text-sm font-medium w-32 truncate"
+                    />
                   ) : (
                     <span className="text-sm font-medium w-32 truncate">
                       {item.ingredient_name}
@@ -1053,7 +1560,7 @@ export default function RecipeDetailPage() {
                     />
                   </div>
                   <span className="text-xs text-muted-foreground w-20 text-right">
-                    {item.weight_g.toFixed(0)} g ({item.weight_pct.toFixed(0)}%)
+                    {formatWeight(item.weight_g)} ({item.weight_pct.toFixed(0)}%)
                   </span>
                 </div>
               ))}
@@ -1062,88 +1569,8 @@ export default function RecipeDetailPage() {
         </AnalysisSection>
       )}
 
-      {/* --- Zubereitungsanalyse --- */}
-      <AnalysisSection
-        icon="restaurant"
-        title="Zubereitungsanalyse"
-        accentColor="text-teal-600"
-      >
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div className="text-center p-4 bg-teal-50 rounded-xl border border-teal-200">
-            <span className="material-symbols-outlined text-2xl text-teal-600">timer</span>
-            <p className="text-base font-bold mt-1">{timeLabel}</p>
-            <p className="text-xs text-muted-foreground">Kochzeit</p>
-          </div>
-          <div className="text-center p-4 bg-indigo-50 rounded-xl border border-indigo-200">
-            <span className="material-symbols-outlined text-2xl text-indigo-600">pending_actions</span>
-            <p className="text-base font-bold mt-1">{prepTimeLabel}</p>
-            <p className="text-xs text-muted-foreground">Vorbereitung</p>
-          </div>
-          <div className="text-center p-4 bg-rose-50 rounded-xl border border-rose-200">
-            <span className="material-symbols-outlined text-2xl text-rose-600">signal_cellular_alt</span>
-            <p className="text-base font-bold mt-1">{difficultyLabel}</p>
-            <p className="text-xs text-muted-foreground">Schwierigkeit</p>
-          </div>
-          {recipe.servings && (
-            <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-              <span className="material-symbols-outlined text-2xl text-emerald-600">group</span>
-              <p className="text-base font-bold mt-1">{recipe.servings}</p>
-              <p className="text-xs text-muted-foreground">Portionen</p>
-            </div>
-          )}
-          <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-200">
-            <span className="material-symbols-outlined text-2xl text-amber-600">egg_alt</span>
-            <p className="text-base font-bold mt-1">{recipe.recipe_items?.length ?? 0}</p>
-            <p className="text-xs text-muted-foreground">Zutaten</p>
-          </div>
-          {nb && nb.total_weight_g > 0 && (
-            <div className="text-center p-4 bg-violet-50 rounded-xl border border-violet-200">
-              <span className="material-symbols-outlined text-2xl text-violet-600">scale</span>
-              <p className="text-base font-bold mt-1">{nb.total_weight_g.toFixed(0)} g</p>
-              <p className="text-xs text-muted-foreground">Gesamtgewicht</p>
-            </div>
-          )}
-        </div>
-      </AnalysisSection>
-
-      {/* Recipe Hints */}
-      {hints && hints.length > 0 && (
-        <section className="mt-6 bg-card rounded-xl border p-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">lightbulb</span>
-            Verbesserungsvorschlaege
-          </h2>
-          <div className="space-y-3">
-            {hints.map((match, idx) => {
-              const levelColors: Record<string, string> = {
-                info: 'bg-blue-50 border-blue-200 text-blue-700',
-                warning: 'bg-amber-50 border-amber-200 text-amber-700',
-                error: 'bg-red-50 border-red-200 text-red-700',
-              };
-              const levelIcons: Record<string, string> = {
-                info: 'info',
-                warning: 'warning',
-                error: 'error',
-              };
-              const colorClass =
-                levelColors[match.hint.hint_level] ?? levelColors.info;
-              const icon = levelIcons[match.hint.hint_level] ?? 'info';
-              return (
-                <div
-                  key={idx}
-                  className={`flex items-start gap-3 rounded-xl border p-4 ${colorClass}`}
-                >
-                  <span className="material-symbols-outlined text-[20px] mt-0.5">{icon}</span>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{match.hint.name}</p>
-                    <p className="text-sm mt-0.5">{match.message}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Recipe Hints + Nutri-Improvements are now rendered inside the
+          Nährwert-Analyse section via <RecipeImprovements />. */}
 
       {/* Emotions — using generic ContentEmotions component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
@@ -1164,7 +1591,7 @@ export default function RecipeDetailPage() {
         <section className="mt-8">
           <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
             <span className="material-symbols-outlined text-primary">auto_awesome</span>
-            Aehnliche Rezepte
+            Ähnliche Rezepte
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {(recipe.next_best_recipes ?? []).map((similar) => (
@@ -1178,7 +1605,7 @@ export default function RecipeDetailPage() {
                     src={similar.image_url || '/images/inspi_cook.png'}
                     alt={similar.title}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className={`w-full h-full group-hover:scale-105 transition-transform duration-300 ${similar.image_url ? 'object-cover' : 'object-contain p-4 bg-muted/30'}`}
                   />
                 </div>
                 <div className="p-3">
@@ -1211,6 +1638,13 @@ export default function RecipeDetailPage() {
 
       <ContentLinkSection contentType="recipe" objectId={recipeId} />
 
+      {/* Author Section */}
+      <ContentAuthorSection
+        authors={recipe.authors ?? []}
+        createdAt={recipe.created_at}
+        className="mt-8"
+      />
+
       {/* Comments — using generic ContentComments component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
         <ContentComments
@@ -1219,7 +1653,34 @@ export default function RecipeDetailPage() {
           isPending={createComment.isPending}
         />
       </section>
+      </main>
+
+      {/* Desktop Sidebar */}
+      <RecipeSidebar
+        recipe={recipe}
+        recipeId={recipeId}
+        servings={effectiveServings}
+        onServingsChange={(s) => setServingsMultiplier(s / (recipe.servings ?? 1))}
+        onOpenShoppingList={handleOpenShoppingList}
+      />
+
+      {/* Mobile Action Bar */}
+      {currentUser && (
+        <RecipeMobileActionBar
+          onOpenShoppingList={handleOpenShoppingList}
+          onOpenPortions={() => setPortionSheetOpen(true)}
+        />
+      )}
+
+      {/* Portion Bottom Sheet (Mobile) */}
+      <PortionBottomSheet
+        open={portionSheetOpen}
+        onOpenChange={setPortionSheetOpen}
+        servings={effectiveServings}
+        onServingsChange={(s) => setServingsMultiplier(s / (recipe.servings ?? 1))}
+      />
     </article>
+    </EntityLinkContext.Provider>
   );
 }
 
@@ -1291,6 +1752,7 @@ function HealthIndicator({
   };
 
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const dgePct = max > 0 ? Math.round((value / max) * 100) : 0;
 
   return (
     <div className={`p-3 rounded-xl border ${statusColors[status]}`}>
@@ -1301,6 +1763,7 @@ function HealthIndicator({
       <p className="text-lg font-bold">
         {value.toFixed(1)} {unit}
       </p>
+      <p className="text-[10px] opacity-75">{dgePct}% der DGE-Referenz</p>
       <div className="h-1.5 bg-white/50 rounded-full mt-1 overflow-hidden">
         <div
           className={`h-full rounded-full ${status === 'good' ? 'bg-green-500' : status === 'warn' ? 'bg-amber-500' : 'bg-red-500'}`}
@@ -1314,21 +1777,24 @@ function HealthIndicator({
 function PriceRow({
   item,
   totalPrice,
+  ingredientSlugById,
 }: {
   item: RecipeItemNutrition;
   totalPrice: number;
+  ingredientSlugById: Map<number, string>;
 }) {
   const pricePct = totalPrice > 0 && item.price_eur ? (item.price_eur / totalPrice) * 100 : 0;
 
   return (
     <div className="flex items-center gap-3">
-      {item.ingredient_id ? (
-        <Link
-          to={`/ingredients/${item.ingredient_id}`}
-          className="text-sm font-medium hover:text-primary transition-colors w-32 truncate underline-offset-2 hover:underline"
-        >
-          {item.ingredient_name}
-        </Link>
+      {item.ingredient_id && ingredientSlugById.get(item.ingredient_id) ? (
+        <EntityLink
+          type="ingredient"
+          slug={ingredientSlugById.get(item.ingredient_id)!}
+          name={item.ingredient_name}
+          variant="muted"
+          className="text-sm font-medium w-32 truncate"
+        />
       ) : (
         <span className="text-sm font-medium w-32 truncate">{item.ingredient_name}</span>
       )}

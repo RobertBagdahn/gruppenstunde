@@ -187,9 +187,9 @@ export const PREPARATION_TIME_OPTIONS = [
 export const SORT_OPTIONS = [
   { value: 'relevant', label: 'Relevanz' },
   { value: 'newest', label: 'Neueste' },
-  { value: 'oldest', label: 'Aelteste' },
+  { value: 'oldest', label: 'Älteste' },
   { value: 'most_liked', label: 'Beliebteste' },
-  { value: 'random', label: 'Zufaellig' },
+  { value: 'random', label: 'Zufällig' },
 ] as const;
 
 /** @deprecated Use COSTS_RATING_OPTIONS */
@@ -222,7 +222,7 @@ export const AiRefurbishSchema = z.object({
   summary: z.string(),
   summary_long: z.string(),
   description: z.string(),
-  idea_type: z.string().default('idea'),
+  content_type: z.string().default('session'),
   suggested_tag_ids: z.array(z.number()),
   suggested_tag_names: z.array(z.string()),
   suggested_tags: z.array(z.lazy(() => z.object({

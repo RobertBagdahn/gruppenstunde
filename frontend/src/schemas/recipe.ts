@@ -61,6 +61,22 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   cached_nutri_class: z.number().nullable().optional(),
   cached_price_total: z.number().nullable().optional(),
   cached_at: z.string().nullable().optional(),
+  // Cached micronutrient values
+  cached_vitamin_a_mg: z.number().nullable().optional(),
+  cached_vitamin_c_mg: z.number().nullable().optional(),
+  cached_vitamin_d_ug: z.number().nullable().optional(),
+  cached_vitamin_b12_ug: z.number().nullable().optional(),
+  cached_calcium_mg: z.number().nullable().optional(),
+  cached_iron_mg: z.number().nullable().optional(),
+  cached_magnesium_mg: z.number().nullable().optional(),
+  cached_zinc_mg: z.number().nullable().optional(),
+  cached_potassium_mg: z.number().nullable().optional(),
+  cached_folate_ug: z.number().nullable().optional(),
+  // Personal recipe fields
+  owner_name: z.string().nullable().optional(),
+  forked_from_title: z.string().nullable().optional(),
+  visibility: z.string().nullable().optional(),
+  recipe_badge: z.string().nullable().optional(), // "verified" | "community" | "personal"
 });
 export type RecipeListItem = z.infer<typeof RecipeListItemSchema>;
 
@@ -85,6 +101,23 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   cached_nutri_class: z.number().nullable().optional(),
   cached_price_total: z.number().nullable().optional(),
   cached_at: z.string().nullable().optional(),
+  // Cached micronutrient values
+  cached_vitamin_a_mg: z.number().nullable().optional(),
+  cached_vitamin_c_mg: z.number().nullable().optional(),
+  cached_vitamin_d_ug: z.number().nullable().optional(),
+  cached_vitamin_b12_ug: z.number().nullable().optional(),
+  cached_calcium_mg: z.number().nullable().optional(),
+  cached_iron_mg: z.number().nullable().optional(),
+  cached_magnesium_mg: z.number().nullable().optional(),
+  cached_zinc_mg: z.number().nullable().optional(),
+  cached_potassium_mg: z.number().nullable().optional(),
+  cached_folate_ug: z.number().nullable().optional(),
+  // Personal recipe fields
+  owner_name: z.string().nullable().optional(),
+  forked_from_title: z.string().nullable().optional(),
+  visibility: z.string().nullable().optional(),
+  recipe_badge: z.string().nullable().optional(), // "verified" | "community" | "personal"
+  is_owner: z.boolean().default(false),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   recipe_items: z.array(RecipeItemSchema).default([]),
   next_best_recipes: z.array(RecipeSimilarSchema).default([]),
@@ -112,6 +145,7 @@ export const RecipeFilterSchema = z.object({
   difficulty: z.string().optional(),
   costs_rating: z.string().optional(),
   execution_time: z.string().optional(),
+  origin: z.string().optional(), // "all" | "verified" | "community" | "mine"
   sort: z.string().default('newest'),
   page: z.number().default(1),
   page_size: z.number().default(20),
@@ -124,6 +158,7 @@ export const RecipeHintSchema = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string(),
+  improvement_text: z.string().default(''),
   parameter: z.string(),
   min_value: z.number().nullable(),
   max_value: z.number().nullable(),
@@ -133,23 +168,6 @@ export const RecipeHintSchema = z.object({
   recipe_objective: z.string(),
 });
 export type RecipeHint = z.infer<typeof RecipeHintSchema>;
-
-export const RecipeHintMatchSchema = z.object({
-  hint: RecipeHintSchema,
-  actual_value: z.number(),
-  message: z.string(),
-});
-export type RecipeHintMatch = z.infer<typeof RecipeHintMatchSchema>;
-
-// --- Recipe Check ---
-
-export const RecipeCheckSchema = z.object({
-  label: z.string(),
-  value: z.string(),
-  color: z.string(),
-  score: z.number(),
-});
-export type RecipeCheck = z.infer<typeof RecipeCheckSchema>;
 
 // --- Nutri-Score ---
 
@@ -166,13 +184,13 @@ export type NutriScoreDetail = z.infer<typeof NutriScoreDetailSchema>;
 // --- Choices (mirrors backend recipe/choices.py) ---
 
 export const RECIPE_TYPE_OPTIONS = [
-  { value: 'breakfast', label: 'Fruehstueck', icon: 'free_breakfast' },
+  { value: 'breakfast', label: 'Frühstück', icon: 'free_breakfast' },
   { value: 'warm_meal', label: 'Warme Mahlzeit', icon: 'lunch_dining' },
   { value: 'cold_meal', label: 'Kalte Mahlzeit', icon: 'takeout_dining' },
   { value: 'dessert', label: 'Nachtisch', icon: 'cake' },
   { value: 'side_dish', label: 'Beilage', icon: 'rice_bowl' },
   { value: 'snack', label: 'Snack', icon: 'cookie' },
-  { value: 'drink', label: 'Getraenk', icon: 'local_cafe' },
+  { value: 'drink', label: 'Getränk', icon: 'local_cafe' },
 ] as const;
 
 export const RECIPE_DIFFICULTY_OPTIONS = [
@@ -203,22 +221,78 @@ export const RECIPE_PREPARATION_TIME_OPTIONS = [
   { value: 'more_60', label: '> 60 Min' },
 ] as const;
 
+export const RECIPE_ORIGIN_OPTIONS = [
+  { value: 'all', label: 'Alle', icon: 'public' },
+  { value: 'verified', label: 'Inspi-verifiziert', icon: 'verified' },
+  { value: 'community', label: 'Community', icon: 'groups' },
+  { value: 'mine', label: 'Meine Rezepte', icon: 'person' },
+] as const;
+
 export const RECIPE_SORT_OPTIONS = [
   { value: 'newest', label: 'Neueste' },
-  { value: 'oldest', label: 'Aelteste' },
+  { value: 'oldest', label: 'Älteste' },
   { value: 'most_liked', label: 'Beliebteste' },
   { value: 'popular', label: 'Meistgesehen' },
-  { value: 'random', label: 'Zufaellig' },
+  { value: 'random', label: 'Zufällig' },
 ] as const;
 
 export const RECIPE_EMOTION_OPTIONS = [
   { value: 'in_love', label: 'Begeistert', emoji: '😍' },
   { value: 'happy', label: 'Gut', emoji: '😊' },
-  { value: 'disappointed', label: 'Enttaeuscht', emoji: '😞' },
+  { value: 'disappointed', label: 'Enttäuscht', emoji: '😞' },
   { value: 'complex', label: 'Zu komplex', emoji: '🤯' },
 ] as const;
 
+// --- Recipe Improvements (ranked, merged Nutri-Score + RecipeHint) ---
+
+export const SuggestedIngredientSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  contribution_g: z.number(),
+});
+export type SuggestedIngredient = z.infer<typeof SuggestedIngredientSchema>;
+
+export const ImprovementSchema = z.object({
+  parameter: z.string(),
+  parameter_label: z.string(),
+  current_value: z.number(),
+  threshold_value: z.number(),
+  delta: z.number(),
+  unit: z.string(),
+  direction: z.string(), // "reduce" | "increase"
+  impact_score: z.number(),
+  suggested_ingredients: z.array(SuggestedIngredientSchema),
+  source: z.string(), // "nutri_score" | "recipe_hint" | "merged"
+  recommendation_text: z.string(),
+});
+export type Improvement = z.infer<typeof ImprovementSchema>;
+
+export const ImprovementListSchema = z.object({
+  items: z.array(ImprovementSchema),
+  all_good: z.boolean(),
+  message: z.string().default(''),
+});
+export type ImprovementList = z.infer<typeof ImprovementListSchema>;
+
+// --- LLM Suggestion ---
+
+export const LlmSuggestionSchema = z.object({
+  ingredient_name: z.string(),
+  recommended_amount: z.number(),
+  unit: z.string(),
+  reasoning: z.string(),
+  expected_improvement: z.string(),
+});
+export type LlmSuggestion = z.infer<typeof LlmSuggestionSchema>;
+
 // --- Nutrition Breakdown ---
+
+export const ContributionSchema = z.object({
+  parameter: z.string(), // energy, protein, fat, sat_fat, carbs, sugar, salt, fiber
+  absolute: z.number(),
+  percent_of_recipe: z.number(), // 0–100
+});
+export type Contribution = z.infer<typeof ContributionSchema>;
 
 export const RecipeItemNutritionSchema = z.object({
   recipe_item_id: z.number(),
@@ -238,6 +312,35 @@ export const RecipeItemNutritionSchema = z.object({
   fibre_g: z.number(),
   salt_g: z.number(),
   weight_pct: z.number(),
+  // Vitamins
+  vitamin_a_mg: z.number().nullable().optional(),
+  vitamin_b1_mg: z.number().nullable().optional(),
+  vitamin_b2_mg: z.number().nullable().optional(),
+  vitamin_b6_mg: z.number().nullable().optional(),
+  vitamin_b12_ug: z.number().nullable().optional(),
+  vitamin_c_mg: z.number().nullable().optional(),
+  vitamin_d_ug: z.number().nullable().optional(),
+  vitamin_e_mg: z.number().nullable().optional(),
+  vitamin_k_ug: z.number().nullable().optional(),
+  niacin_mg: z.number().nullable().optional(),
+  folate_ug: z.number().nullable().optional(),
+  pantothenic_acid_mg: z.number().nullable().optional(),
+  biotin_ug: z.number().nullable().optional(),
+  // Minerals
+  calcium_mg: z.number().nullable().optional(),
+  iron_mg: z.number().nullable().optional(),
+  magnesium_mg: z.number().nullable().optional(),
+  zinc_mg: z.number().nullable().optional(),
+  potassium_mg: z.number().nullable().optional(),
+  phosphorus_mg: z.number().nullable().optional(),
+  iodine_ug: z.number().nullable().optional(),
+  selenium_ug: z.number().nullable().optional(),
+  copper_mg: z.number().nullable().optional(),
+  manganese_mg: z.number().nullable().optional(),
+  chromium_ug: z.number().nullable().optional(),
+  fluoride_mg: z.number().nullable().optional(),
+  // Per-item contributions to nutritional parameters
+  contributions: z.array(ContributionSchema).default([]),
 });
 export type RecipeItemNutrition = z.infer<typeof RecipeItemNutritionSchema>;
 
@@ -253,10 +356,28 @@ export const RecipeNutritionBreakdownSchema = z.object({
   total_sugar_g: z.number(),
   total_fibre_g: z.number(),
   total_salt_g: z.number(),
+  // Micronutrient totals
+  total_vitamin_a_mg: z.number().nullable().optional(),
+  total_vitamin_c_mg: z.number().nullable().optional(),
+  total_vitamin_d_ug: z.number().nullable().optional(),
+  total_vitamin_b12_ug: z.number().nullable().optional(),
+  total_calcium_mg: z.number().nullable().optional(),
+  total_iron_mg: z.number().nullable().optional(),
+  total_magnesium_mg: z.number().nullable().optional(),
+  total_zinc_mg: z.number().nullable().optional(),
+  total_potassium_mg: z.number().nullable().optional(),
+  total_folate_ug: z.number().nullable().optional(),
+  // Per-serving values
   per_serving_energy_kcal: z.number().nullable(),
   per_serving_protein_g: z.number().nullable(),
   per_serving_fat_g: z.number().nullable(),
   per_serving_carbohydrate_g: z.number().nullable(),
+  per_serving_vitamin_c_mg: z.number().nullable().optional(),
+  per_serving_calcium_mg: z.number().nullable().optional(),
+  per_serving_iron_mg: z.number().nullable().optional(),
+  // DGE coverage percentages (nutrient -> %)
+  dge_coverage: z.record(z.string(), z.number().nullable()).default({}),
+  positive_traits: z.array(z.string()).default([]),
   items: z.array(RecipeItemNutritionSchema),
 });
 export type RecipeNutritionBreakdown = z.infer<typeof RecipeNutritionBreakdownSchema>;

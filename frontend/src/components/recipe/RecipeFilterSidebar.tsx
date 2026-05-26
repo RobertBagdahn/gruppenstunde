@@ -5,6 +5,7 @@ import {
   RECIPE_DIFFICULTY_OPTIONS,
   RECIPE_COSTS_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
+  RECIPE_ORIGIN_OPTIONS,
   type RecipeFilter,
 } from '@/schemas/recipe';
 import type { Tag } from '@/schemas/content';
@@ -98,7 +99,8 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     filters.recipe_type ||
     filters.difficulty ||
     filters.costs_rating ||
-    filters.execution_time;
+    filters.execution_time ||
+    (filters.origin && filters.origin !== 'all');
 
   const activeFilterCount =
     selectedTagSlugs.length +
@@ -106,7 +108,8 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     (filters.recipe_type ? 1 : 0) +
     (filters.difficulty ? 1 : 0) +
     (filters.costs_rating ? 1 : 0) +
-    (filters.execution_time ? 1 : 0);
+    (filters.execution_time ? 1 : 0) +
+    (filters.origin && filters.origin !== 'all' ? 1 : 0);
 
   return (
     <aside className="w-full md:w-64 shrink-0">
@@ -149,6 +152,18 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                   <button
                     onClick={() => onFilterChange('recipe_type', undefined)}
                     className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 text-xs font-medium hover:bg-amber-100 transition-colors"
+                  >
+                    {opt.label}
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                ) : null;
+              })()}
+              {filters.origin && filters.origin !== 'all' && (() => {
+                const opt = RECIPE_ORIGIN_OPTIONS.find((o) => o.value === filters.origin);
+                return opt ? (
+                  <button
+                    onClick={() => onFilterChange('origin', undefined)}
+                    className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-xs font-medium hover:bg-emerald-100 transition-colors"
                   >
                     {opt.label}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -198,6 +213,27 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                 name="recipe_type"
                 checked={filters.recipe_type === opt.value}
                 onChange={() => onFilterChange('recipe_type', filters.recipe_type === opt.value ? undefined : opt.value)}
+                className="border-muted-foreground accent-primary"
+              />
+              <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
+              {opt.label}
+            </label>
+          ))}
+        </div>
+
+        {/* Origin / Herkunft */}
+        <div className="bg-card rounded-xl border-l-4 border-l-emerald-500 border p-4 shadow-sm">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
+            <span className="material-symbols-outlined text-emerald-500 text-[18px]">verified</span>
+            <span className="text-emerald-600">Herkunft</span>
+          </h3>
+          {RECIPE_ORIGIN_OPTIONS.map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
+              <input
+                type="radio"
+                name="origin"
+                checked={(filters.origin ?? 'all') === opt.value}
+                onChange={() => onFilterChange('origin', opt.value === 'all' ? undefined : opt.value)}
                 className="border-muted-foreground accent-primary"
               />
               <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>

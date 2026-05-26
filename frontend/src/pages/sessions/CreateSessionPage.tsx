@@ -21,7 +21,7 @@ export default function CreateSessionPage() {
   const createSession = useCreateSession();
 
   // Session-specific state
-  const [sessionType, setSessionType] = useState('');
+  const [sessionType, setSessionType] = useState('scout_skills');
   const [locationType, setLocationType] = useState('');
   const [minParticipants, setMinParticipants] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('');
@@ -29,7 +29,7 @@ export default function CreateSessionPage() {
 
   function handleAddMaterial(item: SupplySearchResult) {
     if (materials.some((m) => m.id === item.id)) {
-      toast.info(`"${item.name}" ist bereits hinzugefuegt`);
+       toast.info(`"${item.name}" ist bereits hinzugefügt`);
       return;
     }
     setMaterials((prev) => [...prev, { id: item.id, name: item.name, quantity: '1' }]);
@@ -150,7 +150,7 @@ export default function CreateSessionPage() {
               Material (optional)
             </h3>
             <p className="text-xs text-muted-foreground">
-              Materialien kannst du auch nach dem Erstellen hinzufuegen.
+               Materialien kannst du auch nach dem Erstellen hinzufügen.
             </p>
             <SupplySearch
               onSelect={handleAddMaterial}

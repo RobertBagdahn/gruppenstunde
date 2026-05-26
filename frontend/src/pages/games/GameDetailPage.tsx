@@ -5,6 +5,8 @@
  */
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { EntityLink } from '@/components/shared/EntityLink';
+import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import {
   useGameBySlug,
   useGameComments,
@@ -12,6 +14,9 @@ import {
   useCreateGameComment,
   useUpdateGame,
   useDeleteGame,
+  useUploadGameImage,
+  useDeleteGameImage,
+  useSetGameImageFromUrl,
 } from '@/api/games';
 import { useCurrentUser } from '@/api/auth';
 import {
@@ -25,17 +30,19 @@ import ContentEmotions from '@/components/content/ContentEmotions';
 import ContentComments from '@/components/content/ContentComments';
 import { ContentLinkSection } from '@/components/content/ContentLinkSection';
 import InlineEditor from '@/components/content/InlineEditor';
-import AuthorInfo from '@/components/content/AuthorInfo';
+import ContentAuthorSection from '@/components/content/ContentAuthorSection';
 import MaterialList from '@/components/supply/MaterialList';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Breadcrumb from '@/components/Breadcrumb';
+import TitleImageEditor from '@/components/content/TitleImageEditor';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 
 // Scout level colors
 const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  'Woelflinge': { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
+  'Wölflinge': { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
   'Jungpfadfinder': { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-700' },
   'Pfadfinder': { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700' },
   'Rover': { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700' },
@@ -83,6 +90,9 @@ export default function GameDetailPage() {
   const createComment = useCreateGameComment(gameId);
   const updateGame = useUpdateGame(gameId);
   const deleteGame = useDeleteGame(gameId);
+  const uploadImage = useUploadGameImage(gameId);
+  const deleteImage = useDeleteGameImage(gameId);
+  const setImageFromUrl = useSetGameImageFromUrl(gameId);
   const { data: user } = useCurrentUser();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -133,6 +143,7 @@ export default function GameDetailPage() {
     game.play_area;
 
   return (
+    <EntityLinkContext.Provider value="detail">
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Delete Confirmation */}
       <ConfirmDialog
@@ -140,50 +151,54 @@ export default function GameDetailPage() {
         onConfirm={() => {
           deleteGame.mutate(undefined, {
             onSuccess: () => {
-              toast.success('Spiel geloescht');
+              toast.success('Spiel gelöscht');
               setShowDeleteConfirm(false);
               navigate('/games');
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setShowDeleteConfirm(false);
             },
           });
         }}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Spiel loeschen?"
-        description="Das Spiel wird geloescht und ist nicht mehr sichtbar."
-        confirmLabel="Loeschen"
+        title="Spiel löschen?"
+        description="Das Spiel wird gelöscht und ist nicht mehr sichtbar."
+        confirmLabel="Löschen"
         loading={deleteGame.isPending}
       />
 
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link to="/" className="hover:text-primary">Startseite</Link>
-        <span>/</span>
-        <Link to="/games" className="hover:text-primary">Spiele</Link>
-        <span>/</span>
-        <span className="text-foreground font-semibold truncate">{game.title}</span>
-        {game.can_delete && (
+      <Breadcrumb
+        items={[
+          { label: 'Startseite', href: '/' },
+          { label: 'Spiele', href: '/games' },
+          { label: game.title },
+        ]}
+        action={game.can_delete ? (
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
-            title="Spiel loeschen"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
+            title="Spiel löschen"
           >
             <span className="material-symbols-outlined text-[18px]">delete</span>
-            <span className="hidden sm:inline">Loeschen</span>
+            <span className="hidden sm:inline">Löschen</span>
           </button>
-        )}
-      </nav>
+        ) : undefined}
+      />
 
       {/* Hero Image */}
-      <div className="relative rounded-2xl overflow-hidden mb-8 shadow-lg max-w-lg mx-auto aspect-square">
-        <img
-          src={game.image_url || '/images/inspi_flying.png'}
-          alt={game.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      <TitleImageEditor
+        contentType="game"
+        imageUrl={game.image_url}
+        canEdit={game.can_edit}
+        title={game.title}
+        summary={game.summary}
+        fallbackImage="/images/inspi_flying.png"
+        uploadMutation={uploadImage}
+        deleteMutation={deleteImage}
+        setFromUrlMutation={setImageFromUrl}
+      >
         <div className="absolute bottom-0 left-0 right-0 p-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <ContentStatusBadge status={game.status} />
@@ -196,7 +211,7 @@ export default function GameDetailPage() {
             {game.title}
           </h1>
         </div>
-      </div>
+      </TitleImageEditor>
 
       {/* Meta Info Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
@@ -265,15 +280,13 @@ export default function GameDetailPage() {
       {game.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
           {game.tags.map((tag) => (
-            <span
+            <EntityLink
               key={tag.id}
-              className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 text-xs font-bold"
-            >
-              {tag.icon && (
-                <span className="material-symbols-outlined text-[14px]">{tag.icon}</span>
-              )}
-              {tag.name}
-            </span>
+              type="tag"
+              slug={tag.slug}
+              name={tag.name}
+              variant="chip"
+            />
           ))}
         </div>
       )}
@@ -342,13 +355,6 @@ export default function GameDetailPage() {
       {/* Materials */}
       <MaterialList materials={game.materials ?? []} className="mb-8" />
 
-      {/* Authors */}
-      <AuthorInfo
-        authors={game.authors ?? []}
-        createdAt={game.created_at}
-        className="mb-8 p-4 bg-muted/30 rounded-xl border border-border/50"
-      />
-
       {/* Emotions */}
       <div className="mb-8">
         <h3 className="text-lg font-bold mb-3">Wie findest du dieses Spiel?</h3>
@@ -363,7 +369,7 @@ export default function GameDetailPage() {
       {/* Similar Games */}
       {(game.similar_games?.length ?? 0) > 0 && (
         <div className="mb-8">
-          <h3 className="text-lg font-bold mb-3">Aehnliche Spiele</h3>
+          <h3 className="text-lg font-bold mb-3">Ähnliche Spiele</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {game.similar_games!.map((similar) => (
               <Link
@@ -384,6 +390,13 @@ export default function GameDetailPage() {
       {/* Related Content */}
       <ContentLinkSection contentType="game" objectId={gameId} />
 
+      {/* Author Section */}
+      <ContentAuthorSection
+        authors={game.authors ?? []}
+        createdAt={game.created_at}
+        className="mb-8"
+      />
+
       {/* Comments */}
       <div className="border-t border-border pt-8">
         <ContentComments
@@ -394,5 +407,6 @@ export default function GameDetailPage() {
         />
       </div>
     </div>
+    </EntityLinkContext.Provider>
   );
 }

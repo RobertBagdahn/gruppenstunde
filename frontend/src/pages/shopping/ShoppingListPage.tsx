@@ -12,7 +12,10 @@ import { useCurrentUser } from '@/api/auth';
 import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import type { ShoppingList } from '@/schemas/shoppingList';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
+import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import ListPageHero from '@/components/shared/ListPageHero';
+import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
 
 function ShoppingListCard({ list }: { list: ShoppingList }) {
@@ -92,7 +95,7 @@ export default function ShoppingListPage() {
 
   if (userLoading || isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-24 bg-muted rounded" />
@@ -105,7 +108,7 @@ export default function ShoppingListPage() {
 
   if (!user) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8 text-center">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
         <span className="material-symbols-outlined text-6xl text-muted-foreground mb-4 block">
           shopping_cart
         </span>
@@ -143,14 +146,14 @@ export default function ShoppingListPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <ConfirmDialog
         open={deleteTargetId !== null}
         onConfirm={() => {
           if (deleteTargetId !== null) {
             deleteList.mutate(deleteTargetId, {
               onSuccess: () => {
-                toast.success('Einkaufsliste geloescht');
+                toast.success('Einkaufsliste gelöscht');
                 setDeleteTargetId(null);
               },
               onError: (err) => {
@@ -161,18 +164,20 @@ export default function ShoppingListPage() {
           }
         }}
         onCancel={() => setDeleteTargetId(null)}
-        title="Einkaufsliste loeschen?"
-        description="Die Einkaufsliste und alle Eintraege werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Einkaufsliste löschen?"
+        description="Die Einkaufsliste und alle Einträge werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deleteList.isPending}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">shopping_cart</span>
-          Einkaufslisten
-        </h1>
+      <ListPageHero
+        title="Einkaufslisten"
+        description="Erstelle und verwalte deine Einkaufslisten."
+        icon="shopping_cart"
+        gradientClasses="bg-gradient-to-br from-teal-500 to-cyan-600"
+      />
+
+      <div className="flex justify-end mb-6">
         <button
           type="button"
           onClick={() => setShowCreate(true)}
@@ -220,15 +225,13 @@ export default function ShoppingListPage() {
 
       {/* List */}
       {lists.length === 0 ? (
-        <div className="text-center py-12">
-          <span className="material-symbols-outlined text-5xl text-muted-foreground mb-4 block">
-            shopping_cart
-          </span>
-          <p className="text-muted-foreground">
-            Du hast noch keine Einkaufslisten. Erstelle eine neue Liste oder exportiere eine
-            aus einem Rezept.
-          </p>
-        </div>
+        <EmptyState
+          icon="shopping_cart"
+          title="Noch keine Einkaufslisten"
+          description="Du hast noch keine Einkaufslisten. Erstelle eine neue Liste oder exportiere eine aus einem Rezept."
+          ctaLabel="Neue Liste erstellen"
+          onCtaClick={() => setShowCreate(true)}
+        />
       ) : (
         <div className="space-y-3">
           {lists.map((list) => (
@@ -238,29 +241,11 @@ export default function ShoppingListPage() {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-            className="px-3 py-1.5 text-sm border rounded-lg hover:bg-muted disabled:opacity-50 transition-colors"
-          >
-            Zurueck
-          </button>
-          <span className="px-3 py-1.5 text-sm text-muted-foreground">
-            Seite {page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
-            className="px-3 py-1.5 text-sm border rounded-lg hover:bg-muted disabled:opacity-50 transition-colors"
-          >
-            Weiter
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

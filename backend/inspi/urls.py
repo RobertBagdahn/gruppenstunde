@@ -12,11 +12,24 @@ from recipe.api.cockpit import cockpit_router, health_rule_router
 from planner.api import router as planner_router
 from planner.meal_plan_api import meal_plan_router
 from profiles.api import group_router, profile_router
-from event.api import event_router, location_router, person_router
+from event.api import (
+    event_router,
+    location_router,
+    meeting_point_router,
+    person_router,
+    template_router,
+    whatsapp_router,
+)
 from packinglist.api import packing_list_router
 from shopping.api import shopping_router
 from session.api import router as session_router
-from supply.api import router as supply_router, ingredient_router, retail_section_router, norm_person_router
+from supply.api import (
+    router as supply_router,
+    ingredient_router,
+    retail_section_router,
+    norm_person_router,
+    dge_reference_router,
+)
 from blog.api import router as blog_router
 from game.api import router as game_router
 from content.tags_api import tags_router, scout_levels_router
@@ -30,12 +43,15 @@ api = NinjaAPI(
 api.add_router("/auth/", auth_router)
 api.add_router("/admin/", admin_router)
 api.add_router("/planner/", planner_router)
-api.add_router("/meal-events/", meal_plan_router)
+api.add_router("/meal-plans/", meal_plan_router)
 api.add_router("/profile/", profile_router)
 api.add_router("/groups/", group_router)
 api.add_router("/events/", event_router)
 api.add_router("/persons/", person_router)
 api.add_router("/locations/", location_router)
+api.add_router("/meeting-points/", meeting_point_router)
+api.add_router("/whatsapp/", whatsapp_router)
+api.add_router("/message-templates/", template_router)
 api.add_router("/packing-lists/", packing_list_router)
 api.add_router("/shopping-lists/", shopping_router)
 api.add_router("/ingredients/", ingredient_router)
@@ -47,6 +63,7 @@ api.add_router("/", cockpit_router)
 api.add_router("/sessions/", session_router)
 api.add_router("/supplies/", supply_router)
 api.add_router("/norm-person/", norm_person_router)
+api.add_router("/dge-references/", dge_reference_router)
 api.add_router("/blogs/", blog_router)
 api.add_router("/games/", game_router)
 api.add_router("/tags/", tags_router)

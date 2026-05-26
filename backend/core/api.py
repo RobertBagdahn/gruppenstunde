@@ -1,11 +1,18 @@
 """Django Ninja API routes for authentication (session-based)."""
 
+import json
 import logging
+from datetime import datetime, timezone
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.http import HttpResponse
 from django.middleware.csrf import get_token
 from ninja import Router, Schema
 from ninja.errors import HttpError
+from pydantic import ValidationError as PydanticValidationError
+
+from profiles.schemas.privacy import DataOverviewSchema, DeleteAccountRequestSchema
+from profiles.services.privacy import PrivacyService
 
 logger = logging.getLogger(__name__)
 
@@ -94,3 +101,57 @@ def logout_user(request):
     """Log out the current user."""
     logout(request)
     return {"success": True, "message": "Erfolgreich abgemeldet"}
+
+
+# --- Privacy Endpoints (GDPR) ---
+
+
+@auth_router.get("/privacy/data-overview/", response={200: DataOverviewSchema})
+def get_data_overview(request):
+    """Get a categorized overview of all personal data (GDPR Art. 15)."""
+    if not request.user.is_authenticated:
+        raise HttpError(401, "Nicht authentifiziert")
+    data = PrivacyService.collect_user_data(request.user)
+    return data
+
+
+@auth_router.post("/privacy/data-export/")
+def export_data(request):
+    """Export all personal data as JSON download (GDPR Art. 20)."""
+    if not request.user.is_authenticated:
+        raise HttpError(401, "Nicht authentifiziert")
+
+    export = PrivacyService.export_user_data(request.user)
+    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    filename = f"inspi-datenexport-{date_str}.json"
+
+    response = HttpResponse(
+        json.dumps(export, ensure_ascii=False, indent=2, default=str),
+        content_type="application/json",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@auth_router.post("/privacy/delete-account/", response={200: MessageOut, 400: MessageOut})
+def delete_account(request, payload: DeleteAccountRequestSchema):
+    """Delete (anonymize) the user account (GDPR Art. 17)."""
+    if not request.user.is_authenticated:
+        raise HttpError(401, "Nicht authentifiziert")
+
+    user = request.user
+
+    # Validate password for accounts that have one
+    if user.has_usable_password():
+        if not payload.password:
+            raise HttpError(400, "Passwort erforderlich")
+        if not user.check_password(payload.password):
+            raise HttpError(400, "Falsches Passwort")
+
+    # Anonymize all data
+    PrivacyService.anonymize_user(user)
+
+    # End the session
+    logout(request)
+
+    return {"success": True, "message": "Dein Konto wurde gelöscht"}

@@ -1,7 +1,8 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, Boxes, Ruler, Users, ShieldCheck, Brain, MessageCircle } from 'lucide-react';
 import { useAdminStats, useModerationQueue, useModerateComment, useAdminUsers, useRecentActivity, useTrending } from '@/api/admin';
+
+const LazyContentStatsBarChart = lazy(() => import('@/components/charts/ContentStatsBarChart'));
 import {
   useAdminMaterials,
   useAdminUnits,
@@ -17,31 +18,34 @@ const ApprovalQueuePage = lazy(() => import('./admin/ApprovalQueuePage'));
 const EmbeddingViewerPage = lazy(() => import('./admin/EmbeddingViewerPage'));
 const EmbeddingFeedbackPage = lazy(() => import('./admin/EmbeddingFeedbackPage'));
 
-/** Map legacy idea_type to content URL prefix */
-function contentUrlForSlug(slug: string, ideaType?: string): string {
+/** Map content_type to content URL prefix */
+function contentUrlForSlug(slug: string, contentType?: string): string {
   const prefixMap: Record<string, string> = {
-    idea: '/sessions',
-    knowledge: '/blogs',
-    game: '/games',
-    recipe: '/recipes',
     session: '/sessions',
     blog: '/blogs',
+    game: '/games',
+    recipe: '/recipes',
   };
-  const prefix = prefixMap[ideaType ?? ''] ?? '/sessions';
+  const prefix = prefixMap[contentType ?? ''] ?? '/sessions';
   return `${prefix}/${slug}`;
 }
 
 type AdminSection = 'dashboard' | 'moderation' | 'materials' | 'units' | 'users' | 'approvals' | 'embeddings' | 'embedding-feedback';
 
+/** Material Symbol helper for menu items */
+function MenuIcon({ name }: { name: string }) {
+  return <span className="material-symbols-outlined text-[18px]">{name}</span>;
+}
+
 const MENU_ITEMS: { key: AdminSection; label: string; icon: ReactNode }[] = [
-  { key: 'dashboard', label: 'Übersicht', icon: <LayoutDashboard className="w-4 h-4" /> },
-  { key: 'moderation', label: 'Moderation', icon: <MessageSquare className="w-4 h-4" /> },
-  { key: 'approvals', label: 'Genehmigungen', icon: <ShieldCheck className="w-4 h-4" /> },
-  { key: 'materials', label: 'Materialien', icon: <Boxes className="w-4 h-4" /> },
-  { key: 'units', label: 'Einheiten', icon: <Ruler className="w-4 h-4" /> },
-  { key: 'users', label: 'Benutzer', icon: <Users className="w-4 h-4" /> },
-  { key: 'embeddings', label: 'Embeddings', icon: <Brain className="w-4 h-4" /> },
-  { key: 'embedding-feedback', label: 'Feedback', icon: <MessageCircle className="w-4 h-4" /> },
+  { key: 'dashboard', label: 'Übersicht', icon: <MenuIcon name="dashboard" /> },
+  { key: 'moderation', label: 'Moderation', icon: <MenuIcon name="chat" /> },
+  { key: 'approvals', label: 'Genehmigungen', icon: <MenuIcon name="verified_user" /> },
+  { key: 'materials', label: 'Materialien', icon: <MenuIcon name="inventory_2" /> },
+  { key: 'units', label: 'Einheiten', icon: <MenuIcon name="straighten" /> },
+  { key: 'users', label: 'Benutzer', icon: <MenuIcon name="group" /> },
+  { key: 'embeddings', label: 'Embeddings', icon: <MenuIcon name="psychology" /> },
+  { key: 'embedding-feedback', label: 'Feedback', icon: <MenuIcon name="feedback" /> },
 ];
 
 const VALID_SECTIONS: AdminSection[] = ['dashboard', 'moderation', 'materials', 'units', 'users', 'approvals', 'embeddings', 'embedding-feedback'];
@@ -130,11 +134,11 @@ export default function AdminPage() {
               ) : stats && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
                   <div className="rounded-lg border p-4">
-                    <p className="text-2xl font-bold">{stats.total_ideas}</p>
-                    <p className="text-sm text-muted-foreground">Ideen gesamt</p>
+                    <p className="text-2xl font-bold">{stats.total_content}</p>
+                    <p className="text-sm text-muted-foreground">Beiträge gesamt</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <p className="text-2xl font-bold">{stats.published_ideas}</p>
+                    <p className="text-2xl font-bold">{stats.published_content}</p>
                     <p className="text-sm text-muted-foreground">Veröffentlicht</p>
                   </div>
                   <div className="rounded-lg border p-4">
@@ -156,10 +160,32 @@ export default function AdminPage() {
                 </div>
               )}
 
+              {/* Stats Bar Chart */}
+              {stats && (
+                <div className="rounded-xl border bg-card p-4 mb-8">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">bar_chart</span>
+                    Statistik-Übersicht
+                  </h3>
+                  <Suspense fallback={<div className="h-[280px] bg-muted rounded-xl animate-pulse" />}>
+                    <LazyContentStatsBarChart
+                      totalContent={stats.total_content}
+                      publishedContent={stats.published_content}
+                      totalUsers={stats.total_users}
+                      totalComments={stats.total_comments}
+                      viewsLast30Days={stats.views_last_30_days}
+                    />
+                  </Suspense>
+                </div>
+              )}
+
               {/* Trending: Most Viewed & Most Liked (7 days) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <section>
-                  <h2 className="text-lg font-semibold mb-3">🔥 Meistgesehen (7 Tage)</h2>
+                  <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-orange-500">local_fire_department</span>
+                    Meistgesehen (7 Tage)
+                  </h2>
                   {trendingLoading ? (
                     <div className="space-y-2">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -172,20 +198,20 @@ export default function AdminPage() {
                         <thead className="bg-muted">
                           <tr>
                             <th className="text-left px-3 py-2 font-medium">#</th>
-                            <th className="text-left px-3 py-2 font-medium">Idee</th>
+                            <th className="text-left px-3 py-2 font-medium">Beitrag</th>
                             <th className="text-right px-3 py-2 font-medium">Aufrufe</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {trending.most_viewed.map((idea, idx) => (
-                            <tr key={idea.id} className="border-t">
+                          {trending.most_viewed.map((item, idx) => (
+                            <tr key={item.id} className="border-t">
                               <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                               <td className="px-3 py-2">
-                                <a href={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
-                                  {idea.title}
+                                <a href={contentUrlForSlug(item.slug)} className="hover:text-primary font-medium">
+                                  {item.title}
                                 </a>
                               </td>
-                              <td className="px-3 py-2 text-right font-mono">{idea.views_7d}</td>
+                              <td className="px-3 py-2 text-right font-mono">{item.views_7d}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -197,7 +223,10 @@ export default function AdminPage() {
                 </section>
 
                 <section>
-                  <h2 className="text-lg font-semibold mb-3">❤️ Meistgeliked (7 Tage)</h2>
+                  <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-red-500">favorite</span>
+                    Meistgeliked (7 Tage)
+                  </h2>
                   {trendingLoading ? (
                     <div className="space-y-2">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -210,20 +239,20 @@ export default function AdminPage() {
                         <thead className="bg-muted">
                           <tr>
                             <th className="text-left px-3 py-2 font-medium">#</th>
-                            <th className="text-left px-3 py-2 font-medium">Idee</th>
+                            <th className="text-left px-3 py-2 font-medium">Beitrag</th>
                             <th className="text-right px-3 py-2 font-medium">Likes</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {trending.most_liked.map((idea, idx) => (
-                            <tr key={idea.id} className="border-t">
+                          {trending.most_liked.map((item, idx) => (
+                            <tr key={item.id} className="border-t">
                               <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                               <td className="px-3 py-2">
-                                <a href={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
-                                  {idea.title}
+                                <a href={contentUrlForSlug(item.slug)} className="hover:text-primary font-medium">
+                                  {item.title}
                                 </a>
                               </td>
-                              <td className="px-3 py-2 text-right font-mono">{idea.likes_7d}</td>
+                              <td className="px-3 py-2 text-right font-mono">{item.likes_7d}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -237,7 +266,10 @@ export default function AdminPage() {
 
               {/* Recent Activity Tables */}
               <section className="mb-8">
-                <h2 className="text-lg font-semibold mb-3">📋 Letzte Aktivitäten</h2>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">history</span>
+                  Letzte Aktivitäten
+                </h2>
                 {activityLoading ? (
                   <div className="space-y-2">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -254,20 +286,20 @@ export default function AdminPage() {
                           <table className="w-full text-sm">
                             <thead className="bg-muted">
                               <tr>
-                                <th className="text-left px-3 py-2 font-medium">Idee</th>
-                                <th className="text-left px-3 py-2 font-medium">Benutzer</th>
-                                <th className="text-right px-3 py-2 font-medium">Zeit</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {recentActivity.recent_views.map((view) => (
-                                <tr key={view.id} className="border-t">
-                                  <td className="px-3 py-2">
-                                    {view.idea_slug ? (
-                                      <a href={contentUrlForSlug(view.idea_slug)} className="hover:text-primary font-medium">
-                                        {view.idea_title}
-                                      </a>
-                                    ) : (
+                              <th className="text-left px-3 py-2 font-medium">Beitrag</th>
+                              <th className="text-left px-3 py-2 font-medium">Benutzer</th>
+                              <th className="text-right px-3 py-2 font-medium">Zeit</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {recentActivity.recent_views.map((view) => (
+                              <tr key={view.id} className="border-t">
+                                <td className="px-3 py-2">
+                                  {view.content_slug ? (
+                                    <a href={contentUrlForSlug(view.content_slug)} className="hover:text-primary font-medium">
+                                      {view.content_title}
+                                    </a>
+                                  ) : (
                                       <span className="text-muted-foreground">Gelöscht</span>
                                     )}
                                   </td>
@@ -322,10 +354,10 @@ export default function AdminPage() {
                       )}
                     </div>
 
-                    {/* Recent Ideas */}
+                    {/* Recent Content */}
                     <div>
                       <h3 className="text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Zuletzt erstellt</h3>
-                      {recentActivity.recent_ideas.length > 0 ? (
+                      {recentActivity.recent_content.length > 0 ? (
                         <div className="border rounded-lg overflow-hidden">
                           <table className="w-full text-sm">
                             <thead className="bg-muted">
@@ -338,33 +370,33 @@ export default function AdminPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {recentActivity.recent_ideas.map((idea) => (
-                                <tr key={idea.id} className="border-t">
+                              {recentActivity.recent_content.map((item) => (
+                                <tr key={item.id} className="border-t">
                                    <td className="px-3 py-2">
-                                    <a href={contentUrlForSlug(idea.slug, idea.idea_type)} className="hover:text-primary font-medium">
-                                      {idea.title}
+                                    <a href={contentUrlForSlug(item.slug, item.content_type)} className="hover:text-primary font-medium">
+                                      {item.title}
                                     </a>
                                   </td>
                                   <td className="px-3 py-2 text-muted-foreground">
-                                    {idea.idea_type === 'idea' ? 'Gruppenstunde' : idea.idea_type === 'knowledge' ? 'Wissen' : idea.idea_type === 'game' ? 'Spiel' : 'Rezept'}
+                                    {item.content_type === 'session' ? 'Gruppenstunde' : item.content_type === 'blog' ? 'Wissen' : item.content_type === 'game' ? 'Spiel' : 'Rezept'}
                                   </td>
                                   <td className="px-3 py-2">
                                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                                      idea.status === 'published' ? 'bg-green-100 text-green-700' :
-                                      idea.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
-                                      idea.status === 'review' ? 'bg-blue-100 text-blue-700' :
+                                      item.status === 'published' ? 'bg-green-100 text-green-700' :
+                                      item.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                                      item.status === 'review' ? 'bg-blue-100 text-blue-700' :
                                       'bg-gray-100 text-gray-700'
                                     }`}>
-                                      {idea.status === 'published' ? 'Veröffentlicht' :
-                                       idea.status === 'draft' ? 'Entwurf' :
-                                       idea.status === 'review' ? 'Review' : 'Archiviert'}
+                                      {item.status === 'published' ? 'Veröffentlicht' :
+                                       item.status === 'draft' ? 'Entwurf' :
+                                       item.status === 'review' ? 'Review' : 'Archiviert'}
                                     </span>
                                   </td>
                                   <td className="px-3 py-2 text-muted-foreground">
-                                    {idea.author_email || '–'}
+                                    {item.author_email || '–'}
                                   </td>
                                   <td className="px-3 py-2 text-right text-muted-foreground">
-                                    {new Date(idea.created_at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(item.created_at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                   </td>
                                 </tr>
                               ))}
@@ -372,7 +404,7 @@ export default function AdminPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Keine Ideen vorhanden.</p>
+                        <p className="text-sm text-muted-foreground">Keine Beiträge vorhanden.</p>
                       )}
                     </div>
                   </div>

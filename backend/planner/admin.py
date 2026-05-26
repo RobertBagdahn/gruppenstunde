@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (
     Meal,
-    MealEvent,
+    MealPlan,
     MealItem,
     Planner,
     PlannerCollaborator,
@@ -29,7 +29,7 @@ class PlannerAdmin(admin.ModelAdmin):
 
 
 # ==========================================================================
-# MealEvent Admin
+# MealPlan Admin
 # ==========================================================================
 
 
@@ -45,8 +45,8 @@ class MealInline(admin.TabularInline):
     show_change_link = True
 
 
-@admin.register(MealEvent)
-class MealEventAdmin(admin.ModelAdmin):
+@admin.register(MealPlan)
+class MealPlanAdmin(admin.ModelAdmin):
     list_display = ["name", "created_by", "norm_portions", "event", "created_at"]
     list_filter = ["created_at"]
     search_fields = ["name"]
@@ -56,7 +56,7 @@ class MealEventAdmin(admin.ModelAdmin):
 
 @admin.register(Meal)
 class MealAdmin(admin.ModelAdmin):
-    list_display = ["meal_event", "start_datetime", "meal_type", "day_part_factor"]
+    list_display = ["meal_plan", "start_datetime", "meal_type", "day_part_factor"]
     list_filter = ["meal_type"]
     inlines = [MealItemInline]
     list_per_page = 25

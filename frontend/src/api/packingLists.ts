@@ -5,10 +5,29 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PackingListSchema,
   PackingListSummarySchema,
+  PackingListShareSchema,
   PackingItemSchema,
   PackingCategorySchema,
+  SharedPackingListSchema,
+  CatalogSuggestionsSchema,
+  RandomSuggestionsSchema,
+  AiSuggestionsSchema,
+  SuggestionCategoriesSchema,
+  PreviewSchema,
+  PresetSchema,
+  FullCatalogSchema,
   type PackingList,
   type PackingListSummary,
+  type PackingListShare,
+  type SharedPackingList,
+  type CatalogSuggestions,
+  type RandomSuggestions,
+  type AiSuggestions,
+  type Preview,
+  type Preset,
+  type FullCatalog,
+  type GeneratePackingListInput,
+  type GenerateContext,
 } from '@/schemas/packingList';
 import { z } from 'zod';
 
@@ -118,7 +137,7 @@ export function usePackingList(id: number) {
 export function useCreatePackingList() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { title: string; description?: string; group_id?: number | null }) =>
+    mutationFn: (body: { title: string; description?: string; group_id?: number | null; visibility?: string }) =>
       postJson(`${API_BASE}/`, body, PackingListSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packing-lists'] });
@@ -129,7 +148,7 @@ export function useCreatePackingList() {
 export function useUpdatePackingList(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { title?: string; description?: string; group_id?: number | null }) =>
+    mutationFn: (body: { title?: string; description?: string; group_id?: number | null; visibility?: string }) =>
       patchJson(`${API_BASE}/${id}/`, body, PackingListSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packing-lists'] });
@@ -235,7 +254,7 @@ export function useSortCategories(packingListId: number) {
 export function useCreateItem(packingListId: number, categoryId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; quantity?: string; description?: string }) =>
+    mutationFn: (body: { name: string; quantity?: string; description?: string; is_do_not_bring?: boolean }) =>
       postJson(
         `${API_BASE}/${packingListId}/categories/${categoryId}/items/`,
         body,
@@ -243,6 +262,35 @@ export function useCreateItem(packingListId: number, categoryId: number) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packing-list', packingListId] });
+    },
+  });
+}
+
+/**
+ * Create an item in any category (categoryId passed per mutation call).
+ * Used by the suggestion panel where the target category changes dynamically.
+ */
+export function useCreateItemDynamic(packingListId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      categoryId,
+      ...body
+    }: {
+      categoryId: number;
+      name: string;
+      quantity?: string;
+      description?: string;
+      is_do_not_bring?: boolean;
+    }) =>
+      postJson(
+        `${API_BASE}/${packingListId}/categories/${categoryId}/items/`,
+        body,
+        PackingItemSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packing-list', packingListId] });
+      queryClient.invalidateQueries({ queryKey: ['packing-list-suggestions-random', packingListId] });
     },
   });
 }
@@ -259,6 +307,7 @@ export function useUpdateItem(packingListId: number, categoryId: number) {
       quantity?: string;
       description?: string;
       is_checked?: boolean;
+      is_do_not_bring?: boolean;
       sort_order?: number;
     }) =>
       patchJson(
@@ -297,5 +346,166 @@ export function useSortItems(packingListId: number, categoryId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packing-list', packingListId] });
     },
+  });
+}
+
+// ==========================================================================
+// Share Link Hooks
+// ==========================================================================
+
+export function useCreateShare(packingListId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { label?: string }) =>
+      postJson(`${API_BASE}/${packingListId}/shares/`, body, PackingListShareSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packing-list', packingListId] });
+      queryClient.invalidateQueries({ queryKey: ['packing-list-shares', packingListId] });
+    },
+  });
+}
+
+export function usePackingListShares(packingListId: number) {
+  return useQuery<PackingListShare[]>({
+    queryKey: ['packing-list-shares', packingListId],
+    queryFn: () => fetchJson(`${API_BASE}/${packingListId}/shares/`, z.array(PackingListShareSchema)),
+    enabled: packingListId > 0,
+  });
+}
+
+export function useDeactivateShare(packingListId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (shareId: number) =>
+      deleteJson(`${API_BASE}/${packingListId}/shares/${shareId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packing-list', packingListId] });
+      queryClient.invalidateQueries({ queryKey: ['packing-list-shares', packingListId] });
+    },
+  });
+}
+
+export function useSharedPackingList(token: string) {
+  return useQuery<SharedPackingList>({
+    queryKey: ['shared-packing-list', token],
+    queryFn: () => fetchJson(`${API_BASE}/shared/${token}/`, SharedPackingListSchema),
+    enabled: !!token,
+  });
+}
+
+export function useUpdateShareCheck(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { item_id: number; is_checked: boolean }) =>
+      patchJson(
+        `${API_BASE}/shared/${token}/checks/`,
+        body,
+        z.object({ success: z.boolean(), is_checked: z.boolean() }),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shared-packing-list', token] });
+    },
+  });
+}
+
+// ==========================================================================
+// Suggestion Hooks
+// ==========================================================================
+
+export function useCatalogSuggestions(
+  packingListId: number,
+  options?: { category?: string; search?: string; enabled?: boolean },
+) {
+  const params = new URLSearchParams();
+  if (options?.category) params.set('category', options.category);
+  if (options?.search) params.set('search', options.search);
+  const qs = params.toString();
+  const url = `${API_BASE}/${packingListId}/suggestions/catalog/${qs ? `?${qs}` : ''}`;
+
+  return useQuery({
+    queryKey: ['packing-list-suggestions-catalog', packingListId, options?.category, options?.search] as const,
+    queryFn: async (): Promise<CatalogSuggestions> => {
+      const data = await fetchJson(url, CatalogSuggestionsSchema);
+      return data;
+    },
+    enabled: (options?.enabled ?? true) && packingListId > 0,
+    staleTime: 60_000,
+  });
+}
+
+export function useRandomSuggestions(packingListId: number, count: number = 8) {
+  return useQuery({
+    queryKey: ['packing-list-suggestions-random', packingListId] as const,
+    queryFn: async (): Promise<RandomSuggestions> => {
+      const data = await fetchJson(
+        `${API_BASE}/${packingListId}/suggestions/random/?count=${count}`,
+        RandomSuggestionsSchema,
+      );
+      return data;
+    },
+    enabled: packingListId > 0,
+    staleTime: 30_000,
+  });
+}
+
+export function useSuggestionCategories() {
+  return useQuery({
+    queryKey: ['packing-list-suggestion-categories'] as const,
+    queryFn: async () => {
+      const data = await fetchJson(`${API_BASE}/suggestions/categories/`, SuggestionCategoriesSchema);
+      return data;
+    },
+    staleTime: 300_000,
+  });
+}
+
+export function useAiSuggestItems(packingListId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { category?: string; count?: number }): Promise<AiSuggestions> => {
+      const data = await postJson(`${API_BASE}/${packingListId}/suggestions/ai/`, body, AiSuggestionsSchema);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packing-list-suggestions-random', packingListId] });
+    },
+  });
+}
+
+// ==========================================================================
+// Wizard Hooks (Generate, Preview, Presets, Catalog)
+// ==========================================================================
+
+export function useGeneratePackingList() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: GeneratePackingListInput): Promise<PackingList> =>
+      postJson(`${API_BASE}/generate/`, body, PackingListSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['packing-lists'] });
+    },
+  });
+}
+
+export function usePreviewPackingList() {
+  return useMutation({
+    mutationFn: (context: GenerateContext): Promise<Preview> =>
+      postJson(`${API_BASE}/preview/`, { context }, PreviewSchema),
+  });
+}
+
+export function usePresets() {
+  return useQuery<Preset[]>({
+    queryKey: ['packing-list-presets'],
+    queryFn: () => fetchJson(`${API_BASE}/presets/`, z.array(PresetSchema)),
+    staleTime: 60 * 60 * 1000, // 1 hour
+  });
+}
+
+export function useFullCatalog() {
+  return useQuery<FullCatalog>({
+    queryKey: ['packing-list-catalog'],
+    queryFn: () => fetchJson(`${API_BASE}/catalog/`, FullCatalogSchema),
+    staleTime: 60 * 60 * 1000, // 1 hour
   });
 }

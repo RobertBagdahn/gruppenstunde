@@ -1,10 +1,5 @@
 # error-handling Specification
 
-> **⚠️ HINWEIS: Diese Spec referenziert die alte `idea` App-Architektur.**
-> Die `idea` App wurde durch die Content/Supply-Architektur ersetzt (siehe `openspec/changes/content-base-refactor/`).
-> Mapping: `Idea (idea_type=idea)` → `session.GroupSession`, `Idea (idea_type=knowledge)` → `blog.Blog`, `Idea (idea_type=recipe)` → `recipe.Recipe`.
-> Neue Apps: `content`, `supply`, `session`, `blog`, `game`, `recipe`. Die `idea/` App existiert nicht mehr.
-
 ## Purpose
 
 Querschnittsspezifikation für die einheitliche Fehlerbehandlung über alle API-Endpunkte und Frontend-Komponenten der Inspi-Plattform. Definiert Standard-Fehlerformate, HTTP-Statuscodes, Fehlermeldungen und das Verhalten von Frontend-Komponenten bei Fehlern.
@@ -143,7 +138,7 @@ Das Frontend MUST API-Fehler einheitlich behandeln und dem Benutzer verständlic
 
 #### Scenario: Lade-Fehler auf Detail-Seiten
 
-- GIVEN eine Detail-Seite (z.B. IdeaPage mit `/idea/:slug`)
+- GIVEN eine Detail-Seite (z.B. ContentDetailPage, z.B. `/sessions/:slug`)
 - WHEN die API 404 zurückgibt
 - THEN wird eine "Nicht gefunden"-Seite angezeigt
 - AND die Seite enthält einen Link zurück zur Suche oder Startseite
@@ -199,7 +194,7 @@ Das System MUST alle benutzersichtbaren Fehlermeldungen auf Deutsch zurückgeben
 ### Backend
 | Datei | Relevanz |
 |-------|----------|
-| `backend/idea/api.py` | HttpError-Verwendung in Ideas, Tags, AI, Admin, Materials Routers |
+| `backend/content/api.py`, `backend/session/api.py`, `backend/blog/api.py`, `backend/game/api.py` | HttpError-Verwendung in Content, Session, Blog, Game Routers |
 | `backend/core/api.py` | Auth-Fehler (Login, Register, CSRF) |
 | `backend/event/api.py` | Event-, Persons-, Locations-Fehler |
 | `backend/profiles/api.py` | Profil-, Gruppen-Fehler |

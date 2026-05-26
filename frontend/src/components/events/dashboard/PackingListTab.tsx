@@ -58,7 +58,7 @@ export default function PackingListTab({ event, isManager }: Props) {
 
       <div className="rounded-xl border p-4">
         <p className="text-sm text-muted-foreground">
-          Diese Veranstaltung hat eine verknüpfte Packliste.
+          Diese Aktion hat eine verknüpfte Packliste.
         </p>
         <a
           href={`/packing-lists/app/${event.packing_list_id}`}

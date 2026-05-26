@@ -351,3 +351,20 @@ class PaginatedContentOut(Schema):
     page: int
     page_size: int
     total_pages: int
+
+
+# ---------------------------------------------------------------------------
+# Image Management
+# ---------------------------------------------------------------------------
+
+
+class ImageFromUrlIn(Schema):
+    """Input schema for setting an image from a URL."""
+
+    image_url: str
+
+
+class ImageOut(Schema):
+    """Response schema for image operations."""
+
+    image_url: str | None = None

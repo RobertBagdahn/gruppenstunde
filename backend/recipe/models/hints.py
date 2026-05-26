@@ -17,6 +17,12 @@ class RecipeHint(models.Model):
 
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
+    improvement_text = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Verbesserungsvorschlag"),
+        help_text=_("Konkreter, umsetzbarer Verbesserungsvorschlag auf Deutsch"),
+    )
     parameter = models.CharField(
         max_length=20,
         choices=HintParameterChoices.choices,

@@ -41,7 +41,7 @@ class ShoppingList(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Quell-ID"),
-        help_text=_("ID des Rezepts oder MealEvents, aus dem die Liste erstellt wurde"),
+        help_text=_("ID des Rezepts oder MealPlans, aus dem die Liste erstellt wurde"),
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

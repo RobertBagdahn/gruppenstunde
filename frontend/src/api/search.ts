@@ -31,6 +31,7 @@ function buildSearchParams(filters: Partial<UnifiedSearchFilter>): string {
   if (filters.sort) params.set('sort', filters.sort);
   if (filters.page) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
+  if (filters.scope === 'mine') params.set('scope', 'mine');
   return params.toString();
 }
 
@@ -45,7 +46,7 @@ export function useUnifiedSearch(filters: Partial<UnifiedSearchFilter> = {}) {
 // --- Autocomplete ---
 
 const AutocompleteResultSchema = z.object({
-  result_type: z.enum(['session', 'blog', 'game', 'recipe', 'idea', 'tag', 'event']),
+  result_type: z.enum(['session', 'blog', 'game', 'recipe', 'tag', 'event']),
   id: z.number(),
   title: z.string(),
   slug: z.string(),

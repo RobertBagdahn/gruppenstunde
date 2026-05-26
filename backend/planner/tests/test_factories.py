@@ -4,7 +4,7 @@ import pytest
 
 from planner.tests import (
     make_meal,
-    make_meal_event,
+    make_meal_plan,
     make_meal_item,
     make_planner,
     make_planner_collaborator,
@@ -45,8 +45,8 @@ class TestPlannerFactories:
         assert collab.user is not None
         assert collab.role == "editor"
 
-    def test_make_meal_event(self):
-        event = make_meal_event()
+    def test_make_meal_plan(self):
+        event = make_meal_plan()
         assert event.pk is not None
         assert event.slug
         assert event.norm_portions == 10
@@ -55,7 +55,7 @@ class TestPlannerFactories:
     def test_make_meal(self):
         meal = make_meal()
         assert meal.pk is not None
-        assert meal.meal_event is not None
+        assert meal.meal_plan is not None
         assert meal.start_datetime is not None
         assert meal.end_datetime is not None
         assert meal.meal_type == "lunch"

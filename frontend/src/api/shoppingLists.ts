@@ -264,12 +264,12 @@ export function useCreateFromRecipe() {
   });
 }
 
-export function useCreateFromMealEvent() {
+export function useCreateFromMealPlan() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (mealEventId: number) =>
+    mutationFn: (mealPlanId: number) =>
       postJson(
-        `${API_BASE}/from-meal-event/${mealEventId}/`,
+        `${API_BASE}/from-meal-plan/${mealPlanId}/`,
         {},
         ShoppingListDetailSchema,
       ),

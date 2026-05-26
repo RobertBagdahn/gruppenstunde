@@ -17,6 +17,7 @@ from content.base_api import (
     toggle_emotion,
 )
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
+from content.schemas import ImageFromUrlIn
 from content.choices import ContentStatus
 from content.models import Tag
 
@@ -391,5 +392,45 @@ def upload_game_image(request, game_id: int):
         raise HttpError(400, "Kein Bild hochgeladen.")
 
     game.image = request.FILES["image"]
+    game.save(update_fields=["image"])
+    return {"image_url": game.image.url if game.image else None}
+
+
+@router.delete("/{game_id}/image/", response=dict)
+def delete_game_image(request, game_id: int):
+    """Remove the title image from a game."""
+    game = get_object_or_404(Game, id=game_id)
+    can_edit = request.user.is_authenticated and (
+        request.user.is_staff or game.authors.filter(id=request.user.id).exists()
+    )
+    if not can_edit:
+        raise HttpError(403, "Keine Berechtigung.")
+
+    game.image = None
+    game.save(update_fields=["image"])
+    return {"image_url": None}
+
+
+@router.post("/{game_id}/image-from-url/", response=dict)
+def set_game_image_from_url(request, game_id: int, payload: ImageFromUrlIn):
+    """Set the title image from an existing storage URL."""
+    game = get_object_or_404(Game, id=game_id)
+    can_edit = request.user.is_authenticated and (
+        request.user.is_staff or game.authors.filter(id=request.user.id).exists()
+    )
+    if not can_edit:
+        raise HttpError(403, "Keine Berechtigung.")
+
+    from content.services.image_service import download_and_save_image, validate_image_url
+
+    if not validate_image_url(payload.image_url):
+        raise HttpError(400, "URL verweist nicht auf den eigenen Speicher.")
+
+    try:
+        saved_path = download_and_save_image(payload.image_url, "content/")
+    except RuntimeError as exc:
+        raise HttpError(500, str(exc))
+
+    game.image = saved_path
     game.save(update_fields=["image"])
     return {"image_url": game.image.url if game.image else None}

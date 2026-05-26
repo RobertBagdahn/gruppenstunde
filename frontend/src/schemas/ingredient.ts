@@ -26,8 +26,6 @@ export {
   type RecipeHint,
   RecipeHintMatchSchema,
   type RecipeHintMatch,
-  RecipeCheckSchema,
-  type RecipeCheck,
   NutriScoreDetailSchema,
   type NutriScoreDetail,
   NUTRI_SCORE_COLORS,

@@ -3,6 +3,7 @@
  * Touch-friendly: 44x44px minimum tap target for the checkbox.
  */
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
 
@@ -73,14 +74,26 @@ export default function ShoppingListItemRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={cn(
-              'font-medium text-sm',
-              item.is_checked && 'line-through text-muted-foreground',
-            )}
-          >
-            {item.name}
-          </span>
+          {item.ingredient_slug ? (
+            <Link
+              to={`/ingredients/${item.ingredient_slug}`}
+              className={cn(
+                'font-medium text-sm hover:text-primary transition-colors',
+                item.is_checked && 'line-through text-muted-foreground',
+              )}
+            >
+              {item.name}
+            </Link>
+          ) : (
+            <span
+              className={cn(
+                'font-medium text-sm',
+                item.is_checked && 'line-through text-muted-foreground',
+              )}
+            >
+              {item.name}
+            </span>
+          )}
           {item.quantity_g > 0 && (
             <span className="text-xs text-muted-foreground">
               {formatQuantity(item.quantity_g, item.unit)}

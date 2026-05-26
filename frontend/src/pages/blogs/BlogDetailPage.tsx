@@ -5,6 +5,8 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { EntityLink } from '@/components/shared/EntityLink';
+import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import {
   useBlogBySlug,
   useBlogComments,
@@ -12,6 +14,9 @@ import {
   useCreateBlogComment,
   useUpdateBlog,
   useDeleteBlog,
+  useUploadBlogImage,
+  useDeleteBlogImage,
+  useSetBlogImageFromUrl,
 } from '@/api/blogs';
 import { useCurrentUser } from '@/api/auth';
 import {
@@ -25,10 +30,12 @@ import ContentEmotions from '@/components/content/ContentEmotions';
 import ContentComments from '@/components/content/ContentComments';
 import { ContentLinkSection } from '@/components/content/ContentLinkSection';
 import InlineEditor from '@/components/content/InlineEditor';
-import AuthorInfo from '@/components/content/AuthorInfo';
+import TitleImageEditor from '@/components/content/TitleImageEditor';
+import ContentAuthorSection from '@/components/content/ContentAuthorSection';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Breadcrumb from '@/components/Breadcrumb';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 
@@ -182,6 +189,9 @@ export default function BlogDetailPage() {
   const createComment = useCreateBlogComment(blogId);
   const updateBlog = useUpdateBlog(blogId);
   const deleteBlog = useDeleteBlog(blogId);
+  const uploadImage = useUploadBlogImage(blogId);
+  const deleteImage = useDeleteBlogImage(blogId);
+  const setImageFromUrl = useSetBlogImageFromUrl(blogId);
   const { data: user } = useCurrentUser();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -234,6 +244,7 @@ export default function BlogDetailPage() {
     blog.blog_type;
 
   return (
+    <EntityLinkContext.Provider value="detail">
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Delete Confirmation */}
       <ConfirmDialog
@@ -241,50 +252,54 @@ export default function BlogDetailPage() {
         onConfirm={() => {
           deleteBlog.mutate(undefined, {
             onSuccess: () => {
-              toast.success('Blogbeitrag geloescht');
+              toast.success('Blogbeitrag gelöscht');
               setShowDeleteConfirm(false);
               navigate('/blogs');
             },
             onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+              toast.error('Fehler beim Löschen', { description: err.message });
               setShowDeleteConfirm(false);
             },
           });
         }}
         onCancel={() => setShowDeleteConfirm(false)}
-        title="Blogbeitrag loeschen?"
-        description="Der Blogbeitrag wird geloescht und ist nicht mehr sichtbar."
-        confirmLabel="Loeschen"
+        title="Blogbeitrag löschen?"
+        description="Der Blogbeitrag wird gelöscht und ist nicht mehr sichtbar."
+        confirmLabel="Löschen"
         loading={deleteBlog.isPending}
       />
 
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link to="/" className="hover:text-primary">Startseite</Link>
-        <span>/</span>
-        <Link to="/blogs" className="hover:text-primary">Blog</Link>
-        <span>/</span>
-        <span className="text-foreground font-semibold truncate">{blog.title}</span>
-        {blog.can_delete && (
+      <Breadcrumb
+        items={[
+          { label: 'Startseite', href: '/' },
+          { label: 'Blog', href: '/blogs' },
+          { label: blog.title },
+        ]}
+        action={blog.can_delete ? (
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
-            title="Blogbeitrag loeschen"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
+             title="Blogbeitrag löschen"
           >
             <span className="material-symbols-outlined text-[18px]">delete</span>
-            <span className="hidden sm:inline">Loeschen</span>
+            <span className="hidden sm:inline">Löschen</span>
           </button>
-        )}
-      </nav>
+        ) : undefined}
+      />
 
       {/* Hero Image */}
-      <div className="relative rounded-2xl overflow-hidden mb-8 shadow-lg max-w-lg mx-auto aspect-square">
-        <img
-          src={blog.image_url || '/images/inspi_flying.png'}
-          alt={blog.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      <TitleImageEditor
+        contentType="blog"
+        imageUrl={blog.image_url}
+        canEdit={blog.can_edit}
+        title={blog.title}
+        summary={blog.summary}
+        fallbackImage="/images/inspi_flying.png"
+        uploadMutation={uploadImage}
+        deleteMutation={deleteImage}
+        setFromUrlMutation={setImageFromUrl}
+      >
         <div className="absolute bottom-0 left-0 right-0 p-6">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <ContentStatusBadge status={blog.status} />
@@ -301,7 +316,7 @@ export default function BlogDetailPage() {
             {blog.title}
           </h1>
         </div>
-      </div>
+      </TitleImageEditor>
 
       {/* Meta Info Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
@@ -363,15 +378,13 @@ export default function BlogDetailPage() {
       {blog.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
           {blog.tags.map((tag) => (
-            <span
+            <EntityLink
               key={tag.id}
-              className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 text-xs font-bold"
-            >
-              {tag.icon && (
-                <span className="material-symbols-outlined text-[14px]">{tag.icon}</span>
-              )}
-              {tag.name}
-            </span>
+              type="tag"
+              slug={tag.slug}
+              name={tag.name}
+              variant="chip"
+            />
           ))}
         </div>
       )}
@@ -417,13 +430,6 @@ export default function BlogDetailPage() {
         </InlineEditor>
       )}
 
-      {/* Authors */}
-      <AuthorInfo
-        authors={blog.authors ?? []}
-        createdAt={blog.created_at}
-        className="mb-8 p-4 bg-muted/30 rounded-xl border border-border/50"
-      />
-
       {/* Emotions */}
       <div className="mb-8">
         <h3 className="text-lg font-bold mb-3">Wie findest du diesen Beitrag?</h3>
@@ -459,6 +465,13 @@ export default function BlogDetailPage() {
       {/* Related Content */}
       <ContentLinkSection contentType="blog" objectId={blogId} />
 
+      {/* Author Section */}
+      <ContentAuthorSection
+        authors={blog.authors ?? []}
+        createdAt={blog.created_at}
+        className="mb-8"
+      />
+
       {/* Comments */}
       <div className="border-t border-border pt-8">
         <ContentComments
@@ -469,5 +482,6 @@ export default function BlogDetailPage() {
         />
       </div>
     </div>
+    </EntityLinkContext.Provider>
   );
 }

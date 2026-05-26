@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCurrentUser, useLogout } from '@/api/auth';
 import { cn } from '@/lib/utils';
+import { useCommandPalette } from '@/hooks/useCommandPalette';
+import CommandPalette from '@/components/shared/CommandPalette';
 import {
-  TOOL_EVENTS,
   TOOL_MEAL_PLAN,
   TOOL_SESSION_PLANNER,
   TOOL_PACKING_LISTS,
@@ -129,6 +130,14 @@ export default function Layout({ children }: LayoutProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [contentMenuOpen, setContentMenuOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { open: commandPaletteOpen, setOpen: setCommandPaletteOpen } = useCommandPalette();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 0);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const isActive = (path: string, exact = false) =>
     exact ? location.pathname === path : location.pathname.startsWith(path);
@@ -145,8 +154,13 @@ export default function Layout({ children }: LayoutProps) {
     { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label },
   ];
 
+  // Primary navigation single-location policy:
+  // Each tool entry appears at most once in primary navigation
+  // (top-level OR Tools dropdown/section, never both). Footer is exempt.
+  // See frontend/AGENTS.md for the full policy.
+  // Events is intentionally NOT listed here — it is a top-level nav item
+  // (desktop header) and mobile bottom-nav ("Aktionen"), and must not be duplicated here.
   const toolsMenuItems = [
-    { to: TOOL_EVENTS.basePath, icon: TOOL_EVENTS.icon, label: TOOL_EVENTS.label },
     { to: TOOL_SESSION_PLANNER.basePath, icon: TOOL_SESSION_PLANNER.icon, label: TOOL_SESSION_PLANNER.label },
     { to: TOOL_MEAL_PLAN.basePath, icon: TOOL_MEAL_PLAN.icon, label: TOOL_MEAL_PLAN.label },
     { to: TOOL_PACKING_LISTS.basePath, icon: TOOL_PACKING_LISTS.icon, label: TOOL_PACKING_LISTS.label },
@@ -154,11 +168,10 @@ export default function Layout({ children }: LayoutProps) {
 
   const profileMenuItems = [
     { to: '/my-dashboard', icon: 'space_dashboard', label: 'Mein Bereich' },
-    { to: '/profile/name', icon: 'badge', label: 'Name' },
+    { to: '/profile', icon: 'person', label: 'Profil' },
     { to: '/profile/groups', icon: 'groups', label: 'Gruppen' },
     { to: '/profile/persons', icon: 'family_restroom', label: 'Personen' },
-    { to: '/profile/settings', icon: 'settings', label: 'Einstellungen' },
-    { to: '/profile', icon: 'tune', label: 'Einstellungen' },
+    { to: '/profile/privacy', icon: 'shield', label: 'Datenschutz' },
   ];
 
   /* -- Bottom nav items (mobile) ----------------------------------- */
@@ -166,7 +179,7 @@ export default function Layout({ children }: LayoutProps) {
     { to: '/', icon: 'home', filledIcon: 'home', label: 'Start' },
     { to: '/search', icon: 'search', filledIcon: 'search', label: 'Suchen' },
     { to: '/create', icon: 'add_circle', filledIcon: 'add_circle', label: 'Erstellen' },
-    { to: '/events', icon: 'celebration', filledIcon: 'celebration', label: 'Tools' },
+    { to: '/events', icon: 'celebration', filledIcon: 'celebration', label: 'Aktionen' },
     ...(user
       ? [{ to: '/my-dashboard', icon: 'person', filledIcon: 'person', label: 'Profil' }]
       : [{ to: '/login', icon: 'login', filledIcon: 'login', label: 'Anmelden' }]),
@@ -178,7 +191,10 @@ export default function Layout({ children }: LayoutProps) {
       {/* ============================================================ */}
       {/*  HEADER                                                      */}
       {/* ============================================================ */}
-      <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-border/60 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+      <header className={cn(
+        'sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-border/60 transition-shadow duration-200',
+        scrolled ? 'shadow-sm' : 'shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]'
+      )}>
         <div className="container flex h-14 md:h-16 items-center justify-between">
 
           {/* Logo */}
@@ -202,6 +218,14 @@ export default function Layout({ children }: LayoutProps) {
                 active={isActive(item.to, true)}
               />
             ))}
+
+            {/* Aktionen — top-level link */}
+            <NavLink
+              to="/events"
+              icon="celebration"
+              label="Aktionen"
+              active={isActive('/events')}
+            />
 
             {/* Content Dropdown — visible to everyone */}
             <div className="relative">
@@ -305,14 +329,6 @@ export default function Layout({ children }: LayoutProps) {
                 )}
               </div>
 
-            {user?.is_staff && (
-              <NavLink
-                to="/admin/dashboard"
-                icon="admin_panel_settings"
-                label="Admin"
-                active={isActive('/admin')}
-              />
-            )}
           </nav>
 
           {/* Desktop Actions */}
@@ -384,6 +400,17 @@ export default function Layout({ children }: LayoutProps) {
                         />
                       ))}
 
+                      {/* Admin (Staff only) */}
+                      {user?.is_staff && (
+                        <ProfileMenuItem
+                          to="/admin/dashboard"
+                          icon="admin_panel_settings"
+                          label="Admin"
+                          active={isActive('/admin')}
+                          onClick={() => setProfileMenuOpen(false)}
+                        />
+                      )}
+
                       {/* Logout */}
                       <div className="border-t border-border/60 mt-1 pt-1 mx-1">
                         <button
@@ -409,16 +436,15 @@ export default function Layout({ children }: LayoutProps) {
             )}
           </div>
 
-          {/* Mobile: only show hamburger for extra menu */}
+          {/* Mobile: search trigger + hamburger for extra menu */}
           <div className="md:hidden flex items-center gap-1">
-            {user?.is_staff && (
-              <Link
-                to="/admin/dashboard"
-                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
-              </Link>
-            )}
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="p-2 rounded-xl text-foreground hover:bg-muted transition-colors"
+              aria-label="Suche öffnen"
+            >
+              <span className="material-symbols-outlined text-[24px]">search</span>
+            </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-xl text-foreground hover:bg-muted transition-colors"
@@ -465,6 +491,23 @@ export default function Layout({ children }: LayoutProps) {
                       {item.label}
                     </Link>
                   ))}
+
+                  {/* Admin (Staff only) */}
+                  {user?.is_staff && (
+                    <Link
+                      to="/admin/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors',
+                        isActive('/admin')
+                          ? 'text-primary bg-primary/8 font-semibold'
+                          : 'text-foreground hover:bg-muted'
+                      )}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+                      Admin
+                    </Link>
+                  )}
 
                   <div className="border-t border-border/60 my-2" />
                 </>
@@ -526,7 +569,7 @@ export default function Layout({ children }: LayoutProps) {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-muted transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">info</span>
-                Ueber das Projekt
+                 Über das Projekt
               </Link>
               <Link
                 to="/imprint"
@@ -577,6 +620,9 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
+      {/* Command Palette (global) */}
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+
       {/* ============================================================ */}
       {/*  FOOTER (Desktop only – mobile uses bottom nav)              */}
       {/* ============================================================ */}
@@ -588,11 +634,11 @@ export default function Layout({ children }: LayoutProps) {
               <img
                 src="/images/inspi_front_normal.webp"
                 alt="Inspi"
-                className="h-14 w-14 drop-shadow-sm"
+                className="w-14 h-auto drop-shadow-sm"
               />
               <div>
                 <p className="font-extrabold text-lg text-foreground">Inspi</p>
-                <p className="text-sm text-muted-foreground">Die Toolbox fuer Pfadfinder</p>
+                <p className="text-sm text-muted-foreground">Die Toolbox für Pfadfinder</p>
               </div>
             </div>
 
@@ -606,9 +652,33 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="material-symbols-outlined text-[18px]">groups</span>
                 Gruppenstunden
               </Link>
+              <Link to="/blogs" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">article</span>
+                Blog
+              </Link>
+              <Link to="/games" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">sports_esports</span>
+                Spiele
+              </Link>
               <Link to="/recipes" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">menu_book</span>
                 Rezepte
+              </Link>
+              <Link to="/events" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">celebration</span>
+                Aktionen
+              </Link>
+              <Link to="/session-planner" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                Gruppenstundenplan
+              </Link>
+              <Link to="/meal-plans" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
+                Essensplan
+              </Link>
+              <Link to="/packing-lists" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
+                <span className="material-symbols-outlined text-[18px]">checklist</span>
+                Packlisten
               </Link>
               <Link to="/create" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">add_circle</span>
@@ -616,7 +686,7 @@ export default function Layout({ children }: LayoutProps) {
               </Link>
               <Link to="/about" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">info</span>
-                Ueber das Projekt
+                 Über das Projekt
               </Link>
               <Link to="/imprint" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">gavel</span>
@@ -647,9 +717,7 @@ export default function Layout({ children }: LayoutProps) {
       >
         <div className="flex items-stretch justify-around px-2 h-16">
           {bottomNavItems.map((item) => {
-            const active = item.to === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(item.to);
+            const active = isActive(item.to, item.to === '/');
 
             return (
               <BottomNavItem
