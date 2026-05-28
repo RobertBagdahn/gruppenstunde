@@ -16,9 +16,11 @@ from supply.models import (
 )
 from supply.schemas import (
     AliasCreateIn,
+    IngredientAiCreateIn,
     IngredientAliasOut,
     IngredientCreateIn,
     IngredientDetailOut,
+    IngredientSuggestAllOut,
     IngredientUpdateIn,
     PaginatedIngredientOut,
     PortionCreateIn,
@@ -309,3 +311,32 @@ def delete_alias(request, slug: str, alias_id: int):
     alias = get_object_or_404(IngredientAlias, id=alias_id, ingredient=ingredient)
     alias.delete()
     return {"success": True}
+
+
+# ===========================================================================
+# AI Suggest & Create
+# ===========================================================================
+
+
+@ingredient_router.post("/{slug}/ai-suggest-all/", response=IngredientSuggestAllOut)
+def ai_suggest_all(request, slug: str):
+    """Get AI-powered suggestions for all fields of an ingredient."""
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    from supply.services.ingredient_ai_suggest_service import suggest_all_fields
+
+    result = suggest_all_fields(ingredient, user=request.user)
+    return result
+
+
+@ingredient_router.post("/ai-create/", response=IngredientDetailOut)
+def ai_create(request, payload: IngredientAiCreateIn):
+    """Create a complete ingredient from just a name using AI."""
+    require_auth(request)
+
+    from supply.services.ingredient_ai_suggest_service import ai_create_ingredient
+
+    ingredient = ai_create_ingredient(payload.name, user=request.user)
+    return ingredient

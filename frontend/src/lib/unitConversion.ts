@@ -21,20 +21,24 @@ export interface FormattedQuantity {
 }
 
 /**
- * Smart rounding based on quantity magnitude.
- * - Under 100: round to nearest 5
- * - 100-999: round to nearest 10
- * - 1000+: round to nearest 50
+ * Smart rounding based on quantity magnitude (always rounds UP).
+ * - Under 2: round up to nearest 0.1
+ * - 2–10: round up to nearest 1
+ * - 10–1000: round up to nearest 5
+ * - 1000+: round up to nearest 100
  */
 function smartRound(value: number): number {
   if (value <= 0) return 0;
-  if (value < 100) {
-    return Math.round(value / 5) * 5;
+  if (value < 2) {
+    return Math.ceil(value * 10) / 10;
+  }
+  if (value <= 10) {
+    return Math.ceil(value);
   }
   if (value < 1000) {
-    return Math.round(value / 10) * 10;
+    return Math.ceil(value / 5) * 5;
   }
-  return Math.round(value / 50) * 50;
+  return Math.ceil(value / 100) * 100;
 }
 
 /**

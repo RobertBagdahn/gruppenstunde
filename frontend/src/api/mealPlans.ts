@@ -14,7 +14,6 @@ import {
   type MealPlan,
   type MealPlanDetail,
   type NutritionSummary,
-  type ShoppingListItem,
   type RecipeSearchResult,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
@@ -247,7 +246,7 @@ export function useNutritionSummary(mealPlanId: number) {
 }
 
 export function useShoppingList(mealPlanId: number) {
-  return useQuery<ShoppingListItem[]>({
+  return useQuery({
     queryKey: ['meal-plan', mealPlanId, 'shopping-list'],
     queryFn: () =>
       fetchJson(
@@ -262,15 +261,31 @@ export function useShoppingList(mealPlanId: number) {
 // Recipe Search
 // ==========================================================================
 
-export function useRecipeSearch(query: string) {
+export interface RecipeSearchParams {
+  q: string;
+  recipe_type?: string;
+  nutritional_tag_ids?: number[];
+  limit?: number;
+}
+
+export function useRecipeSearch(params: RecipeSearchParams) {
+  const { q, recipe_type, nutritional_tag_ids, limit } = params;
+
+  const searchParams = new URLSearchParams();
+  if (q) searchParams.set('q', q);
+  if (recipe_type) searchParams.set('recipe_type', recipe_type);
+  if (nutritional_tag_ids?.length)
+    searchParams.set('nutritional_tag_ids', nutritional_tag_ids.join(','));
+  if (limit) searchParams.set('limit', String(limit));
+
   return useQuery<RecipeSearchResult[]>({
-    queryKey: ['recipe-search', query],
+    queryKey: ['recipe-search', q, recipe_type, nutritional_tag_ids, limit],
     queryFn: () =>
       fetchJson(
-        `${API_BASE}/recipes/search/?q=${encodeURIComponent(query)}`,
+        `${API_BASE}/recipes/search/?${searchParams.toString()}`,
         z.array(RecipeSearchResultSchema),
       ),
-    enabled: query.length >= 2,
+    enabled: q.length >= 2 || !!recipe_type || !!nutritional_tag_ids?.length,
   });
 }
 

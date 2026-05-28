@@ -114,33 +114,7 @@ class IngredientDetailOut(Schema):
     lactose_g: float | None
 
     # Vitamins per 100g
-    vitamin_a_mg: float | None = None
-    vitamin_b1_mg: float | None = None
-    vitamin_b2_mg: float | None = None
-    vitamin_b6_mg: float | None = None
-    vitamin_b12_ug: float | None = None
     vitamin_c_mg: float | None = None
-    vitamin_d_ug: float | None = None
-    vitamin_e_mg: float | None = None
-    vitamin_k_ug: float | None = None
-    niacin_mg: float | None = None
-    folate_ug: float | None = None
-    pantothenic_acid_mg: float | None = None
-    biotin_ug: float | None = None
-
-    # Minerals per 100g
-    calcium_mg: float | None = None
-    iron_mg: float | None = None
-    magnesium_mg: float | None = None
-    zinc_mg: float | None = None
-    potassium_mg: float | None = None
-    phosphorus_mg: float | None = None
-    iodine_ug: float | None = None
-    selenium_ug: float | None = None
-    copper_mg: float | None = None
-    manganese_mg: float | None = None
-    chromium_ug: float | None = None
-    fluoride_mg: float | None = None
 
     # Scores
     child_score: int | None
@@ -156,6 +130,7 @@ class IngredientDetailOut(Schema):
 
     # References
     fdc_id: int | None
+    nan_art_id_rewe: int | None
     ean: str
 
     # Relations
@@ -243,33 +218,7 @@ class IngredientCreateIn(Schema):
     lactose_g: float | None = None
 
     # Vitamins
-    vitamin_a_mg: float | None = None
-    vitamin_b1_mg: float | None = None
-    vitamin_b2_mg: float | None = None
-    vitamin_b6_mg: float | None = None
-    vitamin_b12_ug: float | None = None
     vitamin_c_mg: float | None = None
-    vitamin_d_ug: float | None = None
-    vitamin_e_mg: float | None = None
-    vitamin_k_ug: float | None = None
-    niacin_mg: float | None = None
-    folate_ug: float | None = None
-    pantothenic_acid_mg: float | None = None
-    biotin_ug: float | None = None
-
-    # Minerals
-    calcium_mg: float | None = None
-    iron_mg: float | None = None
-    magnesium_mg: float | None = None
-    zinc_mg: float | None = None
-    potassium_mg: float | None = None
-    phosphorus_mg: float | None = None
-    iodine_ug: float | None = None
-    selenium_ug: float | None = None
-    copper_mg: float | None = None
-    manganese_mg: float | None = None
-    chromium_ug: float | None = None
-    fluoride_mg: float | None = None
 
     # Scores
     child_score: int | None = None
@@ -280,6 +229,7 @@ class IngredientCreateIn(Schema):
 
     # References
     fdc_id: int | None = None
+    nan_art_id_rewe: int | None = None
     ean: str = ""
 
     # Relations
@@ -310,33 +260,7 @@ class IngredientUpdateIn(Schema):
     lactose_g: float | None = None
 
     # Vitamins
-    vitamin_a_mg: float | None = None
-    vitamin_b1_mg: float | None = None
-    vitamin_b2_mg: float | None = None
-    vitamin_b6_mg: float | None = None
-    vitamin_b12_ug: float | None = None
     vitamin_c_mg: float | None = None
-    vitamin_d_ug: float | None = None
-    vitamin_e_mg: float | None = None
-    vitamin_k_ug: float | None = None
-    niacin_mg: float | None = None
-    folate_ug: float | None = None
-    pantothenic_acid_mg: float | None = None
-    biotin_ug: float | None = None
-
-    # Minerals
-    calcium_mg: float | None = None
-    iron_mg: float | None = None
-    magnesium_mg: float | None = None
-    zinc_mg: float | None = None
-    potassium_mg: float | None = None
-    phosphorus_mg: float | None = None
-    iodine_ug: float | None = None
-    selenium_ug: float | None = None
-    copper_mg: float | None = None
-    manganese_mg: float | None = None
-    chromium_ug: float | None = None
-    fluoride_mg: float | None = None
 
     child_score: int | None = None
     scout_score: int | None = None
@@ -345,6 +269,7 @@ class IngredientUpdateIn(Schema):
     fruit_factor: float | None = None
 
     fdc_id: int | None = None
+    nan_art_id_rewe: int | None = None
     ean: str | None = None
 
     retail_section_id: int | None = None
@@ -360,3 +285,56 @@ class PaginatedIngredientOut(Schema):
     page: int
     page_size: int
     total_pages: int
+
+
+# ---------------------------------------------------------------------------
+# AI Suggest schemas
+# ---------------------------------------------------------------------------
+
+
+class PortionSuggestionOut(Schema):
+    """A suggested portion."""
+
+    name: str
+    weight_g: float
+
+
+class IngredientSuggestAllOut(Schema):
+    """Response schema for AI-powered ingredient suggestions."""
+
+    # Nährwerte
+    energy_kj: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    fat_sat_g: float | None = None
+    carbohydrate_g: float | None = None
+    sugar_g: float | None = None
+    fibre_g: float | None = None
+    salt_g: float | None = None
+    sodium_mg: float | None = None
+    fructose_g: float | None = None
+    lactose_g: float | None = None
+
+    # Bewertungen
+    nutri_score: str | None = None
+    nova_score: int | None = None
+    child_score: int | None = None
+    scout_score: int | None = None
+    environmental_score: int | None = None
+    fruit_factor: float | None = None
+
+    # Physik
+    physical_density: float | None = None
+    physical_viscosity: str | None = None
+    durability_in_days: int | None = None
+    max_storage_temperature: int | None = None
+
+    # Portionen und Aliase
+    portions: list[PortionSuggestionOut] = []
+    aliases: list[str] = []
+
+
+class IngredientAiCreateIn(Schema):
+    """Input for AI ingredient creation."""
+
+    name: str

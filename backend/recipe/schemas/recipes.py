@@ -45,19 +45,11 @@ class RecipeListOut(ContentListOut):
     cached_price_total: float | None = None
     cached_at: dt.datetime | None = None
     # Cached micronutrients
-    cached_vitamin_a_mg: float | None = None
     cached_vitamin_c_mg: float | None = None
-    cached_vitamin_d_ug: float | None = None
-    cached_vitamin_b12_ug: float | None = None
-    cached_calcium_mg: float | None = None
-    cached_iron_mg: float | None = None
-    cached_magnesium_mg: float | None = None
-    cached_zinc_mg: float | None = None
-    cached_potassium_mg: float | None = None
-    cached_folate_ug: float | None = None
     owner_name: str | None = None
     forked_from_title: str | None = None
     visibility: str | None = None
+    source_url: str = ""
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
 
     @staticmethod
@@ -113,16 +105,7 @@ class RecipeDetailOut(ContentDetailOut):
     cached_price_total: float | None = None
     cached_at: dt.datetime | None = None
     # Cached micronutrients
-    cached_vitamin_a_mg: float | None = None
     cached_vitamin_c_mg: float | None = None
-    cached_vitamin_d_ug: float | None = None
-    cached_vitamin_b12_ug: float | None = None
-    cached_calcium_mg: float | None = None
-    cached_iron_mg: float | None = None
-    cached_magnesium_mg: float | None = None
-    cached_zinc_mg: float | None = None
-    cached_potassium_mg: float | None = None
-    cached_folate_ug: float | None = None
     # Personal recipe fields
     owner_name: str | None = None
     forked_from_title: str | None = None
@@ -280,3 +263,25 @@ class PaginatedRecipeOut(Schema):
     page: int
     page_size: int
     total_pages: int
+
+
+# --- AI Suggest schemas ---
+
+
+class RecipeSuggestAllOut(Schema):
+    """Response schema for AI-powered recipe metadata suggestions."""
+
+    description: str | None = None
+    difficulty: str | None = None
+    duration_minutes: int | None = None
+    servings: int | None = None
+    recipe_type: str | None = None
+    scout_levels: list[str] = []
+    tags: list[str] = []
+
+
+class RecipeAiCreateIn(Schema):
+    """Input for AI recipe creation."""
+
+    title: str
+    description: str = ""

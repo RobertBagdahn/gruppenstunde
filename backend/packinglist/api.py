@@ -751,6 +751,7 @@ def get_ai_suggestions(request, packing_list_id: int, payload: AiSuggestIn):
             existing_items=existing_items,
             category_context=payload.category,
             count=payload.count,
+            user=request.user,
         )
         return {"items": items}
     except PackingListAISuggestionError as exc:

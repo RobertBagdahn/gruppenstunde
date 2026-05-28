@@ -35,16 +35,15 @@ Das System SHALL folgende Cloud-Architektur verwenden.
 
 #### Scenario: Architektur-Überblick
 
-- GIVEN die Ziel-Architektur
-- THEN besteht sie aus:
+- **WHEN** die Ziel-Architektur betrachtet wird
+- **THEN** besteht sie aus:
   - **GitHub** als Source Repository
-  - **Google Cloud Build** für CI/CD (Trigger auf Push/PR)
   - **Artifact Registry** für Container-Images
+  - **Cloud Run Frontend** (`inspi-frontend`) — Nginx Reverse Proxy + Static Files auf Port 80
   - **Cloud Run Backend** (`inspi-backend`) — Django/Gunicorn auf Port 8000
-  - **Cloud Run DB** (`inspi-db`) — PostgreSQL + pgvector
+  - **Cloud SQL** — Managed PostgreSQL (Private IP)
   - **GCS Media Bucket** — Benutzer-Uploads
-  - **GCS pgdata Volume** — PostgreSQL Datenpersistenz
-  - **GCS Static Hosting** — Frontend (Vite Build Output)
+  - **Serverless VPC Access Connector** — Cloud Run → Cloud SQL Verbindung
 
 ### Requirement: Pre-Commit Hooks
 

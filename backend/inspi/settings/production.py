@@ -15,6 +15,7 @@ ALLOWED_HOSTS = [
     APPENGINE_URL.replace("https://", "").replace("http://", ""),
     "gruppenstunde.de",
     "www.gruppenstunde.de",
+    ".run.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [APPENGINE_URL]
@@ -50,7 +51,7 @@ DATABASES = {
         "NAME": env("DB_NAME", default="inspi"),  # noqa: F405
         "USER": env("DB_USER", default="inspi"),  # noqa: F405
         "PASSWORD": env("DB_PASSWORD", default=""),  # noqa: F405
-        "HOST": env("DB_HOST", default="/cloudsql/PROJECT_ID:REGION:INSTANCE"),  # noqa: F405
+        "HOST": env("DB_HOST", default=""),  # noqa: F405
         "PORT": env("DB_PORT", default="5432"),  # noqa: F405
     }
 }

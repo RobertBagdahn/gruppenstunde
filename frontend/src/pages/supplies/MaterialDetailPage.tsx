@@ -5,6 +5,7 @@ import { useCurrentUser } from '@/api/auth';
 import { useMaterialBySlug, useUpdateMaterial } from '@/api/supplies';
 import { MATERIAL_CATEGORY_OPTIONS } from '@/schemas/supply';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import { BackButton } from '@/components/shared/BackButton';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,23 +100,19 @@ export default function MaterialDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* Back link */}
-      <button
-        onClick={() => navigate('/materials')}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition"
-      >
-        <span className="material-symbols-outlined text-lg">arrow_back</span>
-        Alle Materialien
-      </button>
+      {/* Header – breadcrumb-style */}
+      <div className="flex items-center gap-3 mb-4">
+        <BackButton to="/materials" />
+        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-primary text-2xl">{icon}</span>
+        </div>
+        <h1 className="text-xl sm:text-2xl font-bold">{material.name}</h1>
+      </div>
 
-      {/* Header */}
+      {/* Meta */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-primary text-2xl">{icon}</span>
-          </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold">{material.name}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                 {categoryLabel(material.material_category)}

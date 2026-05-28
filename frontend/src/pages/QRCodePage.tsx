@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEvent } from '@/api/events';
 import { useCallback, useRef } from 'react';
+import { BackButton } from '@/components/shared/BackButton';
 
 export default function QRCodePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -75,13 +76,7 @@ export default function QRCodePage() {
     <div className="container py-6 max-w-md mx-auto">
       {/* Actions (hidden in print) */}
       <div className="flex items-center justify-between mb-6 print:hidden">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          Zurück
-        </button>
+        <BackButton onClick={() => navigate(-1)} />
         <div className="flex gap-2">
           <button
             onClick={handleDownloadPng}

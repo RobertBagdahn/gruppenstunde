@@ -1,17 +1,34 @@
 ## ADDED Requirements
 
 ### Requirement: HealthRule data model
-The system SHALL provide a `HealthRule` model for configurable traffic-light thresholds. Each rule SHALL have: `name` (CharField), `description` (TextField), `parameter` (CharField, e.g. "energy_kj", "sugar_g", "price_total", "nutri_class"), `scope` (CharField with choices: meal_event, day, meal, recipe, ingredient), `threshold_green` (FloatField), `threshold_yellow` (FloatField), `unit` (CharField), `tip_text` (TextField for recommendation when yellow/red), `is_active` (BooleanField, default True), `sort_order` (IntegerField).
+The system SHALL provide a `HealthRule` model for configurable traffic-light thresholds. Each rule SHALL have: `name` (CharField), `description` (TextField), `parameter` (CharField, e.g. "energy_kj", "sugar_g", "price_total", "nutri_class"), `scope` (CharField with choices: meal_event, day, meal, recipe, ingredient), `rule_type` (CharField with choices: "max", "min", default "max"), `threshold_green` (FloatField), `threshold_yellow` (FloatField), `unit` (CharField), `tip_text` (TextField for recommendation when yellow/red), `is_active` (BooleanField, default True), `sort_order` (IntegerField).
 
-#### Scenario: Creating a health rule for sugar per meal
-- **WHEN** an admin creates a HealthRule with parameter="sugar_g", scope="meal", threshold_green=15.0, threshold_yellow=30.0
+#### Scenario: Creating a max health rule for sugar per meal
+- **WHEN** an admin creates a HealthRule with rule_type="max", parameter="sugar_g", scope="meal", threshold_green=15.0, threshold_yellow=30.0
 - **THEN** the rule SHALL be stored and active
 - **THEN** meals with less than 15g sugar per Normportion SHALL show green
 - **THEN** meals with 15-30g sugar per Normportion SHALL show yellow
 - **THEN** meals with more than 30g sugar per Normportion SHALL show red
 
+#### Scenario: Creating a min health rule for protein per day
+- **WHEN** an admin creates a HealthRule with rule_type="min", parameter="protein_g", scope="day", threshold_green=50.0, threshold_yellow=30.0
+- **THEN** the rule SHALL be stored and active
+- **THEN** days with 50g or more protein SHALL show green
+- **THEN** days with 30-50g protein SHALL show yellow
+- **THEN** days with less than 30g protein SHALL show red
+
+#### Scenario: Empty day evaluates min rules as red
+- **WHEN** a day has no recipes assigned and a min-rule exists (e.g. protein_g, threshold_green=50, threshold_yellow=30)
+- **THEN** the evaluation SHALL return status "red" (value 0 < threshold_yellow)
+
+#### Scenario: Empty day evaluates max rules as green
+- **WHEN** a day has no recipes assigned and a max-rule exists (e.g. sugar_g, threshold_green=25, threshold_yellow=50)
+- **THEN** the evaluation SHALL return status "green" (value 0 <= threshold_green)
+
 #### Scenario: Health rule validation
-- **WHEN** a HealthRule is created with threshold_green >= threshold_yellow
+- **WHEN** a HealthRule with rule_type="max" is created with threshold_green >= threshold_yellow
+- **THEN** the system SHALL reject the entry with a validation error
+- **WHEN** a HealthRule with rule_type="min" is created with threshold_green <= threshold_yellow
 - **THEN** the system SHALL reject the entry with a validation error
 
 ### Requirement: Health rules API
@@ -124,11 +141,11 @@ The cockpit SHALL support the following additional parameters:
 
 ### Requirement: HealthRule admin interface
 The HealthRule model SHALL be registered in Django admin with a comprehensive admin class:
-- `list_display`: name, parameter, scope, threshold_green, threshold_yellow, unit, is_active
-- `list_filter`: scope, parameter, is_active
+- `list_display`: name, parameter, scope, rule_type, threshold_green, threshold_yellow, unit, is_active
+- `list_filter`: scope, rule_type, parameter, is_active
 - `search_fields`: name, description, tip_text
-- `list_editable`: threshold_green, threshold_yellow, is_active
-- Fieldsets grouping basic info, thresholds, and display options
+- `list_editable`: rule_type, threshold_green, threshold_yellow, is_active
+- Fieldsets grouping basic info, rule type, thresholds, and display options
 
 #### Scenario: Admin lists health rules
 - **WHEN** an admin navigates to the HealthRule admin list

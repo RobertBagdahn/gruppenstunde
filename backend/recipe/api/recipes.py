@@ -25,15 +25,21 @@ from content.schemas import ImageFromUrlIn
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
     PaginatedRecipeOut,
+    RecipeAiCreateIn,
     RecipeCreateIn,
     RecipeDetailOut,
     RecipeFilterIn,
     RecipeListOut,
     RecipeSimilarOut,
+    RecipeSuggestAllOut,
     RecipeUpdateIn,
     VisibilityUpdateIn,
 )
-from recipe.schemas.import_schemas import RecipeImportPreviewOut, RecipeImportRequestIn
+from recipe.schemas.import_schemas import (
+    RecipeImportPreviewOut,
+    RecipeImportRequestIn,
+    RecipeImportUrlResponseOut,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -647,3 +653,84 @@ def import_recipe_from_url(request, payload: RecipeImportRequestIn):
         prep_time_minutes=result.prep_time_minutes,
         cook_time_minutes=result.cook_time_minutes,
     )
+
+
+@router.post("/import-from-url-enhanced/", response=RecipeImportUrlResponseOut)
+def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
+    """Import a recipe from URL with Gemini-based ingredient matching and creation."""
+    _require_auth(request)
+
+    from recipe.services.url_import_service import import_recipe_from_url
+
+    try:
+        result = import_recipe_from_url(payload.url, request.user)
+    except ValueError as e:
+        raise HttpError(422, str(e))
+    except Exception as e:
+        logger.exception("Enhanced recipe import failed for URL: %s", payload.url)
+        raise HttpError(422, f"Import fehlgeschlagen: {e}")
+
+    return RecipeImportUrlResponseOut(
+        recipe_draft={
+            "title": result.title,
+            "description": result.description,
+            "servings": result.servings,
+            "preparation_time": result.preparation_time,
+            "execution_time": result.execution_time,
+            "recipe_type": result.recipe_type,
+            "steps": result.steps,
+            "source_url": result.source_url,
+        },
+        recipe_items=[
+            {
+                "ingredient_id": item.ingredient_id,
+                "ingredient_name": item.ingredient_name,
+                "quantity": item.quantity,
+                "measuring_unit_id": item.measuring_unit_id,
+                "measuring_unit_name": item.measuring_unit_name,
+                "note": item.note,
+                "is_new_ingredient": item.is_new_ingredient,
+            }
+            for item in result.recipe_items
+        ],
+        created_ingredients=[
+            {
+                "id": ci.id,
+                "name": ci.name,
+                "aliases": ci.aliases,
+                "nutri_class": ci.nutri_class,
+            }
+            for ci in result.created_ingredients
+        ],
+    )
+
+
+# ===========================================================================
+# AI Suggest & Create
+# ===========================================================================
+
+
+@router.post("/{recipe_id}/ai-suggest-all/", response=RecipeSuggestAllOut)
+def ai_suggest_all(request, recipe_id: int):
+    """Get AI-powered suggestions for missing recipe metadata."""
+    _require_auth(request)
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    from recipe.services.recipe_ai_suggest_service import suggest_recipe_metadata
+
+    result = suggest_recipe_metadata(recipe, user=request.user)
+    return result
+
+
+@router.post("/ai-create/", response=RecipeDetailOut)
+def ai_create(request, payload: RecipeAiCreateIn):
+    """Create a complete recipe from title/description using AI."""
+    _require_auth(request)
+
+    from recipe.services.recipe_ai_suggest_service import ai_create_recipe
+
+    recipe = ai_create_recipe(payload.title, payload.description or None, user=request.user)
+    return recipe

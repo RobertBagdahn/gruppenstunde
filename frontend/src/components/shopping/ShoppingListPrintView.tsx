@@ -4,6 +4,7 @@
  */
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { formatWeight } from '@/lib/unitConversion';
 
 interface PrintItem {
   name: string;
@@ -58,7 +59,7 @@ export function ShoppingListPrintView({ items, listName }: ShoppingListPrintView
                   <input type="checkbox" className="h-4 w-4" defaultChecked={item.is_checked} />
                   <span>
                     {item.quantity_g > 0 && (
-                      <span className="font-medium">{item.quantity_g} {item.unit} </span>
+                      <span className="font-medium">{item.unit === 'g' || item.unit === 'kg' ? formatWeight(item.quantity_g).display : `${item.quantity_g} ${item.unit}`} </span>
                     )}
                     {item.name}
                   </span>

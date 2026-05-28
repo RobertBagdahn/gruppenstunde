@@ -1,0 +1,257 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 14% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 14% 10%;
+    --primary: 198 78% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 9% 96%;
+    --secondary-foreground: 220 14% 10%;
+    --muted: 220 9% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 220 14% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 198 78% 42%;
+    --radius: 1rem;
+    --chart-1: 198 78% 42%;
+    --chart-2: 43 96% 56%;
+    --chart-3: 160 64% 43%;
+    --chart-4: 280 60% 55%;
+    --chart-5: 350 70% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    min-width: 320px;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.025em;
+  }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  }
+}
+
+@layer utilities {
+  /* Primary gradient – soft blue tones */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(198 78% 42%) 0%, hsl(201 66% 52%) 100%);
+  }
+
+  /* Hero gradient – vibrant blue tones */
+  .gradient-hero {
+    background: linear-gradient(180deg, hsl(201 66% 48%) 0%, hsl(198 78% 38%) 100%);
+  }
+
+  /* Warm accent gradient */
+  .gradient-warm {
+    background: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(38 90% 62%) 100%);
+  }
+
+  /* Fun gradient – blue to accent */
+  .gradient-fun {
+    background: linear-gradient(135deg, hsl(198 78% 42%) 0%, hsl(43 96% 56%) 100%);
+  }
+
+  /* Sunset gradient */
+  .gradient-sunset {
+    background: linear-gradient(135deg, hsl(198 78% 42%) 0%, hsl(350 70% 55%) 100%);
+  }
+
+  /* Rainbow accent bar */
+  .gradient-rainbow {
+    background: linear-gradient(90deg,
+      hsl(198 78% 42%),
+      hsl(160 64% 43%),
+      hsl(43 96% 56%),
+      hsl(350 70% 55%),
+      hsl(280 60% 55%)
+    );
+  }
+
+  /* Glass effect – white frosted */
+  .glass {
+    background: hsl(0 0% 100% / 0.85);
+    @apply backdrop-blur-xl;
+  }
+
+  /* Card hover */
+  .card-hover {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  /* Shell – white header */
+  .shell-solid {
+    background: hsl(0 0% 100%);
+  }
+
+  /* Shell border – subtle bottom border */
+  .shell-border {
+    border-color: hsl(220 13% 91%);
+  }
+
+  /* Muted panel */
+  .panel-muted {
+    background: hsl(220 9% 98%);
+  }
+
+  /* Fun bouncy float animation for mascot images */
+  .float-bounce {
+    animation: floatBounce 3s ease-in-out infinite;
+  }
+  .float-bounce-slow {
+    animation: floatBounce 4.5s ease-in-out infinite;
+  }
+  .float-bounce-delay {
+    animation: floatBounce 3s ease-in-out 1s infinite;
+  }
+
+  /* Wiggle for icons */
+  .wiggle-hover:hover {
+    animation: wiggle 0.5s ease-in-out;
+  }
+
+  /* Pulse glow for CTAs */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  /* Confetti-style colorful dot background */
+  .bg-dots-pattern {
+    background-image: radial-gradient(circle, hsl(198 78% 42% / 0.08) 1px, transparent 1px),
+                       radial-gradient(circle, hsl(43 96% 56% / 0.08) 1px, transparent 1px),
+                       radial-gradient(circle, hsl(350 70% 55% / 0.06) 1px, transparent 1px);
+    background-size: 60px 60px, 80px 80px, 100px 100px;
+    background-position: 0 0, 30px 30px, 15px 60px;
+  }
+
+  /* Bottom nav safe area for mobile */
+  .pb-safe-bottom {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@keyframes floatBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px hsl(198 78% 42% / 0.15); }
+  50% { box-shadow: 0 0 20px hsl(198 78% 42% / 0.25), 0 0 40px hsl(43 96% 56% / 0.1); }
+}
+
+/* Print styles for packing lists and other printable content */
+@media print {
+  /* Hide navigation, buttons, and interactive elements */
+  header, nav, footer,
+  .print\:hidden,
+  .no-print,
+  [data-print-hide],
+  button:not([data-print-visible]),
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Reset backgrounds and shadows for clean print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* A4 page margins */
+  @page {
+    margin: 2cm;
+  }
+
+  /* Remove card shadows and borders for clean look */
+  [data-pdf-content] {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure checkboxes are visible in print */
+  input[type="checkbox"] {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    appearance: auto !important;
+  }
+
+  /* Progress bars should show colors in print */
+  .bg-emerald-500, .bg-emerald-400, .bg-blue-500 {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Keep category sections together when possible */
+  [data-pdf-content] > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Recipe-specific break rules */
+  .recipe-ingredients,
+  .recipe-step {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure sufficient contrast */
+  .text-muted-foreground {
+    color: #555 !important;
+  }
+
+  /* Remove hover effects */
+  * {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* Print-preview mode on screen (data-mode="print") */
+[data-mode="print"] .no-print:not([data-print-toolbar]),
+[data-mode="print"] [data-print-hide] {
+  display: none !important;
+}
+
+[data-mode="print"] {
+  font-size: 11pt;
+  line-height: 1.4;
+}
+
+[data-mode="print"] .recipe-ingredients,
+[data-mode="print"] .recipe-step {
+  break-inside: avoid;
+}

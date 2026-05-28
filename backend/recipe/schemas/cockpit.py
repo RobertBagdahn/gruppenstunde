@@ -11,8 +11,10 @@ class HealthRuleOut(Schema):
     description: str
     parameter: str
     scope: str
-    threshold_green: float
-    threshold_yellow: float
+    min_green: float | None
+    min_yellow: float | None
+    max_green: float | None
+    max_yellow: float | None
     unit: str
     tip_text: str
     is_active: bool

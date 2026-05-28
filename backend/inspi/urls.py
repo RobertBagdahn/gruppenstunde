@@ -9,6 +9,7 @@ from content.admin_api import router as admin_router
 from content.api import router as content_router
 from recipe.api import router as recipe_router, folder_router as recipe_folder_router
 from recipe.api.cockpit import cockpit_router, health_rule_router
+from recipe.api.hints import router as recipe_hint_router
 from planner.api import router as planner_router
 from planner.meal_plan_api import meal_plan_router
 from profiles.api import group_router, profile_router
@@ -60,6 +61,7 @@ api.add_router("/retail-sections/", retail_section_router)
 api.add_router("/unit-conversions/", unit_conversion_router)
 api.add_router("/recipes/", recipe_router)
 api.add_router("/recipe-folders/", recipe_folder_router)
+api.add_router("/recipe-hints/", recipe_hint_router)
 api.add_router("/health-rules/", health_rule_router)
 api.add_router("/", cockpit_router)
 # Content-type routers

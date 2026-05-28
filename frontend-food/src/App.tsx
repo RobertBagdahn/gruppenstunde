@@ -1,0 +1,73 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import FoodLayout from './components/layout/FoodLayout';
+
+// Recipe pages
+import RecipeListPage from './pages/recipes/RecipeListPage';
+import MyRecipesPage from './pages/recipes/MyRecipesPage';
+import CreateRecipePage from './pages/recipes/CreateRecipePage';
+import EditRecipePage from './pages/recipes/EditRecipePage';
+import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
+import RecipeImportPage from './pages/recipes/RecipeImportPage';
+
+// Ingredient pages
+import IngredientListPage from './pages/ingredients/IngredientListPage';
+import IngredientCreatePage from './pages/ingredients/IngredientCreatePage';
+import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
+
+// Meal plan pages
+import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
+import MealPlanListPage from './pages/planning/MealEventListPage';
+import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
+
+// Shopping list pages
+import ShoppingListPage from './pages/shopping/ShoppingListPage';
+import ShoppingListDetailPage from './pages/shopping/ShoppingListDetailPage';
+
+// Tools
+import NormPortionSimulatorPage from './pages/tools/NormPortionSimulatorPage';
+
+// Auth
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Auth routes (no layout) */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* Main layout routes */}
+      <Route element={<FoodLayout />}>
+        {/* Home redirects to recipes */}
+        <Route path="/" element={<Navigate to="/recipes" replace />} />
+
+        {/* Recipes */}
+        <Route path="/recipes" element={<RecipeListPage />} />
+        <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
+        <Route path="/recipes/import" element={<RecipeImportPage />} />
+        <Route path="/recipes/new" element={<CreateRecipePage />} />
+        <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
+        <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
+
+        {/* Ingredients */}
+        <Route path="/ingredients" element={<IngredientListPage />} />
+        <Route path="/ingredients/new" element={<IngredientCreatePage />} />
+        <Route path="/ingredients/:slug" element={<IngredientDetailPage />} />
+
+        {/* Meal Plans */}
+        <Route path="/meal-plans" element={<MealPlanLandingPage />} />
+        <Route path="/meal-plans/app" element={<MealPlanListPage />} />
+        <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
+        <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />
+
+        {/* Shopping Lists */}
+        <Route path="/shopping-lists" element={<ShoppingListPage />} />
+        <Route path="/shopping-lists/:id" element={<ShoppingListDetailPage />} />
+
+        {/* Tools */}
+        <Route path="/tools/norm-portion-simulator" element={<NormPortionSimulatorPage />} />
+      </Route>
+    </Routes>
+  );
+}

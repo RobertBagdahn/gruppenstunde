@@ -1042,6 +1042,7 @@ def get_ai_suggestions(
     existing_items: list[str],
     category_context: str | None = None,
     count: int = 5,
+    user=None,
 ) -> list[dict]:
     """
     Use Vertex AI Gemini to suggest additional packing list items based on context.
@@ -1057,11 +1058,12 @@ def get_ai_suggestions(
         List of dicts with name, quantity, description, category fields.
     """
     try:
-        from google import genai
         from google.genai import types
         from pydantic import BaseModel
     except ImportError:
         raise PackingListAISuggestionError("google-genai package not installed")
+
+    from core.services.gemini import gemini_call
 
     class SuggestedItem(BaseModel):
         name: str
@@ -1098,13 +1100,8 @@ Denke an Dinge, die oft vergessen werden oder besonders nützlich sind.
 Antworte nur auf Deutsch."""
 
     try:
-        client = genai.Client(
-            vertexai=True,
-            project=settings.GOOGLE_CLOUD_PROJECT,
-            location=getattr(settings, "VERTEX_AI_LOCATION", "europe-west3"),
-        )
-
-        response = client.models.generate_content(
+        response = gemini_call(
+            user=user,
             model="gemini-3.1-flash-lite-preview",
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -1112,7 +1109,10 @@ Antworte nur auf Deutsch."""
                 response_schema=SuggestionResponse,
                 http_options=types.HttpOptions(timeout=30_000),
             ),
+            context="packing_list_suggestions",
         )
+        if response is None:
+            raise PackingListAISuggestionError("AI client not available")
 
         result = SuggestionResponse.model_validate_json(response.text)
         return [item.model_dump() for item in result.items]

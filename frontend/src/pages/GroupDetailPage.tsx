@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useGroupDetail } from '@/api/profile';
 import { useCurrentUser } from '@/api/auth';
+import { BackButton } from '@/components/shared/BackButton';
 
 export default function GroupDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -27,12 +28,9 @@ export default function GroupDetailPage() {
             error
           </span>
           <p className="text-muted-foreground">Gruppe nicht gefunden.</p>
-          <Link
-            to="/profile/groups"
-            className="inline-flex items-center gap-2 mt-4 px-4 py-2 gradient-primary text-white rounded-xl text-sm font-medium hover:shadow-glow transition-all"
-          >
-            Zurück zur Übersicht
-          </Link>
+          <div className="mt-4">
+            <BackButton to="/groups" />
+          </div>
         </div>
       </div>
     );

@@ -6,6 +6,9 @@ from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
+    AiIngredientApplyIn,
+    AiIngredientSuggestionOut,
+    EstimateQuantitiesOut,
     RecipeItemCreateIn,
     RecipeItemOut,
     RecipeItemUpdateIn,
@@ -94,3 +97,100 @@ def delete_recipe_item(request, recipe_id: int, item_id: int):
     item = get_object_or_404(RecipeItem, id=item_id, recipe=recipe)
     item.delete()
     return {"success": True}
+
+
+@router.post(
+    "/{recipe_id}/ai-suggest-ingredients/",
+    response=list[AiIngredientSuggestionOut],
+)
+def ai_suggest_ingredients(request, recipe_id: int):
+    """Use AI to suggest ingredients for a recipe."""
+    _require_auth(request)
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    from recipe.services.ai_ingredients_service import RecipeAiIngredientsService
+
+    service = RecipeAiIngredientsService()
+    results = service.get_full_suggestions(recipe, user=request.user)
+
+    if results is None:
+        raise HttpError(503, "KI-Vorschläge konnten nicht generiert werden")
+
+    return [
+        {
+            "ingredient_id": r.ingredient_id,
+            "ingredient_name": r.ingredient_name,
+            "portion_id": r.portion_id,
+            "portion_name": r.portion_name,
+            "quantity": r.quantity,
+            "measuring_unit_id": r.measuring_unit_id,
+            "measuring_unit_name": r.measuring_unit_name,
+            "is_new_ingredient": r.is_new_ingredient,
+        }
+        for r in results
+    ]
+
+
+@router.post("/{recipe_id}/ai-apply-ingredients/", response=list[RecipeItemOut])
+def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientApplyIn]):
+    """Apply AI-suggested ingredients as RecipeItems."""
+    _require_auth(request)
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    # Get current max sort_order
+    last_sort = (
+        RecipeItem.objects.filter(recipe=recipe)
+        .order_by("-sort_order")
+        .values_list("sort_order", flat=True)
+        .first()
+    ) or 0
+
+    created_items = []
+    for i, item_in in enumerate(payload):
+        item = RecipeItem.objects.create(
+            recipe=recipe,
+            ingredient_id=item_in.ingredient_id,
+            portion_id=item_in.portion_id,
+            quantity=item_in.quantity,
+            measuring_unit_id=item_in.measuring_unit_id,
+            sort_order=last_sort + i + 1,
+            quantity_type="per_person",
+        )
+        created_items.append(item)
+
+    # Recalculate nutritional cache
+    from recipe.services.recipe_checks import recalculate_recipe_cache
+
+    recalculate_recipe_cache(recipe)
+
+    return RecipeItem.objects.filter(
+        id__in=[item.id for item in created_items]
+    ).select_related(
+        "portion", "portion__ingredient", "portion__measuring_unit",
+        "ingredient", "measuring_unit",
+    )
+
+
+@router.post("/{recipe_id}/estimate-quantities/", response=EstimateQuantitiesOut)
+def estimate_quantities(request, recipe_id: int):
+    """AI-estimate realistic quantities for existing recipe items."""
+    _require_auth(request)
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    from recipe.services.ai_ingredients_service import RecipeQuantityEstimationService
+
+    service = RecipeQuantityEstimationService()
+    result = service.estimate_quantities(recipe, user=request.user)
+
+    if result is None:
+        raise HttpError(500, "AI-Schätzung fehlgeschlagen")
+
+    return {"items": result}

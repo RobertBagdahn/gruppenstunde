@@ -223,6 +223,7 @@ export const IngredientDetailSchema = z.object({
 
   // References
   fdc_id: z.number().nullable(),
+  nan_art_id_rewe: z.number().nullable(),
   ean: z.string(),
 
   // Relations
@@ -258,9 +259,9 @@ export const RecipeHintSchema = z.object({
   name: z.string(),
   description: z.string(),
   improvement_text: z.string().default(''),
+  hint: z.string(),
   parameter: z.string(),
-  min_value: z.number().nullable(),
-  max_value: z.number().nullable(),
+  value: z.number(),
   min_max: z.string(),
   hint_level: z.string(),
   recipe_type: z.string(),
@@ -364,3 +365,43 @@ export const UnitConversionResultSchema = z.object({
   is_ingredient_specific: z.boolean(),
 });
 export type UnitConversionResult = z.infer<typeof UnitConversionResultSchema>;
+
+// ---------------------------------------------------------------------------
+// AI Suggest schemas
+// ---------------------------------------------------------------------------
+
+export const PortionSuggestionSchema = z.object({
+  name: z.string(),
+  weight_g: z.number(),
+});
+export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
+
+export const IngredientSuggestAllSchema = z.object({
+  energy_kj: z.number().nullable(),
+  protein_g: z.number().nullable(),
+  fat_g: z.number().nullable(),
+  fat_sat_g: z.number().nullable(),
+  carbohydrate_g: z.number().nullable(),
+  sugar_g: z.number().nullable(),
+  fibre_g: z.number().nullable(),
+  salt_g: z.number().nullable(),
+  sodium_mg: z.number().nullable(),
+  fructose_g: z.number().nullable(),
+  lactose_g: z.number().nullable(),
+
+  nutri_score: z.string().nullable(),
+  nova_score: z.number().nullable(),
+  child_score: z.number().nullable(),
+  scout_score: z.number().nullable(),
+  environmental_score: z.number().nullable(),
+  fruit_factor: z.number().nullable(),
+
+  physical_density: z.number().nullable(),
+  physical_viscosity: z.string().nullable(),
+  durability_in_days: z.number().nullable(),
+  max_storage_temperature: z.number().nullable(),
+
+  portions: z.array(PortionSuggestionSchema).default([]),
+  aliases: z.array(z.string()).default([]),
+});
+export type IngredientSuggestAll = z.infer<typeof IngredientSuggestAllSchema>;

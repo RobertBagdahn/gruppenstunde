@@ -113,34 +113,8 @@ class DgeReference(models.Model):
     fat_sat_g_max = models.FloatField(null=True, blank=True, verbose_name=_("Gesättigte Fettsäuren max (g)"))
     sodium_mg_max = models.FloatField(null=True, blank=True, verbose_name=_("Natrium max (mg)"))
 
-    # Vitamins per day
-    vitamin_a_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin A (mg)"))
-    vitamin_b1_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B1 (mg)"))
-    vitamin_b2_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B2 (mg)"))
-    vitamin_b6_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B6 (mg)"))
-    vitamin_b12_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B12 (µg)"))
+    # Vitamins per day (only vitamin C retained)
     vitamin_c_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin C (mg)"))
-    vitamin_d_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin D (µg)"))
-    vitamin_e_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin E (mg)"))
-    vitamin_k_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin K (µg)"))
-    niacin_mg = models.FloatField(null=True, blank=True, verbose_name=_("Niacin (mg)"))
-    folate_ug = models.FloatField(null=True, blank=True, verbose_name=_("Folat (µg)"))
-    pantothenic_acid_mg = models.FloatField(null=True, blank=True, verbose_name=_("Pantothensäure (mg)"))
-    biotin_ug = models.FloatField(null=True, blank=True, verbose_name=_("Biotin (µg)"))
-
-    # Minerals per day
-    calcium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Calcium (mg)"))
-    iron_mg = models.FloatField(null=True, blank=True, verbose_name=_("Eisen (mg)"))
-    magnesium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Magnesium (mg)"))
-    zinc_mg = models.FloatField(null=True, blank=True, verbose_name=_("Zink (mg)"))
-    potassium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Kalium (mg)"))
-    phosphorus_mg = models.FloatField(null=True, blank=True, verbose_name=_("Phosphor (mg)"))
-    iodine_ug = models.FloatField(null=True, blank=True, verbose_name=_("Jod (µg)"))
-    selenium_ug = models.FloatField(null=True, blank=True, verbose_name=_("Selen (µg)"))
-    copper_mg = models.FloatField(null=True, blank=True, verbose_name=_("Kupfer (mg)"))
-    manganese_mg = models.FloatField(null=True, blank=True, verbose_name=_("Mangan (mg)"))
-    chromium_ug = models.FloatField(null=True, blank=True, verbose_name=_("Chrom (µg)"))
-    fluoride_mg = models.FloatField(null=True, blank=True, verbose_name=_("Fluorid (mg)"))
 
     class Meta:
         verbose_name = _("DGE-Referenzwert")

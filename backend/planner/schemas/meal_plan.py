@@ -199,6 +199,14 @@ class NutritionSummaryOut(Schema):
     scaling_factor: float = 1.0
 
 
+class ShoppingItemSourceOut(Schema):
+    recipe_id: int
+    recipe_name: str = ""
+    recipe_slug: str = ""
+    meal_label: str = ""
+    quantity_g: float = 0.0
+
+
 class ShoppingListItemOut(Schema):
     ingredient_id: int | None = None
     ingredient_name: str
@@ -208,4 +216,6 @@ class ShoppingListItemOut(Schema):
     retail_section: str = ""
     estimated_price_eur: float | None = None
     display_quantity: str = ""
+    display_text: str = ""
     natural_portions: str = ""
+    sources: list[ShoppingItemSourceOut] = []

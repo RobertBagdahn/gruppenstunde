@@ -1,6 +1,6 @@
 """Schemas for recipe URL import."""
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 
 class RecipeImportRequestIn(BaseModel):
@@ -23,3 +23,40 @@ class RecipeImportPreviewOut(BaseModel):
     source_url: str = ""
     prep_time_minutes: int | None = None
     cook_time_minutes: int | None = None
+
+
+# --- New schemas for Gemini-enhanced import ---
+
+
+class RecipeItemDraftOut(BaseModel):
+    ingredient_id: int
+    ingredient_name: str
+    quantity: float
+    measuring_unit_id: int | None = None
+    measuring_unit_name: str = ""
+    note: str = ""
+    is_new_ingredient: bool = False
+
+
+class CreatedIngredientInfoOut(BaseModel):
+    id: int
+    name: str
+    aliases: list[str] = []
+    nutri_class: int | None = None
+
+
+class RecipeDraftOut(BaseModel):
+    title: str
+    description: str = ""
+    servings: int = 4
+    preparation_time: int | None = None
+    execution_time: int | None = None
+    recipe_type: str = ""
+    steps: list[str] = []
+    source_url: str = ""
+
+
+class RecipeImportUrlResponseOut(BaseModel):
+    recipe_draft: RecipeDraftOut
+    recipe_items: list[RecipeItemDraftOut] = []
+    created_ingredients: list[CreatedIngredientInfoOut] = []

@@ -12,7 +12,10 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
+from django.contrib.auth.models import AbstractBaseUser
 from pydantic import BaseModel, Field
+
+from core.services.gemini import gemini_call
 
 if TYPE_CHECKING:
     from supply.models import Ingredient
@@ -107,35 +110,13 @@ _STEP_SCHEMAS: dict[str, type[BaseModel]] = {
 class IngredientAIService:
     """Service for AI-powered ingredient auto-completion."""
 
-    def __init__(self):
-        self._client = None
-
-    def _get_client(self):
-        if self._client is None:
-            try:
-                from google import genai
-
-                project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-                location = getattr(settings, "VERTEX_AI_LOCATION", "europe-west3")
-
-                if project:
-                    self._client = genai.Client(
-                        vertexai=True,
-                        project=project,
-                        location=location,
-                    )
-                else:
-                    logger.warning("GOOGLE_CLOUD_PROJECT not set – ingredient AI disabled")
-            except ImportError:
-                logger.warning("google-genai not installed – ingredient AI disabled")
-        return self._client
-
-    def get_suggestions(self, step: str, ingredient: "Ingredient") -> dict[str, Any]:
+    def get_suggestions(self, step: str, ingredient: "Ingredient", user: AbstractBaseUser | None = None) -> dict[str, Any]:
         """Get AI suggestions for a specific step.
 
         Args:
             step: One of 'basic', 'physical', 'tags', 'scores', 'recipe-info', 'nutrition'
             ingredient: The Ingredient instance to suggest data for
+            user: The authenticated user
 
         Returns:
             Dict with suggested field values
@@ -149,22 +130,22 @@ class IngredientAIService:
         schema = _STEP_SCHEMAS[step]
         prompt = self._build_prompt(step, ingredient)
 
-        client = self._get_client()
-        if not client:
-            logger.warning("AI client not available – returning empty suggestions")
-            return {}
-
         try:
             from google.genai import types
 
-            response = client.models.generate_content(
+            response = gemini_call(
+                user=user,
                 model=GEMINI_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=schema,
                 ),
+                context=f"ingredient_ai_{step}",
             )
+            if response is None:
+                logger.warning("AI client not available – returning empty suggestions")
+                return {}
             result = schema.model_validate_json(response.text)
             logger.info("Ingredient AI step=%s result: %s", step, result.model_dump())
             return result.model_dump()

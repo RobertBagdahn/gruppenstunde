@@ -27,6 +27,7 @@ function makeModifiableItem(overrides: Partial<ModifiableItem> = {}): Modifiable
     fibre_g: 3,
     salt_g: 0.01,
     weight_pct: 100,
+    contributions: [],
     ...overrides,
   };
 }

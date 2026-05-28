@@ -23,21 +23,22 @@ class RecipeHint(models.Model):
         verbose_name=_("Verbesserungsvorschlag"),
         help_text=_("Konkreter, umsetzbarer Verbesserungsvorschlag auf Deutsch"),
     )
+    hint = models.CharField(
+        max_length=255,
+        default="",
+        verbose_name=_("Hinweis-Text"),
+        help_text=_("Kurzer Text der dem User angezeigt wird, z.B. 'viel mehr Gewicht'"),
+    )
     parameter = models.CharField(
         max_length=20,
         choices=HintParameterChoices.choices,
         verbose_name=_("Parameter"),
         help_text=_("Nährwertfeld das geprüft wird"),
     )
-    min_value = models.FloatField(
-        null=True,
-        blank=True,
-        verbose_name=_("Mindestwert"),
-    )
-    max_value = models.FloatField(
-        null=True,
-        blank=True,
-        verbose_name=_("Höchstwert"),
+    value = models.FloatField(
+        default=0,
+        verbose_name=_("Schwellenwert"),
+        help_text=_("Grenzwert für die Regel"),
     )
     min_max = models.CharField(
         max_length=10,
@@ -54,18 +55,14 @@ class RecipeHint(models.Model):
     recipe_type = models.CharField(
         max_length=20,
         choices=RecipeTypeChoices.choices,
-        blank=True,
         default="",
         verbose_name=_("Rezepttyp"),
-        help_text=_("Optional: Gilt nur für diesen Rezepttyp"),
     )
     recipe_objective = models.CharField(
         max_length=20,
         choices=RecipeObjectiveChoices.choices,
-        blank=True,
         default="",
         verbose_name=_("Bewertungsdimension"),
-        help_text=_("Gesundheit, Geschmack, Kosten oder Sättigung"),
     )
 
     class Meta:

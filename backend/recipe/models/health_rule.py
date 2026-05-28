@@ -1,4 +1,15 @@
-"""HealthRule model — configurable traffic-light thresholds for cockpit dashboard."""
+"""HealthRule model — configurable traffic-light thresholds for cockpit dashboard.
+
+Evaluation uses a range-based model with four optional thresholds:
+
+         rot    gelb       grün       gelb    rot
+    ──────┼──────┼──────────────┼──────┼──────
+      min_yellow min_green  max_green max_yellow
+
+- Only max thresholds set → upper limit (too much is bad)
+- Only min thresholds set → lower limit (too little is bad)
+- Both set → value must be in range (e.g. energy)
+"""
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -17,6 +28,9 @@ class HealthRule(models.Model):
 
     Each rule defines green/yellow/red thresholds for a nutritional parameter
     at a specific scope (meal_event, day, meal, recipe, ingredient).
+
+    Uses a range model: min_green/min_yellow for lower bound,
+    max_green/max_yellow for upper bound. All nullable — set only what applies.
     """
 
     name = models.CharField(
@@ -40,13 +54,29 @@ class HealthRule(models.Model):
         verbose_name=_("Geltungsbereich"),
         help_text=_("Auf welcher Ebene wird die Regel ausgewertet"),
     )
-    threshold_green = models.FloatField(
-        verbose_name=_("Schwellenwert Grün"),
-        help_text=_("Bis zu diesem Wert ist der Status grün"),
+    min_green = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Min Grün"),
+        help_text=_("Untergrenze für grünen Status (Wert muss >= sein)"),
     )
-    threshold_yellow = models.FloatField(
-        verbose_name=_("Schwellenwert Gelb"),
-        help_text=_("Bis zu diesem Wert ist der Status gelb, darüber rot"),
+    min_yellow = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Min Gelb"),
+        help_text=_("Untergrenze für gelben Status (darunter = rot)"),
+    )
+    max_green = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Max Grün"),
+        help_text=_("Obergrenze für grünen Status (Wert muss <= sein)"),
+    )
+    max_yellow = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Max Gelb"),
+        help_text=_("Obergrenze für gelben Status (darüber = rot)"),
     )
     unit = models.CharField(
         max_length=20,
@@ -79,9 +109,23 @@ class HealthRule(models.Model):
         return f"{self.name} ({self.scope}/{self.parameter})"
 
     def evaluate(self, value: float) -> str:
-        """Evaluate a value against thresholds. Returns 'green', 'yellow', or 'red'."""
-        if value <= self.threshold_green:
-            return "green"
-        if value <= self.threshold_yellow:
+        """Evaluate a value against thresholds. Returns 'green', 'yellow', or 'red'.
+
+        Logic:
+        - Check lower bound first (min): value too low → yellow/red
+        - Check upper bound (max): value too high → yellow/red
+        - Otherwise → green
+        """
+        # Check lower bound
+        if self.min_yellow is not None and value < self.min_yellow:
+            return "red"
+        if self.min_green is not None and value < self.min_green:
             return "yellow"
-        return "red"
+
+        # Check upper bound
+        if self.max_yellow is not None and value > self.max_yellow:
+            return "red"
+        if self.max_green is not None and value > self.max_green:
+            return "yellow"
+
+        return "green"

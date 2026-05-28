@@ -10,7 +10,7 @@ class RecipeItemOut(Schema):
     portion_id: int | None = None
     portion_name: str | None = None
     ingredient_id: int | None = None
-    ingredient_name: str | None = None
+    ingredient_name: str = ""
     ingredient_slug: str | None = None
     quantity: float
     measuring_unit_id: int | None = None
@@ -29,12 +29,16 @@ class RecipeItemOut(Schema):
         return None
 
     @staticmethod
-    def resolve_ingredient_name(obj) -> str | None:
+    def resolve_ingredient_name(obj) -> str:
         if obj.ingredient:
             return obj.ingredient.name
         if obj.portion and obj.portion.ingredient:
             return obj.portion.ingredient.name
-        return None
+        if obj.portion and obj.portion.name:
+            return obj.portion.name
+        if obj.note:
+            return obj.note
+        return "Zutat"
 
     @staticmethod
     def resolve_ingredient_id(obj) -> int | None:
@@ -129,3 +133,51 @@ class RecipeItemUpdateIn(Schema):
     sort_order: int | None = None
     note: str | None = None
     quantity_type: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# AI Ingredient Suggestion schemas
+# ---------------------------------------------------------------------------
+
+
+class AiIngredientSuggestionOut(Schema):
+    """Single AI-suggested ingredient with portion and quantity."""
+
+    ingredient_id: int
+    ingredient_name: str
+    portion_id: int | None = None
+    portion_name: str | None = None
+    quantity: float
+    measuring_unit_id: int | None = None
+    measuring_unit_name: str | None = None
+    is_new_ingredient: bool = False
+
+
+class AiIngredientApplyIn(Schema):
+    """Input for applying a single AI suggestion."""
+
+    ingredient_id: int
+    portion_id: int | None = None
+    quantity: float = 1.0
+    measuring_unit_id: int | None = None
+
+
+# ---------------------------------------------------------------------------
+# AI Quantity Estimation schemas (inline edit)
+# ---------------------------------------------------------------------------
+
+
+class EstimateQuantityItemOut(Schema):
+    """Single item in the quantity estimation response."""
+
+    item_id: int
+    ingredient_name: str
+    quantity_per_person: float
+    quantity_total: float
+    unit: str
+
+
+class EstimateQuantitiesOut(Schema):
+    """Response for AI-based quantity estimation of existing recipe items."""
+
+    items: list[EstimateQuantityItemOut]

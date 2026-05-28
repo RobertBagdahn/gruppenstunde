@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { useAdminUserDetail } from '@/api/admin';
+import { BackButton } from '@/components/shared/BackButton';
 
 /** Map content_type to content URL prefix */
 function contentUrlForSlug(slug: string, contentType?: string): string {
@@ -33,9 +33,9 @@ export default function AdminUserDetailPage() {
   if (error || !user) {
     return (
       <div className="container py-8 max-w-4xl">
-        <Link to="/admin/users" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
-          <ArrowLeft className="w-4 h-4" /> Zurück zur Benutzerliste
-        </Link>
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton to="/admin/users" />
+        </div>
         <p className="text-destructive">Benutzer nicht gefunden.</p>
       </div>
     );
@@ -45,11 +45,10 @@ export default function AdminUserDetailPage() {
 
   return (
     <div className="container py-8 max-w-4xl">
-      <Link to="/admin/users" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
-        <ArrowLeft className="w-4 h-4" /> Zurück zur Benutzerliste
-      </Link>
-
-      <h1 className="text-2xl font-bold mb-1">{displayName}</h1>
+      <div className="flex items-center gap-3 mb-4">
+        <BackButton to="/admin/users" />
+        <h1 className="text-2xl font-bold border-l pl-3">{displayName}</h1>
+      </div>
       <p className="text-muted-foreground mb-6">{user.email}</p>
 
       {/* User Info */}

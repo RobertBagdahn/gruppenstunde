@@ -52,29 +52,4 @@ class DgeReferenceOut(Schema):
     fat_sat_g_max: float | None
     sodium_mg_max: float | None
     # Vitamins
-    vitamin_a_mg: float | None
-    vitamin_b1_mg: float | None
-    vitamin_b2_mg: float | None
-    vitamin_b6_mg: float | None
-    vitamin_b12_ug: float | None
     vitamin_c_mg: float | None
-    vitamin_d_ug: float | None
-    vitamin_e_mg: float | None
-    vitamin_k_ug: float | None
-    niacin_mg: float | None
-    folate_ug: float | None
-    pantothenic_acid_mg: float | None
-    biotin_ug: float | None
-    # Minerals
-    calcium_mg: float | None
-    iron_mg: float | None
-    magnesium_mg: float | None
-    zinc_mg: float | None
-    potassium_mg: float | None
-    phosphorus_mg: float | None
-    iodine_ug: float | None
-    selenium_ug: float | None
-    copper_mg: float | None
-    manganese_mg: float | None
-    chromium_ug: float | None
-    fluoride_mg: float | None

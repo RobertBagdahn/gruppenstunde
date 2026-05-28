@@ -38,7 +38,7 @@ def ai_improve_text(request, payload: AiImproveTextIn):
 
     service = ContentAIService()
     try:
-        result = service.improve_text(payload.text, payload.context)
+        result = service.improve_text(payload.text, payload.context, user=request.user)
     except AiRateLimitError as exc:
         logger.warning("AI improve-text rate limited: %s", exc)
         return HttpResponse(
@@ -68,7 +68,7 @@ def ai_suggest_tags(request, payload: AiSuggestTagsIn):
 
     text = f"{payload.title}\n{payload.description}".strip()
     service = ContentAIService()
-    return service.suggest_tags(text)
+    return service.suggest_tags(text, user=request.user)
 
 
 @router.post(
@@ -91,7 +91,7 @@ def ai_refurbish(request, payload: AiRefurbishIn):
 
     service = ContentAIService()
     try:
-        result = service.refurbish(payload.raw_text, content_type=payload.content_type)
+        result = service.refurbish(payload.raw_text, content_type=payload.content_type, user=request.user)
     except AiTimeoutError as exc:
         logger.warning("AI refurbish timeout: %s", exc)
         return HttpResponse(
@@ -126,6 +126,26 @@ def ai_refurbish(request, payload: AiRefurbishIn):
             content_type="application/json",
         )
 
+    # For recipes, also extract ingredient suggestions using existing supply service
+    if payload.content_type == "recipe":
+        try:
+            from content.services.ai_supply_service import (
+                match_ingredients_to_database,
+                suggest_recipe_supplies,
+            )
+
+            raw = suggest_recipe_supplies(
+                title=result.get("title", ""),
+                description=result.get("description", ""),
+                user=request.user,
+            )
+            result["suggested_ingredients"] = match_ingredients_to_database(raw.get("ingredients", []))
+        except Exception:
+            logger.warning("AI ingredient suggestion failed during refurbish, continuing without ingredients")
+            result["suggested_ingredients"] = []
+    else:
+        result["suggested_ingredients"] = []
+
     return result
 
 
@@ -154,6 +174,7 @@ def ai_generate_image(request, payload: AiGenerateImageIn):
             title=payload.title,
             summary=payload.summary,
             content_type=payload.content_type,
+            user=request.user,
         )
     except AiTimeoutError as exc:
         logger.warning("AI image generation timeout: %s", exc)
@@ -211,7 +232,7 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
     try:
         if payload.content_type == "recipe":
             # Recipes get both ingredients and kitchen equipment
-            raw = suggest_recipe_supplies(title=payload.title, description=payload.description)
+            raw = suggest_recipe_supplies(title=payload.title, description=payload.description, user=request.user)
             ingredients = match_ingredients_to_database(raw.get("ingredients", []))
             kitchen_equipment = match_materials_to_database(raw.get("kitchen_equipment", []))
             return {
@@ -225,6 +246,7 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
                 title=payload.title,
                 description=payload.description,
                 content_type=payload.content_type,
+                user=request.user,
             )
             materials = match_materials_to_database(raw_materials)
             return {

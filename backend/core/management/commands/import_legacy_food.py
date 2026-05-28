@@ -342,7 +342,7 @@ class Command(BaseCommand):
 
         # RecipeHints
         self.stdout.write("  RecipeHints...")
-        hint_level_map = {"warn": "warning", "error": "error"}
+        hint_level_map = {"warn": "warn", "error": "error"}
         for entry in grouped.get("food.recipehint", []):
             fields = entry["fields"]
             name = fields.get("hint", "")[:255]
@@ -357,14 +357,14 @@ class Command(BaseCommand):
 
             defaults: dict[str, Any] = {
                 "description": fields.get("improvement", ""),
+                "hint": name,
                 "parameter": parameter,
                 "hint_level": hint_level,
                 "min_max": min_max,
+                "value": value or 0,
+                "recipe_type": "",
+                "recipe_objective": "",
             }
-            if min_max == "max":
-                defaults["max_value"] = value
-            elif min_max == "min":
-                defaults["min_value"] = value
 
             _, created = RecipeHint.objects.get_or_create(
                 name=name,

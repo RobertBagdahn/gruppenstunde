@@ -1,0 +1,252 @@
+"""KI-Gesamtvorschläge für Zutaten via Gemini mit Google Search Grounding.
+
+Provides:
+- suggest_all_fields(): All fields in one call for existing ingredients
+- ai_create_ingredient(): Create a complete ingredient from just a name
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
+from django.contrib.auth.models import AbstractBaseUser
+from django.utils.text import slugify
+from pydantic import BaseModel, Field
+
+from core.services.gemini import gemini_call
+
+if TYPE_CHECKING:
+    from supply.models import Ingredient
+
+logger = logging.getLogger(__name__)
+
+GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
+
+
+# ---------------------------------------------------------------------------
+# Pydantic schemas for structured output
+# ---------------------------------------------------------------------------
+
+
+class PortionSuggestion(BaseModel):
+    """A suggested portion for an ingredient."""
+
+    name: str = Field(description="Name der Portion, z.B. '1 Esslöffel', '1 Tasse', '1 Scheibe'")
+    weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
+
+
+class IngredientSuggestAllSchema(BaseModel):
+    """Complete suggestion schema for all ingredient fields."""
+
+    # Nährwerte pro 100g
+    energy_kj: float | None = Field(None, description="Energie in kJ pro 100g")
+    protein_g: float | None = Field(None, description="Eiweiß in g pro 100g")
+    fat_g: float | None = Field(None, description="Fett in g pro 100g")
+    fat_sat_g: float | None = Field(None, description="Gesättigte Fettsäuren in g pro 100g")
+    carbohydrate_g: float | None = Field(None, description="Kohlenhydrate in g pro 100g")
+    sugar_g: float | None = Field(None, description="Zucker in g pro 100g")
+    fibre_g: float | None = Field(None, description="Ballaststoffe in g pro 100g")
+    salt_g: float | None = Field(None, description="Salz in g pro 100g")
+    sodium_mg: float | None = Field(None, description="Natrium in mg pro 100g")
+    fructose_g: float | None = Field(None, description="Fructose in g pro 100g")
+    lactose_g: float | None = Field(None, description="Laktose in g pro 100g")
+
+    # Bewertungen
+    nutri_score: str | None = Field(None, description="Nutri-Score Klasse (A, B, C, D oder E)")
+    nova_score: int | None = Field(None, description="NOVA-Verarbeitungsgrad (1-4)")
+    child_score: int | None = Field(None, description="Kinderfreundlichkeit (1-10)")
+    scout_score: int | None = Field(None, description="Pfadfindereignung (1-10)")
+    environmental_score: int | None = Field(None, description="Umweltfreundlichkeit (1-10)")
+    fruit_factor: float | None = Field(None, description="Obst-/Gemüse-Anteil (0.0-1.0)")
+
+    # Physikalische Eigenschaften
+    physical_density: float | None = Field(None, description="Dichte in g/ml")
+    physical_viscosity: str | None = Field(None, description="Aggregatzustand: 'solid', 'beverage', oder 'powder'")
+    durability_in_days: int | None = Field(None, description="Haltbarkeit in Tagen")
+    max_storage_temperature: int | None = Field(None, description="Maximale Lagertemperatur in °C")
+
+    # Portionen
+    portions: list[PortionSuggestion] | None = Field(None, description="Typische Portionsgrößen")
+
+    # Aliase
+    aliases: list[str] | None = Field(None, description="Alternative Bezeichnungen für die Zutat")
+
+
+class IngredientAiCreateSchema(BaseModel):
+    """Schema for creating a complete ingredient from a name."""
+
+    name: str = Field(description="Standardisierter Name der Zutat")
+    description: str = Field(description="Kurzbeschreibung (1-2 Sätze)")
+
+    # Nährwerte pro 100g
+    energy_kj: float = Field(description="Energie in kJ pro 100g")
+    protein_g: float = Field(description="Eiweiß in g pro 100g")
+    fat_g: float = Field(description="Fett in g pro 100g")
+    fat_sat_g: float = Field(description="Gesättigte Fettsäuren in g pro 100g")
+    carbohydrate_g: float = Field(description="Kohlenhydrate in g pro 100g")
+    sugar_g: float = Field(description="Zucker in g pro 100g")
+    fibre_g: float = Field(description="Ballaststoffe in g pro 100g")
+    salt_g: float = Field(description="Salz in g pro 100g")
+    sodium_mg: float = Field(description="Natrium in mg pro 100g")
+    fructose_g: float = Field(default=0, description="Fructose in g pro 100g")
+    lactose_g: float = Field(default=0, description="Laktose in g pro 100g")
+
+    # Bewertungen
+    nova_score: int = Field(description="NOVA-Verarbeitungsgrad (1-4)")
+    child_score: int = Field(description="Kinderfreundlichkeit (1-10)")
+    scout_score: int = Field(description="Pfadfindereignung (1-10)")
+    environmental_score: int = Field(description="Umweltfreundlichkeit (1-10)")
+    fruit_factor: float = Field(description="Obst-/Gemüse-Anteil (0.0-1.0)")
+
+    # Physik
+    physical_density: float = Field(description="Dichte in g/ml")
+    physical_viscosity: str = Field(description="'solid', 'beverage', oder 'powder'")
+    durability_in_days: int = Field(description="Haltbarkeit in Tagen")
+    max_storage_temperature: int = Field(description="Maximale Lagertemperatur in °C")
+
+    # Portionen
+    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen")
+
+    # Aliase
+    aliases: list[str] = Field(default_factory=list, description="Alternative Bezeichnungen")
+
+
+# ---------------------------------------------------------------------------
+# Service functions
+# ---------------------------------------------------------------------------
+
+
+def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None = None) -> dict:
+    """Suggest all fields for an existing ingredient using Gemini + Search Grounding.
+
+    Returns a dict with suggested values (None for fields that couldn't be determined).
+    """
+    from google.genai import types
+
+    prompt = (
+        f"Recherchiere die vollständigen Nährwerte, Bewertungen und physikalischen Eigenschaften "
+        f"für das Lebensmittel '{ingredient.name}'. "
+        f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen.\n\n"
+        f"Gib außerdem typische Portionsgrößen (z.B. '1 Esslöffel', '1 Tasse', '1 Scheibe') "
+        f"mit dem jeweiligen Gewicht in Gramm an.\n\n"
+        f"Gib auch alternative Bezeichnungen/Aliase für die Zutat an.\n\n"
+        f"Wenn du einen Wert nicht sicher bestimmen kannst, setze ihn auf null."
+    )
+
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=IngredientSuggestAllSchema,
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+    )
+
+    response = gemini_call(
+        user=user,
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=config,
+        context="ingredient_suggest_all",
+    )
+
+    if response is None:
+        logger.warning("AI client not available – returning empty suggestions")
+        return {}
+
+    result = IngredientSuggestAllSchema.model_validate_json(response.text)
+    return result.model_dump()
+
+
+def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None) -> "Ingredient":
+    """Create a complete ingredient from just a name using Gemini + Search Grounding.
+
+    Creates the Ingredient in the database with Portions and Aliases.
+    Returns the created Ingredient instance.
+    """
+    from google.genai import types
+
+    from supply.models import Ingredient, IngredientAlias, Portion
+
+    prompt = (
+        f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
+        f"Gib vollständige Nährwerte pro 100g, Bewertungen, physikalische Eigenschaften, "
+        f"typische Portionsgrößen und alternative Bezeichnungen an. "
+        f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen."
+    )
+
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=IngredientAiCreateSchema,
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+    )
+
+    response = gemini_call(
+        user=user,
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=config,
+        context="ingredient_ai_create",
+    )
+
+    if response is None:
+        from ninja.errors import HttpError
+
+        raise HttpError(503, "KI nicht verfügbar")
+
+    data = IngredientAiCreateSchema.model_validate_json(response.text)
+
+    # Generate unique slug
+    base_slug = slugify(data.name)
+    slug = base_slug
+    counter = 1
+    while Ingredient.objects.filter(slug=slug).exists():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    # Create ingredient
+    ingredient = Ingredient.objects.create(
+        name=data.name,
+        slug=slug,
+        description=data.description,
+        status="user_content",
+        energy_kj=data.energy_kj,
+        protein_g=data.protein_g,
+        fat_g=data.fat_g,
+        fat_sat_g=data.fat_sat_g,
+        carbohydrate_g=data.carbohydrate_g,
+        sugar_g=data.sugar_g,
+        fibre_g=data.fibre_g,
+        salt_g=data.salt_g,
+        sodium_mg=data.sodium_mg,
+        fructose_g=data.fructose_g,
+        lactose_g=data.lactose_g,
+        nova_score=data.nova_score,
+        child_score=data.child_score,
+        scout_score=data.scout_score,
+        environmental_score=data.environmental_score,
+        fruit_factor=data.fruit_factor,
+        physical_density=data.physical_density,
+        physical_viscosity=data.physical_viscosity,
+        durability_in_days=data.durability_in_days,
+        max_storage_temperature=data.max_storage_temperature,
+        created_by=user if user and user.is_authenticated else None,
+    )
+
+    # Create portions
+    for i, portion in enumerate(data.portions):
+        Portion.objects.create(
+            ingredient=ingredient,
+            name=portion.name,
+            quantity=1.0,
+            weight_g=portion.weight_g,
+            rank=i + 1,
+        )
+
+    # Create aliases
+    for i, alias_name in enumerate(data.aliases):
+        IngredientAlias.objects.create(
+            ingredient=ingredient,
+            name=alias_name,
+            rank=i + 1,
+        )
+
+    return ingredient

@@ -13,6 +13,7 @@ from .models import (
     ShoppingList,
     ShoppingListCollaborator,
     ShoppingListItem,
+    ShoppingListItemSource,
     SourceType,
 )
 from .schemas import (
@@ -449,7 +450,7 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
         ing = ri.portion.ingredient
         weight_g = ri.quantity * (ri.portion.weight_g or 0) * servings
 
-        ShoppingListItem.objects.create(
+        item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             ingredient=ing,
             name=ing.name,
@@ -457,6 +458,16 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
             unit="g",
             retail_section=ing.retail_section,
             sort_order=sort_idx,
+        )
+
+        # Create single source for this recipe
+        ShoppingListItemSource.objects.create(
+            shopping_list_item=item,
+            recipe=recipe,
+            quantity_g=weight_g,
+            recipe_name=recipe.title,
+            recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
+            meal_label="",
         )
 
     # Attach can_edit for the response
@@ -486,6 +497,8 @@ def create_from_meal_plan(request, meal_plan_id: int):
 
     from supply.models.ingredient import Ingredient
     from supply.models.reference import RetailSection
+    from planner.models.meal_plan import Meal
+    from recipe.models import Recipe as RecipeModel
 
     for sort_idx, ti in enumerate(transient_items):
         # Try to resolve ingredient and its retail section
@@ -497,7 +510,7 @@ def create_from_meal_plan(request, meal_plan_id: int):
         except Ingredient.DoesNotExist:
             pass
 
-        ShoppingListItem.objects.create(
+        item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             ingredient=ingredient,
             name=ti.ingredient_name,
@@ -506,6 +519,19 @@ def create_from_meal_plan(request, meal_plan_id: int):
             retail_section=retail_section,
             sort_order=sort_idx,
         )
+
+        # Persist sources
+        if ti.sources:
+            for source in ti.sources:
+                recipe_obj = RecipeModel.objects.filter(id=source.recipe_id).first()
+                ShoppingListItemSource.objects.create(
+                    shopping_list_item=item,
+                    recipe=recipe_obj,
+                    quantity_g=source.quantity_g,
+                    recipe_name=source.recipe_name,
+                    recipe_slug=source.recipe_slug,
+                    meal_label=source.meal_label,
+                )
 
     # Attach can_edit for the response
     shopping_list._can_edit = True

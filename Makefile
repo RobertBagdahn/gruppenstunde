@@ -1,4 +1,4 @@
-.PHONY: help install dev backend frontend db migrate seed seed-fixtures seed-users seed-data reset test lint format typecheck pre-commit clean deploy build
+.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-backend push-frontend push-backend deploy-frontend deploy-backend
 
 # ============================================================
 # Inspi – Makefile for local development
@@ -12,7 +12,10 @@ PODMAN := podman compose
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
 GCP_REGION ?= europe-west3
 BACKEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/backend
-DB_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/db
+FRONTEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend
+VPC_CONNECTOR ?= inspi-connector
+CLOUD_SQL_INSTANCE ?= inspi-db
+DB_PASSWORD ?= changeme
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -21,13 +24,16 @@ help: ## Show this help
 # Setup
 # -----------------------------------------------
 
-install: install-backend install-frontend ## Install all dependencies
+install: install-backend install-frontend install-food ## Install all dependencies
 
 install-backend: ## Install backend dependencies with uv
 	cd backend && $(UV) sync
 
 install-frontend: ## Install frontend dependencies
 	cd frontend && npm install
+
+install-food: ## Install food frontend dependencies
+	cd frontend-food && npm install
 
 pre-commit-install: ## Install pre-commit hooks
 	$(UV) pip install pre-commit
@@ -53,15 +59,11 @@ makemigrations: ## Create new migrations
 createsuperuser: ## Create Django superuser
 	$(MANAGE) createsuperuser
 
-seed: ## Load seed data (users + dynamic data)
-	$(MANAGE) add_users
-	$(MANAGE) seed_all
-
 seed-users: ## Create seed users only
 	$(MANAGE) add_users
 
-seed-data: ## Seed dynamic test data only (sessions, recipes, events, etc.)
-	$(MANAGE) seed_all
+import-inspi: ## Import data from legacy Inspi project
+	$(MANAGE) import_inspi_data
 
 generate-embeddings: ## Generate missing embeddings for all content types using Gemini
 	$(MANAGE) generate_embeddings
@@ -69,12 +71,11 @@ generate-embeddings: ## Generate missing embeddings for all content types using 
 generate-embeddings-force: ## Regenerate ALL embeddings (even existing ones)
 	$(MANAGE) generate_embeddings --force
 
-init-db: ## Initialize database: migrate + seed (users + dynamic data)
+init-db: ## Initialize database: migrate + create users
 	$(MANAGE) migrate
 	$(MANAGE) add_users
-	$(MANAGE) seed_all
 	$(MANAGE) generate_embeddings
-	@echo "Database initialized with migrations, seed data, and users."
+	@echo "Database initialized with migrations and users."
 
 reset-db: ## Reset database completely (WARNING: destroys all data)
 	$(PODMAN) down -v
@@ -100,6 +101,12 @@ backend: ## Start Django dev server
 
 frontend: ## Start Vite dev server
 	cd frontend && npm run dev
+
+food: ## Start Food app with backend (port 5174 + 8000)
+	@trap 'kill 0' EXIT; \
+	$(MAKE) backend & \
+	cd frontend-food && npm run dev & \
+	wait
 
 # -----------------------------------------------
 # Code Quality
@@ -152,77 +159,66 @@ frontend-typecheck: ## TypeScript type check
 collectstatic: ## Collect Django static files
 	$(MANAGE) collectstatic --noinput
 
-artifact-repo: ## Create Artifact Registry repo (one-time)
+setup-infra: ## Create GCP infrastructure (one-time)
+	@echo "Creating Artifact Registry..."
 	gcloud artifacts repositories create inspi \
 		--repository-format=docker \
 		--location=$(GCP_REGION) \
 		--description="Inspi container images" || true
+	@echo "Creating VPC Connector..."
+	gcloud compute networks vpc-access connectors create $(VPC_CONNECTOR) \
+		--region=$(GCP_REGION) \
+		--range=10.8.0.0/28 || true
+	@echo "Creating Cloud SQL instance..."
+	gcloud sql instances create $(CLOUD_SQL_INSTANCE) \
+		--database-version=POSTGRES_15 \
+		--tier=db-f1-micro \
+		--region=$(GCP_REGION) \
+		--network=default \
+		--no-assign-ip || true
+	@echo "Creating database and user..."
+	gcloud sql databases create inspi --instance=$(CLOUD_SQL_INSTANCE) || true
+	gcloud sql users create inspi \
+		--instance=$(CLOUD_SQL_INSTANCE) \
+		--password=$(DB_PASSWORD) || true
+	@echo "Infrastructure setup complete."
 
 build-backend: ## Build backend container image
 	podman build -t $(BACKEND_IMAGE):latest -f Dockerfile.backend .
 
-build-db: ## Build DB container image with pgvector
-	podman build -t $(DB_IMAGE):latest -f Dockerfile.db .
+build-frontend: ## Build frontend container image
+	podman build -t $(FRONTEND_IMAGE):latest -f Dockerfile.frontend .
 
 push-backend: build-backend ## Push backend image to Artifact Registry
 	podman push $(BACKEND_IMAGE):latest
 
-push-db: build-db ## Push DB image to Artifact Registry
-	podman push $(DB_IMAGE):latest
-
-deploy-db: push-db ## Deploy PostgreSQL to Cloud Run with volume
-	gcloud run deploy inspi-db \
-		--image $(DB_IMAGE):latest \
-		--region $(GCP_REGION) \
-		--port 5432 \
-		--cpu 1 --memory 1Gi \
-		--min-instances 1 --max-instances 1 \
-		--no-cpu-throttling \
-		--execution-environment gen2 \
-		--add-volume name=pgdata,type=cloud-storage,bucket=inspi-pgdata-$(GCP_PROJECT) \
-		--add-volume-mount volume=pgdata,mount-path=/var/lib/postgresql/data \
-		--set-env-vars POSTGRES_DB=inspi,POSTGRES_USER=inspi,POSTGRES_PASSWORD=$(DB_PASSWORD) \
-		--no-allow-unauthenticated
+push-frontend: build-frontend ## Push frontend image to Artifact Registry
+	podman push $(FRONTEND_IMAGE):latest
 
 deploy-backend: push-backend ## Deploy backend to Cloud Run
+	$(eval DB_HOST := $(shell gcloud sql instances describe $(CLOUD_SQL_INSTANCE) --format='value(ipAddresses[0].ipAddress)' 2>/dev/null))
 	gcloud run deploy inspi-backend \
 		--image $(BACKEND_IMAGE):latest \
 		--region $(GCP_REGION) \
 		--port 8000 \
 		--cpu 1 --memory 512Mi \
 		--min-instances 0 --max-instances 10 \
-		--set-env-vars DJANGO_SETTINGS_MODULE=inspi.settings.production \
+		--vpc-connector $(VPC_CONNECTOR) \
+		--set-env-vars DJANGO_SETTINGS_MODULE=inspi.settings.production,DB_HOST=$(DB_HOST),DB_NAME=inspi,DB_USER=inspi,DB_PASSWORD=$(DB_PASSWORD) \
 		--allow-unauthenticated
 
-deploy-frontend: frontend-build ## Deploy frontend to GCS
-	gsutil -m rsync -r frontend/dist/ gs://gruppenstunde-static/
+deploy-frontend: push-frontend ## Deploy frontend to Cloud Run
+	$(eval BACKEND_URL := $(shell gcloud run services describe inspi-backend --region=$(GCP_REGION) --format='value(status.url)' 2>/dev/null))
+	gcloud run deploy inspi-frontend \
+		--image $(FRONTEND_IMAGE):latest \
+		--region $(GCP_REGION) \
+		--port 80 \
+		--cpu 1 --memory 256Mi \
+		--min-instances 0 --max-instances 5 \
+		--set-env-vars BACKEND_URL=$(BACKEND_URL) \
+		--allow-unauthenticated
 
-deploy: deploy-db deploy-backend deploy-frontend ## Deploy everything
-
-# -----------------------------------------------
-# OpenTofu (GCP Infrastructure)
-# -----------------------------------------------
-
-ENV ?= prod
-
-tf-init: ## Initialize OpenTofu
-	cd terraform && tofu init -backend-config="prefix=terraform/$(ENV)" -reconfigure
-
-tf-plan: ## Plan OpenTofu changes
-	cd terraform && tofu plan -var-file=env/$(ENV).tfvars
-
-tf-apply: ## Apply OpenTofu changes
-	cd terraform && tofu apply -var-file=env/$(ENV).tfvars
-
-tf-destroy: ## Destroy OpenTofu infrastructure (DANGER)
-	cd terraform && tofu destroy -var-file=env/$(ENV).tfvars
-
-tf-output: ## Show OpenTofu outputs
-	cd terraform && tofu output
-
-tf-state-bucket: ## Create GCS bucket for OpenTofu state (one-time)
-	gsutil mb -l $(GCP_REGION) gs://inspi-terraform-state/ || true
-	gsutil versioning set on gs://inspi-terraform-state/
+deploy: deploy-backend deploy-frontend ## Deploy everything (backend first, then frontend)
 
 # -----------------------------------------------
 # Cleanup

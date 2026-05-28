@@ -61,6 +61,6 @@ class TestRecipeFactories:
         assert rule.pk is not None
         assert rule.parameter == "sugar_g"
         assert rule.scope == "meal"
-        assert rule.threshold_green == 10.0
-        assert rule.threshold_yellow == 20.0
+        assert rule.max_green == 10.0
+        assert rule.max_yellow == 20.0
         assert rule.is_active is True

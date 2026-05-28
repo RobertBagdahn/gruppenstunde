@@ -178,7 +178,7 @@ class PortionAdmin(admin.ModelAdmin):
 
 @admin.register(DgeReference)
 class DgeReferenceAdmin(admin.ModelAdmin):
-    list_display = ["age_min", "age_max", "gender", "energy_kj", "protein_g", "vitamin_c_mg", "calcium_mg"]
+    list_display = ["age_min", "age_max", "gender", "energy_kj", "protein_g", "vitamin_c_mg"]
     list_filter = ["gender"]
     search_fields = ["gender"]
     list_per_page = 25
@@ -196,38 +196,7 @@ class DgeReferenceAdmin(admin.ModelAdmin):
             "Vitamine (pro Tag)",
             {
                 "fields": (
-                    "vitamin_a_mg",
-                    "vitamin_b1_mg",
-                    "vitamin_b2_mg",
-                    "vitamin_b6_mg",
-                    "vitamin_b12_ug",
                     "vitamin_c_mg",
-                    "vitamin_d_ug",
-                    "vitamin_e_mg",
-                    "vitamin_k_ug",
-                    "niacin_mg",
-                    "folate_ug",
-                    "pantothenic_acid_mg",
-                    "biotin_ug",
-                ),
-            },
-        ),
-        (
-            "Mineralstoffe (pro Tag)",
-            {
-                "fields": (
-                    "calcium_mg",
-                    "iron_mg",
-                    "magnesium_mg",
-                    "zinc_mg",
-                    "potassium_mg",
-                    "phosphorus_mg",
-                    "iodine_ug",
-                    "selenium_ug",
-                    "copper_mg",
-                    "manganese_mg",
-                    "chromium_ug",
-                    "fluoride_mg",
                 ),
             },
         ),

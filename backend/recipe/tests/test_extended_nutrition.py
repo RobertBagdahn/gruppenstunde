@@ -1,12 +1,12 @@
 """Tests for extended nutrition features (vitamins, minerals, DGE references).
 
 Covers:
-- Ingredient vitamin/mineral fields (9.1)
+- Ingredient vitamin_c_mg field (9.1)
 - DgeReference model (9.2)
 - recalculate_recipe_cache with micronutrients (9.3)
-- RecipeHint matching with vitamin/mineral parameters (9.4)
+- RecipeHint matching with vitamin_c_mg parameter (9.4)
 - Nutrition breakdown API with DGE coverage (9.5)
-- Cockpit service with vitamin/mineral HealthRules (9.6)
+- Cockpit service with vitamin_c_mg HealthRules (9.6)
 - improvement_text on RecipeHint (extra)
 """
 
@@ -37,34 +37,23 @@ from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
 # ---------------------------------------------------------------------------
-# 9.1 — Ingredient vitamin/mineral fields
+# 9.1 — Ingredient vitamin_c_mg field
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
 class TestIngredientMicronutrientFields:
-    """Verify that Ingredient model accepts and stores vitamin/mineral values."""
+    """Verify that Ingredient model accepts and stores vitamin_c_mg."""
 
-    def test_create_ingredient_with_vitamins(self):
-        ing = make_ingredient(vitamin_c_mg=45.0, calcium_mg=120.0, iron_mg=2.5)
+    def test_create_ingredient_with_vitamin_c(self):
+        ing = make_ingredient(vitamin_c_mg=45.0)
         assert ing.vitamin_c_mg == 45.0
-        assert ing.calcium_mg == 120.0
-        assert ing.iron_mg == 2.5
 
-    def test_unset_vitamin_fields_default_to_none(self):
+    def test_unset_vitamin_c_defaults_to_none(self):
         ing = make_ingredient()
-        assert ing.vitamin_a_mg is None
         assert ing.vitamin_c_mg is None
-        assert ing.vitamin_d_ug is None
-        assert ing.vitamin_b12_ug is None
-        assert ing.calcium_mg is None
-        assert ing.iron_mg is None
-        assert ing.magnesium_mg is None
-        assert ing.zinc_mg is None
-        assert ing.potassium_mg is None
-        assert ing.folate_ug is None
 
-    def test_update_vitamin_fields(self):
+    def test_update_vitamin_c_field(self):
         ing = make_ingredient()
         assert ing.vitamin_c_mg is None
 
@@ -72,39 +61,6 @@ class TestIngredientMicronutrientFields:
         ing.save()
         ing.refresh_from_db()
         assert ing.vitamin_c_mg == 80.0
-
-    def test_all_micronutrient_fields_writable(self):
-        """All 26 vitamin/mineral fields can be set."""
-        fields = {
-            "vitamin_a_mg": 0.9,
-            "vitamin_b1_mg": 1.1,
-            "vitamin_b2_mg": 1.4,
-            "vitamin_b6_mg": 1.5,
-            "vitamin_b12_ug": 4.0,
-            "vitamin_c_mg": 100.0,
-            "vitamin_d_ug": 20.0,
-            "vitamin_e_mg": 12.0,
-            "vitamin_k_ug": 70.0,
-            "niacin_mg": 16.0,
-            "folate_ug": 300.0,
-            "pantothenic_acid_mg": 6.0,
-            "biotin_ug": 40.0,
-            "calcium_mg": 1000.0,
-            "iron_mg": 10.0,
-            "magnesium_mg": 350.0,
-            "zinc_mg": 10.0,
-            "potassium_mg": 4000.0,
-            "phosphorus_mg": 700.0,
-            "iodine_ug": 200.0,
-            "selenium_ug": 60.0,
-            "copper_mg": 1.0,
-            "manganese_mg": 3.5,
-            "chromium_ug": 30.0,
-            "fluoride_mg": 3.1,
-        }
-        ing = make_ingredient(**fields)
-        for field_name, expected in fields.items():
-            assert getattr(ing, field_name) == expected, f"{field_name} mismatch"
 
 
 # ---------------------------------------------------------------------------
@@ -127,15 +83,12 @@ class TestDgeReferenceModel:
             carbohydrate_g=275.0,
             fibre_g=20.0,
             vitamin_c_mg=90.0,
-            calcium_mg=1100.0,
-            iron_mg=12.0,
         )
         assert ref.pk is not None
         assert ref.age_min == 10
         assert ref.age_max == 13
         assert ref.gender == "male"
         assert ref.vitamin_c_mg == 90.0
-        assert ref.calcium_mg == 1100.0
 
     def test_dge_reference_str(self):
         ref = DgeReference.objects.create(
@@ -152,18 +105,14 @@ class TestDgeReferenceModel:
         with pytest.raises(Exception):
             DgeReference.objects.create(age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kj=9000.0)
 
-    def test_dge_reference_vitamin_fields_nullable(self):
+    def test_dge_reference_vitamin_c_nullable(self):
         ref = DgeReference.objects.create(
             age_min=19,
             age_max=25,
             gender=DgeGenderChoices.FEMALE,
             energy_kj=9200.0,
         )
-        assert ref.vitamin_a_mg is None
         assert ref.vitamin_c_mg is None
-        assert ref.calcium_mg is None
-        assert ref.iron_mg is None
-        assert ref.folate_ug is None
 
     def test_dge_reference_lookup_by_age_and_gender(self):
         DgeReference.objects.create(
@@ -190,41 +139,23 @@ class TestDgeReferenceModel:
 
 @pytest.mark.django_db
 class TestRecalculateRecipeCacheMicronutrients:
-    """Verify that recalculate_recipe_cache populates cached_vitamin_* / cached_*_mg fields."""
+    """Verify that recalculate_recipe_cache populates cached_vitamin_c_mg."""
 
     def _make_recipe_with_micro_items(self) -> Recipe:
-        """Create a recipe with two items that have micronutrient values."""
+        """Create a recipe with two items that have vitamin_c_mg values."""
         recipe = make_recipe()
 
-        # Ingredient A: rich in vitamin C and calcium (values per 100g)
+        # Ingredient A: rich in vitamin C (values per 100g)
         ing_a = make_ingredient(
             name="Orange",
             vitamin_c_mg=53.2,
-            calcium_mg=40.0,
-            iron_mg=0.1,
-            folate_ug=30.0,
-            vitamin_a_mg=0.0,
-            magnesium_mg=10.0,
-            zinc_mg=0.07,
-            potassium_mg=181.0,
-            vitamin_d_ug=0.0,
-            vitamin_b12_ug=0.0,
         )
         portion_a = make_portion(ingredient=ing_a, weight_g=200.0, name="200g Orange")
 
-        # Ingredient B: rich in iron and folate (values per 100g)
+        # Ingredient B: some vitamin C (values per 100g)
         ing_b = make_ingredient(
             name="Spinat",
             vitamin_c_mg=28.0,
-            calcium_mg=99.0,
-            iron_mg=2.7,
-            folate_ug=194.0,
-            vitamin_a_mg=0.47,
-            magnesium_mg=79.0,
-            zinc_mg=0.53,
-            potassium_mg=558.0,
-            vitamin_d_ug=0.0,
-            vitamin_b12_ug=0.0,
         )
         portion_b = make_portion(ingredient=ing_b, weight_g=150.0, name="150g Spinat")
 
@@ -241,9 +172,6 @@ class TestRecalculateRecipeCacheMicronutrients:
 
         assert recipe.cached_at is not None
         assert recipe.cached_vitamin_c_mg is not None
-        assert recipe.cached_calcium_mg is not None
-        assert recipe.cached_iron_mg is not None
-        assert recipe.cached_folate_ug is not None
 
     def test_cache_values_are_per_100g_normalized(self):
         """Cached values should be normalized to per-100g of total recipe weight."""
@@ -257,13 +185,8 @@ class TestRecalculateRecipeCacheMicronutrients:
         expected_vit_c_per100g = (53.2 * 2.0 + 28.0 * 1.5) * 100.0 / 350.0
         assert recipe.cached_vitamin_c_mg == pytest.approx(expected_vit_c_per100g, abs=0.1)
 
-        # Calcium total: (40.0 * 200/100) + (99.0 * 150/100) = 80.0 + 148.5 = 228.5
-        # Per 100g: 228.5 * 100 / 350 = 65.28...
-        expected_calcium_per100g = (40.0 * 2.0 + 99.0 * 1.5) * 100.0 / 350.0
-        assert recipe.cached_calcium_mg == pytest.approx(expected_calcium_per100g, abs=0.1)
-
     def test_cache_none_for_missing_micronutrients(self):
-        """If no ingredient has a micronutrient, the cached field stays 0 (or near 0)."""
+        """If no ingredient has vitamin_c_mg, the cached field stays 0 (or near 0)."""
         recipe = make_recipe()
         # Ingredient with no micronutrients set
         ing = make_ingredient(name="Wasser")
@@ -273,12 +196,12 @@ class TestRecalculateRecipeCacheMicronutrients:
         recalculate_recipe_cache(recipe)
         recipe.refresh_from_db()
 
-        # All micronutrients on the ingredient are None, so get_recipe_nutritional_values
+        # vitamin_c_mg on the ingredient is None, so get_recipe_nutritional_values
         # won't add any contribution -> values.get(field) returns 0.0
         assert recipe.cached_vitamin_c_mg is not None or recipe.cached_vitamin_c_mg == 0.0
 
     def test_all_cached_micronutrient_fields_are_saved(self):
-        """All 10 CACHED_MICRONUTRIENT_FIELDS are stored after recalculation."""
+        """All CACHED_MICRONUTRIENT_FIELDS are stored after recalculation."""
         recipe = self._make_recipe_with_micro_items()
         recalculate_recipe_cache(recipe)
         recipe.refresh_from_db()
@@ -290,13 +213,13 @@ class TestRecalculateRecipeCacheMicronutrients:
 
 
 # ---------------------------------------------------------------------------
-# 9.4 — RecipeHint matching with vitamin/mineral parameters
+# 9.4 — RecipeHint matching with vitamin_c_mg parameter
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
 class TestRecipeHintVitaminMineralMatching:
-    """Verify that RecipeHint rules with vitamin/mineral parameters correctly match."""
+    """Verify that RecipeHint rules with vitamin_c_mg parameter correctly match."""
 
     def _make_recipe_with_low_vitamin_c(self) -> Recipe:
         """Recipe with very low vitamin C (< 20mg per 100g)."""
@@ -370,70 +293,6 @@ class TestRecipeHintVitaminMineralMatching:
         matched_params = [r["hint"].parameter for r in results]
         assert HintParameterChoices.VITAMIN_C_MG not in matched_params
 
-    def test_max_hint_matches_high_calcium(self):
-        """A MAX hint for calcium should match when actual exceeds max_value."""
-        make_recipe_hint(
-            name="Sehr viel Calcium",
-            parameter=HintParameterChoices.CALCIUM_MG,
-            max_value=50.0,
-            min_max=HintMinMaxChoices.MAX,
-            hint_level=HintLevelChoices.INFO,
-            recipe_objective=RecipeObjectiveChoices.HEALTH,
-        )
-
-        recipe = make_recipe()
-        ing = make_ingredient(
-            name="Milch",
-            calcium_mg=120.0,
-            energy_kj=272.0,
-            protein_g=3.4,
-            fat_g=3.5,
-            carbohydrate_g=4.8,
-            sugar_g=4.8,
-            fibre_g=0.0,
-            salt_g=0.1,
-        )
-        portion = make_portion(ingredient=ing, weight_g=500.0, name="500ml Milch")
-        make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
-
-        results = match_recipe_hints(recipe)
-        # Calcium per 100g of recipe = 120.0 (since 100% is milk),
-        # which is > 50.0, so the hint should match
-        matched_params = [r["hint"].parameter for r in results]
-        assert HintParameterChoices.CALCIUM_MG in matched_params
-
-    def test_iron_hint_with_range(self):
-        """A RANGE hint for iron should match when value is out of range."""
-        make_recipe_hint(
-            name="Eisen-Bereich",
-            parameter=HintParameterChoices.IRON_MG,
-            min_value=1.0,
-            max_value=10.0,
-            min_max=HintMinMaxChoices.RANGE,
-            hint_level=HintLevelChoices.WARNING,
-            recipe_objective=RecipeObjectiveChoices.HEALTH,
-        )
-
-        # Recipe with zero iron
-        recipe = make_recipe()
-        ing = make_ingredient(
-            name="Zucker",
-            iron_mg=0.0,
-            energy_kj=1700.0,
-            protein_g=0.0,
-            fat_g=0.0,
-            carbohydrate_g=100.0,
-            sugar_g=100.0,
-            fibre_g=0.0,
-            salt_g=0.0,
-        )
-        portion = make_portion(ingredient=ing, weight_g=100.0, name="100g Zucker")
-        make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
-
-        results = match_recipe_hints(recipe)
-        matched_params = [r["hint"].parameter for r in results]
-        assert HintParameterChoices.IRON_MG in matched_params
-
     def test_hint_result_contains_actual_value(self):
         """Matched hints should include the actual calculated value."""
         make_recipe_hint(
@@ -476,13 +335,6 @@ class TestNutritionBreakdownAPI:
             fibre_g=3.0,
             salt_g=0.03,
             vitamin_c_mg=89.0,
-            calcium_mg=47.0,
-            iron_mg=0.7,
-            folate_ug=63.0,
-            vitamin_a_mg=0.077,
-            magnesium_mg=21.0,
-            zinc_mg=0.4,
-            potassium_mg=316.0,
         )
         portion = make_portion(ingredient=ing, weight_g=200.0, name="200g Brokkoli")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
@@ -495,9 +347,6 @@ class TestNutritionBreakdownAPI:
         data = resp.json()
 
         assert "total_vitamin_c_mg" in data
-        assert "total_calcium_mg" in data
-        assert "total_iron_mg" in data
-        assert "total_folate_ug" in data
         assert "dge_coverage" in data
         assert "items" in data
 
@@ -509,10 +358,6 @@ class TestNutritionBreakdownAPI:
         # 200g Brokkoli: vitamin_c = 89.0 * (200/100) = 178.0
         assert data["total_vitamin_c_mg"] is not None
         assert data["total_vitamin_c_mg"] == pytest.approx(178.0, abs=0.5)
-
-        # calcium = 47.0 * 2 = 94.0
-        assert data["total_calcium_mg"] is not None
-        assert data["total_calcium_mg"] == pytest.approx(94.0, abs=0.5)
 
     def test_nutrition_breakdown_per_serving(self, auth_client: Client):
         recipe = self._setup_recipe_with_micronutrients()
@@ -549,9 +394,6 @@ class TestNutritionBreakdownAPI:
             carbohydrate_g=275.0,
             fibre_g=20.0,
             vitamin_c_mg=90.0,
-            calcium_mg=1100.0,
-            iron_mg=12.0,
-            folate_ug=300.0,
         )
 
         resp = auth_client.get(
@@ -567,10 +409,6 @@ class TestNutritionBreakdownAPI:
         # Vitamin C coverage: 178.0 / 90.0 * 100 = ~197.8%
         assert "vitamin_c_mg" in dge
         assert dge["vitamin_c_mg"] == pytest.approx(197.8, abs=1.0)
-
-        # Calcium coverage: 94.0 / 1100.0 * 100 = ~8.5%
-        assert "calcium_mg" in dge
-        assert dge["calcium_mg"] == pytest.approx(8.5, abs=0.5)
 
     def test_nutrition_breakdown_no_dge_without_params(self, auth_client: Client):
         """Without age/gender params, dge_coverage should be empty."""
@@ -591,16 +429,16 @@ class TestNutritionBreakdownAPI:
 
 
 # ---------------------------------------------------------------------------
-# 9.6 — Cockpit service with vitamin/mineral HealthRules
+# 9.6 — Cockpit service with vitamin_c_mg HealthRules
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
 class TestCockpitVitaminMineralRules:
-    """Verify that HealthRules with vitamin/mineral parameters are evaluated at day scope."""
+    """Verify that HealthRules with vitamin_c_mg parameter are evaluated at day scope."""
 
     def _setup_meal_with_cached_recipe(self) -> tuple:
-        """Create a meal_plan + meal with a recipe that has cached micronutrient values."""
+        """Create a meal_plan + meal with a recipe that has cached vitamin_c_mg."""
         meal_plan = make_meal_plan()
         today = datetime.date.today()
         meal = make_meal(
@@ -610,11 +448,9 @@ class TestCockpitVitaminMineralRules:
         )
 
         recipe = make_recipe()
-        # Set up a real recipe item with micronutrients so caching works
         ing = make_ingredient(
             name="Paprika",
             vitamin_c_mg=140.0,
-            calcium_mg=10.0,
             energy_kj=84.0,
             protein_g=1.0,
             fat_g=0.3,
@@ -641,8 +477,8 @@ class TestCockpitVitaminMineralRules:
             name="Vitamin C Tag",
             parameter="vitamin_c_mg",
             scope="day",
-            threshold_green=200.0,
-            threshold_yellow=300.0,
+            max_green=200.0,
+            max_yellow=300.0,
             unit="mg",
             tip_text="Mehr Obst und Gemuese essen.",
         )
@@ -651,46 +487,7 @@ class TestCockpitVitaminMineralRules:
         assert len(result["evaluations"]) == 1
         ev = result["evaluations"][0]
         assert ev["parameter"] == "vitamin_c_mg"
-        # Cached vitamin_c is per-100g; meal aggregation uses cached values
-        # The actual status depends on the aggregated value vs thresholds
         assert ev["status"] in ("green", "yellow", "red")
-
-    def test_day_cockpit_calcium_rule(self):
-        """A calcium_mg day rule should be evaluated."""
-        meal_plan, meal, today = self._setup_meal_with_cached_recipe()
-
-        make_health_rule(
-            name="Calcium Tag",
-            parameter="calcium_mg",
-            scope="day",
-            threshold_green=1000.0,
-            threshold_yellow=1200.0,
-            unit="mg",
-        )
-
-        result = evaluate_day_cockpit(meal_plan, today)
-        assert len(result["evaluations"]) == 1
-        ev = result["evaluations"][0]
-        assert ev["parameter"] == "calcium_mg"
-        # With only 10mg/100g calcium in the recipe, this should be green
-        assert ev["status"] == "green"
-
-    def test_meal_cockpit_vitamin_rule(self):
-        """HealthRules with vitamin parameters work at meal scope too."""
-        _, meal, _ = self._setup_meal_with_cached_recipe()
-
-        make_health_rule(
-            name="Iron per Meal",
-            parameter="iron_mg",
-            scope="meal",
-            threshold_green=5.0,
-            threshold_yellow=10.0,
-            unit="mg",
-        )
-
-        result = evaluate_meal_cockpit(meal)
-        assert len(result["evaluations"]) == 1
-        assert result["evaluations"][0]["parameter"] == "iron_mg"
 
     def test_vitamin_rule_tip_text_shown_when_not_green(self):
         """Tip text should be included when the status is not green."""
@@ -701,8 +498,8 @@ class TestCockpitVitaminMineralRules:
             name="Vitamin C Tag",
             parameter="vitamin_c_mg",
             scope="day",
-            threshold_green=0.001,
-            threshold_yellow=0.002,
+            max_green=0.001,
+            max_yellow=0.002,
             unit="mg",
             tip_text="Weniger Vitamin-C-haltige Lebensmittel verwenden.",
         )
@@ -712,42 +509,6 @@ class TestCockpitVitaminMineralRules:
         # With 140mg/100g vitamin C in the recipe, this should be red
         assert ev["status"] == "red"
         assert ev["tip_text"] == "Weniger Vitamin-C-haltige Lebensmittel verwenden."
-
-    def test_multiple_vitamin_mineral_rules(self):
-        """Multiple vitamin/mineral rules should all be evaluated."""
-        meal_plan, meal, today = self._setup_meal_with_cached_recipe()
-
-        make_health_rule(
-            name="Vitamin C",
-            parameter="vitamin_c_mg",
-            scope="day",
-            threshold_green=200.0,
-            threshold_yellow=300.0,
-            sort_order=1,
-        )
-        make_health_rule(
-            name="Calcium",
-            parameter="calcium_mg",
-            scope="day",
-            threshold_green=1000.0,
-            threshold_yellow=1200.0,
-            sort_order=2,
-        )
-        make_health_rule(
-            name="Iron",
-            parameter="iron_mg",
-            scope="day",
-            threshold_green=15.0,
-            threshold_yellow=20.0,
-            sort_order=3,
-        )
-
-        result = evaluate_day_cockpit(meal_plan, today)
-        assert len(result["evaluations"]) == 3
-        params = [e["parameter"] for e in result["evaluations"]]
-        assert "vitamin_c_mg" in params
-        assert "calcium_mg" in params
-        assert "iron_mg" in params
 
 
 # ---------------------------------------------------------------------------

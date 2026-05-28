@@ -377,11 +377,8 @@ class Command(BaseCommand):
                 "parameter": parameter,
                 "hint_level": hint_level,
                 "min_max": min_max,
+                "value": value or 0,
             }
-            if min_max == "max":
-                defaults["max_value"] = value
-            elif min_max == "min":
-                defaults["min_value"] = value
 
             _, created = RecipeHint.objects.get_or_create(
                 name=name,
@@ -440,8 +437,10 @@ class Command(BaseCommand):
             meta_pk = fields.get("meta_info")
             meta = self.metainfo_cache.get(meta_pk, {}) if meta_pk else {}
 
-            # Resolve retail_section FK (not in fixture data, but might be set)
-            retail_section = None
+            # Resolve retail_section from description keywords
+            from supply.services.retail_section_mapping import get_retail_section
+
+            retail_section = get_retail_section(name, fields.get("description", ""))
 
             ingredient = Ingredient(
                 name=name,
@@ -541,6 +540,41 @@ class Command(BaseCommand):
             f"    Portionen: {self.counters[portion_label]['created']} erstellt, "
             f"{self.counters[portion_label]['skipped']} übersprungen"
         )
+
+        # Step 4: Import prices (food.price -> Ingredient.price_per_kg)
+        price_label = f"Price ({source_label})"
+        for entry in grouped.get("food.price", []):
+            fields = entry["fields"]
+            price_eur = self._safe_float(fields.get("price_eur"))
+            portion_pk = fields.get("portion")
+            portion = self.portion_map.get(portion_pk)
+
+            if not portion or not price_eur:
+                self._count(price_label, created=False)
+                continue
+
+            ingredient = portion.ingredient
+            # Formula: price_per_kg = price_eur / (portion.weight_g * quantity / 1000)
+            # where quantity = number of portions in the package
+            weight_g = portion.weight_g or 0
+            quantity = self._safe_float(fields.get("quantity")) or 1.0
+            total_weight_g = weight_g * quantity
+            if total_weight_g > 0:
+                price_per_kg = price_eur / (total_weight_g / 1000.0)
+                if not ingredient.price_per_kg:
+                    ingredient.price_per_kg = round(price_per_kg, 2)
+                    ingredient.save(update_fields=["price_per_kg"])
+                    self._count(price_label, created=True)
+                else:
+                    self._count(price_label, created=False)
+            else:
+                self._count(price_label, created=False)
+
+        if self.counters.get(price_label):
+            self.stdout.write(
+                f"    Preise: {self.counters[price_label]['created']} erstellt, "
+                f"{self.counters[price_label]['skipped']} übersprungen"
+            )
 
     # ------------------------------------------------------------------
     # Phase 3: Recipes

@@ -12,8 +12,10 @@ Uses Gemini with structured JSON output.
 import logging
 from typing import Any
 
-from django.conf import settings
+from django.contrib.auth.models import AbstractBaseUser
 from pydantic import BaseModel, Field
+
+from core.services.gemini import gemini_call
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +72,7 @@ def suggest_materials(
     title: str,
     description: str,
     content_type: str = "session",
+    user: AbstractBaseUser | None = None,
 ) -> list[dict[str, Any]]:
     """
     Suggest materials for a content item based on its title and description.
@@ -78,10 +81,6 @@ def suggest_materials(
 
     Returns a list of material suggestion dicts.
     """
-    client = _get_client()
-    if not client:
-        return []
-
     prompt = (
         "Analysiere die folgende Pfadfinder-Aktivität und schlage Materialien vor, "
         "die dafür benötigt werden.\n\n"
@@ -97,7 +96,8 @@ def suggest_materials(
     from google.genai import types
 
     try:
-        response = client.models.generate_content(
+        response = gemini_call(
+            user=user,
             model=GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -105,7 +105,10 @@ def suggest_materials(
                 response_schema=MaterialSuggestionsOutput,
                 http_options=types.HttpOptions(timeout=AI_TIMEOUT_SECONDS * 1000),
             ),
+            context="suggest_materials",
         )
+        if response is None:
+            return []
         result = MaterialSuggestionsOutput.model_validate_json(response.text)
         return [m.model_dump() for m in result.materials]
     except Exception:
@@ -116,16 +119,13 @@ def suggest_materials(
 def suggest_recipe_supplies(
     title: str,
     description: str,
+    user: AbstractBaseUser | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """
     Suggest ingredients and kitchen equipment for a recipe.
 
     Returns a dict with 'ingredients' and 'kitchen_equipment' lists.
     """
-    client = _get_client()
-    if not client:
-        return {"ingredients": [], "kitchen_equipment": []}
-
     prompt = (
         "Analysiere das folgende Rezept für eine Pfadfinder-Gruppe und schlage "
         "Zutaten und Küchengeräte vor.\n\n"
@@ -141,7 +141,8 @@ def suggest_recipe_supplies(
     from google.genai import types
 
     try:
-        response = client.models.generate_content(
+        response = gemini_call(
+            user=user,
             model=GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -149,7 +150,10 @@ def suggest_recipe_supplies(
                 response_schema=RecipeSupplySuggestionsOutput,
                 http_options=types.HttpOptions(timeout=AI_TIMEOUT_SECONDS * 1000),
             ),
+            context="suggest_recipe_supplies",
         )
+        if response is None:
+            return {"ingredients": [], "kitchen_equipment": []}
         result = RecipeSupplySuggestionsOutput.model_validate_json(response.text)
         return {
             "ingredients": [i.model_dump() for i in result.ingredients],
@@ -254,30 +258,4 @@ def match_ingredients_to_database(suggestions: list[dict[str, Any]]) -> list[dic
     return enriched
 
 
-# ---------------------------------------------------------------------------
-# Client helper (shared with ai_service)
-# ---------------------------------------------------------------------------
 
-_client = None
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        try:
-            from google import genai
-
-            project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-            location = getattr(settings, "VERTEX_AI_LOCATION", "global")
-
-            if project:
-                _client = genai.Client(
-                    vertexai=True,
-                    project=project,
-                    location=location,
-                )
-            else:
-                logger.warning("GOOGLE_CLOUD_PROJECT not set - AI features disabled")
-        except ImportError:
-            logger.warning("google-genai not installed - AI features disabled")
-    return _client

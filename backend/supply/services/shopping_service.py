@@ -15,6 +15,17 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class ShoppingItemSource:
+    """Tracks where a portion of an ingredient came from."""
+
+    recipe_id: int
+    recipe_name: str
+    recipe_slug: str
+    meal_label: str
+    quantity_g: float
+
+
+@dataclass
 class ShoppingListItem:
     """A single item in the shopping list."""
 
@@ -27,6 +38,8 @@ class ShoppingListItem:
     estimated_price_eur: float | None = None
     display_quantity: str = ""
     natural_portions: str = ""
+    display_text: str = ""
+    sources: list[ShoppingItemSource] | None = None
 
 
 def generate_shopping_list(
@@ -60,18 +73,41 @@ def generate_shopping_list(
 
     # Aggregate: ingredient_id -> ShoppingListItem
     aggregated: dict[int, ShoppingListItem] = {}
+    # Track sources per ingredient: ingredient_id -> dict[(recipe_id, meal_id) -> ShoppingItemSource]
+    sources_map: dict[int, dict[tuple[int, int | None], ShoppingItemSource]] = {}
+    # Track raw quantities for items with weight_g=0: ingredient_id -> (total_quantity, portion_name)
+    raw_quantities: dict[int, tuple[float, str]] = {}
 
     for mi in meal_items:
         recipe_items = RecipeItem.objects.filter(
             recipe=mi.recipe,
         ).select_related("portion__ingredient", "portion__ingredient__retail_section")
 
+        meal_label = str(mi.meal) if mi.meal else ""
+        recipe = mi.recipe
+
         for ri in recipe_items:
-            if not ri.portion or not ri.portion.ingredient:
+            if not ri.portion:
                 continue
 
             ing = ri.portion.ingredient
+            if not ing:
+                # Skip items without linked ingredient (can't aggregate)
+                continue
+
             weight_g = ri.quantity * (ri.portion.weight_g or 0) * mi.factor * scaling
+
+            # Track raw quantity for items where portion has no weight
+            if not ri.portion.weight_g:
+                raw_qty = ri.quantity * mi.factor * scaling
+                portion_name = ri.portion.name or ""
+                if ing.id in raw_quantities:
+                    raw_quantities[ing.id] = (
+                        raw_quantities[ing.id][0] + raw_qty,
+                        raw_quantities[ing.id][1] or portion_name,
+                    )
+                else:
+                    raw_quantities[ing.id] = (raw_qty, portion_name)
 
             if ing.id in aggregated:
                 aggregated[ing.id].total_quantity_g += weight_g
@@ -87,7 +123,27 @@ def generate_shopping_list(
                     total_quantity_g=weight_g,
                     unit="g",
                     retail_section=section_name,
+                    sources=[],
                 )
+                sources_map[ing.id] = {}
+
+            # Track source contribution
+            source_key = (recipe.id, mi.meal_id)
+            if source_key in sources_map[ing.id]:
+                sources_map[ing.id][source_key].quantity_g += weight_g
+            else:
+                source = ShoppingItemSource(
+                    recipe_id=recipe.id,
+                    recipe_name=recipe.title if hasattr(recipe, "title") else str(recipe),
+                    recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
+                    meal_label=meal_label,
+                    quantity_g=weight_g,
+                )
+                sources_map[ing.id][source_key] = source
+
+    # Attach sources to items
+    for ing_id, item in aggregated.items():
+        item.sources = list(sources_map.get(ing_id, {}).values())
 
     # Estimate prices from Ingredient.price_per_kg
     for ing_id, item in aggregated.items():
@@ -102,7 +158,7 @@ def generate_shopping_list(
             pass
 
     # Add display_quantity and natural_portions
-    _enrich_display_fields(aggregated)
+    _enrich_display_fields(aggregated, raw_quantities)
 
     # Sort by retail section, then name
     result = sorted(
@@ -130,16 +186,37 @@ def _format_weight(weight_g: float) -> str:
     return f"{weight_g:.1f} g"
 
 
-def _enrich_display_fields(aggregated: dict[int, ShoppingListItem]) -> None:
-    """Add display_quantity and natural_portions to shopping list items."""
+def _enrich_display_fields(
+    aggregated: dict[int, ShoppingListItem],
+    raw_quantities: dict[int, tuple[float, str]] | None = None,
+) -> None:
+    """Add display_quantity, natural_portions, and display_text to shopping list items."""
     from supply.models import Ingredient
     from supply.models.ingredient import Portion
+
+    if raw_quantities is None:
+        raw_quantities = {}
 
     ingredient_ids = list(aggregated.keys())
     ingredients = {ing.id: ing for ing in Ingredient.objects.filter(id__in=ingredient_ids).prefetch_related("portions")}
 
     for ing_id, item in aggregated.items():
         ing = ingredients.get(ing_id)
+
+        # If this item has no gram weight (weight_g=0), use raw quantity + portion name
+        if item.total_quantity_g == 0 and ing_id in raw_quantities:
+            raw_qty, portion_name = raw_quantities[ing_id]
+            if portion_name:
+                qty_display = round(raw_qty, 1)
+                if qty_display == int(qty_display):
+                    qty_display = int(qty_display)
+                item.display_text = f"{qty_display} x {portion_name}"
+                item.display_quantity = item.display_text
+            else:
+                item.display_text = ""
+                item.display_quantity = _format_weight(item.total_quantity_g)
+            continue
+
         if not ing:
             item.display_quantity = _format_weight(item.total_quantity_g)
             continue
@@ -155,7 +232,10 @@ def _enrich_display_fields(aggregated: dict[int, ShoppingListItem]) -> None:
                 count = item.total_quantity_g / default_portion.weight_g
                 if count >= 0.5:
                     count_display = round(count, 1)
-                    if count_display == int(count_display):
+                    # Round up fractions < 1 for natural portions
+                    if count_display < 1:
+                        count_display = 1
+                    elif count_display == int(count_display):
                         count_display = int(count_display)
                     item.natural_portions = f"ca. {count_display} x {default_portion.name}"
 

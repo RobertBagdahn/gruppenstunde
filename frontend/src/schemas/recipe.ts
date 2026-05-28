@@ -62,16 +62,7 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   cached_price_total: z.number().nullable().optional(),
   cached_at: z.string().nullable().optional(),
   // Cached micronutrient values
-  cached_vitamin_a_mg: z.number().nullable().optional(),
   cached_vitamin_c_mg: z.number().nullable().optional(),
-  cached_vitamin_d_ug: z.number().nullable().optional(),
-  cached_vitamin_b12_ug: z.number().nullable().optional(),
-  cached_calcium_mg: z.number().nullable().optional(),
-  cached_iron_mg: z.number().nullable().optional(),
-  cached_magnesium_mg: z.number().nullable().optional(),
-  cached_zinc_mg: z.number().nullable().optional(),
-  cached_potassium_mg: z.number().nullable().optional(),
-  cached_folate_ug: z.number().nullable().optional(),
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),
@@ -102,16 +93,7 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   cached_price_total: z.number().nullable().optional(),
   cached_at: z.string().nullable().optional(),
   // Cached micronutrient values
-  cached_vitamin_a_mg: z.number().nullable().optional(),
   cached_vitamin_c_mg: z.number().nullable().optional(),
-  cached_vitamin_d_ug: z.number().nullable().optional(),
-  cached_vitamin_b12_ug: z.number().nullable().optional(),
-  cached_calcium_mg: z.number().nullable().optional(),
-  cached_iron_mg: z.number().nullable().optional(),
-  cached_magnesium_mg: z.number().nullable().optional(),
-  cached_zinc_mg: z.number().nullable().optional(),
-  cached_potassium_mg: z.number().nullable().optional(),
-  cached_folate_ug: z.number().nullable().optional(),
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),
@@ -159,9 +141,9 @@ export const RecipeHintSchema = z.object({
   name: z.string(),
   description: z.string(),
   improvement_text: z.string().default(''),
+  hint: z.string(),
   parameter: z.string(),
-  min_value: z.number().nullable(),
-  max_value: z.number().nullable(),
+  value: z.number(),
   min_max: z.string(),
   hint_level: z.string(),
   recipe_type: z.string(),
@@ -264,6 +246,7 @@ export const ImprovementSchema = z.object({
   suggested_ingredients: z.array(SuggestedIngredientSchema),
   source: z.string(), // "nutri_score" | "recipe_hint" | "merged"
   recommendation_text: z.string(),
+  hint_level: z.string().default(''), // "info" | "warn" | "error" | ""
 });
 export type Improvement = z.infer<typeof ImprovementSchema>;
 
@@ -313,32 +296,7 @@ export const RecipeItemNutritionSchema = z.object({
   salt_g: z.number(),
   weight_pct: z.number(),
   // Vitamins
-  vitamin_a_mg: z.number().nullable().optional(),
-  vitamin_b1_mg: z.number().nullable().optional(),
-  vitamin_b2_mg: z.number().nullable().optional(),
-  vitamin_b6_mg: z.number().nullable().optional(),
-  vitamin_b12_ug: z.number().nullable().optional(),
   vitamin_c_mg: z.number().nullable().optional(),
-  vitamin_d_ug: z.number().nullable().optional(),
-  vitamin_e_mg: z.number().nullable().optional(),
-  vitamin_k_ug: z.number().nullable().optional(),
-  niacin_mg: z.number().nullable().optional(),
-  folate_ug: z.number().nullable().optional(),
-  pantothenic_acid_mg: z.number().nullable().optional(),
-  biotin_ug: z.number().nullable().optional(),
-  // Minerals
-  calcium_mg: z.number().nullable().optional(),
-  iron_mg: z.number().nullable().optional(),
-  magnesium_mg: z.number().nullable().optional(),
-  zinc_mg: z.number().nullable().optional(),
-  potassium_mg: z.number().nullable().optional(),
-  phosphorus_mg: z.number().nullable().optional(),
-  iodine_ug: z.number().nullable().optional(),
-  selenium_ug: z.number().nullable().optional(),
-  copper_mg: z.number().nullable().optional(),
-  manganese_mg: z.number().nullable().optional(),
-  chromium_ug: z.number().nullable().optional(),
-  fluoride_mg: z.number().nullable().optional(),
   // Per-item contributions to nutritional parameters
   contributions: z.array(ContributionSchema).default([]),
 });
@@ -357,24 +315,13 @@ export const RecipeNutritionBreakdownSchema = z.object({
   total_fibre_g: z.number(),
   total_salt_g: z.number(),
   // Micronutrient totals
-  total_vitamin_a_mg: z.number().nullable().optional(),
   total_vitamin_c_mg: z.number().nullable().optional(),
-  total_vitamin_d_ug: z.number().nullable().optional(),
-  total_vitamin_b12_ug: z.number().nullable().optional(),
-  total_calcium_mg: z.number().nullable().optional(),
-  total_iron_mg: z.number().nullable().optional(),
-  total_magnesium_mg: z.number().nullable().optional(),
-  total_zinc_mg: z.number().nullable().optional(),
-  total_potassium_mg: z.number().nullable().optional(),
-  total_folate_ug: z.number().nullable().optional(),
   // Per-serving values
   per_serving_energy_kcal: z.number().nullable(),
   per_serving_protein_g: z.number().nullable(),
   per_serving_fat_g: z.number().nullable(),
   per_serving_carbohydrate_g: z.number().nullable(),
   per_serving_vitamin_c_mg: z.number().nullable().optional(),
-  per_serving_calcium_mg: z.number().nullable().optional(),
-  per_serving_iron_mg: z.number().nullable().optional(),
   // DGE coverage percentages (nutrient -> %)
   dge_coverage: z.record(z.string(), z.number().nullable()).default({}),
   positive_traits: z.array(z.string()).default([]),
@@ -392,3 +339,30 @@ export const RecipeFolderSchema = z.object({
   recipe_count: z.number(),
 });
 export type RecipeFolder = z.infer<typeof RecipeFolderSchema>;
+
+// --- AI Ingredient Suggestions ---
+
+export const AiIngredientSuggestionSchema = z.object({
+  ingredient_id: z.number(),
+  ingredient_name: z.string(),
+  portion_id: z.number().nullable(),
+  portion_name: z.string().nullable(),
+  quantity: z.number(),
+  measuring_unit_id: z.number().nullable(),
+  measuring_unit_name: z.string().nullable(),
+  is_new_ingredient: z.boolean(),
+});
+export type AiIngredientSuggestion = z.infer<typeof AiIngredientSuggestionSchema>;
+
+// --- AI Recipe Suggest All ---
+
+export const RecipeSuggestAllSchema = z.object({
+  description: z.string().nullable(),
+  difficulty: z.string().nullable(),
+  duration_minutes: z.number().nullable(),
+  servings: z.number().nullable(),
+  recipe_type: z.string().nullable(),
+  scout_levels: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
+});
+export type RecipeSuggestAll = z.infer<typeof RecipeSuggestAllSchema>;

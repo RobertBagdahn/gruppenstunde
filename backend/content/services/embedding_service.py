@@ -1,7 +1,7 @@
 """
 Embedding service — Text embedding generation and management.
 
-Uses Gemini text-embedding-004 via google-genai SDK.
+Uses centralized Gemini client from core.services.gemini.
 Stores embeddings as BinaryField (will migrate to pgvector VectorField later).
 Hash-check avoids unnecessary regeneration.
 """
@@ -14,31 +14,12 @@ from typing import Any
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
+from core.services.gemini import gemini_embed
+
 logger = logging.getLogger(__name__)
 
 EMBEDDING_MODEL = "text-embedding-004"
 EMBEDDING_DIMENSIONS = 768
-
-
-def _get_client():
-    """Get google-genai client for embedding generation."""
-    try:
-        from django.conf import settings
-        from google import genai
-
-        project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-        location = getattr(settings, "VERTEX_AI_LOCATION", "global")
-
-        if project:
-            return genai.Client(
-                vertexai=True,
-                project=project,
-                location=location,
-            )
-        logger.warning("GOOGLE_CLOUD_PROJECT not set — embeddings disabled")
-    except ImportError:
-        logger.warning("google-genai not installed — embeddings disabled")
-    return None
 
 
 def _text_hash(text: str) -> str:
@@ -89,20 +70,7 @@ def create_embedding(text: str) -> list[float] | None:
 
     Returns a list of 768 floats, or None if generation fails.
     """
-    client = _get_client()
-    if not client:
-        return None
-
-    try:
-        response = client.models.embed_content(
-            model=EMBEDDING_MODEL,
-            contents=text,
-        )
-        if response.embeddings:
-            return response.embeddings[0].values
-    except Exception:
-        logger.warning("Embedding creation failed", exc_info=True)
-    return None
+    return gemini_embed(user=None, model=EMBEDDING_MODEL, contents=text, bypass_limits=True)
 
 
 def update_content_embedding(content_obj, force: bool = False) -> bool:

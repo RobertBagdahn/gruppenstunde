@@ -31,23 +31,11 @@ import PackingListDetailPage from './pages/PackingListDetailPage';
 import PackingListSharePage from './pages/PackingListSharePage';
 import PackingListWizardPage from './pages/PackingListWizardPage';
 import PackingListLandingPage from './pages/tools/PackingListLandingPage';
-import NormPortionSimulatorPage from './pages/tools/NormPortionSimulatorPage';
-import ShoppingListPage from './pages/shopping/ShoppingListPage';
-import ShoppingListDetailPage from './pages/shopping/ShoppingListDetailPage';
 import PrivacyPage from './pages/profile/PrivacyPage';
 import CreateSessionPage from './pages/sessions/CreateSessionPage';
 import CreateBlogPage from './pages/blogs/CreateBlogPage';
 import CreateGamePage from './pages/games/CreateGamePage';
-import RecipeListPage from './pages/recipes/RecipeListPage';
-import MyRecipesPage from './pages/recipes/MyRecipesPage';
-import CreateRecipePage from './pages/recipes/CreateRecipePage';
-import EditRecipePage from './pages/recipes/EditRecipePage';
-import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
-import RecipeImportPage from './pages/recipes/RecipeImportPage';
 import EventsLandingPage from './pages/tools/EventsLandingPage';
-import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
-import MealPlanListPage from './pages/planning/MealEventListPage';
-import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
 import SessionPlannerLandingPage from './pages/tools/SessionPlannerLandingPage';
 import SessionListPage from './pages/sessions/SessionListPage';
 import SessionDetailPage from './pages/sessions/SessionDetailPage';
@@ -55,9 +43,6 @@ import BlogListPage from './pages/blogs/BlogListPage';
 import BlogDetailPage from './pages/blogs/BlogDetailPage';
 import GameListPage from './pages/games/GameListPage';
 import GameDetailPage from './pages/games/GameDetailPage';
-import IngredientListPage from './pages/ingredients/IngredientListPage';
-import IngredientCreatePage from './pages/ingredients/IngredientCreatePage';
-import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
 import MaterialListPage from './pages/supplies/MaterialListPage';
 import MaterialDetailPage from './pages/supplies/MaterialDetailPage';
 
@@ -77,12 +62,6 @@ function App() {
         {/* Legacy redirects: old /idea/:slug and /create/:type → redirect */}
         <Route path="/idea/:slug" element={<Navigate to="/search" replace />} />
         <Route path="/create/:contentType" element={<Navigate to="/create" replace />} />
-        <Route path="/recipes" element={<RecipeListPage />} />
-        <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
-        <Route path="/recipes/import" element={<RecipeImportPage />} />
-        <Route path="/recipes/new" element={<CreateRecipePage />} />
-        <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
-        <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
         <Route path="/my-dashboard" element={<MyDashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/name" element={<Navigate to="/profile" replace />} />
@@ -104,13 +83,6 @@ function App() {
         <Route path="/events/:slug/register" element={<GuestRegistrationPage />} />
         <Route path="/events/:slug/parent/:token" element={<ParentPage />} />
         <Route path="/events/:slug" element={<EventDetailPage />} />
-
-        {/* Tool: Essensplan */}
-        <Route path="/meal-plans" element={<MealPlanLandingPage />} />
-        <Route path="/meal-plans/app" element={<MealPlanListPage />} />
-        <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
-        {/* Legacy redirect */}
-        <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />
 
         {/* Tool: Gruppenstundenplan */}
         <Route path="/session-planner" element={<SessionPlannerLandingPage />} />
@@ -135,13 +107,6 @@ function App() {
         <Route path="/packing-lists/shared/:token" element={<PackingListSharePage />} />
         <Route path="/packing-lists/:id" element={<PackingListDetailPage />} />
 
-        {/* Tool: Einkaufslisten */}
-        <Route path="/shopping-lists" element={<ShoppingListPage />} />
-        <Route path="/shopping-lists/:id" element={<ShoppingListDetailPage />} />
-
-        {/* Tool: Normportion-Simulator */}
-        <Route path="/tools/norm-portion-simulator" element={<NormPortionSimulatorPage />} />
-
         {/* Admin */}
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={null} />
@@ -149,11 +114,6 @@ function App() {
         </Route>
         <Route path="/admin/users/:userId" element={<AdminUserDetailPage />} />
         <Route path="/admin/idea-of-the-week" element={<IdeaOfTheWeekPage />} />
-
-        {/* Ingredients */}
-        <Route path="/ingredients" element={<IngredientListPage />} />
-        <Route path="/ingredients/new" element={<IngredientCreatePage />} />
-        <Route path="/ingredients/:slug" element={<IngredientDetailPage />} />
 
         {/* Materials */}
         <Route path="/materials" element={<MaterialListPage />} />

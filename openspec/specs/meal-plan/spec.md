@@ -37,16 +37,35 @@ Each Meal SHALL support notes with a publish/unpublish flag to control visibilit
 - **WHEN** user exports/prints the meal plan
 - **THEN** the system SHALL offer two modes: "Mit Notizen" (kitchen copy) and "Ohne Notizen" (public display)
 
-### Requirement: MealItem supports Ingredients directly
-MealItem SHALL support adding individual ingredients (not just recipes) to a meal.
+### Requirement: MealPlanItem supports ingredient as alternative to recipe
+A MealPlanItem SHALL support either a Recipe OR an Ingredient (with portion and quantity), enforced by a database XOR constraint.
 
-#### Scenario: Adding an ingredient to a meal
-- **WHEN** a MealItem is created with `ingredient` FK (and no `recipe`)
-- **THEN** the item SHALL be valid and appear in the meal with the ingredient name and specified quantity
+#### Scenario: Add ingredient to meal plan
+- **WHEN** user selects a standalone ingredient and specifies portion + quantity
+- **THEN** a MealPlanItem SHALL be created with `ingredient`, `portion`, and `quantity` fields set (recipe=null)
 
-#### Scenario: Ingredient in shopping list
-- **WHEN** a shopping list is generated from a meal plan with ingredient-only MealItems
-- **THEN** those ingredients SHALL be included in the shopping list
+#### Scenario: Add recipe to meal plan (unchanged)
+- **WHEN** user selects a recipe
+- **THEN** a MealPlanItem SHALL be created with `recipe` set (ingredient=null, portion=null, quantity=null)
+
+#### Scenario: XOR constraint enforcement
+- **WHEN** attempting to create a MealPlanItem with both recipe and ingredient set
+- **THEN** the database SHALL reject the record
+
+#### Scenario: Ingredient meal plan item display
+- **WHEN** viewing a meal plan that contains ingredient items
+- **THEN** the ingredient name, portion name, and quantity SHALL be displayed
+
+### Requirement: Quantity dialog for ingredient selection
+The frontend SHALL display a quantity selection dialog when a user selects a standalone ingredient from search results.
+
+#### Scenario: User selects ingredient from search
+- **WHEN** user clicks on an ingredient in the search results
+- **THEN** a dialog SHALL appear showing available portions for that ingredient and a quantity input
+
+#### Scenario: User confirms quantity
+- **WHEN** user selects a portion and enters a quantity and clicks "Hinzufügen"
+- **THEN** the ingredient SHALL be added to the meal plan with the selected portion and quantity
 
 ### Requirement: MealPlan PDF Export
 The MealPlan SHALL provide a PDF export endpoint.

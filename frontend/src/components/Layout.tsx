@@ -5,14 +5,11 @@ import { cn } from '@/lib/utils';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import CommandPalette from '@/components/shared/CommandPalette';
 import {
-  TOOL_MEAL_PLAN,
   TOOL_SESSION_PLANNER,
   TOOL_PACKING_LISTS,
   TOOL_SESSIONS,
   TOOL_BLOG,
   TOOL_GAMES,
-  TOOL_RECIPES,
-  TOOL_INGREDIENTS,
 } from '@/lib/toolColors';
 
 interface LayoutProps {
@@ -152,8 +149,6 @@ export default function Layout({ children }: LayoutProps) {
     { to: TOOL_SESSIONS.basePath, icon: TOOL_SESSIONS.icon, label: TOOL_SESSIONS.label },
     { to: TOOL_BLOG.basePath, icon: TOOL_BLOG.icon, label: TOOL_BLOG.label },
     { to: TOOL_GAMES.basePath, icon: TOOL_GAMES.icon, label: TOOL_GAMES.label },
-    { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label },
-    { to: TOOL_INGREDIENTS.basePath, icon: TOOL_INGREDIENTS.icon, label: TOOL_INGREDIENTS.label },
   ];
 
   // Primary navigation single-location policy:
@@ -164,7 +159,6 @@ export default function Layout({ children }: LayoutProps) {
   // (desktop header) and mobile bottom-nav ("Aktionen"), and must not be duplicated here.
   const toolsMenuItems = [
     { to: TOOL_SESSION_PLANNER.basePath, icon: TOOL_SESSION_PLANNER.icon, label: TOOL_SESSION_PLANNER.label },
-    { to: TOOL_MEAL_PLAN.basePath, icon: TOOL_MEAL_PLAN.icon, label: TOOL_MEAL_PLAN.label },
     { to: TOOL_PACKING_LISTS.basePath, icon: TOOL_PACKING_LISTS.icon, label: TOOL_PACKING_LISTS.label },
   ];
 

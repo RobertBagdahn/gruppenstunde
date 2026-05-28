@@ -133,6 +133,63 @@ class ShoppingListItem(models.Model):
         return f"{self.name} ({self.quantity_g}{self.unit}){checked}"
 
 
+class ShoppingListItemSource(models.Model):
+    """Tracks which recipe/meal contributed to a shopping list item's quantity."""
+
+    shopping_list_item = models.ForeignKey(
+        ShoppingListItem,
+        on_delete=models.CASCADE,
+        related_name="sources",
+        verbose_name=_("Einkaufslisten-Eintrag"),
+    )
+    recipe = models.ForeignKey(
+        "recipe.Recipe",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shopping_item_sources",
+        verbose_name=_("Rezept"),
+    )
+    meal = models.ForeignKey(
+        "planner.Meal",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shopping_item_sources",
+        verbose_name=_("Mahlzeit"),
+    )
+    quantity_g = models.FloatField(
+        default=0,
+        verbose_name=_("Menge in Gramm"),
+    )
+    recipe_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Rezeptname (cached)"),
+    )
+    meal_label = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Mahlzeit-Label (cached)"),
+    )
+    recipe_slug = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Rezept-Slug (cached)"),
+    )
+
+    class Meta:
+        verbose_name = _("Einkaufslisten-Herkunft")
+        verbose_name_plural = _("Einkaufslisten-Herkünfte")
+        ordering = ["-quantity_g"]
+
+    def __str__(self) -> str:
+        return f"{self.recipe_name} – {self.quantity_g}g"
+
+
 class ShoppingListCollaborator(models.Model):
     """Links a user to a shopping list with a specific role."""
 

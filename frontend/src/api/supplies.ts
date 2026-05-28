@@ -404,3 +404,40 @@ export function useConvertUnit() {
     },
   });
 }
+
+// ===========================================================================
+// AI Suggest & Create
+// ===========================================================================
+
+export function useAiSuggestIngredientAll(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { IngredientSuggestAllSchema } = await import('@/schemas/supply');
+      return postJsonRaw(
+        `${INGREDIENT_BASE}/${slug}/ai-suggest-all/`,
+        {},
+        IngredientSuggestAllSchema
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function useAiCreateIngredient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { name: string }) => {
+      return postJsonRaw(
+        `${INGREDIENT_BASE}/ai-create/`,
+        params,
+        IngredientDetailSchema
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+  });
+}

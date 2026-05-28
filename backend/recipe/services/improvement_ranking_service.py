@@ -95,6 +95,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
             "suggested_ingredients": _format_ingredients(cand.get("affected_ingredients", [])),
             "source": "nutri_score",
             "recommendation_text": _default_nutri_text(cand),
+            "hint_level": "",
         }
 
     # Merge in RecipeHint matches
@@ -104,26 +105,17 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
         actual = match["actual_value"]
         hint_component = _score_recipe_hint(hint, actual)
 
-        if hint.min_max == "max" and hint.max_value is not None:
-            threshold = hint.max_value
+        if hint.min_max == "max":
+            threshold = hint.value
             direction = "reduce"
-        elif hint.min_max == "min" and hint.min_value is not None:
-            threshold = hint.min_value
+        elif hint.min_max == "min":
+            threshold = hint.value
             direction = "increase"
-        elif hint.min_max == "range":
-            if hint.max_value is not None and actual > hint.max_value:
-                threshold = hint.max_value
-                direction = "reduce"
-            elif hint.min_value is not None and actual < hint.min_value:
-                threshold = hint.min_value
-                direction = "increase"
-            else:
-                continue
         else:
             continue
 
         delta = _compute_delta(actual, threshold, direction)
-        improvement_text = match.get("improvement_text") or match.get("message") or hint.name
+        improvement_text = hint.hint or match.get("improvement_text") or hint.name
 
         if parameter in buckets:
             existing = buckets[parameter]
@@ -133,6 +125,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
             existing["delta"] = delta
             existing["hint_component"] = max(existing["hint_component"], hint_component)
             existing["source"] = "merged"
+            existing["hint_level"] = hint.hint_level
             # Join recommendation texts
             if improvement_text and improvement_text not in existing["recommendation_text"]:
                 existing["recommendation_text"] = (
@@ -154,6 +147,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
                 ),
                 "source": "recipe_hint",
                 "recommendation_text": improvement_text,
+                "hint_level": hint.hint_level,
             }
 
     # Finalize impact_score and sort
@@ -183,19 +177,15 @@ def _score_nutri_candidate(candidate: dict) -> float:
 def _score_recipe_hint(hint, actual_value: float) -> float:
     """Normalised 0–1 impact contribution from a RecipeHint match.
 
-    For ``min_max='max'``: (current - max) / max, clamped 0–1.
-    For ``min_max='min'``: (min - current) / min, clamped 0–1.
-    For ``min_max='range'``: whichever boundary is exceeded.
+    For ``min_max='max'``: (current - value) / value, clamped 0–1.
+    For ``min_max='min'``: (value - current) / value, clamped 0–1.
     """
-    if hint.min_max == "max" and hint.max_value:
-        return max(0.0, min(1.0, (actual_value - hint.max_value) / hint.max_value))
-    if hint.min_max == "min" and hint.min_value:
-        return max(0.0, min(1.0, (hint.min_value - actual_value) / hint.min_value))
-    if hint.min_max == "range":
-        if hint.max_value and actual_value > hint.max_value:
-            return max(0.0, min(1.0, (actual_value - hint.max_value) / hint.max_value))
-        if hint.min_value and actual_value < hint.min_value:
-            return max(0.0, min(1.0, (hint.min_value - actual_value) / hint.min_value))
+    if hint.value <= 0:
+        return 0.0
+    if hint.min_max == "max":
+        return max(0.0, min(1.0, (actual_value - hint.value) / hint.value))
+    if hint.min_max == "min":
+        return max(0.0, min(1.0, (hint.value - actual_value) / hint.value))
     return 0.0
 
 

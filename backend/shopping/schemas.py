@@ -24,6 +24,17 @@ class ShoppingListCollaboratorOut(Schema):
 # --- Item schemas ---
 
 
+class ShoppingItemSourceOut(Schema):
+    """Output schema for a shopping list item source (provenance)."""
+
+    id: int
+    recipe_id: int | None = None
+    recipe_name: str = ""
+    recipe_slug: str = ""
+    meal_label: str = ""
+    quantity_g: float = 0.0
+
+
 class ShoppingListItemOut(Schema):
     """Output schema for a shopping list item."""
 
@@ -40,6 +51,7 @@ class ShoppingListItemOut(Schema):
     note: str = ""
     ingredient_id: int | None = None
     ingredient_slug: str | None = None
+    sources: list[ShoppingItemSourceOut] = []
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str:
@@ -58,6 +70,10 @@ class ShoppingListItemOut(Schema):
         if obj.ingredient:
             return obj.ingredient.slug
         return None
+
+    @staticmethod
+    def resolve_sources(obj) -> list:
+        return obj.sources.all()
 
 
 class ShoppingListItemCreateIn(Schema):
@@ -140,7 +156,7 @@ class ShoppingListDetailOut(Schema):
 
     @staticmethod
     def resolve_items(obj) -> list:
-        return obj.items.select_related("retail_section", "checked_by", "ingredient").all()
+        return obj.items.select_related("retail_section", "checked_by", "ingredient").prefetch_related("sources").all()
 
     @staticmethod
     def resolve_collaborators(obj) -> list:

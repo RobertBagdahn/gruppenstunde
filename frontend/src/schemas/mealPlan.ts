@@ -132,6 +132,14 @@ export type NutritionSummary = z.infer<typeof NutritionSummarySchema>;
 // Shopping List Item
 // ==========================================================================
 
+export const ShoppingItemSourceSchema = z.object({
+  recipe_id: z.number(),
+  recipe_name: z.string().default(''),
+  recipe_slug: z.string().default(''),
+  meal_label: z.string().default(''),
+  quantity_g: z.number().default(0),
+});
+
 export const ShoppingListItemSchema = z.object({
   ingredient_name: z.string(),
   ingredient_slug: z.string().default(''),
@@ -139,6 +147,9 @@ export const ShoppingListItemSchema = z.object({
   unit: z.string(),
   retail_section: z.string(),
   estimated_price_eur: z.number().nullable(),
+  display_quantity: z.string().default(''),
+  natural_portions: z.string().default(''),
+  sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;
 
@@ -150,6 +161,7 @@ export const RecipeSearchResultSchema = z.object({
   id: z.number(),
   title: z.string(),
   slug: z.string(),
+  recipe_type: z.string(),
 });
 export type RecipeSearchResult = z.infer<typeof RecipeSearchResultSchema>;
 

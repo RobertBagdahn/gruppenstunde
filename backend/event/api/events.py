@@ -400,14 +400,7 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
     """Generate an invitation text using AI."""
     require_auth(request)
 
-    from content.services.ai_service import ContentAIService
-
-    ai = ContentAIService()
-    client = ai._get_client()
-
-    if not client:
-        # Fallback when AI is not available
-        return {"invitation_text": _build_fallback_invitation(payload)}
+    from core.services.gemini import gemini_call
 
     booking_info = ""
     if payload.booking_options:
@@ -447,14 +440,18 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
         class InvitationOutput(BaseModel):
             text: str = Field(min_length=100, max_length=5000)
 
-        response = client.models.generate_content(
+        response = gemini_call(
+            user=request.user,
             model="gemini-3.1-flash-lite-preview",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=InvitationOutput,
             ),
+            context="generate_invitation",
         )
+        if response is None:
+            return {"invitation_text": _build_fallback_invitation(payload)}
         result = InvitationOutput.model_validate_json(response.text)
         return {"invitation_text": result.text}
     except Exception:

@@ -6,7 +6,7 @@ from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from ..choices import IngredientStatusChoices, PhysicalViscosityChoices
+from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, RecipeTypeChoices
 from .reference import NutritionalTag, RetailSection
 
 
@@ -63,34 +63,8 @@ class Ingredient(models.Model):
     fructose_g = models.FloatField(null=True, blank=True, verbose_name=_("Fructose (g)"))
     lactose_g = models.FloatField(null=True, blank=True, verbose_name=_("Laktose (g)"))
 
-    # Vitamins per 100g
-    vitamin_a_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin A (mg)"))
-    vitamin_b1_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B1 / Thiamin (mg)"))
-    vitamin_b2_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B2 / Riboflavin (mg)"))
-    vitamin_b6_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B6 / Pyridoxin (mg)"))
-    vitamin_b12_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B12 / Cobalamin (µg)"))
+    # Micronutrients per 100g (only vitamin C retained)
     vitamin_c_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin C (mg)"))
-    vitamin_d_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin D (µg)"))
-    vitamin_e_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin E (mg)"))
-    vitamin_k_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin K (µg)"))
-    niacin_mg = models.FloatField(null=True, blank=True, verbose_name=_("Niacin / Vitamin B3 (mg)"))
-    folate_ug = models.FloatField(null=True, blank=True, verbose_name=_("Folat / Folsäure (µg)"))
-    pantothenic_acid_mg = models.FloatField(null=True, blank=True, verbose_name=_("Pantothensäure / Vitamin B5 (mg)"))
-    biotin_ug = models.FloatField(null=True, blank=True, verbose_name=_("Biotin / Vitamin B7 (µg)"))
-
-    # Minerals per 100g
-    calcium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Calcium (mg)"))
-    iron_mg = models.FloatField(null=True, blank=True, verbose_name=_("Eisen (mg)"))
-    magnesium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Magnesium (mg)"))
-    zinc_mg = models.FloatField(null=True, blank=True, verbose_name=_("Zink (mg)"))
-    potassium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Kalium (mg)"))
-    phosphorus_mg = models.FloatField(null=True, blank=True, verbose_name=_("Phosphor (mg)"))
-    iodine_ug = models.FloatField(null=True, blank=True, verbose_name=_("Jod (µg)"))
-    selenium_ug = models.FloatField(null=True, blank=True, verbose_name=_("Selen (µg)"))
-    copper_mg = models.FloatField(null=True, blank=True, verbose_name=_("Kupfer (mg)"))
-    manganese_mg = models.FloatField(null=True, blank=True, verbose_name=_("Mangan (mg)"))
-    chromium_ug = models.FloatField(null=True, blank=True, verbose_name=_("Chrom (µg)"))
-    fluoride_mg = models.FloatField(null=True, blank=True, verbose_name=_("Fluorid (mg)"))
 
     # Scores
     child_score = models.IntegerField(
@@ -167,6 +141,21 @@ class Ingredient(models.Model):
         related_name="ingredients",
         verbose_name=_("Ernährungstags"),
     )
+    # Standalone food (can be consumed raw without a recipe)
+    is_standalone_food = models.BooleanField(
+        default=False,
+        verbose_name=_("Eigenständig konsumierbar"),
+        help_text=_("Kann roh/direkt gegessen werden (z.B. Obst, Getränke, Süßigkeiten)"),
+    )
+    standalone_type = models.CharField(
+        max_length=20,
+        choices=RecipeTypeChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Standalone-Typ"),
+        help_text=_("Mahlzeittyp wenn eigenständig konsumiert"),
+    )
+
     status = models.CharField(
         max_length=20,
         choices=IngredientStatusChoices.choices,

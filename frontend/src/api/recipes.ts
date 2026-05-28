@@ -16,6 +16,7 @@ import {
   ImprovementListSchema,
   LlmSuggestionSchema,
   RecipeFolderSchema,
+  AiIngredientSuggestionSchema,
   type RecipeFilter,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
@@ -568,6 +569,74 @@ export function useUpdateVisibility(recipeId: number) {
       ),
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+// ==========================================================================
+// AI Ingredient Suggestions
+// ==========================================================================
+
+export function useAiSuggestIngredients(recipeId: number) {
+  return useMutation({
+    mutationFn: () =>
+      postJson(
+        `${API_BASE}/${recipeId}/ai-suggest-ingredients/`,
+        {},
+        z.array(AiIngredientSuggestionSchema),
+      ),
+  });
+}
+
+export function useAiApplyIngredients(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (items: Array<{
+      ingredient_id: number;
+      portion_id: number | null;
+      quantity: number;
+      measuring_unit_id: number | null;
+    }>) =>
+      postJson(
+        `${API_BASE}/${recipeId}/ai-apply-ingredients/`,
+        items,
+        z.array(RecipeItemSchema),
+      ),
+    onSuccess: () => {
+      invalidateRecipeData(queryClient, recipeId);
+    },
+  });
+}
+
+// ==========================================================================
+// AI Recipe Suggest & Create
+// ==========================================================================
+
+export function useAiSuggestRecipeAll(recipeId: number) {
+  return useMutation({
+    mutationFn: async () => {
+      const { RecipeSuggestAllSchema } = await import('@/schemas/recipe');
+      return postJson(
+        `${API_BASE}/${recipeId}/ai-suggest-all/`,
+        {},
+        RecipeSuggestAllSchema,
+      );
+    },
+  });
+}
+
+export function useAiCreateRecipe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { title: string; description?: string }) => {
+      return postJson(
+        `${API_BASE}/ai-create/`,
+        params,
+        RecipeDetailSchema,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
   });
 }

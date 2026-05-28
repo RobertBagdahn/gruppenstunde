@@ -47,20 +47,7 @@ IngredientAlias SHALL remain directly linked to Ingredient. The model stores alt
 ### Requirement: Ingredient nutritional values and scores
 Ingredient SHALL store all nutritional values per 100g directly on the model: energy_kj, protein_g, fat_g, fat_sat_g, carbohydrate_g, sugar_g, fibre_g, salt_g, sodium_mg, fructose_g, lactose_g. Scores SHALL include: nutri_score (points), nutri_class (1-5), child_score, scout_score, environmental_score, nova_score, fruit_factor.
 
-In addition to the existing 11 macronutrient fields, the model SHALL include:
-
-**Vitamins (13 fields, all nullable FloatField):**
-- `vitamin_a_mg`, `vitamin_b1_mg`, `vitamin_b2_mg`, `vitamin_b6_mg`, `vitamin_b12_ug`
-- `vitamin_c_mg`, `vitamin_d_ug`, `vitamin_e_mg`, `vitamin_k_ug`
-- `niacin_mg`, `folate_ug`, `pantothenic_acid_mg`, `biotin_ug`
-
-**Minerals (12 fields, all nullable FloatField):**
-- `calcium_mg`, `iron_mg`, `magnesium_mg`, `zinc_mg`, `potassium_mg`, `phosphorus_mg`
-- `iodine_ug`, `selenium_ug`, `copper_mg`, `manganese_mg`, `chromium_ug`, `fluoride_mg`
-
-All new fields SHALL default to NULL and be grouped in separate Admin fieldsets:
-- "Vitamine" fieldset with all 13 vitamin fields
-- "Mineralstoffe" fieldset with all 12 mineral fields
+In addition to the existing 11 macronutrient fields, the model SHALL include exactly one micronutrient: `vitamin_c_mg` (nullable FloatField, default NULL). All other vitamin and mineral fields SHALL be removed.
 
 #### Scenario: Ingredient with full nutritional profile
 - **WHEN** an Ingredient is viewed on its detail page
@@ -68,30 +55,20 @@ All new fields SHALL default to NULL and be grouped in separate Admin fieldsets:
 - **THEN** Nutri-Score class SHALL be shown as a colored badge (A-E)
 - **THEN** all scores SHALL be displayed with visual indicators
 
-#### Scenario: Create ingredient with vitamin data
-- **WHEN** a POST request to `/api/ingredients/` includes vitamin_c_mg=53.0 and iron_mg=0.7
-- **THEN** the ingredient SHALL be created with those values stored
+#### Scenario: AI ingredient import
+- **WHEN** the AI service creates/enriches an ingredient
+- **THEN** only macros and `vitamin_c_mg` are requested and stored
 
-#### Scenario: Update ingredient mineral data
-- **WHEN** a PATCH request to `/api/ingredients/{slug}/` includes calcium_mg=120
-- **THEN** the ingredient's calcium_mg SHALL be updated to 120 and a nutri-score recalculation SHALL be triggered
+#### Scenario: Ingredient schema validation
+- **WHEN** an ingredient is submitted via API
+- **THEN** only macros and `vitamin_c_mg` are accepted as nutritional fields
 
-#### Scenario: Admin views ingredient with full nutrition
-- **WHEN** an admin views an Ingredient in Django admin
-- **THEN** the admin SHALL see four fieldsets: "Nährwerte pro 100g" (Big 7 + Ballaststoffe), "Vitamine", "Mineralstoffe", and "Sonstiges" (fructose, lactose, fruit_factor)
+### Requirement: DGE reference values
+The DGE reference model and static data SHALL only include `vitamin_c_mg` as micronutrient reference. All other vitamin/mineral reference fields SHALL be removed.
 
-### Requirement: Ingredient API schemas include micronutrients
-The `IngredientDetailOut` schema SHALL include all 25 new micronutrient fields (13 vitamins + 12 minerals) as optional float fields. The `IngredientCreateIn` and `IngredientUpdateIn` schemas SHALL also accept these fields as optional inputs.
-
-The `IngredientListOut` schema SHALL NOT include micronutrient fields (to keep list responses lightweight).
-
-#### Scenario: Ingredient detail returns vitamins
-- **WHEN** a GET request is made to `/api/ingredients/{slug}/` for an ingredient with vitamin_c_mg=53.0
-- **THEN** the response SHALL include `vitamin_c_mg: 53.0` and all other null vitamin fields as `null`
-
-#### Scenario: Ingredient list does not return vitamins
-- **WHEN** a GET request is made to `/api/ingredients/`
-- **THEN** the response items SHALL NOT contain vitamin or mineral fields
+#### Scenario: Norm portion calculation
+- **WHEN** norm portion nutritional targets are calculated
+- **THEN** only `vitamin_c_mg` is included as micronutrient target
 
 ## ADDED Requirements
 
@@ -176,3 +153,34 @@ The ingredient API response schema SHALL include `created_by_id: int | null`.
 #### Scenario: Ingredient detail response
 - **WHEN** a client fetches `GET /api/ingredients/{slug}/`
 - **THEN** the response MUST include `created_by_id` (integer or null)
+
+### Requirement: REWE Artikelnummer über API exponieren
+Das Feld `nan_art_id_rewe` wird in den API-Response- und Request-Schemas für Ingredients aufgenommen.
+
+#### Scenario: Ingredient abrufen mit REWE Artikelnummer
+- **WHEN** ein Ingredient mit gesetzter `nan_art_id_rewe` über GET `/api/supply/ingredients/{id}` abgerufen wird
+- **THEN** enthält die Response das Feld `nan_art_id_rewe` mit dem gespeicherten Wert
+
+#### Scenario: Ingredient ohne REWE Artikelnummer
+- **WHEN** ein Ingredient ohne `nan_art_id_rewe` abgerufen wird
+- **THEN** ist `nan_art_id_rewe` im Response `null`
+
+#### Scenario: Ingredient erstellen/bearbeiten mit REWE Artikelnummer
+- **WHEN** ein Ingredient via POST/PATCH mit `nan_art_id_rewe` erstellt/bearbeitet wird
+- **THEN** wird der Wert gespeichert
+
+### Requirement: REWE Artikelnummer im UI anzeigen
+
+#### Scenario: Detail-Seite mit REWE Artikelnummer
+- **WHEN** ein Ingredient mit `nan_art_id_rewe` auf der Detail-Seite angezeigt wird
+- **THEN** erscheint im Referenzen-Block eine Zeile "REWE Artikelnr." mit dem Wert
+
+#### Scenario: Detail-Seite ohne REWE Artikelnummer
+- **WHEN** `nan_art_id_rewe` null ist
+- **THEN** wird die Zeile nicht angezeigt
+
+### Requirement: REWE Artikelnummer im Formular editierbar
+
+#### Scenario: Create/Edit-Formular
+- **WHEN** das Ingredient-Formular angezeigt wird
+- **THEN** gibt es ein Eingabefeld für "REWE Artikelnr." im Referenzen-Abschnitt

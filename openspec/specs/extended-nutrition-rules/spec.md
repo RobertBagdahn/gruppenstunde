@@ -91,38 +91,7 @@ The system SHALL provide at least the following RecipeHint rules for macronutrie
 - **WHEN** a recipe has balanced macronutrient values within all thresholds
 - **THEN** the system SHALL return no warning or error level hints
 
-### Requirement: RecipeHint rules for vitamins
-The system SHALL provide RecipeHint rules for vitamin coverage evaluation. These rules evaluate the per-serving vitamin content against DGE reference percentages:
 
-| Name | Parameter | Min/Max | Value | Level | Objective | Improvement Text |
-|------|-----------|---------|-------|-------|-----------|------------------|
-| Wenig Vitamin C | vitamin_c_mg | min | 10 | warning | health | Ergänze Vitamin-C-reiche Zutaten wie Paprika, Brokkoli, Zitrusfrüchte oder Petersilie. |
-| Kein Vitamin C | vitamin_c_mg | min | 2 | error | health | Das Rezept enthält fast kein Vitamin C. Füge frisches Obst oder rohes Gemüse hinzu. |
-| Wenig Vitamin A | vitamin_a_mg | min | 0.1 | warning | health | Ergänze Vitamin-A-reiche Zutaten wie Karotten, Süßkartoffeln, Spinat oder Kürbis. |
-| Wenig Vitamin D | vitamin_d_ug | min | 1.0 | info | health | Vitamin-D-reiche Lebensmittel wie fetter Fisch, Eier oder Pilze können den Gehalt erhöhen. |
-| Wenig Vitamin B12 | vitamin_b12_ug | min | 0.5 | warning | health | Vitamin B12 kommt nur in tierischen Produkten vor. Bei veganen Rezepten ggf. angereicherte Lebensmittel verwenden. |
-| Wenig Folat | folate_ug | min | 30 | warning | health | Ergänze folatreiche Zutaten wie Blattgemüse, Hülsenfrüchte, Vollkornprodukte oder Nüsse. |
-
-#### Scenario: Vegan recipe triggers B12 hint
-- **WHEN** a vegan recipe has `vitamin_b12_ug < 0.5` per serving
-- **THEN** the system SHALL return a hint suggesting fortified foods
-
-### Requirement: RecipeHint rules for minerals
-The system SHALL provide RecipeHint rules for mineral coverage evaluation:
-
-| Name | Parameter | Min/Max | Value | Level | Objective | Improvement Text |
-|------|-----------|---------|-------|-------|-----------|------------------|
-| Wenig Calcium | calcium_mg | min | 100 | warning | health | Ergänze calciumreiche Zutaten wie Milchprodukte, Brokkoli, Sesam oder angereicherte Pflanzendrinks. |
-| Sehr wenig Calcium | calcium_mg | min | 30 | error | health | Das Rezept enthält kaum Calcium. Für Kinder und Jugendliche ist Calcium essenziell für den Knochenaufbau. |
-| Wenig Eisen | iron_mg | min | 2.0 | warning | health | Ergänze eisenreiche Zutaten wie Hülsenfrüchte, Vollkornprodukte, Haferflocken oder dunkelgrünes Blattgemüse. Vitamin C verbessert die Eisenaufnahme. |
-| Sehr wenig Eisen | iron_mg | min | 0.5 | error | health | Der Eisengehalt ist sehr niedrig. Besonders für Jugendliche ist eine gute Eisenversorgung wichtig. |
-| Wenig Magnesium | magnesium_mg | min | 30 | warning | health | Ergänze magnesiumreiche Zutaten wie Nüsse, Samen, Vollkornprodukte oder Bananen. |
-| Wenig Zink | zinc_mg | min | 1.0 | warning | health | Ergänze zinkreiche Zutaten wie Kürbiskerne, Linsen, Haferflocken oder Käse. |
-| Wenig Kalium | potassium_mg | min | 200 | warning | health | Ergänze kaliumreiche Zutaten wie Bananen, Kartoffeln, Tomaten oder Hülsenfrüchte. Besonders wichtig bei sportlicher Aktivität. |
-
-#### Scenario: Recipe low in calcium triggers warning
-- **WHEN** a recipe has `calcium_mg < 100` per serving
-- **THEN** the system SHALL return a hint about calcium-rich ingredients
 
 ### Requirement: RecipeHint rules differentiated by recipe type
 RecipeHint rules MAY be filtered by `recipe_type`. The system SHALL apply type-specific thresholds:
@@ -163,23 +132,16 @@ The RecipeHint model SHALL have an `improvement_text` field (TextField, blank=Tr
 - **THEN** the API response SHALL include both the hint description and the improvement_text
 
 ### Requirement: Extended HealthRules for cockpit
-The system SHALL provide HealthRules for the cockpit dashboard covering vitamins and minerals in addition to macronutrients. New HealthRules:
+The system SHALL provide HealthRules for the cockpit dashboard covering macronutrients and vitamin_c_mg. New HealthRules:
 
 **Day scope:**
 | Name | Parameter | Green | Yellow | Unit | Tip Text |
 |------|-----------|-------|--------|------|----------|
 | Vitamin C pro Tag | vitamin_c_mg | 60 | 30 | mg | Mehr frisches Obst und Gemüse einplanen, z.B. Paprika oder Orangensaft zum Frühstück. |
-| Calcium pro Tag | calcium_mg | 800 | 400 | mg | Milchprodukte oder calciumreiche Alternativen wie Sesam und Brokkoli einplanen. |
-| Eisen pro Tag | iron_mg | 10 | 5 | mg | Eisenreiche Lebensmittel wie Haferflocken und Hülsenfrüchte einplanen. Vitamin-C-haltige Beilage verbessert die Aufnahme. |
 | Ballaststoffe pro Tag | fibre_g | 25 | 15 | g | Mehr Vollkornprodukte, Gemüse und Hülsenfrüchte einplanen. |
 | Protein pro Tag | protein_g | 46 | 30 | g | Ausreichend Proteinquellen über den Tag verteilen: Milchprodukte, Hülsenfrüchte, Eier. |
 | Fett pro Tag | fat_g | 70 | 90 | g | Fettgehalt der Mahlzeiten prüfen. Frittiertes und Sahnesoßen reduzieren. |
 | Salz pro Tag | salt_g | 5 | 8 | g | Weniger salzige Fertigprodukte und mehr frisch kochen. |
-| Vitamin A pro Tag | vitamin_a_mg | 0.8 | 0.4 | mg | Karotten, Süßkartoffeln oder Spinat einplanen. |
-| Folat pro Tag | folate_ug | 300 | 150 | µg | Blattgemüse, Hülsenfrüchte oder Vollkornprodukte einplanen. |
-| Magnesium pro Tag | magnesium_mg | 300 | 150 | mg | Nüsse, Samen und Vollkornprodukte sind gute Magnesiumquellen. |
-| Kalium pro Tag | potassium_mg | 3000 | 1500 | mg | Bananen, Kartoffeln und Hülsenfrüchte einplanen. Wichtig bei sportlicher Aktivität. |
-| Zink pro Tag | zinc_mg | 8 | 4 | mg | Kürbiskerne, Haferflocken oder Käse als Zinkquellen einplanen. |
 
 **Meal scope (additional):**
 | Name | Parameter | Green | Yellow | Unit | Tip Text |
@@ -203,52 +165,7 @@ The system SHALL provide HealthRules for the cockpit dashboard covering vitamins
 
 ## ADDED Requirements
 
-### Requirement: Vitamin fields on Ingredient model
-The system SHALL store 13 vitamin values per Ingredient as nullable FloatFields (per 100g):
-- `vitamin_a_mg` (Retinol-Äquivalent)
-- `vitamin_b1_mg` (Thiamin)
-- `vitamin_b2_mg` (Riboflavin)
-- `vitamin_b6_mg` (Pyridoxin)
-- `vitamin_b12_ug` (Cobalamin, in Mikrogramm)
-- `vitamin_c_mg` (Ascorbinsäure)
-- `vitamin_d_ug` (Calciferol, in Mikrogramm)
-- `vitamin_e_mg` (Tocopherol)
-- `vitamin_k_ug` (Phyllochinon, in Mikrogramm)
-- `niacin_mg` (Vitamin B3)
-- `folate_ug` (Folat/Folsäure, in Mikrogramm)
-- `pantothenic_acid_mg` (Pantothensäure, Vitamin B5)
-- `biotin_ug` (Vitamin B7, in Mikrogramm)
 
-All fields SHALL default to NULL (unknown) rather than 0 (zero content).
-
-#### Scenario: Ingredient with complete vitamin data
-- **WHEN** an Ingredient has all 13 vitamin fields populated
-- **THEN** all values SHALL be returned in the API response as floats
-
-#### Scenario: Ingredient with partial vitamin data
-- **WHEN** an Ingredient has only some vitamin fields populated
-- **THEN** populated fields SHALL return their float values and unpopulated fields SHALL return null
-
-### Requirement: Mineral fields on Ingredient model
-The system SHALL store 12 mineral values per Ingredient as nullable FloatFields (per 100g):
-- `calcium_mg`
-- `iron_mg` (Eisen)
-- `magnesium_mg`
-- `zinc_mg` (Zink)
-- `potassium_mg` (Kalium)
-- `phosphorus_mg` (Phosphor)
-- `iodine_ug` (Jod, in Mikrogramm)
-- `selenium_ug` (Selen, in Mikrogramm)
-- `copper_mg` (Kupfer)
-- `manganese_mg` (Mangan)
-- `chromium_ug` (Chrom, in Mikrogramm)
-- `fluoride_mg` (Fluorid)
-
-All fields SHALL default to NULL (unknown) rather than 0 (zero content).
-
-#### Scenario: Ingredient with mineral data
-- **WHEN** an Ingredient has mineral fields populated
-- **THEN** all populated values SHALL be returned in the API response
 
 ### Requirement: DGE reference values as database model
 The system SHALL provide a `DgeReference` model in the supply app with the following fields:
@@ -256,8 +173,7 @@ The system SHALL provide a `DgeReference` model in the supply app with the follo
 - `age_max` (IntegerField) — Upper bound of age group
 - `gender` (CharField) — "male" or "female"
 - All macronutrient reference values: energy_kj, protein_g, fat_g, carbohydrate_g, fibre_g
-- All vitamin reference values: vitamin_a_mg, vitamin_b1_mg, vitamin_b2_mg, vitamin_b6_mg, vitamin_b12_ug, vitamin_c_mg, vitamin_d_ug, vitamin_e_mg, vitamin_k_ug, niacin_mg, folate_ug, pantothenic_acid_mg, biotin_ug
-- All mineral reference values: calcium_mg, iron_mg, magnesium_mg, zinc_mg, potassium_mg, phosphorus_mg, iodine_ug, selenium_ug, copper_mg, manganese_mg, chromium_ug, fluoride_mg
+- Micronutrient reference: vitamin_c_mg
 - `sugar_g_max` (FloatField) — Maximum recommended sugar per day
 - `salt_g_max` (FloatField) — Maximum recommended salt per day
 - `fat_sat_g_max` (FloatField) — Maximum recommended saturated fat per day
@@ -277,29 +193,26 @@ The model SHALL be admin-manageable and initially seeded with official DGE D-A-C
 - **WHEN** an admin modifies a DGE reference value in the Django admin
 - **THEN** the updated value SHALL be used in all subsequent DGE calculations
 
-### Requirement: Denormalized vitamin/mineral cache on Recipe
-The system SHALL maintain denormalized cache fields on Recipe for the 10 most important micronutrients (per serving, aggregated from RecipeItems):
-- `cached_vitamin_a_mg`, `cached_vitamin_c_mg`, `cached_vitamin_d_ug`, `cached_vitamin_b12_ug`
-- `cached_calcium_mg`, `cached_iron_mg`, `cached_magnesium_mg`, `cached_zinc_mg`, `cached_potassium_mg`
-- `cached_folate_ug`
 
-These cache fields SHALL be recalculated whenever a RecipeItem is added, updated, or deleted.
-
-#### Scenario: Recipe cache recalculation
-- **WHEN** a RecipeItem is saved or deleted on a Recipe with Ingredients that have vitamin/mineral data
-- **THEN** the Recipe's `cached_vitamin_*` and `cached_mineral_*` fields SHALL be recalculated by summing the weighted values from all RecipeItems
-
-#### Scenario: Ingredient with missing micronutrient data
-- **WHEN** a RecipeItem references an Ingredient where some vitamin/mineral fields are NULL
-- **THEN** those NULL fields SHALL be excluded from the sum (treated as 0 for aggregation purposes) and the cache field SHALL reflect only the known values
 
 ### Requirement: Extended nutrition breakdown API
-The nutrition breakdown endpoint (`GET /api/recipes/{id}/nutrition-breakdown/`) SHALL include vitamin and mineral data in addition to macronutrients. Each RecipeItemNutritionOut SHALL include all 25 micronutrient fields (vitamins + minerals). The totals SHALL include per-serving values and DGE percentage coverage.
+The nutrition breakdown endpoint (`GET /api/recipes/{id}/nutrition-breakdown/`) SHALL include vitamin_c_mg data in addition to macronutrients. The totals SHALL include per-serving values and DGE percentage coverage for vitamin_c_mg.
 
 #### Scenario: Nutrition breakdown with DGE coverage
 - **WHEN** a GET request is made to `/api/recipes/{id}/nutrition-breakdown/` with optional query parameter `age=14&gender=male`
-- **THEN** the response SHALL include a `dge_coverage` object with percentage values for each nutrient relative to the DGE reference for the specified age/gender group
+- **THEN** the response SHALL include a `dge_coverage` object with percentage values for macronutrients and vitamin_c_mg relative to the DGE reference for the specified age/gender group
 
 #### Scenario: Nutrition breakdown without age parameter
 - **WHEN** a GET request is made to `/api/recipes/{id}/nutrition-breakdown/` without age/gender parameters
 - **THEN** the response SHALL use the default age group 13-14 male (typical Pfadfinder) for DGE coverage calculation
+
+### Requirement: Tracked micronutrients
+The system SHALL track only `vitamin_c_mg` as micronutrient field on Ingredient and Recipe models. All other vitamin and mineral fields (vitamin_a, vitamin_b1, vitamin_b2, vitamin_b6, vitamin_b12, vitamin_d, vitamin_e, vitamin_k, niacin, folate, pantothenic_acid, biotin, calcium, iron, magnesium, zinc, potassium, phosphorus, iodine, selenium, copper, manganese, chromium, fluoride) SHALL be removed.
+
+#### Scenario: Ingredient has only vitamin_c as micronutrient
+- **WHEN** an Ingredient is created or edited
+- **THEN** only `vitamin_c_mg` is available as micronutrient field (beyond macros)
+
+#### Scenario: Cockpit evaluates only vitamin_c rules
+- **WHEN** the cockpit evaluates micronutrient HealthRules for a day
+- **THEN** only rules with parameter `vitamin_c_mg` are evaluated

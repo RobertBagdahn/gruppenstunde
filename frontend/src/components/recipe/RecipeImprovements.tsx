@@ -21,6 +21,12 @@ const DIRECTION_META: Record<string, { label: string; icon: string; color: strin
   increase: { label: 'Erhöhen', icon: 'arrow_upward', color: 'text-green-600' },
 };
 
+const HINT_LEVEL_STYLES: Record<string, { border: string; bar: string }> = {
+  error: { border: 'border-red-300 bg-red-50', bar: 'bg-red-400' },
+  warn: { border: 'border-amber-300 bg-amber-50', bar: 'bg-amber-400' },
+  info: { border: 'border-blue-200 bg-blue-50', bar: 'bg-blue-400' },
+};
+
 function computeProgressPct(improvement: Improvement): number {
   const { current_value, threshold_value, direction } = improvement;
   if (threshold_value <= 0) return 0;
@@ -76,10 +82,17 @@ export default function RecipeImprovements({ recipeId, breakdownItems }: RecipeI
           const dir = DIRECTION_META[imp.direction] ?? DIRECTION_META.reduce;
           const progressPct = computeProgressPct(imp);
           const canShowDetails = imp.source !== 'nutri_score';
+          const levelStyle = HINT_LEVEL_STYLES[imp.hint_level];
+          const cardClass = levelStyle
+            ? `rounded-xl border p-4 space-y-3 ${levelStyle.border}`
+            : 'rounded-xl border bg-card p-4 space-y-3';
+          const barClass = levelStyle
+            ? `h-full rounded-full ${levelStyle.bar}`
+            : `h-full rounded-full ${imp.direction === 'reduce' ? 'bg-red-400' : 'bg-green-400'}`;
           return (
             <div
               key={`${imp.parameter}-${idx}`}
-              className="rounded-xl border bg-card p-4 space-y-3"
+              className={cardClass}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -106,7 +119,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems }: RecipeI
               {/* Progress bar toward threshold */}
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${imp.direction === 'reduce' ? 'bg-red-400' : 'bg-green-400'}`}
+                  className={barClass}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>

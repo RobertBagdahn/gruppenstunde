@@ -15,6 +15,8 @@ from django.core.cache import cache
 from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
+from core.services.gemini import gemini_call
+
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
 
@@ -47,35 +49,6 @@ class SuggestionsOutput(BaseModel):
         default_factory=list,
         description="Liste mit 3 Zutat-Vorschlägen zur Rezeptverbesserung",
     )
-
-
-# ---------------------------------------------------------------------------
-# Gemini client singleton
-# ---------------------------------------------------------------------------
-
-_client = None
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        try:
-            from google import genai
-
-            project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-            location = getattr(settings, "VERTEX_AI_LOCATION", "global")
-
-            if project:
-                _client = genai.Client(
-                    vertexai=True,
-                    project=project,
-                    location=location,
-                )
-            else:
-                logger.warning("GOOGLE_CLOUD_PROJECT not set — AI features disabled")
-        except ImportError:
-            logger.warning("google-genai not installed — AI features disabled")
-    return _client
 
 
 # ---------------------------------------------------------------------------
@@ -207,15 +180,11 @@ def get_suggestions(recipe: Recipe, objective: str, user: AbstractUser) -> list[
     )
 
     # --- Call Gemini ---
-    client = _get_client()
-    if not client:
-        logger.warning("Gemini client not available — returning empty suggestions")
-        return []
-
     try:
         from google.genai import types
 
-        response = client.models.generate_content(
+        response = gemini_call(
+            user=user,
             model=GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -223,7 +192,11 @@ def get_suggestions(recipe: Recipe, objective: str, user: AbstractUser) -> list[
                 response_schema=SuggestionsOutput,
                 http_options=types.HttpOptions(timeout=AI_TIMEOUT_MS),
             ),
+            context="recipe_suggestions",
         )
+        if response is None:
+            logger.warning("Gemini client not available — returning empty suggestions")
+            return []
         result = SuggestionsOutput.model_validate_json(response.text)
         suggestions = [item.model_dump() for item in result.suggestions]
     except Exception:

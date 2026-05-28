@@ -17,14 +17,17 @@ from .reference import (
 )
 from .ingredients import (
     AliasCreateIn,
+    IngredientAiCreateIn,
     IngredientAliasOut,
     IngredientCreateIn,
     IngredientDetailOut,
     IngredientListOut,
+    IngredientSuggestAllOut,
     IngredientUpdateIn,
     PaginatedIngredientOut,
     PortionCreateIn,
     PortionOut,
+    PortionSuggestionOut,
     PortionUpdateIn,
 )
 from .norm_person import (
@@ -41,10 +44,12 @@ __all__ = [
     "ContentMaterialItemOut",
     "DgeReferenceOut",
     "DgeReferencePointOut",
+    "IngredientAiCreateIn",
     "IngredientAliasOut",
     "IngredientCreateIn",
     "IngredientDetailOut",
     "IngredientListOut",
+    "IngredientSuggestAllOut",
     "IngredientUpdateIn",
     "MaterialCreateIn",
     "MaterialListOut",
@@ -60,6 +65,7 @@ __all__ = [
     "PaginatedMaterialOut",
     "PortionCreateIn",
     "PortionOut",
+    "PortionSuggestionOut",
     "PortionUpdateIn",
     "RetailSectionOut",
 ]

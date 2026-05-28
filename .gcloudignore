@@ -2,11 +2,10 @@ __pycache__/
 .venv/
 venv/
 node_modules/
-frontend/
+# frontend/ — needed for frontend builds
 .git/
 .gitignore
 *.md
 *.ipynb
 .env*
 docker-compose.yml
-Dockerfile.*

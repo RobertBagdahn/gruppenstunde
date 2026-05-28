@@ -82,6 +82,15 @@ class Recipe(Content):
         help_text=_("Optionaler Ordner für persönliche Rezepte"),
     )
 
+    # --- Source URL (for imported recipes) ---
+    source_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default="",
+        verbose_name=_("Quell-URL"),
+        help_text=_("Original-URL bei importierten Rezepten"),
+    )
+
     # --- Cached nutritional values (denormalized, per-100g of total recipe) ---
     cached_energy_kj = models.FloatField(null=True, blank=True, verbose_name=_("Energie (kJ, cached)"))
     cached_protein_g = models.FloatField(null=True, blank=True, verbose_name=_("Eiweiß (g, cached)"))
@@ -104,16 +113,7 @@ class Recipe(Content):
         verbose_name=_("Gesamtpreis (cached)"),
     )
     # --- Cached micronutrient values (denormalized, per serving) ---
-    cached_vitamin_a_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin A (mg, cached)"))
     cached_vitamin_c_mg = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin C (mg, cached)"))
-    cached_vitamin_d_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin D (µg, cached)"))
-    cached_vitamin_b12_ug = models.FloatField(null=True, blank=True, verbose_name=_("Vitamin B12 (µg, cached)"))
-    cached_calcium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Calcium (mg, cached)"))
-    cached_iron_mg = models.FloatField(null=True, blank=True, verbose_name=_("Eisen (mg, cached)"))
-    cached_magnesium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Magnesium (mg, cached)"))
-    cached_zinc_mg = models.FloatField(null=True, blank=True, verbose_name=_("Zink (mg, cached)"))
-    cached_potassium_mg = models.FloatField(null=True, blank=True, verbose_name=_("Kalium (mg, cached)"))
-    cached_folate_ug = models.FloatField(null=True, blank=True, verbose_name=_("Folat (µg, cached)"))
     cached_at = models.DateTimeField(
         null=True,
         blank=True,

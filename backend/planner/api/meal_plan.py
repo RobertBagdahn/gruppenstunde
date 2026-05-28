@@ -437,6 +437,10 @@ def shopping_list(request, meal_plan_id: int):
             estimated_price_eur=item.estimated_price_eur,
             display_quantity=item.display_quantity,
             natural_portions=item.natural_portions,
+            sources=[
+                {"recipe_id": s.recipe_id, "recipe_name": s.recipe_name, "recipe_slug": s.recipe_slug, "meal_label": s.meal_label, "quantity_g": s.quantity_g}
+                for s in (item.sources or [])
+            ],
         )
         for item in items
     ]
@@ -447,17 +451,80 @@ def shopping_list(request, meal_plan_id: int):
 # ==========================================================================
 
 
-@meal_plan_router.get("/recipes/search/", response=list[dict])
-def search_recipes(request, q: str = ""):
-    """Search for recipes to add to meals."""
+@meal_plan_router.get("/recipes/search/", response=dict)
+def search_recipes(
+    request,
+    q: str = "",
+    recipe_type: str | None = None,
+    nutritional_tag_ids: str | None = None,
+    limit: int = 8,
+):
+    """Search for recipes and standalone ingredients to add to meals."""
     _require_auth(request)
 
-    qs = Recipe.objects.filter(status="published")
-    if q:
-        qs = qs.filter(title__icontains=q)
+    limit = min(limit, 50)
 
-    qs = qs.values("id", "title", "slug")[:20]
-    return list(qs)
+    # --- Recipes ---
+    qs = Recipe.objects.filter(status="approved")
+
+    if q and len(q) >= 2:
+        from django.contrib.postgres.search import SearchQuery, SearchRank
+
+        search_query = SearchQuery(q, config="german")
+        qs_fts = qs.filter(search_vector=search_query).annotate(
+            rank=SearchRank("search_vector", search_query)
+        )
+        if qs_fts.exists():
+            qs = qs_fts.order_by("-rank")
+        else:
+            qs = qs.filter(title__icontains=q)
+
+    if recipe_type:
+        qs = qs.filter(recipe_type=recipe_type)
+
+    if nutritional_tag_ids:
+        tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        for tag_id in tag_ids:
+            qs = qs.filter(nutritional_tags__id=tag_id)
+
+    recipes = list(qs.values("id", "title", "slug", "recipe_type")[:limit])
+
+    # --- Standalone Ingredients ---
+    from supply.models import Ingredient, Portion
+
+    ing_qs = Ingredient.objects.filter(is_standalone_food=True)
+
+    if q and len(q) >= 2:
+        ing_qs = ing_qs.filter(name__icontains=q)
+
+    if recipe_type:
+        ing_qs = ing_qs.filter(standalone_type=recipe_type)
+
+    if nutritional_tag_ids:
+        tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        for tag_id in tag_ids:
+            ing_qs = ing_qs.filter(nutritional_tags__id=tag_id)
+
+    ing_list = list(ing_qs.values("id", "name", "slug", "standalone_type")[:limit])
+
+    # Attach portions to each ingredient
+    if ing_list:
+        ing_ids = [i["id"] for i in ing_list]
+        portions = Portion.objects.filter(ingredient_id__in=ing_ids).select_related("measuring_unit")
+        portions_by_ing: dict[int, list[dict]] = {}
+        for p in portions:
+            portions_by_ing.setdefault(p.ingredient_id, []).append({
+                "id": p.id,
+                "name": p.name,
+                "measuring_unit": p.measuring_unit.name if p.measuring_unit else None,
+                "measuring_unit_id": p.measuring_unit_id,
+                "quantity": float(p.quantity) if p.quantity else None,
+                "weight_g": float(p.weight_g) if p.weight_g else None,
+            })
+        for ing in ing_list:
+            ing["portions"] = portions_by_ing.get(ing["id"], [])
+
+    return {"recipes": recipes, "ingredients": ing_list}
 
 
 # ==========================================================================

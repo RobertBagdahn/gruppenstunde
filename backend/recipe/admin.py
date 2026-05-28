@@ -31,23 +31,24 @@ class RecipeAdmin(ContentApprovalMixin, admin.ModelAdmin):
 
 @admin.register(RecipeHint)
 class RecipeHintAdmin(admin.ModelAdmin):
-    list_display = ("name", "parameter", "min_max", "hint_level", "recipe_type", "recipe_objective")
+    list_display = ("name", "hint", "parameter", "value", "min_max", "hint_level", "recipe_type", "recipe_objective")
     list_filter = ("hint_level", "parameter", "min_max", "recipe_type", "recipe_objective")
-    search_fields = ("name", "description", "improvement_text")
+    search_fields = ("name", "hint", "description", "improvement_text")
     list_editable = ("hint_level",)
     list_per_page = 50
 
 
 @admin.register(HealthRule)
 class HealthRuleAdmin(admin.ModelAdmin):
-    list_display = ("name", "parameter", "scope", "threshold_green", "threshold_yellow", "unit", "is_active")
+    list_display = ("name", "parameter", "scope", "min_green", "max_green", "unit", "is_active")
     list_filter = ("scope", "parameter", "is_active")
     search_fields = ("name", "description", "tip_text")
-    list_editable = ("threshold_green", "threshold_yellow", "is_active")
+    list_editable = ("min_green", "max_green", "is_active")
     list_per_page = 50
     fieldsets = (
         (None, {"fields": ("name", "description", "is_active", "sort_order")}),
         ("Regel", {"fields": ("parameter", "scope", "unit")}),
-        ("Schwellenwerte", {"fields": ("threshold_green", "threshold_yellow")}),
+        ("Schwellenwerte Minimum", {"fields": ("min_green", "min_yellow")}),
+        ("Schwellenwerte Maximum", {"fields": ("max_green", "max_yellow")}),
         ("Anzeige", {"fields": ("tip_text",)}),
     )

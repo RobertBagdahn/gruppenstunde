@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
 import {
   usePackingList,
@@ -1336,13 +1337,7 @@ export default function PackingListDetailPage() {
       />
 
       {/* Back link */}
-      <button
-        onClick={() => navigate('/packing-lists')}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition"
-      >
-        <span className="material-symbols-outlined text-lg">arrow_back</span>
-        Alle Packlisten
-      </button>
+      <BackButton to="/packing-lists" />
 
       {/* Template badge */}
       {isTemplate && (

@@ -34,8 +34,8 @@ class TestCockpitService:
             name="Test Energy",
             parameter="energy_kj",
             scope="meal",
-            threshold_green=5000.0,
-            threshold_yellow=10000.0,
+            max_green=5000.0,
+            max_yellow=10000.0,
         )
         result = evaluate_meal_cockpit(meal)
         assert len(result["evaluations"]) == 1
@@ -52,8 +52,8 @@ class TestCockpitService:
             name="Day Energy",
             parameter="energy_kj",
             scope="day",
-            threshold_green=9000.0,
-            threshold_yellow=12000.0,
+            max_green=9000.0,
+            max_yellow=12000.0,
         )
         result = evaluate_day_cockpit(meal_plan, today)
         assert len(result["evaluations"]) == 1
@@ -67,8 +67,8 @@ class TestCockpitService:
             name="Event Nutri",
             parameter="nutri_class",
             scope="meal_event",
-            threshold_green=2.5,
-            threshold_yellow=3.5,
+            max_green=2.5,
+            max_yellow=3.5,
         )
         result = evaluate_meal_plan_cockpit(meal_plan)
         assert len(result["evaluations"]) == 1
@@ -93,8 +93,8 @@ class TestCockpitService:
             name="Green Rule",
             parameter="energy_kj",
             scope="meal",
-            threshold_green=5000.0,
-            threshold_yellow=10000.0,
+            max_green=5000.0,
+            max_yellow=10000.0,
             sort_order=1,
         )
         # This will evaluate as green since 0 < 5000
@@ -104,9 +104,30 @@ class TestCockpitService:
 
     def test_health_rule_evaluate_method(self):
         """Test HealthRule.evaluate() directly."""
-        rule = HealthRule(threshold_green=10.0, threshold_yellow=20.0)
+        # Max-only rule: lower is better
+        rule = HealthRule(max_green=10.0, max_yellow=20.0)
         assert rule.evaluate(5.0) == "green"
         assert rule.evaluate(10.0) == "green"
         assert rule.evaluate(15.0) == "yellow"
         assert rule.evaluate(20.0) == "yellow"
         assert rule.evaluate(25.0) == "red"
+
+    def test_health_rule_evaluate_min_only(self):
+        """Test HealthRule.evaluate() with min-only rule."""
+        rule = HealthRule(min_green=100.0, min_yellow=50.0)
+        assert rule.evaluate(150.0) == "green"
+        assert rule.evaluate(100.0) == "green"
+        assert rule.evaluate(75.0) == "yellow"
+        assert rule.evaluate(50.0) == "yellow"
+        assert rule.evaluate(25.0) == "red"
+        assert rule.evaluate(0.0) == "red"
+
+    def test_health_rule_evaluate_range(self):
+        """Test HealthRule.evaluate() with both min and max (range rule)."""
+        rule = HealthRule(min_green=500.0, min_yellow=200.0, max_green=2000.0, max_yellow=3000.0)
+        assert rule.evaluate(1000.0) == "green"  # in range
+        assert rule.evaluate(300.0) == "yellow"  # below min_green but above min_yellow
+        assert rule.evaluate(100.0) == "red"     # below min_yellow
+        assert rule.evaluate(2500.0) == "yellow" # above max_green but below max_yellow
+        assert rule.evaluate(3500.0) == "red"    # above max_yellow
+        assert rule.evaluate(0.0) == "red"       # zero energy = red

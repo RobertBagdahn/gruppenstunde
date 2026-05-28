@@ -45,7 +45,12 @@ The system SHALL allow authors to generate title images using AI. A modal dialog
 #### Scenario: Opening AI generation modal
 - **WHEN** the user selects "Bild mit KI generieren" from the dropdown
 - **THEN** a modal dialog SHALL open with a text input for the image prompt
-- **THEN** the prompt input SHALL be pre-filled based on the content's title and summary
+- **THEN** the prompt input SHALL be pre-filled with a content-type-specific template:
+  - `recipe`: "Ein appetitliches Foto von {title}"
+  - `session`: "Eine Illustration einer Pfadfinder-Aktivität: {title}"
+  - `game`: "Eine Illustration eines Spiels: {title}"
+  - `blog`: "Eine Illustration zum Thema: {title}"
+  - fallback: "{title} - {summary}"
 
 #### Scenario: Generating images
 - **WHEN** the user clicks "Generieren" in the modal

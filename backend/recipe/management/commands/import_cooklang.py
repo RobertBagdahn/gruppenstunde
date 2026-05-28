@@ -20,6 +20,7 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils.text import slugify
 
 User = get_user_model()
 
@@ -200,7 +201,7 @@ class Command(BaseCommand):
         from content.choices import ContentStatus
         from recipe.models import Recipe, RecipeItem
         from supply.choices import RecipeTypeChoices
-        from supply.models import Ingredient, MeasuringUnit
+        from supply.models import Ingredient, MeasuringUnit, Portion
 
         # Build unit map
         unit_map = {}
@@ -247,6 +248,7 @@ class Command(BaseCommand):
         gram_unit = unit_map.get("gramm")
         created_count = 0
         skipped_count = 0
+        ingredients_created = 0
 
         for (folder, _), filepath in sorted(deduped.items()):
             content = filepath.read_text(encoding="utf-8", errors="replace")
@@ -297,10 +299,32 @@ class Command(BaseCommand):
                 if not measuring_unit:
                     measuring_unit = gram_unit
 
-                # Resolve ingredient
+                # Resolve ingredient (auto-create if not found)
                 ingredient = ingredient_map.get(ing_name.lower())
+                if not ingredient:
+                    slug = slugify(ing_name, allow_unicode=True)[:280] or f"ingredient-{ing_name[:20]}"
+                    # Check DB by slug in case it exists but wasn't in our map
+                    ingredient = Ingredient.objects.filter(slug=slug).first()
+                    if not ingredient:
+                        ingredient = Ingredient.objects.create(
+                            name=ing_name,
+                            slug=slug,
+                            status="user_content",
+                            physical_viscosity="solid",
+                            physical_density=1.0,
+                        )
+                        # Create default "1 g" portion
+                        if gram_unit:
+                            Portion.objects.create(
+                                name="",
+                                measuring_unit=gram_unit,
+                                ingredient=ingredient,
+                                quantity=1.0,
+                                weight_g=1.0,
+                            )
+                        ingredients_created += 1
+                    ingredient_map[ing_name.lower()] = ingredient
 
-                # Create RecipeItem even if ingredient not found (store name in note)
                 RecipeItem.objects.create(
                     recipe=recipe,
                     ingredient=ingredient,
@@ -308,7 +332,7 @@ class Command(BaseCommand):
                     quantity=quantity or 1.0,
                     measuring_unit=measuring_unit,
                     sort_order=sort_idx,
-                    note=ing_name if not ingredient else "",
+                    note="",
                 )
 
             created_count += 1
@@ -316,6 +340,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"\nImport complete: {created_count} recipes created, {skipped_count} skipped (already exist)."
+                f"\nImport complete: {created_count} recipes created, {skipped_count} skipped (already exist), "
+                f"{ingredients_created} new ingredients auto-created."
             )
         )

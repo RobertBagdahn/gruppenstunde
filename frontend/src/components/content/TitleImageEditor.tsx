@@ -247,12 +247,7 @@ function AiImageModal({
   const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);
   const generateImage = useGenerateImage();
 
-  // Pre-fill prompt when modal opens
   const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && !prompt) {
-      const defaultPrompt = [title, summary].filter(Boolean).join(' - ');
-      setPrompt(defaultPrompt);
-    }
     if (!isOpen) {
       onClose();
     }
@@ -282,7 +277,7 @@ function AiImageModal({
         <DialogHeader>
           <DialogTitle>Bild mit KI generieren</DialogTitle>
           <DialogDescription>
-            Beschreibe das gewuenschte Bild oder nutze den Vorschlag.
+            Optional: Zusaetzliche Hinweise fuer die Bildgenerierung.
           </DialogDescription>
         </DialogHeader>
 
@@ -290,7 +285,7 @@ function AiImageModal({
           {/* Prompt input */}
           <div>
             <label htmlFor="ai-image-prompt" className="text-sm font-medium mb-1.5 block">
-              Bildbeschreibung
+              Zusaetzliche Hinweise (optional)
             </label>
             <textarea
               id="ai-image-prompt"
@@ -298,7 +293,7 @@ function AiImageModal({
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder="Beschreibe das Bild..."
+              placeholder="z.B. im Cartoon-Stil, mit Hintergrund im Wald..."
             />
           </div>
 
@@ -306,7 +301,7 @@ function AiImageModal({
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={generateImage.isPending || !prompt.trim()}
+            disabled={generateImage.isPending}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
           >
             {generateImage.isPending ? (

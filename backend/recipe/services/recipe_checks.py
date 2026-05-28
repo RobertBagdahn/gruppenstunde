@@ -22,45 +22,12 @@ from recipe.models import RecipeHint, RecipeItem
 
 # Micronutrient fields tracked on Ingredient — used for aggregation
 MICRONUTRIENT_FIELDS = [
-    "vitamin_a_mg",
-    "vitamin_b1_mg",
-    "vitamin_b2_mg",
-    "vitamin_b6_mg",
-    "vitamin_b12_ug",
     "vitamin_c_mg",
-    "vitamin_d_ug",
-    "vitamin_e_mg",
-    "vitamin_k_ug",
-    "niacin_mg",
-    "folate_ug",
-    "pantothenic_acid_mg",
-    "biotin_ug",
-    "calcium_mg",
-    "iron_mg",
-    "magnesium_mg",
-    "zinc_mg",
-    "potassium_mg",
-    "phosphorus_mg",
-    "iodine_ug",
-    "selenium_ug",
-    "copper_mg",
-    "manganese_mg",
-    "chromium_ug",
-    "fluoride_mg",
 ]
 
 # Cached micronutrient fields on Recipe (subset of most important ones)
 CACHED_MICRONUTRIENT_FIELDS = [
-    "vitamin_a_mg",
     "vitamin_c_mg",
-    "vitamin_d_ug",
-    "vitamin_b12_ug",
-    "calcium_mg",
-    "iron_mg",
-    "magnesium_mg",
-    "zinc_mg",
-    "potassium_mg",
-    "folate_ug",
 ]
 
 
@@ -186,24 +153,17 @@ def match_recipe_hints(
         actual = values.get(hint.parameter, 0.0)
         matched = False
 
-        if hint.min_max == "min" and hint.min_value is not None:
-            if actual < hint.min_value:
-                matched = True
-        elif hint.min_max == "max" and hint.max_value is not None:
-            if actual > hint.max_value:
-                matched = True
-        elif hint.min_max == "range":
-            if hint.min_value is not None and actual < hint.min_value:
-                matched = True
-            if hint.max_value is not None and actual > hint.max_value:
-                matched = True
+        if hint.min_max == "min" and actual < hint.value:
+            matched = True
+        elif hint.min_max == "max" and actual > hint.value:
+            matched = True
 
         if matched:
             results.append(
                 {
                     "hint": hint,
                     "actual_value": round(actual, 2),
-                    "message": hint.description or hint.name,
+                    "message": hint.hint or hint.name,
                     "improvement_text": hint.improvement_text or "",
                 }
             )

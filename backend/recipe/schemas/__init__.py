@@ -8,15 +8,21 @@ from .cockpit import (
 from .recipes import (
     NutritionalTagOut,
     PaginatedRecipeOut,
+    RecipeAiCreateIn,
     RecipeCreateIn,
     RecipeDetailOut,
     RecipeFilterIn,
     RecipeListOut,
     RecipeSimilarOut,
+    RecipeSuggestAllOut,
     RecipeUpdateIn,
     VisibilityUpdateIn,
 )
 from .items import (
+    AiIngredientApplyIn,
+    AiIngredientSuggestionOut,
+    EstimateQuantitiesOut,
+    EstimateQuantityItemOut,
     RecipeItemCreateIn,
     RecipeItemOut,
     RecipeItemUpdateIn,
@@ -35,9 +41,13 @@ from .nutrition import (
 )
 
 __all__ = [
+    "AiIngredientApplyIn",
+    "AiIngredientSuggestionOut",
     "CockpitDashboardOut",
     "CockpitEvaluationOut",
     "ContributionOut",
+    "EstimateQuantitiesOut",
+    "EstimateQuantityItemOut",
     "HealthRuleOut",
     "ImprovementListOut",
     "ImprovementOut",
@@ -46,6 +56,7 @@ __all__ = [
     "NutriScoreDetailOut",
     "NutritionalTagOut",
     "PaginatedRecipeOut",
+    "RecipeAiCreateIn",
     "RecipeCreateIn",
     "RecipeDetailOut",
     "RecipeFilterIn",
@@ -57,6 +68,7 @@ __all__ = [
     "RecipeListOut",
     "RecipeNutritionBreakdownOut",
     "RecipeSimilarOut",
+    "RecipeSuggestAllOut",
     "RecipeUpdateIn",
     "SuggestedIngredientOut",
     "VisibilityUpdateIn",

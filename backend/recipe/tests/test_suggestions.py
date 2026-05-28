@@ -137,10 +137,10 @@ class TestRateLimiting:
 
 @pytest.mark.django_db
 class TestGetSuggestions:
-    @patch("recipe.services.suggestion_service._get_client")
-    def test_returns_empty_when_no_client(self, mock_get_client, recipe_with_items, user):
-        """When _get_client() returns None → empty list, no Gemini call."""
-        mock_get_client.return_value = None
+    @patch("recipe.services.suggestion_service.gemini_call")
+    def test_returns_empty_when_no_client(self, mock_gemini_call, recipe_with_items, user):
+        """When gemini_call() returns None → empty list."""
+        mock_gemini_call.return_value = None
 
         result = get_suggestions(recipe_with_items, "mehr Protein", user)
         assert result == []
@@ -155,12 +155,10 @@ class TestGetSuggestions:
         result = get_suggestions(recipe_with_items, "test objective", user)
         assert result == cached_data
 
-    @patch("recipe.services.suggestion_service._get_client")
-    def test_calls_gemini_and_caches(self, mock_get_client, recipe_with_items, user):
-        """Mock Gemini client returns structured JSON → suggestions returned and cached."""
-        mock_client = MagicMock()
-        mock_client.models.generate_content.return_value = _mock_gemini_response()
-        mock_get_client.return_value = mock_client
+    @patch("recipe.services.suggestion_service.gemini_call")
+    def test_calls_gemini_and_caches(self, mock_gemini_call, recipe_with_items, user):
+        """Mock gemini_call returns structured JSON → suggestions returned and cached."""
+        mock_gemini_call.return_value = _mock_gemini_response()
 
         objective = "mehr Ballaststoffe"
         result = get_suggestions(recipe_with_items, objective, user)
@@ -170,9 +168,9 @@ class TestGetSuggestions:
         assert result[0]["ingredient_name"] == "Linsen"
 
         # Verify Gemini was called
-        assert mock_client.models.generate_content.call_count == 1
+        assert mock_gemini_call.call_count == 1
 
         # Verify result is cached (second call doesn't hit Gemini again)
         result2 = get_suggestions(recipe_with_items, objective, user)
         assert result2 == result
-        assert mock_client.models.generate_content.call_count == 1
+        assert mock_gemini_call.call_count == 1

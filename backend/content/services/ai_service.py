@@ -1,8 +1,7 @@
 """
 Content AI service — AI-powered features for all content types.
 
-Migrated from idea/services/ai_service.py.
-Uses Gemini via the google-genai SDK with structured JSON output.
+Uses centralized Gemini client from core.services.gemini.
 Authenticates via Application Default Credentials (ADC).
 
 Features:
@@ -19,8 +18,16 @@ import time
 import uuid
 from typing import Any
 
-from django.conf import settings
+from django.contrib.auth.models import AbstractBaseUser
 from pydantic import BaseModel, Field, ValidationError
+
+from core.services.gemini import (
+    GeminiInvalidResponseError,
+    GeminiUnavailableError,
+    gemini_call,
+    gemini_embed,
+    gemini_image_call,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +39,7 @@ AI_REFURBISH_TIMEOUT_SECONDS = 30
 AI_IMAGE_TIMEOUT_SECONDS = 240
 
 # ---------------------------------------------------------------------------
-# Custom AI exceptions
+# Custom AI exceptions (kept for backward compat with API layer)
 # ---------------------------------------------------------------------------
 
 
@@ -162,62 +169,16 @@ class ContentAIService:
     AI service for content-aware features using Vertex AI Gemini.
 
     Supports all content types (session, blog, game, recipe).
-    Uses content.models.Tag (not idea.models.Tag).
+    All methods require an authenticated user parameter.
     """
-
-    def __init__(self):
-        self._client = None
-        self._image_client = None
-
-    def _get_client(self):
-        if self._client is None:
-            try:
-                from google import genai
-
-                project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-                location = getattr(settings, "VERTEX_AI_LOCATION", "global")
-
-                if project:
-                    self._client = genai.Client(
-                        vertexai=True,
-                        project=project,
-                        location=location,
-                    )
-                else:
-                    logger.warning("GOOGLE_CLOUD_PROJECT not set - AI features disabled")
-            except ImportError:
-                logger.warning("google-genai not installed - AI features disabled")
-        return self._client
-
-    def _get_image_client(self):
-        """Return a client using 'global' location for image generation models."""
-        if self._image_client is None:
-            try:
-                from google import genai
-
-                project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-
-                if project:
-                    self._image_client = genai.Client(
-                        vertexai=True,
-                        project=project,
-                        location="global",
-                    )
-                else:
-                    logger.warning("GOOGLE_CLOUD_PROJECT not set - AI features disabled")
-            except ImportError:
-                logger.warning("google-genai not installed - AI features disabled")
-        return self._image_client
 
     # ------------------------------------------------------------------
     # improve_text
     # ------------------------------------------------------------------
 
-    def improve_text(self, text: str, context: str = "") -> str:
+    def improve_text(self, text: str, context: str = "", user: AbstractBaseUser | None = None) -> str:
         """Improve text: grammar, style, clarity. Content-type agnostic."""
-        client = self._get_client()
-        if not client:
-            return text
+        from google.genai import types
 
         prompt = (
             "Verbessere und verschönere den folgenden Text, in deutscher Sprache. "
@@ -229,23 +190,19 @@ class ContentAIService:
             f"Text:\n{text}\n\n"
         )
 
-        from google.genai import types
-        from google.genai.errors import ClientError
-
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=ImproveTextOutput,
-                    http_options=types.HttpOptions(timeout=AI_REFURBISH_TIMEOUT_SECONDS * 1000),
-                ),
-            )
-        except ClientError as exc:
-            if exc.code == 429:
-                raise AiRateLimitError() from exc
-            raise
+        response = gemini_call(
+            user=user,
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=ImproveTextOutput,
+                http_options=types.HttpOptions(timeout=AI_REFURBISH_TIMEOUT_SECONDS * 1000),
+            ),
+            context="improve_text",
+        )
+        if response is None:
+            return text
 
         result = ImproveTextOutput.model_validate_json(response.text)
         logger.info("AI improve_text result: %s", result.text[:200])
@@ -255,13 +212,10 @@ class ContentAIService:
     # suggest_tags
     # ------------------------------------------------------------------
 
-    def suggest_tags(self, text: str) -> dict[str, Any]:
+    def suggest_tags(self, text: str, user: AbstractBaseUser | None = None) -> dict[str, Any]:
         """Analyze text and suggest matching tags from the content.Tag database."""
         from content.models import Tag
-
-        client = self._get_client()
-        if not client:
-            return {"tag_ids": [], "tag_names": []}
+        from google.genai import types
 
         available_tags = list(Tag.objects.filter(is_approved=True).values("id", "name"))
         tag_list = ", ".join(f"{t['name']} (ID:{t['id']})" for t in available_tags)
@@ -274,9 +228,8 @@ class ContentAIService:
             "Antworte NUR mit den passenden Tag-IDs."
         )
 
-        from google.genai import types
-
-        response = client.models.generate_content(
+        response = gemini_call(
+            user=user,
             model=GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -284,7 +237,11 @@ class ContentAIService:
                 response_schema=TagSuggestionOutput,
                 http_options=types.HttpOptions(timeout=AI_REFURBISH_TIMEOUT_SECONDS * 1000),
             ),
+            context="suggest_tags",
         )
+        if response is None:
+            return {"tag_ids": [], "tag_names": []}
+
         result = TagSuggestionOutput.model_validate_json(response.text)
         logger.info("AI suggest_tags raw response: %s", response.text)
 
@@ -298,7 +255,7 @@ class ContentAIService:
     # refurbish (content-type aware)
     # ------------------------------------------------------------------
 
-    def refurbish(self, raw_text: str, content_type: str = "session") -> dict[str, Any]:
+    def refurbish(self, raw_text: str, content_type: str = "session", user: AbstractBaseUser | None = None) -> dict[str, Any]:
         """
         Convert raw unstructured text into a structured content item.
 
@@ -308,12 +265,9 @@ class ContentAIService:
         - "game": Spiel
         - "recipe": Rezept
         """
-        start_time = time.monotonic()
+        from google.genai import types
 
-        client = self._get_client()
-        if not client:
-            logger.warning("AI client not available - returning fallback")
-            return self._refurbish_fallback(raw_text, content_type)
+        start_time = time.monotonic()
 
         ct_config = CONTENT_TYPE_PROMPTS.get(content_type, CONTENT_TYPE_PROMPTS["session"])
 
@@ -345,20 +299,20 @@ class ContentAIService:
 
         logger.info("AI refurbish prompt (first 300 chars): %s", prompt[:300])
 
-        from google.genai import types
-
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=RefurbishOutput,
-                    http_options=types.HttpOptions(timeout=AI_REFURBISH_TIMEOUT_SECONDS * 1000),
-                ),
-            )
-        except Exception as exc:
-            self._handle_gemini_exception(exc, "refurbish")
+        response = gemini_call(
+            user=user,
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=RefurbishOutput,
+                http_options=types.HttpOptions(timeout=AI_REFURBISH_TIMEOUT_SECONDS * 1000),
+            ),
+            context="refurbish",
+        )
+        if response is None:
+            logger.warning("AI client not available - returning fallback")
+            return self._refurbish_fallback(raw_text, content_type)
 
         raw_response = response.text
         logger.info("AI refurbish raw response: %s", raw_response)
@@ -371,8 +325,8 @@ class ContentAIService:
 
         # Also suggest tags
         try:
-            tags = self.suggest_tags(raw_text)
-        except (AiTimeoutError, AiUnavailableError, AiInvalidResponseError):
+            tags = self.suggest_tags(raw_text, user=user)
+        except Exception:
             logger.warning("Tag suggestion failed during refurbish, continuing without tags")
             tags = {"tag_ids": [], "tag_names": []}
 
@@ -456,37 +410,6 @@ class ContentAIService:
         }
 
     # ------------------------------------------------------------------
-    # Exception helper
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _handle_gemini_exception(exc: Exception, context: str = "") -> None:
-        """Map Gemini SDK exceptions to custom AI exceptions. Always raises."""
-        from google.api_core.exceptions import DeadlineExceeded, GoogleAPIError, ServiceUnavailable
-        from google.genai.errors import APIError, ServerError
-
-        if isinstance(exc, ServerError):
-            if exc.code in (504, 408):
-                logger.warning("AI %s timeout (genai %d): %s", context, exc.code, exc)
-                raise AiTimeoutError(str(exc)) from exc
-            logger.warning("AI %s server error (genai %d): %s", context, exc.code, exc)
-            raise AiUnavailableError(str(exc)) from exc
-        if isinstance(exc, APIError):
-            logger.warning("AI %s API error (genai %d): %s", context, getattr(exc, "code", 0), exc)
-            raise AiUnavailableError(str(exc)) from exc
-        if isinstance(exc, DeadlineExceeded):
-            logger.warning("AI %s timeout: %s", context, exc)
-            raise AiTimeoutError(str(exc)) from exc
-        if isinstance(exc, ServiceUnavailable):
-            logger.warning("AI %s unavailable: %s", context, exc)
-            raise AiUnavailableError(str(exc)) from exc
-        if isinstance(exc, GoogleAPIError):
-            logger.warning("AI %s API error: %s", context, exc)
-            raise AiUnavailableError(str(exc)) from exc
-        logger.exception("AI %s unexpected error", context)
-        raise
-
-    # ------------------------------------------------------------------
     # generate_images (Gemini native image generation)
     # ------------------------------------------------------------------
 
@@ -496,6 +419,7 @@ class ContentAIService:
         title: str = "",
         summary: str = "",
         content_type: str = "session",
+        user: AbstractBaseUser | None = None,
     ) -> list[str]:
         """
         Generate a title image using Gemini native image generation.
@@ -505,9 +429,8 @@ class ContentAIService:
         from django.core.files.base import ContentFile
         from PIL import Image
 
-        client = self._get_image_client()
-        if not client:
-            return []
+        from google.genai import types
+        from google.genai.errors import APIError, ServerError
 
         ct_config = CONTENT_TYPE_PROMPTS.get(content_type, CONTENT_TYPE_PROMPTS["session"])
 
@@ -527,14 +450,13 @@ class ContentAIService:
             f"Image: {prompt}"
         )
 
-        from google.genai import types
-        from google.genai.errors import APIError, ServerError
-
         max_retries = 3
+        response = None
 
         for attempt in range(1, max_retries + 1):
             try:
-                response = client.models.generate_content(
+                response = gemini_image_call(
+                    user=user,
                     model=GEMINI_IMAGE_MODEL,
                     contents=[full_prompt],
                     config=types.GenerateContentConfig(
@@ -545,6 +467,7 @@ class ContentAIService:
                         ),
                         http_options=types.HttpOptions(timeout=AI_IMAGE_TIMEOUT_SECONDS * 1000),
                     ),
+                    context="image_generation",
                 )
                 break
             except (APIError, ServerError) as exc:
@@ -560,11 +483,12 @@ class ContentAIService:
                     )
                     time.sleep(wait)
                     continue
-                self._handle_gemini_exception(exc, "image generation")
-                return []
-            except Exception as exc:
-                self._handle_gemini_exception(exc, "image generation")
-                return []
+                raise
+            except Exception:
+                raise
+
+        if response is None:
+            return []
 
         # Upload subfolder based on content type
         upload_folder = f"content/{content_type}"
@@ -590,36 +514,23 @@ class ContentAIService:
                     image_url = default_storage.url(saved_path)
                     logger.info("AI generated image saved: %s", image_url)
                     return [image_url]
-        except Exception as exc:
-            self._handle_gemini_exception(exc, "image generation")
+        except Exception:
+            logger.exception("AI image post-processing error")
 
         return []
 
-    def generate_image(self, prompt: str, content_type: str = "session") -> str | None:
+    def generate_image(self, prompt: str, content_type: str = "session", user: AbstractBaseUser | None = None) -> str | None:
         """Generate a single title image. Delegates to generate_images."""
-        urls = self.generate_images(prompt=prompt, content_type=content_type)
+        urls = self.generate_images(prompt=prompt, content_type=content_type, user=user)
         return urls[0] if urls else None
 
     # ------------------------------------------------------------------
     # embeddings
     # ------------------------------------------------------------------
 
-    def create_embedding(self, text: str) -> list[float] | None:
+    def create_embedding(self, text: str, user: AbstractBaseUser | None = None) -> list[float] | None:
         """Create a text embedding using google-genai SDK."""
-        client = self._get_client()
-        if not client:
-            return None
-
-        try:
-            response = client.models.embed_content(
-                model="text-embedding-004",
-                contents=text,
-            )
-            if response.embeddings:
-                return response.embeddings[0].values
-        except Exception:
-            logger.warning("Embedding creation failed", exc_info=True)
-        return None
+        return gemini_embed(user=user, contents=text)
 
 
 # Module-level singleton for convenience

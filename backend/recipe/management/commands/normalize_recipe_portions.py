@@ -16,7 +16,7 @@ from recipe.services.recipe_checks import recalculate_recipe_cache
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-2.5-flash-lite"
 
 
 # ---------------------------------------------------------------------------
@@ -60,11 +60,6 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
         recipe_id: int | None = options["recipe_id"]
 
-        client = self._get_client()
-        if not client:
-            self.stderr.write(self.style.ERROR("Gemini client not available."))
-            return
-
         qs = Recipe.objects.prefetch_related(
             "recipe_items__ingredient", "recipe_items__measuring_unit"
         )
@@ -81,9 +76,13 @@ class Command(BaseCommand):
         )
 
         for recipe in recipes:
-            self._process_recipe(recipe, client, dry_run)
+            self._process_recipe(recipe, dry_run)
 
-    def _process_recipe(self, recipe: Recipe, client, dry_run: bool) -> None:
+    def _process_recipe(self, recipe: Recipe, dry_run: bool) -> None:
+        from google.genai import types
+
+        from core.services.gemini import gemini_call
+
         items = list(recipe.recipe_items.order_by("sort_order", "id"))
         if not items:
             return
@@ -91,17 +90,20 @@ class Command(BaseCommand):
         prompt = self._build_prompt(recipe, items)
 
         try:
-            from google.genai import types
-
-            response = client.models.generate_content(
+            response = gemini_call(
+                user=None,
                 model=GEMINI_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=NormalizationOutput,
-                    http_options=types.HttpOptions(timeout=30_000),
                 ),
+                bypass_limits=True,
+                context="normalize_portions",
             )
+            if response is None:
+                self.stderr.write(self.style.WARNING(f"  SKIP {recipe.title} (client unavailable)"))
+                return
             result = NormalizationOutput.model_validate_json(response.text)
         except Exception:
             logger.warning("Gemini call failed for recipe %s", recipe.title, exc_info=True)
@@ -159,15 +161,6 @@ class Command(BaseCommand):
             "- Gewürze/Öle/Butter: realistisch klein (1-15g)\n"
             "- Flüssigkeiten (Milch, Brühe): 100-250ml\n"
             "- Das Rezept soll als vollständige Mahlzeit sättigen\n\n"
-            "Gib für JEDEN Index die korrigierte Menge in Gramm zurück."
+            "Gib für JEDEN Index die korrigierte Menge in Gramm zurück.\n"
+            'Antwortformat JSON: {"items": [{"index": 0, "quantity_g": 150.0}, ...]}'
         )
-
-    @staticmethod
-    def _get_client():
-        try:
-            from google import genai
-
-            return genai.Client()
-        except Exception:
-            logger.warning("Could not create Gemini client", exc_info=True)
-            return None

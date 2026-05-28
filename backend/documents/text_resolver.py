@@ -160,7 +160,7 @@ def generate_ai_text(
 ) -> str:
     """Generate text using Google Gemini AI."""
     try:
-        from google import genai
+        from core.services.gemini import gemini_call
 
         block_labels = {
             "greeting": "Begrüßungstext",
@@ -182,11 +182,15 @@ Teilnehmer: {config.participants.type}{theme_line}
 Schreibe 3-5 Sätze. Sachlich, freundlich, an Eltern und Pfadfinder gerichtet.
 Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
 
-        client = genai.Client(vertexai=True, project="gruppenstunde", location="europe-west1")
-        response = client.models.generate_content(
+        response = gemini_call(
+            user=None,
             model="gemini-2.0-flash-lite",
             contents=prompt,
+            bypass_limits=True,
+            context="document_text_generation",
         )
+        if response is None:
+            raise ValueError("KI-Client nicht verfügbar")
         text = response.text.strip() if response.text else ""
         if not text:
             raise ValueError("KI hat leere Antwort generiert")

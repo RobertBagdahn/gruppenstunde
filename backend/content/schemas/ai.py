@@ -64,6 +64,7 @@ class AiRefurbishOut(Schema):
     season: str = ""
     image_prompt: str = ""
     processing_time_seconds: float = 0
+    suggested_ingredients: list["AiIngredientSuggestionOut"] = []
 
 
 class AiErrorOut(Schema):
