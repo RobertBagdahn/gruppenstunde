@@ -38,17 +38,34 @@ Interactive, step-by-step deployment for the Inspi platform to Google Cloud Run.
 
 ### ARM Mac: Use Cloud Build, NOT local podman/docker
 
-Local builds on ARM Macs produce ARM images that won't run on Cloud Run (amd64). **Always use Cloud Build** for container images:
+Local builds on ARM Macs produce ARM images that won't run on Cloud Run (amd64). **Always use Cloud Build** for container images.
+
+**IMPORTANT:** `gcloud builds submit --config /dev/stdin` does NOT work reliably. Write a temporary YAML file instead:
 
 ```bash
-gcloud builds submit --config /dev/stdin --region europe-west3 --timeout=600 . <<'EOF'
+# Write cloudbuild config to temp file
+cat > /tmp/cloudbuild.yaml <<'EOF'
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', '<IMAGE_TAG>', '-f', '<DOCKERFILE>', '--build-arg', 'KEY=VALUE', '.']
 images:
   - '<IMAGE_TAG>'
 EOF
+
+gcloud builds submit --config=/tmp/cloudbuild.yaml --region=europe-west3 .
 ```
+
+### Deploy: Minimal flags — preserve existing config
+
+When deploying a new image to an existing service, use **only `--image` and `--region`**. Cloud Run preserves all existing env vars, secrets, CPU/memory, and scaling settings:
+
+```bash
+gcloud run deploy inspi-backend \
+  --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
+  --region europe-west3
+```
+
+Only add explicit flags when you need to **change** configuration. Using all flags risks overwriting secrets or env vars.
 
 ### Frontend: NO nginx proxy — direct CORS
 
@@ -144,21 +161,48 @@ curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 
 Expected: HTTP 200. If not, the backend may need redeployment.
 
+```bash
+# 2.3 Seed check: verify data exists
+curl -s "${BACKEND_URL}/api/sessions/?page_size=1" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+total = data.get('total', 0)
+print(f'Sessions in DB: {total}')
+if total == 0:
+    print('WARNING: No sessions found. Seeds may not be loaded.')
+    sys.exit(1)
+"
+```
+
+If seeds are missing, ask: "Keine Daten gefunden. Soll ich Seeds laden? (erfordert Cloud SQL Proxy oder Cloud Run Job)"
+
 ### Phase 3: Deploy Backend
 
 Ask: "Backend deployen? (build + push + deploy)" — proceed only on confirmation.
 
 ```bash
 # 3.1 Build via Cloud Build (NEVER local podman on ARM Mac)
-gcloud builds submit --config /dev/stdin --region europe-west3 --timeout=600 . <<'EOF'
+cat > /tmp/cloudbuild-backend.yaml <<'EOF'
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest', '-f', 'Dockerfile.backend', '.']
 images:
   - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest'
 EOF
+gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=europe-west3 .
 
-# 3.2 Deploy
+# 3.2 Deploy (minimal flags — preserves existing env/secrets/scaling)
+gcloud run deploy inspi-backend \
+  --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
+  --region europe-west3
+
+# 3.3 Verify
+BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
+curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
+```
+
+**First-time setup only** (when service config needs to be set):
+```bash
 DB_HOST=$(gcloud sql instances describe inspi-db --format="value(ipAddresses[0].ipAddress)")
 gcloud run deploy inspi-backend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
@@ -169,10 +213,6 @@ gcloud run deploy inspi-backend \
   --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
   --set-secrets "DB_PASSWORD=prod_db_password:latest" \
   --allow-unauthenticated
-
-# 3.3 Verify
-BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
-curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 ```
 
 Expected: HTTP 200. If not, show error and ask.
@@ -205,22 +245,19 @@ Ask: "Frontend deployen? (build + push + deploy)" — proceed only on confirmati
 # 5.1 Build via Cloud Build with VITE_API_URL baked in
 BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
 
-gcloud builds submit --config /dev/stdin --region europe-west3 --timeout=600 . <<EOF
+cat > /tmp/cloudbuild-frontend.yaml <<EOF
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest', '-f', 'Dockerfile.frontend', '--build-arg', 'VITE_API_URL=${BACKEND_URL}', '.']
 images:
   - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest'
 EOF
+gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=europe-west3 .
 
-# 5.2 Deploy (NO env vars needed — API URL is baked into JS bundle)
+# 5.2 Deploy (minimal flags)
 gcloud run deploy inspi-frontend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest \
-  --region europe-west3 \
-  --port 80 \
-  --cpu 1 --memory 256Mi \
-  --min-instances 0 --max-instances 5 \
-  --allow-unauthenticated
+  --region europe-west3
 
 # 5.3 Verify
 FRONTEND_URL=$(gcloud run services describe inspi-frontend --region=europe-west3 --format="value(status.url)")
@@ -237,22 +274,19 @@ Ask: "Food Frontend deployen? (build + push + deploy)" — proceed only on confi
 # 6.1 Build via Cloud Build with VITE_API_URL baked in
 BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
 
-gcloud builds submit --config /dev/stdin --region europe-west3 --timeout=600 . <<EOF
+cat > /tmp/cloudbuild-frontend-food.yaml <<EOF
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest', '-f', 'Dockerfile.frontend-food', '--build-arg', 'VITE_API_URL=${BACKEND_URL}', '.']
 images:
   - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest'
 EOF
+gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=europe-west3 .
 
-# 6.2 Deploy (NO env vars needed)
+# 6.2 Deploy (minimal flags)
 gcloud run deploy inspi-frontend-food \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest \
-  --region europe-west3 \
-  --port 80 \
-  --cpu 1 --memory 256Mi \
-  --min-instances 0 --max-instances 5 \
-  --allow-unauthenticated
+  --region europe-west3
 
 # 6.3 Verify
 FRONTEND_FOOD_URL=$(gcloud run services describe inspi-frontend-food --region=europe-west3 --format="value(status.url)")
