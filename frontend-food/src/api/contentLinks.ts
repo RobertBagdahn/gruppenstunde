@@ -2,6 +2,7 @@
  * TanStack Query hooks for Content Links and Featured Content API.
  * MUST stay in sync with backend/content/api.py
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -11,7 +12,7 @@ import {
   type FeaturedContentCreate,
 } from '@/schemas/contentLink';
 
-const API_BASE = '/api/content';
+const API_BASE = `${API_BASE_URL}/api/content`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

@@ -7,9 +7,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ContentCommentSchema, type ContentComment } from '@/schemas/content';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/admin';
-const CONTENT_API_BASE = '/api/content/admin';
+const API_BASE = `${API_BASE_URL}/api/admin`;
+const CONTENT_API_BASE = `${API_BASE_URL}/api/content/admin`;
 
 function getCsrfToken(): string {
   return document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';

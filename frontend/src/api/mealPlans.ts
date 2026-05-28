@@ -11,14 +11,16 @@ import {
   NutritionSummarySchema,
   ShoppingListItemSchema,
   RecipeSearchResultSchema,
+  MealPlanCollaboratorSchema,
   type MealPlan,
   type MealPlanDetail,
   type NutritionSummary,
   type RecipeSearchResult,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/meal-plans';
+const API_BASE = `${API_BASE_URL}/api/meal-plans`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -303,3 +305,60 @@ export const useCreateMealEvent = useCreateMealPlan;
 export const useUpdateMealEvent = useUpdateMealPlan;
 /** @deprecated Use useDeleteMealPlan */
 export const useDeleteMealEvent = useDeleteMealPlan;
+
+// ==========================================================================
+// Collaborator Hooks
+// ==========================================================================
+
+export function useMealPlanCollaborators(mealPlanId: number) {
+  return useQuery({
+    queryKey: ['meal-plan', mealPlanId, 'collaborators'] as const,
+    queryFn: () =>
+      fetchJson(
+        `${API_BASE}/${mealPlanId}/collaborators/`,
+        z.array(MealPlanCollaboratorSchema),
+      ),
+    enabled: mealPlanId > 0,
+  });
+}
+
+export function useAddMealPlanCollaborator(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { user_id: number; role?: string }) =>
+      postJson(
+        `${API_BASE}/${mealPlanId}/collaborators/`,
+        body,
+        MealPlanCollaboratorSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'collaborators'] });
+    },
+  });
+}
+
+export function useUpdateMealPlanCollaborator(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ collaboratorId, role }: { collaboratorId: number; role: string }) =>
+      patchJson(
+        `${API_BASE}/${mealPlanId}/collaborators/${collaboratorId}/`,
+        { role },
+        MealPlanCollaboratorSchema,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'collaborators'] });
+    },
+  });
+}
+
+export function useRemoveMealPlanCollaborator(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (collaboratorId: number) =>
+      deleteJson(`${API_BASE}/${mealPlanId}/collaborators/${collaboratorId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'collaborators'] });
+    },
+  });
+}

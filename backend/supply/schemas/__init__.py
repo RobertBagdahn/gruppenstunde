@@ -12,8 +12,12 @@ from .materials import (
 from .reference import (
     DgeReferenceOut,
     MeasuringUnitOut,
+    NutritionalTagIn,
     NutritionalTagOut,
+    NutritionalTagUpdateIn,
+    RetailSectionIn,
     RetailSectionOut,
+    RetailSectionUpdateIn,
 )
 from .ingredients import (
     AliasCreateIn,
@@ -60,12 +64,16 @@ __all__ = [
     "NormPersonCurvesOut",
     "NormPersonReferenceOut",
     "NormPersonResultOut",
+    "NutritionalTagIn",
     "NutritionalTagOut",
+    "NutritionalTagUpdateIn",
     "PaginatedIngredientOut",
     "PaginatedMaterialOut",
     "PortionCreateIn",
     "PortionOut",
     "PortionSuggestionOut",
     "PortionUpdateIn",
+    "RetailSectionIn",
     "RetailSectionOut",
+    "RetailSectionUpdateIn",
 ]

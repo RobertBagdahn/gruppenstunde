@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 import {
   ContentLinkSchema,
   FeaturedContentSchema,
@@ -11,7 +12,7 @@ import {
   type FeaturedContentCreate,
 } from '@/schemas/contentLink';
 
-const API_BASE = '/api/content';
+const API_BASE = `${API_BASE_URL}/api/content`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

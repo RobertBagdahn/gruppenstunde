@@ -20,8 +20,9 @@ import {
   type RecipeFilter,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/recipes';
+const API_BASE = `${API_BASE_URL}/api/recipes`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -330,7 +331,7 @@ export function useCreateRecipeComment(recipeId: number) {
 // Recipe Folders
 // ===========================================================================
 
-const FOLDER_BASE = '/api/recipe-folders';
+const FOLDER_BASE = `${API_BASE_URL}/api/recipe-folders`;
 
 export function useRecipeFolders() {
   return useQuery({

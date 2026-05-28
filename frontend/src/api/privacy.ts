@@ -3,10 +3,10 @@
  * Data overview, export, and account deletion.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchWithCsrf } from '@/lib/api';
+import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
 import { DataOverviewSchema, type DataOverview, type DeleteAccountRequest } from '@/schemas/privacy';
 
-const API_BASE = '/api/auth/privacy';
+const API_BASE = `${API_BASE_URL}/api/auth/privacy`;
 
 // --- Data Overview ---
 

@@ -126,7 +126,7 @@ export default function MyRecipesPage() {
                 className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
               >
                 <span className="material-symbols-outlined text-[16px]">chevron_left</span>
-                Zurueck
+                Zurück
               </button>
               <span className="text-sm text-muted-foreground">
                 Seite {page} von {totalPages}

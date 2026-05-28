@@ -11,8 +11,9 @@ import {
   DgeReferenceSchema,
 } from '@/schemas/normPerson';
 import type { NormPersonResult, NormPersonCurves, DgeReferencePoint, DgeReference } from '@/schemas/normPerson';
+import { API_BASE_URL } from '@/lib/api';
 
-const NORM_PERSON_BASE = '/api/norm-person';
+const NORM_PERSON_BASE = `${API_BASE_URL}/api/norm-person`;
 
 async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
@@ -83,7 +84,7 @@ export function useDgeReferences() {
     queryKey: ['dge-references'],
     queryFn: () =>
       fetchJson(
-        '/api/dge-references/',
+        `${API_BASE_URL}/api/dge-references/`,
         z.array(DgeReferenceSchema),
       ),
     staleTime: 30 * 60 * 1000,

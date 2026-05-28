@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { ContentCommentSchema } from '@/schemas/content';
+import { API_BASE_URL } from '@/lib/api';
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -22,7 +23,7 @@ function getCsrfToken(): string {
  * Fetch comments for a content item.
  * @param contentType - e.g., 'session', 'blog', 'game', 'recipe'
  * @param contentId - The ID of the content item
- * @param apiBase - The API base path (e.g., '/api/sessions')
+ * @param apiBase - The API base path (e.g., `${API_BASE_URL}/api/sessions`)
  */
 export function useContentComments(
   contentType: string,
@@ -150,8 +151,8 @@ export function useRecordContentView(
 // ---------------------------------------------------------------------------
 
 export const CONTENT_API_BASES: Record<string, string> = {
-  session: '/api/sessions',
-  blog: '/api/blogs',
-  game: '/api/games',
-  recipe: '/api/recipes',
+  session: `${API_BASE_URL}/api/sessions`,
+  blog: `${API_BASE_URL}/api/blogs`,
+  game: `${API_BASE_URL}/api/games`,
+  recipe: `${API_BASE_URL}/api/recipes`,
 };

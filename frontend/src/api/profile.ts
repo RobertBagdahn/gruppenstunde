@@ -3,7 +3,7 @@
  * MUST stay in sync with backend/profiles/api.py
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCsrfToken, fetchWithCsrf } from '@/lib/api';
+import { API_BASE_URL, getCsrfToken, fetchWithCsrf } from '@/lib/api';
 import {
   UserProfileSchema,
   ProfilePictureResponseSchema,
@@ -39,7 +39,7 @@ export function useMyProfile() {
   return useQuery<UserProfile>({
     queryKey: ['profile', 'me'],
     queryFn: async () => {
-      const res = await fetch('/api/profile/me/', { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/profile/me/`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return UserProfileSchema.parse(data);
@@ -52,7 +52,7 @@ export function useUpdateMyProfile() {
   const queryClient = useQueryClient();
   return useMutation<UserProfile, Error, UserProfileUpdate>({
     mutationFn: async (payload) => {
-      const res = await fetchWithCsrf('/api/profile/me/', {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/profile/me/`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
@@ -76,7 +76,7 @@ export function useUploadProfilePicture() {
     mutationFn: async (file) => {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/profile/me/picture/', {
+      const res = await fetch(`${API_BASE_URL}/api/profile/me/picture/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'X-CSRFToken': getCsrfToken() },
@@ -99,7 +99,7 @@ export function useDeleteProfilePicture() {
   const queryClient = useQueryClient();
   return useMutation<ProfilePictureResponse, Error, void>({
     mutationFn: async () => {
-      const res = await fetchWithCsrf('/api/profile/me/picture/', {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/profile/me/picture/`, {
         method: 'DELETE',
       });
       if (!res.ok) {
@@ -119,7 +119,7 @@ export function usePublicUserProfile(userId: number) {
   return useQuery<PublicUserProfile>({
     queryKey: ['profile', 'public', userId],
     queryFn: async () => {
-      const res = await fetch(`/api/profile/${userId}/`);
+      const res = await fetch(`${API_BASE_URL}/api/profile/${userId}/`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return PublicUserProfileSchema.parse(data);
@@ -137,7 +137,7 @@ export function useMyPreferences() {
   return useQuery<UserPreference>({
     queryKey: ['profile', 'preferences'],
     queryFn: async () => {
-      const res = await fetch('/api/profile/me/preferences/', { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/profile/me/preferences/`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return UserPreferenceSchema.parse(data);
@@ -150,7 +150,7 @@ export function useUpdateMyPreferences() {
   const queryClient = useQueryClient();
   return useMutation<UserPreference, Error, UserPreferenceUpdate>({
     mutationFn: async (payload) => {
-      const res = await fetchWithCsrf('/api/profile/me/preferences/', {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/profile/me/preferences/`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
@@ -175,7 +175,7 @@ export function useMyContent() {
   return useQuery<MyContent[]>({
     queryKey: ['profile', 'my-content'],
     queryFn: async () => {
-      const res = await fetch('/api/profile/me/content/', { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/profile/me/content/`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return data.map((i: unknown) => MyContentSchema.parse(i));
@@ -192,7 +192,7 @@ export function useMyGroups() {
   return useQuery<UserGroup[]>({
     queryKey: ['profile', 'my-groups'],
     queryFn: async () => {
-      const res = await fetch('/api/profile/me/groups/', { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/profile/me/groups/`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return data.map((g: unknown) => UserGroupSchema.parse(g));
@@ -205,7 +205,7 @@ export function useMyJoinRequests() {
   return useQuery<JoinRequest[]>({
     queryKey: ['profile', 'my-requests'],
     queryFn: async () => {
-      const res = await fetch('/api/profile/me/requests/', { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/profile/me/requests/`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return data.map((r: unknown) => JoinRequestSchema.parse(r));
@@ -223,7 +223,7 @@ export function useGroups(query: string = '') {
     queryKey: ['groups', query],
     queryFn: async () => {
       const params = query ? `?q=${encodeURIComponent(query)}` : '';
-      const res = await fetch(`/api/groups/${params}`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/groups/${params}`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return data.map((g: unknown) => UserGroupSchema.parse(g));
@@ -236,7 +236,7 @@ export function useGroupDetail(slug: string) {
   return useQuery<UserGroupDetail>({
     queryKey: ['groups', slug],
     queryFn: async () => {
-      const res = await fetch(`/api/groups/${slug}/`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/groups/${slug}/`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return UserGroupDetailSchema.parse(data);
@@ -250,7 +250,7 @@ export function useCreateGroup() {
   const queryClient = useQueryClient();
   return useMutation<UserGroup, Error, UserGroupCreate>({
     mutationFn: async (payload) => {
-      const res = await fetchWithCsrf('/api/groups/', {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/groups/`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -272,7 +272,7 @@ export function useJoinGroup() {
   const queryClient = useQueryClient();
   return useMutation<GroupMember | JoinRequest, Error, { slug: string; message?: string }>({
     mutationFn: async ({ slug, message }) => {
-      const res = await fetchWithCsrf(`/api/groups/${slug}/join/`, {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/groups/${slug}/join/`, {
         method: 'POST',
         body: JSON.stringify({ message: message || '' }),
       });
@@ -297,7 +297,7 @@ export function useJoinByCode() {
   const queryClient = useQueryClient();
   return useMutation<GroupMember, Error, { slug: string; join_code: string }>({
     mutationFn: async ({ slug, join_code }) => {
-      const res = await fetchWithCsrf(`/api/groups/${slug}/join-by-code/`, {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/groups/${slug}/join-by-code/`, {
         method: 'POST',
         body: JSON.stringify({ join_code }),
       });
@@ -319,7 +319,7 @@ export function useLeaveGroup() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, { slug: string; membershipId: number }>({
     mutationFn: async ({ slug, membershipId }) => {
-      const res = await fetchWithCsrf(`/api/groups/${slug}/members/${membershipId}/`, {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/groups/${slug}/members/${membershipId}/`, {
         method: 'DELETE',
       });
       if (!res.ok) {
@@ -342,7 +342,7 @@ export function useGroupCorporateIdentity(slug: string) {
   return useQuery<GroupCorporateIdentity>({
     queryKey: ['groups', slug, 'corporate-identity'],
     queryFn: async () => {
-      const res = await fetch(`/api/groups/${slug}/corporate-identity/`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/groups/${slug}/corporate-identity/`, { credentials: 'include' });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       return GroupCorporateIdentitySchema.parse(data);
@@ -356,7 +356,7 @@ export function useUpdateGroupCorporateIdentity(slug: string) {
   const queryClient = useQueryClient();
   return useMutation<GroupCorporateIdentity, Error, GroupCorporateIdentityForm>({
     mutationFn: async (payload) => {
-      const res = await fetchWithCsrf(`/api/groups/${slug}/corporate-identity/`, {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/groups/${slug}/corporate-identity/`, {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
@@ -380,7 +380,7 @@ export function useUploadGroupLogo(slug: string) {
     mutationFn: async (file) => {
       const formData = new FormData();
       formData.append('logo', file);
-      const res = await fetch(`/api/groups/${slug}/corporate-identity/logo/`, {
+      const res = await fetch(`${API_BASE_URL}/api/groups/${slug}/corporate-identity/logo/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'X-CSRFToken': getCsrfToken() },
@@ -404,7 +404,7 @@ export function useDeleteGroupLogo(slug: string) {
   const queryClient = useQueryClient();
   return useMutation<void, Error, void>({
     mutationFn: async () => {
-      const res = await fetchWithCsrf(`/api/groups/${slug}/corporate-identity/logo/`, {
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/groups/${slug}/corporate-identity/logo/`, {
         method: 'DELETE',
       });
       if (!res.ok) {

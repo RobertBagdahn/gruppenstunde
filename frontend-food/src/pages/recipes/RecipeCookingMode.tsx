@@ -10,13 +10,12 @@ import IngredientList from '@/components/supply/IngredientList';
 interface RecipeCookingModeProps {
   recipe: RecipeDetail;
   servingsMultiplier: number;
-  onServingsChange: (multiplier: number) => void;
+  onServingsChange?: (multiplier: number) => void;
 }
 
 export default function RecipeCookingMode({
   recipe,
   servingsMultiplier,
-  onServingsChange,
 }: RecipeCookingModeProps) {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -98,7 +97,6 @@ export default function RecipeCookingMode({
           items={recipe.recipe_items}
           servings={recipe.servings}
           servingsMultiplier={servingsMultiplier}
-          onServingsChange={onServingsChange}
           className="text-base"
         />
       </div>

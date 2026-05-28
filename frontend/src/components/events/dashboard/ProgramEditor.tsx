@@ -30,6 +30,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Props {
   event: EventDetail;
@@ -510,9 +511,9 @@ function AddSlotForm({
     try {
       // Search content by type
       const endpoint = contentType === 'groupsession'
-        ? '/api/sessions/'
+        ? `${API_BASE_URL}/api/sessions/`
         : contentType === 'game'
-        ? '/api/games/'
+        ? `${API_BASE_URL}/api/games/`
         : null;
 
       if (!endpoint) {

@@ -96,7 +96,7 @@ export default function IngredientListPage() {
       {/* Hero */}
       <ListPageHero
         title="Zutatendatenbank"
-        description="Verwalte alle Zutaten mit Naehrwerten, Preisen und Nutri-Score."
+        description="Verwalte alle Zutaten mit Nährwerten, Preisen und Nutri-Score."
         icon="egg_alt"
         gradientClasses="bg-gradient-to-br from-amber-500 to-orange-600"
         totalCount={data?.total}
@@ -168,7 +168,7 @@ export default function IngredientListPage() {
               description={
                 name || retailSection || status
                   ? 'Versuch es mit anderen Suchbegriffen oder Filtern.'
-                  : 'Erstelle deine erste Zutat fuer die Datenbank.'
+                  : 'Erstelle deine erste Zutat für die Datenbank.'
               }
               ctaLabel="Erste Zutat erstellen"
               ctaHref="/ingredients/new"

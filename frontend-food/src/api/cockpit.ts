@@ -2,6 +2,7 @@
  * TanStack Query hooks for the Cockpit & HealthRule API.
  * MUST stay in sync with backend/recipe/api/cockpit.py
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -27,7 +28,7 @@ async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
 export function useHealthRules() {
   return useQuery<HealthRule[]>({
     queryKey: ['health-rules'],
-    queryFn: () => fetchJson('/api/health-rules/', z.array(HealthRuleSchema)),
+    queryFn: () => fetchJson(`${API_BASE_URL}/api/health-rules/`, z.array(HealthRuleSchema)),
     staleTime: 10 * 60 * 1000, // rules change rarely
   });
 }

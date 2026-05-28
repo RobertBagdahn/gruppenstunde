@@ -21,6 +21,40 @@ class HealthRuleOut(Schema):
     sort_order: int
 
 
+class HealthRuleIn(Schema):
+    """Input schema for creating a health rule."""
+
+    name: str
+    description: str = ""
+    parameter: str
+    scope: str
+    min_green: float | None = None
+    min_yellow: float | None = None
+    max_green: float | None = None
+    max_yellow: float | None = None
+    unit: str = ""
+    tip_text: str = ""
+    is_active: bool = True
+    sort_order: int = 0
+
+
+class HealthRuleUpdateIn(Schema):
+    """Partial update schema for a health rule."""
+
+    name: str | None = None
+    description: str | None = None
+    parameter: str | None = None
+    scope: str | None = None
+    min_green: float | None = None
+    min_yellow: float | None = None
+    max_green: float | None = None
+    max_yellow: float | None = None
+    unit: str | None = None
+    tip_text: str | None = None
+    is_active: bool | None = None
+    sort_order: int | None = None
+
+
 class CockpitEvaluationOut(Schema):
     """Schema for a single cockpit evaluation result."""
 

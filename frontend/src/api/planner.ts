@@ -10,8 +10,9 @@ import {
   type PlannerDetail,
 } from '@/schemas/planner';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/planner';
+const API_BASE = `${API_BASE_URL}/api/planner`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -221,7 +222,7 @@ export function useSearchUsers(query: string) {
     queryKey: ['users', 'search', query],
     queryFn: () =>
       fetchJson(
-        `/api/users/search/?q=${encodeURIComponent(query)}`,
+        `${API_BASE_URL}/api/users/search/?q=${encodeURIComponent(query)}`,
         z.array(UserSearchResultSchema),
       ),
     enabled: query.length >= 2,

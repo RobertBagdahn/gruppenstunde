@@ -10,11 +10,12 @@ import {
   type GameFilter,
   type GameDetail,
 } from '@/schemas/game';
+import { API_BASE_URL } from '@/lib/api';
 import {
   ContentCommentSchema,
 } from '@/schemas/content';
 
-const API_BASE = '/api/games';
+const API_BASE = `${API_BASE_URL}/api/games`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

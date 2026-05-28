@@ -4,8 +4,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { RecipeHintSchema, type RecipeHint } from '@/schemas/recipe';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/recipe-hints';
+const API_BASE = `${API_BASE_URL}/api/recipe-hints`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

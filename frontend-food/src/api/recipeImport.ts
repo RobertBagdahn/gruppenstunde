@@ -1,6 +1,7 @@
 /**
  * API hook for recipe URL import with Gemini-based ingredient matching.
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
 
@@ -60,7 +61,7 @@ function getCsrfToken(): string {
 export function useRecipeImportUrl() {
   return useMutation({
     mutationFn: async (url: string): Promise<RecipeImportUrlResponse> => {
-      const res = await fetch('/api/recipes/import-from-url-enhanced/', {
+      const res = await fetch(`${API_BASE_URL}/api/recipes/import-from-url-enhanced/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

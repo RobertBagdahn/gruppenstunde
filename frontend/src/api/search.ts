@@ -5,12 +5,13 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 import {
   PaginatedSearchResultsSchema,
   type UnifiedSearchFilter,
 } from '@/schemas/search';
 
-const API_BASE = '/api/content';
+const API_BASE = `${API_BASE_URL}/api/content`;
 
 async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });

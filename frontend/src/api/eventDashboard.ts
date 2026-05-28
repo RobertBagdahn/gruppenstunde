@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 import {
   TimelineEntrySchema,
   PaymentSchema,
@@ -49,7 +50,7 @@ import {
   type ImportResult,
 } from '@/schemas/event';
 
-const EVENTS_BASE = '/api/events';
+const EVENTS_BASE = `${API_BASE_URL}/api/events`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

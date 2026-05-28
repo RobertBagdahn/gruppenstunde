@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { UnknownIngredientDialog } from './UnknownIngredientDialog';
+import { API_BASE_URL } from '@/lib/api';
 
 interface IngredientSuggestion {
   id: number;
@@ -59,7 +60,7 @@ export function IngredientAutocomplete({
     queryKey: ['ingredient-autocomplete', debouncedQuery] as const,
     queryFn: async (): Promise<IngredientSuggestion[]> => {
       const res = await fetch(
-        `/api/ingredients/?name=${encodeURIComponent(debouncedQuery)}&page_size=8`,
+        `${API_BASE_URL}/api/ingredients/?name=${encodeURIComponent(debouncedQuery)}&page_size=8`,
         { credentials: 'include' }
       );
       if (!res.ok) return [];

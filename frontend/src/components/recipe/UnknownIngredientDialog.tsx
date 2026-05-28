@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL } from '@/lib/api';
 
 const SuggestionSchema = z.object({
   id: z.number(),
@@ -43,7 +44,7 @@ export function UnknownIngredientDialog({
   const { data: suggestions, isLoading } = useQuery({
     queryKey: ['ingredient-suggest', query] as const,
     queryFn: async () => {
-      const res = await fetch(`/api/ingredients/suggest/?q=${encodeURIComponent(query)}&limit=5`, {
+      const res = await fetch(`${API_BASE_URL}/api/ingredients/suggest/?q=${encodeURIComponent(query)}&limit=5`, {
         credentials: 'include',
       });
       if (!res.ok) return [];

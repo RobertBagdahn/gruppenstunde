@@ -8,6 +8,7 @@
  * NutritionalTag hooks: /api/supplies/nutritional-tags/
  * RetailSection hooks: /api/retail-sections/
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -23,9 +24,9 @@ import {
   IngredientAliasSchema,
 } from '@/schemas/supply';
 
-const SUPPLY_BASE = '/api/supplies';
-const INGREDIENT_BASE = '/api/ingredients';
-const RETAIL_SECTION_BASE = '/api/retail-sections';
+const SUPPLY_BASE = `${API_BASE_URL}/api/supplies`;
+const INGREDIENT_BASE = `${API_BASE_URL}/api/ingredients`;
+const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -358,7 +359,7 @@ export function useRetailSections() {
 // UNIT CONVERSIONS
 // ==========================================================================
 
-const UNIT_CONVERSION_BASE = '/api/unit-conversions';
+const UNIT_CONVERSION_BASE = `${API_BASE_URL}/api/unit-conversions`;
 
 export function useUnitConversions(params?: {
   from_unit?: number;

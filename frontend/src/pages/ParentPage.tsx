@@ -7,6 +7,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Suspense, lazy } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 const MapView = lazy(() =>
   import('@/components/shared/MapView').then((m) => ({ default: m.MapView })),
@@ -47,7 +48,7 @@ function useParentView(slug: string, token: string) {
   return useQuery<ParentView>({
     queryKey: ['parent-view', slug, token],
     queryFn: async () => {
-      const res = await fetch(`/api/events/${slug}/parent/${token}/`);
+      const res = await fetch(`${API_BASE_URL}/api/events/${slug}/parent/${token}/`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || `Zugang nicht gefunden (${res.status})`);

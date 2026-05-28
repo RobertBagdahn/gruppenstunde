@@ -47,8 +47,8 @@ export default function MealPlanListPage() {
   if (!user) {
     return (
       <UnauthGate
-        title="Essensplaene"
-        description="Melde dich an, um deine Essensplaene zu verwalten."
+        title="Essenspläne"
+        description="Melde dich an, um deine Essenspläne zu verwalten."
       />
     );
   }
@@ -135,8 +135,8 @@ function MealPlanListPageInner() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
       {/* Hero */}
       <ListPageHero
-        title="Essensplaene"
-        description="Plane Mahlzeiten fuer Lager, Fahrten und Gruppenstunden."
+        title="Essenspläne"
+        description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden."
         icon="restaurant_menu"
         gradientClasses="bg-gradient-to-br from-sky-500 to-cyan-600"
         totalCount={mealPlans?.length}
@@ -183,11 +183,11 @@ function MealPlanListPageInner() {
       ) : filteredPlans.length === 0 ? (
         <EmptyState
           icon="restaurant_menu"
-          title="Noch keine Essensplaene"
+          title="Noch keine Essenspläne"
           description={
             searchInput
-              ? 'Keine Essensplaene fuer diese Suche gefunden.'
-              : 'Erstelle deinen ersten Essensplan fuer eine Fahrt oder den Gruppenalltag.'
+              ? 'Keine Essenspläne für diese Suche gefunden.'
+              : 'Erstelle deinen ersten Essensplan für eine Fahrt oder den Gruppenalltag.'
           }
           ctaLabel="Neuen Essensplan erstellen"
           onCtaClick={() => setShowCreate(true)}

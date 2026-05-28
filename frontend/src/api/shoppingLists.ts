@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 import {
   PaginatedShoppingListsSchema,
   ShoppingListSchema,
@@ -12,7 +13,7 @@ import {
   ShoppingListCollaboratorSchema,
 } from '@/schemas/shoppingList';
 
-const API_BASE = '/api/shopping-lists';
+const API_BASE = `${API_BASE_URL}/api/shopping-lists`;
 
 // --- Fetch helpers ---
 

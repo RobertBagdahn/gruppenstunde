@@ -124,7 +124,7 @@ export default function RecipeListPage() {
       {/* Hero Header */}
       <ListPageHero
         title="Rezepte"
-        description="Finde das perfekte Rezept fuer deine Gruppe"
+        description="Finde das perfekte Rezept für deine Gruppe"
         icon="menu_book"
         gradientClasses="bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600"
         totalCount={data?.total}

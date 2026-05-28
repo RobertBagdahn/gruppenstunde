@@ -236,7 +236,7 @@ function CollapsibleContributions({ items }: { items: RecipeItemNutrition[] }) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-3">Zutaten-Beitr&auml;ge pro N&auml;hrwert</h3>
+      <h3 className="text-sm font-semibold mb-3">Zutaten-Beiträge pro Nährwert</h3>
       <div className="border rounded-lg divide-y">
         {parameters.map((param) => {
           const isOpen = openParam === param;
@@ -471,7 +471,7 @@ export default function RecipeDetailPage() {
 
   // Reusable handler to open the shopping list export dialog
   const handleOpenShoppingList = () => {
-    setExportServings((recipe.servings ?? 1) * servingsMultiplier);
+    setExportServings(servingsMultiplier);
     setShowShoppingExport(true);
   };
 
@@ -736,7 +736,7 @@ export default function RecipeDetailPage() {
                 <span className="material-symbols-outlined text-orange-600 mt-0.5">warning</span>
                 <div>
                   <p className="text-sm font-medium text-orange-800">
-                    Diese Portion ist groesser als eine Normportion
+                    Diese Portion ist größer als eine Normportion
                   </p>
                   <p className="text-xs text-orange-600 mt-0.5">
                     Energie pro Portion: {Math.round(perServingEnergyKj)} kJ (Referenz: {Math.round(expectedEnergyKj)} kJ)
@@ -902,42 +902,17 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
-      {/* Nutritional Tags */}
-      {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
-        <section className="mt-6 bg-card rounded-xl border p-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-            <span className="material-symbols-outlined text-[18px]">nutrition</span>
-            Allergene & Ernährungshinweise
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {recipe.nutritional_tags?.map((nt) => (
-              <span
-                key={nt.id}
-                className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 px-3 py-1 text-sm font-medium"
-              >
-                {nt.name}
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Recipe Items (Ingredients) — using IngredientList component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <span className="material-symbols-outlined text-rose-500">egg_alt</span>
             Zutaten
-            {recipe.servings && !isInlineEditMode && (() => {
-              const count = isDirty
-                ? (modifiedServings ?? 1)
-                : recipe.servings * servingsMultiplier;
-              return (
-                <span className="text-sm font-normal text-muted-foreground">
-                  für {count} {count === 1 ? 'Portion' : 'Portionen'}
-                </span>
-              );
-            })()}
+            {!isInlineEditMode && (
+              <span className="text-sm font-normal text-muted-foreground">
+                {servingsMultiplier === 1 ? 'pro Portion' : `für ${servingsMultiplier} Portionen`}
+              </span>
+            )}
           </h2>
           {recipe.can_edit && !isInlineEditMode && (
             <button
@@ -972,8 +947,7 @@ export default function RecipeDetailPage() {
                 })
               : (recipe.recipe_items ?? [])}
             servings={isDirty ? (modifiedServings ?? recipe.servings) : recipe.servings}
-            servingsMultiplier={isDirty ? 1 : servingsMultiplier}
-            onServingsChange={setServingsMultiplier}
+            servingsMultiplier={isDirty ? 1 : (servingsMultiplier / (recipe.servings ?? 1))}
           />
         )}
 
@@ -993,6 +967,26 @@ export default function RecipeDetailPage() {
           </div>
         )}
       </section>
+
+      {/* Nutritional Tags */}
+      {recipe.nutritional_tags && recipe.nutritional_tags.length > 0 && (
+        <section className="mt-6 bg-card rounded-xl border p-6">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            <span className="material-symbols-outlined text-[18px]">nutrition</span>
+            Allergene & Ernährungshinweise
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {recipe.nutritional_tags?.map((nt) => (
+              <span
+                key={nt.id}
+                className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 px-3 py-1 text-sm font-medium"
+              >
+                {nt.name}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Shopping List Export Dialog */}
       {showShoppingExport && (
@@ -1193,7 +1187,7 @@ export default function RecipeDetailPage() {
               {recipe.servings && (
                 <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                   <p className="text-2xl font-extrabold text-emerald-700">
-                    {(nb.total_price_eur / (effectiveServings * servingsMultiplier)).toFixed(2)} EUR
+                    {(nb.total_price_eur / effectiveServings).toFixed(2)} EUR
                   </p>
                 </div>
               )}
@@ -1669,8 +1663,8 @@ export default function RecipeDetailPage() {
       <RecipeSidebar
         recipe={recipe}
         recipeId={recipeId}
-        servings={effectiveServings}
-        onServingsChange={(s) => setServingsMultiplier(s / (recipe.servings ?? 1))}
+        servings={servingsMultiplier}
+        onServingsChange={setServingsMultiplier}
         onOpenShoppingList={handleOpenShoppingList}
       />
 
@@ -1686,8 +1680,8 @@ export default function RecipeDetailPage() {
       <PortionBottomSheet
         open={portionSheetOpen}
         onOpenChange={setPortionSheetOpen}
-        servings={effectiveServings}
-        onServingsChange={(s) => setServingsMultiplier(s / (recipe.servings ?? 1))}
+        servings={servingsMultiplier}
+        onServingsChange={setServingsMultiplier}
       />
     </article>
     </EntityLinkContext.Provider>

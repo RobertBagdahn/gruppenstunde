@@ -2,6 +2,7 @@
  * TanStack Query hooks for the Shopping List API.
  * MUST stay in sync with backend/shopping/api.py
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -12,7 +13,7 @@ import {
   ShoppingListCollaboratorSchema,
 } from '@/schemas/shoppingList';
 
-const API_BASE = '/api/shopping-lists';
+const API_BASE = `${API_BASE_URL}/api/shopping-lists`;
 
 // --- Fetch helpers ---
 

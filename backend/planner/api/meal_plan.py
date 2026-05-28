@@ -2,6 +2,7 @@
 
 import datetime as dt
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -12,6 +13,8 @@ from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
     Meal,
     MealPlan,
+    MealPlanCollaborator,
+    MealPlanCollaboratorRole,
     MealItem,
     MealItemOverride,
 )
@@ -30,6 +33,9 @@ from planner.schemas import (
     MealUpdateIn,
     NutritionSummaryOut,
     ShoppingListItemOut,
+    MealPlanCollaboratorOut,
+    MealPlanCollaboratorCreateIn,
+    MealPlanCollaboratorUpdateIn,
 )
 
 meal_plan_router = Router(tags=["meal-plans"])
@@ -40,10 +46,45 @@ def _require_auth(request):
         raise HttpError(403, "Anmeldung erforderlich")
 
 
-def _check_owner(meal_plan: MealPlan, user):
-    """Only owner or staff may modify the meal plan."""
-    if meal_plan.created_by != user and not user.is_staff:
-        raise HttpError(403, "Keine Berechtigung zum Bearbeiten dieses Essensplans")
+def _get_user_role(meal_plan: MealPlan, user) -> str | None:
+    """Return the effective role of a user for a meal plan.
+
+    Returns 'owner' for the creator, the collaborator role string,
+    or None if the user has no access. Staff always gets 'owner'.
+    """
+    if user.is_staff:
+        return "owner"
+    if meal_plan.created_by_id == user.id:
+        return "owner"
+    try:
+        collab = MealPlanCollaborator.objects.get(meal_plan=meal_plan, user=user)
+        return collab.role
+    except MealPlanCollaborator.DoesNotExist:
+        return None
+
+
+def _require_access(meal_plan: MealPlan, user) -> str:
+    """Require at least viewer access. Returns the role."""
+    role = _get_user_role(meal_plan, user)
+    if role is None:
+        raise HttpError(404, "Essensplan nicht gefunden")
+    return role
+
+
+def _require_edit(meal_plan: MealPlan, user) -> str:
+    """Require at least editor access. Returns the role."""
+    role = _require_access(meal_plan, user)
+    if role == MealPlanCollaboratorRole.VIEWER:
+        raise HttpError(403, "Keine Berechtigung zum Bearbeiten")
+    return role
+
+
+def _require_admin(meal_plan: MealPlan, user) -> str:
+    """Require at least admin access. Returns the role."""
+    role = _require_access(meal_plan, user)
+    if role not in ("owner", MealPlanCollaboratorRole.ADMIN):
+        raise HttpError(403, "Nur Admins und Besitzer können das ändern")
+    return role
 
 
 # ==========================================================================
@@ -53,7 +94,7 @@ def _check_owner(meal_plan: MealPlan, user):
 
 @meal_plan_router.get("/", response=list[MealPlanOut])
 def list_meal_plans(request):
-    """List meal events owned by the current user."""
+    """List meal plans the user owns or collaborates on."""
     _require_auth(request)
 
     qs = MealPlan.objects.select_related("event").prefetch_related("meals")
@@ -61,7 +102,9 @@ def list_meal_plans(request):
     if request.user.is_staff:
         return qs.all()
 
-    return qs.filter(created_by=request.user)
+    return qs.filter(
+        Q(created_by=request.user) | Q(collaborators__user=request.user)
+    ).distinct()
 
 
 @meal_plan_router.post("/", response=MealPlanOut)
@@ -109,10 +152,8 @@ def get_meal_plan(request, meal_plan_id: int):
         id=meal_plan_id,
     )
 
-    if meal_plan.created_by != request.user and not request.user.is_staff:
-        raise HttpError(403, "Kein Zugriff auf diesen Essensplan")
-
-    meal_plan.can_edit = (meal_plan.created_by == request.user) or request.user.is_staff
+    role = _require_access(meal_plan, request.user)
+    meal_plan.can_edit = role in ("owner", MealPlanCollaboratorRole.ADMIN, MealPlanCollaboratorRole.EDITOR)
     return meal_plan
 
 
@@ -121,7 +162,7 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
     """Update a meal plan (owner/staff only)."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     for field, value in payload.dict(exclude_unset=True).items():
         setattr(meal_plan, field, value)
@@ -134,7 +175,7 @@ def delete_meal_plan(request, meal_plan_id: int):
     """Delete a meal plan and all its meals/items."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_admin(meal_plan, request.user)
 
     meal_plan.delete()
     return {"success": True, "message": "Essensplan gelöscht"}
@@ -150,7 +191,7 @@ def add_day(request, meal_plan_id: int, payload: MealDayBulkCreateIn):
     """Add a day with default meals (breakfast, lunch, dinner)."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     if Meal.objects.filter(meal_plan=meal_plan, start_datetime__date=payload.date).exists():
         raise HttpError(400, "Dieser Tag existiert bereits im Essensplan")
@@ -164,7 +205,7 @@ def remove_day(request, meal_plan_id: int, date: dt.date):
     """Remove all meals for a specific date."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     meals = Meal.objects.filter(meal_plan=meal_plan, start_datetime__date=date)
     if not meals.exists():
@@ -184,7 +225,7 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
     """Add a meal to a meal plan."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     meal_date = payload.start_datetime.date()
     if Meal.objects.filter(
@@ -213,7 +254,7 @@ def remove_meal(request, meal_plan_id: int, meal_id: int):
     """Remove a meal and all its items."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
     meal.delete()
@@ -230,7 +271,7 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
     """Add a recipe or ingredient to a meal."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
 
@@ -264,7 +305,7 @@ def remove_meal_item(request, meal_plan_id: int, item_id: int):
     """Remove a recipe from a meal."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     item = get_object_or_404(
         MealItem,
@@ -285,7 +326,7 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
     """Update meal notes, override_portions, or note visibility."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
 
@@ -315,7 +356,7 @@ def set_meal_item_overrides(
     """Set overrides for a meal item's recipe ingredients."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _check_owner(meal_plan, request.user)
+    _require_edit(meal_plan, request.user)
 
     item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
 
@@ -352,9 +393,7 @@ def nutrition_summary(request, meal_plan_id: int):
     """Get aggregated nutritional values for the entire meal plan."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-
-    if meal_plan.created_by != request.user and not request.user.is_staff:
-        raise HttpError(403, "Kein Zugriff auf diesen Essensplan")
+    _require_access(meal_plan, request.user)
 
     # Collect all MealItems
     meal_items = MealItem.objects.filter(
@@ -419,9 +458,7 @@ def shopping_list(request, meal_plan_id: int):
     """Generate an aggregated shopping list for a meal plan."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-
-    if meal_plan.created_by != request.user and not request.user.is_staff:
-        raise HttpError(403, "Kein Zugriff auf diesen Essensplan")
+    _require_access(meal_plan, request.user)
 
     from supply.services.shopping_service import generate_shopping_list
 
@@ -537,9 +574,7 @@ def export_pdf(request, meal_plan_id: int, include_notes: bool = False):
     """Export meal plan as PDF."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-
-    if meal_plan.created_by != request.user and not request.user.is_staff:
-        raise HttpError(403, "Kein Zugriff auf diesen Essensplan")
+    _require_access(meal_plan, request.user)
 
     from django.http import HttpResponse
     from planner.services.pdf_export import generate_meal_plan_pdf
@@ -549,3 +584,87 @@ def export_pdf(request, meal_plan_id: int, include_notes: bool = False):
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{meal_plan.slug}-essensplan.pdf"'
     return response
+
+
+# ==========================================================================
+# MealPlan Collaborators
+# ==========================================================================
+
+
+@meal_plan_router.get(
+    "/{meal_plan_id}/collaborators/",
+    response=list[MealPlanCollaboratorOut],
+)
+def list_collaborators(request, meal_plan_id: int):
+    """List all collaborators of a meal plan."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+
+    return MealPlanCollaborator.objects.filter(meal_plan=meal_plan).select_related("user")
+
+
+@meal_plan_router.post(
+    "/{meal_plan_id}/collaborators/",
+    response={201: MealPlanCollaboratorOut},
+)
+def add_collaborator(request, meal_plan_id: int, payload: MealPlanCollaboratorCreateIn):
+    """Add a collaborator to a meal plan (owner/admin only)."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_admin(meal_plan, request.user)
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    user = get_object_or_404(User, id=payload.user_id)
+
+    if user.id == meal_plan.created_by_id:
+        raise HttpError(400, "Der Besitzer kann nicht als Collaborator hinzugefügt werden")
+
+    if MealPlanCollaborator.objects.filter(meal_plan=meal_plan, user=user).exists():
+        raise HttpError(409, "Nutzer ist bereits Collaborator")
+
+    if payload.role not in MealPlanCollaboratorRole.values:
+        raise HttpError(422, "Ungültige Rolle")
+
+    collab = MealPlanCollaborator.objects.create(
+        meal_plan=meal_plan,
+        user=user,
+        role=payload.role,
+    )
+    return 201, collab
+
+
+@meal_plan_router.patch(
+    "/{meal_plan_id}/collaborators/{collaborator_id}/",
+    response=MealPlanCollaboratorOut,
+)
+def update_collaborator(
+    request, meal_plan_id: int, collaborator_id: int, payload: MealPlanCollaboratorUpdateIn
+):
+    """Update a collaborator's role (owner/admin only)."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_admin(meal_plan, request.user)
+
+    collab = get_object_or_404(MealPlanCollaborator, id=collaborator_id, meal_plan=meal_plan)
+
+    if payload.role not in MealPlanCollaboratorRole.values:
+        raise HttpError(422, "Ungültige Rolle")
+
+    collab.role = payload.role
+    collab.save()
+    return collab
+
+
+@meal_plan_router.delete("/{meal_plan_id}/collaborators/{collaborator_id}/")
+def remove_collaborator(request, meal_plan_id: int, collaborator_id: int):
+    """Remove a collaborator from a meal plan (owner/admin only)."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_admin(meal_plan, request.user)
+
+    collab = get_object_or_404(MealPlanCollaborator, id=collaborator_id, meal_plan=meal_plan)
+    collab.delete()
+    return {"success": True}

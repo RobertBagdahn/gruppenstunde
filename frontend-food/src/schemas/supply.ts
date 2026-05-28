@@ -94,6 +94,15 @@ export const NutritionalTagSchema = z.object({
 });
 export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
 
+export const NutritionalTagInSchema = z.object({
+  name: z.string().min(1, 'Name ist erforderlich'),
+  name_opposite: z.string(),
+  description: z.string(),
+  rank: z.number(),
+  is_dangerous: z.boolean(),
+});
+export type NutritionalTagIn = z.infer<typeof NutritionalTagInSchema>;
+
 // ---------------------------------------------------------------------------
 // RetailSection
 // ---------------------------------------------------------------------------
@@ -105,6 +114,13 @@ export const RetailSectionSchema = z.object({
   rank: z.number(),
 });
 export type RetailSection = z.infer<typeof RetailSectionSchema>;
+
+export const RetailSectionInSchema = z.object({
+  name: z.string().min(1, 'Name ist erforderlich'),
+  description: z.string(),
+  rank: z.number(),
+});
+export type RetailSectionIn = z.infer<typeof RetailSectionInSchema>;
 
 // ---------------------------------------------------------------------------
 // Ingredient Alias
@@ -258,7 +274,7 @@ export const RecipeHintSchema = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string(),
-  improvement_text: z.string().default(''),
+  improvement_text: z.string(),
   parameter: z.string(),
   min_value: z.number().nullable(),
   max_value: z.number().nullable(),
@@ -268,6 +284,20 @@ export const RecipeHintSchema = z.object({
   recipe_objective: z.string(),
 });
 export type RecipeHint = z.infer<typeof RecipeHintSchema>;
+
+export const RecipeHintInSchema = z.object({
+  name: z.string().min(1, 'Name ist erforderlich'),
+  description: z.string(),
+  improvement_text: z.string(),
+  hint: z.string(),
+  parameter: z.string().min(1, 'Parameter ist erforderlich'),
+  value: z.number(),
+  min_max: z.string().min(1, 'Regeltyp ist erforderlich'),
+  hint_level: z.string(),
+  recipe_type: z.string(),
+  recipe_objective: z.string(),
+});
+export type RecipeHintIn = z.infer<typeof RecipeHintInSchema>;
 
 export const RecipeHintMatchSchema = z.object({
   hint: RecipeHintSchema,

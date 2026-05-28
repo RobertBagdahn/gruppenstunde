@@ -4,8 +4,9 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserSchema, type User, type LoginInput, type RegisterInput } from '@/schemas/auth';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/auth';
+const API_BASE = `${API_BASE_URL}/api/auth`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

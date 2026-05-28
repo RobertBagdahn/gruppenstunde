@@ -4,6 +4,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 import {
   HealthRuleSchema,
   CockpitDashboardSchema,
@@ -27,7 +28,7 @@ async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
 export function useHealthRules() {
   return useQuery<HealthRule[]>({
     queryKey: ['health-rules'],
-    queryFn: () => fetchJson('/api/health-rules/', z.array(HealthRuleSchema)),
+    queryFn: () => fetchJson(`${API_BASE_URL}/api/health-rules/`, z.array(HealthRuleSchema)),
     staleTime: 10 * 60 * 1000, // rules change rarely
   });
 }
@@ -41,7 +42,7 @@ export function useMealPlanCockpit(mealPlanId: number) {
     queryKey: ['cockpit', 'meal-plan', mealPlanId],
     queryFn: () =>
       fetchJson(
-        `/api/meal-plans/${mealPlanId}/cockpit/`,
+        `${API_BASE_URL}/api/meal-plans/${mealPlanId}/cockpit/`,
         CockpitDashboardSchema,
       ),
     enabled: mealPlanId > 0,
@@ -53,7 +54,7 @@ export function useDayCockpit(mealPlanId: number, date: string) {
     queryKey: ['cockpit', 'meal-plan', mealPlanId, 'day', date],
     queryFn: () =>
       fetchJson(
-        `/api/meal-plans/${mealPlanId}/cockpit/day/?date=${date}`,
+        `${API_BASE_URL}/api/meal-plans/${mealPlanId}/cockpit/day/?date=${date}`,
         CockpitDashboardSchema,
       ),
     enabled: mealPlanId > 0 && !!date,
@@ -64,7 +65,7 @@ export function useMealCockpit(mealId: number) {
   return useQuery<CockpitDashboard>({
     queryKey: ['cockpit', 'meal', mealId],
     queryFn: () =>
-      fetchJson(`/api/meals/${mealId}/cockpit/`, CockpitDashboardSchema),
+      fetchJson(`${API_BASE_URL}/api/meals/${mealId}/cockpit/`, CockpitDashboardSchema),
     enabled: mealId > 0,
   });
 }

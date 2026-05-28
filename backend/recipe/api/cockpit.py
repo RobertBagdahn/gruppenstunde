@@ -7,7 +7,12 @@ from ninja.errors import HttpError
 
 from planner.models import Meal, MealPlan
 from recipe.models import HealthRule
-from recipe.schemas.cockpit import CockpitDashboardOut, HealthRuleOut
+from recipe.schemas.cockpit import (
+    CockpitDashboardOut,
+    HealthRuleIn,
+    HealthRuleOut,
+    HealthRuleUpdateIn,
+)
 from recipe.services.cockpit_service import (
     evaluate_day_cockpit,
     evaluate_meal_cockpit,
@@ -18,13 +23,53 @@ health_rule_router = Router(tags=["health-rules"])
 cockpit_router = Router(tags=["cockpit"])
 
 
-# ── Health Rules (public, no auth) ──
+def _require_staff(request):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        raise HttpError(403, "Nur Admins")
+
+
+# ── Health Rules ──
 
 
 @health_rule_router.get("/", response=list[HealthRuleOut])
 def list_health_rules(request):
-    """List all active health rules."""
-    return HealthRule.objects.filter(is_active=True).order_by("sort_order")
+    """List all health rules (active and inactive for admin)."""
+    return HealthRule.objects.all().order_by("sort_order")
+
+
+@health_rule_router.post("/", response={201: HealthRuleOut})
+def create_health_rule(request, payload: HealthRuleIn):
+    """Create a new health rule (staff-only)."""
+    _require_staff(request)
+    rule = HealthRule.objects.create(**payload.dict())
+    return 201, rule
+
+
+@health_rule_router.patch("/{rule_id}/", response=HealthRuleOut)
+def update_health_rule(request, rule_id: int, payload: HealthRuleUpdateIn):
+    """Update a health rule (staff-only)."""
+    _require_staff(request)
+    try:
+        rule = HealthRule.objects.get(id=rule_id)
+    except HealthRule.DoesNotExist:
+        raise HttpError(404, "Nicht gefunden")
+
+    for field, value in payload.dict(exclude_unset=True).items():
+        setattr(rule, field, value)
+    rule.save()
+    return rule
+
+
+@health_rule_router.delete("/{rule_id}/", response={204: None})
+def delete_health_rule(request, rule_id: int):
+    """Delete a health rule (staff-only)."""
+    _require_staff(request)
+    try:
+        rule = HealthRule.objects.get(id=rule_id)
+    except HealthRule.DoesNotExist:
+        raise HttpError(404, "Nicht gefunden")
+    rule.delete()
+    return 204, None
 
 
 # ── Cockpit endpoints (scoped to MealPlan) ──

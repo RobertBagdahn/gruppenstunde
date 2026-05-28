@@ -115,6 +115,13 @@ describe('formatQuantity', () => {
   it('returns 0 g for zero or negative', () => {
     expect(formatQuantity(0, null, null).display).toBe('0 g');
     expect(formatQuantity(-5, null, null).display).toBe('0 g');
+    expect(formatQuantity(0.001, null, null).display).toBe('0 g');
+  });
+
+  it('never returns 0 g for values >= 0.01', () => {
+    expect(formatQuantity(0.01, null, null).display).not.toBe('0 g');
+    expect(formatQuantity(0.5, null, null).display).not.toBe('0 g');
+    expect(formatQuantity(0.9375, null, null).display).not.toBe('0 g');
   });
 
   it('formats solids as weight', () => {

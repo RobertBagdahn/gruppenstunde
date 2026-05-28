@@ -25,6 +25,7 @@ import {
   type MessageTemplateCreate,
   type MessageTemplateUpdate,
 } from '@/schemas/whatsapp';
+import { API_BASE_URL } from '@/lib/api';
 import {
   MessagePreviewSchema,
   SendMessageResultSchema,
@@ -33,9 +34,9 @@ import {
   type SendMessageResult,
 } from '@/schemas/messaging';
 
-const WHATSAPP_BASE = '/api/whatsapp';
-const TEMPLATES_BASE = '/api/message-templates';
-const EVENTS_BASE = '/api/events';
+const WHATSAPP_BASE = `${API_BASE_URL}/api/whatsapp`;
+const TEMPLATES_BASE = `${API_BASE_URL}/api/message-templates`;
+const EVENTS_BASE = `${API_BASE_URL}/api/events`;
 
 // ---------------------------------------------------------------------------
 // Fetch helpers (per-file convention, see frontend/AGENTS.md)

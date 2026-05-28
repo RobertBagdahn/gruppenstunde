@@ -12,8 +12,9 @@ import {
   type AiRefurbish,
 } from '@/schemas/content';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/content/ai';
+const API_BASE = `${API_BASE_URL}/api/content/ai`;
 
 /** Extended error class that carries the machine-readable error_code from the backend. */
 export class AiApiError extends Error {

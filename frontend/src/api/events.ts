@@ -3,6 +3,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 import {
   EventListSchema,
   EventDetailSchema,
@@ -31,8 +32,8 @@ import {
 } from '@/schemas/event';
 
 
-const EVENTS_BASE = '/api/events';
-const PERSONS_BASE = '/api/persons';
+const EVENTS_BASE = `${API_BASE_URL}/api/events`;
+const PERSONS_BASE = `${API_BASE_URL}/api/persons`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -448,7 +449,7 @@ export function useInviteUsers(eventSlug: string) {
 // Locations
 // ==========================================================================
 
-const LOCATIONS_BASE = '/api/locations';
+const LOCATIONS_BASE = `${API_BASE_URL}/api/locations`;
 
 export function useLocations() {
   return useQuery<EventLocation[]>({
@@ -483,7 +484,7 @@ export function useCreateLocation() {
 // Meeting Points
 // ==========================================================================
 
-const MEETING_POINTS_BASE = '/api/meeting-points';
+const MEETING_POINTS_BASE = `${API_BASE_URL}/api/meeting-points`;
 
 export function useMeetingPoints() {
   return useQuery<MeetingPoint[]>({

@@ -17,7 +17,7 @@ import {
 const ApprovalQueuePage = lazy(() => import('./admin/ApprovalQueuePage'));
 const EmbeddingViewerPage = lazy(() => import('./admin/EmbeddingViewerPage'));
 const EmbeddingFeedbackPage = lazy(() => import('./admin/EmbeddingFeedbackPage'));
-const RecipeHintAdminPage = lazy(() => import('./admin/RecipeHintAdminPage'));
+
 
 /** Map content_type to content URL prefix */
 function contentUrlForSlug(slug: string, contentType?: string): string {
@@ -31,7 +31,7 @@ function contentUrlForSlug(slug: string, contentType?: string): string {
   return `${prefix}/${slug}`;
 }
 
-type AdminSection = 'dashboard' | 'moderation' | 'materials' | 'units' | 'users' | 'approvals' | 'embeddings' | 'embedding-feedback' | 'recipe-hints';
+type AdminSection = 'dashboard' | 'moderation' | 'materials' | 'units' | 'users' | 'approvals' | 'embeddings' | 'embedding-feedback';
 
 /** Material Symbol helper for menu items */
 function MenuIcon({ name }: { name: string }) {
@@ -47,10 +47,9 @@ const MENU_ITEMS: { key: AdminSection; label: string; icon: ReactNode }[] = [
   { key: 'users', label: 'Benutzer', icon: <MenuIcon name="group" /> },
   { key: 'embeddings', label: 'Embeddings', icon: <MenuIcon name="psychology" /> },
   { key: 'embedding-feedback', label: 'Feedback', icon: <MenuIcon name="feedback" /> },
-  { key: 'recipe-hints', label: 'Rezept-Hinweise', icon: <MenuIcon name="lightbulb" /> },
 ];
 
-const VALID_SECTIONS: AdminSection[] = ['dashboard', 'moderation', 'materials', 'units', 'users', 'approvals', 'embeddings', 'embedding-feedback', 'recipe-hints'];
+const VALID_SECTIONS: AdminSection[] = ['dashboard', 'moderation', 'materials', 'units', 'users', 'approvals', 'embeddings', 'embedding-feedback'];
 
 export default function AdminPage() {
   const { section } = useParams<{ section: string }>();
@@ -741,13 +740,6 @@ export default function AdminPage() {
           {activeSection === 'embedding-feedback' && (
             <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-16" />)}</div>}>
               <EmbeddingFeedbackPage />
-            </Suspense>
-          )}
-
-          {/* Recipe Hints */}
-          {activeSection === 'recipe-hints' && (
-            <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-16" />)}</div>}>
-              <RecipeHintAdminPage />
             </Suspense>
           )}
 

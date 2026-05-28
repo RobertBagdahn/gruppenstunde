@@ -261,7 +261,7 @@ export default function ShoppingListPage() {
           title="Noch keine Einkaufslisten"
           description={
             searchInput
-              ? 'Keine Einkaufslisten fuer diese Suche gefunden.'
+              ? 'Keine Einkaufslisten für diese Suche gefunden.'
               : 'Du hast noch keine Einkaufslisten. Erstelle eine neue Liste oder exportiere eine aus einem Rezept.'
           }
           ctaLabel="Neue Liste erstellen"

@@ -64,6 +64,9 @@ export interface ContentStepperProps {
   formData?: ContentFormData;
   onFormDataChange?: (data: ContentFormData) => void;
 
+  /** Content type passed to AI refurbish endpoint (e.g. "recipe" to get ingredient suggestions) */
+  contentType?: string;
+
   /** Called with full refurbish AI response data (for type-specific extraction like ingredients) */
   onRefurbishComplete?: (data: import('@/schemas/content').AiRefurbish) => void;
 
@@ -104,6 +107,7 @@ export default function ContentStepper({
   hidePreparationTime = false,
   formData: controlledFormData,
   onFormDataChange,
+  contentType,
   onRefurbishComplete,
   renderExtraStep0Cards,
   initialStep,
@@ -161,7 +165,7 @@ export default function ContentStepper({
     abortControllerRef.current = controller;
 
     refurbish.mutate(
-      { raw_text: rawText.trim(), signal: controller.signal },
+      { raw_text: rawText.trim(), content_type: contentType, signal: controller.signal },
       {
         onSuccess: (data) => {
           abortControllerRef.current = null;

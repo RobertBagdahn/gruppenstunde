@@ -85,3 +85,8 @@ Feature-Dokumentation gehört in **OpenSpec**, nicht in AGENTS.md.
 
 - Kein App Engine, kein Docker lokal (nur Podman), keine GitHub Actions, kein Terraform (nur OpenTofu)
 - Details → `openspec/specs/infrastructure/spec.md`
+
+
+# Umlaute
+
+Immer echte deutsche Umlaute verwenden: **ä, ö, ü, Ä, Ö, Ü, ß**. Niemals Ersatzschreibweisen wie `ae`, `oe`, `ue` oder `ss` benutzen – weder in UI-Texten, noch in Kommentaren oder Dokumentation. 

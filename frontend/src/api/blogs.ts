@@ -10,11 +10,12 @@ import {
   type BlogFilter,
   type BlogDetail,
 } from '@/schemas/blog';
+import { API_BASE_URL } from '@/lib/api';
 import {
   ContentCommentSchema,
 } from '@/schemas/content';
 
-const API_BASE = '/api/blogs';
+const API_BASE = `${API_BASE_URL}/api/blogs`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

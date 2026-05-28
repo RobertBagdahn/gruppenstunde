@@ -8,7 +8,7 @@ from google.cloud import secretmanager
 
 from .base import *  # noqa: F401,F403
 
-DEBUG = False
+DEBUG = env("DEBUG", default="False").lower() in ("true", "1")  # noqa: F405
 
 APPENGINE_URL = env("APPENGINE_URL", default="https://gruppenstunde.de")  # noqa: F405
 ALLOWED_HOSTS = [
@@ -18,7 +18,11 @@ ALLOWED_HOSTS = [
     ".run.app",
 ]
 
-CSRF_TRUSTED_ORIGINS = [APPENGINE_URL]
+CSRF_TRUSTED_ORIGINS = [
+    APPENGINE_URL,
+    "https://inspi-frontend-148679246533.europe-west3.run.app",
+    "https://inspi-frontend-food-148679246533.europe-west3.run.app",
+]
 
 # Security
 SECURE_SSL_REDIRECT = True
@@ -60,4 +64,7 @@ DATABASES = {
 CORS_ALLOWED_ORIGINS = [
     "https://gruppenstunde.de",
     "https://www.gruppenstunde.de",
+    "https://inspi-frontend-148679246533.europe-west3.run.app",
+    "https://inspi-frontend-food-148679246533.europe-west3.run.app",
 ]
+CORS_ALLOW_CREDENTIALS = True

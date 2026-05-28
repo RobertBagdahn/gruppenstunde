@@ -74,7 +74,7 @@ function NutritionRow({
     <div className="flex justify-between py-1.5 border-b border-border/30 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="text-sm font-medium">
-        {value !== null ? `${value} ${unit}` : '\u2014'}
+        {value !== null ? `${parseFloat(value.toFixed(1))} ${unit}` : '\u2014'}
       </span>
     </div>
   );

@@ -219,3 +219,39 @@ class ShoppingListItemOut(Schema):
     display_text: str = ""
     natural_portions: str = ""
     sources: list[ShoppingItemSourceOut] = []
+
+
+# ==========================================================================
+# MealPlan Collaborator Schemas
+# ==========================================================================
+
+
+class MealPlanCollaboratorOut(Schema):
+    id: int
+    user_id: int
+    username: str = ""
+    first_name: str = ""
+    last_name: str = ""
+    role: str
+    created_at: dt.datetime
+
+    @staticmethod
+    def resolve_username(obj) -> str:
+        return obj.user.username if obj.user else ""
+
+    @staticmethod
+    def resolve_first_name(obj) -> str:
+        return obj.user.first_name if obj.user else ""
+
+    @staticmethod
+    def resolve_last_name(obj) -> str:
+        return obj.user.last_name if obj.user else ""
+
+
+class MealPlanCollaboratorCreateIn(Schema):
+    user_id: int
+    role: str = "viewer"
+
+
+class MealPlanCollaboratorUpdateIn(Schema):
+    role: str

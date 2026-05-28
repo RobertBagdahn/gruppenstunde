@@ -14,7 +14,6 @@ from supply.schemas import (
     MaterialOut,
     MaterialUpdateIn,
     MeasuringUnitOut,
-    NutritionalTagOut,
     PaginatedMaterialOut,
 )
 
@@ -126,7 +125,7 @@ def delete_material(request, material_id: int):
 
 
 # ===========================================================================
-# Measuring Units & Nutritional Tags (on the supply router)
+# Measuring Units (on the supply router)
 # ===========================================================================
 
 
@@ -136,11 +135,3 @@ def list_measuring_units(request):
     from supply.models import MeasuringUnit
 
     return MeasuringUnit.objects.all()
-
-
-@router.get("/nutritional-tags/", response=list[NutritionalTagOut])
-def list_nutritional_tags(request):
-    """List all nutritional tags."""
-    from supply.models import NutritionalTag
-
-    return NutritionalTag.objects.all()

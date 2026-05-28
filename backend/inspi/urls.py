@@ -27,6 +27,7 @@ from session.api import router as session_router
 from supply.api import (
     router as supply_router,
     ingredient_router,
+    nutritional_tag_router,
     retail_section_router,
     norm_person_router,
     dge_reference_router,
@@ -58,6 +59,7 @@ api.add_router("/packing-lists/", packing_list_router)
 api.add_router("/shopping-lists/", shopping_router)
 api.add_router("/ingredients/", ingredient_router)
 api.add_router("/retail-sections/", retail_section_router)
+api.add_router("/nutritional-tags/", nutritional_tag_router)
 api.add_router("/unit-conversions/", unit_conversion_router)
 api.add_router("/recipes/", recipe_router)
 api.add_router("/recipe-folders/", recipe_folder_router)

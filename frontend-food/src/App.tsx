@@ -26,6 +26,10 @@ import ShoppingListDetailPage from './pages/shopping/ShoppingListDetailPage';
 // Tools
 import NormPortionSimulatorPage from './pages/tools/NormPortionSimulatorPage';
 
+// Admin
+import AdminPage from './pages/admin/AdminPage';
+import StaffGuard from './components/admin/StaffGuard';
+
 // Auth
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -67,6 +71,10 @@ export default function App() {
 
         {/* Tools */}
         <Route path="/tools/norm-portion-simulator" element={<NormPortionSimulatorPage />} />
+
+        {/* Admin */}
+        <Route path="/admin" element={<StaffGuard><AdminPage /></StaffGuard>} />
+        <Route path="/admin/:section" element={<StaffGuard><AdminPage /></StaffGuard>} />
       </Route>
     </Routes>
   );

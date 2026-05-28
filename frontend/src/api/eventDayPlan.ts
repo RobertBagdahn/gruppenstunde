@@ -5,8 +5,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { EventDaySlotSchema, type EventDaySlot } from '@/schemas/event';
+import { API_BASE_URL } from '@/lib/api';
 
-const BASE = '/api/events';
+const BASE = `${API_BASE_URL}/api/events`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

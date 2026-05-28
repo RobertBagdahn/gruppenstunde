@@ -242,6 +242,7 @@ export default function CreateRecipePage() {
       typeLabel="Rezept"
       typeIcon="menu_book"
       typeGradient="from-rose-500 to-pink-600"
+      contentType="recipe"
       isSaving={createRecipe.isPending}
       onSave={handleSave}
       onRefurbishComplete={handleRefurbishComplete}

@@ -261,6 +261,45 @@ class MealItem(models.Model):
         return f"{self.meal} – {name}"
 
 
+class MealPlanCollaboratorRole(models.TextChoices):
+    VIEWER = "viewer", _("Betrachter")
+    EDITOR = "editor", _("Bearbeiter")
+    ADMIN = "admin", _("Admin")
+
+
+class MealPlanCollaborator(models.Model):
+    """Links a user to a meal plan with a specific role."""
+
+    meal_plan = models.ForeignKey(
+        MealPlan,
+        on_delete=models.CASCADE,
+        related_name="collaborators",
+        verbose_name=_("Essensplan"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="meal_plan_collaborations",
+        verbose_name=_("Nutzer"),
+    )
+    role = models.CharField(
+        max_length=10,
+        choices=MealPlanCollaboratorRole.choices,
+        default=MealPlanCollaboratorRole.VIEWER,
+        verbose_name=_("Rolle"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Essensplan-Mitglied")
+        verbose_name_plural = _("Essensplan-Mitglieder")
+        unique_together = [("meal_plan", "user")]
+        ordering = ["role", "user__username"]
+
+    def __str__(self) -> str:
+        return f"{self.user} – {self.get_role_display()} ({self.meal_plan.name})"
+
+
 class MealItemOverride(models.Model):
     """Override a specific recipe ingredient within a meal item."""
 

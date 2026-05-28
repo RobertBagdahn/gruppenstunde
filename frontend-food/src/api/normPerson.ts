@@ -2,6 +2,7 @@
  * TanStack Query hooks for the Norm Person API.
  * MUST stay in sync with backend/supply/api/norm_person.py
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -12,7 +13,7 @@ import {
 } from '@/schemas/normPerson';
 import type { NormPersonResult, NormPersonCurves, DgeReferencePoint, DgeReference } from '@/schemas/normPerson';
 
-const NORM_PERSON_BASE = '/api/norm-person';
+const NORM_PERSON_BASE = `${API_BASE_URL}/api/norm-person`;
 
 async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
@@ -83,7 +84,7 @@ export function useDgeReferences() {
     queryKey: ['dge-references'],
     queryFn: () =>
       fetchJson(
-        '/api/dge-references/',
+        `${API_BASE_URL}/api/dge-references/`,
         z.array(DgeReferenceSchema),
       ),
     staleTime: 30 * 60 * 1000,

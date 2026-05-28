@@ -25,6 +25,22 @@ export const HealthRuleSchema = z.object({
 });
 export type HealthRule = z.infer<typeof HealthRuleSchema>;
 
+export const HealthRuleInSchema = z.object({
+  name: z.string().min(1, 'Name ist erforderlich'),
+  description: z.string(),
+  parameter: z.string().min(1, 'Parameter ist erforderlich'),
+  scope: z.string().min(1, 'Geltungsbereich ist erforderlich'),
+  min_green: z.number().nullable(),
+  min_yellow: z.number().nullable(),
+  max_green: z.number().nullable(),
+  max_yellow: z.number().nullable(),
+  unit: z.string(),
+  tip_text: z.string(),
+  is_active: z.boolean(),
+  sort_order: z.number(),
+});
+export type HealthRuleIn = z.infer<typeof HealthRuleInSchema>;
+
 // ---------------------------------------------------------------------------
 // CockpitEvaluation (single rule result)
 // ---------------------------------------------------------------------------

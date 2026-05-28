@@ -124,7 +124,7 @@ export function formatQuantity(
   viscosity: string | null | undefined,
   density: number | null | undefined,
 ): FormattedQuantity {
-  if (grams <= 0) {
+  if (grams < 0.01) {
     return { value: 0, unit: 'g', display: '0 g' };
   }
 

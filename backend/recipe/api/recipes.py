@@ -181,6 +181,108 @@ def list_my_recipes(request, page: int = 1, page_size: int = 20, folder: int | N
     return result
 
 
+# ===========================================================================
+# URL Import (must be before /{recipe_id}/ to avoid path conflict)
+# ===========================================================================
+
+
+@router.post("/import-from-url/", response=RecipeImportPreviewOut)
+def import_recipe_from_url(request, payload: RecipeImportRequestIn):
+    """Import a recipe from an external URL and return a preview."""
+    _require_auth(request)
+
+    from recipe.services.import_service import ImportedRecipe, import_from_url
+
+    try:
+        result: ImportedRecipe = import_from_url(payload.url)
+    except ValueError as e:
+        raise HttpError(422, str(e))
+    except Exception as e:
+        logger.exception("Recipe import failed for URL: %s", payload.url)
+        raise HttpError(422, f"Import fehlgeschlagen: {e}")
+
+    return RecipeImportPreviewOut(
+        title=result.title,
+        description=result.description,
+        servings=result.servings,
+        ingredients=[
+            {"name": i.name, "quantity": i.quantity, "unit": i.unit}
+            for i in result.ingredients
+        ],
+        steps=result.steps,
+        image_url=result.image_url,
+        source_url=result.source_url,
+        prep_time_minutes=result.prep_time_minutes,
+        cook_time_minutes=result.cook_time_minutes,
+    )
+
+
+@router.post("/import-from-url-enhanced/", response=RecipeImportUrlResponseOut)
+def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
+    """Import a recipe from URL with Gemini-based ingredient matching and creation."""
+    _require_auth(request)
+
+    from recipe.services.url_import_service import import_recipe_from_url
+
+    try:
+        result = import_recipe_from_url(payload.url, request.user)
+    except ValueError as e:
+        raise HttpError(422, str(e))
+    except Exception as e:
+        logger.exception("Enhanced recipe import failed for URL: %s", payload.url)
+        raise HttpError(422, f"Import fehlgeschlagen: {e}")
+
+    return RecipeImportUrlResponseOut(
+        recipe_draft={
+            "title": result.title,
+            "description": result.description,
+            "servings": result.servings,
+            "preparation_time": result.preparation_time,
+            "execution_time": result.execution_time,
+            "recipe_type": result.recipe_type,
+            "steps": result.steps,
+            "source_url": result.source_url,
+        },
+        recipe_items=[
+            {
+                "ingredient_id": item.ingredient_id,
+                "ingredient_name": item.ingredient_name,
+                "quantity": item.quantity,
+                "measuring_unit_id": item.measuring_unit_id,
+                "measuring_unit_name": item.measuring_unit_name,
+                "note": item.note,
+                "is_new_ingredient": item.is_new_ingredient,
+            }
+            for item in result.recipe_items
+        ],
+        created_ingredients=[
+            {
+                "id": ci.id,
+                "name": ci.name,
+                "aliases": ci.aliases,
+                "nutri_class": ci.nutri_class,
+            }
+            for ci in result.created_ingredients
+        ],
+    )
+
+
+# ===========================================================================
+# AI Create (must be before /{recipe_id}/ to avoid path conflict)
+# ===========================================================================
+
+
+@router.post("/ai-create/", response=RecipeDetailOut)
+def ai_create(request, payload: RecipeAiCreateIn):
+    """Create a complete recipe from title/description using AI."""
+    _require_auth(request)
+
+    from recipe.services.recipe_ai_suggest_service import ai_create_recipe
+
+    recipe = ai_create_recipe(payload.title, payload.description or None, user=request.user)
+    return recipe
+
+
 @router.get("/{recipe_id}/", response=RecipeDetailOut)
 def get_recipe(request, recipe_id: int):
     """Get recipe detail by ID."""
@@ -620,93 +722,7 @@ def update_recipe_visibility(request, recipe_id: int, payload: VisibilityUpdateI
 
 
 # ===========================================================================
-# URL Import
-# ===========================================================================
-
-
-@router.post("/import-from-url/", response=RecipeImportPreviewOut)
-def import_recipe_from_url(request, payload: RecipeImportRequestIn):
-    """Import a recipe from an external URL and return a preview."""
-    _require_auth(request)
-
-    from recipe.services.import_service import ImportedRecipe, import_from_url
-
-    try:
-        result: ImportedRecipe = import_from_url(payload.url)
-    except ValueError as e:
-        raise HttpError(422, str(e))
-    except Exception as e:
-        logger.exception("Recipe import failed for URL: %s", payload.url)
-        raise HttpError(422, f"Import fehlgeschlagen: {e}")
-
-    return RecipeImportPreviewOut(
-        title=result.title,
-        description=result.description,
-        servings=result.servings,
-        ingredients=[
-            {"name": i.name, "quantity": i.quantity, "unit": i.unit}
-            for i in result.ingredients
-        ],
-        steps=result.steps,
-        image_url=result.image_url,
-        source_url=result.source_url,
-        prep_time_minutes=result.prep_time_minutes,
-        cook_time_minutes=result.cook_time_minutes,
-    )
-
-
-@router.post("/import-from-url-enhanced/", response=RecipeImportUrlResponseOut)
-def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
-    """Import a recipe from URL with Gemini-based ingredient matching and creation."""
-    _require_auth(request)
-
-    from recipe.services.url_import_service import import_recipe_from_url
-
-    try:
-        result = import_recipe_from_url(payload.url, request.user)
-    except ValueError as e:
-        raise HttpError(422, str(e))
-    except Exception as e:
-        logger.exception("Enhanced recipe import failed for URL: %s", payload.url)
-        raise HttpError(422, f"Import fehlgeschlagen: {e}")
-
-    return RecipeImportUrlResponseOut(
-        recipe_draft={
-            "title": result.title,
-            "description": result.description,
-            "servings": result.servings,
-            "preparation_time": result.preparation_time,
-            "execution_time": result.execution_time,
-            "recipe_type": result.recipe_type,
-            "steps": result.steps,
-            "source_url": result.source_url,
-        },
-        recipe_items=[
-            {
-                "ingredient_id": item.ingredient_id,
-                "ingredient_name": item.ingredient_name,
-                "quantity": item.quantity,
-                "measuring_unit_id": item.measuring_unit_id,
-                "measuring_unit_name": item.measuring_unit_name,
-                "note": item.note,
-                "is_new_ingredient": item.is_new_ingredient,
-            }
-            for item in result.recipe_items
-        ],
-        created_ingredients=[
-            {
-                "id": ci.id,
-                "name": ci.name,
-                "aliases": ci.aliases,
-                "nutri_class": ci.nutri_class,
-            }
-            for ci in result.created_ingredients
-        ],
-    )
-
-
-# ===========================================================================
-# AI Suggest & Create
+# AI Suggest
 # ===========================================================================
 
 
@@ -723,14 +739,3 @@ def ai_suggest_all(request, recipe_id: int):
 
     result = suggest_recipe_metadata(recipe, user=request.user)
     return result
-
-
-@router.post("/ai-create/", response=RecipeDetailOut)
-def ai_create(request, payload: RecipeAiCreateIn):
-    """Create a complete recipe from title/description using AI."""
-    _require_auth(request)
-
-    from recipe.services.recipe_ai_suggest_service import ai_create_recipe
-
-    recipe = ai_create_recipe(payload.title, payload.description or None, user=request.user)
-    return recipe

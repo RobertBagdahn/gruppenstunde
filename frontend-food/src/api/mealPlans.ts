@@ -2,6 +2,7 @@
  * TanStack Query hooks for the MealPlan API.
  * MUST stay in sync with backend/planner/api/meal_plan.py
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MealPlanSchema,
@@ -18,7 +19,7 @@ import {
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 
-const API_BASE = '/api/meal-plans';
+const API_BASE = `${API_BASE_URL}/api/meal-plans`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

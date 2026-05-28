@@ -13,9 +13,10 @@ import {
   type PaginatedMaterialNames,
 } from '@/schemas/supply';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/materials';
-const ADMIN_BASE = '/api/admin';
+const API_BASE = `${API_BASE_URL}/api/materials`;
+const ADMIN_BASE = `${API_BASE_URL}/api/admin`;
 
 async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   const res = await fetch(url);

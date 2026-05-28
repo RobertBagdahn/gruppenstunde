@@ -3,7 +3,9 @@
 from .cockpit import (
     CockpitDashboardOut,
     CockpitEvaluationOut,
+    HealthRuleIn,
     HealthRuleOut,
+    HealthRuleUpdateIn,
 )
 from .recipes import (
     NutritionalTagOut,
@@ -48,7 +50,9 @@ __all__ = [
     "ContributionOut",
     "EstimateQuantitiesOut",
     "EstimateQuantityItemOut",
+    "HealthRuleIn",
     "HealthRuleOut",
+    "HealthRuleUpdateIn",
     "ImprovementListOut",
     "ImprovementOut",
     "LlmSuggestionOut",

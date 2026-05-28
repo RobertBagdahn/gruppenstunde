@@ -30,8 +30,9 @@ import {
   type GenerateContext,
 } from '@/schemas/packingList';
 import { z } from 'zod';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_BASE = '/api/packing-lists';
+const API_BASE = `${API_BASE_URL}/api/packing-lists`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);

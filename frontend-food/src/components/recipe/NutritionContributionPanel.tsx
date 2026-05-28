@@ -48,7 +48,7 @@ export function NutritionContributionPanel({
   if (contributors.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Keine Zutat tr&auml;gt {paramLabel} bei.
+        Keine Zutat trägt {paramLabel} bei.
       </p>
     );
   }

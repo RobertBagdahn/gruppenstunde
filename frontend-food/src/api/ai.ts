@@ -1,6 +1,7 @@
 /**
  * TanStack Query mutations for the AI API.
  */
+import { API_BASE_URL } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
 import {
   AiImproveTextSchema,
@@ -13,7 +14,7 @@ import {
 } from '@/schemas/content';
 import { z } from 'zod';
 
-const API_BASE = '/api/content/ai';
+const API_BASE = `${API_BASE_URL}/api/content/ai`;
 
 /** Extended error class that carries the machine-readable error_code from the backend. */
 export class AiApiError extends Error {
@@ -67,9 +68,9 @@ export function useSuggestTags() {
 }
 
 export function useRefurbish() {
-  return useMutation<AiRefurbish, AiApiError, { raw_text: string; signal?: AbortSignal }>({
-    mutationFn: async ({ raw_text, signal }) => {
-      return postJson(`${API_BASE}/refurbish/`, { raw_text }, AiRefurbishSchema, signal);
+  return useMutation<AiRefurbish, AiApiError, { raw_text: string; content_type?: string; signal?: AbortSignal }>({
+    mutationFn: async ({ raw_text, content_type, signal }) => {
+      return postJson(`${API_BASE}/refurbish/`, { raw_text, content_type }, AiRefurbishSchema, signal);
     },
   });
 }
