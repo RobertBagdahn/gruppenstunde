@@ -1012,14 +1012,12 @@ class Command(BaseCommand):
                 continue
 
             quantity_raw = fields.get("quantity", 1)
-            quantity_type = "per_person" if fields.get("number_of_participants", 0) > 0 else "once"
 
             ContentMaterialItem.objects.create(
                 content_type=ct,
                 object_id=activity_obj.id,
                 material=material_obj,
                 quantity=str(quantity_raw),
-                quantity_type=quantity_type,
                 sort_order=ContentMaterialItem.objects.filter(content_type=ct, object_id=activity_obj.id).count(),
             )
             self._count("ContentMaterialItem", created=True)

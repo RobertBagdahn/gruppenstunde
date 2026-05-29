@@ -2,7 +2,7 @@
 
 import datetime as dt
 
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -21,6 +21,7 @@ from planner.models import (
 from planner.schemas import (
     MealCreateIn,
     MealDayBulkCreateIn,
+    MealPlanCostSummaryOut,
     MealPlanCreateIn,
     MealPlanDetailOut,
     MealPlanOut,
@@ -112,7 +113,7 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
     """Create a new meal plan with auto-generated default meals."""
     _require_auth(request)
 
-    data = payload.dict(exclude={"event_id", "start_date", "num_days"})
+    data = payload.dict(exclude={"event_id", "start_datetime", "end_datetime"})
     meal_plan = MealPlan(created_by=request.user, **data)
 
     # Optional event binding
@@ -122,20 +123,26 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
         event = get_object_or_404(Event, id=payload.event_id)
         meal_plan.event = event
 
+    # Set start/end datetime
+    if payload.start_datetime and payload.end_datetime:
+        meal_plan.start_datetime = payload.start_datetime
+        meal_plan.end_datetime = payload.end_datetime
+    elif meal_plan.event and meal_plan.event.start_date and meal_plan.event.end_date:
+        meal_plan.start_datetime = meal_plan.event.start_date
+        meal_plan.end_datetime = meal_plan.event.end_date
+
     meal_plan.save()
 
-    # Generate default meals for date range
-    if meal_plan.event and meal_plan.event.start_date and meal_plan.event.end_date:
-        start = meal_plan.event.start_date.date()
-        end = meal_plan.event.end_date.date()
-        current = start
-        while current <= end:
-            meal_plan.create_default_meals_for_date(current)
+    # Generate default meals for date range (time-aware)
+    if meal_plan.start_datetime and meal_plan.end_datetime:
+        start_date = meal_plan.start_datetime.date()
+        end_date = meal_plan.end_datetime.date()
+        current = start_date
+        while current <= end_date:
+            is_first = current == start_date
+            is_last = current == end_date
+            meal_plan.create_meals_for_date_timeaware(current, is_first=is_first, is_last=is_last)
             current += dt.timedelta(days=1)
-    elif payload.start_date:
-        for i in range(max(1, payload.num_days)):
-            day_date = payload.start_date + dt.timedelta(days=i)
-            meal_plan.create_default_meals_for_date(day_date)
 
     return meal_plan
 
@@ -147,7 +154,10 @@ def get_meal_plan(request, meal_plan_id: int):
 
     meal_plan = get_object_or_404(
         MealPlan.objects.select_related("event").prefetch_related(
-            "meals__items__recipe",
+            Prefetch(
+                "meals__items",
+                queryset=MealItem.objects.select_related("recipe", "meal__meal_plan"),
+            ),
         ),
         id=meal_plan_id,
     )
@@ -213,6 +223,54 @@ def remove_day(request, meal_plan_id: int, date: dt.date):
 
     meals.delete()
     return {"success": True}
+
+
+@meal_plan_router.post("/{meal_plan_id}/add-day-before/", response=list[MealOut])
+def add_day_before(request, meal_plan_id: int):
+    """Add a day before the current start, shifting start_datetime back by one day."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    if not meal_plan.start_datetime or not meal_plan.end_datetime:
+        raise HttpError(400, "Essensplan hat kein Start-/Enddatum")
+
+    # Backfill the current first day (it becomes a middle day now)
+    old_first_date = meal_plan.start_datetime.date()
+    meal_plan.create_meals_for_date_timeaware(old_first_date, is_first=False, is_last=False)
+
+    # Shift start back by one day
+    meal_plan.start_datetime -= dt.timedelta(days=1)
+    meal_plan.save(update_fields=["start_datetime", "updated_at"])
+
+    # Create meals for new first day (filtered by start time)
+    new_first_date = meal_plan.start_datetime.date()
+    new_meals = meal_plan.create_meals_for_date_timeaware(new_first_date, is_first=True, is_last=False)
+    return new_meals
+
+
+@meal_plan_router.post("/{meal_plan_id}/add-day-after/", response=list[MealOut])
+def add_day_after(request, meal_plan_id: int):
+    """Add a day after the current end, shifting end_datetime forward by one day."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    if not meal_plan.start_datetime or not meal_plan.end_datetime:
+        raise HttpError(400, "Essensplan hat kein Start-/Enddatum")
+
+    # Backfill the current last day (it becomes a middle day now)
+    old_last_date = meal_plan.end_datetime.date()
+    meal_plan.create_meals_for_date_timeaware(old_last_date, is_first=False, is_last=False)
+
+    # Shift end forward by one day
+    meal_plan.end_datetime += dt.timedelta(days=1)
+    meal_plan.save(update_fields=["end_datetime", "updated_at"])
+
+    # Create meals for new last day (filtered by end time)
+    new_last_date = meal_plan.end_datetime.date()
+    new_meals = meal_plan.create_meals_for_date_timeaware(new_last_date, is_first=False, is_last=True)
+    return new_meals
 
 
 # ==========================================================================
@@ -446,6 +504,135 @@ def nutrition_summary(request, meal_plan_id: int):
 
 
 # ==========================================================================
+# Cost Summary
+# ==========================================================================
+
+
+@meal_plan_router.get("/{meal_plan_id}/costs/", response=MealPlanCostSummaryOut)
+def cost_summary(request, meal_plan_id: int):
+    """Get aggregated cost breakdown for the entire meal plan."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+
+    from collections import defaultdict
+    from decimal import Decimal
+    from supply.services.price_service import get_portion_price
+
+    meals = Meal.objects.filter(meal_plan=meal_plan).prefetch_related(
+        "items__recipe__recipe_items__portion__ingredient",
+        "items__ingredient",
+    )
+
+    norm_portions = meal_plan.norm_portions or 1
+    total_ingredients = 0
+    priced_ingredients = 0
+
+    # Aggregate costs per day and meal
+    day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "meals": []})
+
+    # Aggregate costs per recipe
+    recipe_costs: dict[int, dict] = {}
+
+    for meal in meals:
+        meal_date = meal.start_datetime.date()
+        effective_portions = meal.override_portions or norm_portions
+        meal_cost = Decimal("0")
+
+        for item in meal.items.all():
+            if item.recipe:
+                # Recipe-based item: iterate RecipeItems
+                recipe_servings = item.recipe.servings or 1
+                recipe_items = item.recipe.recipe_items.select_related(
+                    "portion__ingredient"
+                )
+                recipe_item_cost = Decimal("0")
+                for ri in recipe_items:
+                    if not ri.portion or not ri.portion.ingredient:
+                        continue
+                    total_ingredients += 1
+                    ing = ri.portion.ingredient
+                    weight_g = (
+                        float(ri.quantity) * float(ri.portion.weight_g)
+                        if ri.portion.weight_g
+                        else 0
+                    )
+                    # Scale: item.factor * (effective_portions / recipe_servings)
+                    scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings)
+                    price = get_portion_price(ing, scaled_weight_g)
+                    if price is not None:
+                        priced_ingredients += 1
+                        meal_cost += price
+                        recipe_item_cost += price
+
+                # Track per-recipe cost
+                rid = item.recipe.id
+                if rid not in recipe_costs:
+                    recipe_costs[rid] = {
+                        "recipe_id": rid,
+                        "recipe_title": item.recipe.title,
+                        "recipe_slug": item.recipe.slug,
+                        "total_cost": Decimal("0"),
+                    }
+                recipe_costs[rid]["total_cost"] += recipe_item_cost
+            elif item.portion and item.portion.ingredient:
+                # Standalone ingredient
+                total_ingredients += 1
+                if item.quantity:
+                    price = get_portion_price(item.portion.ingredient, float(item.quantity))
+                    if price is not None:
+                        priced_ingredients += 1
+                        meal_cost += price
+
+        cost_per_person = (
+            meal_cost / effective_portions if effective_portions > 0 else Decimal("0")
+        )
+
+        day_costs[str(meal_date)]["total"] += meal_cost
+        day_costs[str(meal_date)]["meals"].append({
+            "meal_id": meal.id,
+            "meal_type": meal.meal_type,
+            "date": meal_date,
+            "cost": meal_cost,
+            "cost_per_person": cost_per_person,
+        })
+
+    # Build response
+    total_cost = sum(d["total"] for d in day_costs.values())
+    cost_per_person = total_cost / norm_portions if norm_portions > 0 else Decimal("0")
+
+    days = []
+    for date_str in sorted(day_costs.keys()):
+        d = day_costs[date_str]
+        day_cost_per_person = d["total"] / norm_portions if norm_portions > 0 else Decimal("0")
+        days.append({
+            "date": date_str,
+            "total_cost": d["total"],
+            "cost_per_person": day_cost_per_person,
+            "meals": d["meals"],
+        })
+
+    return MealPlanCostSummaryOut(
+        total_cost=total_cost,
+        cost_per_person=cost_per_person,
+        norm_portions=norm_portions,
+        total_ingredients=total_ingredients,
+        priced_ingredients=priced_ingredients,
+        days=days,
+        recipes=[
+            {
+                "recipe_id": rc["recipe_id"],
+                "recipe_title": rc["recipe_title"],
+                "recipe_slug": rc["recipe_slug"],
+                "total_cost": rc["total_cost"],
+                "cost_per_person": rc["total_cost"] / norm_portions if norm_portions > 0 else Decimal("0"),
+            }
+            for rc in sorted(recipe_costs.values(), key=lambda x: x["total_cost"], reverse=True)
+        ],
+    )
+
+
+# ==========================================================================
 # Shopping List
 # ==========================================================================
 
@@ -547,7 +734,7 @@ def search_recipes(
     # Attach portions to each ingredient
     if ing_list:
         ing_ids = [i["id"] for i in ing_list]
-        portions = Portion.objects.filter(ingredient_id__in=ing_ids).select_related("measuring_unit")
+        portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related("measuring_unit")
         portions_by_ing: dict[int, list[dict]] = {}
         for p in portions:
             portions_by_ing.setdefault(p.ingredient_id, []).append({

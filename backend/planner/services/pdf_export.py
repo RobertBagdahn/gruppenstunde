@@ -60,10 +60,10 @@ def _render_html(
             for item in meal.items.all():
                 name = item.display_name or (
                     item.recipe.title if item.recipe else
-                    item.ingredient.name if item.ingredient else "?"
+                    item.portion.ingredient.name if item.portion and item.portion.ingredient else "?"
                 )
-                if item.quantity and item.measuring_unit:
-                    name = f"{item.quantity} {item.measuring_unit.name} {name}"
+                if item.quantity and item.portion and item.portion.measuring_unit:
+                    name = f"{item.quantity} {item.portion.measuring_unit.name} {name}"
                 items_html += f"<li>{name}</li>"
 
             note_html = ""

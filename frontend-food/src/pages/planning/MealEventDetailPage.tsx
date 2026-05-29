@@ -7,7 +7,8 @@ import { useCurrentUser } from '@/api/auth';
 import {
   useMealPlan,
   useUpdateMealPlan,
-  useAddDay,
+  useAddDayBefore,
+  useAddDayAfter,
   useRemoveDay,
   useAddMeal,
   useRemoveMeal,
@@ -17,7 +18,7 @@ import {
   useShoppingList,
   useRecipeSearch,
 } from '@/api/mealPlans';
-import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, MEAL_TYPE_COLORS, getCoverageStatus } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -25,6 +26,8 @@ import { useMealPlanCockpit, useDayCockpit, useMealCockpit } from '@/api/cockpit
 import { CockpitDashboard as CockpitDashboardComponent, TrafficLightIndicator } from '@/components/cockpit';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
+import TableView from './TableView';
+import CostDashboard from './CostDashboard';
 
 const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
@@ -49,7 +52,8 @@ export default function MealPlanDetailPage() {
 
   const { data: plan, error, isLoading, refetch } = useMealPlan(mealPlanId);
   const updateMutation = useUpdateMealPlan(mealPlanId);
-  const addDayMutation = useAddDay(mealPlanId);
+  const addDayBeforeMutation = useAddDayBefore(mealPlanId);
+  const addDayAfterMutation = useAddDayAfter(mealPlanId);
   const removeDayMutation = useRemoveDay(mealPlanId);
   const addMealMutation = useAddMeal(mealPlanId);
   const removeMealMutation = useRemoveMeal(mealPlanId);
@@ -57,10 +61,7 @@ export default function MealPlanDetailPage() {
   const removeMealItemMutation = useRemoveMealItem(mealPlanId);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'plan' | 'nutrition' | 'shopping' | 'cockpit'>('plan');
-
-  // Add day state
-  const [newDayDate, setNewDayDate] = useState('');
+  const [activeTab, setActiveTab] = useState<'plan' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'cockpit'>('plan');
 
   // Delete confirmations
   const [deleteDayDate, setDeleteDayDate] = useState<string | null>(null);
@@ -89,18 +90,18 @@ export default function MealPlanDetailPage() {
 
   if (!plan) return <ErrorDisplay error={new Error('Essensplan nicht gefunden')} />;
 
-  const handleAddDay = () => {
-    if (!newDayDate) return;
-    addDayMutation.mutate(
-      { date: newDayDate },
-      {
-        onSuccess: () => {
-          toast.success('Tag hinzugefügt');
-          setNewDayDate('');
-        },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
-      },
-    );
+  const handleAddDayBefore = () => {
+    addDayBeforeMutation.mutate(undefined, {
+      onSuccess: () => toast.success('Tag davor hinzugefügt'),
+      onError: (err) => toast.error('Fehler', { description: err.message }),
+    });
+  };
+
+  const handleAddDayAfter = () => {
+    addDayAfterMutation.mutate(undefined, {
+      onSuccess: () => toast.success('Tag danach hinzugefügt'),
+      onError: (err) => toast.error('Fehler', { description: err.message }),
+    });
   };
 
   /** Default start/end times per meal type (HH:mm) */
@@ -157,6 +158,8 @@ export default function MealPlanDetailPage() {
     norm_portions?: number;
     activity_factor?: number;
     reserve_factor?: number;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
   }) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
@@ -211,7 +214,9 @@ export default function MealPlanDetailPage() {
       <div className="flex gap-1 border-b overflow-x-auto">
         {[
           { key: 'plan' as const, icon: 'calendar_month', label: 'Tagesplan' },
+          { key: 'table' as const, icon: 'grid_on', label: 'Tabelle' },
           { key: 'nutrition' as const, icon: 'nutrition', label: 'Nährwerte' },
+          { key: 'costs' as const, icon: 'payments', label: 'Kosten' },
           { key: 'shopping' as const, icon: 'shopping_cart', label: 'Einkaufsliste' },
           { key: 'cockpit' as const, icon: 'speed', label: 'Cockpit' },
         ].map((tab) => (
@@ -236,10 +241,12 @@ export default function MealPlanDetailPage() {
           mealPlanId={mealPlanId}
           dayGroups={dayGroups}
           canEdit={plan.can_edit}
-          newDayDate={newDayDate}
-          setNewDayDate={setNewDayDate}
-          onAddDay={handleAddDay}
-          addDayPending={addDayMutation.isPending}
+          hasTimeframe={!!(plan.start_datetime && plan.end_datetime)}
+          activityFactor={plan.activity_factor}
+          onAddDayBefore={handleAddDayBefore}
+          addDayBeforePending={addDayBeforeMutation.isPending}
+          onAddDayAfter={handleAddDayAfter}
+          addDayAfterPending={addDayAfterMutation.isPending}
           onDeleteDay={setDeleteDayDate}
           onAddMealType={handleAddMealType}
           onDeleteMeal={setDeleteMealId}
@@ -249,6 +256,8 @@ export default function MealPlanDetailPage() {
         />
       )}
       {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} />}
+      {activeTab === 'table' && <TableView meals={plan.meals} normPortions={plan.norm_portions} />}
+      {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
       {activeTab === 'cockpit' && <CockpitView mealPlanId={mealPlanId} />}
 
@@ -324,13 +333,15 @@ function SettingsPanel({
   onSave,
   isPending,
 }: {
-  plan: { name: string; description: string; norm_portions: number; activity_factor: number; reserve_factor: number };
+  plan: { name: string; description: string; norm_portions: number; activity_factor: number; reserve_factor: number; start_datetime: string | null; end_datetime: string | null };
   onSave: (data: {
     name?: string;
     description?: string;
     norm_portions?: number;
     activity_factor?: number;
     reserve_factor?: number;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
   }) => void;
   isPending: boolean;
 }) {
@@ -339,6 +350,8 @@ function SettingsPanel({
   const [portions, setPortions] = useState(plan.norm_portions);
   const [activity, setActivity] = useState(plan.activity_factor);
   const [reserve, setReserve] = useState(plan.reserve_factor);
+  const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
+  const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
 
   return (
     <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
@@ -396,10 +409,36 @@ function SettingsPanel({
             className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit)</label>
+          <input
+            type="datetime-local"
+            value={startDatetime}
+            onChange={(e) => setStartDatetime(e.target.value)}
+            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Ende (Datum & Uhrzeit)</label>
+          <input
+            type="datetime-local"
+            value={endDatetime}
+            onChange={(e) => setEndDatetime(e.target.value)}
+            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
       </div>
       <div className="flex justify-end">
         <button
-          onClick={() => onSave({ name, description, norm_portions: portions, activity_factor: activity, reserve_factor: reserve })}
+          onClick={() => onSave({
+            name,
+            description,
+            norm_portions: portions,
+            activity_factor: activity,
+            reserve_factor: reserve,
+            start_datetime: startDatetime ? startDatetime + ':00' : null,
+            end_datetime: endDatetime ? endDatetime + ':00' : null,
+          })}
           disabled={isPending}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
@@ -418,10 +457,12 @@ function DayPlanView({
   mealPlanId,
   dayGroups,
   canEdit,
-  newDayDate,
-  setNewDayDate,
-  onAddDay,
-  addDayPending,
+  hasTimeframe,
+  activityFactor,
+  onAddDayBefore,
+  addDayBeforePending,
+  onAddDayAfter,
+  addDayAfterPending,
   onDeleteDay,
   onAddMealType,
   onDeleteMeal,
@@ -432,10 +473,12 @@ function DayPlanView({
   mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
   canEdit: boolean;
-  newDayDate: string;
-  setNewDayDate: (v: string) => void;
-  onAddDay: () => void;
-  addDayPending: boolean;
+  hasTimeframe: boolean;
+  activityFactor: number;
+  onAddDayBefore: () => void;
+  addDayBeforePending: boolean;
+  onAddDayAfter: () => void;
+  addDayAfterPending: boolean;
   onDeleteDay: (date: string) => void;
   onAddMealType: (date: string, mealType: string) => void;
   onDeleteMeal: (id: number) => void;
@@ -452,22 +495,16 @@ function DayPlanView({
 
   return (
     <div className="space-y-6">
-      {/* Add Day */}
-      {canEdit && (
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="date"
-            value={newDayDate}
-            onChange={(e) => setNewDayDate(e.target.value)}
-            className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
+      {/* Add Day Before */}
+      {canEdit && hasTimeframe && (
+        <div className="flex justify-center">
           <button
-            onClick={onAddDay}
-            disabled={!newDayDate || addDayPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            onClick={onAddDayBefore}
+            disabled={addDayBeforePending}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-green-200 text-sm text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
-            Tag hinzufügen
+            Tag davor
           </button>
         </div>
       )}
@@ -485,7 +522,7 @@ function DayPlanView({
             {/* Day Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b">
               <div className="flex items-center gap-3 min-w-0">
-                <h3 className="font-semibold text-sm sm:text-base">{formatDate(group.date)}</h3>
+                <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
                 <DayCockpitDots mealPlanId={mealPlanId} date={group.date} />
               </div>
               {canEdit && (
@@ -506,6 +543,7 @@ function DayPlanView({
                   key={meal.id}
                   meal={meal}
                   canEdit={canEdit}
+                  activityFactor={activityFactor}
                   onDeleteMeal={onDeleteMeal}
                   onAddRecipe={onAddRecipe}
                   onAddIngredient={onAddIngredient}
@@ -524,7 +562,7 @@ function DayPlanView({
                       <button
                         key={mt}
                         onClick={() => onAddMealType(group.date, mt)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm text-green-600 hover:bg-green-50 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[14px]">{MEAL_TYPE_ICONS[mt] || 'add'}</span>
                         {MEAL_TYPE_LABELS[mt] || mt}
@@ -536,13 +574,23 @@ function DayPlanView({
           </div>
         ))
       )}
+
+      {/* Add Day After */}
+      {canEdit && hasTimeframe && (
+        <div className="flex justify-center">
+          <button
+            onClick={onAddDayAfter}
+            disabled={addDayAfterPending}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-green-200 text-sm text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Tag danach
+          </button>
+        </div>
+      )}
     </div>
   );
 }
-
-// ==========================================================================
-// Meal Slot
-// ==========================================================================
 
 const RECIPE_TYPE_LABELS_SHORT: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -558,6 +606,7 @@ const RECIPE_TYPE_LABELS_SHORT: Record<string, string> = {
 function MealSlot({
   meal,
   canEdit,
+  activityFactor,
   onDeleteMeal,
   onAddRecipe,
   onAddIngredient,
@@ -565,6 +614,7 @@ function MealSlot({
 }: {
   meal: Meal;
   canEdit: boolean;
+  activityFactor: number;
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
@@ -614,20 +664,30 @@ function MealSlot({
     }
   };
 
+  const mealColors = MEAL_TYPE_COLORS[meal.meal_type] || MEAL_TYPE_COLORS.snack;
+  const isEmpty = meal.items.length === 0;
+  const coverage = getCoverageStatus(meal.total_energy_kj, meal.day_part_factor, activityFactor);
+  const coverageColorClass = coverage.status === 'good' ? 'text-green-600' : coverage.status === 'warning' ? 'text-yellow-600' : 'text-red-600';
+
   return (
-    <div className="px-4 py-3">
+    <div className={`px-4 py-3 border-l-4 ${isEmpty ? 'border-red-400 bg-red-50/50' : mealColors.border}`}>
       {/* Meal Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-muted-foreground">
-            {MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'}
+          <span className={`material-symbols-outlined text-[20px] ${isEmpty ? 'text-red-500' : mealColors.text}`}>
+            {isEmpty ? 'warning' : (MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant')}
           </span>
-          <span className="font-medium text-sm">
+          <span className="font-semibold text-base">
             {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             ({Math.round(meal.day_part_factor * 100)}%)
           </span>
+          {!isEmpty && meal.total_energy_kj > 0 && (
+            <span className={`text-sm font-medium ${coverageColorClass}`}>
+              {coverage.percent}%
+            </span>
+          )}
           <MealCockpitDots mealId={meal.id} />
         </div>
         <div className="flex items-center gap-1">
@@ -638,17 +698,17 @@ function MealSlot({
                   setIsSearching(!isSearching);
                   setSearchQuery('');
                 }}
-                className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors"
                 title="Rezept hinzufügen"
               >
-                <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                <span className="material-symbols-outlined text-[20px]">add_circle</span>
               </button>
               <button
                 onClick={() => onDeleteMeal(meal.id)}
                 className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 title="Mahlzeit löschen"
               >
-                <span className="material-symbols-outlined text-[18px]">delete</span>
+                <span className="material-symbols-outlined text-[20px]">delete</span>
               </button>
             </>
           )}
@@ -656,28 +716,41 @@ function MealSlot({
       </div>
 
       {/* Meal Items */}
-      {meal.items.length === 0 && !isSearching && (
-        <p className="text-xs text-muted-foreground italic pl-7">Noch kein Rezept zugeordnet</p>
+      {isEmpty && !isSearching && (
+        <p className="text-sm text-red-500 italic pl-7 flex items-center gap-1">
+          <span className="material-symbols-outlined text-[16px]">error</span>
+          Noch kein Rezept zugeordnet
+        </p>
       )}
       {meal.items.map((item) => (
-        <div key={item.id} className="flex items-center gap-2 pl-7 py-1 group">
+        <div key={item.id} className="flex items-start gap-2 pl-7 py-1.5 group">
           {item.recipe_image && (
             <img
               src={item.recipe_image}
               alt={item.recipe_title}
-              className="w-8 h-8 rounded object-cover flex-shrink-0"
+              className="w-10 h-10 rounded object-cover flex-shrink-0"
               loading="lazy"
             />
           )}
-          <Link
-            to={`/recipes/${item.recipe_slug}`}
-            className="text-sm hover:text-primary transition-colors flex-1 truncate"
-          >
-            {item.recipe_title}
-          </Link>
-          {item.factor !== 1.0 && (
-            <span className="text-xs text-muted-foreground">&times;{item.factor}</span>
-          )}
+          <div className="flex-1 min-w-0">
+            <Link
+              to={`/recipes/${item.recipe_slug}`}
+              className="text-base hover:text-primary transition-colors truncate block"
+            >
+              {item.recipe_title}
+            </Link>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {item.energy_kj != null && (
+                <span>{Math.round(item.energy_kj / 4.184)} kcal</span>
+              )}
+              {item.cost_eur != null && (
+                <span>{item.cost_eur.toFixed(2)} €</span>
+              )}
+              {item.factor !== 1.0 && (
+                <span>&times;{item.factor}</span>
+              )}
+            </div>
+          </div>
           {canEdit && (
             <button
               onClick={() => onDeleteItem(item.id)}
@@ -880,10 +953,12 @@ function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g)} ${item.unit}`}</span>
-          {item.estimated_price_eur !== null && (
+          {item.estimated_price_eur !== null ? (
             <span className="text-foreground font-medium">
               {item.estimated_price_eur.toFixed(2)} EUR
             </span>
+          ) : (
+            <span className="text-red-400 text-xs">kein Preis</span>
           )}
         </div>
       </div>

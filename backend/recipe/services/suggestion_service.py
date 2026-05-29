@@ -63,13 +63,12 @@ def _build_ingredient_list(recipe: Recipe) -> str:
     items = RecipeItem.objects.filter(recipe=recipe).select_related(
         "portion",
         "portion__ingredient",
-        "ingredient",
-        "measuring_unit",
+        "portion__measuring_unit",
     )
 
     lines: list[str] = []
     for item in items:
-        ingredient = item.ingredient or (item.portion.ingredient if item.portion else None)
+        ingredient = item.portion.ingredient if item.portion else None
         if not ingredient:
             continue
 
@@ -77,9 +76,7 @@ def _build_ingredient_list(recipe: Recipe) -> str:
         qty = item.quantity
 
         unit_label = ""
-        if item.measuring_unit:
-            unit_label = item.measuring_unit.name
-        elif item.portion and item.portion.measuring_unit:
+        if item.portion and item.portion.measuring_unit:
             unit_label = item.portion.measuring_unit.name
 
         lines.append(f"- {qty} {unit_label} {name}".strip())
@@ -128,13 +125,14 @@ def _check_rate_limit(user: AbstractUser) -> None:
 # ---------------------------------------------------------------------------
 
 
-def get_suggestions(recipe: Recipe, objective: str, user: AbstractUser) -> list[dict[str, Any]]:
+def get_suggestions(recipe: Recipe, objective: str, user: AbstractUser, direction: str = "reduce") -> list[dict[str, Any]]:
     """Generate LLM-based ingredient suggestions for improving a recipe.
 
     Args:
         recipe: The recipe to improve.
         objective: Improvement goal, e.g. "mehr Ballaststoffe", "weniger Zucker".
         user: The requesting user (for rate limiting).
+        direction: "reduce" or "increase" — whether the objective should be lowered or raised.
 
     Returns:
         List of dicts with keys: ingredient_name, recommended_amount, unit,
@@ -161,6 +159,7 @@ def get_suggestions(recipe: Recipe, objective: str, user: AbstractUser) -> list[
     recipe_type = getattr(recipe, "recipe_type", "") or "Nicht angegeben"
 
     # --- Build prompt ---
+    direction_text = "reduzieren" if direction == "reduce" else "erhöhen"
     prompt = (
         "Du bist ein Ernährungsexperte für Pfadfinder-Gruppenrezepte. "
         "Analysiere das folgende Rezept und schlage genau 3 Zutaten vor, "
@@ -169,8 +168,9 @@ def get_suggestions(recipe: Recipe, objective: str, user: AbstractUser) -> list[
         f"Rezepttyp: {recipe_type}\n\n"
         f"Aktuelle Zutaten:\n{ingredient_list}\n\n"
         f"Nährwerte (pro 100g):\n{nutritional_summary}\n\n"
-        f"Ziel: {objective}\n\n"
+        f"Ziel: {objective} {direction_text}\n\n"
         "Regeln:\n"
+        f"- Das Ziel ist es, den Wert '{objective}' zu {direction_text}.\n"
         "- Schlage genau 3 Zutaten vor.\n"
         "- Jeder Vorschlag muss den Zutatennamen, die empfohlene Menge, "
         "die Einheit, eine Begründung und die erwartete Verbesserung enthalten.\n"

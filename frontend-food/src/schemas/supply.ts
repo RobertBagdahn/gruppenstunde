@@ -51,7 +51,6 @@ export const ContentMaterialItemSchema = z.object({
   material_slug: z.string(),
   material_category: z.string(),
   quantity: z.string(),
-  quantity_type: z.string(),
   sort_order: z.number(),
 });
 export type ContentMaterialItem = z.infer<typeof ContentMaterialItemSchema>;
@@ -374,6 +373,46 @@ export const PaginatedMaterialNamesSchema = z.object({
   total_pages: z.number(),
 });
 export type PaginatedMaterialNames = z.infer<typeof PaginatedMaterialNamesSchema>;
+
+// --- Unit Conversion ---
+
+// --- AI Suggest ---
+
+export const PortionSuggestionSchema = z.object({
+  name: z.string(),
+  weight_g: z.number(),
+});
+export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
+
+export const IngredientSuggestAllSchema = z.object({
+  energy_kj: z.number().nullable(),
+  protein_g: z.number().nullable(),
+  fat_g: z.number().nullable(),
+  fat_sat_g: z.number().nullable(),
+  carbohydrate_g: z.number().nullable(),
+  sugar_g: z.number().nullable(),
+  fibre_g: z.number().nullable(),
+  salt_g: z.number().nullable(),
+  sodium_mg: z.number().nullable(),
+  fructose_g: z.number().nullable(),
+  lactose_g: z.number().nullable(),
+
+  nutri_score: z.string().nullable(),
+  nova_score: z.number().nullable(),
+  child_score: z.number().nullable(),
+  scout_score: z.number().nullable(),
+  environmental_score: z.number().nullable(),
+  fruit_factor: z.number().nullable(),
+
+  physical_density: z.number().nullable(),
+  physical_viscosity: z.string().nullable(),
+  durability_in_days: z.number().nullable(),
+  max_storage_temperature: z.number().nullable(),
+
+  portions: z.array(PortionSuggestionSchema).default([]),
+  aliases: z.array(z.string()).default([]),
+});
+export type IngredientSuggestAll = z.infer<typeof IngredientSuggestAllSchema>;
 
 // --- Unit Conversion ---
 

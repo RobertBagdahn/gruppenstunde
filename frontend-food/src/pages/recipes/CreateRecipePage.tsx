@@ -173,7 +173,6 @@ export default function CreateRecipePage() {
               quantity: parseFloat(ing.quantity) || 1,
               sort_order: i,
               note: '',
-              quantity_type: 'per_person',
             }),
           });
         } catch {

@@ -51,7 +51,6 @@ export const ContentMaterialItemSchema = z.object({
   material_slug: z.string(),
   material_category: z.string(),
   quantity: z.string(),
-  quantity_type: z.string(),
   sort_order: z.number(),
 });
 export type ContentMaterialItem = z.infer<typeof ContentMaterialItemSchema>;

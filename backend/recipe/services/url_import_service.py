@@ -228,7 +228,7 @@ def _get_ingredient_candidates(
 
         # Search by name icontains
         qs = Ingredient.objects.filter(
-            Q(name__icontains=name) | Q(ingredientalias__name__icontains=name)
+            Q(name__icontains=name) | Q(aliases__name__icontains=name)
         ).distinct()[:5]
 
         candidates[ing.name] = [
@@ -236,7 +236,7 @@ def _get_ingredient_candidates(
                 "id": i.id,
                 "name": i.name,
                 "aliases": list(
-                    i.ingredientalias_set.values_list("name", flat=True)
+                    i.aliases.values_list("name", flat=True)
                 ),
             }
             for i in qs

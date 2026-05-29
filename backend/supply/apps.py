@@ -5,3 +5,6 @@ class SupplyConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "supply"
     verbose_name = "Material & Zutaten"
+
+    def ready(self):
+        import supply.signals  # noqa: F401

@@ -135,7 +135,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems }: RecipeI
                     <div key={ing.id} className="flex items-center gap-2 text-xs">
                       <span className="flex-1 truncate">{ing.name}</span>
                       <span className="text-muted-foreground">
-                        {ing.contribution_g.toFixed(0)}g
+                        {ing.contribution_g.toFixed(0)}{ing.unit}
                       </span>
                     </div>
                   ))}

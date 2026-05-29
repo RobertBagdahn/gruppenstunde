@@ -38,7 +38,7 @@ def get_recipe_nutritional_values(recipe: "Recipe") -> dict[str, float]:
     then normalizes to per-100g values.  Includes macronutrients **and**
     micronutrients (vitamins / minerals).
     """
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
 
     total_weight_g = 0.0
 
@@ -65,7 +65,7 @@ def get_recipe_nutritional_values(recipe: "Recipe") -> dict[str, float]:
         totals[field] = 0.0
 
     for item in items:
-        ingredient = item.ingredient or (item.portion.ingredient if item.portion else None)
+        ingredient = item.portion.ingredient if item.portion else None
         if not ingredient:
             continue
 
@@ -117,7 +117,7 @@ def match_recipe_hints(
 
     # Add special computed parameters that are not per-100g nutrient fields
     # Total weight needs to be calculated separately
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
     total_weight_g = 0.0
     for item in items:
         if item.portion and item.portion.weight_g:
@@ -222,11 +222,11 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     recipe.cached_nutri_class = ns_class
 
     # Calculate total price
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
     total_price = Decimal("0.00")
     has_prices = False
     for item in items:
-        ingredient = item.ingredient or (item.portion.ingredient if item.portion else None)
+        ingredient = item.portion.ingredient if item.portion else None
         if ingredient and ingredient.price_per_kg:
             has_prices = True
             weight_g = 0.0

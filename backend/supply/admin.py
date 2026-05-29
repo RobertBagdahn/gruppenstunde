@@ -26,8 +26,8 @@ class MaterialAdmin(admin.ModelAdmin):
 
 @admin.register(ContentMaterialItem)
 class ContentMaterialItemAdmin(admin.ModelAdmin):
-    list_display = ["material", "content_type", "object_id", "quantity", "quantity_type", "sort_order"]
-    list_filter = ["content_type", "quantity_type"]
+    list_display = ["material", "content_type", "object_id", "quantity", "sort_order"]
+    list_filter = ["content_type"]
     ordering = ["sort_order"]
 
 

@@ -249,12 +249,10 @@ class IngredientAlias(models.Model):
 class Portion(models.Model):
     """A specific portion/packaging of an ingredient with a measuring unit."""
 
-    name = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Name"))
+    name = models.CharField(max_length=255, blank=True, default="g", verbose_name=_("Name"))
     measuring_unit = models.ForeignKey(
         "supply.MeasuringUnit",
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
+        on_delete=models.PROTECT,
         verbose_name=_("Maßeinheit"),
     )
     ingredient = models.ForeignKey(
@@ -264,7 +262,12 @@ class Portion(models.Model):
         verbose_name=_("Zutat"),
     )
     quantity = models.FloatField(default=1, verbose_name=_("Menge"))
-    weight_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Gewicht (g)"))
+    weight_g = models.FloatField(
+        default=1,
+        verbose_name=_("Gewicht (g)"),
+        validators=[MinValueValidator(0.01)],
+        help_text=_("Automatisch berechnet. Gewicht einer Portion in Gramm."),
+    )
     rank = models.IntegerField(default=1)
     priority = models.IntegerField(default=0, verbose_name=_("Priorität"))
     is_default = models.BooleanField(default=False, verbose_name=_("Standard-Portion"))
@@ -272,6 +275,7 @@ class Portion(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -298,6 +302,22 @@ class Portion(models.Model):
                 is_default=False
             )
         super().save(*args, **kwargs)
+
+    def soft_delete(self):
+        """Mark this portion as deleted."""
+        from django.utils import timezone
+
+        self.deleted_at = timezone.now()
+        self.save(update_fields=["deleted_at"])
+
+    def restore(self):
+        """Restore a soft-deleted portion."""
+        self.deleted_at = None
+        self.save(update_fields=["deleted_at"])
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
 
     def __str__(self):
         unit = self.measuring_unit.name if self.measuring_unit else ""

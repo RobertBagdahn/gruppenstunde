@@ -118,7 +118,7 @@ export default function HintDetailModal({
 
   const handleRequestSuggestions = () => {
     setShowSuggestions(true);
-    llmMutation.mutate(parameter);
+    llmMutation.mutate({ objective: parameter, direction: improvement.direction });
   };
 
   const handleApplySuggestion = (suggestion: LlmSuggestion) => {

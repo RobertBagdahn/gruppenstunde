@@ -69,7 +69,7 @@ def get_llm_suggestions(request, recipe_id: int, body: LlmSuggestionRequestIn):
     from recipe.services.suggestion_service import get_suggestions
 
     recipe = get_object_or_404(Recipe, id=recipe_id)
-    return get_suggestions(recipe, body.objective, request.user)
+    return get_suggestions(recipe, body.objective, request.user, direction=body.direction)
 
 
 # ==========================================================================
@@ -86,7 +86,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     """
     recipe = get_object_or_404(Recipe, id=recipe_id)
     items = RecipeItem.objects.filter(recipe=recipe).select_related(
-        "portion", "portion__ingredient", "ingredient", "measuring_unit"
+        "portion", "portion__ingredient", "portion__measuring_unit"
     )
 
     from recipe.services.recipe_checks import MICRONUTRIENT_FIELDS
@@ -111,7 +111,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     # First pass: calculate weights
     item_data = []
     for item in items:
-        ingredient = item.ingredient or (item.portion.ingredient if item.portion else None)
+        ingredient = item.portion.ingredient if item.portion else None
         if not ingredient:
             continue
 
@@ -160,7 +160,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             "quantity": item.quantity,
             "portion_name": str(item.portion)
             if item.portion
-            else (item.measuring_unit.name if item.measuring_unit else "Stück"),
+            else "Stück",
             "weight_g": round(weight_g, 1),
             "price_eur": round(item_price, 2) if item_price is not None else None,
             "energy_kj": round(item_nutrition["energy_kj"], 1),

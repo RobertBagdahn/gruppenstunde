@@ -121,3 +121,10 @@ The ingredient list SHALL use `text-base` (1rem/16px) as the base font size for 
 #### Scenario: Visual size of ingredients
 - **WHEN** a user views the ingredient list
 - **THEN** ingredient names and quantities are rendered at text-base size (16px)
+
+### Requirement: RecipeItem stores quantity per person
+A RecipeItem SHALL store `quantity` as the amount per single person. The system SHALL NOT have a `quantity_type` field. All quantities are implicitly per-person.
+
+#### Scenario: Ingredient quantity interpretation
+- **WHEN** a RecipeItem has quantity=50 and the recipe has servings=4
+- **THEN** the system interprets this as 50 units of the portion per person (200 total for 4 persons)

@@ -96,7 +96,7 @@ class Command(BaseCommand):
         # Build prompt with recipe summaries
         recipe_data = []
         for r in recipes:
-            ingredients = [item.ingredient.name for item in r.recipe_items.all() if item.ingredient]
+            ingredients = [item.portion.ingredient.name for item in r.recipe_items.all() if item.portion and item.portion.ingredient]
             recipe_data.append({
                 "id": r.id,
                 "title": r.title,

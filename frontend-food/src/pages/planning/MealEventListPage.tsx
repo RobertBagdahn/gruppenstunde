@@ -64,8 +64,8 @@ function MealPlanListPageInner() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
-  const [createStartDate, setCreateStartDate] = useState('');
-  const [createNumDays, setCreateNumDays] = useState(3);
+  const [createStartDatetime, setCreateStartDatetime] = useState('');
+  const [createEndDatetime, setCreateEndDatetime] = useState('');
   const [createPortions, setCreatePortions] = useState(10);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState('');
@@ -101,8 +101,8 @@ function MealPlanListPageInner() {
     createMutation.mutate(
       {
         name: createName.trim(),
-        start_date: createStartDate || null,
-        num_days: createNumDays,
+        start_datetime: createStartDatetime ? createStartDatetime + ':00' : null,
+        end_datetime: createEndDatetime ? createEndDatetime + ':00' : null,
         norm_portions: createPortions,
       },
       {
@@ -110,8 +110,8 @@ function MealPlanListPageInner() {
           toast.success('Essensplan erstellt');
           setShowCreate(false);
           setCreateName('');
-          setCreateStartDate('');
-          setCreateNumDays(3);
+          setCreateStartDatetime('');
+          setCreateEndDatetime('');
           setCreatePortions(10);
           navigate(`/meal-plans/${plan.id}`);
         },
@@ -268,22 +268,20 @@ function MealPlanListPageInner() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Startdatum</label>
+              <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit)</label>
               <input
-                type="date"
-                value={createStartDate}
-                onChange={(e) => setCreateStartDate(e.target.value)}
+                type="datetime-local"
+                value={createStartDatetime}
+                onChange={(e) => setCreateStartDatetime(e.target.value)}
                 className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Anzahl Tage</label>
+              <label className="block text-sm font-medium mb-1">Ende (Datum & Uhrzeit)</label>
               <input
-                type="number"
-                min={1}
-                max={30}
-                value={createNumDays}
-                onChange={(e) => setCreateNumDays(Number(e.target.value))}
+                type="datetime-local"
+                value={createEndDatetime}
+                onChange={(e) => setCreateEndDatetime(e.target.value)}
                 className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>

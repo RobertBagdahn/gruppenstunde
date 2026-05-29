@@ -30,7 +30,8 @@ export interface FormattedQuantity {
 function smartRound(value: number): number {
   if (value <= 0) return 0;
   if (value < 2) {
-    return Math.ceil(value * 10) / 10;
+    const rounded = Math.ceil(value * 10) / 10;
+    return rounded > 0 ? rounded : 0.1;
   }
   if (value <= 10) {
     return Math.ceil(value);
@@ -124,7 +125,7 @@ export function formatQuantity(
   viscosity: string | null | undefined,
   density: number | null | undefined,
 ): FormattedQuantity {
-  if (grams < 0.01) {
+  if (grams <= 0) {
     return { value: 0, unit: 'g', display: '0 g' };
   }
 

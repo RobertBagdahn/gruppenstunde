@@ -62,6 +62,12 @@ class MealPlan(models.Model):
         related_name="meal_plans",
         verbose_name=_("Event"),
     )
+    start_datetime = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("Startdatum/-zeit")
+    )
+    end_datetime = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("Enddatum/-zeit")
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -105,6 +111,39 @@ class MealPlan(models.Model):
             times = MEAL_TYPE_DEFAULT_TIMES.get(meal_type, ((12, 0), (13, 0)))
             start_dt = timezone.make_aware(dt.datetime.combine(date, dt.time(times[0][0], times[0][1])))
             end_dt = timezone.make_aware(dt.datetime.combine(date, dt.time(times[1][0], times[1][1])))
+            meal, _created = Meal.objects.get_or_create(
+                meal_plan=self,
+                start_datetime__date=date,
+                meal_type=meal_type,
+                defaults={
+                    "start_datetime": start_dt,
+                    "end_datetime": end_dt,
+                    "day_part_factor": MEAL_TYPE_DAY_FACTORS.get(meal_type, 0.0),
+                },
+            )
+            meals.append(meal)
+        return meals
+
+    def create_meals_for_date_timeaware(
+        self, date: dt.date, is_first: bool = False, is_last: bool = False
+    ) -> list["Meal"]:
+        """Create meals for a date, filtering by plan start/end time on first/last day."""
+        meals = []
+        start_time = self.start_datetime.astimezone(timezone.get_current_timezone()).time() if self.start_datetime else dt.time(0, 0)
+        end_time = self.end_datetime.astimezone(timezone.get_current_timezone()).time() if self.end_datetime else dt.time(23, 59)
+
+        for meal_type in DEFAULT_MEAL_TYPES:
+            times = MEAL_TYPE_DEFAULT_TIMES.get(meal_type, ((12, 0), (13, 0)))
+            mt_start = dt.time(times[0][0], times[0][1])
+            mt_end = dt.time(times[1][0], times[1][1])
+
+            if is_first and mt_start < start_time:
+                continue
+            if is_last and mt_end > end_time:
+                continue
+
+            start_dt = timezone.make_aware(dt.datetime.combine(date, mt_start))
+            end_dt = timezone.make_aware(dt.datetime.combine(date, mt_end))
             meal, _created = Meal.objects.get_or_create(
                 meal_plan=self,
                 start_datetime__date=date,

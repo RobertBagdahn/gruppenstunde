@@ -205,7 +205,7 @@ def delete_ingredient(request, slug: str):
 def list_portions(request, slug: str):
     """List portions for an ingredient."""
     ingredient = get_object_or_404(Ingredient, slug=slug)
-    return Portion.objects.filter(ingredient=ingredient).select_related("measuring_unit")
+    return Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).select_related("measuring_unit")
 
 
 @ingredient_router.post("/{slug}/portions/", response=PortionOut)
@@ -266,18 +266,13 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
 @ingredient_router.delete("/{slug}/portions/{portion_id}/")
 def delete_portion(request, slug: str, portion_id: int):
-    """Delete a portion."""
+    """Soft-delete a portion."""
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
-    from recipe.models import RecipeItem
-
-    if RecipeItem.objects.filter(portion=portion).exists():
-        raise HttpError(409, "Portion wird in Rezepten verwendet und kann nicht gelöscht werden")
-
-    portion.delete()
+    portion.soft_delete()
     return {"success": True}
 
 

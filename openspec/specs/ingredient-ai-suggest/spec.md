@@ -41,8 +41,10 @@ The system SHALL display a magic wand button in the ingredient detail page heade
 - **WHEN** an authenticated user clicks the Zauberstab button on an ingredient detail page
 - **THEN** the system SHALL open a dialog and call the AI suggest endpoint
 
-#### Scenario: Button visibility for unauthenticated users
-- **WHEN** an unauthenticated user views the ingredient detail page
+#### Scenario: Button visibility restricted to staff users
+- **WHEN** a user with `is_staff=true` views the ingredient detail page
+- **THEN** the Zauberstab button SHALL be displayed alongside edit/delete buttons
+- **WHEN** a non-staff user (including authenticated non-staff) views the ingredient detail page
 - **THEN** the Zauberstab button SHALL NOT be displayed
 
 ---

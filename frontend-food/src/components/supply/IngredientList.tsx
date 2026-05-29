@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
 import { formatQuantity, scaleQuantity } from '@/lib/unitConversion';
-import { calculateNaturalPortions, getPrimaryPortionDisplay } from '@/lib/portionDisplay';
+import { calculateNaturalPortions } from '@/lib/portionDisplay';
 import { cn } from '@/lib/utils';
 
 interface IngredientListProps {
@@ -55,13 +55,11 @@ export default function IngredientList({
         {sortedItems.map((item) => {
           const scaledQty = scaleQuantity(item.quantity, servingsMultiplier);
 
-          // Calculate weight in grams for the scaled quantity
+          // Calculate weight in grams: quantity × portion.weight_g
           const portionWeightG = item.ingredient_portions?.find(
             (p) => p.id === item.portion_id,
-          )?.weight_g;
-          const weightG = portionWeightG
-            ? scaledQty * portionWeightG
-            : scaledQty;
+          )?.weight_g ?? 1;
+          const weightG = scaledQty * portionWeightG;
 
           // Format with intelligent unit conversion
           const formatted = formatQuantity(
@@ -70,15 +68,25 @@ export default function IngredientList({
             item.ingredient_density,
           );
 
-          // Natural portion display
-          const primaryPortion = item.ingredient_portions?.length
-            ? getPrimaryPortionDisplay(weightG, item.ingredient_portions)
-            : null;
-
           const isExpanded = expandedItems.has(item.id);
           const allPortions = item.ingredient_portions?.length
             ? calculateNaturalPortions(weightG, item.ingredient_portions)
             : [];
+
+          // Highest-priority non-default portion (e.g. "Stück" for Apfel)
+          const highPrioPortion = item.ingredient_portions
+            ?.filter((p) => !p.is_default && (p.weight_g ?? 0) > 0)
+            .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
+          const highPrioDisplay = highPrioPortion?.weight_g
+            ? `≈ ${(weightG / highPrioPortion.weight_g).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${highPrioPortion.name}`
+            : null;
+
+          // Price calculation: price_per_kg × weightG / 1000
+          const pricePerKg = item.ingredient_price_per_kg;
+          const priceEur = pricePerKg != null ? (pricePerKg * weightG) / 1000 : null;
+          const priceDisplay = priceEur != null
+            ? priceEur < 0.01 ? '< 0,01 €' : `${priceEur.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+            : null;
 
           const ingredientContent = (
             <div className="flex-1 min-w-0">
@@ -99,32 +107,34 @@ export default function IngredientList({
                 )}
               </div>
 
-              {/* Primary natural portion */}
-              {primaryPortion && (
-                <div className="ml-7 mt-0.5 flex items-center gap-1">
-                  <span className="text-sm text-muted-foreground">
-                    {primaryPortion}
-                  </span>
-                  {allPortions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleExpanded(item.id);
-                      }}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {isExpanded ? 'weniger' : `+${allPortions.length - 1} weitere`}
-                    </button>
-                  )}
+              {/* Secondary: highest-priority portion + price */}
+              {(highPrioDisplay || priceDisplay) && (
+                <div className="ml-7 mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
+                  {highPrioDisplay && <span>{highPrioDisplay}</span>}
+                  {highPrioDisplay && priceDisplay && <span>·</span>}
+                  {priceDisplay && <span>{priceDisplay}</span>}
                 </div>
               )}
 
               {/* Expanded: all portions */}
+              {allPortions.length > 1 && (
+                <div className="ml-7 mt-0.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleExpanded(item.id);
+                    }}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {isExpanded ? 'weniger' : `+${allPortions.length - 1} weitere Portionen`}
+                  </button>
+                </div>
+              )}
               {isExpanded && allPortions.length > 1 && (
                 <div className="ml-7 mt-1 space-y-0.5">
-                  {allPortions.slice(1).map((np, idx) => (
+                  {allPortions.map((np, idx) => (
                     <div
                       key={idx}
                       className="text-sm text-muted-foreground"

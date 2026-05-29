@@ -12,11 +12,13 @@ import {
   useCreateAlias,
   useDeleteAlias,
   useRetailSections,
+  useAiSuggestIngredientAll,
 } from '@/api/supplies';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import type { Portion } from '@/schemas/supply';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
 
 // ---------------------------------------------------------------------------
 // NutriScoreBadge
@@ -266,7 +268,12 @@ export default function IngredientDetailPage() {
   // Edit fields
   const [editRetailSection, setEditRetailSection] = useState<string>('');
 
+  // AI Suggest
+  const [showAiSuggest, setShowAiSuggest] = useState(false);
+  const aiSuggest = useAiSuggestIngredientAll(slug || '');
+
   const canEdit = !!user && (user.is_staff || user.id === ingredient?.created_by_id);
+  const canAiSuggest = !!user && user.is_staff;
 
   // --- Loading / error states ---
   if (isLoading) {
@@ -294,6 +301,72 @@ export default function IngredientDetailPage() {
       </div>
     );
   }
+
+  const handleApplyAiSuggestions = (selectedKeys: string[]) => {
+    if (!aiSuggest.data || !ingredient) return;
+
+    const data = aiSuggest.data;
+    const scalarUpdates: Record<string, unknown> = {};
+    const portionsToCreate: Array<{ name: string; weight_g: number }> = [];
+    const aliasesToCreate: string[] = [];
+
+    for (const key of selectedKeys) {
+      if (key.startsWith('portion_')) {
+        const idx = parseInt(key.replace('portion_', ''), 10);
+        if (data.portions?.[idx]) portionsToCreate.push(data.portions[idx]);
+      } else if (key.startsWith('alias_')) {
+        const idx = parseInt(key.replace('alias_', ''), 10);
+        if (data.aliases?.[idx]) aliasesToCreate.push(data.aliases[idx]);
+      } else {
+        const value = (data as Record<string, unknown>)[key];
+        if (value !== null && value !== undefined) {
+          scalarUpdates[key] = value;
+        }
+      }
+    }
+
+    const promises: Promise<unknown>[] = [];
+    if (Object.keys(scalarUpdates).length > 0) {
+      promises.push(
+        new Promise((resolve, reject) =>
+          updateIngredient.mutate(scalarUpdates, { onSuccess: resolve, onError: reject })
+        )
+      );
+    }
+
+    const existingPortionNames = new Set(
+      ingredient.portions.map((p) => p.name.toLowerCase())
+    );
+    for (const p of portionsToCreate) {
+      if (!existingPortionNames.has(p.name.toLowerCase())) {
+        promises.push(
+          new Promise((resolve, reject) =>
+            createPortion.mutate(
+              { name: p.name, quantity: p.weight_g },
+              { onSuccess: resolve, onError: reject }
+            )
+          )
+        );
+      }
+    }
+
+    for (const alias of aliasesToCreate) {
+      promises.push(
+        new Promise((resolve, reject) =>
+          createAlias.mutate({ name: alias }, { onSuccess: resolve, onError: reject })
+        )
+      );
+    }
+
+    Promise.all(promises)
+      .then(() => {
+        toast.success('Vorschläge übernommen');
+        setShowAiSuggest(false);
+      })
+      .catch((err) => {
+        toast.error('Fehler', { description: (err as Error).message });
+      });
+  };
 
   const handleDelete = () => {
     deleteIngredient.mutate(ingredient.slug, {
@@ -405,25 +478,38 @@ export default function IngredientDetailPage() {
           </div>
         </div>
 
-        {canEdit && (
+        {(canEdit || canAiSuggest) && (
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => {
-                setEditRetailSection(String(ingredient.retail_section_id || ''));
-                setShowEditFields(!showEditFields);
-              }}
-              className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
-              title="Bearbeiten"
-            >
-              <span className="material-symbols-outlined text-lg">edit</span>
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 rounded-md hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
-              title="Zutat löschen"
-            >
-              <span className="material-symbols-outlined text-lg">delete</span>
-            </button>
+            {canAiSuggest && (
+              <button
+                onClick={() => setShowAiSuggest(true)}
+                className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
+                title="KI-Vorschläge"
+              >
+                <span className="material-symbols-outlined text-lg">auto_fix_high</span>
+              </button>
+            )}
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => {
+                    setEditRetailSection(String(ingredient.retail_section_id || ''));
+                    setShowEditFields(!showEditFields);
+                  }}
+                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
+                  title="Bearbeiten"
+                >
+                  <span className="material-symbols-outlined text-lg">edit</span>
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-2 rounded-md hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
+                  title="Zutat löschen"
+                >
+                  <span className="material-symbols-outlined text-lg">delete</span>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -781,6 +867,135 @@ export default function IngredientDetailPage() {
         confirmLabel="Löschen"
         loading={deleteAlias.isPending}
       />
+
+      {/* AI Suggest Dialog */}
+      <AiSuggestDialog
+        open={showAiSuggest}
+        onOpenChange={(open) => {
+          setShowAiSuggest(open);
+          if (open && !aiSuggest.data && !aiSuggest.isPending) {
+            aiSuggest.mutate();
+          }
+        }}
+        title="KI-Vorschläge für Zutat"
+        isLoading={aiSuggest.isPending}
+        error={aiSuggest.error?.message ?? null}
+        fields={buildIngredientSuggestionFields(ingredient, aiSuggest.data)}
+        onApply={(selectedKeys) => {
+          handleApplyAiSuggestions(selectedKeys);
+        }}
+        isApplying={updateIngredient.isPending}
+      />
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Helper: Build suggestion fields for the AI dialog
+// ---------------------------------------------------------------------------
+
+function buildIngredientSuggestionFields(
+  ingredient: { [key: string]: unknown; portions: Array<{ name: string }>; aliases: Array<{ name: string }> },
+  suggestions: Record<string, unknown> | undefined | null,
+): SuggestionField[] {
+  if (!suggestions) return [];
+
+  const fields: SuggestionField[] = [];
+
+  const nutritionFields = [
+    { key: 'energy_kj', label: 'Energie (kJ)' },
+    { key: 'protein_g', label: 'Protein (g)' },
+    { key: 'fat_g', label: 'Fett (g)' },
+    { key: 'fat_sat_g', label: 'davon gesättigte Fettsäuren (g)' },
+    { key: 'carbohydrate_g', label: 'Kohlenhydrate (g)' },
+    { key: 'sugar_g', label: 'davon Zucker (g)' },
+    { key: 'fibre_g', label: 'Ballaststoffe (g)' },
+    { key: 'salt_g', label: 'Salz (g)' },
+    { key: 'sodium_mg', label: 'Natrium (mg)' },
+    { key: 'fructose_g', label: 'Fructose (g)' },
+    { key: 'lactose_g', label: 'Lactose (g)' },
+  ];
+
+  const ratingFields = [
+    { key: 'nutri_score', label: 'Nutri-Score' },
+    { key: 'nova_score', label: 'NOVA-Score' },
+    { key: 'child_score', label: 'Kinder-Score' },
+    { key: 'scout_score', label: 'Pfadfinder-Score' },
+    { key: 'environmental_score', label: 'Umwelt-Score' },
+    { key: 'fruit_factor', label: 'Fruchtfaktor' },
+  ];
+
+  const physicalFields = [
+    { key: 'physical_density', label: 'Dichte (g/ml)' },
+    { key: 'physical_viscosity', label: 'Viskosität' },
+    { key: 'durability_in_days', label: 'Haltbarkeit (Tage)' },
+    { key: 'max_storage_temperature', label: 'Max. Lagertemperatur (°C)' },
+  ];
+
+  for (const { key, label } of nutritionFields) {
+    fields.push({
+      key,
+      label,
+      group: 'Nährwerte pro 100g',
+      currentValue: ingredient[key] as unknown,
+      suggestedValue: suggestions[key] as unknown,
+      type: 'scalar',
+    });
+  }
+
+  for (const { key, label } of ratingFields) {
+    fields.push({
+      key,
+      label,
+      group: 'Bewertungen',
+      currentValue: ingredient[key] as unknown,
+      suggestedValue: suggestions[key] as unknown,
+      type: 'scalar',
+    });
+  }
+
+  for (const { key, label } of physicalFields) {
+    fields.push({
+      key,
+      label,
+      group: 'Physikalische Eigenschaften',
+      currentValue: ingredient[key] as unknown,
+      suggestedValue: suggestions[key] as unknown,
+      type: 'scalar',
+    });
+  }
+
+  // Portions
+  const suggestedPortions = (suggestions.portions as Array<{ name: string; weight_g: number }>) || [];
+  const existingNames = new Set(ingredient.portions.map((p) => p.name.toLowerCase()));
+  suggestedPortions.forEach((p, i) => {
+    if (!existingNames.has(p.name.toLowerCase())) {
+      fields.push({
+        key: `portion_${i}`,
+        label: `${p.name} (${p.weight_g}g)`,
+        group: 'Portionen',
+        currentValue: null,
+        suggestedValue: p,
+        type: 'list',
+      });
+    }
+  });
+
+  // Aliases
+  const suggestedAliases = (suggestions.aliases as string[]) || [];
+  const existingAliases = new Set(ingredient.aliases.map((a) => a.name.toLowerCase()));
+  suggestedAliases.forEach((alias, i) => {
+    if (!existingAliases.has(alias.toLowerCase())) {
+      fields.push({
+        key: `alias_${i}`,
+        label: alias,
+        group: 'Aliase',
+        currentValue: null,
+        suggestedValue: alias,
+        type: 'list',
+      });
+    }
+  });
+
+  return fields;
 }

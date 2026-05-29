@@ -40,7 +40,7 @@ def list_recipe_items(request, recipe_id: int):
     """List recipe items for a recipe."""
     recipe = get_object_or_404(Recipe, id=recipe_id)
     return RecipeItem.objects.filter(recipe=recipe).select_related(
-        "portion", "portion__ingredient", "portion__measuring_unit", "ingredient", "measuring_unit"
+        "portion", "portion__ingredient", "portion__measuring_unit",
     )
 
 
@@ -56,13 +56,14 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
     item = RecipeItem.objects.create(
         recipe=recipe,
         portion_id=payload.portion_id,
-        ingredient_id=payload.ingredient_id,
         quantity=payload.quantity,
-        measuring_unit_id=payload.measuring_unit_id,
         sort_order=payload.sort_order,
         note=payload.note,
-        quantity_type=payload.quantity_type,
     )
+    # Reload with relations for schema resolvers
+    item = RecipeItem.objects.select_related(
+        "portion", "portion__ingredient", "portion__measuring_unit",
+    ).get(id=item.id)
     return item
 
 
@@ -82,6 +83,10 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
         setattr(item, field, value)
     item.save()
 
+    # Reload with relations for schema resolvers
+    item = RecipeItem.objects.select_related(
+        "portion", "portion__ingredient", "portion__measuring_unit",
+    ).get(id=item.id)
     return item
 
 
@@ -126,8 +131,6 @@ def ai_suggest_ingredients(request, recipe_id: int):
             "portion_id": r.portion_id,
             "portion_name": r.portion_name,
             "quantity": r.quantity,
-            "measuring_unit_id": r.measuring_unit_id,
-            "measuring_unit_name": r.measuring_unit_name,
             "is_new_ingredient": r.is_new_ingredient,
         }
         for r in results
@@ -155,12 +158,9 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
     for i, item_in in enumerate(payload):
         item = RecipeItem.objects.create(
             recipe=recipe,
-            ingredient_id=item_in.ingredient_id,
             portion_id=item_in.portion_id,
             quantity=item_in.quantity,
-            measuring_unit_id=item_in.measuring_unit_id,
             sort_order=last_sort + i + 1,
-            quantity_type="per_person",
         )
         created_items.append(item)
 
@@ -173,7 +173,6 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
         id__in=[item.id for item in created_items]
     ).select_related(
         "portion", "portion__ingredient", "portion__measuring_unit",
-        "ingredient", "measuring_unit",
     )
 
 

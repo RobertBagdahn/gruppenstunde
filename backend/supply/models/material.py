@@ -8,7 +8,7 @@ from django.utils.text import slugify
 
 from content.models import SoftDeleteModel
 
-from ..choices import MaterialCategory, MaterialQuantityType
+from ..choices import MaterialCategory
 
 
 class Supply(SoftDeleteModel):
@@ -115,11 +115,6 @@ class ContentMaterialItem(models.Model):
 
     # Quantity
     quantity = models.CharField(max_length=50, blank=True, default="")
-    quantity_type = models.CharField(
-        max_length=20,
-        choices=MaterialQuantityType.choices,
-        default=MaterialQuantityType.ONCE,
-    )
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:

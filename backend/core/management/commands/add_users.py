@@ -75,17 +75,18 @@ class Command(BaseCommand):
 
         for data in USERS:
             username = data["username"]
-            if UserModel.objects.filter(username=username).exists():
-                self.stdout.write(f"  User '{username}' already exists, skipping.")
-                continue
-
-            user = UserModel.objects.create_user(
-                username,
-                password=data["password"],
-                email=data["email"],
+            user, created = UserModel.objects.get_or_create(
+                username=username,
+                defaults={
+                    "email": data["email"],
+                },
             )
+            if created:
+                user.set_password(data["password"])
+
             user.is_superuser = data["is_superuser"]
             user.is_staff = data["is_staff"]
+            user.email = data["email"]
             user.save()
 
             UserProfile.objects.get_or_create(
@@ -97,6 +98,7 @@ class Command(BaseCommand):
                 },
             )
 
-            self.stdout.write(f"  + Created user '{username}'")
+            action = "Created" if created else "Updated"
+            self.stdout.write(f"  + {action} user '{username}'")
 
         self.stdout.write(self.style.SUCCESS("Users created"))

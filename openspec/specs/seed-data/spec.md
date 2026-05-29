@@ -144,3 +144,12 @@ The system SHALL provide seed data (Django management command or fixture) that c
 #### Scenario: Seed data includes placeholder logos
 - **WHEN** the seed data is created
 - **THEN** each group SHALL have a programmatically generated placeholder logo (colored circle or initials) stored as a file, not requiring external downloads
+
+### Requirement: Cooklang-Import erzeugt korrekte RecipeItems
+
+Bisher: `measuring_unit=None`, `quantity_type="once"` mit Gesamtmenge.
+Neu: Korrekte Unit-Zuordnung und `quantity_type="per_person"` mit Pro-Portion-Menge.
+
+#### Scenario: Re-Import bestehender Daten
+- **WHEN** `--force` Flag beim Aufruf gesetzt ist
+- **THEN** werden vorherige Cooklang-Imports gelöscht und korrekt neu importiert

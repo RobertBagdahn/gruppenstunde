@@ -79,10 +79,10 @@ def suggest_recipe_metadata(recipe: "Recipe", user: AbstractBaseUser | None = No
         context_parts.append(f"Beschreibung: {recipe.description}")
 
     # Include existing ingredients for context
-    items = recipe.recipe_items.select_related("ingredient").all()
+    items = recipe.recipe_items.select_related("portion", "portion__ingredient").all()
     if items:
         ingredient_list = ", ".join(
-            f"{item.quantity} {item.ingredient.name}" if item.ingredient else str(item.quantity)
+            f"{item.quantity} {item.portion.ingredient.name}" if item.portion and item.portion.ingredient else str(item.quantity)
             for item in items
         )
         context_parts.append(f"Zutaten: {ingredient_list}")

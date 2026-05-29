@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { addDays, subDays, format } from 'date-fns';
 import {
   useMealPlan,
   useDeleteMealPlan,
@@ -309,6 +310,24 @@ export default function MealPlanDetailPage() {
 
       {/* Day sections */}
       <div className="space-y-6">
+        {canEdit && sortedDays.length > 0 && (
+          <button
+            onClick={() => {
+              const firstDate = sortedDays[0][0];
+              const prevDate = format(subDays(new Date(firstDate), 1), 'yyyy-MM-dd');
+              addDay.mutate(
+                { date: prevDate },
+                { onError: () => toast.error('Fehler beim Hinzufügen des Tages') },
+              );
+            }}
+            disabled={addDay.isPending}
+            className="w-full flex items-center justify-center gap-2 py-2 border border-dashed rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 transition disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-lg">chevron_left</span>
+            Tag davor hinzufügen
+          </button>
+        )}
+
         {sortedDays.map(([date, meals]) => (
           <DaySection
             key={date}
@@ -324,6 +343,24 @@ export default function MealPlanDetailPage() {
           <p className="text-muted-foreground text-center py-8">
             Noch keine Tage im Plan. Füge einen Tag hinzu, um zu starten.
           </p>
+        )}
+
+        {canEdit && sortedDays.length > 0 && (
+          <button
+            onClick={() => {
+              const lastDate = sortedDays[sortedDays.length - 1][0];
+              const nextDate = format(addDays(new Date(lastDate), 1), 'yyyy-MM-dd');
+              addDay.mutate(
+                { date: nextDate },
+                { onError: () => toast.error('Fehler beim Hinzufügen des Tages') },
+              );
+            }}
+            disabled={addDay.isPending}
+            className="w-full flex items-center justify-center gap-2 py-2 border border-dashed rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 transition disabled:opacity-50"
+          >
+            Tag danach hinzufügen
+            <span className="material-symbols-outlined text-lg">chevron_right</span>
+          </button>
         )}
       </div>
 

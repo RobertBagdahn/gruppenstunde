@@ -38,9 +38,21 @@ The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day
 ### Requirement: Meal plan editing
 The system SHALL allow users with edit permission to add/remove days, add/remove meals, and add/remove recipe items.
 
-#### Scenario: Editor adds a day
+#### Scenario: Editor adds a day via date picker
 - **WHEN** a user with edit permission clicks "Tag hinzufügen" and selects a date
 - **THEN** the system creates default meals for that date
+
+#### Scenario: Editor adds a day before existing days
+- **WHEN** a user with edit permission clicks "Tag davor hinzufügen"
+- **THEN** the system creates default meals for the date one day before the first existing day
+
+#### Scenario: Editor adds a day after existing days
+- **WHEN** a user with edit permission clicks "Tag danach hinzufügen"
+- **THEN** the system creates default meals for the date one day after the last existing day
+
+#### Scenario: Quick-add buttons visibility
+- **WHEN** no days exist in the plan
+- **THEN** the "Tag davor" and "Tag danach" buttons are not shown
 
 #### Scenario: Editor adds a recipe to a meal
 - **WHEN** a user with edit permission clicks "Rezept hinzufügen" on a meal

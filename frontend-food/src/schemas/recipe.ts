@@ -28,20 +28,20 @@ export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
 
 export const RecipeItemSchema = z.object({
   id: z.number(),
-  portion_id: z.number().nullable(),
+  portion_id: z.number(),
   portion_name: z.string().nullable().optional(),
-  ingredient_id: z.number().nullable(),
+  ingredient_id: z.number().nullable().optional(),
   ingredient_name: z.string().default(''),
   ingredient_slug: z.string().nullable().optional(),
   quantity: z.number(),
-  measuring_unit_id: z.number().nullable(),
+  measuring_unit_id: z.number().nullable().optional(),
   measuring_unit_name: z.string().nullable().optional(),
   sort_order: z.number(),
   note: z.string(),
-  quantity_type: z.string(),
   ingredient_portions: z.array(PortionSchema).default([]),
   ingredient_density: z.number().nullable().optional(),
   ingredient_viscosity: z.string().nullable().optional(),
+  ingredient_price_per_kg: z.number().nullable().optional(),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;
 
@@ -232,6 +232,7 @@ export const SuggestedIngredientSchema = z.object({
   id: z.number(),
   name: z.string(),
   contribution_g: z.number(),
+  unit: z.string(),
 });
 export type SuggestedIngredient = z.infer<typeof SuggestedIngredientSchema>;
 
@@ -345,8 +346,7 @@ export type RecipeFolder = z.infer<typeof RecipeFolderSchema>;
 export const EstimateQuantityItemSchema = z.object({
   item_id: z.number(),
   ingredient_name: z.string(),
-  quantity_per_person: z.number(),
-  quantity_total: z.number(),
+  quantity_per_portion: z.number(),
   unit: z.string(),
 });
 export type EstimateQuantityItem = z.infer<typeof EstimateQuantityItemSchema>;

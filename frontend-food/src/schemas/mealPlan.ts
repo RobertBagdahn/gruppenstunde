@@ -33,6 +33,8 @@ export const MealItemSchema = z.object({
   measuring_unit_name: z.string(),
   display_name: z.string().nullable(),
   factor: z.number(),
+  energy_kj: z.number().nullable(),
+  cost_eur: z.number().nullable(),
   overrides: z.array(MealItemOverrideSchema),
 });
 export type MealItem = z.infer<typeof MealItemSchema>;
@@ -50,6 +52,8 @@ export const MealSchema = z.object({
   override_portions: z.number().nullable(),
   note: z.string(),
   note_is_published: z.boolean(),
+  total_energy_kj: z.number(),
+  total_cost_eur: z.number(),
   items: z.array(MealItemSchema),
 });
 export type Meal = z.infer<typeof MealSchema>;
@@ -68,6 +72,8 @@ export const MealPlanSchema = z.object({
   reserve_factor: z.number(),
   event_id: z.number().nullable(),
   event_name: z.string(),
+  start_datetime: z.string().nullable(),
+  end_datetime: z.string().nullable(),
   created_by_id: z.number(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -89,6 +95,8 @@ export const MealPlanDetailSchema = z.object({
   reserve_factor: z.number(),
   event_id: z.number().nullable(),
   event_name: z.string(),
+  start_datetime: z.string().nullable(),
+  end_datetime: z.string().nullable(),
   created_by_id: z.number(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -210,6 +218,78 @@ export const MEAL_TYPE_ICONS: Record<string, string> = {
   snack: 'cookie',
   dessert: 'cake',
 };
+
+export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border: string }> = {
+  breakfast: { text: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-300' },
+  lunch: { text: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-300' },
+  dinner: { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-300' },
+  snack: { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-300' },
+  dessert: { text: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-300' },
+};
+
+export type CoverageStatus = 'good' | 'warning' | 'critical';
+
+/** Calculate how well a meal covers its expected calorie share. */
+export function getCoverageStatus(
+  totalEnergyKj: number,
+  dayPartFactor: number,
+  activityFactor: number,
+): { percent: number; status: CoverageStatus } {
+  // Base daily need: 2000 kcal = 8368 kJ, scaled by activity factor
+  const dailyTargetKj = 8368 * activityFactor;
+  const expectedKj = dailyTargetKj * dayPartFactor;
+  if (expectedKj <= 0) return { percent: 0, status: 'critical' };
+  const percent = Math.round((totalEnergyKj / expectedKj) * 100);
+  let status: CoverageStatus = 'good';
+  if (percent < 50 || percent > 150) status = 'critical';
+  else if (percent < 80 || percent > 120) status = 'warning';
+  return { percent, status };
+}
+
+// ==========================================================================
+// Backward compatibility re-exports
+// ==========================================================================
+
+// ==========================================================================
+// Cost Summary
+// ==========================================================================
+
+export const MealCostSchema = z.object({
+  meal_id: z.number(),
+  meal_type: z.string(),
+  date: z.string(),
+  cost: z.coerce.number(),
+  cost_per_person: z.coerce.number(),
+});
+export type MealCost = z.infer<typeof MealCostSchema>;
+
+export const DayCostSchema = z.object({
+  date: z.string(),
+  total_cost: z.coerce.number(),
+  cost_per_person: z.coerce.number(),
+  meals: z.array(MealCostSchema),
+});
+export type DayCost = z.infer<typeof DayCostSchema>;
+
+export const RecipeCostSchema = z.object({
+  recipe_id: z.number(),
+  recipe_title: z.string(),
+  recipe_slug: z.string(),
+  total_cost: z.coerce.number(),
+  cost_per_person: z.coerce.number(),
+});
+export type RecipeCost = z.infer<typeof RecipeCostSchema>;
+
+export const MealPlanCostSummarySchema = z.object({
+  total_cost: z.coerce.number(),
+  cost_per_person: z.coerce.number(),
+  norm_portions: z.number(),
+  total_ingredients: z.number(),
+  priced_ingredients: z.number(),
+  days: z.array(DayCostSchema),
+  recipes: z.array(RecipeCostSchema),
+});
+export type MealPlanCostSummary = z.infer<typeof MealPlanCostSummarySchema>;
 
 // ==========================================================================
 // Backward compatibility re-exports

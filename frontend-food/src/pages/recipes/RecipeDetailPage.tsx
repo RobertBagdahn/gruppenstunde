@@ -646,7 +646,6 @@ export default function RecipeDetailPage() {
                       measuring_unit_id: orig?.measuring_unit_id ?? null,
                       sort_order: orig?.sort_order ?? 0,
                       note: orig?.note ?? '',
-                      quantity_type: orig?.quantity_type ?? 'weight',
                     };
                   });
                   forkAndSaveRecipe.mutate(
@@ -685,7 +684,6 @@ export default function RecipeDetailPage() {
                       measuring_unit_id: orig?.measuring_unit_id ?? null,
                       sort_order: orig?.sort_order ?? 0,
                       note: orig?.note ?? '',
-                      quantity_type: orig?.quantity_type ?? 'weight',
                     };
                   });
                   updateRecipe.mutate(

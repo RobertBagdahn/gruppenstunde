@@ -105,6 +105,7 @@ class SuggestedIngredientOut(Schema):
     id: int
     name: str
     contribution_g: float
+    unit: str
 
 
 class ImprovementOut(Schema):
@@ -138,6 +139,7 @@ class LlmSuggestionRequestIn(Schema):
     """Request body for LLM suggestion endpoint."""
 
     objective: str
+    direction: str = "reduce"  # "reduce" | "increase"
 
 
 class LlmSuggestionOut(Schema):

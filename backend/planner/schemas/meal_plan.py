@@ -32,6 +32,8 @@ class MealItemOut(Schema):
     measuring_unit_name: str = ""
     display_name: str | None = None
     factor: float
+    energy_kj: float | None = None
+    cost_eur: float | None = None
     overrides: list[MealItemOverrideOut] = []
 
     @staticmethod
@@ -61,6 +63,22 @@ class MealItemOut(Schema):
         return float(obj.quantity) if obj.quantity else None
 
     @staticmethod
+    def resolve_energy_kj(obj) -> float | None:
+        if not obj.recipe or not obj.recipe.cached_energy_kj:
+            return None
+        servings = obj.recipe.servings or 1
+        norm_portions = obj.meal.meal_plan.norm_portions or 1
+        return float(obj.recipe.cached_energy_kj) * obj.factor * (norm_portions / servings)
+
+    @staticmethod
+    def resolve_cost_eur(obj) -> float | None:
+        if not obj.recipe or obj.recipe.cached_price_total is None:
+            return None
+        servings = obj.recipe.servings or 1
+        norm_portions = obj.meal.meal_plan.norm_portions or 1
+        return float(obj.recipe.cached_price_total) * obj.factor * (norm_portions / servings)
+
+    @staticmethod
     def resolve_overrides(obj) -> list:
         if hasattr(obj, "_prefetched_objects_cache") and "overrides" in obj._prefetched_objects_cache:
             return obj.overrides.all()
@@ -85,7 +103,29 @@ class MealOut(Schema):
     override_portions: int | None = None
     note: str = ""
     note_is_published: bool = False
+    total_energy_kj: float = 0.0
+    total_cost_eur: float = 0.0
     items: list[MealItemOut] = []
+
+    @staticmethod
+    def resolve_total_energy_kj(obj) -> float:
+        total = 0.0
+        for item in obj.items.all():
+            if item.recipe and item.recipe.cached_energy_kj:
+                servings = item.recipe.servings or 1
+                norm_portions = obj.meal_plan.norm_portions or 1
+                total += float(item.recipe.cached_energy_kj) * item.factor * (norm_portions / servings)
+        return total
+
+    @staticmethod
+    def resolve_total_cost_eur(obj) -> float:
+        total = 0.0
+        for item in obj.items.all():
+            if item.recipe and item.recipe.cached_price_total is not None:
+                servings = item.recipe.servings or 1
+                norm_portions = obj.meal_plan.norm_portions or 1
+                total += float(item.recipe.cached_price_total) * item.factor * (norm_portions / servings)
+        return total
 
 
 class MealCreateIn(Schema):
@@ -115,6 +155,8 @@ class MealPlanOut(Schema):
     reserve_factor: float
     event_id: int | None = None
     event_name: str = ""
+    start_datetime: dt.datetime | None = None
+    end_datetime: dt.datetime | None = None
     created_by_id: int
     created_at: dt.datetime
     updated_at: dt.datetime
@@ -138,8 +180,8 @@ class MealPlanCreateIn(Schema):
     activity_factor: float = 1.5
     reserve_factor: float = 1.1
     event_id: int | None = None
-    start_date: dt.date | None = None
-    num_days: int = 3
+    start_datetime: dt.datetime | None = None
+    end_datetime: dt.datetime | None = None
 
 
 class MealPlanUpdateIn(Schema):
@@ -148,6 +190,8 @@ class MealPlanUpdateIn(Schema):
     norm_portions: int | None = None
     activity_factor: float | None = None
     reserve_factor: float | None = None
+    start_datetime: dt.datetime | None = None
+    end_datetime: dt.datetime | None = None
 
 
 class MealPlanDetailOut(Schema):
@@ -160,6 +204,8 @@ class MealPlanDetailOut(Schema):
     reserve_factor: float
     event_id: int | None = None
     event_name: str = ""
+    start_datetime: dt.datetime | None = None
+    end_datetime: dt.datetime | None = None
     created_by_id: int
     created_at: dt.datetime
     updated_at: dt.datetime
@@ -255,3 +301,41 @@ class MealPlanCollaboratorCreateIn(Schema):
 
 class MealPlanCollaboratorUpdateIn(Schema):
     role: str
+
+
+# ==========================================================================
+# Cost Summary Schemas
+# ==========================================================================
+
+
+class MealCostOut(Schema):
+    meal_id: int
+    meal_type: str
+    date: dt.date
+    cost: Decimal
+    cost_per_person: Decimal
+
+
+class DayCostOut(Schema):
+    date: dt.date
+    total_cost: Decimal
+    cost_per_person: Decimal
+    meals: list[MealCostOut] = []
+
+
+class RecipeCostOut(Schema):
+    recipe_id: int
+    recipe_title: str
+    recipe_slug: str
+    total_cost: Decimal
+    cost_per_person: Decimal
+
+
+class MealPlanCostSummaryOut(Schema):
+    total_cost: Decimal
+    cost_per_person: Decimal
+    norm_portions: int
+    total_ingredients: int
+    priced_ingredients: int
+    days: list[DayCostOut] = []
+    recipes: list[RecipeCostOut] = []

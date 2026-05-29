@@ -293,8 +293,6 @@ def get_recipe(request, recipe_id: int):
             "nutritional_tags",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
-            "recipe_items__ingredient__portions__measuring_unit",
-            "recipe_items__measuring_unit",
             "authors__profile",
         ),
         id=recipe_id,
@@ -324,8 +322,6 @@ def get_recipe_by_slug(request, slug: str):
             "nutritional_tags",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
-            "recipe_items__ingredient__portions__measuring_unit",
-            "recipe_items__measuring_unit",
             "authors__profile",
         ),
         slug=slug,
@@ -409,9 +405,7 @@ def create_recipe(request, payload: RecipeCreateIn):
             measuring_unit_id=item_data.measuring_unit_id,
             sort_order=item_data.sort_order,
             note=item_data.note,
-            quantity_type=item_data.quantity_type,
         )
-
     recipe.emotion_counts = {}
     recipe.user_emotion = None
     recipe.can_edit = True
@@ -461,7 +455,6 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
                 measuring_unit_id=item_data["measuring_unit_id"],
                 sort_order=item_data["sort_order"],
                 note=item_data["note"],
-                quantity_type=item_data["quantity_type"],
             )
 
     enrich_content_with_interactions(request, recipe, Recipe)
@@ -637,8 +630,6 @@ def fork_recipe(request, recipe_id: int):
     original = get_object_or_404(
         Recipe.objects.prefetch_related(
             "recipe_items__portion",
-            "recipe_items__ingredient",
-            "recipe_items__measuring_unit",
             "tags",
             "scout_levels",
             "nutritional_tags",
@@ -677,12 +668,9 @@ def fork_recipe(request, recipe_id: int):
         RecipeItem.objects.create(
             recipe=fork,
             portion_id=item.portion_id,
-            ingredient_id=item.ingredient_id,
             quantity=item.quantity,
-            measuring_unit_id=item.measuring_unit_id,
             sort_order=item.sort_order,
             note=item.note,
-            quantity_type=item.quantity_type,
         )
 
     fork.emotion_counts = {}

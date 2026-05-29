@@ -14,14 +14,17 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
-from core.services.gemini import gemini_call
+from core.services.gemini import GeminiUnavailableError, gemini_call
 
 if TYPE_CHECKING:
     from supply.models import Ingredient
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
+GEMINI_MODEL = "gemini-2.5-flash"
+
+# Model that supports structured output + Google Search together
+GEMINI_MODEL_WITH_SEARCH = "gemini-2.0-flash"
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +140,6 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=IngredientSuggestAllSchema,
-        tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
     response = gemini_call(
@@ -149,14 +151,13 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
     )
 
     if response is None:
-        logger.warning("AI client not available – returning empty suggestions")
-        return {}
+        raise GeminiUnavailableError("KI nicht verfügbar")
 
     result = IngredientSuggestAllSchema.model_validate_json(response.text)
     return result.model_dump()
 
 
-def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None) -> "Ingredient":
+def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass_limits: bool = False) -> "Ingredient":
     """Create a complete ingredient from just a name using Gemini + Search Grounding.
 
     Creates the Ingredient in the database with Portions and Aliases.
@@ -176,7 +177,6 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None) -> "In
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=IngredientAiCreateSchema,
-        tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
     response = gemini_call(
@@ -185,6 +185,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None) -> "In
         contents=prompt,
         config=config,
         context="ingredient_ai_create",
+        bypass_limits=bypass_limits,
     )
 
     if response is None:

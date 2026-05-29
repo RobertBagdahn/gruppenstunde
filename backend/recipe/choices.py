@@ -17,7 +17,6 @@ from supply.choices import (
     HintLevelChoices,
     HintMinMaxChoices,
     HintParameterChoices,
-    MaterialQuantityType,
     RecipeObjectiveChoices,
     RecipeTypeChoices,
 )
@@ -36,7 +35,6 @@ __all__ = [
     "CostsRatingChoices",
     "PreparationTimeChoices",
     "ExecutionTimeChoices",
-    "MaterialQuantityType",
     "RecipeObjectiveChoices",
     "HintParameterChoices",
     "HintMinMaxChoices",

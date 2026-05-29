@@ -50,7 +50,11 @@ import GameDetailPage from './pages/games/GameDetailPage';
 import MaterialListPage from './pages/supplies/MaterialListPage';
 import MaterialDetailPage from './pages/supplies/MaterialDetailPage';
 import RecipeListPage from './pages/recipes/RecipeListPage';
+import MyRecipesPage from './pages/recipes/MyRecipesPage';
+import CreateRecipePage from './pages/recipes/CreateRecipePage';
+import EditRecipePage from './pages/recipes/EditRecipePage';
 import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
+import RecipeImportPage from './pages/recipes/RecipeImportPage';
 
 function App() {
   return (
@@ -114,6 +118,10 @@ function App() {
 
         {/* Content: Recipes */}
         <Route path="/recipes" element={<RecipeListPage />} />
+        <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
+        <Route path="/recipes/import" element={<RecipeImportPage />} />
+        <Route path="/recipes/new" element={<CreateRecipePage />} />
+        <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
         <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
 
         {/* Tool: Packlisten */}

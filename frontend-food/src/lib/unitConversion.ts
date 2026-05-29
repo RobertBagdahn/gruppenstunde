@@ -4,7 +4,7 @@
  * Handles:
  * - g → kg conversion (>= 1000g)
  * - ml → l conversion (>= 1000ml)
- * - Smart rounding (5g/10g/50g steps)
+ * - Smart rounding (0.1g/1g/5g/10g/50g steps)
  * - Density-based g ↔ ml conversion
  * - Default unit selection based on ingredient viscosity
  */
@@ -22,12 +22,21 @@ export interface FormattedQuantity {
 
 /**
  * Smart rounding based on quantity magnitude.
- * - Under 100: round to nearest 5
+ * - Under 1: round to nearest 0.1 (minimum 0.1 for positive values)
+ * - 1-10: round to nearest 1
+ * - 10-100: round to nearest 5
  * - 100-999: round to nearest 10
  * - 1000+: round to nearest 50
  */
 function smartRound(value: number): number {
   if (value <= 0) return 0;
+  if (value < 1) {
+    const rounded = Math.round(value * 10) / 10;
+    return rounded > 0 ? rounded : 0.1;
+  }
+  if (value < 10) {
+    return Math.round(value);
+  }
   if (value < 100) {
     return Math.round(value / 5) * 5;
   }

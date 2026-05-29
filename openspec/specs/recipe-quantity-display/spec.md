@@ -23,3 +23,19 @@ Das System DARF NIEMALS "0 g" oder "0 ml" anzeigen wenn der tatsächliche Wert g
 #### Scenario: Exakt null
 - **WHEN** ein berechneter Wert von exakt 0g formatiert wird
 - **THEN** wird "0 g" angezeigt (korrekt, da tatsächlich 0)
+
+### Requirement: Originaleinheit anzeigen
+
+Zutaten auf der Rezept-Detailseite zeigen die Menge in der Einheit an, die im Editor gewählt wurde.
+
+#### Scenario: Zutat mit nicht-Gewichtseinheit (Pr, TL, EL, Stück)
+- **WHEN** ein RecipeItem `measuring_unit_name` hat das nicht in [g, gramm, kg, kilogramm, ml, milliliter, l, liter] ist
+- **THEN** wird `"{quantity} {measuring_unit_name}"` angezeigt (z.B. "15 Pr", "2 TL")
+
+#### Scenario: Zutat mit Gewichtseinheit
+- **WHEN** ein RecipeItem `measuring_unit_name` in [g, gramm, kg, kilogramm, ml, milliliter, l, liter] hat
+- **THEN** wird die Menge durch `formatQuantity` umgerechnet und smart angezeigt (z.B. "1,5 kg", "300 ml")
+
+#### Scenario: Zutat ohne Einheit und Menge 0
+- **WHEN** ein RecipeItem `measuring_unit_name` NULL ist und `quantity` = 0
+- **THEN** wird nur der Zutat-Name angezeigt ohne Mengenangabe

@@ -117,7 +117,6 @@ class GroupSessionDetailOut(ContentDetailOut):
                 "material_slug": item.material.slug,
                 "material_category": item.material.material_category,
                 "quantity": item.quantity,
-                "quantity_type": item.quantity_type,
                 "sort_order": item.sort_order,
             }
             for item in items

@@ -62,7 +62,6 @@ class ContentMaterialItemOut(Schema):
     material_slug: str
     material_category: str
     quantity: str
-    quantity_type: str
     sort_order: int
 
 
@@ -71,7 +70,6 @@ class ContentMaterialItemIn(Schema):
 
     material_id: int
     quantity: str = ""
-    quantity_type: str = "once"
     sort_order: int = 0
 
 

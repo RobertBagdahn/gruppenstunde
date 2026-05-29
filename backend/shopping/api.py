@@ -192,7 +192,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
             key = item.ingredient_id or item.name
             if key not in grouped:
                 grouped[key] = {
-                    "name": item.ingredient.name if item.ingredient else item.name,
+                "name": item.portion.ingredient.name if item.portion and item.portion.ingredient else item.name,
                     "total_quantity_g": 0.0,
                     "unit": item.unit or "g",
                     "retail_section": item.retail_section.name if item.retail_section else "",
@@ -215,7 +215,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
                 by_source[source] = []
             by_source[source].append({
                 "id": item.id,
-                "name": item.ingredient.name if item.ingredient else item.name,
+                "name": item.portion.ingredient.name if item.portion and item.portion.ingredient else item.name,
                 "quantity_g": float(item.quantity_g or 0),
                 "unit": item.unit or "g",
                 "is_checked": item.is_checked,
@@ -230,7 +230,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
         return {"view": "detailed", "items": [
             {
                 "id": item.id,
-                "name": item.ingredient.name if item.ingredient else item.name,
+                "name": item.portion.ingredient.name if item.portion and item.portion.ingredient else item.name,
                 "quantity_g": float(item.quantity_g or 0),
                 "unit": item.unit or "g",
                 "retail_section": item.retail_section.name if item.retail_section else "",

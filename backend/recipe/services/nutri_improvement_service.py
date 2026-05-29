@@ -142,7 +142,7 @@ def _find_contributing_ingredients(recipe: "Recipe", parameter: str) -> list[dic
     """
     from recipe.models import RecipeItem
 
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
 
     # sodium_mg is stored as salt_g on the ingredient model
     ingredient_field = "salt_g" if parameter == "sodium_mg" else parameter
@@ -151,7 +151,7 @@ def _find_contributing_ingredients(recipe: "Recipe", parameter: str) -> list[dic
     total_contribution = 0.0
 
     for item in items:
-        ingredient = item.ingredient or (item.portion.ingredient if item.portion else None)
+        ingredient = item.portion.ingredient if item.portion else None
         if not ingredient:
             continue
 

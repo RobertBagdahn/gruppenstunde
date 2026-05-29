@@ -323,7 +323,7 @@ class RecipeQuantityEstimationService:
 
         items = list(
             RecipeItem.objects.filter(recipe=recipe)
-            .select_related("ingredient", "portion", "measuring_unit")
+            .select_related("portion", "portion__ingredient", "portion__measuring_unit")
             .order_by("sort_order")
         )
 
@@ -382,20 +382,22 @@ class RecipeQuantityEstimationService:
                 continue
 
             ingredient_name = ""
-            if item.ingredient:
-                ingredient_name = item.ingredient.name
-            elif item.portion and item.portion.ingredient:
+            if item.portion and item.portion.ingredient:
                 ingredient_name = item.portion.ingredient.name
 
             unit = "g"
-            if item.measuring_unit:
-                unit = item.measuring_unit.name
+            if item.portion and item.portion.measuring_unit:
+                unit = item.portion.measuring_unit.name
+
+            # Convert grams to portion-based quantity (minimum 1g)
+            weight_g = item.portion.weight_g if item.portion and item.portion.weight_g else 1.0
+            estimated_grams = max(estimate.estimated_grams_per_person, 1.0)
+            quantity_per_portion = estimated_grams / weight_g
 
             results.append({
                 "item_id": item.id,
                 "ingredient_name": ingredient_name,
-                "quantity_per_person": round(estimate.estimated_grams_per_person, 1),
-                "quantity_total": round(estimate.estimated_grams_per_person * servings, 1),
+                "quantity_per_portion": round(quantity_per_portion, 2),
                 "unit": unit,
             })
 
@@ -406,9 +408,7 @@ class RecipeQuantityEstimationService:
         item_lines = []
         for item in items:
             name = ""
-            if item.ingredient:
-                name = item.ingredient.name
-            elif item.portion and item.portion.ingredient:
+            if item.portion and item.portion.ingredient:
                 name = item.portion.ingredient.name
             else:
                 name = f"Item {item.id}"

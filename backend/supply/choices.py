@@ -13,11 +13,6 @@ class MaterialCategory(models.TextChoices):
     OTHER = "other", _("Sonstiges")
 
 
-class MaterialQuantityType(models.TextChoices):
-    ONCE = "once", _("Einmalig")
-    PER_PERSON = "per_person", _("Pro Person")
-
-
 # ---------------------------------------------------------------------------
 # Ingredient-related choices (migrated from idea/choices.py)
 # ---------------------------------------------------------------------------

@@ -376,7 +376,6 @@ def list_session_materials(request, session_id: int):
             "material_slug": item.material.slug,
             "material_category": item.material.material_category,
             "quantity": item.quantity,
-            "quantity_type": item.quantity_type,
             "sort_order": item.sort_order,
         }
         for item in items
@@ -404,7 +403,6 @@ def add_session_material(request, session_id: int, payload: ContentMaterialItemI
         object_id=session_id,
         material=material,
         quantity=payload.quantity,
-        quantity_type=payload.quantity_type,
         sort_order=payload.sort_order,
     )
     return 201, {
@@ -414,7 +412,6 @@ def add_session_material(request, session_id: int, payload: ContentMaterialItemI
         "material_slug": item.material.slug,
         "material_category": item.material.material_category,
         "quantity": item.quantity,
-        "quantity_type": item.quantity_type,
         "sort_order": item.sort_order,
     }
 

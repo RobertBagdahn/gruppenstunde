@@ -9,11 +9,13 @@ import {
   MealPlanDetailSchema,
   MealSchema,
   MealItemSchema,
+  MealPlanCostSummarySchema,
   NutritionSummarySchema,
   ShoppingListItemSchema,
   UnifiedSearchResponseSchema,
   type MealPlan,
   type MealPlanDetail,
+  type MealPlanCostSummary,
   type NutritionSummary,
   type UnifiedSearchResponse,
 } from '@/schemas/mealPlan';
@@ -109,8 +111,8 @@ export function useCreateMealPlan() {
       activity_factor?: number;
       reserve_factor?: number;
       event_id?: number | null;
-      start_date?: string | null;
-      num_days?: number;
+      start_datetime?: string | null;
+      end_datetime?: string | null;
     }) => postJson(`${API_BASE}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
@@ -127,6 +129,8 @@ export function useUpdateMealPlan(id: number) {
       norm_portions?: number;
       activity_factor?: number;
       reserve_factor?: number;
+      start_datetime?: string | null;
+      end_datetime?: string | null;
     }) => patchJson(`${API_BASE}/${id}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
@@ -156,6 +160,30 @@ export function useAddDay(mealPlanId: number) {
       postJson(`${API_BASE}/${mealPlanId}/days/`, body, z.array(MealSchema)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+    },
+  });
+}
+
+export function useAddDayBefore(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      postJson(`${API_BASE}/${mealPlanId}/add-day-before/`, {}, z.array(MealSchema)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
+    },
+  });
+}
+
+export function useAddDayAfter(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      postJson(`${API_BASE}/${mealPlanId}/add-day-after/`, {}, z.array(MealSchema)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
     },
   });
 }
@@ -257,6 +285,15 @@ export function useShoppingList(mealPlanId: number) {
         `${API_BASE}/${mealPlanId}/shopping-list/`,
         z.array(ShoppingListItemSchema),
       ),
+    enabled: mealPlanId > 0,
+  });
+}
+
+export function useMealPlanCosts(mealPlanId: number) {
+  return useQuery<MealPlanCostSummary>({
+    queryKey: ['meal-plan', mealPlanId, 'costs'],
+    queryFn: () =>
+      fetchJson(`${API_BASE}/${mealPlanId}/costs/`, MealPlanCostSummarySchema),
     enabled: mealPlanId > 0,
   });
 }

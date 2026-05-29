@@ -90,3 +90,17 @@ Feature-Dokumentation gehört in **OpenSpec**, nicht in AGENTS.md.
 # Umlaute
 
 Immer echte deutsche Umlaute verwenden: **ä, ö, ü, Ä, Ö, Ü, ß**. Niemals Ersatzschreibweisen wie `ae`, `oe`, `ue` oder `ss` benutzen – weder in UI-Texten, noch in Kommentaren oder Dokumentation. 
+
+
+# Food Frontend
+
+Alle Funktionalität rund um das Thema **Essen** wird im Food Frontend (`frontend-food/`) entwickelt. Dazu gehören:
+
+- **Rezepte** — Erstellen, Bearbeiten, Durchsuchen von Rezepten
+- **Zutaten** — Verwaltung und Zuordnung von Zutaten zu Rezepten
+- **Essenlisten / Speisepläne** — Planung von Mahlzeiten für Lager und Veranstaltungen
+- **Einkaufslisten** — Automatische Generierung aus Speiseplänen und Rezepten
+- **Mengenberechnung** — Skalierung von Rezepten auf Personenanzahl
+
+Das Food Frontend ist eine eigenständige Anwendung, getrennt vom Haupt-Frontend (`frontend/`). Backend-APIs für Essen werden im selben Backend bereitgestellt, aber die UI lebt ausschließlich in `frontend-food/`.
+

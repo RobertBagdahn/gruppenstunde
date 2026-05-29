@@ -122,7 +122,7 @@ class Command(BaseCommand):
             item = items[normalized.index]
             old_qty = item.quantity
             new_qty = normalized.quantity_g
-            ing_name = item.ingredient.name if item.ingredient else "?"
+            ing_name = item.portion.ingredient.name if item.portion and item.portion.ingredient else "?"
 
             self.stdout.write(
                 f"  {ing_name:<30} {old_qty:>10.1f} {new_qty:>10.1f}"
@@ -140,8 +140,8 @@ class Command(BaseCommand):
     def _build_prompt(self, recipe: Recipe, items: list[RecipeItem]) -> str:
         ingredient_lines = []
         for i, item in enumerate(items):
-            name = item.ingredient.name if item.ingredient else "Unbekannt"
-            unit = item.measuring_unit.name if item.measuring_unit else "g"
+            name = item.portion.ingredient.name if item.portion and item.portion.ingredient else "Unbekannt"
+            unit = item.portion.measuring_unit.name if item.portion and item.portion.measuring_unit else "g"
             ingredient_lines.append(f"{i}. {item.quantity:.1f} {unit} {name}")
 
         ingredients_text = "\n".join(ingredient_lines)

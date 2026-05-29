@@ -439,6 +439,11 @@ class Command(BaseCommand):
                     # measuring_unit stays None (display comes from portion name)
                     measuring_unit = None
 
+                # Store original unit text in note if unit was not in aliases
+                note = ""
+                if unit_raw and is_portion_unit and unit_key not in unit_aliases:
+                    note = f"Einheit: {unit_raw.strip()}"
+
                 RecipeItem.objects.create(
                     recipe=recipe,
                     ingredient=ingredient,
@@ -446,8 +451,7 @@ class Command(BaseCommand):
                     quantity=quantity_per_person,
                     measuring_unit=measuring_unit,
                     sort_order=sort_idx,
-                    note="",
-                    quantity_type="per_person",
+                    note=note,
                 )
 
             created_count += 1

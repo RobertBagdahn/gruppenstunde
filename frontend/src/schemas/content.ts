@@ -243,7 +243,6 @@ export const AiRefurbishSchema = z.object({
     quantity: z.string(),
     material_name: z.string(),
     material_unit: z.string(),
-    quantity_type: z.enum(['once', 'per_person']).default('per_person'),
   })).optional().default([]),
   location: z.string().optional().default(''),
   season: z.string().optional().default(''),

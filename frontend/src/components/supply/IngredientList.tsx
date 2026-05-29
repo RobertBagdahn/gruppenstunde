@@ -11,11 +11,6 @@ import { formatQuantity, scaleQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions, getPrimaryPortionDisplay } from '@/lib/portionDisplay';
 import { cn } from '@/lib/utils';
 
-/** Units that represent weight or volume and should use formatQuantity() */
-const WEIGHT_VOLUME_UNITS = new Set([
-  'gramm', 'g', 'kilogramm', 'kg', 'milliliter', 'ml', 'liter', 'l',
-]);
-
 interface IngredientListProps {
   items: RecipeItem[];
   servings: number | null;
@@ -60,42 +55,31 @@ export default function IngredientList({
         {sortedItems.map((item) => {
           const scaledQty = scaleQuantity(item.quantity, servingsMultiplier);
 
-          // Determine if this is a weight/volume unit
-          const unitName = item.measuring_unit_name ?? '';
-          const isWeightOrVolume = WEIGHT_VOLUME_UNITS.has(unitName.toLowerCase());
-
           let displayText: string;
           let weightG: number;
           let primaryPortion: string | null = null;
           let allPortions: Array<{ display: string }> = [];
 
-          if (isWeightOrVolume) {
-            const portionWeightG = item.ingredient_portions?.find(
-              (p) => p.id === item.portion_id,
-            )?.weight_g;
-            weightG = portionWeightG
-              ? scaledQty * portionWeightG
-              : scaledQty;
+          // portion_id is always set — calculate weight from portion
+          const portionWeightG = item.ingredient_portions?.find(
+            (p) => p.id === item.portion_id,
+          )?.weight_g ?? 1;
+          weightG = scaledQty * portionWeightG;
 
-            const formatted = formatQuantity(
-              weightG,
-              item.ingredient_viscosity,
-              item.ingredient_density,
-            );
-            displayText = formatted.display;
+          const formatted = formatQuantity(
+            weightG,
+            item.ingredient_viscosity,
+            item.ingredient_density,
+          );
+          displayText = formatted.display;
 
-            primaryPortion = item.ingredient_portions?.length
-              ? getPrimaryPortionDisplay(weightG, item.ingredient_portions)
-              : null;
+          primaryPortion = item.ingredient_portions?.length
+            ? getPrimaryPortionDisplay(weightG, item.ingredient_portions)
+            : null;
 
-            allPortions = item.ingredient_portions?.length
-              ? calculateNaturalPortions(weightG, item.ingredient_portions)
-              : [];
-          } else {
-            const qtyDisplay = scaledQty % 1 === 0 ? scaledQty.toString() : scaledQty.toFixed(1).replace('.', ',');
-            displayText = `${qtyDisplay} ${unitName}`;
-            weightG = 0;
-          }
+          allPortions = item.ingredient_portions?.length
+            ? calculateNaturalPortions(weightG, item.ingredient_portions)
+            : [];
 
           const isExpanded = expandedItems.has(item.id);
 
@@ -105,9 +89,11 @@ export default function IngredientList({
                 <span className="material-symbols-outlined text-rose-500 text-[20px] shrink-0">
                   check_circle
                 </span>
+                {displayText && (
                 <span className="font-semibold text-foreground text-base">
                   {displayText}
                 </span>
+                )}
                 <span className="font-medium text-foreground text-base">
                   {item.ingredient_name ?? 'Unbekannt'}
                 </span>

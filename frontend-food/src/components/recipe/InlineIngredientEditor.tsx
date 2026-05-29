@@ -2,7 +2,7 @@
  * InlineIngredientEditor — Edit-Mode for recipe ingredients on the detail page.
  * Allows editing quantities, units, notes, adding/removing items, and AI estimation.
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
   useUpdateRecipe,
@@ -19,10 +19,10 @@ import type { EstimateQuantityItem } from '@/schemas/recipe';
 
 interface EditableItem {
   id: number;
+  portion_id: number;
   ingredient_id: number | null;
   ingredient_name: string;
   quantity: number;
-  measuring_unit_id: number | null;
   measuring_unit_name: string | null;
   note: string;
   sort_order: number;
@@ -39,6 +39,40 @@ interface InlineIngredientEditorProps {
   onSaved: () => void;
 }
 
+// --- Helpers ---
+
+/** Normalize items to per-1-serving quantities in grams.
+ *  Converts portion-based quantities to grams for editing,
+ *  and switches to the base (is_default) portion. */
+function normalizeItems(items: RecipeItem[], servings: number | null): EditableItem[] {
+  const s = servings ?? 1;
+  return items.map((item) => {
+    // Find the weight_g of the current portion
+    const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
+    const portionWeightG = currentPortion?.weight_g ?? 1;
+
+    // Convert to grams: quantity × portion.weight_g
+    const quantityInGrams = item.quantity * portionWeightG;
+    const normalizedQty = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
+
+    // Use the base (default) portion for editing (weight_g ≈ 1)
+    const basePortion = item.ingredient_portions?.find((p) => p.is_default) ?? currentPortion;
+    const basePortionId = basePortion?.id ?? item.portion_id;
+
+    return {
+      id: item.id,
+      portion_id: basePortionId,
+      ingredient_id: item.ingredient_id ?? null,
+      ingredient_name: item.ingredient_name,
+      quantity: Math.round(normalizedQty * 100) / 100,
+      measuring_unit_name: basePortion?.measuring_unit_name ?? 'g',
+      note: item.note,
+      sort_order: item.sort_order,
+      isDirty: s > 1 || basePortionId !== item.portion_id,
+    };
+  });
+}
+
 // --- Component ---
 
 export default function InlineIngredientEditor({
@@ -48,31 +82,14 @@ export default function InlineIngredientEditor({
   onClose,
   onSaved,
 }: InlineIngredientEditorProps) {
-  const [editServings, setEditServings] = useState(servings ?? 1);
   const [editItems, setEditItems] = useState<EditableItem[]>(() =>
-    items.map((item) => ({
-      id: item.id,
-      ingredient_id: item.ingredient_id,
-      ingredient_name: item.ingredient_name,
-      quantity: item.quantity,
-      measuring_unit_id: item.measuring_unit_id,
-      measuring_unit_name: item.measuring_unit_name ?? null,
-      note: item.note,
-      sort_order: item.sort_order,
-    })),
+    normalizeItems(items, servings),
   );
   const [showEstimate, setShowEstimate] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
   const [estimateResult, setEstimateResult] = useState<EstimateQuantityItem[] | null>(null);
   const [selectedEstimates, setSelectedEstimates] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
-  const [justScaled, setJustScaled] = useState(false);
-
-  useEffect(() => {
-    if (!justScaled) return;
-    const timer = setTimeout(() => setJustScaled(false), 1000);
-    return () => clearTimeout(timer);
-  }, [justScaled]);
 
   const updateRecipe = useUpdateRecipe(recipeId);
   const updateItem = useUpdateRecipeItem(recipeId);
@@ -81,21 +98,6 @@ export default function InlineIngredientEditor({
   const estimateQuantities = useEstimateQuantities(recipeId);
 
   // --- Handlers ---
-
-  const handleServingsChange = useCallback((newServings: number) => {
-    const clamped = Math.max(1, Math.min(100, newServings));
-    if (clamped === editServings) return;
-    const ratio = clamped / editServings;
-    setEditItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        quantity: Math.round(item.quantity * ratio * 100) / 100,
-        isDirty: true,
-      })),
-    );
-    setEditServings(clamped);
-    setJustScaled(true);
-  }, [editServings]);
 
   const handleQuantityChange = useCallback((id: number, quantity: number) => {
     setEditItems((prev) =>
@@ -116,23 +118,45 @@ export default function InlineIngredientEditor({
   }, []);
 
   const handleAddIngredient = useCallback(
-    (ingredient: { id: number; name: string }) => {
+    async (ingredient: { id: number; name: string; slug: string }) => {
       const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
-      setEditItems((prev) => [
-        ...prev,
-        {
-          id: -Date.now(), // temporary negative ID for new items
-          ingredient_id: ingredient.id,
-          ingredient_name: ingredient.name,
-          quantity: 0,
-          measuring_unit_id: null,
-          measuring_unit_name: 'g',
-          note: '',
-          sort_order: maxSort + 1,
-          isNew: true,
-          isDirty: true,
-        },
-      ]);
+
+      // For new/unknown ingredients without a slug, add with placeholder
+      if (!ingredient.slug) {
+        // TODO: Create ingredient first, then fetch portion
+        toast.error('Bitte eine bestehende Zutat auswählen');
+        return;
+      }
+
+      // Fetch default portion for this ingredient
+      try {
+        const res = await fetch(`/api/ingredients/${ingredient.slug}/portions/`, { credentials: 'include' });
+        const portions = await res.json();
+        const defaultPortion = portions.find((p: { is_default: boolean }) => p.is_default) || portions[0];
+
+        if (!defaultPortion) {
+          toast.error('Keine Portion für diese Zutat gefunden');
+          return;
+        }
+
+        setEditItems((prev) => [
+          ...prev,
+          {
+            id: -Date.now(),
+            portion_id: defaultPortion.id,
+            ingredient_id: ingredient.id,
+            ingredient_name: ingredient.name,
+            quantity: 0,
+            measuring_unit_name: defaultPortion.measuring_unit_name || 'g',
+            note: '',
+            sort_order: maxSort + 1,
+            isNew: true,
+            isDirty: true,
+          },
+        ]);
+      } catch {
+        toast.error('Fehler beim Laden der Portion');
+      }
     },
     [editItems],
   );
@@ -157,7 +181,7 @@ export default function InlineIngredientEditor({
         if (!selectedEstimates.has(item.id)) return item;
         const estimate = estimateResult.find((e) => e.item_id === item.id);
         if (estimate) {
-          return { ...item, quantity: estimate.quantity_per_person, isDirty: true };
+          return { ...item, quantity: estimate.quantity_per_portion, isDirty: true };
         }
         return item;
       }),
@@ -175,9 +199,9 @@ export default function InlineIngredientEditor({
     try {
       const promises: Promise<unknown>[] = [];
 
-      // Update servings if changed
-      if (editServings !== (servings ?? 1)) {
-        promises.push(updateRecipe.mutateAsync({ servings: editServings }));
+      // Always set servings to 1 (quantities are per-serving)
+      if ((servings ?? 1) !== 1) {
+        promises.push(updateRecipe.mutateAsync({ servings: 1 }));
       }
 
       // Delete removed items
@@ -189,9 +213,8 @@ export default function InlineIngredientEditor({
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
         promises.push(
           createItem.mutateAsync({
-            ingredient_id: item.ingredient_id,
+            portion_id: item.portion_id,
             quantity: item.quantity,
-            measuring_unit_id: item.measuring_unit_id,
             sort_order: item.sort_order,
             note: item.note,
           }),
@@ -204,6 +227,7 @@ export default function InlineIngredientEditor({
           updateItem.mutateAsync({
             itemId: item.id,
             data: {
+              portion_id: item.portion_id,
               quantity: item.quantity,
               note: item.note,
               sort_order: item.sort_order,
@@ -220,7 +244,7 @@ export default function InlineIngredientEditor({
     } finally {
       setIsSaving(false);
     }
-  }, [editItems, editServings, servings, updateRecipe, deleteItem, createItem, updateItem, onSaved]);
+  }, [editItems, servings, updateRecipe, deleteItem, createItem, updateItem, onSaved]);
 
   // --- Render ---
 
@@ -263,20 +287,6 @@ export default function InlineIngredientEditor({
         </div>
       </div>
 
-      {/* Servings Editor */}
-      <div className="flex items-center gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-lg">
-        <span className="material-symbols-outlined text-amber-600">restaurant</span>
-        <span className="text-sm font-medium">Portionen (Basis):</span>
-        <input
-          type="number"
-          min={1}
-          max={100}
-          value={editServings}
-          onChange={(e) => handleServingsChange(parseInt(e.target.value) || 1)}
-          className="w-16 px-2 py-1 text-center text-sm border rounded-lg"
-        />
-      </div>
-
       {/* Ingredient Rows */}
       <div className="space-y-2">
         {activeItems.map((item) => (
@@ -290,7 +300,7 @@ export default function InlineIngredientEditor({
               step={0.1}
               value={item.quantity}
               onChange={(e) => handleQuantityChange(item.id, parseFloat(e.target.value) || 0)}
-              className={`w-20 px-2 py-1.5 text-sm text-right border rounded-md transition-colors duration-500 ${justScaled ? 'bg-amber-100 border-amber-300' : ''}`}
+              className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
             />
             <span className="text-xs text-muted-foreground min-w-[3.5rem]">
               {item.measuring_unit_name || 'g'}
@@ -332,7 +342,7 @@ export default function InlineIngredientEditor({
           value=""
           onChange={() => {}}
           onSelect={(ingredient) => handleAddIngredient(ingredient)}
-          onCreateNew={(name) => handleAddIngredient({ id: -Date.now(), name })}
+          onCreateNew={(name) => handleAddIngredient({ id: -Date.now(), name, slug: '' })}
           placeholder="Zutat hinzufügen..."
         />
       </div>
@@ -377,7 +387,7 @@ export default function InlineIngredientEditor({
                   const altValue = currentItem && currentItem.quantity > 0
                     ? `${currentItem.quantity} ${currentItem.measuring_unit_name || 'g'}`
                     : '—';
-                  const hasChange = !currentItem || currentItem.quantity !== est.quantity_per_person;
+                  const hasChange = !currentItem || currentItem.quantity !== est.quantity_per_portion;
                   return (
                     <tr
                       key={est.item_id}
@@ -406,7 +416,7 @@ export default function InlineIngredientEditor({
                         {altValue}
                       </td>
                       <td className="py-2 text-right font-medium">
-                        {est.quantity_per_person} {est.unit}
+                        {est.quantity_per_portion} {est.unit}
                       </td>
                     </tr>
                   );

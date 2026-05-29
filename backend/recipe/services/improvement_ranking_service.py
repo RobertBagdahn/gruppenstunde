@@ -92,7 +92,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
             "direction": direction,
             "nutri_component": nutri_component,
             "hint_component": 0.0,
-            "suggested_ingredients": _format_ingredients(cand.get("affected_ingredients", [])),
+            "suggested_ingredients": _format_ingredients(cand.get("affected_ingredients", []), parameter),
             "source": "nutri_score",
             "recommendation_text": _default_nutri_text(cand),
             "hint_level": "",
@@ -143,7 +143,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
                 "nutri_component": 0.0,
                 "hint_component": hint_component,
                 "suggested_ingredients": _format_ingredients(
-                    _find_contributing_ingredients(recipe, parameter)
+                    _find_contributing_ingredients(recipe, parameter), parameter
                 ),
                 "source": "recipe_hint",
                 "recommendation_text": improvement_text,
@@ -196,8 +196,9 @@ def _compute_delta(current: float, threshold: float, direction: str) -> float:
     return round(max(0.0, threshold - current), 2)
 
 
-def _format_ingredients(raw: list[dict]) -> list[dict]:
+def _format_ingredients(raw: list[dict], parameter: str) -> list[dict]:
     """Trim to top 3 and expose a stable shape for the schema."""
+    unit = _UNIT_MAP.get(parameter, "g")
     out: list[dict] = []
     for entry in raw[:3]:
         out.append(
@@ -205,6 +206,7 @@ def _format_ingredients(raw: list[dict]) -> list[dict]:
                 "id": entry.get("id", 0),
                 "name": entry.get("name", ""),
                 "contribution_g": entry.get("amount_g", 0.0),
+                "unit": unit,
             }
         )
     return out

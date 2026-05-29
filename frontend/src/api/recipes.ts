@@ -189,7 +189,6 @@ export interface RecipeCreatePayload {
     measuring_unit_id?: number | null;
     sort_order?: number;
     note?: string;
-    quantity_type?: string;
   }>;
   website?: string;
   form_loaded_at?: number;
@@ -227,7 +226,6 @@ export interface RecipeUpdatePayload {
     measuring_unit_id?: number | null;
     sort_order?: number;
     note?: string;
-    quantity_type?: string;
   }>;
 }
 
@@ -269,13 +267,10 @@ export function useCreateRecipeItem(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: {
-      portion_id?: number | null;
-      ingredient_id?: number | null;
+      portion_id: number;
       quantity?: number;
-      measuring_unit_id?: number | null;
       sort_order?: number;
       note?: string;
-      quantity_type?: string;
     }) => postJson(`${API_BASE}/${recipeId}/recipe-items/`, data, RecipeItemSchema),
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);

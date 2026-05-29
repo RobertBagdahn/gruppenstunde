@@ -338,7 +338,7 @@ export function useMeasuringUnits() {
 export function useNutritionalTags() {
   return useQuery({
     queryKey: ['nutritional-tags'] as const,
-    queryFn: () => fetchJson(`${SUPPLY_BASE}/nutritional-tags/`, z.array(NutritionalTagSchema)),
+    queryFn: () => fetchJson(`${API_BASE_URL}/api/nutritional-tags/`, z.array(NutritionalTagSchema)),
     staleTime: 10 * 60 * 1000,
   });
 }
@@ -404,6 +404,27 @@ export function useConvertUnit() {
         `${UNIT_CONVERSION_BASE}/convert/?${searchParams.toString()}`,
         UnitConversionResultSchema
       );
+    },
+  });
+}
+
+// ===========================================================================
+// AI Suggest
+// ===========================================================================
+
+export function useAiSuggestIngredientAll(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { IngredientSuggestAllSchema } = await import('@/schemas/supply');
+      return postJsonRaw(
+        `${INGREDIENT_BASE}/${slug}/ai-suggest-all/`,
+        {},
+        IngredientSuggestAllSchema
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
     },
   });
 }

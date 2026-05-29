@@ -20,7 +20,6 @@ LEGACY_HINTS = [
     {"hint": "Viel zuviel gesät. Fettsäuren", "value": 40.0, "hint_level": "error", "min_max": "max", "parameter": "fat_sat_g"},
     {"hint": "viel gesät. Fettsäuren", "value": 20.0, "hint_level": "warn", "min_max": "max", "parameter": "fat_sat_g"},
     {"hint": "viel Natrium", "value": 500.0, "hint_level": "warn", "min_max": "max", "parameter": "sodium_mg"},
-    {"hint": "wenig Natrium", "value": 300.0, "hint_level": "warn", "min_max": "min", "parameter": "sodium_mg"},
     {"hint": "zu viel Natrium", "value": 1000.0, "hint_level": "error", "min_max": "max", "parameter": "sodium_mg"},
     {"hint": "viel mehr Ballaststoffe", "value": 10.0, "hint_level": "error", "min_max": "min", "parameter": "fibre_g"},
     {"hint": "mehr Ballaststoffe", "value": 30.0, "hint_level": "warn", "min_max": "min", "parameter": "fibre_g"},

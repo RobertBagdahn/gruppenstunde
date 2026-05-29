@@ -10,8 +10,8 @@ export default function CreateMealPlanPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [normPortions, setNormPortions] = useState(10);
-  const [startDate, setStartDate] = useState('');
-  const [numDays, setNumDays] = useState(3);
+  const [startDatetime, setStartDatetime] = useState('');
+  const [endDatetime, setEndDatetime] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +25,8 @@ export default function CreateMealPlanPage() {
         name: name.trim(),
         description,
         norm_portions: normPortions,
-        start_date: startDate || null,
-        num_days: numDays,
+        start_datetime: startDatetime ? startDatetime + ':00' : null,
+        end_datetime: endDatetime ? endDatetime + ':00' : null,
       },
       {
         onSuccess: (plan) => {
@@ -88,23 +88,21 @@ export default function CreateMealPlanPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Startdatum</label>
+            <label className="block text-sm font-medium mb-1.5">Start (Datum & Uhrzeit)</label>
             <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              type="datetime-local"
+              value={startDatetime}
+              onChange={(e) => setStartDatetime(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1.5">Anzahl Tage</label>
+            <label className="block text-sm font-medium mb-1.5">Ende (Datum & Uhrzeit)</label>
             <input
-              type="number"
-              min={1}
-              max={30}
-              value={numDays}
-              onChange={(e) => setNumDays(Number(e.target.value))}
+              type="datetime-local"
+              value={endDatetime}
+              onChange={(e) => setEndDatetime(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>

@@ -282,7 +282,7 @@ class TestSessionMaterials:
         # Add material
         resp = auth_client.post(
             f"/api/sessions/{session.id}/materials/",
-            data=json.dumps({"material_id": material.id, "quantity": "2", "quantity_type": "per_person"}),
+            data=json.dumps({"material_id": material.id, "quantity": "2"}),
             content_type="application/json",
         )
         assert resp.status_code == 201

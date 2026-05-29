@@ -110,8 +110,8 @@ export function useCreateMealPlan() {
       activity_factor?: number;
       reserve_factor?: number;
       event_id?: number | null;
-      start_date?: string | null;
-      num_days?: number;
+      start_datetime?: string | null;
+      end_datetime?: string | null;
     }) => postJson(`${API_BASE}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });

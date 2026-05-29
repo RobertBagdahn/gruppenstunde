@@ -384,6 +384,7 @@ export default function IngredientDetailPage() {
   const aiSuggest = useAiSuggestIngredientAll(slug || '');
 
   const canEdit = !!user && (user.is_staff || user.id === ingredient?.created_by_id);
+  const canAiSuggest = !!user && user.is_staff;
 
   // --- Loading / error states ---
   if (isLoading) {
@@ -584,32 +585,38 @@ export default function IngredientDetailPage() {
           </div>
         </div>
 
-        {canEdit && (
+        {(canEdit || canAiSuggest) && (
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => setShowAiSuggest(true)}
-              className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
-              title="KI-Vorschläge"
-            >
-              <span className="material-symbols-outlined text-lg">auto_fix_high</span>
-            </button>
-            <button
-              onClick={() => {
-                setEditRetailSection(String(ingredient.retail_section_id || ''));
-                setShowEditFields(!showEditFields);
-              }}
-              className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
-              title="Bearbeiten"
-            >
-              <span className="material-symbols-outlined text-lg">edit</span>
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 rounded-md hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
-              title="Zutat löschen"
-            >
-              <span className="material-symbols-outlined text-lg">delete</span>
-            </button>
+            {canAiSuggest && (
+              <button
+                onClick={() => setShowAiSuggest(true)}
+                className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
+                title="KI-Vorschläge"
+              >
+                <span className="material-symbols-outlined text-lg">auto_fix_high</span>
+              </button>
+            )}
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => {
+                    setEditRetailSection(String(ingredient.retail_section_id || ''));
+                    setShowEditFields(!showEditFields);
+                  }}
+                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
+                  title="Bearbeiten"
+                >
+                  <span className="material-symbols-outlined text-lg">edit</span>
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-2 rounded-md hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
+                  title="Zutat löschen"
+                >
+                  <span className="material-symbols-outlined text-lg">delete</span>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

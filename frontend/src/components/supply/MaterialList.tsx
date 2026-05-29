@@ -57,9 +57,6 @@ export default function MaterialList({ materials, className = '' }: MaterialList
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {item.quantity || '-'}
-                    {item.quantity_type === 'per_person' && (
-                      <span className="text-xs ml-1 text-primary font-semibold">/ Person</span>
-                    )}
                   </td>
                 </tr>
               );
