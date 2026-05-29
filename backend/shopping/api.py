@@ -28,6 +28,7 @@ from .schemas import (
     ShoppingListItemOut,
     ShoppingListItemUpdateIn,
     ShoppingListOut,
+    UserSimpleOut,
     ShoppingListUpdateIn,
 )
 
@@ -536,3 +537,18 @@ def create_from_meal_plan(request, meal_plan_id: int):
     # Attach can_edit for the response
     shopping_list._can_edit = True
     return shopping_list
+
+
+# ---------------------------------------------------------------------------
+# Users (for collaborator selection)
+# ---------------------------------------------------------------------------
+
+
+@shopping_router.get("/users/", response=list[UserSimpleOut])
+def list_users(request):
+    """Return all users (id + username) for collaborator invite dropdown."""
+    _require_auth(request)
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    return list(User.objects.all().order_by("username").values("id", "username"))

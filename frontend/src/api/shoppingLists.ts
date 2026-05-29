@@ -279,3 +279,14 @@ export function useCreateFromMealPlan() {
     },
   });
 }
+
+// --- Users (for collaborator invite) ---
+
+const UserSimpleSchema = z.object({ id: z.number(), username: z.string() });
+
+export function useUsers() {
+  return useQuery({
+    queryKey: ['shopping-list-users'],
+    queryFn: () => fetchJson(`${API_BASE}/users/`, z.array(UserSimpleSchema)),
+  });
+}

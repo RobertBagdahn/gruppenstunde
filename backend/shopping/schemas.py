@@ -204,6 +204,13 @@ class FromRecipeIn(Schema):
     servings: int = 1
 
 
+class UserSimpleOut(Schema):
+    """Minimal user info for collaborator selection."""
+
+    id: int
+    username: str
+
+
 # --- Pagination ---
 
 

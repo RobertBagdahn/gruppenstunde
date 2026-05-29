@@ -6,6 +6,7 @@ import {
   useAddCollaborator,
   useUpdateCollaborator,
   useRemoveCollaborator,
+  useUsers,
 } from '@/api/shoppingLists';
 import {
   COLLABORATOR_ROLE_LABELS,
@@ -33,11 +34,12 @@ export default function CollaboratorManager({
   const addCollaborator = useAddCollaborator(listId);
   const updateCollaborator = useUpdateCollaborator(listId);
   const removeCollaborator = useRemoveCollaborator(listId);
+  const { data: users = [] } = useUsers();
 
   const handleInvite = () => {
     const userId = parseInt(inviteUserId, 10);
     if (isNaN(userId) || userId <= 0) {
-      toast.error('Bitte eine gültige Nutzer-ID eingeben');
+      toast.error('Bitte einen Nutzer auswählen');
       return;
     }
     addCollaborator.mutate(
@@ -156,15 +158,20 @@ export default function CollaboratorManager({
             <div className="flex items-end gap-2 p-3 bg-muted/30 rounded-lg border">
               <div className="flex-1">
                 <label className="text-xs text-muted-foreground mb-1 block">
-                  Nutzer-ID
+                  Nutzer
                 </label>
-                <input
-                  type="number"
+                <select
                   value={inviteUserId}
                   onChange={(e) => setInviteUserId(e.target.value)}
-                  placeholder="z.B. 42"
                   className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
-                />
+                >
+                  <option value="">Nutzer wählen…</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={String(u.id)}>
+                      {u.username}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
