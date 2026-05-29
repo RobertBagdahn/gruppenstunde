@@ -19,7 +19,7 @@ const navItems = [
 const bottomNavItems = [
   { to: '/', icon: 'home', filledIcon: 'home', label: 'Start' },
   { to: '/recipes', icon: 'menu_book', filledIcon: 'menu_book', label: 'Rezepte' },
-  { to: '/meal-plans', icon: 'restaurant_menu', filledIcon: 'restaurant_menu', label: 'Essensplan' },
+  { to: '/meal-plans/app', icon: 'restaurant_menu', filledIcon: 'restaurant_menu', label: 'Essensplan' },
   { to: '/shopping-lists', icon: 'shopping_cart', filledIcon: 'shopping_cart', label: 'Einkaufen' },
 ];
 

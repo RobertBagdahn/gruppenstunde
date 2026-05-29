@@ -98,7 +98,7 @@ export default function RecipeSidebar({
         <div className="flex flex-col items-center gap-1 bg-yellow-50 rounded-xl border border-yellow-200 p-4">
           <span className="material-symbols-outlined text-2xl text-yellow-600">euro</span>
           <span className="text-lg font-bold">
-            {recipe.cached_price_total.toLocaleString('de-DE', {
+            {(recipe.cached_price_total * (servings / (recipe.servings ?? 1))).toLocaleString('de-DE', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })} €

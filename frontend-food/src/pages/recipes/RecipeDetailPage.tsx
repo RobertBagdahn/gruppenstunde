@@ -885,7 +885,7 @@ export default function RecipeDetailPage() {
           <div className="flex flex-col items-center text-center gap-1 bg-yellow-50 rounded-xl border border-yellow-200 p-5">
             <span className="material-symbols-outlined text-3xl text-yellow-600">euro</span>
             <span className="text-base font-bold">
-              {recipe.cached_price_total.toLocaleString('de-DE', {
+              {(recipe.cached_price_total * (servingsMultiplier / (recipe.servings ?? 1))).toLocaleString('de-DE', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })} €
