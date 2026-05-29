@@ -7,6 +7,7 @@ import logging
 
 from django.http import HttpResponse
 from ninja import Router
+from ninja.errors import HttpError
 
 from content.schemas.ai import (
     AiErrorOut,
@@ -46,6 +47,8 @@ def ai_improve_text(request, payload: AiImproveTextIn):
             status=429,
             content_type="application/json",
         )
+    except HttpError:
+        raise
     except Exception:
         logger.exception("AI improve-text unexpected error")
         return HttpResponse(
@@ -113,6 +116,8 @@ def ai_refurbish(request, payload: AiRefurbishIn):
             status=502,
             content_type="application/json",
         )
+    except HttpError:
+        raise
     except Exception:
         logger.exception("AI refurbish unexpected error")
         return HttpResponse(
@@ -197,6 +202,8 @@ def ai_generate_image(request, payload: AiGenerateImageIn):
             status=502,
             content_type="application/json",
         )
+    except HttpError:
+        raise
     except Exception:
         logger.exception("AI image generation unexpected error")
         return HttpResponse(
@@ -254,6 +261,8 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
                 "ingredients": [],
                 "kitchen_equipment": [],
             }
+    except HttpError:
+        raise
     except Exception:
         logger.exception("AI suggest-supplies error")
         return HttpResponse(

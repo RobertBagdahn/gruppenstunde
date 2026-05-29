@@ -400,9 +400,7 @@ def create_recipe(request, payload: RecipeCreateIn):
         RecipeItem.objects.create(
             recipe=recipe,
             portion_id=item_data.portion_id,
-            ingredient_id=item_data.ingredient_id,
             quantity=item_data.quantity,
-            measuring_unit_id=item_data.measuring_unit_id,
             sort_order=item_data.sort_order,
             note=item_data.note,
         )
@@ -450,9 +448,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
             RecipeItem.objects.create(
                 recipe=recipe,
                 portion_id=item_data["portion_id"],
-                ingredient_id=item_data["ingredient_id"],
                 quantity=item_data["quantity"],
-                measuring_unit_id=item_data["measuring_unit_id"],
                 sort_order=item_data["sort_order"],
                 note=item_data["note"],
             )

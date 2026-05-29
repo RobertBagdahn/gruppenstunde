@@ -1,6 +1,6 @@
 /**
  * Confirmation dialog for destructive actions.
- * Uses a native dialog approach (no Radix AlertDialog dependency).
+ * Uses shadcn/ui Dialog (Radix) for consistent styling and animations.
  *
  * Usage:
  *   <ConfirmDialog
@@ -13,7 +13,13 @@
  *     loading={deleteMutation.isPending}
  *   />
  */
-import { useEffect, useRef } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -38,49 +44,27 @@ export default function ConfirmDialog({
   loading = false,
   variant = 'destructive',
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
-
-  // Close on Escape
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleCancel = (e: Event) => {
-      e.preventDefault();
-      onCancel();
-    };
-
-    dialog.addEventListener('cancel', handleCancel);
-    return () => dialog.removeEventListener('cancel', handleCancel);
-  }, [onCancel]);
-
-  if (!open) return null;
-
   const confirmButtonClass =
     variant === 'destructive'
       ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
       : 'bg-primary text-primary-foreground hover:opacity-90';
 
+  const iconName = variant === 'destructive' ? 'warning' : 'help';
+  const iconColor = variant === 'destructive' ? 'text-destructive' : 'text-primary';
+
   return (
-    <dialog
-      ref={dialogRef}
-      className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-xl border bg-card p-0 shadow-lg backdrop:bg-black/50"
-    >
-      <div className="p-6">
-        <h2 className="text-lg font-semibold mb-2">{title}</h2>
-        <p className="text-sm text-muted-foreground mb-6">{description}</p>
-        <div className="flex justify-end gap-3">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <span className={`material-symbols-outlined ${iconColor}`}>{iconName}</span>
+            {title}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            {description}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-3 pt-4">
           <button
             type="button"
             onClick={onCancel}
@@ -103,7 +87,7 @@ export default function ConfirmDialog({
             {confirmLabel}
           </button>
         </div>
-      </div>
-    </dialog>
+      </DialogContent>
+    </Dialog>
   );
 }

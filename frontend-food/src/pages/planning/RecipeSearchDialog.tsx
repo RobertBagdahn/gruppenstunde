@@ -27,6 +27,55 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   simple_meal: 'Einfache Mahlzeit',
 };
 
+const TAG_COLOR_MAP: Record<string, string> = {
+  // Tierisch — rot
+  'Tierbestandteile (nicht Vegetarisch)': 'bg-red-100 text-red-700 border-red-200',
+  'Tierische Produkte (nicht Vegan)': 'bg-red-100 text-red-700 border-red-200',
+  // Allergene — amber
+  'Gluten (Zöliakie)': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Laktose': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Erdnüsse': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Fisch': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Soja, Sojaerzeugnisse': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Sellerie, Sellerieerzeugnisse': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Senf': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Sesam': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Lupinen': 'bg-amber-100 text-amber-700 border-amber-200',
+  // Intoleranzen — purple
+  'Histamin': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Fructose': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Koffeinhaltig': 'bg-purple-100 text-purple-700 border-purple-200',
+  // Religiös/Ethisch — green
+  'Halal': 'bg-green-100 text-green-700 border-green-200',
+  'Koscher': 'bg-green-100 text-green-700 border-green-200',
+  // Getreide — stone
+  'Gluten (nicht zöliakie)': 'bg-stone-100 text-stone-700 border-stone-200',
+  'Weizen': 'bg-stone-100 text-stone-700 border-stone-200',
+  'Roggen': 'bg-stone-100 text-stone-700 border-stone-200',
+  'Gerste': 'bg-stone-100 text-stone-700 border-stone-200',
+  'Hafer': 'bg-stone-100 text-stone-700 border-stone-200',
+  'Dinkel': 'bg-stone-100 text-stone-700 border-stone-200',
+  'Kamut': 'bg-stone-100 text-stone-700 border-stone-200',
+  // Sonstige — sky
+  'Alkohol': 'bg-sky-100 text-sky-700 border-sky-200',
+  'Scharf': 'bg-sky-100 text-sky-700 border-sky-200',
+  'Schwefeldioxid und Sulfide': 'bg-sky-100 text-sky-700 border-sky-200',
+  'Hülsenfrüchte': 'bg-sky-100 text-sky-700 border-sky-200',
+  'Knoblauch': 'bg-sky-100 text-sky-700 border-sky-200',
+};
+
+const RECIPE_TYPE_COLORS: Record<string, string> = {
+  breakfast: 'bg-yellow-100 text-yellow-800',
+  warm_meal: 'bg-orange-100 text-orange-800',
+  cold_meal: 'bg-blue-100 text-blue-800',
+  dessert: 'bg-pink-100 text-pink-800',
+  side_dish: 'bg-lime-100 text-lime-800',
+  snack: 'bg-green-100 text-green-800',
+  drink: 'bg-cyan-100 text-cyan-800',
+  simple_meal: 'bg-slate-100 text-slate-800',
+};
+
 /** Map meal_type to default recipe_type filter values */
 const MEAL_TYPE_TO_RECIPE_TYPES: Record<string, string[]> = {
   breakfast: ['breakfast', 'simple_meal'],
@@ -113,20 +162,26 @@ export default function RecipeSearchDialog({
   return (
     <>
       <Dialog open={open && !ingredientDialog} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>Rezept-Detailsuche</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <span className="material-symbols-outlined text-primary">search</span>
+              Rezept-Detailsuche
+            </DialogTitle>
           </DialogHeader>
 
           {/* Search input */}
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rezept oder Zutat suchen..."
-            autoFocus
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xl">search</span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rezept oder Zutat suchen..."
+              autoFocus
+              className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2 items-center">
@@ -145,20 +200,24 @@ export default function RecipeSearchDialog({
             </Select>
 
             {nutritionalTags && nutritionalTags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {nutritionalTags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    onClick={() => toggleTag(tag.id)}
-                    className={`px-2 py-0.5 rounded-full text-xs border transition-colors ${
-                      selectedTagIds.includes(tag.id)
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-1.5">
+                {nutritionalTags.map((tag) => {
+                  const isSelected = selectedTagIds.includes(tag.id);
+                  const colorClasses = TAG_COLOR_MAP[tag.name] ?? 'bg-muted text-muted-foreground border-border';
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => toggleTag(tag.id)}
+                      className={`px-2.5 py-1 rounded-full text-sm border transition-colors ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : `${colorClasses} hover:opacity-80`
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -169,7 +228,7 @@ export default function RecipeSearchDialog({
             {recipes.length > 0 && (
               <>
                 {ingredients.length > 0 && (
-                  <div className="px-3 py-1 bg-muted/50 text-xs font-medium text-muted-foreground">
+                  <div className="px-3 py-1.5 bg-muted/50 text-sm font-semibold text-muted-foreground">
                     Rezepte
                   </div>
                 )}
@@ -177,10 +236,11 @@ export default function RecipeSearchDialog({
                   <button
                     key={`recipe-${r.id}`}
                     onClick={() => handleSelect(r.id)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
                   >
-                    <span>{r.title}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="material-symbols-outlined text-muted-foreground text-xl">menu_book</span>
+                    <span className="flex-1">{r.title}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RECIPE_TYPE_COLORS[r.recipe_type] ?? 'bg-muted text-muted-foreground'}`}>
                       {RECIPE_TYPE_LABELS[r.recipe_type] ?? r.recipe_type}
                     </span>
                   </button>
@@ -191,17 +251,18 @@ export default function RecipeSearchDialog({
             {/* Ingredient results */}
             {ingredients.length > 0 && (
               <>
-                <div className="px-3 py-1 bg-muted/50 text-xs font-medium text-muted-foreground">
+                <div className="px-3 py-1.5 bg-muted/50 text-sm font-semibold text-muted-foreground">
                   Zutaten
                 </div>
                 {ingredients.map((ing) => (
                   <button
                     key={`ing-${ing.id}`}
                     onClick={() => setIngredientDialog(ing)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                    className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
                   >
-                    <span>{ing.name}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="material-symbols-outlined text-muted-foreground text-xl">egg_alt</span>
+                    <span className="flex-1">{ing.name}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
                       {ing.standalone_type ? (RECIPE_TYPE_LABELS[ing.standalone_type] ?? ing.standalone_type) : 'Zutat'}
                     </span>
                   </button>
@@ -268,7 +329,10 @@ function IngredientQuantityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{ingredient.name} hinzufügen</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <span className="material-symbols-outlined text-primary">egg_alt</span>
+            {ingredient.name} hinzufügen
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -281,7 +345,7 @@ function IngredientQuantityDialog({
               step={0.5}
               value={quantity}
               onChange={(e) => setQuantity(Math.max(0.1, parseFloat(e.target.value) || 1))}
-              className="w-full mt-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full mt-1 rounded-lg border px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
@@ -317,13 +381,13 @@ function IngredientQuantityDialog({
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => onOpenChange(false)}
-              className="px-3 py-1.5 text-sm rounded-md border hover:bg-muted transition-colors"
+              className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
             >
               Abbrechen
             </button>
             <button
               onClick={() => onConfirm(ingredient.id, selectedPortion, quantity)}
-              className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Hinzufügen
             </button>

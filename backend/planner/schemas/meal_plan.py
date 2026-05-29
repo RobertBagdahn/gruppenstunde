@@ -94,6 +94,10 @@ class MealItemCreateIn(Schema):
     factor: float = 1.0
 
 
+class MealItemUpdateIn(Schema):
+    factor: float | None = None
+
+
 class MealOut(Schema):
     id: int
     start_datetime: dt.datetime
@@ -171,6 +175,12 @@ class MealPlanOut(Schema):
     @staticmethod
     def resolve_meals_count(obj) -> int:
         return obj.meals.count()
+
+
+class MealPlanDuplicateIn(Schema):
+    name: str
+    start_datetime: dt.datetime
+    norm_portions: int
 
 
 class MealPlanCreateIn(Schema):

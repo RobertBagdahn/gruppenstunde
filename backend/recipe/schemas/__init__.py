@@ -29,6 +29,11 @@ from .items import (
     RecipeItemOut,
     RecipeItemUpdateIn,
 )
+from .dashboard import (
+    DashboardInsightsOut,
+    FoodDashboardOut,
+    RecipeInsightOut,
+)
 from .nutrition import (
     ContributionOut,
     ImprovementListOut,
@@ -44,6 +49,9 @@ from .nutrition import (
 
 __all__ = [
     "AiIngredientApplyIn",
+    "DashboardInsightsOut",
+    "FoodDashboardOut",
+    "RecipeInsightOut",
     "AiIngredientSuggestionOut",
     "CockpitDashboardOut",
     "CockpitEvaluationOut",

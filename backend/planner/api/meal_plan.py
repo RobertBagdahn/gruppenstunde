@@ -24,10 +24,12 @@ from planner.schemas import (
     MealPlanCostSummaryOut,
     MealPlanCreateIn,
     MealPlanDetailOut,
+    MealPlanDuplicateIn,
     MealPlanOut,
     MealPlanUpdateIn,
     MealItemCreateIn,
     MealItemOut,
+    MealItemUpdateIn,
     MealItemOverrideIn,
     MealItemOverrideOut,
     MealOut,
@@ -189,6 +191,61 @@ def delete_meal_plan(request, meal_plan_id: int):
 
     meal_plan.delete()
     return {"success": True, "message": "Essensplan gelöscht"}
+
+
+@meal_plan_router.post("/{meal_plan_id}/duplicate/", response=MealPlanOut)
+def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn):
+    """Duplicate a meal plan with new name, start date, and portions."""
+    from django.db import transaction
+
+    _require_auth(request)
+    source = get_object_or_404(
+        MealPlan.objects.prefetch_related("meals__items"),
+        id=meal_plan_id,
+    )
+    _require_access(source, request.user)
+
+    if not source.start_datetime:
+        raise HttpError(400, "Quell-Essensplan hat kein Startdatum")
+
+    offset = payload.start_datetime - source.start_datetime
+
+    with transaction.atomic():
+        new_plan = MealPlan(
+            name=payload.name,
+            description=source.description,
+            norm_portions=payload.norm_portions,
+            activity_factor=source.activity_factor,
+            reserve_factor=source.reserve_factor,
+            start_datetime=payload.start_datetime,
+            end_datetime=source.end_datetime + offset if source.end_datetime else None,
+            created_by=request.user,
+        )
+        new_plan.save()
+
+        for meal in source.meals.all():
+            new_meal = Meal(
+                meal_plan=new_plan,
+                start_datetime=meal.start_datetime + offset,
+                end_datetime=meal.end_datetime + offset,
+                meal_type=meal.meal_type,
+                day_part_factor=meal.day_part_factor,
+                override_portions=meal.override_portions,
+            )
+            new_meal.save()
+
+            for item in meal.items.all():
+                MealItem.objects.create(
+                    meal=new_meal,
+                    recipe=item.recipe,
+                    ingredient=item.ingredient,
+                    quantity=item.quantity,
+                    measuring_unit=item.measuring_unit,
+                    display_name=item.display_name,
+                    factor=item.factor,
+                )
+
+    return new_plan
 
 
 # ==========================================================================
@@ -372,6 +429,24 @@ def remove_meal_item(request, meal_plan_id: int, item_id: int):
     )
     item.delete()
     return {"success": True}
+
+
+@meal_plan_router.patch("/{meal_plan_id}/meal-items/{item_id}/", response=MealItemOut)
+def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItemUpdateIn):
+    """Update a meal item (e.g. factor)."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    item = get_object_or_404(
+        MealItem,
+        id=item_id,
+        meal__meal_plan=meal_plan,
+    )
+    if payload.factor is not None:
+        item.factor = payload.factor
+        item.save(update_fields=["factor"])
+    return item
 
 
 # ==========================================================================

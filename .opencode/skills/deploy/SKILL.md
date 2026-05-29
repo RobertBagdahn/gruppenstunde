@@ -105,6 +105,10 @@ gcloud run deploy inspi-backend \
   --set-secrets "DB_PASSWORD=prod_db_password:latest"
 ```
 
+### GOOGLE_CLOUD_PROJECT must be set
+
+The backend needs `GOOGLE_CLOUD_PROJECT=inspi-441320` as an env var on Cloud Run. Without it, the Gemini/Vertex AI client cannot initialize and all AI features (quantity estimation, text improvement, tag suggestions) return 500 errors. This var is set via Terraform and preserved by minimal deploys, but if the service is recreated or env vars are reset, it must be re-added explicitly.
+
 ### Untracked files in Cloud Build
 
 `gcloud builds submit` uploads based on `.gcloudignore`, NOT git tracking. However, files must exist locally. If a build fails with "file not found", ensure the file exists and is not in `.gcloudignore`.
@@ -210,7 +214,7 @@ gcloud run deploy inspi-backend \
   --port 8000 \
   --cpu 1 --memory 512Mi \
   --min-instances 0 --max-instances 10 \
-  --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,GOOGLE_CLOUD_PROJECT=inspi-441320,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
   --set-secrets "DB_PASSWORD=prod_db_password:latest" \
   --allow-unauthenticated
 ```

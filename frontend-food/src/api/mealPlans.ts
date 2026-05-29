@@ -149,6 +149,17 @@ export function useDeleteMealPlan() {
   });
 }
 
+export function useDuplicateMealPlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number; name: string; start_datetime: string; norm_portions: number }) =>
+      postJson(`${API_BASE}/${id}/duplicate/`, body, MealPlanSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
+    },
+  });
+}
+
 // ==========================================================================
 // Day Hooks (convenience: add/remove all default meals for a date)
 // ==========================================================================
@@ -258,6 +269,17 @@ export function useRemoveMealItem(mealPlanId: number) {
   return useMutation({
     mutationFn: (itemId: number) =>
       deleteJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+    },
+  });
+}
+
+export function useUpdateMealItem(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, factor }: { itemId: number; factor: number }) =>
+      patchJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/`, { factor }, MealItemSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
     },

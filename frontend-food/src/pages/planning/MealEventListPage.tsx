@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useMealPlans, useCreateMealPlan, useDeleteMealPlan } from '@/api/mealPlans';
+import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -61,6 +61,7 @@ function MealPlanListPageInner() {
   const { data: mealPlans, error, isLoading, refetch } = useMealPlans();
   const createMutation = useCreateMealPlan();
   const deleteMutation = useDeleteMealPlan();
+  const duplicateMutation = useDuplicateMealPlan();
 
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
@@ -70,6 +71,10 @@ function MealPlanListPageInner() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [sort, setSort] = useState('newest');
+  const [duplicateSourceId, setDuplicateSourceId] = useState<number | null>(null);
+  const [duplicateName, setDuplicateName] = useState('');
+  const [duplicateStart, setDuplicateStart] = useState('');
+  const [duplicatePortions, setDuplicatePortions] = useState<number | ''>('');
 
   // Client-side filtering & sorting (API returns full array)
   const filteredPlans = useMemo(() => {
@@ -124,11 +129,39 @@ function MealPlanListPageInner() {
     if (deleteId === null) return;
     deleteMutation.mutate(deleteId, {
       onSuccess: () => {
-        toast.success('Essensplan geloescht');
+        toast.success('Essensplan gelöscht');
         setDeleteId(null);
       },
       onError: (err) => toast.error('Fehler', { description: err.message }),
     });
+  };
+
+  const duplicateSource = useMemo(
+    () => mealPlans?.find((p) => p.id === duplicateSourceId) ?? null,
+    [mealPlans, duplicateSourceId],
+  );
+
+  const handleDuplicate = () => {
+    if (!duplicateSourceId || !duplicateName.trim() || !duplicateStart || !duplicatePortions) return;
+    duplicateMutation.mutate(
+      {
+        id: duplicateSourceId,
+        name: duplicateName.trim(),
+        start_datetime: duplicateStart + ':00',
+        norm_portions: Number(duplicatePortions),
+      },
+      {
+        onSuccess: (plan) => {
+          toast.success('Essensplan aus Vorlage erstellt');
+          setDuplicateSourceId(null);
+          setDuplicateName('');
+          setDuplicateStart('');
+          setDuplicatePortions('');
+          navigate(`/meal-plans/${plan.id}`);
+        },
+        onError: (err) => toast.error('Fehler', { description: err.message }),
+      },
+    );
   };
 
   return (
@@ -143,6 +176,17 @@ function MealPlanListPageInner() {
         countLabel="Plan"
         countIcon="restaurant_menu"
       />
+
+      {/* Tool Link */}
+      <div className="mb-4">
+        <Link
+          to="/tools/norm-portion-simulator"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-violet-200 bg-violet-50 text-violet-700 text-sm font-semibold hover:bg-violet-100 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[18px]">calculate</span>
+          Norm-Portion-Simulator
+        </Link>
+      </div>
 
       {/* Search Bar */}
       <ListPageSearchBar
@@ -235,12 +279,21 @@ function MealPlanListPageInner() {
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
+                        setDuplicateSourceId(plan.id);
+                      }}
+                    >
+                      <span className="material-symbols-outlined text-[16px] mr-2">content_copy</span>
+                      Als Vorlage verwenden
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setDeleteId(plan.id);
                       }}
                       className="text-destructive focus:text-destructive"
                     >
                       <span className="material-symbols-outlined text-[16px] mr-2">delete</span>
-                      Loeschen
+                      Löschen
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -310,6 +363,68 @@ function MealPlanListPageInner() {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {createMutation.isPending ? 'Erstelle...' : 'Erstellen'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate Dialog */}
+      <Dialog open={duplicateSourceId !== null} onOpenChange={(open) => { if (!open) setDuplicateSourceId(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Plan aus Vorlage erstellen</DialogTitle>
+          </DialogHeader>
+          {duplicateSource && (
+            <p className="text-sm text-muted-foreground">
+              Vorlage: <span className="font-medium">{duplicateSource.name}</span>
+              {' '}({duplicateSource.meals_count} Mahlzeiten)
+            </p>
+          )}
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Name *</label>
+              <input
+                type="text"
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                placeholder="z.B. Sommerlager 2026"
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit) *</label>
+              <input
+                type="datetime-local"
+                value={duplicateStart}
+                onChange={(e) => setDuplicateStart(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Portionen (Personen) *</label>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                value={duplicatePortions}
+                onChange={(e) => setDuplicatePortions(e.target.value ? Number(e.target.value) : '')}
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setDuplicateSourceId(null)}
+              className="px-4 py-2 rounded-lg border text-sm hover:bg-muted transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              onClick={handleDuplicate}
+              disabled={!duplicateName.trim() || !duplicateStart || !duplicatePortions || duplicateMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {duplicateMutation.isPending ? 'Erstelle...' : 'Erstellen'}
             </button>
           </DialogFooter>
         </DialogContent>

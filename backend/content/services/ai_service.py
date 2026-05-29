@@ -430,8 +430,6 @@ class ContentAIService:
         from PIL import Image
 
         from google.genai import types
-        from google.genai.errors import APIError, ServerError
-
         ct_config = CONTENT_TYPE_PROMPTS.get(content_type, CONTENT_TYPE_PROMPTS["session"])
 
         context_parts = []
@@ -470,9 +468,9 @@ class ContentAIService:
                     context="image_generation",
                 )
                 break
-            except (APIError, ServerError) as exc:
-                code = getattr(exc, "code", 0)
-                if code in (499, 503, 504) and attempt < max_retries:
+            except GeminiUnavailableError as exc:
+                code = getattr(exc, "status_code", 0)
+                if code in (503, 504) and attempt < max_retries:
                     wait = 2**attempt
                     logger.warning(
                         "AI image generation attempt %d/%d failed (code %d), retrying in %ds...",
@@ -483,8 +481,6 @@ class ContentAIService:
                     )
                     time.sleep(wait)
                     continue
-                raise
-            except Exception:
                 raise
 
         if response is None:

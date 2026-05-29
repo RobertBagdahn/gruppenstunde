@@ -12,7 +12,7 @@ import {
 const navItems = [
   { to: TOOL_RECIPES.basePath, icon: TOOL_RECIPES.icon, label: TOOL_RECIPES.label },
   { to: TOOL_INGREDIENTS.basePath, icon: TOOL_INGREDIENTS.icon, label: TOOL_INGREDIENTS.label },
-  { to: TOOL_MEAL_PLAN.basePath, icon: TOOL_MEAL_PLAN.icon, label: TOOL_MEAL_PLAN.label },
+  { to: '/meal-plans/app', icon: TOOL_MEAL_PLAN.icon, label: TOOL_MEAL_PLAN.label },
   { to: TOOL_SHOPPING_LISTS.basePath, icon: TOOL_SHOPPING_LISTS.icon, label: TOOL_SHOPPING_LISTS.label },
 ];
 

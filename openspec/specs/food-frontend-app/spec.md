@@ -31,7 +31,7 @@ The Food-App SHALL include pages for: Rezepte (CRUD, Import, Cooking Mode), Zuta
 - **THEN** the NormPortionSimulatorPage is rendered
 
 ### Requirement: Food app has own navigation layout
-The Food-App SHALL have its own Layout component with navigation containing only food-relevant menu items: Rezepte, Zutaten, Essensplan, Einkaufslisten.
+The Food-App SHALL have its own Layout component with navigation containing only food-relevant menu items: Rezepte, Zutaten, Essensplan, Einkaufslisten. The navigation SHALL link "Essensplan" directly to `/meal-plans/app`. The mobile bottom navigation "Start" button SHALL navigate to `/` which displays the homepage.
 
 #### Scenario: Navigation shows food items only
 - **WHEN** user views the Food-App navigation
@@ -40,6 +40,18 @@ The Food-App SHALL have its own Layout component with navigation containing only
 #### Scenario: No cross-domain navigation
 - **WHEN** user views the Food-App navigation
 - **THEN** no links to Sessions, Blog, Games, Events, or Planner are present
+
+#### Scenario: Desktop nav Essensplan click
+- **WHEN** a user clicks "Essensplan" in the desktop navigation
+- **THEN** the user is navigated to `/meal-plans/app`
+
+#### Scenario: Mobile bottom nav Start click
+- **WHEN** a user taps "Start" in the mobile bottom navigation
+- **THEN** the user is navigated to `/` which shows the homepage
+
+#### Scenario: Norm-Portion-Simulator accessible from meal plan area
+- **WHEN** user is on the meal plans list page (`/meal-plans/app`)
+- **THEN** there is a visible link to the Norm-Portion-Simulator (`/tools/norm-portion-simulator`)
 
 ### Requirement: Food app shares auth session with main app
 The Food-App SHALL use the same Django Allauth session-based authentication as the main app. Users logged in on one app MUST be authenticated on the other.

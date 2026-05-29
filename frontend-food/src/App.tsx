@@ -1,6 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import FoodLayout from './components/layout/FoodLayout';
 
+// Home
+import HomePage from './pages/HomePage';
+
 // Recipe pages
 import RecipeListPage from './pages/recipes/RecipeListPage';
 import MyRecipesPage from './pages/recipes/MyRecipesPage';
@@ -43,8 +46,8 @@ export default function App() {
 
       {/* Main layout routes */}
       <Route element={<FoodLayout />}>
-        {/* Home redirects to recipes */}
-        <Route path="/" element={<Navigate to="/recipes" replace />} />
+        {/* Home */}
+        <Route path="/" element={<HomePage />} />
 
         {/* Recipes */}
         <Route path="/recipes" element={<RecipeListPage />} />

@@ -111,9 +111,12 @@ export function AiSuggestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <span className="material-symbols-outlined text-primary">auto_awesome</span>
+            {title}
+          </DialogTitle>
           <DialogDescription>
             Wähle die Vorschläge aus, die du übernehmen möchtest.
           </DialogDescription>

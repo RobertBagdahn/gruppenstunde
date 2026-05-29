@@ -121,9 +121,17 @@ function CollapsibleNutritionGroup({
 function PortionCard({
   portion,
   slug,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
 }: {
   portion: Portion;
   slug: string;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const updatePortion = useUpdatePortion(slug);
   const deletePortion = useDeletePortion(slug);
@@ -131,12 +139,13 @@ function PortionCard({
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(portion.name);
   const [editQuantity, setEditQuantity] = useState(String(portion.quantity));
+  const [editWeightG, setEditWeightG] = useState(String(portion.weight_g ?? ''));
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleSavePortion = () => {
     updatePortion.mutate(
-      { portionId: portion.id, data: { name: editName, quantity: Number(editQuantity) } },
+      { portionId: portion.id, data: { name: editName, quantity: Number(editQuantity), weight_g: editWeightG ? Number(editWeightG) : null } },
       {
         onSuccess: () => {
           toast.success('Portion aktualisiert');
@@ -167,8 +176,17 @@ function PortionCard({
                 type="number"
                 step="0.01"
                 className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-20"
-                placeholder="Menge"
+                placeholder="Anzahl"
               />
+              <input
+                value={editWeightG}
+                onChange={(e) => setEditWeightG(e.target.value)}
+                type="number"
+                step="0.01"
+                className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-20"
+                placeholder="g"
+              />
+              <span className="text-xs text-muted-foreground">g</span>
               <button
                 onClick={handleSavePortion}
                 className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded"
@@ -185,15 +203,33 @@ function PortionCard({
           ) : (
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm">{portion.name}</span>
-              <span className="text-xs text-muted-foreground">
-                ({portion.quantity}g{portion.weight_g ? `, ~${portion.weight_g}g Gewicht` : ''})
-              </span>
+              {!(portion.name === 'g' && portion.weight_g === 1) && portion.weight_g && (
+                <span className="text-xs text-muted-foreground">
+                  ≈ {portion.weight_g}g
+                </span>
+              )}
             </div>
           )}
         </div>
 
         {!editing && (
           <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={onMoveUp}
+              disabled={isFirst}
+              className="text-muted-foreground hover:text-foreground rounded p-1 transition disabled:opacity-30 disabled:pointer-events-none"
+              title="Nach oben"
+            >
+              <span className="material-symbols-outlined text-sm">arrow_upward</span>
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={isLast}
+              className="text-muted-foreground hover:text-foreground rounded p-1 transition disabled:opacity-30 disabled:pointer-events-none"
+              title="Nach unten"
+            >
+              <span className="material-symbols-outlined text-sm">arrow_downward</span>
+            </button>
             <button
               onClick={() => setEditing(true)}
               className="text-muted-foreground hover:text-foreground rounded p-1 transition"
@@ -248,6 +284,7 @@ export default function IngredientDetailPage() {
   const updateIngredient = useUpdateIngredient(slug || '');
   const deleteIngredient = useDeleteIngredient();
   const createPortion = useCreatePortion(slug || '');
+  const updatePortion = useUpdatePortion(slug || '');
   const createAlias = useCreateAlias(slug || '');
   const deleteAlias = useDeleteAlias(slug || '');
   const { data: retailSections } = useRetailSections();
@@ -757,9 +794,39 @@ export default function IngredientDetailPage() {
         )}
 
         <div className="space-y-3">
-          {ingredient.portions.map((portion) => (
-            <PortionCard key={portion.id} portion={portion} slug={ingredient.slug} />
-          ))}
+          {[...ingredient.portions]
+            .sort((a, b) => a.rank - b.rank)
+            .map((portion, index, sorted) => (
+              <PortionCard
+                key={portion.id}
+                portion={portion}
+                slug={ingredient.slug}
+                isFirst={index === 0}
+                isLast={index === sorted.length - 1}
+                onMoveUp={async () => {
+                  const prev = sorted[index - 1];
+                  if (!prev) return;
+                  // Use index-based ranks to handle equal rank values
+                  await updatePortion.mutateAsync(
+                    { portionId: portion.id, data: { rank: index - 1 } },
+                  );
+                  await updatePortion.mutateAsync(
+                    { portionId: prev.id, data: { rank: index } },
+                  );
+                }}
+                onMoveDown={async () => {
+                  const next = sorted[index + 1];
+                  if (!next) return;
+                  // Use index-based ranks to handle equal rank values
+                  await updatePortion.mutateAsync(
+                    { portionId: portion.id, data: { rank: index + 1 } },
+                  );
+                  await updatePortion.mutateAsync(
+                    { portionId: next.id, data: { rank: index } },
+                  );
+                }}
+              />
+            ))}
         </div>
       </div>
 

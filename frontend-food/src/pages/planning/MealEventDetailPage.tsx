@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ import {
   useRemoveMeal,
   useAddMealItem,
   useRemoveMealItem,
+  useUpdateMealItem,
   useNutritionSummary,
   useShoppingList,
   useRecipeSearch,
@@ -59,6 +60,7 @@ export default function MealPlanDetailPage() {
   const removeMealMutation = useRemoveMeal(mealPlanId);
   const addMealItemMutation = useAddMealItem(mealPlanId);
   const removeMealItemMutation = useRemoveMealItem(mealPlanId);
+  const updateMealItemMutation = useUpdateMealItem(mealPlanId);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'plan' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'cockpit'>('plan');
@@ -76,6 +78,15 @@ export default function MealPlanDetailPage() {
     if (!plan) return [];
     return groupMealsByDate(plan.meals);
   }, [plan]);
+
+  const handleUpdateItemFactor = useCallback((itemId: number, factor: number) => {
+    updateMealItemMutation.mutate(
+      { itemId, factor },
+      {
+        onError: (err: any) => toast.error('Fehler', { description: err.message }),
+      },
+    );
+  }, [updateMealItemMutation]);
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
@@ -253,6 +264,7 @@ export default function MealPlanDetailPage() {
           onAddRecipe={handleAddRecipe}
           onAddIngredient={handleAddIngredient}
           onDeleteItem={setDeleteItemId}
+          onUpdateItemFactor={handleUpdateItemFactor}
         />
       )}
       {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} />}
@@ -453,6 +465,43 @@ function SettingsPanel({
 // Day Plan View
 // ==========================================================================
 
+function FactorInput({ value, onChange }: { value: number; onChange: (factor: number) => void }) {
+  const [localValue, setLocalValue] = useState(String(value));
+  const lastSaved = useRef(value);
+
+  useEffect(() => {
+    if (value !== lastSaved.current) {
+      setLocalValue(String(value));
+      lastSaved.current = value;
+    }
+  }, [value]);
+
+  const commit = () => {
+    const parsed = parseFloat(localValue.replace(',', '.'));
+    if (!isNaN(parsed) && parsed > 0 && parsed !== lastSaved.current) {
+      lastSaved.current = parsed;
+      onChange(parsed);
+    } else {
+      setLocalValue(String(lastSaved.current));
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      <span className="text-muted-foreground">&times;</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+        className="w-14 px-1 py-0.5 text-sm border rounded bg-background text-center"
+      />
+    </span>
+  );
+}
+
 function DayPlanView({
   mealPlanId,
   dayGroups,
@@ -469,6 +518,7 @@ function DayPlanView({
   onAddRecipe,
   onAddIngredient,
   onDeleteItem,
+  onUpdateItemFactor,
 }: {
   mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
@@ -485,6 +535,7 @@ function DayPlanView({
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   onDeleteItem: (id: number) => void;
+  onUpdateItemFactor: (itemId: number, factor: number) => void;
 }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -548,6 +599,7 @@ function DayPlanView({
                   onAddRecipe={onAddRecipe}
                   onAddIngredient={onAddIngredient}
                   onDeleteItem={onDeleteItem}
+                  onUpdateItemFactor={onUpdateItemFactor}
                 />
               ))}
             </div>
@@ -611,6 +663,7 @@ function MealSlot({
   onAddRecipe,
   onAddIngredient,
   onDeleteItem,
+  onUpdateItemFactor,
 }: {
   meal: Meal;
   canEdit: boolean;
@@ -619,6 +672,7 @@ function MealSlot({
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   onDeleteItem: (id: number) => void;
+  onUpdateItemFactor: (itemId: number, factor: number) => void;
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -746,8 +800,10 @@ function MealSlot({
               {item.cost_eur != null && (
                 <span>{item.cost_eur.toFixed(2)} €</span>
               )}
-              {item.factor !== 1.0 && (
-                <span>&times;{item.factor}</span>
+              {canEdit ? (
+                <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor(item.id, f)} />
+              ) : (
+                item.factor !== 1.0 && <span>&times;{item.factor}</span>
               )}
             </div>
           </div>

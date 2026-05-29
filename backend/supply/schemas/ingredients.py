@@ -178,7 +178,7 @@ class IngredientDetailOut(Schema):
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
             }
-            for p in obj.portions.select_related("measuring_unit").all()
+            for p in obj.portions.select_related("measuring_unit").filter(deleted_at__isnull=True)
         ]
 
     @staticmethod

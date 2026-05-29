@@ -292,6 +292,17 @@ export const MealPlanCostSummarySchema = z.object({
 export type MealPlanCostSummary = z.infer<typeof MealPlanCostSummarySchema>;
 
 // ==========================================================================
+// MealPlan Duplicate Input
+// ==========================================================================
+
+export const MealPlanDuplicateInSchema = z.object({
+  name: z.string().min(1),
+  start_datetime: z.string().min(1),
+  norm_portions: z.number().int().min(1),
+});
+export type MealPlanDuplicateIn = z.infer<typeof MealPlanDuplicateInSchema>;
+
+// ==========================================================================
 // Backward compatibility re-exports
 // ==========================================================================
 
