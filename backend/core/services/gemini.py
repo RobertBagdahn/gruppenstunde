@@ -79,7 +79,7 @@ def _get_client():
             from google import genai
 
             project = getattr(settings, "GOOGLE_CLOUD_PROJECT", "")
-            location = getattr(settings, "VERTEX_AI_LOCATION", "europe-west1")
+            location = getattr(settings, "VERTEX_AI_LOCATION", "global")
 
             if project:
                 _client = genai.Client(

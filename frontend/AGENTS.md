@@ -2,6 +2,18 @@
 
 > Dieses AGENTS.md enthält **frontend-spezifische** Regeln. Für projektweite Konventionen siehe `../AGENTS.md`.
 
+## ⚠️ WICHTIG: Kein Food-Code im Haupt-Frontend
+
+Alle Food-bezogene Funktionalität (Rezepte, Zutaten, Essenspläne, Einkaufslisten, Ernährungsrechner, Normportion, Cockpit/Ampel) gehört **ausschließlich** ins Food-Frontend (`frontend-food/`). Im Haupt-Frontend (`frontend/`) darf **kein** Food-Code existieren:
+
+- Keine Pages, Components, API-Hooks, Schemas, Stores oder Utils für Rezepte, Zutaten, MealPlans, Shopping Lists oder Nutrition
+- Keine Routen zu `/recipes`, `/meal-plans`, `/shopping-lists`, `/ingredients`
+- Keine Imports aus food-bezogenen Modulen
+- Keine Food-Einträge in Navigation, Command Palette oder Create Hub
+- **Ausnahme**: Backend-API-Endpunkte für Food existieren weiterhin (werden von `frontend-food/` genutzt)
+
+Bei Cross-Cutting-Concerns (z.B. Event → MealPlan-Verknüpfung) darf das Haupt-Frontend **nicht** auf Food-UI verlinken. Solche Integrationen gehören ins Food-Frontend.
+
 ## Navigation: Single-Location-Policy
 
 Jedes Tool/Feature darf in der **primären Navigation** höchstens einmal erscheinen:

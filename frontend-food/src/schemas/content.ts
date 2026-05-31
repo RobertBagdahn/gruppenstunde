@@ -192,9 +192,6 @@ export const SORT_OPTIONS = [
   { value: 'random', label: 'Zufällig' },
 ] as const;
 
-/** @deprecated Use COSTS_RATING_OPTIONS */
-export const COSTS_OPTIONS = COSTS_RATING_OPTIONS;
-
 // --- Emotion Types ---
 
 export const EMOTION_TYPES = [

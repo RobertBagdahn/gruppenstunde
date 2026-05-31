@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import type { IngredientListItem } from '@/schemas/ingredient';
-import { NUTRI_SCORE_COLORS } from '@/schemas/ingredient';
+import type { IngredientListItem } from '@/schemas/supply';
+import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 
 interface IngredientCardProps {
   ingredient: IngredientListItem;

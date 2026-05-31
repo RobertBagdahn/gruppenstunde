@@ -63,11 +63,11 @@ export function AiSuggestDialog({
         const arr = f.suggestedValue as unknown[];
         return arr.length > 0;
       }
-      // Scalar: show if different from current
-      if (f.currentValue === null || f.currentValue === undefined || f.currentValue === 0) {
-        return true;
-      }
-      return f.currentValue !== f.suggestedValue;
+      // Scalar: show if suggestion differs from current
+      // Treat null/undefined as equivalent to 0 for comparison
+      const current = f.currentValue ?? 0;
+      const suggested = f.suggestedValue ?? 0;
+      return current !== suggested;
     });
   }, [fields]);
 

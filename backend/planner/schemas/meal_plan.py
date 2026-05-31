@@ -100,13 +100,16 @@ class MealItemUpdateIn(Schema):
 
 class MealOut(Schema):
     id: int
-    start_datetime: dt.datetime
-    end_datetime: dt.datetime
+    start_datetime: dt.datetime | None = None
+    end_datetime: dt.datetime | None = None
     meal_type: str
     day_part_factor: float
     override_portions: int | None = None
     note: str = ""
     note_is_published: bool = False
+    is_reference: bool = False
+    ref_meal_id: int | None = None
+    is_synced: bool = False
     total_energy_kj: float = 0.0
     total_cost_eur: float = 0.0
     items: list[MealItemOut] = []
@@ -157,6 +160,7 @@ class MealPlanOut(Schema):
     norm_portions: int
     activity_factor: float
     reserve_factor: float
+    budget_per_person_per_day: float | None = None
     event_id: int | None = None
     event_name: str = ""
     start_datetime: dt.datetime | None = None
@@ -200,6 +204,7 @@ class MealPlanUpdateIn(Schema):
     norm_portions: int | None = None
     activity_factor: float | None = None
     reserve_factor: float | None = None
+    budget_per_person_per_day: float | None = None
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
 
@@ -212,6 +217,7 @@ class MealPlanDetailOut(Schema):
     norm_portions: int
     activity_factor: float
     reserve_factor: float
+    budget_per_person_per_day: float | None = None
     event_id: int | None = None
     event_name: str = ""
     start_datetime: dt.datetime | None = None
@@ -339,6 +345,8 @@ class RecipeCostOut(Schema):
     recipe_slug: str
     total_cost: Decimal
     cost_per_person: Decimal
+    priced_ingredients: int = 0
+    total_ingredients: int = 0
 
 
 class MealPlanCostSummaryOut(Schema):
@@ -349,3 +357,48 @@ class MealPlanCostSummaryOut(Schema):
     priced_ingredients: int
     days: list[DayCostOut] = []
     recipes: list[RecipeCostOut] = []
+
+
+# --- RefMeal Schemas ---
+
+
+class RefMealCreateIn(Schema):
+    meal_type: str
+    day_part_factor: float | None = None
+
+
+class RefMealItemIn(Schema):
+    recipe_id: int | None = None
+    ingredient_id: int | None = None
+    quantity: float | None = None
+    measuring_unit_id: int | None = None
+    display_name: str | None = None
+    factor: float = 1.0
+
+
+class RefMealUpdateIn(Schema):
+    day_part_factor: float | None = None
+    items: list[RefMealItemIn] | None = None
+
+
+class RefMealOut(Schema):
+    id: int
+    meal_type: str
+    day_part_factor: float
+    items: list[MealItemOut] = []
+    synced_meals_count: int = 0
+    total_meals_count: int = 0
+
+    @staticmethod
+    def resolve_synced_meals_count(obj) -> int:
+        return obj.synced_meals.filter(is_synced=True).count()
+
+    @staticmethod
+    def resolve_total_meals_count(obj) -> int:
+        return obj.meal_plan.meals.filter(
+            meal_type=obj.meal_type, is_reference=False
+        ).count()
+
+
+class LinkMealIn(Schema):
+    ref_meal_id: int

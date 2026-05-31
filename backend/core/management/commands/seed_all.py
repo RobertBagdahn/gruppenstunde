@@ -1236,6 +1236,54 @@ class Command(BaseCommand):
                 "retail_section": "Getreide & Teigwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "eifrei", "sojafrei"],
             },
+            {
+                "name": "Paprikapulver",
+                "description": "Edelsüßes Paprikapulver",
+                "physical_density": 0.5,
+                "energy_kj": 1200.0,
+                "protein_g": 14.0,
+                "fat_g": 13.0,
+                "fat_sat_g": 2.0,
+                "carbohydrate_g": 34.0,
+                "sugar_g": 10.0,
+                "fibre_g": 20.0,
+                "salt_g": 0.08,
+                "price_per_kg": Decimal("15.00"),
+                "retail_section": "Gewürze & Öle",
+                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
+            },
+            {
+                "name": "Kreuzkümmel",
+                "description": "Gemahlener Kreuzkümmel (Cumin)",
+                "physical_density": 0.5,
+                "energy_kj": 1570.0,
+                "protein_g": 18.0,
+                "fat_g": 22.0,
+                "fat_sat_g": 1.5,
+                "carbohydrate_g": 33.0,
+                "sugar_g": 2.3,
+                "fibre_g": 10.5,
+                "salt_g": 0.17,
+                "price_per_kg": Decimal("18.00"),
+                "retail_section": "Gewürze & Öle",
+                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
+            },
+            {
+                "name": "Chilipulver",
+                "description": "Gemahlene Chilischoten",
+                "physical_density": 0.5,
+                "energy_kj": 1300.0,
+                "protein_g": 12.0,
+                "fat_g": 17.0,
+                "fat_sat_g": 3.0,
+                "carbohydrate_g": 30.0,
+                "sugar_g": 7.0,
+                "fibre_g": 27.0,
+                "salt_g": 0.08,
+                "price_per_kg": Decimal("20.00"),
+                "retail_section": "Gewürze & Öle",
+                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
+            },
         ]
 
         # Portions per ingredient (name, quantity, weight_g, unit_name)
@@ -1377,6 +1425,15 @@ class Command(BaseCommand):
             ],
             "Tortilla-Wraps": [
                 ("1 Wrap", 1.0, 65.0, "Stück"),
+            ],
+            "Paprikapulver": [
+                ("1 TL Paprikapulver", 1.0, 3.0, "Teelöffel"),
+            ],
+            "Kreuzkümmel": [
+                ("1 TL Kreuzkümmel", 1.0, 3.0, "Teelöffel"),
+            ],
+            "Chilipulver": [
+                ("1 TL Chilipulver", 1.0, 3.0, "Teelöffel"),
             ],
         }
 
@@ -1532,7 +1589,7 @@ class Command(BaseCommand):
             RecipeStatusChoices,
             RecipeTypeChoices,
         )
-        from recipe.models import Recipe, RecipeHint, RecipeItem
+        from recipe.models import Recipe, Rule, RecipeItem
 
         from supply.models import Ingredient, MeasuringUnit, Portion
 
@@ -1658,6 +1715,56 @@ class Command(BaseCommand):
                 "servings": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
+            {
+                "title": "Gulasch",
+                "summary": "Deftiges Gulasch mit Kartoffeln – perfekt für kalte Abende",
+                "description": "## Zubereitung\n\n1. Hackfleisch scharf anbraten\n2. Zwiebeln und Paprika in Würfel schneiden und mitbraten\n3. Tomatenmark und Paprikapulver einrühren\n4. Kartoffeln würfeln, Brühe und Dosentomaten hinzufügen\n5. 30 Minuten köcheln lassen\n6. Mit Salz und Pfeffer abschmecken",
+                "difficulty": DifficultyChoices.MEDIUM,
+                "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
+                "recipe_type": RecipeTypeChoices.WARM_MEAL,
+                "servings": 1,
+                "status": RecipeStatusChoices.APPROVED,
+            },
+            {
+                "title": "Chili con Carne",
+                "summary": "Würziges Chili con Carne – ein Lager-Klassiker für große Gruppen",
+                "description": "## Zubereitung\n\n1. Hackfleisch anbraten\n2. Zwiebeln und Knoblauch hinzufügen\n3. Tomatenmark, Kreuzkümmel und Chilipulver einrühren\n4. Dosentomaten, Kidneybohnen und Mais dazugeben\n5. 25 Minuten köcheln lassen\n6. Mit Salz und Pfeffer abschmecken",
+                "difficulty": DifficultyChoices.MEDIUM,
+                "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
+                "recipe_type": RecipeTypeChoices.WARM_MEAL,
+                "servings": 1,
+                "status": RecipeStatusChoices.APPROVED,
+            },
+            {
+                "title": "Porridge",
+                "summary": "Warmer Haferbrei mit Zimt und Banane – nahrhaftes Frühstück",
+                "description": "## Zubereitung\n\n1. Haferflocken mit Milch aufkochen\n2. 5 Minuten unter Rühren köcheln\n3. Banane in Scheiben schneiden\n4. Mit Zimt und Honig servieren",
+                "difficulty": DifficultyChoices.EASY,
+                "execution_time": ExecutionTimeChoices.LESS_30,
+                "recipe_type": RecipeTypeChoices.BREAKFAST,
+                "servings": 1,
+                "status": RecipeStatusChoices.APPROVED,
+            },
+            {
+                "title": "Brotzeit",
+                "summary": "Bayerische Brotzeit mit Vollkornbrot, Käse und Gemüse",
+                "description": "## Zubereitung\n\n1. Brot aufschneiden\n2. Käse und Butter bereitstellen\n3. Gurke und Möhren in Sticks schneiden\n4. Alles auf einem Brett anrichten",
+                "difficulty": DifficultyChoices.EASY,
+                "execution_time": ExecutionTimeChoices.LESS_30,
+                "recipe_type": RecipeTypeChoices.COLD_MEAL,
+                "servings": 1,
+                "status": RecipeStatusChoices.APPROVED,
+            },
+            {
+                "title": "Grillwürstchen",
+                "summary": "Grillwürstchen mit Senf und Brot – schnell und beliebt",
+                "description": "## Zubereitung\n\n1. Würstchen auf dem Grill oder in der Pfanne braten\n2. Brot aufschneiden\n3. Mit Senf und Ketchup servieren",
+                "difficulty": DifficultyChoices.EASY,
+                "execution_time": ExecutionTimeChoices.LESS_30,
+                "recipe_type": RecipeTypeChoices.WARM_MEAL,
+                "servings": 1,
+                "status": RecipeStatusChoices.APPROVED,
+            },
         ]
 
         created_recipes = []
@@ -1726,6 +1833,11 @@ class Command(BaseCommand):
             "Käsebrot-Platte": ["Abendessen", "Schnell & Einfach", "Vegetarisch"],
             "Linsensuppe": ["Gruppenkochen", "Mittagessen", "Gesund", "Vegan"],
             "Wraps mit Gemüsefüllung": ["Wanderproviant", "Schnell & Einfach", "Vegetarisch"],
+            "Gulasch": ["Gruppenkochen", "Mittagessen", "Abendessen"],
+            "Chili con Carne": ["Gruppenkochen", "Mittagessen", "Lagerfeuer"],
+            "Porridge": ["Frühstück", "Schnell & Einfach", "Gesund", "Vegetarisch"],
+            "Brotzeit": ["Abendessen", "Schnell & Einfach", "Vegetarisch"],
+            "Grillwürstchen": ["Lagerfeuer", "Schnell & Einfach", "Abendessen"],
         }
 
         for recipe in created_recipes:
@@ -1767,6 +1879,11 @@ class Command(BaseCommand):
             "Käsebrot-Platte": all_levels,
             "Linsensuppe": older_levels,
             "Wraps mit Gemüsefüllung": all_levels,
+            "Gulasch": older_levels,
+            "Chili con Carne": older_levels,
+            "Porridge": all_levels,
+            "Brotzeit": all_levels,
+            "Grillwürstchen": all_levels,
         }
 
         for recipe in created_recipes:
@@ -1804,6 +1921,18 @@ class Command(BaseCommand):
         frischkaese = Ingredient.objects.filter(name="Frischkäse").first()
         gurke = Ingredient.objects.filter(name="Gurke").first()
         tortilla_wraps = Ingredient.objects.filter(name="Tortilla-Wraps").first()
+        hackfleisch = Ingredient.objects.filter(name="Hackfleisch (gemischt)").first()
+        kidneybohnen = Ingredient.objects.filter(name="Kidneybohnen (Dose)").first()
+        mais = Ingredient.objects.filter(name="Mais (Dose)").first()
+        tomatenmark = Ingredient.objects.filter(name="Tomatenmark").first()
+        paprikapulver = Ingredient.objects.filter(name="Paprikapulver").first()
+        kreuzk = Ingredient.objects.filter(name="Kreuzkümmel").first()
+        chilipulver = Ingredient.objects.filter(name="Chilipulver").first()
+        bananen = Ingredient.objects.filter(name="Bananen").first()
+        zimt = Ingredient.objects.filter(name="Zimt").first()
+        wuerstchen = Ingredient.objects.filter(name="Würstchen").first()
+        senf = Ingredient.objects.filter(name="Senf").first()
+        ketchup = Ingredient.objects.filter(name="Ketchup").first()
 
         gram_unit = MeasuringUnit.objects.filter(name="Gramm").first()
 
@@ -1899,6 +2028,53 @@ class Command(BaseCommand):
                 (moehren, 20.0, "in Streifen"),
                 (gurke, 25.0, "in Streifen"),
             ],
+            "Gulasch": [
+                (hackfleisch, 100.0, ""),
+                (kartoffeln, 120.0, "gewürfelt"),
+                (zwiebeln, 30.0, ""),
+                (paprika, 40.0, ""),
+                (tomaten, 80.0, ""),
+                (tomatenmark, 7.5, ""),
+                (paprikapulver, 2.0, ""),
+                (gemuese_bruehe, 2.0, ""),
+                (olivenoel, 3.0, ""),
+                (salz_ing, 0.5, ""),
+                (pfeffer, 0.1, ""),
+            ],
+            "Chili con Carne": [
+                (hackfleisch, 100.0, ""),
+                (kidneybohnen, 60.0, "abgetropft"),
+                (mais, 40.0, "abgetropft"),
+                (tomaten, 100.0, ""),
+                (zwiebeln, 24.0, ""),
+                (knoblauch, 1.5, ""),
+                (tomatenmark, 7.5, ""),
+                (kreuzk, 1.5, ""),
+                (chilipulver, 1.0, ""),
+                (olivenoel, 3.0, ""),
+                (salz_ing, 0.5, ""),
+                (pfeffer, 0.1, ""),
+            ],
+            "Porridge": [
+                (haferflocken, 50.0, ""),
+                (milch, 150.0, ""),
+                (bananen, 60.0, "in Scheiben"),
+                (zimt, 1.0, ""),
+                (honig, 6.0, ""),
+            ],
+            "Brotzeit": [
+                (brot, 100.0, ""),
+                (kaese, 40.0, ""),
+                (butter, 10.0, ""),
+                (gurke, 30.0, "in Sticks"),
+                (moehren, 25.0, "in Sticks"),
+            ],
+            "Grillwürstchen": [
+                (wuerstchen, 100.0, "2 Stück"),
+                (brot, 60.0, ""),
+                (senf, 5.0, ""),
+                (ketchup, 10.0, ""),
+            ],
         }
 
         for recipe in created_recipes:
@@ -1906,15 +2082,14 @@ class Command(BaseCommand):
                 for sort_idx, (ingredient, qty, note) in enumerate(recipe_ingredients_map[recipe.title]):
                     if ingredient and gram_unit:
                         portion = Portion.objects.filter(ingredient=ingredient, measuring_unit=gram_unit).first()
-                        RecipeItem.objects.create(
-                            recipe=recipe,
-                            portion=portion,
-                            ingredient=ingredient,
-                            quantity=qty,
-                            measuring_unit=gram_unit,
-                            sort_order=sort_idx,
-                            note=note,
-                        )
+                        if portion:
+                            RecipeItem.objects.create(
+                                recipe=recipe,
+                                portion=portion,
+                                quantity=qty / portion.weight_g if portion.weight_g else qty,
+                                sort_order=sort_idx,
+                                note=note,
+                            )
 
         # --- RecipeHints (rule-based, comprehensive) ---
         # Migrated from old Inspi project + extended with vitamin/mineral rules
@@ -2465,259 +2640,12 @@ class Command(BaseCommand):
         ]
 
         for hint_data in hints_data:
-            RecipeHint.objects.update_or_create(
-                name=hint_data["name"],
-                defaults=hint_data,
-            )
-            self.stdout.write(f"  + RecipeHint: {hint_data['name']}")
+            # DEPRECATED: RecipeHint merged into Rule model.
+            # Use `python manage.py seed_rules` instead.
+            pass
+            # self.stdout.write(f"  + RecipeHint: {hint_data['name']}")
 
-        # --- HealthRules (cockpit traffic-light thresholds) ---
-        from recipe.models import HealthRule
-
-        health_rules_data = [
-            # --- Existing macro rules ---
-            {
-                "name": "Zuckergehalt pro Mahlzeit",
-                "description": "Bewertung des Zuckergehalts pro 100g der Mahlzeit",
-                "parameter": "sugar_g",
-                "scope": "meal",
-                "min_green": 10.0,
-                "min_yellow": 20.0,
-                "unit": "g",
-                "tip_text": "Versuche, den Zuckeranteil zu reduzieren. Ersetze gesüßte Zutaten durch natürliche Alternativen.",
-                "sort_order": 1,
-            },
-            {
-                "name": "Energiegehalt pro Tag",
-                "description": "Tägliche Energiezufuhr (kJ) für die gesamte Verpflegung",
-                "parameter": "energy_kj",
-                "scope": "day",
-                "min_green": 9000.0,
-                "min_yellow": 12000.0,
-                "unit": "kJ",
-                "tip_text": "Der Tagesenergiegehalt ist hoch. Prüfe die Portionsgrößen oder ersetze kalorienreiche Zutaten.",
-                "sort_order": 2,
-            },
-            {
-                "name": "Gesamtkosten pro Tag",
-                "description": "Geschätzte Kosten aller Mahlzeiten eines Tages",
-                "parameter": "price_total",
-                "scope": "day",
-                "min_green": 8.0,
-                "min_yellow": 15.0,
-                "unit": "EUR",
-                "tip_text": "Die Tageskosten sind hoch. Günstigere Zutaten oder Saisongemüse können helfen.",
-                "sort_order": 3,
-            },
-            {
-                "name": "Nutri-Score Durchschnitt",
-                "description": "Durchschnittlicher Nutri-Score aller Rezepte im Essensplan",
-                "parameter": "nutri_class",
-                "scope": "meal_event",
-                "min_green": 2.5,
-                "min_yellow": 3.5,
-                "unit": "",
-                "tip_text": "Der durchschnittliche Nutri-Score ist niedrig. Ersetze einige Rezepte durch gesündere Alternativen.",
-                "sort_order": 4,
-            },
-            {
-                "name": "Zuckergehalt pro Tag",
-                "description": "Täglicher Zuckergehalt über alle Mahlzeiten",
-                "parameter": "sugar_g",
-                "scope": "day",
-                "min_green": 25.0,
-                "min_yellow": 50.0,
-                "unit": "g",
-                "tip_text": "Die WHO empfiehlt max. 25g freien Zucker pro Tag. Reduziere gesüßte Getränke und Desserts.",
-                "sort_order": 5,
-            },
-            {
-                "name": "Energiegehalt pro Mahlzeit",
-                "description": "Energiegehalt einer einzelnen Mahlzeit",
-                "parameter": "energy_kj",
-                "scope": "meal",
-                "min_green": 3000.0,
-                "min_yellow": 4500.0,
-                "unit": "kJ",
-                "tip_text": "Diese Mahlzeit ist sehr energiereich. Reduziere fettreiche Zutaten oder die Portionsgröße.",
-                "sort_order": 6,
-            },
-            # --- New: day-scope vitamin/mineral rules ---
-            {
-                "name": "Vitamin C pro Tag",
-                "description": "Tägliche Vitamin-C-Zufuhr über alle Mahlzeiten",
-                "parameter": "vitamin_c_mg",
-                "scope": "day",
-                "min_green": 90.0,
-                "min_yellow": 45.0,
-                "unit": "mg",
-                "tip_text": "Die tägliche Vitamin-C-Zufuhr ist niedrig. Mehr Obst und Gemüse in den Speiseplan aufnehmen.",
-                "sort_order": 10,
-            },
-            {
-                "name": "Vitamin A pro Tag",
-                "description": "Tägliche Vitamin-A-Zufuhr",
-                "parameter": "vitamin_a_mg",
-                "scope": "day",
-                "min_green": 0.8,
-                "min_yellow": 0.4,
-                "unit": "mg",
-                "tip_text": "Zu wenig Vitamin A. Karotten, Süßkartoffeln und Spinat sind gute Quellen.",
-                "sort_order": 11,
-            },
-            {
-                "name": "Calcium pro Tag",
-                "description": "Tägliche Calciumzufuhr",
-                "parameter": "calcium_mg",
-                "scope": "day",
-                "min_green": 1000.0,
-                "min_yellow": 500.0,
-                "unit": "mg",
-                "tip_text": "Calcium ist wichtig für Knochen. Milchprodukte, Brokkoli oder angereicherte Pflanzenmilch ergänzen.",
-                "sort_order": 12,
-            },
-            {
-                "name": "Eisen pro Tag",
-                "description": "Tägliche Eisenzufuhr",
-                "parameter": "iron_mg",
-                "scope": "day",
-                "min_green": 10.0,
-                "min_yellow": 5.0,
-                "unit": "mg",
-                "tip_text": "Eisenmangel ist häufig. Hülsenfrüchte, Vollkorn und Vitamin-C-reiche Beilagen verbessern die Versorgung.",
-                "sort_order": 13,
-            },
-            {
-                "name": "Magnesium pro Tag",
-                "description": "Tägliche Magnesiumzufuhr",
-                "parameter": "magnesium_mg",
-                "scope": "day",
-                "min_green": 300.0,
-                "min_yellow": 150.0,
-                "unit": "mg",
-                "tip_text": "Magnesium beugt Muskelkrämpfen vor. Nüsse, Vollkorn und Bananen in den Speiseplan integrieren.",
-                "sort_order": 14,
-            },
-            {
-                "name": "Zink pro Tag",
-                "description": "Tägliche Zinkzufuhr",
-                "parameter": "zinc_mg",
-                "scope": "day",
-                "min_green": 7.0,
-                "min_yellow": 3.5,
-                "unit": "mg",
-                "tip_text": "Zink stärkt das Immunsystem. Kürbiskerne, Cashews und Linsen sind gute Quellen.",
-                "sort_order": 15,
-            },
-            {
-                "name": "Kalium pro Tag",
-                "description": "Tägliche Kaliumzufuhr",
-                "parameter": "potassium_mg",
-                "scope": "day",
-                "min_green": 2000.0,
-                "min_yellow": 1000.0,
-                "unit": "mg",
-                "tip_text": "Kalium ist wichtig bei viel Bewegung. Bananen, Kartoffeln und Tomaten liefern viel Kalium.",
-                "sort_order": 16,
-            },
-            {
-                "name": "Vitamin D pro Tag",
-                "description": "Tägliche Vitamin-D-Zufuhr",
-                "parameter": "vitamin_d_ug",
-                "scope": "day",
-                "min_green": 15.0,
-                "min_yellow": 5.0,
-                "unit": "µg",
-                "tip_text": "Vitamin D kommt hauptsächlich über Sonnenlicht. Fetter Fisch und Eier helfen bei der Versorgung über Nahrung.",
-                "sort_order": 17,
-            },
-            {
-                "name": "Vitamin B12 pro Tag",
-                "description": "Tägliche Vitamin-B12-Zufuhr",
-                "parameter": "vitamin_b12_ug",
-                "scope": "day",
-                "min_green": 4.0,
-                "min_yellow": 2.0,
-                "unit": "µg",
-                "tip_text": "B12 kommt fast nur in tierischen Lebensmitteln vor. Bei vegetarischer Verpflegung auf B12-angereicherte Produkte achten.",
-                "sort_order": 18,
-            },
-            {
-                "name": "Folat pro Tag",
-                "description": "Tägliche Folatzufuhr",
-                "parameter": "folate_ug",
-                "scope": "day",
-                "min_green": 300.0,
-                "min_yellow": 150.0,
-                "unit": "µg",
-                "tip_text": "Grünes Blattgemüse und Hülsenfrüchte sind die besten Folatquellen.",
-                "sort_order": 19,
-            },
-            {
-                "name": "Ballaststoffe pro Tag",
-                "description": "Tägliche Ballaststoffzufuhr",
-                "parameter": "fibre_g",
-                "scope": "day",
-                "min_green": 25.0,
-                "min_yellow": 15.0,
-                "unit": "g",
-                "tip_text": "Mindestens 25g Ballaststoffe pro Tag. Vollkornprodukte und Hülsenfrüchte sind die besten Quellen.",
-                "sort_order": 20,
-            },
-            {
-                "name": "Eiweiß pro Tag",
-                "description": "Tägliche Eiweißzufuhr",
-                "parameter": "protein_g",
-                "scope": "day",
-                "min_green": 50.0,
-                "min_yellow": 30.0,
-                "unit": "g",
-                "tip_text": "Ausreichend Eiweiß ist wichtig für wachsende Kinder. Kombiniere pflanzliche und tierische Eiweißquellen.",
-                "sort_order": 21,
-            },
-            # --- New: meal-scope vitamin/mineral rules ---
-            {
-                "name": "Vitamin C pro Mahlzeit",
-                "description": "Vitamin-C-Gehalt einer einzelnen Mahlzeit",
-                "parameter": "vitamin_c_mg",
-                "scope": "meal",
-                "min_green": 30.0,
-                "min_yellow": 10.0,
-                "unit": "mg",
-                "tip_text": "Diese Mahlzeit enthält wenig Vitamin C. Frisches Obst oder Salat als Beilage ergänzen.",
-                "sort_order": 30,
-            },
-            {
-                "name": "Calcium pro Mahlzeit",
-                "description": "Calciumgehalt einer einzelnen Mahlzeit",
-                "parameter": "calcium_mg",
-                "scope": "meal",
-                "min_green": 300.0,
-                "min_yellow": 100.0,
-                "unit": "mg",
-                "tip_text": "Diese Mahlzeit liefert wenig Calcium. Ein Glas Milch oder Joghurt als Nachtisch ergänzt die Versorgung.",
-                "sort_order": 31,
-            },
-            {
-                "name": "Eisen pro Mahlzeit",
-                "description": "Eisengehalt einer einzelnen Mahlzeit",
-                "parameter": "iron_mg",
-                "scope": "meal",
-                "min_green": 3.0,
-                "min_yellow": 1.0,
-                "unit": "mg",
-                "tip_text": "Diese Mahlzeit liefert wenig Eisen. Hülsenfrüchte oder Vollkornbrot als Beilage helfen.",
-                "sort_order": 32,
-            },
-        ]
-
-        for rule_data in health_rules_data:
-            HealthRule.objects.update_or_create(
-                name=rule_data["name"],
-                defaults=rule_data,
-            )
-            self.stdout.write(f"  + HealthRule: {rule_data['name']}")
-
+        # --- HealthRules removed (use `python manage.py seed_rules` instead) ---
         # --- DGE Reference Data (from D-A-CH Referenzwerte) ---
         # SKIPPED: DgeReference model was simplified, seed data is outdated
         # from supply.models import DgeReference
@@ -4215,6 +4143,267 @@ class Command(BaseCommand):
                         )
 
             self.stdout.write(f"  + 4 days with Meals (Pfingstlager)")
+
+        # --- 10 Weekend MealPlans (Fr Abend → So Mittag) ---
+        from recipe.models import Recipe
+
+        weekend_plans_data = [
+            {
+                "name": "Stammesweekend Herbst",
+                "description": "Typisches Stammesweekend im Herbst mit 20 Personen",
+                "norm_portions": 20,
+                "activity_factor": 1.5,
+                "reserve_factor": 1.1,
+                "budget_per_person_per_day": Decimal("4.50"),
+                "day_offset": 100,  # offset from today for unique dates
+                "meals": {
+                    "fr_dinner": "Käsebrot-Platte",
+                    "sa_breakfast": "Müsli mit frischem Obst",
+                    "sa_lunch": "Nudeln mit Tomatensoße",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Stockbrot",
+                    "so_breakfast": "Pfannkuchen",
+                    "so_lunch": "Kartoffelsuppe",
+                },
+            },
+            {
+                "name": "Sippenübernachtung",
+                "description": "Kleine Sippenübernachtung mit 8 Teilnehmern",
+                "norm_portions": 8,
+                "activity_factor": 1.3,
+                "reserve_factor": 1.05,
+                "budget_per_person_per_day": Decimal("3.50"),
+                "day_offset": 110,
+                "meals": {
+                    "fr_dinner": "Brotzeit",
+                    "sa_breakfast": "Overnight Oats",
+                    "sa_lunch": "Wraps mit Gemüsefüllung",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Käsebrot-Platte",
+                    "so_breakfast": "Porridge",
+                    "so_lunch": "Linsensuppe",
+                },
+            },
+            {
+                "name": "Leitungsrunde Planung",
+                "description": "Planungswochenende der Stammesleitung",
+                "norm_portions": 12,
+                "activity_factor": 1.2,
+                "reserve_factor": 1.1,
+                "budget_per_person_per_day": Decimal("5.00"),
+                "day_offset": 120,
+                "meals": {
+                    "fr_dinner": "Wraps mit Gemüsefüllung",
+                    "sa_breakfast": "Pfannkuchen",
+                    "sa_lunch": "Gemüsepfanne mit Reis",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Nudelauflauf mit Käse",
+                    "so_breakfast": "Overnight Oats",
+                    "so_lunch": "Chili con Carne",
+                },
+            },
+            {
+                "name": "Rover-Wochenende",
+                "description": "Rover-Stufe Aktionswochenende",
+                "norm_portions": 15,
+                "activity_factor": 1.6,
+                "reserve_factor": 1.15,
+                "budget_per_person_per_day": Decimal("4.00"),
+                "day_offset": 130,
+                "meals": {
+                    "fr_dinner": "Grillwürstchen",
+                    "sa_breakfast": "Müsli mit frischem Obst",
+                    "sa_lunch": "Gulasch",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Stockbrot",
+                    "so_breakfast": "Pfannkuchen",
+                    "so_lunch": "Nudeln mit Tomatensoße",
+                },
+            },
+            {
+                "name": "Wölflinge Hütte",
+                "description": "Wölflinge-Hüttenwochenende",
+                "norm_portions": 10,
+                "activity_factor": 1.4,
+                "reserve_factor": 1.1,
+                "budget_per_person_per_day": Decimal("3.80"),
+                "day_offset": 140,
+                "meals": {
+                    "fr_dinner": "Käsebrot-Platte",
+                    "sa_breakfast": "Pfannkuchen",
+                    "sa_lunch": "Nudeln mit Tomatensoße",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Brotzeit",
+                    "so_breakfast": "Müsli mit frischem Obst",
+                    "so_lunch": "Nudelauflauf mit Käse",
+                },
+            },
+            {
+                "name": "Hajk-Vorbereitung",
+                "description": "Vorbereitungswochenende für den großen Hajk",
+                "norm_portions": 18,
+                "activity_factor": 1.7,
+                "reserve_factor": 1.2,
+                "budget_per_person_per_day": Decimal("4.20"),
+                "day_offset": 150,
+                "meals": {
+                    "fr_dinner": "Brotzeit",
+                    "sa_breakfast": "Porridge",
+                    "sa_lunch": "Kartoffelsuppe",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Wraps mit Gemüsefüllung",
+                    "so_breakfast": "Müsli mit frischem Obst",
+                    "so_lunch": "Gemüsepfanne mit Reis",
+                },
+            },
+            {
+                "name": "Eltern-Kind-Wochenende",
+                "description": "Familienwochenende mit Eltern und Kindern",
+                "norm_portions": 30,
+                "activity_factor": 1.3,
+                "reserve_factor": 1.15,
+                "budget_per_person_per_day": Decimal("5.50"),
+                "day_offset": 160,
+                "meals": {
+                    "fr_dinner": "Käsebrot-Platte",
+                    "sa_breakfast": "Müsli mit frischem Obst",
+                    "sa_lunch": "Chili con Carne",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Pfannkuchen",
+                    "so_breakfast": "Overnight Oats",
+                    "so_lunch": "Kartoffelsuppe",
+                },
+            },
+            {
+                "name": "Stufenwechsel-Feier",
+                "description": "Wochenende zum Stufenwechsel mit Feier",
+                "norm_portions": 25,
+                "activity_factor": 1.4,
+                "reserve_factor": 1.1,
+                "budget_per_person_per_day": Decimal("4.80"),
+                "day_offset": 170,
+                "meals": {
+                    "fr_dinner": "Grillwürstchen",
+                    "sa_breakfast": "Porridge",
+                    "sa_lunch": "Nudelauflauf mit Käse",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Stockbrot",
+                    "so_breakfast": "Müsli mit frischem Obst",
+                    "so_lunch": "Linsensuppe",
+                },
+            },
+            {
+                "name": "Herbst-Stammeslager kurz",
+                "description": "Kurzes Stammeslager über ein Herbstwochenende",
+                "norm_portions": 35,
+                "activity_factor": 1.6,
+                "reserve_factor": 1.15,
+                "budget_per_person_per_day": Decimal("3.80"),
+                "day_offset": 180,
+                "meals": {
+                    "fr_dinner": "Brotzeit",
+                    "sa_breakfast": "Overnight Oats",
+                    "sa_lunch": "Gulasch",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Linsensuppe",
+                    "so_breakfast": "Pfannkuchen",
+                    "so_lunch": "Wraps mit Gemüsefüllung",
+                },
+            },
+            {
+                "name": "Winterhütte Sippenfahrt",
+                "description": "Winterliche Sippenfahrt in eine Selbstversorgerhütte",
+                "norm_portions": 12,
+                "activity_factor": 1.5,
+                "reserve_factor": 1.1,
+                "budget_per_person_per_day": Decimal("4.00"),
+                "day_offset": 190,
+                "meals": {
+                    "fr_dinner": "Käsebrot-Platte",
+                    "sa_breakfast": "Porridge",
+                    "sa_lunch": "Kartoffelsuppe",
+                    "sa_snack": "Obstsalat",
+                    "sa_dinner": "Nudelauflauf mit Käse",
+                    "so_breakfast": "Pfannkuchen",
+                    "so_lunch": "Gemüsepfanne mit Reis",
+                },
+            },
+        ]
+
+        # Meal slot mapping: key -> (day_offset_from_friday, meal_type)
+        meal_slot_map = {
+            "fr_dinner": (0, MealTypeChoices.DINNER),
+            "sa_breakfast": (1, MealTypeChoices.BREAKFAST),
+            "sa_lunch": (1, MealTypeChoices.LUNCH),
+            "sa_snack": (1, MealTypeChoices.SNACK),
+            "sa_dinner": (1, MealTypeChoices.DINNER),
+            "so_breakfast": (2, MealTypeChoices.BREAKFAST),
+            "so_lunch": (2, MealTypeChoices.LUNCH),
+        }
+
+        # Start/end times per plan (hours from midnight on Friday)
+        plan_start_hours = [17, 18, 18, 17, 17, 18, 17, 17, 16, 18]
+        plan_end_hours = [14, 13, 14, 14, 13, 13, 14, 14, 14, 13]  # Sunday end hour
+
+        for plan_idx, wp_data in enumerate(weekend_plans_data):
+            plan_name = wp_data["name"]
+            if MealPlan.objects.filter(name=plan_name).exists():
+                self.stdout.write(f"  MealPlan '{plan_name}' already exists, skipping.")
+                continue
+
+            friday = datetime.date.today() + datetime.timedelta(days=wp_data["day_offset"])
+            # Ensure it's a Friday
+            friday = friday + datetime.timedelta(days=(4 - friday.weekday()) % 7)
+            sunday = friday + datetime.timedelta(days=2)
+
+            start_hour = plan_start_hours[plan_idx]
+            end_hour = plan_end_hours[plan_idx]
+
+            start_dt = timezone.make_aware(
+                datetime.datetime.combine(friday, datetime.time(start_hour, 0))
+            )
+            end_dt = timezone.make_aware(
+                datetime.datetime.combine(sunday, datetime.time(end_hour, 0))
+            )
+
+            meal_plan = MealPlan.objects.create(
+                name=plan_name,
+                description=wp_data["description"],
+                created_by=self._pick_user(users, plan_idx),
+                norm_portions=wp_data["norm_portions"],
+                activity_factor=wp_data["activity_factor"],
+                reserve_factor=wp_data["reserve_factor"],
+                budget_per_person_per_day=wp_data["budget_per_person_per_day"],
+                start_datetime=start_dt,
+                end_datetime=end_dt,
+            )
+
+            # Create meals for each day using time-aware method
+            for day_offset in range(3):  # Fri, Sat, Sun
+                day_date = friday + datetime.timedelta(days=day_offset)
+                is_first = day_offset == 0
+                is_last = day_offset == 2
+                meal_plan.create_meals_for_date_timeaware(day_date, is_first=is_first, is_last=is_last)
+
+            # Assign recipes to meals
+            for slot_key, recipe_title in wp_data["meals"].items():
+                day_off, meal_type = meal_slot_map[slot_key]
+                target_date = friday + datetime.timedelta(days=day_off)
+                meal = Meal.objects.filter(
+                    meal_plan=meal_plan,
+                    start_datetime__date=target_date,
+                    meal_type=meal_type,
+                ).first()
+                if meal:
+                    recipe = Recipe.objects.filter(title=recipe_title, status="approved").first()
+                    if recipe:
+                        MealItem.objects.create(
+                            meal=meal,
+                            recipe=recipe,
+                            factor=1.0,
+                        )
+
+            self.stdout.write(f"  + Weekend MealPlan: {plan_name} ({wp_data['norm_portions']} Pers.)")
 
         self.stdout.write(self.style.SUCCESS(f"  Planners total: {Planner.objects.count()}"))
 

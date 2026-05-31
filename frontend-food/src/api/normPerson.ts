@@ -9,9 +9,8 @@ import {
   NormPersonResultSchema,
   NormPersonCurvesSchema,
   DgeReferencePointSchema,
-  DgeReferenceSchema,
 } from '@/schemas/normPerson';
-import type { NormPersonResult, NormPersonCurves, DgeReferencePoint, DgeReference } from '@/schemas/normPerson';
+import type { NormPersonResult, NormPersonCurves, DgeReferencePoint } from '@/schemas/normPerson';
 
 const NORM_PERSON_BASE = `${API_BASE_URL}/api/norm-person`;
 
@@ -72,21 +71,5 @@ export function useDgeReference() {
         z.array(DgeReferencePointSchema),
       ),
     staleTime: 30 * 60 * 1000, // DGE data is static
-  });
-}
-
-/**
- * Fetch full DGE reference data from the model-backed endpoint.
- * Includes all macro/vitamin/mineral reference values.
- */
-export function useDgeReferences() {
-  return useQuery<DgeReference[]>({
-    queryKey: ['dge-references'],
-    queryFn: () =>
-      fetchJson(
-        `${API_BASE_URL}/api/dge-references/`,
-        z.array(DgeReferenceSchema),
-      ),
-    staleTime: 30 * 60 * 1000,
   });
 }

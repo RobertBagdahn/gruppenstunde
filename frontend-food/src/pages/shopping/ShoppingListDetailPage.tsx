@@ -18,6 +18,7 @@ import { SOURCE_TYPE_LABELS } from '@/schemas/shoppingList';
 import ShoppingListItemRow from '@/components/shopping/ShoppingListItemRow';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import CollaboratorManager from '@/components/shopping/CollaboratorManager';
+import KitchenReminderSection from '@/components/shopping/KitchenReminderSection';
 import {
   useShoppingListWebSocket,
   useOptimisticCheckItem,
@@ -354,6 +355,9 @@ export default function ShoppingListDetailPage() {
           )}
         </div>
       )}
+
+      {/* Kitchen Reminder Section */}
+      <KitchenReminderSection />
 
       {/* Collaborators section */}
       <section className="mt-8 bg-card rounded-xl border p-5">

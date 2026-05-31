@@ -11,10 +11,12 @@ const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert'];
 
 export default function TableView({ meals, normPortions }: TableViewProps) {
   const { dates, grid } = useMemo(() => {
-    // Collect unique dates sorted
+    // Collect unique dates sorted (skip reference meals without datetime)
     const dateSet = new Set<string>();
     for (const meal of meals) {
-      dateSet.add(meal.start_datetime.slice(0, 10));
+      if (meal.start_datetime) {
+        dateSet.add(meal.start_datetime.slice(0, 10));
+      }
     }
     const dates = [...dateSet].sort();
 
@@ -24,6 +26,7 @@ export default function TableView({ meals, normPortions }: TableViewProps) {
       grid[type] = {};
     }
     for (const meal of meals) {
+      if (!meal.start_datetime) continue;
       const date = meal.start_datetime.slice(0, 10);
       if (!grid[meal.meal_type]) {
         grid[meal.meal_type] = {};
@@ -62,7 +65,7 @@ export default function TableView({ meals, normPortions }: TableViewProps) {
               return (
                 <th
                   key={date}
-                  className="border-b px-3 py-2 text-center font-medium min-w-[140px]"
+                  className="border-b px-3 py-2 text-center font-medium min-w-[180px]"
                 >
                   <div className="text-xs text-muted-foreground">{weekday}</div>
                   <div>{day}</div>
@@ -91,19 +94,28 @@ export default function TableView({ meals, normPortions }: TableViewProps) {
                 }
                 const portions = meal.override_portions || normPortions;
                 const isEmpty = meal.items.length === 0;
-                const itemNames = meal.items
-                  .map((item) => item.recipe_title || item.ingredient_name || item.display_name || '')
-                  .filter(Boolean);
 
                 return (
                   <td key={date} className={`px-3 py-2 align-top ${isEmpty ? 'bg-red-50' : ''}`}>
                     <div className="space-y-0.5">
-                      {itemNames.length > 0 ? (
-                        itemNames.map((name, i) => (
-                          <div key={i} className="text-sm truncate max-w-[160px]" title={name}>
-                            {name}
-                          </div>
-                        ))
+                      {meal.items.length > 0 ? (
+                        meal.items.map((item, i) => {
+                          const name = item.recipe_title || item.ingredient_name || item.display_name || '';
+                          const kcal = item.energy_kj != null ? Math.round(item.energy_kj / normPortions / 4.184) : null;
+                          const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
+                          return (
+                            <div key={i}>
+                              <div className="text-sm truncate max-w-[200px]" title={name}>
+                                {name}
+                              </div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
+                                <span>&times;{item.factor.toFixed(1).replace('.', ',')}</span>
+                                {kcal != null && <span>· {kcal} kcal</span>}
+                                {cost != null && <span>· {cost.toFixed(2).replace('.', ',')} €</span>}
+                              </div>
+                            </div>
+                          );
+                        })
                       ) : (
                         <div className="text-red-500 italic text-sm flex items-center gap-1">
                           <span className="material-symbols-outlined text-[14px]">error</span>

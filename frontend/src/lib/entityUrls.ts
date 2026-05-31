@@ -6,8 +6,6 @@
  *
  *   | type       | identifier | URL pattern                      |
  *   |------------|------------|----------------------------------|
- *   | recipe     | slug       | /recipes/:slug                   |
- *   | ingredient | slug       | /ingredients/:slug               |
  *   | material   | slug       | /materials/:slug                 |
  *   | event      | slug       | /events/:slug                    |
  *   | location   | id         | /events?event_location_id=:id    |  (no dedicated detail page)
@@ -22,8 +20,6 @@
  */
 
 export type EntityType =
-  | 'recipe'
-  | 'ingredient'
   | 'material'
   | 'event'
   | 'location'
@@ -40,8 +36,6 @@ export interface EntityRef {
 }
 
 const PREFERS_SLUG: readonly EntityType[] = [
-  'recipe',
-  'ingredient',
   'material',
   'event',
   'session',
@@ -73,10 +67,6 @@ export function getEntityUrl(type: EntityType, ref: EntityRef): string {
   }
 
   switch (type) {
-    case 'recipe':
-      return `/recipes/${encodeURIComponent(slug!)}`;
-    case 'ingredient':
-      return `/ingredients/${encodeURIComponent(slug!)}`;
     case 'material':
       return `/materials/${encodeURIComponent(slug!)}`;
     case 'event':

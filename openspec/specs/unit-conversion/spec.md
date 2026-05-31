@@ -39,8 +39,55 @@ The system MUST include seed data for common German cooking conversions (EL to g
 - **WHEN** `formatQuantity` mit einem Wert > 0 aufgerufen wird
 - **THEN** darf das Ergebnis niemals "0 g" oder "0 ml" sein — mindestens eine Nachkommastelle wird angezeigt
 
-### Requirement: Backend resolve_measuring_unit_name ohne Portion-Fallback
+### Requirement: Backend resolve_measuring_unit_name über Portion-Pfad
 
-#### Scenario: RecipeItem ohne direkte measuring_unit
-- **WHEN** ein RecipeItem keine direkte `measuring_unit` hat (nur eine `portion`)
-- **THEN** gibt `resolve_measuring_unit_name` NULL zurück (nicht die `portion.measuring_unit.name`)
+Die Funktion `resolve_measuring_unit_name` löst den Einheitsnamen für ein RecipeItem auf. Der Pfad ist immer `RecipeItem.portion.measuring_unit.name`. RecipeItem hat kein direktes `measuring_unit`-Feld — die Einheit kommt ausschließlich über die Portion-Beziehung.
+
+#### Scenario: RecipeItem mit Portion die MeasuringUnit hat
+- **WHEN** ein RecipeItem eine `portion` hat und diese Portion eine `measuring_unit` zugeordnet hat
+- **THEN** gibt `resolve_measuring_unit_name` den `measuring_unit.name` der Portion zurück
+
+#### Scenario: RecipeItem mit Portion ohne MeasuringUnit
+- **WHEN** ein RecipeItem eine `portion` hat aber diese Portion keine `measuring_unit` hat
+- **THEN** gibt `resolve_measuring_unit_name` NULL zurück
+
+### Requirement: Fehlende Küchenmaßeinheiten
+Das System MUSS folgende MeasuringUnits als Seed-Daten bereitstellen: Handvoll (30g, Masse), Tropfen (0.05ml, Volumen).
+
+#### Scenario: MeasuringUnits nach Migration verfügbar
+- **WHEN** die Data-Migration angewendet wurde
+- **THEN** MÜSSEN die MeasuringUnits "Handvoll" und "Tropfen" in der Datenbank existieren
+
+### Requirement: Zutat-spezifische Umrechnungsfaktoren
+Das System MUSS zutat-spezifische UnitConversion-Einträge für mindestens 30 gängige Zutaten seeden, die abweichende Dichten bei Volumen-zu-Masse-Umrechnungen abbilden.
+
+#### Scenario: Tasse Reis vs. Tasse Mehl
+- **WHEN** "1 Tasse" für Reis umgerechnet wird
+- **THEN** MUSS das Ergebnis ca. 185g sein (nicht 250g wie generisch)
+
+#### Scenario: Tasse Mehl
+- **WHEN** "1 Tasse" für Mehl umgerechnet wird
+- **THEN** MUSS das Ergebnis ca. 125g sein
+
+#### Scenario: EL Butter
+- **WHEN** "1 EL" für Butter umgerechnet wird
+- **THEN** MUSS das Ergebnis ca. 12g sein (nicht 15g wie generisch)
+
+### Requirement: API-Endpunkt für verfügbare Umrechnungen
+Das System MUSS einen GET-Endpunkt `/api/unit-conversions/available/` bereitstellen, der alle möglichen Ziel-Einheiten mit umgerechneten Mengen zurückgibt.
+
+#### Scenario: Abfrage mit Zutat und Quell-Einheit
+- **WHEN** ein Client `GET /api/unit-conversions/available/?ingredient_id=42&from_unit_id=1&quantity=200` aufruft
+- **THEN** MUSS das System eine Liste aller möglichen Umrechnungen mit `to_unit_id`, `to_unit_name`, `quantity` und `is_ingredient_specific` zurückgeben
+
+#### Scenario: Batch-Abfrage für mehrere Zutaten
+- **WHEN** ein Client `POST /api/unit-conversions/available/batch/` mit einer Liste von `{ingredient_id, from_unit_id, quantity}` aufruft
+- **THEN** MUSS das System die Umrechnungen für alle angefragten Zutaten in einer Response zurückgeben
+
+#### Scenario: Keine Umrechnungen verfügbar
+- **WHEN** für eine Zutat+Einheit-Kombination keine Umrechnungen existieren
+- **THEN** MUSS das System eine leere `conversions` Liste zurückgeben (kein Fehler)
+
+#### Scenario: Nicht-konvertierbare Einheit
+- **WHEN** die Quell-Einheit keinen konvertierbaren Typ hat (weder g noch ml)
+- **THEN** MUSS das System eine leere `conversions` Liste zurückgeben

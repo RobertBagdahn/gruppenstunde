@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 const MAX_FILE_SIZE = 500 * 1024; // 500KB
 
 interface TitleImageEditorProps {
-  /** Content type identifier passed to AI image generation (e.g. 'session', 'blog', 'game', 'recipe') */
+  /** Content type identifier passed to AI image generation (e.g. 'session', 'blog', 'game') */
   contentType: string;
   imageUrl: string | null;
   canEdit: boolean;
@@ -321,30 +321,23 @@ function AiImageModal({
 
           {/* Loading skeleton */}
           {generateImage.isPending && generatedUrls.length === 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-lg bg-muted animate-pulse"
-                />
-              ))}
-            </div>
+            <div className="aspect-square rounded-lg bg-muted animate-pulse max-w-xs mx-auto" />
           )}
 
           {/* Generated images grid */}
           {generatedUrls.length > 0 && (
             <div>
               <p className="text-sm text-muted-foreground mb-2">
-                Klicke auf ein Bild, um es als Titelbild zu setzen:
+                Klicke auf das Bild, um es als Titelbild zu setzen:
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                {generatedUrls.map((url) => (
+              <div className="max-w-xs mx-auto">
+                {generatedUrls.slice(0, 1).map((url) => (
                   <button
                     key={url}
                     type="button"
                     onClick={() => onSelect(url)}
                     disabled={isSettingImage}
-                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition group focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                    className="relative aspect-square w-full rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition group focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                   >
                     <img
                       src={url}

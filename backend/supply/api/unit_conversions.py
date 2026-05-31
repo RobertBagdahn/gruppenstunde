@@ -4,8 +4,13 @@ from django.db.models import Q
 from ninja import Query, Router
 from ninja.errors import HttpError
 
-from supply.models import UnitConversion
+from supply.models import MeasuringUnit, UnitConversion
 from supply.schemas.unit_conversion import (
+    AvailableConversionBatchItemOut,
+    AvailableConversionBatchOut,
+    AvailableConversionBatchRequestItem,
+    AvailableConversionItemOut,
+    AvailableConversionsOut,
     UnitConversionCreateIn,
     UnitConversionOut,
     UnitConversionUpdateIn,
@@ -107,6 +112,120 @@ def create_unit_conversion(request, payload: UnitConversionCreateIn) -> UnitConv
         ingredient_id=conversion.ingredient_id,
         ingredient_name=conversion.ingredient.name if conversion.ingredient else None,
     )
+
+
+def _get_available_conversions(
+    ingredient_id: int | None,
+    from_unit_id: int,
+    quantity: float,
+) -> tuple[str, list[AvailableConversionItemOut]]:
+    """Compute all available unit conversions for an ingredient+unit pair."""
+    from_unit = MeasuringUnit.objects.filter(id=from_unit_id).first()
+    if not from_unit:
+        return "", []
+
+    # Only convert mass/volume units (g/ml)
+    convertible_types = {"g", "ml"}
+    if from_unit.unit not in convertible_types:
+        return from_unit.name, []
+
+    # Get all conversions FROM this unit
+    conversions_qs = UnitConversion.objects.filter(
+        from_unit_id=from_unit_id
+    ).select_related("to_unit")
+
+    if ingredient_id:
+        conversions_qs = conversions_qs.filter(
+            Q(ingredient_id=ingredient_id) | Q(ingredient__isnull=True)
+        )
+    else:
+        conversions_qs = conversions_qs.filter(ingredient__isnull=True)
+
+    # Also get conversions TO this unit (reverse: if 1 Ta = 250g, then g→Ta = 1/250)
+    reverse_qs = UnitConversion.objects.filter(
+        to_unit_id=from_unit_id
+    ).select_related("from_unit")
+
+    if ingredient_id:
+        reverse_qs = reverse_qs.filter(
+            Q(ingredient_id=ingredient_id) | Q(ingredient__isnull=True)
+        )
+    else:
+        reverse_qs = reverse_qs.filter(ingredient__isnull=True)
+
+    # Build results, preferring ingredient-specific over generic
+    results: dict[int, AvailableConversionItemOut] = {}
+
+    # Forward conversions
+    for conv in conversions_qs:
+        to_id = conv.to_unit_id
+        is_specific = conv.ingredient_id is not None
+        if to_id not in results or (is_specific and not results[to_id].is_ingredient_specific):
+            results[to_id] = AvailableConversionItemOut(
+                to_unit_id=to_id,
+                to_unit_name=conv.to_unit.name,
+                quantity=round(quantity * float(conv.factor), 2),
+                is_ingredient_specific=is_specific,
+            )
+
+    # Reverse conversions (invert factor)
+    for conv in reverse_qs:
+        to_id = conv.from_unit_id
+        is_specific = conv.ingredient_id is not None
+        if to_id not in results or (is_specific and not results[to_id].is_ingredient_specific):
+            factor = 1.0 / float(conv.factor) if float(conv.factor) != 0 else 0
+            results[to_id] = AvailableConversionItemOut(
+                to_unit_id=to_id,
+                to_unit_name=conv.from_unit.name,
+                quantity=round(quantity * factor, 2),
+                is_ingredient_specific=is_specific,
+            )
+
+    return from_unit.name, list(results.values())
+
+
+@unit_conversion_router.get("/available/", response=AvailableConversionsOut)
+def available_conversions(
+    request,
+    from_unit_id: int = Query(...),
+    quantity: float = Query(...),
+    ingredient_id: int | None = Query(None),
+) -> AvailableConversionsOut:
+    """Get all available unit conversions for an ingredient+unit pair."""
+    from_unit_name, conversions = _get_available_conversions(
+        ingredient_id, from_unit_id, quantity
+    )
+    return AvailableConversionsOut(
+        from_unit_id=from_unit_id,
+        from_unit_name=from_unit_name,
+        original_quantity=quantity,
+        conversions=conversions,
+    )
+
+
+@unit_conversion_router.post("/available/batch/", response=AvailableConversionBatchOut)
+def available_conversions_batch(
+    request,
+    items: list[AvailableConversionBatchRequestItem],
+) -> AvailableConversionBatchOut:
+    """Get available conversions for multiple ingredient+unit pairs at once."""
+    result_items: list[AvailableConversionBatchItemOut] = []
+
+    for item in items:
+        from_unit_name, conversions = _get_available_conversions(
+            item.ingredient_id, item.from_unit_id, item.quantity
+        )
+        result_items.append(
+            AvailableConversionBatchItemOut(
+                ingredient_id=item.ingredient_id,
+                from_unit_id=item.from_unit_id,
+                from_unit_name=from_unit_name,
+                original_quantity=item.quantity,
+                conversions=conversions,
+            )
+        )
+
+    return AvailableConversionBatchOut(items=result_items)
 
 
 @unit_conversion_router.delete("/{conversion_id}/")

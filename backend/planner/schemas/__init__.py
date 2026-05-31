@@ -13,6 +13,7 @@ from .planner import (
 )
 from .meal_plan import (
     DayCostOut,
+    LinkMealIn,
     MealCostOut,
     MealCreateIn,
     MealDayBulkCreateIn,
@@ -34,6 +35,10 @@ from .meal_plan import (
     MealOut,
     MealUpdateIn,
     NutritionSummaryOut,
+    RefMealCreateIn,
+    RefMealItemIn,
+    RefMealOut,
+    RefMealUpdateIn,
     ShoppingListItemOut,
 )
 
@@ -41,6 +46,7 @@ __all__ = [
     "CollaboratorOut",
     "InviteIn",
     "DayCostOut",
+    "LinkMealIn",
     "MealCostOut",
     "MealCreateIn",
     "MealDayBulkCreateIn",
@@ -69,5 +75,9 @@ __all__ = [
     "PlannerEntryUpdateIn",
     "PlannerOut",
     "PlannerUpdateIn",
+    "RefMealCreateIn",
+    "RefMealItemIn",
+    "RefMealOut",
+    "RefMealUpdateIn",
     "ShoppingListItemOut",
 ]

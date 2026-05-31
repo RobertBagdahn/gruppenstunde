@@ -1,7 +1,7 @@
 """Recipe nutrition helpers, hint matching, and cache recalculation service.
 
 Provides aggregate nutritional value computation (`get_recipe_nutritional_values`)
-used across nutrition-related services, hint matching against RecipeHint rules,
+used across nutrition-related services, hint matching against Rule rules,
 and denormalized cache recalculation for the Recipe model.
 
 Note: The former 4-dimension `get_recipe_checks` aggregator has been removed
@@ -18,7 +18,7 @@ from django.utils import timezone
 if TYPE_CHECKING:
     from recipe.models import Recipe
 
-from recipe.models import RecipeHint, RecipeItem
+from recipe.models import Rule, RecipeItem
 
 # Micronutrient fields tracked on Ingredient — used for aggregation
 MICRONUTRIENT_FIELDS = [
@@ -106,12 +106,12 @@ def match_recipe_hints(
     recipe: "Recipe",
     recipe_objective: str = "",
 ) -> list[dict]:
-    """Match RecipeHint rules against recipe nutritional values.
+    """Match Rule rules (scope=recipe) against recipe nutritional values.
 
     Supports all macronutrient and micronutrient parameters, plus
     ``weight_g`` (total recipe weight) and ``nutri_class``.
-    Returns list of {hint, actual_value, message, improvement_text}
-    for each matched rule.
+    Returns list of {hint, actual_value, message, improvement_text, status}
+    for each rule that evaluates to yellow or red.
     """
     values = get_recipe_nutritional_values(recipe)
 
@@ -142,29 +142,21 @@ def match_recipe_hints(
         _ns_total, ns_class = _calc_ns(agg)
         values["nutri_class"] = float(ns_class)
 
-    hints = RecipeHint.objects.all()
-    if recipe_objective:
-        hints = hints.filter(recipe_objective=recipe_objective)
-    if recipe.recipe_type:
-        hints = hints.filter(models_Q_recipe_type_blank_or_match(recipe.recipe_type))
+    rules = Rule.objects.filter(is_active=True, scope="recipe")
 
     results = []
-    for hint in hints:
-        actual = values.get(hint.parameter, 0.0)
-        matched = False
+    for rule in rules:
+        actual = values.get(rule.parameter, 0.0)
+        status = rule.evaluate(actual)
 
-        if hint.min_max == "min" and actual < hint.value:
-            matched = True
-        elif hint.min_max == "max" and actual > hint.value:
-            matched = True
-
-        if matched:
+        if status != "green":
             results.append(
                 {
-                    "hint": hint,
+                    "hint": rule,
                     "actual_value": round(actual, 2),
-                    "message": hint.hint or hint.name,
-                    "improvement_text": hint.improvement_text or "",
+                    "message": rule.tip_text or rule.name,
+                    "improvement_text": rule.improvement_text or "",
+                    "status": status,
                 }
             )
 

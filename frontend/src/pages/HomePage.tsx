@@ -9,10 +9,8 @@ import {
 } from '@/schemas/search';
 import {
   TOOL_EVENTS,
-  TOOL_MEAL_PLAN,
   TOOL_SESSION_PLANNER,
   TOOL_PACKING_LISTS,
-  TOOL_RECIPES,
   TOOL_SESSIONS,
   TOOL_BLOG,
   TOOL_GAMES,
@@ -57,15 +55,6 @@ const PLATFORM_MODULES = [
     link: TOOL_GAMES.basePath,
     features: ['Gruppenspiele', 'Geländespiele', 'Kennenlernspiele'],
   },
-  {
-    title: TOOL_RECIPES.label,
-    desc: 'Koch- und Backrezepte mit Nährwerten und Nutri-Score.',
-    img: TOOL_RECIPES.mascotImg ?? '/images/inspi_cook.png',
-    gradient: TOOL_RECIPES.gradient,
-    icon: TOOL_RECIPES.icon,
-    link: TOOL_RECIPES.basePath,
-    features: ['Nutri-Score', 'Portionsrechner', 'Allergene'],
-  },
 ];
 
 const PLANNING_TOOLS = [
@@ -84,13 +73,6 @@ const PLANNING_TOOLS = [
     link: TOOL_SESSION_PLANNER.basePath,
   },
   {
-    title: TOOL_MEAL_PLAN.label,
-    desc: 'Mahlzeiten planen mit Einkaufsliste und Nährwerten.',
-    icon: TOOL_MEAL_PLAN.icon,
-    gradient: TOOL_MEAL_PLAN.gradient,
-    link: TOOL_MEAL_PLAN.basePath,
-  },
-  {
     title: TOOL_PACKING_LISTS.label,
     desc: 'Packlisten für Hajk, Lager und Wochenendaktionen.',
     icon: TOOL_PACKING_LISTS.icon,
@@ -101,12 +83,10 @@ const PLANNING_TOOLS = [
 
 const QUICK_CREATE = [
   { icon: TOOL_SESSIONS.icon, label: 'Gruppenstunde', link: '/create/session', gradient: TOOL_SESSIONS.gradient },
-  { icon: TOOL_RECIPES.icon, label: 'Rezept', link: '/recipes/new', gradient: TOOL_RECIPES.gradient },
   { icon: TOOL_GAMES.icon, label: 'Spiel', link: '/create/game', gradient: TOOL_GAMES.gradient },
   { icon: TOOL_BLOG.icon, label: 'Blog-Beitrag', link: '/create/blog', gradient: TOOL_BLOG.gradient },
   { icon: TOOL_EVENTS.icon, label: 'Aktion', link: '/events/app/new', gradient: TOOL_EVENTS.gradient },
   { icon: TOOL_PACKING_LISTS.icon, label: 'Packliste', link: '/packing-lists/new', gradient: TOOL_PACKING_LISTS.gradient },
-  { icon: TOOL_MEAL_PLAN.icon, label: 'Essensplan', link: '/meal-plans', gradient: TOOL_MEAL_PLAN.gradient },
 ];
 
 export default function HomePage() {
@@ -361,14 +341,6 @@ export default function HomePage() {
           <Link to="/my-dashboard" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
             <span className="material-symbols-outlined text-[16px]">dashboard</span>
             Mein Dashboard
-          </Link>
-          <Link to="/ingredients" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
-            <span className="material-symbols-outlined text-[16px]">egg</span>
-            Zutatendatenbank
-          </Link>
-          <Link to="/recipes" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
-            <span className="material-symbols-outlined text-[16px]">menu_book</span>
-            Alle Rezepte
           </Link>
         </div>
       </section>

@@ -15,7 +15,6 @@ import PhaseGuidanceBanner from '@/components/events/PhaseGuidanceBanner';
 import ChecklistCard from './ChecklistCard';
 import BudgetCard from './BudgetCard';
 import LocationDetailDialog from '@/components/events/LocationDetailDialog';
-import { useMealPlans } from '@/api/mealPlans';
 
 interface Props {
   event: EventDetail;
@@ -93,8 +92,6 @@ export default function OverviewTab({ event, isManager }: Props) {
         />
       )}
 
-      {/* Meal Plan Summary (manager, when linked) */}
-      {isManager && event.meal_plan_id && <MealPlanSummaryCard mealPlanId={event.meal_plan_id} />}
 
       {/* Invitation summary (manager) */}
       {isManager && event.invitation_counts && (
@@ -598,40 +595,6 @@ function MiniRegistrationChart({
 }
 
 // ---------------------------------------------------------------------------
-// Meal Plan Summary Card (24.3 + 24.4)
-// ---------------------------------------------------------------------------
-
-function MealPlanSummaryCard({ mealPlanId }: { mealPlanId: number }) {
-  const { data: mealPlans } = useMealPlans();
-  const mealPlan = mealPlans?.find((me) => me.id === mealPlanId);
-
-  if (!mealPlan) return null;
-
-  return (
-    <div className="rounded-xl border p-4">
-      <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-        <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
-        Essensplan
-      </h3>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">{mealPlan.name}</p>
-          <p className="text-xs text-muted-foreground">
-            {mealPlan.meals_count} Mahlzeiten &middot; {mealPlan.norm_portions} Portionen
-          </p>
-        </div>
-        <a
-          href={`/meal-plans/${mealPlan.id}`}
-          className="text-sm text-violet-600 hover:text-violet-800 flex items-center gap-1"
-        >
-          Öffnen
-          <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-        </a>
-      </div>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // KPI Card
 // ---------------------------------------------------------------------------

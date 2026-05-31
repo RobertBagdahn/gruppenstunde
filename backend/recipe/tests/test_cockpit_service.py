@@ -1,4 +1,4 @@
-"""Tests for cockpit_service — evaluate HealthRules at each scope."""
+"""Tests for cockpit_service — evaluate Rules at each scope."""
 
 import datetime
 
@@ -6,8 +6,8 @@ import pytest
 from django.utils import timezone
 
 from planner.tests import make_meal, make_meal_item, make_meal_plan
-from recipe.models import HealthRule
-from recipe.services.cockpit_service import (
+from recipe.models import Rule
+from recipe.services.nutrition_aggregation import (
     evaluate_day_cockpit,
     evaluate_meal_cockpit,
     evaluate_meal_plan_cockpit,
@@ -103,9 +103,9 @@ class TestCockpitService:
         assert result["green_count"] == 1
 
     def test_health_rule_evaluate_method(self):
-        """Test HealthRule.evaluate() directly."""
+        """Test Rule.evaluate() directly."""
         # Max-only rule: lower is better
-        rule = HealthRule(max_green=10.0, max_yellow=20.0)
+        rule = Rule(max_green=10.0, max_yellow=20.0)
         assert rule.evaluate(5.0) == "green"
         assert rule.evaluate(10.0) == "green"
         assert rule.evaluate(15.0) == "yellow"
@@ -113,8 +113,8 @@ class TestCockpitService:
         assert rule.evaluate(25.0) == "red"
 
     def test_health_rule_evaluate_min_only(self):
-        """Test HealthRule.evaluate() with min-only rule."""
-        rule = HealthRule(min_green=100.0, min_yellow=50.0)
+        """Test Rule.evaluate() with min-only rule."""
+        rule = Rule(min_green=100.0, min_yellow=50.0)
         assert rule.evaluate(150.0) == "green"
         assert rule.evaluate(100.0) == "green"
         assert rule.evaluate(75.0) == "yellow"
@@ -123,8 +123,8 @@ class TestCockpitService:
         assert rule.evaluate(0.0) == "red"
 
     def test_health_rule_evaluate_range(self):
-        """Test HealthRule.evaluate() with both min and max (range rule)."""
-        rule = HealthRule(min_green=500.0, min_yellow=200.0, max_green=2000.0, max_yellow=3000.0)
+        """Test Rule.evaluate() with both min and max (range rule)."""
+        rule = Rule(min_green=500.0, min_yellow=200.0, max_green=2000.0, max_yellow=3000.0)
         assert rule.evaluate(1000.0) == "green"  # in range
         assert rule.evaluate(300.0) == "yellow"  # below min_green but above min_yellow
         assert rule.evaluate(100.0) == "red"     # below min_yellow

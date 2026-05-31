@@ -12,16 +12,6 @@ const CONTENT_OPTIONS = [
     border: 'hover:border-sky-300',
   },
   {
-    to: '/recipes/new',
-    icon: 'menu_book',
-    label: 'Rezept',
-    description:
-      'Koch- oder Backrezept fuer Lager, Hajk oder Gruppenstunde. Mit Zutaten, Naehrwerten und Portionsberechnung fuer grosse Gruppen.',
-    color: 'text-rose-600',
-    bg: 'bg-rose-50',
-    border: 'hover:border-rose-300',
-  },
-  {
     to: '/create/game',
     icon: 'sports_esports',
     label: 'Spiel',
@@ -65,16 +55,6 @@ const TOOL_OPTIONS = [
     border: 'hover:border-amber-300',
   },
   {
-    to: '/meal-plans/app',
-    icon: 'restaurant',
-    label: 'Essensplan',
-    description:
-      'Mahlzeiten fuer mehrtaegige Veranstaltungen planen. Automatische Mengenberechnung, Naehrwert-Cockpit und Einkaufsliste.',
-    color: 'text-orange-600',
-    bg: 'bg-orange-50',
-    border: 'hover:border-orange-300',
-  },
-  {
     to: '/session-planner/app',
     icon: 'calendar_month',
     label: 'Quartalsplan',
@@ -83,16 +63,6 @@ const TOOL_OPTIONS = [
     color: 'text-teal-600',
     bg: 'bg-teal-50',
     border: 'hover:border-teal-300',
-  },
-  {
-    to: '/ingredients/new',
-    icon: 'egg_alt',
-    label: 'Zutat',
-    description:
-      'Neue Zutat mit Naehrwerten, Preis und Portionsgroessen zur Datenbank hinzufuegen. Wird fuer Rezepte und Essensplaene verwendet.',
-    color: 'text-lime-600',
-    bg: 'bg-lime-50',
-    border: 'hover:border-lime-300',
   },
 ] as const;
 

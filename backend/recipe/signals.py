@@ -24,13 +24,9 @@ from supply.models import Ingredient, MeasuringUnit, Portion
 def _recipes_using_ingredient(ingredient):
     """Return set of Recipe IDs that reference the given Ingredient.
 
-    Looks up both direct FK (RecipeItem.ingredient) and indirect
-    (RecipeItem.portion.ingredient) references.
+    Looks up RecipeItem via Portion → Ingredient references.
     """
     recipe_ids = set()
-    # Direct ingredient FK on RecipeItem
-    direct = RecipeItem.objects.filter(ingredient=ingredient).values_list("recipe_id", flat=True)
-    recipe_ids.update(direct)
     # Via Portion → Ingredient
     via_portion = RecipeItem.objects.filter(portion__ingredient=ingredient).values_list("recipe_id", flat=True)
     recipe_ids.update(via_portion)
@@ -101,12 +97,8 @@ def invalidate_recipes_on_portion_change(sender, instance, **kwargs):
 
 @receiver(post_save, sender=MeasuringUnit)
 def invalidate_recipes_on_measuring_unit_change(sender, instance, **kwargs):
-    """Recalculate cache for all recipes whose items reference this MeasuringUnit."""
+    """Recalculate cache for all recipes whose items reference this MeasuringUnit via Portion."""
     recipe_ids = set()
-    # Direct measuring_unit FK on RecipeItem
-    direct = RecipeItem.objects.filter(measuring_unit=instance).values_list("recipe_id", flat=True)
-    recipe_ids.update(direct)
-    # Via Portion → MeasuringUnit
     via_portion = RecipeItem.objects.filter(portion__measuring_unit=instance).values_list("recipe_id", flat=True)
     recipe_ids.update(via_portion)
     _recalculate_for_recipe_ids(recipe_ids)

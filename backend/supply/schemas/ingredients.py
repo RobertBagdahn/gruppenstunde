@@ -46,6 +46,7 @@ class PortionCreateIn(Schema):
     name: str
     quantity: float = 1.0
     measuring_unit_id: int | None = None
+    weight_g: float | None = None
     rank: int = 1
     priority: int = 0
     is_default: bool = False
@@ -57,6 +58,7 @@ class PortionUpdateIn(Schema):
     name: str | None = None
     quantity: float | None = None
     measuring_unit_id: int | None = None
+    weight_g: float | None = None
     rank: int | None = None
     priority: int | None = None
     is_default: bool | None = None

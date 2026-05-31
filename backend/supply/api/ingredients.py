@@ -228,9 +228,11 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     if payload.measuring_unit_id:
         unit = get_object_or_404(MeasuringUnit, id=payload.measuring_unit_id)
         portion.measuring_unit = unit
-        portion.weight_g = payload.quantity * unit.quantity
-    else:
-        portion.weight_g = payload.quantity
+
+    if portion.measuring_unit:
+        portion.weight_g = payload.quantity * portion.measuring_unit.quantity
+    elif payload.weight_g is not None:
+        portion.weight_g = payload.weight_g
 
     portion.save()
     return portion
@@ -246,6 +248,7 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
     data = payload.dict(exclude_unset=True)
     unit_id = data.pop("measuring_unit_id", None)
+    explicit_weight_g = data.pop("weight_g", None)
 
     for field, value in data.items():
         setattr(portion, field, value)
@@ -256,8 +259,8 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
     if portion.measuring_unit:
         portion.weight_g = portion.quantity * portion.measuring_unit.quantity
-    else:
-        portion.weight_g = portion.quantity
+    elif explicit_weight_g is not None:
+        portion.weight_g = explicit_weight_g
 
     portion.updated_by = request.user
     portion.save()
@@ -287,10 +290,19 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    # Auto-assign next rank if the requested rank already exists
+    rank = payload.rank
+    existing_ranks = set(
+        IngredientAlias.objects.filter(ingredient=ingredient).values_list("rank", flat=True)
+    )
+    if rank in existing_ranks:
+        rank = max(existing_ranks) + 1 if existing_ranks else 1
+
     alias = IngredientAlias(
         ingredient=ingredient,
         name=payload.name,
-        rank=payload.rank,
+        rank=rank,
         created_by=request.user,
     )
     alias.save()

@@ -7,14 +7,18 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
+import type { AvailableConversionBatchItem } from '@/schemas/supply';
 import { formatQuantity, scaleQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
 import { cn } from '@/lib/utils';
+import UnitSwitcher from '@/components/recipe/UnitSwitcher';
 
 interface IngredientListProps {
   items: RecipeItem[];
   servings: number | null;
   servingsMultiplier: number;
+  /** Available unit conversions per ingredient (from batch API) */
+  availableConversions?: AvailableConversionBatchItem[];
   className?: string;
 }
 
@@ -22,6 +26,7 @@ export default function IngredientList({
   items,
   servings: _servings,
   servingsMultiplier,
+  availableConversions,
   className = '',
 }: IngredientListProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
@@ -75,7 +80,7 @@ export default function IngredientList({
 
           // Highest-priority non-default portion (e.g. "Stück" for Apfel)
           const highPrioPortion = item.ingredient_portions
-            ?.filter((p) => !p.is_default && (p.weight_g ?? 0) > 0)
+            ?.filter((p) => !p.is_default && (p.weight_g ?? 0) > 1)
             .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
           const highPrioDisplay = highPrioPortion?.weight_g
             ? `≈ ${(weightG / highPrioPortion.weight_g).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${highPrioPortion.name}`
@@ -88,15 +93,24 @@ export default function IngredientList({
             ? priceEur < 0.01 ? '< 0,01 €' : `${priceEur.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
             : null;
 
+          // Find available conversions for this ingredient
+          const itemConversions = item.ingredient_id && availableConversions
+            ? availableConversions.find(
+                (ac) => ac.ingredient_id === item.ingredient_id,
+              )?.conversions ?? []
+            : [];
+
           const ingredientContent = (
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="material-symbols-outlined text-rose-500 text-[20px] shrink-0">
                   check_circle
                 </span>
-                <span className="font-semibold text-foreground text-base">
-                  {formatted.display}
-                </span>
+                <UnitSwitcher
+                  originalDisplay={formatted.display}
+                  conversions={itemConversions}
+                  weightG={weightG}
+                />
                 <span className="font-medium text-foreground text-base">
                   {item.ingredient_name || item.note || 'Zutat'}
                 </span>

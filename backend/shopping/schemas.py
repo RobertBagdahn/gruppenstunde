@@ -222,3 +222,30 @@ class PaginatedShoppingListOut(Schema):
     page: int
     page_size: int
     total_pages: int
+
+
+# --- Kitchen Reminder schemas ---
+
+
+class KitchenReminderOut(Schema):
+    """Output schema for a single kitchen reminder item."""
+
+    id: int
+    name: str
+    is_published: bool
+    is_own_suggestion: bool = False
+
+
+class KitchenReminderCategoryOut(Schema):
+    """Output schema for a kitchen reminder category with its items."""
+
+    id: int
+    name: str
+    sort_order: int
+    reminders: list[KitchenReminderOut]
+
+
+class KitchenReminderSuggestIn(Schema):
+    """Input schema for suggesting a new kitchen reminder."""
+
+    name: str

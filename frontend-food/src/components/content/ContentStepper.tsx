@@ -75,6 +75,9 @@ export interface ContentStepperProps {
 
   /** Optional: override initial step (e.g. skip step 0 after URL import) */
   initialStep?: number;
+
+  /** If true, hide the default preview body (KPIs, tags, scouts, description) — used when renderPreviewExtras provides a full custom preview */
+  hideDefaultPreviewBody?: boolean;
 }
 
 // Stepper step definitions
@@ -111,6 +114,7 @@ export default function ContentStepper({
   onRefurbishComplete,
   renderExtraStep0Cards,
   initialStep,
+  hideDefaultPreviewBody = false,
 }: ContentStepperProps) {
   const [step, setStep] = useState(initialStep ?? 0);
 
@@ -703,61 +707,65 @@ export default function ContentStepper({
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Meta KPIs */}
-              <div className="flex flex-wrap gap-3">
-                {formData.difficulty && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                    <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
-                    {getOptionLabel(DIFFICULTY_OPTIONS, formData.difficulty)}
-                  </span>
-                )}
-                {formData.costsRating && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                    <span className="material-symbols-outlined text-[14px]">payments</span>
-                    {getOptionLabel(COSTS_RATING_OPTIONS, formData.costsRating)}
-                  </span>
-                )}
-                {formData.executionTime && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                    <span className="material-symbols-outlined text-[14px]">schedule</span>
-                    {getOptionLabel(EXECUTION_TIME_OPTIONS, formData.executionTime)}
-                  </span>
-                )}
-                {formData.preparationTime && !hidePreparationTime && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                    <span className="material-symbols-outlined text-[14px]">timer</span>
-                    {getOptionLabel(PREPARATION_TIME_OPTIONS, formData.preparationTime)}
-                  </span>
-                )}
-              </div>
+              {!hideDefaultPreviewBody && (
+                <>
+                  {/* Meta KPIs */}
+                  <div className="flex flex-wrap gap-3">
+                    {formData.difficulty && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                        <span className="material-symbols-outlined text-[14px]">signal_cellular_alt</span>
+                        {getOptionLabel(DIFFICULTY_OPTIONS, formData.difficulty)}
+                      </span>
+                    )}
+                    {formData.costsRating && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                        <span className="material-symbols-outlined text-[14px]">payments</span>
+                        {getOptionLabel(COSTS_RATING_OPTIONS, formData.costsRating)}
+                      </span>
+                    )}
+                    {formData.executionTime && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                        <span className="material-symbols-outlined text-[14px]">schedule</span>
+                        {getOptionLabel(EXECUTION_TIME_OPTIONS, formData.executionTime)}
+                      </span>
+                    )}
+                    {formData.preparationTime && !hidePreparationTime && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
+                        <span className="material-symbols-outlined text-[14px]">timer</span>
+                        {getOptionLabel(PREPARATION_TIME_OPTIONS, formData.preparationTime)}
+                      </span>
+                    )}
+                  </div>
 
-              {/* Tags */}
-              {formData.selectedTagIds.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {formData.selectedTagIds.map((id) => (
-                    <span key={id} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                      {getTagName(id)}
-                    </span>
-                  ))}
-                </div>
-              )}
+                  {/* Tags */}
+                  {formData.selectedTagIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.selectedTagIds.map((id) => (
+                        <span key={id} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                          {getTagName(id)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-              {/* Scout levels */}
-              {formData.selectedScoutIds.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {formData.selectedScoutIds.map((id) => (
-                    <span key={id} className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-xs font-medium">
-                      {getScoutLevelName(id)}
-                    </span>
-                  ))}
-                </div>
-              )}
+                  {/* Scout levels */}
+                  {formData.selectedScoutIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.selectedScoutIds.map((id) => (
+                        <span key={id} className="px-2 py-0.5 rounded-full bg-accent/10 text-accent-foreground text-xs font-medium">
+                          {getScoutLevelName(id)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-              {/* Description */}
-              {formData.description && (
-                <div className="prose prose-sm max-w-none">
-                  <MarkdownRenderer content={formData.description} />
-                </div>
+                  {/* Description */}
+                  {formData.description && (
+                    <div className="prose prose-sm max-w-none">
+                      <MarkdownRenderer content={formData.description} />
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Type-specific preview extras */}

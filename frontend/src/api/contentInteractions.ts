@@ -154,5 +154,4 @@ export const CONTENT_API_BASES: Record<string, string> = {
   session: `${API_BASE_URL}/api/sessions`,
   blog: `${API_BASE_URL}/api/blogs`,
   game: `${API_BASE_URL}/api/games`,
-  recipe: `${API_BASE_URL}/api/recipes`,
 };

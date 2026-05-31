@@ -121,3 +121,19 @@ if not request.user.is_authenticated or not request.user.is_staff:
 - [ ] Keine Klar-IPs gespeichert (DSGVO)
 - [ ] Content-URLs verwenden Slug
 - [ ] Freitext-Felder verwenden Markdown, kein HTML
+
+## Testing-Pflicht
+
+**Für jeden neuen oder geänderten API-Endpunkt und für komplexe Backend-Prozesse MÜSSEN Tests geschrieben werden.** Das umfasst:
+
+- **API-Endpunkte**: Mindestens Happy-Path + Fehlerfall (401/403/404) testen
+- **Signals / Denormalisierung**: Testen, dass Signale korrekt feuern und Daten konsistent bleiben (create, update, delete)
+- **Services mit Geschäftslogik**: Unit-Tests für Berechnungen, Aggregationen, Filterlogik
+- **Management Commands**: Testen, dass idempotent und korrekt
+
+Test-Konventionen:
+- Framework: `pytest` + `pytest-django`
+- Factories: `model_bakery` (baker.make) + App-spezifische `make_*` Helpers in `<app>/tests/__init__.py`
+- Dateien: `<app>/tests/test_<feature>.py`
+- Klassen: `@pytest.mark.django_db class Test<Feature>:`
+- DB: SQLite in Tests (kein PostgreSQL-FTS — FTS-abhängige Tests mit `recipe_type`-Filter umgehen oder skippen)

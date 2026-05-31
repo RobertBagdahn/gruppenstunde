@@ -70,21 +70,6 @@ export const TOOL_EVENTS: ToolConfig = {
   mascotImg: '/images/inspi_baby_party.png',
 };
 
-export const TOOL_MEAL_PLAN: ToolConfig = {
-  key: 'meal-plan',
-  label: 'Essensplan',
-  tagline: 'Mahlzeiten planen mit Einkaufsliste und Nährwerten',
-  icon: 'restaurant_menu',
-  gradient: 'from-amber-500 to-orange-600',
-  bgSolid: 'bg-amber-500',
-  textColor: 'text-amber-600',
-  bgTint: 'bg-amber-50',
-  borderColor: 'border-amber-300',
-  ringColor: 'ring-amber-400',
-  basePath: '/meal-plans',
-  mascotImg: '/images/inspi_cook.png',
-};
-
 export const TOOL_SESSION_PLANNER: ToolConfig = {
   key: 'session-planner',
   label: 'Gruppenstundenplan',
@@ -113,21 +98,6 @@ export const TOOL_PACKING_LISTS: ToolConfig = {
   ringColor: 'ring-teal-400',
   basePath: '/packing-lists',
   mascotImg: '/images/inspi_scout.webp',
-};
-
-export const TOOL_RECIPES: ToolConfig = {
-  key: 'recipes',
-  label: 'Rezepte',
-  tagline: 'Koch- und Backrezepte mit Nährwerten und Nutri-Score',
-  icon: 'menu_book',
-  gradient: 'from-rose-500 to-pink-600',
-  bgSolid: 'bg-rose-500',
-  textColor: 'text-rose-600',
-  bgTint: 'bg-rose-50',
-  borderColor: 'border-rose-300',
-  ringColor: 'ring-rose-400',
-  basePath: '/recipes',
-  mascotImg: '/images/inspi_baby_cookie.png',
 };
 
 export const TOOL_SESSIONS: ToolConfig = {
@@ -172,47 +142,17 @@ export const TOOL_GAMES: ToolConfig = {
   basePath: '/games',
 };
 
-export const TOOL_INGREDIENTS: ToolConfig = {
-  key: 'ingredients',
-  label: 'Zutaten',
-  tagline: 'Zutatendatenbank mit Nährwerten und Portionen',
-  icon: 'egg',
-  gradient: 'from-amber-500 to-yellow-600',
-  bgSolid: 'bg-amber-500',
-  textColor: 'text-amber-600',
-  bgTint: 'bg-amber-50',
-  borderColor: 'border-amber-300',
-  ringColor: 'ring-amber-400',
-  basePath: '/ingredients',
-};
-
-export const TOOL_NORM_PORTION: ToolConfig = {
-  key: 'norm-portion',
-  label: 'Normportion-Simulator',
-  tagline: 'Energiebedarf und Normfaktoren nach Alter und Geschlecht',
-  icon: 'calculate',
-  gradient: 'from-amber-500 to-yellow-600',
-  bgSolid: 'bg-amber-500',
-  textColor: 'text-amber-600',
-  bgTint: 'bg-amber-50',
-  borderColor: 'border-amber-300',
-  ringColor: 'ring-amber-400',
-  basePath: '/tools/norm-portion-simulator',
-};
 
 /** All planning/productivity tools (shown in nav, homepage, etc.) */
 export const ALL_TOOLS: ToolConfig[] = [
   TOOL_EVENTS,
-  TOOL_MEAL_PLAN,
   TOOL_SESSION_PLANNER,
   TOOL_PACKING_LISTS,
-  TOOL_NORM_PORTION,
 ];
 
-/** All content modules (Content + Recipes + Sessions + Blog + Games) */
+/** All content modules (Sessions + Blog + Games) */
 export const CONTENT_MODULES: ToolConfig[] = [
   TOOL_CONTENT,
-  TOOL_RECIPES,
   TOOL_SESSIONS,
   TOOL_BLOG,
   TOOL_GAMES,
@@ -221,7 +161,6 @@ export const CONTENT_MODULES: ToolConfig[] = [
 /** Everything combined */
 export const ALL_MODULES: ToolConfig[] = [
   TOOL_CONTENT,
-  TOOL_RECIPES,
   TOOL_SESSIONS,
   TOOL_BLOG,
   TOOL_GAMES,

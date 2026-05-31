@@ -28,6 +28,7 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         timeout: 300_000, // 5 min – image generation can take up to 3 min
+        proxyTimeout: 300_000,
       },
       '/media': {
         target: 'http://localhost:8000',

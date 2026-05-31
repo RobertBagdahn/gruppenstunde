@@ -21,10 +21,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
 
 # Model that supports structured output + Google Search together
-GEMINI_MODEL_WITH_SEARCH = "gemini-2.0-flash"
+GEMINI_MODEL_WITH_SEARCH = "gemini-3.1-flash-lite-preview"
 
 
 # ---------------------------------------------------------------------------

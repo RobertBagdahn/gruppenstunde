@@ -5,7 +5,7 @@ from content.admin import ContentApprovalMixin
 from content.models import ContentComment, ContentEmotion
 from supply.models import ContentMaterialItem
 
-from .models import HealthRule, Recipe, RecipeItem, RecipeHint
+from .models import Recipe, RecipeItem, Rule
 
 
 class RecipeItemInline(admin.TabularInline):
@@ -29,26 +29,17 @@ class RecipeAdmin(ContentApprovalMixin, admin.ModelAdmin):
     actions = ContentApprovalMixin.approval_actions
 
 
-@admin.register(RecipeHint)
-class RecipeHintAdmin(admin.ModelAdmin):
-    list_display = ("name", "hint", "parameter", "value", "min_max", "hint_level", "recipe_type", "recipe_objective")
-    list_filter = ("hint_level", "parameter", "min_max", "recipe_type", "recipe_objective")
-    search_fields = ("name", "hint", "description", "improvement_text")
-    list_editable = ("hint_level",)
-    list_per_page = 50
-
-
-@admin.register(HealthRule)
-class HealthRuleAdmin(admin.ModelAdmin):
-    list_display = ("name", "parameter", "scope", "min_green", "max_green", "unit", "is_active")
-    list_filter = ("scope", "parameter", "is_active")
-    search_fields = ("name", "description", "tip_text")
+@admin.register(Rule)
+class RuleAdmin(admin.ModelAdmin):
+    list_display = ("name", "parameter", "scope", "rule_type", "min_green", "max_green", "unit", "is_active")
+    list_filter = ("scope", "rule_type", "parameter", "is_active")
+    search_fields = ("name", "description", "tip_text", "improvement_text")
     list_editable = ("min_green", "max_green", "is_active")
     list_per_page = 50
     fieldsets = (
         (None, {"fields": ("name", "description", "is_active", "sort_order")}),
-        ("Regel", {"fields": ("parameter", "scope", "unit")}),
+        ("Regel", {"fields": ("parameter", "scope", "rule_type", "unit", "hint_level")}),
         ("Schwellenwerte Minimum", {"fields": ("min_green", "min_yellow")}),
         ("Schwellenwerte Maximum", {"fields": ("max_green", "max_yellow")}),
-        ("Anzeige", {"fields": ("tip_text",)}),
+        ("Texte", {"fields": ("tip_text", "improvement_text")}),
     )

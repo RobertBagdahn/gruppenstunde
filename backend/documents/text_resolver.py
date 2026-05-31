@@ -184,7 +184,7 @@ Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
 
         response = gemini_call(
             user=None,
-            model="gemini-2.0-flash-lite",
+            model="gemini-3.1-flash-lite-preview",
             contents=prompt,
             bypass_limits=True,
             context="document_text_generation",

@@ -543,11 +543,18 @@ def nutrition_summary(request, meal_plan_id: int):
         "salt_g": 0.0,
     }
 
+    norm_portions = meal_plan.norm_portions or 1
+
     for mi in meal_items:
+        if not mi.recipe:
+            continue
+
         # Get all RecipeItems for this recipe and aggregate their nutritional data
         recipe_items = RecipeItem.objects.filter(
             recipe=mi.recipe,
         ).select_related("portion__ingredient")
+
+        recipe_servings = mi.recipe.servings or 1
 
         for ri in recipe_items:
             if not ri.portion or not ri.portion.ingredient:
@@ -556,8 +563,8 @@ def nutrition_summary(request, meal_plan_id: int):
             ing = ri.portion.ingredient
             # RecipeItem quantity is in the portion unit; portion.weight_g converts to grams
             weight_g = ri.quantity * ri.portion.weight_g if ri.portion.weight_g else 0
-            # Scale factor: per 100g, then by item factor
-            scale = (weight_g / 100.0) * mi.factor
+            # Scale factor: per 100g, then by item factor, scaled to norm_portions
+            scale = (weight_g / 100.0) * mi.factor * (norm_portions / recipe_servings)
 
             for field in totals:
                 ing_val = getattr(ing, field, None)
@@ -565,7 +572,6 @@ def nutrition_summary(request, meal_plan_id: int):
                     totals[field] += float(ing_val) * scale
 
     # Calculate per-portion values
-    norm_portions = meal_plan.norm_portions or 1
     per_portion = {f"per_portion_{field}": totals[field] / norm_portions for field in totals}
 
     return NutritionSummaryOut(
@@ -610,6 +616,8 @@ def cost_summary(request, meal_plan_id: int):
     recipe_costs: dict[int, dict] = {}
 
     for meal in meals:
+        if not meal.start_datetime:
+            continue
         meal_date = meal.start_datetime.date()
         effective_portions = meal.override_portions or norm_portions
         meal_cost = Decimal("0")
@@ -622,10 +630,21 @@ def cost_summary(request, meal_plan_id: int):
                     "portion__ingredient"
                 )
                 recipe_item_cost = Decimal("0")
+                rid = item.recipe.id
+                if rid not in recipe_costs:
+                    recipe_costs[rid] = {
+                        "recipe_id": rid,
+                        "recipe_title": item.recipe.title,
+                        "recipe_slug": item.recipe.slug,
+                        "total_cost": Decimal("0"),
+                        "priced_ingredients": 0,
+                        "total_ingredients": 0,
+                    }
                 for ri in recipe_items:
                     if not ri.portion or not ri.portion.ingredient:
                         continue
                     total_ingredients += 1
+                    recipe_costs[rid]["total_ingredients"] += 1
                     ing = ri.portion.ingredient
                     weight_g = (
                         float(ri.quantity) * float(ri.portion.weight_g)
@@ -637,18 +656,10 @@ def cost_summary(request, meal_plan_id: int):
                     price = get_portion_price(ing, scaled_weight_g)
                     if price is not None:
                         priced_ingredients += 1
+                        recipe_costs[rid]["priced_ingredients"] += 1
                         meal_cost += price
                         recipe_item_cost += price
 
-                # Track per-recipe cost
-                rid = item.recipe.id
-                if rid not in recipe_costs:
-                    recipe_costs[rid] = {
-                        "recipe_id": rid,
-                        "recipe_title": item.recipe.title,
-                        "recipe_slug": item.recipe.slug,
-                        "total_cost": Decimal("0"),
-                    }
                 recipe_costs[rid]["total_cost"] += recipe_item_cost
             elif item.portion and item.portion.ingredient:
                 # Standalone ingredient
@@ -701,6 +712,8 @@ def cost_summary(request, meal_plan_id: int):
                 "recipe_slug": rc["recipe_slug"],
                 "total_cost": rc["total_cost"],
                 "cost_per_person": rc["total_cost"] / norm_portions if norm_portions > 0 else Decimal("0"),
+                "priced_ingredients": rc["priced_ingredients"],
+                "total_ingredients": rc["total_ingredients"],
             }
             for rc in sorted(recipe_costs.values(), key=lambda x: x["total_cost"], reverse=True)
         ],
@@ -746,6 +759,87 @@ def shopping_list(request, meal_plan_id: int):
 
 
 # ==========================================================================
+# Popular Recipes
+# ==========================================================================
+
+# Map meal_type to recipe_type values
+MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
+    "breakfast": ["breakfast", "simple_meal"],
+    "lunch": ["warm_meal", "cold_meal", "side_dish"],
+    "dinner": ["warm_meal", "cold_meal", "side_dish"],
+    "snack": ["snack", "simple_meal"],
+    "dessert": ["dessert"],
+}
+
+
+@meal_plan_router.get("/recipes/popular/", response=dict)
+def popular_recipes(
+    request,
+    meal_type: str | None = None,
+    limit: int = 8,
+):
+    """Return most-used recipes split into personal and community rankings."""
+    from django.db.models import Count
+
+    limit = min(limit, 20)
+
+    # Base filter
+    recipe_filter = Q(status="approved", usage_count__gt=0)
+    if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
+        recipe_filter &= Q(recipe_type__in=MEAL_TYPE_TO_RECIPE_TYPES[meal_type])
+
+    # Community: top by usage_count
+    community_qs = Recipe.objects.filter(recipe_filter).order_by("-usage_count")[:limit]
+    community = [
+        {
+            "id": r.id,
+            "title": r.title,
+            "recipe_type": r.recipe_type,
+            "image": r.image.url if r.image else None,
+            "usage_count": r.usage_count,
+        }
+        for r in community_qs
+    ]
+
+    # Personal: aggregate MealItems for current user
+    personal = []
+    if request.user.is_authenticated:
+        personal_qs = (
+            MealItem.objects.filter(
+                recipe__isnull=False,
+                meal__meal_plan__created_by=request.user,
+            )
+        )
+        if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
+            personal_qs = personal_qs.filter(meal__meal_type=meal_type)
+
+        personal_agg = (
+            personal_qs.values("recipe_id")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:limit]
+        )
+        recipe_ids = [entry["recipe_id"] for entry in personal_agg]
+        if recipe_ids:
+            recipes_map = {
+                r.id: r
+                for r in Recipe.objects.filter(id__in=recipe_ids)
+            }
+            counts_map = {entry["recipe_id"]: entry["count"] for entry in personal_agg}
+            for rid in recipe_ids:
+                r = recipes_map.get(rid)
+                if r:
+                    personal.append({
+                        "id": r.id,
+                        "title": r.title,
+                        "recipe_type": r.recipe_type,
+                        "image": r.image.url if r.image else None,
+                        "usage_count": counts_map[rid],
+                    })
+
+    return {"personal": personal, "community": community}
+
+
+# ==========================================================================
 # Recipe Search (standalone recipe model)
 # ==========================================================================
 
@@ -786,7 +880,42 @@ def search_recipes(
         for tag_id in tag_ids:
             qs = qs.filter(nutritional_tags__id=tag_id)
 
-    recipes = list(qs.values("id", "title", "slug", "recipe_type")[:limit])
+    recipes_qs = qs.select_related().prefetch_related(
+        "nutritional_tags",
+        Prefetch(
+            "recipe_items",
+            queryset=RecipeItem.objects.select_related("portion__ingredient").order_by("sort_order")[:8],
+            to_attr="preview_items",
+        ),
+    )[:limit]
+
+    recipes = []
+    for r in recipes_qs:
+        ingredients_preview = [
+            item.portion.ingredient.name
+            for item in (r.preview_items if hasattr(r, "preview_items") else [])
+            if item.portion and item.portion.ingredient
+        ][:8]
+        tags = [{"id": t.id, "name": t.name} for t in r.nutritional_tags.all()]
+        description = (r.description or "")[:200] if r.description else None
+        recipes.append({
+            "id": r.id,
+            "title": r.title,
+            "slug": r.slug,
+            "recipe_type": r.recipe_type,
+            "image": r.image.url if r.image else None,
+            "servings": r.servings,
+            "cached_energy_kj": r.cached_energy_kj,
+            "cached_protein_g": r.cached_protein_g,
+            "cached_fat_g": r.cached_fat_g,
+            "cached_carbohydrate_g": r.cached_carbohydrate_g,
+            "cached_price_total": float(r.cached_price_total) if r.cached_price_total else None,
+            "cached_nutri_class": r.cached_nutri_class,
+            "nutritional_tags": tags,
+            "usage_count": r.usage_count,
+            "description": description,
+            "ingredients_preview": ingredients_preview,
+        })
 
     # --- Standalone Ingredients ---
     from supply.models import Ingredient, Portion
@@ -930,3 +1059,22 @@ def remove_collaborator(request, meal_plan_id: int, collaborator_id: int):
     collab = get_object_or_404(MealPlanCollaborator, id=collaborator_id, meal_plan=meal_plan)
     collab.delete()
     return {"success": True}
+
+
+# --- Suggestions ---
+
+
+@meal_plan_router.get(
+    "/{meal_plan_id}/suggestions/",
+    response=dict,
+    summary="Get suggestions dashboard for a meal plan",
+)
+def get_suggestions(request, meal_plan_id: int):
+    """Evaluate all rules and system checks, return suggestion dashboard."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+
+    from recipe.services.suggestion_service import evaluate_suggestions
+
+    dashboard = evaluate_suggestions(meal_plan)
+    return dashboard.dict()

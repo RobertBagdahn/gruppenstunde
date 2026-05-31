@@ -12,12 +12,12 @@ import { getEntityUrl, type EntityType } from './entityUrls';
 // ---------------------------------------------------------------------------
 
 describe('getEntityUrl — slug-based types', () => {
-  it('resolves recipe to /recipes/:slug', () => {
-    expect(getEntityUrl('recipe', { slug: 'apfelmus' })).toBe('/recipes/apfelmus');
+  it('resolves recipe to /sessions/:slug', () => {
+    expect(getEntityUrl('session', { slug: 'apfelmus' })).toBe('/sessions/apfelmus');
   });
 
-  it('resolves ingredient to /ingredients/:slug', () => {
-    expect(getEntityUrl('ingredient', { slug: 'kartoffel' })).toBe('/ingredients/kartoffel');
+  it('resolves ingredient to /materials/:slug', () => {
+    expect(getEntityUrl('material', { slug: 'kartoffel' })).toBe('/materials/kartoffel');
   });
 
   it('resolves material to /materials/:slug', () => {
@@ -51,11 +51,11 @@ describe('getEntityUrl — slug-based types', () => {
   });
 
   it('prefers slug over id when both are provided', () => {
-    expect(getEntityUrl('recipe', { id: 42, slug: 'apfelmus' })).toBe('/recipes/apfelmus');
+    expect(getEntityUrl('session', { id: 42, slug: 'apfelmus' })).toBe('/sessions/apfelmus');
   });
 
   it('percent-encodes unsafe characters in slug', () => {
-    expect(getEntityUrl('recipe', { slug: 'pfann küchen' })).toBe('/recipes/pfann%20k%C3%BCchen');
+    expect(getEntityUrl('session', { slug: 'pfann küchen' })).toBe('/sessions/pfann%20k%C3%BCchen');
   });
 });
 
@@ -92,8 +92,8 @@ describe('getEntityUrl — missing identifier (dev mode)', () => {
   });
 
   const slugTypes: EntityType[] = [
-    'recipe',
-    'ingredient',
+    'session',
+    'material',
     'material',
     'event',
     'session',
@@ -123,7 +123,7 @@ describe('getEntityUrl — missing identifier (dev mode)', () => {
 
   it('throws when slug is empty string for recipe', () => {
     // '' is falsy, triggers the missing-identifier branch
-    expect(() => getEntityUrl('recipe', { slug: '' })).toThrow(/requires "slug"/);
+    expect(() => getEntityUrl('session', { slug: '' })).toThrow(/requires "slug"/);
   });
 });
 
@@ -137,7 +137,7 @@ describe('getEntityUrl — missing identifier (prod fallback)', () => {
   });
 
   it('returns "#" in prod when slug is missing', () => {
-    expect(getEntityUrl('recipe', {})).toBe('#');
+    expect(getEntityUrl('session', {})).toBe('#');
   });
 
   it('returns "#" in prod when id is missing', () => {

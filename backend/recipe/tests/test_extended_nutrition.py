@@ -4,10 +4,10 @@ Covers:
 - Ingredient vitamin_c_mg field (9.1)
 - DgeReference model (9.2)
 - recalculate_recipe_cache with micronutrients (9.3)
-- RecipeHint matching with vitamin_c_mg parameter (9.4)
+- Rule matching with vitamin_c_mg parameter (9.4)
 - Nutrition breakdown API with DGE coverage (9.5)
-- Cockpit service with vitamin_c_mg HealthRules (9.6)
-- improvement_text on RecipeHint (extra)
+- Cockpit service with vitamin_c_mg Rules (9.6)
+- improvement_text on Rule (extra)
 """
 
 import datetime
@@ -23,8 +23,8 @@ from recipe.choices import (
     HintParameterChoices,
     RecipeObjectiveChoices,
 )
-from recipe.models import HealthRule, Recipe, RecipeHint, RecipeItem
-from recipe.services.cockpit_service import evaluate_day_cockpit, evaluate_meal_cockpit
+from recipe.models import Rule, Recipe, RecipeItem
+from recipe.services.nutrition_aggregation import evaluate_day_cockpit, evaluate_meal_cockpit
 from recipe.services.recipe_checks import (
     CACHED_MICRONUTRIENT_FIELDS,
     match_recipe_hints,
@@ -213,13 +213,13 @@ class TestRecalculateRecipeCacheMicronutrients:
 
 
 # ---------------------------------------------------------------------------
-# 9.4 — RecipeHint matching with vitamin_c_mg parameter
+# 9.4 — Rule matching with vitamin_c_mg parameter
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-class TestRecipeHintVitaminMineralMatching:
-    """Verify that RecipeHint rules with vitamin_c_mg parameter correctly match."""
+class TestRuleVitaminMineralMatching:
+    """Verify that Rule rules with vitamin_c_mg parameter correctly match."""
 
     def _make_recipe_with_low_vitamin_c(self) -> Recipe:
         """Recipe with very low vitamin C (< 20mg per 100g)."""
@@ -429,13 +429,13 @@ class TestNutritionBreakdownAPI:
 
 
 # ---------------------------------------------------------------------------
-# 9.6 — Cockpit service with vitamin_c_mg HealthRules
+# 9.6 — Cockpit service with vitamin_c_mg Rules
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
 class TestCockpitVitaminMineralRules:
-    """Verify that HealthRules with vitamin_c_mg parameter are evaluated at day scope."""
+    """Verify that Rules with vitamin_c_mg parameter are evaluated at day scope."""
 
     def _setup_meal_with_cached_recipe(self) -> tuple:
         """Create a meal_plan + meal with a recipe that has cached vitamin_c_mg."""
@@ -512,12 +512,12 @@ class TestCockpitVitaminMineralRules:
 
 
 # ---------------------------------------------------------------------------
-# Extra — improvement_text on RecipeHint
+# Extra — improvement_text on Rule
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
-class TestRecipeHintImprovementText:
+class TestRuleImprovementText:
     """Verify that improvement_text is stored and returned in hint matches."""
 
     def test_improvement_text_stored_on_hint(self):

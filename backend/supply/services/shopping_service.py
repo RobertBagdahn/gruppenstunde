@@ -95,11 +95,12 @@ def generate_shopping_list(
                 # Skip items without linked ingredient (can't aggregate)
                 continue
 
-            weight_g = ri.quantity * (ri.portion.weight_g or 0) * mi.factor * scaling
+            recipe_servings = getattr(recipe, "servings", 1) or 1
+            weight_g = ri.quantity * (ri.portion.weight_g or 0) * mi.factor * scaling / recipe_servings
 
             # Track raw quantity for items where portion has no weight
             if not ri.portion.weight_g:
-                raw_qty = ri.quantity * mi.factor * scaling
+                raw_qty = ri.quantity * mi.factor * scaling / recipe_servings
                 portion_name = ri.portion.name or ""
                 if ing.id in raw_quantities:
                     raw_quantities[ing.id] = (

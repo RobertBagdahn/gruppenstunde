@@ -8,7 +8,6 @@ function contentUrlForSlug(slug: string, contentType?: string): string {
     session: '/sessions',
     blog: '/blogs',
     game: '/games',
-    recipe: '/recipes',
   };
   const prefix = prefixMap[contentType ?? ''] ?? '/sessions';
   return `${prefix}/${slug}`;

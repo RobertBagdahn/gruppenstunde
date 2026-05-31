@@ -74,18 +74,30 @@ export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
             Rezeptkosten
           </h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {data.recipes.map((recipe) => (
-              <Link
-                key={recipe.recipe_id}
-                to={`/recipes/${recipe.recipe_slug}`}
-                className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-white hover:bg-muted/50 transition-colors"
-              >
-                <span className="text-sm font-medium truncate">{recipe.recipe_title}</span>
-                <span className="text-sm font-semibold tabular-nums text-emerald-700 ml-2">
-                  {recipe.total_cost > 0 ? formatEur(recipe.total_cost) : '–'}
-                </span>
-              </Link>
-            ))}
+            {data.recipes.map((recipe) => {
+              const hasNoPrice = recipe.priced_ingredients === 0;
+              const isPartial = recipe.priced_ingredients > 0 && recipe.priced_ingredients < recipe.total_ingredients;
+              return (
+                <Link
+                  key={recipe.recipe_id}
+                  to={`/recipes/${recipe.recipe_slug}`}
+                  className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-white hover:bg-muted/50 transition-colors"
+                >
+                  <span className="text-sm font-medium truncate">{recipe.recipe_title}</span>
+                  {hasNoPrice ? (
+                    <span className="text-xs text-muted-foreground ml-2">Keine Preise</span>
+                  ) : isPartial ? (
+                    <span className="text-sm tabular-nums text-amber-600 ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
+                      ~{formatEur(recipe.total_cost)}
+                    </span>
+                  ) : (
+                    <span className="text-sm font-semibold tabular-nums text-emerald-700 ml-2">
+                      {formatEur(recipe.total_cost)}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
@@ -113,8 +125,8 @@ export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
                 return (
                   <tr key={day.date} className="border-b hover:bg-muted/50">
                     <td className="px-3 py-2 font-medium">{dateLabel}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatEur(day.total_cost)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatEur(day.cost_per_person)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{day.total_cost > 0 ? formatEur(day.total_cost) : '–'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{day.cost_per_person > 0 ? formatEur(day.cost_per_person) : '–'}</td>
                     <td className="px-3 py-2 hidden sm:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {day.meals.map((meal) => (
@@ -123,7 +135,7 @@ export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
                             className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-xs"
                           >
                             <span>{MEAL_TYPE_LABELS[meal.meal_type] ?? meal.meal_type}</span>
-                            <span className="text-muted-foreground">{formatEur(meal.cost)}</span>
+                            <span className="text-muted-foreground">{meal.cost > 0 ? formatEur(meal.cost) : '–'}</span>
                           </span>
                         ))}
                       </div>

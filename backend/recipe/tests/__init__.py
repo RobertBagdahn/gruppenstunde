@@ -6,20 +6,10 @@ from content.choices import ContentStatus
 from content.models import ContentComment, ContentEmotion, ContentView
 from django.contrib.contenttypes.models import ContentType
 
-from recipe.choices import (
-    DifficultyChoices,
-    ExecutionTimeChoices,
-    HintLevelChoices,
-    HintMinMaxChoices,
-    HintParameterChoices,
-    RecipeObjectiveChoices,
-    RecipeTypeChoices,
-)
 from recipe.models import (
-    HealthRule,
     Recipe,
-    RecipeHint,
     RecipeItem,
+    Rule,
 )
 
 
@@ -33,9 +23,9 @@ def make_recipe(status: str = ContentStatus.APPROVED, **kwargs) -> Recipe:
         "title": "Pfannkuchen",
         "summary": "Einfache Pfannkuchen für die Gruppe",
         "description": "## Zubereitung\n1. Mehl, Eier und Milch verrühren\n2. In der Pfanne ausbacken",
-        "difficulty": DifficultyChoices.EASY,
-        "execution_time": ExecutionTimeChoices.LESS_30,
-        "recipe_type": RecipeTypeChoices.WARM_MEAL,
+        "difficulty": "easy",
+        "execution_time": "less_30",
+        "recipe_type": "warm_meal",
         "servings": 4,
         "status": status,
     }
@@ -61,44 +51,27 @@ def make_recipe_item(recipe: Recipe | None = None, **kwargs) -> RecipeItem:
 
 
 # ---------------------------------------------------------------------------
-# RecipeHint
+# Rule
 # ---------------------------------------------------------------------------
 
 
-def make_recipe_hint(**kwargs) -> RecipeHint:
-    defaults = {
-        "name": "Zu viel Salz",
-        "description": "Der Salzgehalt pro Portion ist zu hoch.",
-        "parameter": HintParameterChoices.SALT_G,
-        "max_value": 2.0,
-        "min_max": HintMinMaxChoices.MAX,
-        "hint_level": HintLevelChoices.WARNING,
-        "recipe_objective": RecipeObjectiveChoices.HEALTH,
-    }
-    defaults.update(kwargs)
-    return baker.make(RecipeHint, **defaults)
-
-
-# ---------------------------------------------------------------------------
-# HealthRule
-# ---------------------------------------------------------------------------
-
-
-def make_health_rule(**kwargs) -> HealthRule:
+def make_rule(**kwargs) -> Rule:
     defaults = {
         "name": "Zuckergehalt pro Mahlzeit",
         "description": "Bewertung des Zuckergehalts pro 100g",
         "parameter": "sugar_g",
         "scope": "meal",
+        "rule_type": "nutrition",
         "max_green": 10.0,
         "max_yellow": 20.0,
         "unit": "g",
+        "hint_level": "warn",
         "tip_text": "Zucker reduzieren.",
         "is_active": True,
         "sort_order": 1,
     }
     defaults.update(kwargs)
-    return baker.make(HealthRule, **defaults)
+    return baker.make(Rule, **defaults)
 
 
 # ---------------------------------------------------------------------------

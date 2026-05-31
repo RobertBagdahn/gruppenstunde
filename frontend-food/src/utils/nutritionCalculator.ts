@@ -139,21 +139,3 @@ export function calculateNutrition(
     items: itemResults,
   };
 }
-
-/**
- * Calculate per-100g nutritional values from totals.
- */
-export function calculatePer100g(totals: NutritionTotals): Record<string, number> {
-  const factor = totals.total_weight_g > 0 ? 100 / totals.total_weight_g : 0;
-  return {
-    energy_kj: totals.total_energy_kj * factor,
-    energy_kcal: totals.total_energy_kcal * factor,
-    protein_g: totals.total_protein_g * factor,
-    fat_g: totals.total_fat_g * factor,
-    fat_sat_g: totals.total_fat_sat_g * factor,
-    carbohydrate_g: totals.total_carbohydrate_g * factor,
-    sugar_g: totals.total_sugar_g * factor,
-    fibre_g: totals.total_fibre_g * factor,
-    salt_g: totals.total_salt_g * factor,
-  };
-}

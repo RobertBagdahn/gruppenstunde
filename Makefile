@@ -83,7 +83,9 @@ reset-db: ## Reset database completely (WARNING: destroys all data)
 	@echo "Waiting for PostgreSQL to start..."
 	@sleep 3
 	$(MANAGE) migrate
-	$(MANAGE) createsuperuser --noinput --email admin@inspi.dev || true
+	$(MANAGE) add_users
+	$(MANAGE) seed_all --only recipes
+	$(MANAGE) seed_all --only planner
 	@echo "Database reset complete."
 
 # -----------------------------------------------

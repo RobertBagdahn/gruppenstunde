@@ -8,7 +8,7 @@ Eine eigenständige Seite unter `/cost-calculation` zeigt aggregierte Kosteninfo
 - **THEN** Seite zeigt drei Sektionen: Rezeptkosten, Wochenplan-Kosten, Frühstückskosten
 
 #### Scenario: Rezeptkosten werden angezeigt
-- **WHEN** Rezepte mit `price_total > 0` existieren
+- **WHEN** Rezepte mit `cached_price_total > 0` existieren
 - **THEN** Sektion "Rezeptkosten" zeigt eine Liste aller Rezepte mit Namen und Gesamtpreis
 
 #### Scenario: Keine Rezepte vorhanden

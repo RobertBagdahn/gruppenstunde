@@ -13,11 +13,13 @@ import {
   NutritionSummarySchema,
   ShoppingListItemSchema,
   UnifiedSearchResponseSchema,
+  RecipePopularResponseSchema,
   type MealPlan,
   type MealPlanDetail,
   type MealPlanCostSummary,
   type NutritionSummary,
   type UnifiedSearchResponse,
+  type RecipePopularResponse,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 
@@ -349,6 +351,32 @@ export function useRecipeSearch(params: RecipeSearchParams) {
         UnifiedSearchResponseSchema,
       ),
     enabled: q.length >= 2 || !!recipe_type || !!nutritional_tag_ids?.length,
+  });
+}
+
+// ==========================================================================
+// Popular Recipes
+// ==========================================================================
+
+export interface PopularRecipesParams {
+  mealType?: string;
+  limit?: number;
+}
+
+export function usePopularRecipes(params: PopularRecipesParams) {
+  const { mealType, limit = 8 } = params;
+
+  const searchParams = new URLSearchParams();
+  if (mealType) searchParams.set('meal_type', mealType);
+  searchParams.set('limit', String(limit));
+
+  return useQuery<RecipePopularResponse>({
+    queryKey: ['popular-recipes', mealType, limit],
+    queryFn: () =>
+      fetchJson(
+        `${API_BASE}/recipes/popular/?${searchParams.toString()}`,
+        RecipePopularResponseSchema,
+      ),
   });
 }
 

@@ -6,14 +6,12 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   groupsession: 'Gruppenstunde',
   blog: 'Blog',
   game: 'Spiel',
-  recipe: 'Rezept',
 };
 
 const CONTENT_TYPE_URLS: Record<string, string> = {
   groupsession: '/sessions/',
   blog: '/blogs/',
   game: '/games/',
-  recipe: '/recipes/',
 };
 
 export default function ApprovalQueuePage() {

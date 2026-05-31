@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
-import { useIngredients, useDeleteIngredient } from '@/api/ingredients';
+import { useIngredients, useDeleteIngredient } from '@/api/supplies';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';

@@ -20,7 +20,6 @@ import {
   useDeleteBookingOption,
   useDuplicateEvent,
 } from '@/api/events';
-import { useMealPlans } from '@/api/mealPlans';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { MeetingPointPicker } from '@/components/events/MeetingPointPicker';
 
@@ -43,7 +42,6 @@ export default function SettingsTab({ event }: Props) {
       <EventDataSection event={event} />
       <ParticipantVisibilitySection event={event} />
       <BookingOptionsSection event={event} />
-      <MealPlanLinkSection event={event} />
       <CustomFieldsSection event={event} />
       <LabelsSection event={event} />
       <DuplicationSection event={event} />
@@ -590,95 +588,6 @@ function BookingOptionsSection({ event }: Props) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Meal Plan Link Section (24.1 + 24.2)
-// ---------------------------------------------------------------------------
-
-function MealPlanLinkSection({ event }: Props) {
-  const updateEvent = useUpdateEvent(event.slug);
-  const { data: mealPlans, isLoading } = useMealPlans();
-  const navigate = useNavigate();
-  const [selectedId, setSelectedId] = useState<number | null>(event.meal_plan_id ?? null);
-
-  const handleLink = () => {
-    updateEvent.mutate(
-      { meal_plan_id: selectedId },
-      {
-        onSuccess: () => toast.success(selectedId ? 'Essensplan verknüpft' : 'Essensplan entfernt'),
-        onError: (err) => toast.error('Fehler', { description: err.message }),
-      },
-    );
-  };
-
-  const linkedMealPlan = mealPlans?.find((me) => me.id === event.meal_plan_id);
-
-  return (
-    <section>
-      <SectionHeader icon="restaurant_menu" title="Essensplan verknüpfen" />
-      <p className="text-xs text-muted-foreground mt-1 mb-3">
-        Verknüpfe einen bestehenden Essensplan mit diesem Event, um Mahlzeiten zu planen.
-      </p>
-
-      {/* Current link status */}
-      {linkedMealPlan && (
-        <div className="flex items-center justify-between border rounded-lg p-3 mb-3 bg-emerald-50/50 border-emerald-200">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-emerald-600">link</span>
-            <div>
-              <p className="text-sm font-medium">{linkedMealPlan.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {linkedMealPlan.meals_count} Mahlzeiten
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate(`/meal-plans/${linkedMealPlan.id}`)}
-            className="text-sm text-violet-600 hover:text-violet-800 flex items-center gap-1"
-          >
-            Öffnen
-            <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-          </button>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
-        <div className="flex-1 w-full sm:w-auto">
-          <FieldLabel>Essensplan auswählen</FieldLabel>
-          <select
-            value={selectedId ?? ''}
-            onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : null)}
-            disabled={isLoading}
-            className="w-full text-sm border rounded-lg px-3 py-2 bg-background"
-          >
-            <option value="">Kein Essensplan</option>
-            {(mealPlans ?? []).map((me) => (
-              <option key={me.id} value={me.id}>
-                {me.name} ({me.meals_count} Mahlzeiten)
-              </option>
-            ))}
-          </select>
-        </div>
-        <button
-          onClick={handleLink}
-          disabled={updateEvent.isPending || selectedId === (event.meal_plan_id ?? null)}
-          className="px-4 py-2 text-sm font-medium rounded-lg border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-        >
-          <span className="material-symbols-outlined text-[16px]">link</span>
-          {updateEvent.isPending ? 'Wird gespeichert...' : 'Verknüpfen'}
-        </button>
-      </div>
-
-      {/* Quick link to create new meal plan */}
-      <button
-        onClick={() => navigate('/meal-plans/new')}
-        className="mt-2 flex items-center gap-1 text-sm text-violet-600 hover:text-violet-800 transition-colors"
-      >
-        <span className="material-symbols-outlined text-[16px]">add</span>
-        Neuen Essensplan erstellen
-      </button>
-    </section>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Custom Fields Section

@@ -3,7 +3,7 @@
 Merges two sources of improvement suggestions:
 
 * Nutri-Score simulation (`nutri_improvement_service.calculate_nutri_improvements`)
-* Configurable RecipeHint rules (`recipe_checks.match_recipe_hints`)
+* Configurable Rule rules (`recipe_checks.match_recipe_hints`)
 
 Produces a single, deterministic Top-5 list. Each item carries a quantitative
 ``impact_score`` (0–100) used for ordering, plus a ``source`` tag
@@ -25,7 +25,7 @@ TOP_N = 5
 ALL_GOOD_MESSAGE = "Dieses Rezept ist in allen bewerteten Dimensionen im grünen Bereich."
 
 # Nutri-Score class boundaries (per-100g thresholds for a one-class improvement).
-# Used only as a fallback when no RecipeHint defines a threshold for a parameter.
+# Used only as a fallback when no Rule defines a threshold for a parameter.
 # Values correspond to roughly the "good" end of the next-better class per the
 # standard solid-food Nutri-Score scoring tables.
 _NUTRI_FALLBACK_THRESHOLDS: dict[str, float] = {
@@ -98,7 +98,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
             "hint_level": "",
         }
 
-    # Merge in RecipeHint matches
+    # Merge in Rule matches
     for match in hint_matches:
         hint = match["hint"]
         parameter = hint.parameter
@@ -119,7 +119,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
 
         if parameter in buckets:
             existing = buckets[parameter]
-            # Threshold source from RecipeHint takes precedence
+            # Threshold source from Rule takes precedence
             existing["threshold_value"] = threshold
             existing["direction"] = direction
             existing["delta"] = delta
@@ -175,7 +175,7 @@ def _score_nutri_candidate(candidate: dict) -> float:
 
 
 def _score_recipe_hint(hint, actual_value: float) -> float:
-    """Normalised 0–1 impact contribution from a RecipeHint match.
+    """Normalised 0–1 impact contribution from a Rule match.
 
     For ``min_max='max'``: (current - value) / value, clamped 0–1.
     For ``min_max='min'``: (value - current) / value, clamped 0–1.

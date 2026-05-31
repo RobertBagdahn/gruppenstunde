@@ -8,11 +8,11 @@ from core.api import auth_router
 from content.admin_api import router as admin_router
 from content.api import router as content_router
 from recipe.api import router as recipe_router, folder_router as recipe_folder_router
-from recipe.api.cockpit import cockpit_router, health_rule_router
 from recipe.api.dashboard import router as dashboard_router
-from recipe.api.hints import router as recipe_hint_router
+from recipe.api.rules import router as rules_router
 from planner.api import router as planner_router
 from planner.meal_plan_api import meal_plan_router
+from planner.api.ref_meal import ref_meal_router
 from profiles.api import group_router, profile_router
 from event.api import (
     event_router,
@@ -23,7 +23,7 @@ from event.api import (
     whatsapp_router,
 )
 from packinglist.api import packing_list_router
-from shopping.api import shopping_router
+from shopping.api import kitchen_reminder_router, shopping_router
 from session.api import router as session_router
 from supply.api import (
     router as supply_router,
@@ -48,6 +48,7 @@ api.add_router("/auth/", auth_router)
 api.add_router("/admin/", admin_router)
 api.add_router("/planner/", planner_router)
 api.add_router("/meal-plans/", meal_plan_router)
+api.add_router("/meal-plans/", ref_meal_router)
 api.add_router("/profile/", profile_router)
 api.add_router("/groups/", group_router)
 api.add_router("/events/", event_router)
@@ -58,15 +59,14 @@ api.add_router("/whatsapp/", whatsapp_router)
 api.add_router("/message-templates/", template_router)
 api.add_router("/packing-lists/", packing_list_router)
 api.add_router("/shopping-lists/", shopping_router)
+api.add_router("/kitchen-reminders/", kitchen_reminder_router)
 api.add_router("/ingredients/", ingredient_router)
 api.add_router("/retail-sections/", retail_section_router)
 api.add_router("/nutritional-tags/", nutritional_tag_router)
 api.add_router("/unit-conversions/", unit_conversion_router)
 api.add_router("/recipes/", recipe_router)
 api.add_router("/recipe-folders/", recipe_folder_router)
-api.add_router("/recipe-hints/", recipe_hint_router)
-api.add_router("/health-rules/", health_rule_router)
-api.add_router("/", cockpit_router)
+api.add_router("/rules/", rules_router)
 api.add_router("/", dashboard_router)
 # Content-type routers
 api.add_router("/sessions/", session_router)

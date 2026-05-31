@@ -1,11 +1,14 @@
 """Recipe schemas package — re-exports all schemas for backward compatibility."""
 
-from .cockpit import (
-    CockpitDashboardOut,
-    CockpitEvaluationOut,
-    HealthRuleIn,
-    HealthRuleOut,
-    HealthRuleUpdateIn,
+from .rules import (
+    RuleIn,
+    RuleOut,
+    RuleUpdateIn,
+)
+from .suggestions import (
+    RecipeSuggestionOut,
+    SuggestionDashboardOut,
+    SuggestionOut,
 )
 from .recipes import (
     NutritionalTagOut,
@@ -41,7 +44,6 @@ from .nutrition import (
     LlmSuggestionOut,
     LlmSuggestionRequestIn,
     NutriScoreDetailOut,
-    RecipeHintOut,
     RecipeItemNutritionOut,
     RecipeNutritionBreakdownOut,
     SuggestedIngredientOut,
@@ -49,18 +51,12 @@ from .nutrition import (
 
 __all__ = [
     "AiIngredientApplyIn",
-    "DashboardInsightsOut",
-    "FoodDashboardOut",
-    "RecipeInsightOut",
     "AiIngredientSuggestionOut",
-    "CockpitDashboardOut",
-    "CockpitEvaluationOut",
     "ContributionOut",
+    "DashboardInsightsOut",
     "EstimateQuantitiesOut",
     "EstimateQuantityItemOut",
-    "HealthRuleIn",
-    "HealthRuleOut",
-    "HealthRuleUpdateIn",
+    "FoodDashboardOut",
     "ImprovementListOut",
     "ImprovementOut",
     "LlmSuggestionOut",
@@ -72,7 +68,7 @@ __all__ = [
     "RecipeCreateIn",
     "RecipeDetailOut",
     "RecipeFilterIn",
-    "RecipeHintOut",
+    "RecipeInsightOut",
     "RecipeItemCreateIn",
     "RecipeItemNutritionOut",
     "RecipeItemOut",
@@ -80,8 +76,14 @@ __all__ = [
     "RecipeListOut",
     "RecipeNutritionBreakdownOut",
     "RecipeSimilarOut",
+    "RecipeSuggestionOut",
     "RecipeSuggestAllOut",
     "RecipeUpdateIn",
+    "RuleIn",
+    "RuleOut",
+    "RuleUpdateIn",
     "SuggestedIngredientOut",
+    "SuggestionDashboardOut",
+    "SuggestionOut",
     "VisibilityUpdateIn",
 ]

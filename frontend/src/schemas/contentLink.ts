@@ -84,5 +84,4 @@ export const CONTENT_TYPE_LABELS: Record<string, { label: string; pluralLabel: s
   groupsession: { label: 'Gruppenstunde', pluralLabel: 'Passende Gruppenstunden', icon: 'groups', urlPrefix: '/sessions/' },
   blog: { label: 'Wissensbeitrag', pluralLabel: 'Passende Wissensbeiträge', icon: 'article', urlPrefix: '/blogs/' },
   game: { label: 'Spiel', pluralLabel: 'Passende Spiele', icon: 'sports_esports', urlPrefix: '/games/' },
-  recipe: { label: 'Rezept', pluralLabel: 'Passende Rezepte', icon: 'menu_book', urlPrefix: '/recipes/' },
 };

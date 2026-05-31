@@ -23,6 +23,7 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         timeout: 300_000,
+        proxyTimeout: 300_000,
       },
       '/media': {
         target: 'http://localhost:8000',

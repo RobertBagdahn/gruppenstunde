@@ -272,7 +272,7 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     def _import_file_0_master_data(self) -> None:
-        from recipe.models import RecipeHint
+        from recipe.models import Recipe, RecipeItem
         from supply.models import MeasuringUnit, NutritionalTag, RetailSection
 
         entries = self._load_fixture("0_init_data.json")
@@ -340,42 +340,8 @@ class Command(BaseCommand):
             f"{self.counters['NutritionalTag']['skipped']} übersprungen"
         )
 
-        # RecipeHints
-        self.stdout.write("  RecipeHints...")
-        hint_level_map = {"warn": "warn", "error": "error"}
-        for entry in grouped.get("food.recipehint", []):
-            fields = entry["fields"]
-            name = fields.get("hint", "")[:255]
-            if not name:
-                continue
-
-            inspi_level = fields.get("hint_level", "warn")
-            hint_level = hint_level_map.get(inspi_level, "info")
-            parameter = fields.get("parameter", "")
-            min_max = fields.get("min_max", "max")
-            value = self._safe_float(fields.get("value"))
-
-            defaults: dict[str, Any] = {
-                "description": fields.get("improvement", ""),
-                "hint": name,
-                "parameter": parameter,
-                "hint_level": hint_level,
-                "min_max": min_max,
-                "value": value or 0,
-                "recipe_type": "",
-                "recipe_objective": "",
-            }
-
-            _, created = RecipeHint.objects.get_or_create(
-                name=name,
-                defaults=defaults,
-            )
-            self._count("RecipeHint", "created" if created else "skipped")
-
-        self.stdout.write(
-            f"    {self.counters['RecipeHint']['created']} erstellt, "
-            f"{self.counters['RecipeHint']['skipped']} übersprungen"
-        )
+        # RecipeHints — DEPRECATED: merged into Rule model
+        self.stdout.write("  RecipeHints... (übersprungen — nutze seed_rules)")
 
     # ------------------------------------------------------------------
     # File 1 & 2: Ingredients + Portions

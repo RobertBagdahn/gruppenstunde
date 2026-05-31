@@ -104,3 +104,5 @@ Alle Funktionalität rund um das Thema **Essen** wird im Food Frontend (`fronten
 
 Das Food Frontend ist eine eigenständige Anwendung, getrennt vom Haupt-Frontend (`frontend/`). Backend-APIs für Essen werden im selben Backend bereitgestellt, aber die UI lebt ausschließlich in `frontend-food/`.
 
+**⚠️ Strikte Trennung**: Im Haupt-Frontend (`frontend/`) darf **kein** Food-bezogener Code existieren — keine Pages, Components, API-Hooks, Schemas, Stores, Utils, Routen oder Navigationslinks für Rezepte, Zutaten, Essenspläne, Einkaufslisten oder Ernährungsfeatures. Diese Regel gilt auch für Cross-Cutting-Concerns: Wenn ein Event einen Essensplan hat, wird die Verknüpfung im Food-Frontend dargestellt, nicht im Haupt-Frontend.
+

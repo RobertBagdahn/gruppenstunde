@@ -375,7 +375,7 @@ def create_recipe(request, payload: RecipeCreateIn):
         summary_long=payload.summary_long,
         description=payload.description,
         recipe_type=payload.recipe_type,
-        servings=payload.servings,
+        servings=1,  # Always store per-1-portion
         costs_rating=payload.costs_rating,
         execution_time=payload.execution_time,
         preparation_time=payload.preparation_time,
@@ -423,6 +423,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         raise HttpError(403, "Keine Berechtigung")
 
     data = payload.dict(exclude_unset=True)
+    data.pop("servings", None)  # Always enforce servings=1
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
     nutritional_tag_ids = data.pop("nutritional_tag_ids", None)

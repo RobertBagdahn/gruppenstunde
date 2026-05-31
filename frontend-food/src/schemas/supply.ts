@@ -269,43 +269,6 @@ export type PaginatedIngredient = z.infer<typeof PaginatedIngredientSchema>;
 // Recipe analysis schemas (used by both ingredient and recipe APIs)
 // ---------------------------------------------------------------------------
 
-export const RecipeHintSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  description: z.string(),
-  improvement_text: z.string(),
-  hint: z.string(),
-  parameter: z.string(),
-  value: z.number(),
-  min_max: z.string(),
-  hint_level: z.string(),
-  recipe_type: z.string(),
-  recipe_objective: z.string(),
-});
-export type RecipeHint = z.infer<typeof RecipeHintSchema>;
-
-export const RecipeHintInSchema = z.object({
-  name: z.string().min(1, 'Name ist erforderlich'),
-  description: z.string(),
-  improvement_text: z.string(),
-  hint: z.string(),
-  parameter: z.string().min(1, 'Parameter ist erforderlich'),
-  value: z.number(),
-  min_max: z.string().min(1, 'Regeltyp ist erforderlich'),
-  hint_level: z.string(),
-  recipe_type: z.string(),
-  recipe_objective: z.string(),
-});
-export type RecipeHintIn = z.infer<typeof RecipeHintInSchema>;
-
-export const RecipeHintMatchSchema = z.object({
-  hint: RecipeHintSchema,
-  actual_value: z.number(),
-  message: z.string(),
-  improvement_text: z.string().default(''),
-});
-export type RecipeHintMatch = z.infer<typeof RecipeHintMatchSchema>;
-
 export const NutriScoreDetailSchema = z.object({
   negative_points: z.number(),
   positive_points: z.number(),
@@ -434,3 +397,42 @@ export const UnitConversionResultSchema = z.object({
   is_ingredient_specific: z.boolean(),
 });
 export type UnitConversionResult = z.infer<typeof UnitConversionResultSchema>;
+
+// --- Available Conversions ---
+
+export const AvailableConversionItemSchema = z.object({
+  to_unit_id: z.number(),
+  to_unit_name: z.string(),
+  quantity: z.number(),
+  is_ingredient_specific: z.boolean(),
+});
+export type AvailableConversionItem = z.infer<typeof AvailableConversionItemSchema>;
+
+export const AvailableConversionsSchema = z.object({
+  from_unit_id: z.number(),
+  from_unit_name: z.string(),
+  original_quantity: z.number(),
+  conversions: z.array(AvailableConversionItemSchema),
+});
+export type AvailableConversions = z.infer<typeof AvailableConversionsSchema>;
+
+export const AvailableConversionBatchRequestItemSchema = z.object({
+  ingredient_id: z.number(),
+  from_unit_id: z.number(),
+  quantity: z.number(),
+});
+export type AvailableConversionBatchRequestItem = z.infer<typeof AvailableConversionBatchRequestItemSchema>;
+
+export const AvailableConversionBatchItemSchema = z.object({
+  ingredient_id: z.number(),
+  from_unit_id: z.number(),
+  from_unit_name: z.string(),
+  original_quantity: z.number(),
+  conversions: z.array(AvailableConversionItemSchema),
+});
+export type AvailableConversionBatchItem = z.infer<typeof AvailableConversionBatchItemSchema>;
+
+export const AvailableConversionBatchSchema = z.object({
+  items: z.array(AvailableConversionBatchItemSchema),
+});
+export type AvailableConversionBatch = z.infer<typeof AvailableConversionBatchSchema>;

@@ -21,6 +21,7 @@ import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
 import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
 import MealPlanListPage from './pages/planning/MealEventListPage';
 import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
+import RefMealEditorPage from './pages/planning/RefMealEditorPage';
 
 // Shopping list pages
 import ShoppingListPage from './pages/shopping/ShoppingListPage';
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="/meal-plans" element={<MealPlanLandingPage />} />
         <Route path="/meal-plans/app" element={<MealPlanListPage />} />
         <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
+        <Route path="/meal-plans/:id/ref-meals/:mealType" element={<RefMealEditorPage />} />
         <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />
 
         {/* Shopping Lists */}

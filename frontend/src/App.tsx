@@ -37,10 +37,7 @@ import CreateBlogPage from './pages/blogs/CreateBlogPage';
 import CreateGamePage from './pages/games/CreateGamePage';
 import EventsLandingPage from './pages/tools/EventsLandingPage';
 import SessionPlannerLandingPage from './pages/tools/SessionPlannerLandingPage';
-import MealPlansPage from './pages/tools/MealPlansPage';
-import CreateMealPlanPage from './pages/tools/CreateMealPlanPage';
-import MealPlanDetailPage from './pages/tools/MealPlanDetailPage';
-import MealPlanLandingPage from './pages/tools/MealPlanLandingPage';
+
 import SessionListPage from './pages/sessions/SessionListPage';
 import SessionDetailPage from './pages/sessions/SessionDetailPage';
 import BlogListPage from './pages/blogs/BlogListPage';
@@ -49,12 +46,7 @@ import GameListPage from './pages/games/GameListPage';
 import GameDetailPage from './pages/games/GameDetailPage';
 import MaterialListPage from './pages/supplies/MaterialListPage';
 import MaterialDetailPage from './pages/supplies/MaterialDetailPage';
-import RecipeListPage from './pages/recipes/RecipeListPage';
-import MyRecipesPage from './pages/recipes/MyRecipesPage';
-import CreateRecipePage from './pages/recipes/CreateRecipePage';
-import EditRecipePage from './pages/recipes/EditRecipePage';
-import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
-import RecipeImportPage from './pages/recipes/RecipeImportPage';
+
 
 function App() {
   return (
@@ -98,12 +90,6 @@ function App() {
         <Route path="/session-planner" element={<SessionPlannerLandingPage />} />
         <Route path="/session-planner/app" element={<PlannerPage />} />
 
-        {/* Tool: Essenspläne */}
-        <Route path="/meal-plans" element={<MealPlanLandingPage />} />
-        <Route path="/meal-plans/app" element={<MealPlansPage />} />
-        <Route path="/meal-plans/new" element={<CreateMealPlanPage />} />
-        <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
-
         {/* Content: Gruppenstunden (new content type) */}
         <Route path="/sessions" element={<SessionListPage />} />
         <Route path="/sessions/:slug" element={<SessionDetailPage />} />
@@ -116,13 +102,6 @@ function App() {
         <Route path="/games" element={<GameListPage />} />
         <Route path="/games/:slug" element={<GameDetailPage />} />
 
-        {/* Content: Recipes */}
-        <Route path="/recipes" element={<RecipeListPage />} />
-        <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
-        <Route path="/recipes/import" element={<RecipeImportPage />} />
-        <Route path="/recipes/new" element={<CreateRecipePage />} />
-        <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
-        <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
 
         {/* Tool: Packlisten */}
         <Route path="/packing-lists" element={<PackingListLandingPage />} />

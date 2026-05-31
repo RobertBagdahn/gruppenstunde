@@ -6,6 +6,7 @@ import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { useBlocker } from '@/hooks/useBlocker';
 import { useCreateFromRecipe } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
+import { useAvailableConversions } from '@/api/supplies';
 import {
   useRecipeBySlug,
   useRecipeComments,
@@ -308,6 +309,30 @@ export default function RecipeDetailPage() {
 
   const { data: currentUser } = useCurrentUser();
   const createFromRecipe = useCreateFromRecipe();
+
+  // Unit conversion data for ingredient display
+  // Request conversions from g (base unit) since IngredientList displays in grams
+  const conversionRequestItems = useMemo(() => {
+    const items = recipe?.recipe_items ?? [];
+    // Deduplicate by ingredient_id (same ingredient, same conversions)
+    const seen = new Set<number>();
+    return items
+      .filter((item) => {
+        if (!item.ingredient_id || seen.has(item.ingredient_id)) return false;
+        seen.add(item.ingredient_id);
+        return true;
+      })
+      .map((item) => ({
+        ingredient_id: item.ingredient_id!,
+        from_unit_id: 14, // g unit — IngredientList calculates weightG
+        quantity: 1, // normalized; actual scaling happens in UnitSwitcher
+      }));
+  }, [recipe?.recipe_items]);
+
+  const { data: availableConversions } = useAvailableConversions(
+    conversionRequestItems,
+    conversionRequestItems.length > 0,
+  );
 
   // Recipe modification store
   const isDirty = useRecipeModificationStore((s) => s.isDirty);
@@ -946,6 +971,7 @@ export default function RecipeDetailPage() {
               : (recipe.recipe_items ?? [])}
             servings={isDirty ? (modifiedServings ?? recipe.servings) : recipe.servings}
             servingsMultiplier={isDirty ? 1 : (servingsMultiplier / (recipe.servings ?? 1))}
+            availableConversions={availableConversions?.items}
           />
         )}
 

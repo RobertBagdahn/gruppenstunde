@@ -14,5 +14,10 @@ MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")  # noqa:
 
 INTERNAL_IPS = ["127.0.0.1"]
 
-# Local media storage
+# Local media storage — outside project dir to avoid triggering StatReloader
+import os
+
+MEDIA_ROOT = "/tmp/inspi-media/"
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"

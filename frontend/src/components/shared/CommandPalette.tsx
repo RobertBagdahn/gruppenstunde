@@ -41,7 +41,6 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
 const QUICK_ACTIONS = [
   { label: 'Neue Gruppenstunde erstellen', icon: 'school', href: '/sessions/new' },
   { label: 'Neues Spiel erstellen', icon: 'sports_esports', href: '/games/new' },
-  { label: 'Neues Rezept erstellen', icon: 'restaurant', href: '/recipes/new' },
   { label: 'Neuen Wissensbeitrag erstellen', icon: 'article', href: '/blogs/new' },
 ];
 
@@ -52,11 +51,9 @@ const PAGE_LINKS = [
   { label: 'Suchen', icon: 'search', href: '/search' },
   { label: 'Gruppenstunden', icon: 'school', href: '/sessions' },
   { label: 'Spiele', icon: 'sports_esports', href: '/games' },
-  { label: 'Rezepte', icon: 'restaurant', href: '/recipes' },
   { label: 'Wissensbeiträge', icon: 'article', href: '/blogs' },
   { label: 'Aktionen', icon: 'celebration', href: '/events' },
   { label: 'Gruppenstundenplan', icon: 'calendar_month', href: '/planner' },
-  { label: 'Essensplanung', icon: 'restaurant_menu', href: '/meal-plans' },
   { label: 'Packlisten', icon: 'backpack', href: '/packing-lists' },
 ];
 

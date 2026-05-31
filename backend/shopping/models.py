@@ -221,3 +221,68 @@ class ShoppingListCollaborator(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} – {self.get_role_display()} ({self.shopping_list.name})"
+
+
+class KitchenReminderCategory(models.Model):
+    """Category for kitchen reminder items (e.g. Reinigung, Hygiene, Kochen)."""
+
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_("Name"),
+    )
+    sort_order = models.IntegerField(
+        default=0,
+        verbose_name=_("Sortierung"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Küchenbedarf-Kategorie")
+        verbose_name_plural = _("Küchenbedarf-Kategorien")
+        ordering = ["sort_order", "name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class KitchenReminder(models.Model):
+    """A kitchen supply reminder item shown at the bottom of every shopping list."""
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name=_("Name"),
+    )
+    category = models.ForeignKey(
+        KitchenReminderCategory,
+        on_delete=models.CASCADE,
+        related_name="reminders",
+        verbose_name=_("Kategorie"),
+        null=True,
+        blank=True,
+    )
+    sort_order = models.IntegerField(
+        default=0,
+        verbose_name=_("Sortierung"),
+    )
+    is_published = models.BooleanField(
+        default=False,
+        verbose_name=_("Veröffentlicht"),
+    )
+    suggested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="kitchen_reminder_suggestions",
+        verbose_name=_("Vorgeschlagen von"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Küchenbedarf-Erinnerung")
+        verbose_name_plural = _("Küchenbedarf-Erinnerungen")
+        ordering = ["category__sort_order", "sort_order", "name"]
+
+    def __str__(self) -> str:
+        status = "✓" if self.is_published else "○"
+        return f"{status} {self.name}"

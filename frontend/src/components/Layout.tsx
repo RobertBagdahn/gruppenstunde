@@ -656,10 +656,6 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="material-symbols-outlined text-[18px]">sports_esports</span>
                 Spiele
               </Link>
-              <Link to="/recipes" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
-                <span className="material-symbols-outlined text-[18px]">menu_book</span>
-                Rezepte
-              </Link>
               <Link to="/events" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">celebration</span>
                 Aktionen
@@ -667,10 +663,6 @@ export default function Layout({ children }: LayoutProps) {
               <Link to="/session-planner" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">calendar_month</span>
                 Gruppenstundenplan
-              </Link>
-              <Link to="/meal-plans" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
-                <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
-                Essensplan
               </Link>
               <Link to="/packing-lists" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors font-medium">
                 <span className="material-symbols-outlined text-[18px]">checklist</span>

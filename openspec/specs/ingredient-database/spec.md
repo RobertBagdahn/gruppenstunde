@@ -1,17 +1,17 @@
 ## MODIFIED Requirements
 
-### Requirement: Ingredient inherits from Supply
-Ingredient SHALL inherit from the abstract Supply base class. All existing Ingredient fields SHALL be preserved. The model SHALL live in the `supply` app. `price_per_kg` (DecimalField) SHALL be the sole price field — no separate Price model.
+### Requirement: Ingredient is standalone model
+Ingredient SHALL be a standalone Django model (`models.Model`), NOT inheriting from the abstract `Supply` base class. This is because Ingredient has 30+ nutritional/score fields that have nothing in common with Supply (which provides name, slug, description, image). The model SHALL live in the `supply` app. `price_per_kg` (DecimalField) SHALL be the sole price field — no separate Price model.
 
 #### Scenario: Ingredient has price_per_kg as only price field
 - **WHEN** an Ingredient is created or updated
 - **THEN** `price_per_kg` SHALL be settable directly on the Ingredient
 - **THEN** there SHALL be no separate Price model or Price table
 
-#### Scenario: Ingredient migration to supply app
-- **WHEN** the migration runs
-- **THEN** all Ingredient data SHALL be preserved in the supply.Ingredient table
-- **THEN** all ForeignKey references (from Portion, RecipeItem, etc.) SHALL be updated
+#### Scenario: Ingredient does not inherit Supply fields
+- **WHEN** Ingredient model is inspected
+- **THEN** it SHALL NOT have inherited fields from Supply (no automatic slug, image, soft_delete from Supply)
+- **THEN** it SHALL define its own name, slug, description fields directly
 
 ### Requirement: Portion and Price relationship simplified
 Portion SHALL reference Ingredient directly. The Price model SHALL be removed entirely. Ingredient SHALL store its price via the `price_per_kg` field. Additionally, Portion SHALL have a `priority` field (IntegerField, default=0) to control display ordering and an `is_default` field (BooleanField, default=False) to mark the preferred portion for display. Only one Portion per Ingredient SHALL have `is_default=True`.

@@ -16,14 +16,13 @@ from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.db.models import Q
-from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
 from core.services.gemini import gemini_call
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
 
 
 # ---------------------------------------------------------------------------
@@ -213,34 +212,147 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
 # ---------------------------------------------------------------------------
 
 
+def _clean_ingredient_name(raw_name: str) -> list[str]:
+    """Extract clean search terms from a raw ingredient name.
+
+    Returns a list of search terms to try (best match first).
+    E.g. "m.-große Möhre(n)" -> ["Möhre", "Möhren"]
+         "Petersilie (gehackte)" -> ["Petersilie"]
+         "Hähnchenbrustfilet(s)" -> ["Hähnchenbrustfilet", "Hähnchenbrustfilets"]
+    """
+    import re
+
+    name = raw_name.strip()
+
+    # Remove parenthetical descriptions: "Petersilie (gehackte)" -> "Petersilie"
+    name = re.sub(r"\s*\([^)]*[a-zA-ZäöüÄÖÜß]{3,}[^)]*\)", "", name)
+
+    # Handle "(s)" and "(n)" plural markers
+    # "Hähnchenbrustfilet(s)" -> base="Hähnchenbrustfilet", also try with suffix
+    plural_match = re.search(r"(\w+)\(([sn])\)", name)
+    if plural_match:
+        base = plural_match.group(1)
+        suffix = plural_match.group(2)
+        name = re.sub(r"\(\w\)", "", name)  # Remove all (x) markers
+        variants = [name.strip()]
+        # Also try the plural form
+        variants.append(base + suffix)
+    else:
+        variants = [name.strip()]
+
+    # Remove size/quantity prefixes: "m.-große", "große", "kleine", "mittelgroße"
+    size_prefixes = re.compile(
+        r"^(m\.\s*-?\s*große|mittelgroße|große|kleine|dicke|dünne|frische|getrocknete|gehackte|geriebene|geschälte)\s+",
+        re.IGNORECASE,
+    )
+    cleaned_variants = []
+    for v in variants:
+        cleaned = size_prefixes.sub("", v).strip()
+        if cleaned:
+            cleaned_variants.append(cleaned)
+        if cleaned != v and v.strip():
+            cleaned_variants.append(v.strip())
+
+    # Deduplicate while preserving order
+    seen = set()
+    result = []
+    for v in cleaned_variants:
+        lower = v.lower()
+        if lower not in seen and lower:
+            seen.add(lower)
+            result.append(v)
+
+    return result or [raw_name.strip()]
+
+
 def _get_ingredient_candidates(
     ingredients: list,
 ) -> dict[str, list[dict[str, Any]]]:
-    """For each extracted ingredient name, find top-5 DB candidates via text search."""
+    """For each extracted ingredient name, find DB candidates via multi-strategy search."""
+    from django.contrib.postgres.search import TrigramSimilarity
     from supply.models import Ingredient, IngredientAlias
 
     candidates: dict[str, list[dict[str, Any]]] = {}
 
     for ing in ingredients:
-        name = ing.name.strip().lower()
-        if not name:
+        raw_name = ing.name.strip()
+        if not raw_name:
             continue
 
-        # Search by name icontains
-        qs = Ingredient.objects.filter(
-            Q(name__icontains=name) | Q(aliases__name__icontains=name)
-        ).distinct()[:5]
+        search_terms = _clean_ingredient_name(raw_name)
+        found_ids: set[int] = set()
+        results: list[dict[str, Any]] = []
 
-        candidates[ing.name] = [
-            {
-                "id": i.id,
-                "name": i.name,
-                "aliases": list(
-                    i.aliases.values_list("name", flat=True)
-                ),
-            }
-            for i in qs
-        ]
+        for term in search_terms:
+            if len(results) >= 8:
+                break
+
+            # Strategy 1: Exact name match (case-insensitive)
+            exact = Ingredient.objects.filter(name__iexact=term).exclude(id__in=found_ids)[:3]
+            for i in exact:
+                if i.id not in found_ids:
+                    found_ids.add(i.id)
+                    results.append({
+                        "id": i.id,
+                        "name": i.name,
+                        "aliases": list(i.aliases.values_list("name", flat=True)),
+                    })
+
+            if len(results) >= 8:
+                break
+
+            # Strategy 2: Alias exact match
+            alias_exact = IngredientAlias.objects.filter(
+                name__iexact=term
+            ).select_related("ingredient").exclude(ingredient_id__in=found_ids)[:3]
+            for a in alias_exact:
+                if a.ingredient_id not in found_ids:
+                    found_ids.add(a.ingredient_id)
+                    results.append({
+                        "id": a.ingredient_id,
+                        "name": a.ingredient.name,
+                        "aliases": list(a.ingredient.aliases.values_list("name", flat=True)),
+                    })
+
+            if len(results) >= 8:
+                break
+
+            # Strategy 3: startswith / contains
+            partial = Ingredient.objects.filter(
+                Q(name__istartswith=term) | Q(name__icontains=term)
+            ).exclude(id__in=found_ids).distinct()[:3]
+            for i in partial:
+                if i.id not in found_ids:
+                    found_ids.add(i.id)
+                    results.append({
+                        "id": i.id,
+                        "name": i.name,
+                        "aliases": list(i.aliases.values_list("name", flat=True)),
+                    })
+
+            if len(results) >= 8:
+                break
+
+            # Strategy 4: Trigram similarity (fuzzy matching)
+            if len(term) >= 4:
+                trigram = (
+                    Ingredient.objects.annotate(
+                        similarity=TrigramSimilarity("name", term)
+                    )
+                    .filter(similarity__gt=0.3)
+                    .exclude(id__in=found_ids)
+                    .order_by("-similarity")[:3]
+                )
+                for i in trigram:
+                    if i.id not in found_ids:
+                        found_ids.add(i.id)
+                        results.append({
+                            "id": i.id,
+                            "name": i.name,
+                            "aliases": list(i.aliases.values_list("name", flat=True)),
+                        })
+
+        candidates[raw_name] = results[:8]
 
     return candidates
 
@@ -301,7 +413,6 @@ Antworte ausschließlich im angegebenen JSON-Format."""
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=GeminiRecipeExtraction,
-        tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
     response = gemini_call(
@@ -337,11 +448,18 @@ def _create_new_ingredients(
             continue
 
         data = ing.new_ingredient
-        slug = slugify(data.name)
 
-        # Avoid duplicate slugs
-        if Ingredient.objects.filter(slug=slug).exists():
-            slug = f"{slug}-imported"
+        # Check if ingredient with same name already exists – reuse it
+        existing = Ingredient.objects.filter(name__iexact=data.name).first()
+        if existing:
+            ing.matched_ingredient_id = existing.id
+            created.append({
+                "id": existing.id,
+                "name": existing.name,
+                "aliases": [],
+                "nutri_class": data.nutri_class,
+            })
+            continue
 
         # Map viscosity
         viscosity = PhysicalViscosityChoices.SOLID
@@ -350,7 +468,6 @@ def _create_new_ingredients(
 
         ingredient = Ingredient.objects.create(
             name=data.name,
-            slug=slug,
             status=IngredientStatusChoices.DRAFT,
             energy_kj=data.energy_kj,
             protein_g=data.protein_g,
@@ -380,7 +497,6 @@ def _create_new_ingredients(
         # Create default portion
         unit, _ = MeasuringUnit.objects.get_or_create(
             name=data.portion_name,
-            defaults={"abbreviation": data.portion_name[:5]},
         )
         Portion.objects.create(
             ingredient=ingredient,
@@ -435,7 +551,7 @@ def _build_recipe_items(
         measuring_unit_name = ing.unit
         if ing.unit:
             mu = MeasuringUnit.objects.filter(
-                Q(name__iexact=ing.unit) | Q(abbreviation__iexact=ing.unit)
+                Q(name__iexact=ing.unit) | Q(description__iexact=ing.unit)
             ).first()
             if mu:
                 measuring_unit_id = mu.id

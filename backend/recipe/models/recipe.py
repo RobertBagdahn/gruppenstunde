@@ -82,6 +82,14 @@ class Recipe(Content):
         help_text=_("Optionaler Ordner für persönliche Rezepte"),
     )
 
+    # --- Popularity tracking ---
+    usage_count = models.IntegerField(
+        default=0,
+        db_index=True,
+        verbose_name=_("Verwendungsanzahl"),
+        help_text=_("Wie oft dieses Rezept in Menüpläne eingefügt wurde (denormalisiert)"),
+    )
+
     # --- Source URL (for imported recipes) ---
     source_url = models.URLField(
         max_length=500,

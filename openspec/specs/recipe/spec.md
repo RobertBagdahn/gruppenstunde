@@ -123,8 +123,23 @@ The ingredient list SHALL use `text-base` (1rem/16px) as the base font size for 
 - **THEN** ingredient names and quantities are rendered at text-base size (16px)
 
 ### Requirement: RecipeItem stores quantity per person
-A RecipeItem SHALL store `quantity` as the amount per single person. The system SHALL NOT have a `quantity_type` field. All quantities are implicitly per-person.
+A RecipeItem SHALL store `quantity` as the amount per single person (1 Portion). The system SHALL NOT have a `quantity_type` field. All quantities are implicitly per-person. Since servings is always enforced as 1, quantity represents exactly what one person needs.
 
 #### Scenario: Ingredient quantity interpretation
-- **WHEN** a RecipeItem has quantity=50 and the recipe has servings=4
-- **THEN** the system interprets this as 50 units of the portion per person (200 total for 4 persons)
+- **WHEN** a RecipeItem has quantity=50
+- **THEN** the system interprets this as 50 units of the portion for 1 person
+
+#### Scenario: Frontend scales for display
+- **WHEN** the frontend displays a recipe for N persons
+- **THEN** displayed quantity = RecipeItem.quantity × N
+
+### Requirement: Recipe servings validation
+The Recipe model SHALL enforce `servings=1` at the API level. All recipe quantities MUST be stored as per-1-portion values.
+
+#### Scenario: API enforces servings=1 on create
+- **WHEN** a recipe is created via API with any `servings` value
+- **THEN** the saved recipe SHALL have `servings=1`
+
+#### Scenario: API enforces servings=1 on update
+- **WHEN** a recipe is updated via API with any `servings` value
+- **THEN** the saved recipe SHALL have `servings=1`

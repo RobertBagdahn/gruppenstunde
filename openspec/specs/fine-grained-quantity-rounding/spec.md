@@ -2,15 +2,15 @@
 
 ### Requirement: Feinere Rundung für kleine Mengen
 
-Die `smartRound()`-Funktion muss Mengen unter 10g feiner runden, damit kleine Zutatenmengen korrekt angezeigt werden.
+Die `smartRound()`-Funktion muss Mengen unter 10 feiner runden, damit kleine Zutatenmengen korrekt angezeigt werden. Die Grenzen sind konsistent mit `quantity-display-formatting`.
 
-#### Scenario: Menge unter 1g
-- **WHEN** der Eingabewert zwischen 0 (exklusiv) und 1g liegt
-- **THEN** wird auf 0,1g gerundet (z.B. 0,25 → 0,3)
+#### Scenario: Menge unter 2
+- **WHEN** der Eingabewert zwischen 0 (exklusiv) und 2 liegt
+- **THEN** wird auf 0,1 gerundet (z.B. 0,25 → 0,3; 1,5 → 1,5)
 
-#### Scenario: Menge zwischen 1g und 10g
-- **WHEN** der Eingabewert zwischen 1g und 10g liegt
-- **THEN** wird auf 1g gerundet (z.B. 3,75 → 4)
+#### Scenario: Menge zwischen 2 und 10
+- **WHEN** der Eingabewert zwischen 2 und 10 liegt
+- **THEN** wird auf 1 gerundet (z.B. 3,75 → 4)
 
 #### Scenario: Menge ist 0
 - **WHEN** der Eingabewert 0 oder negativ ist

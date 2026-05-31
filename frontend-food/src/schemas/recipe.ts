@@ -135,23 +135,6 @@ export const RecipeFilterSchema = z.object({
 });
 export type RecipeFilter = z.infer<typeof RecipeFilterSchema>;
 
-// --- Recipe Hint ---
-
-export const RecipeHintSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  description: z.string(),
-  improvement_text: z.string().default(''),
-  hint: z.string(),
-  parameter: z.string(),
-  value: z.number(),
-  min_max: z.string(),
-  hint_level: z.string(),
-  recipe_type: z.string(),
-  recipe_objective: z.string(),
-});
-export type RecipeHint = z.infer<typeof RecipeHintSchema>;
-
 // --- Nutri-Score ---
 
 export const NutriScoreDetailSchema = z.object({
@@ -329,17 +312,6 @@ export const RecipeNutritionBreakdownSchema = z.object({
   items: z.array(RecipeItemNutritionSchema),
 });
 export type RecipeNutritionBreakdown = z.infer<typeof RecipeNutritionBreakdownSchema>;
-
-// --- Recipe Folders ---
-
-export const RecipeFolderSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  parent_id: z.number().nullable(),
-  sort_order: z.number(),
-  recipe_count: z.number(),
-});
-export type RecipeFolder = z.infer<typeof RecipeFolderSchema>;
 
 // --- AI Quantity Estimation ---
 

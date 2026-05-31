@@ -1,23 +1,6 @@
-"""Nutrition-related schemas (NutriScore, Hints, Breakdown, Improvements, Suggestions)."""
+"""Nutrition-related schemas (NutriScore, Breakdown, Improvements, Suggestions)."""
 
 from ninja import Schema
-
-
-# --- Recipe Hint Schemas ---
-
-
-class RecipeHintOut(Schema):
-    id: int
-    name: str
-    description: str
-    improvement_text: str
-    hint: str
-    parameter: str
-    value: float
-    min_max: str
-    hint_level: str
-    recipe_type: str
-    recipe_objective: str
 
 
 # --- Nutri Score Schemas ---

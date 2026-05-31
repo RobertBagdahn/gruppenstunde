@@ -74,6 +74,14 @@ class MealPlan(models.Model):
         related_name="meal_plans",
         verbose_name=_("Erstellt von"),
     )
+    budget_per_person_per_day = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Budget pro Person/Tag"),
+        help_text=_("Maximales Budget in Euro pro Person und Tag"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -169,10 +177,14 @@ class Meal(models.Model):
         db_column="meal_event_id",
     )
     start_datetime = models.DateTimeField(
+        null=True,
+        blank=True,
         db_index=True,
         verbose_name=_("Startzeit"),
     )
     end_datetime = models.DateTimeField(
+        null=True,
+        blank=True,
         verbose_name=_("Endzeit"),
     )
     meal_type = models.CharField(
@@ -201,33 +213,84 @@ class Meal(models.Model):
         verbose_name=_("Notiz sichtbar"),
         help_text=_("Wenn True, erscheint die Notiz im PDF/Ausdruck"),
     )
+    is_reference = models.BooleanField(
+        default=False,
+        verbose_name=_("Ist Referenz-Mahlzeit"),
+        help_text=_("Wenn True, dient diese Mahlzeit als Template für andere Meals gleichen Typs"),
+    )
+    ref_meal = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="synced_meals",
+        verbose_name=_("Referenz-Mahlzeit"),
+        help_text=_("Verknüpfung zum RefMeal-Template"),
+    )
+    is_synced = models.BooleanField(
+        default=False,
+        verbose_name=_("Synchronisiert"),
+        help_text=_("Wenn True, werden Änderungen am RefMeal auf dieses Meal übertragen"),
+    )
 
     class Meta:
         verbose_name = _("Mahlzeit")
         verbose_name_plural = _("Mahlzeiten")
         ordering = ["start_datetime", "meal_type"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["meal_plan", "meal_type"],
+                condition=models.Q(is_reference=True),
+                name="unique_ref_meal_per_plan_and_type",
+            ),
+        ]
 
     def __str__(self) -> str:
+        if self.is_reference:
+            return f"[REF] {self.get_meal_type_display()} – {self.meal_plan.name}"
         date_str = self.start_datetime.strftime("%Y-%m-%d") if self.start_datetime else "?"
         return f"{date_str} – {self.get_meal_type_display()}"
 
     def clean(self) -> None:
-        """Validate uniqueness of (meal_plan, date, meal_type)."""
-        if self.start_datetime and self.meal_plan_id:
-            date = self.start_datetime.date()
-            qs = Meal.objects.filter(
-                meal_plan=self.meal_plan,
-                start_datetime__date=date,
-                meal_type=self.meal_type,
-            )
-            if self.pk:
-                qs = qs.exclude(pk=self.pk)
-            if qs.exists():
-                raise ValidationError(_("Es existiert bereits eine Mahlzeit dieses Typs an diesem Tag."))
+        """Validate meal constraints."""
+        # RefMeal validation
+        if self.is_reference:
+            if self.ref_meal is not None:
+                raise ValidationError(_("Ein RefMeal kann nicht auf ein anderes RefMeal verweisen."))
+            if self.is_synced:
+                raise ValidationError(_("Ein RefMeal kann nicht synchronisiert sein."))
+        else:
+            # Regular meal: validate date uniqueness
+            if self.start_datetime and self.meal_plan_id:
+                date = self.start_datetime.date()
+                qs = Meal.objects.filter(
+                    meal_plan=self.meal_plan,
+                    start_datetime__date=date,
+                    meal_type=self.meal_type,
+                    is_reference=False,
+                )
+                if self.pk:
+                    qs = qs.exclude(pk=self.pk)
+                if qs.exists():
+                    raise ValidationError(_("Es existiert bereits eine Mahlzeit dieses Typs an diesem Tag."))
+
+        # ref_meal must point to a reference meal
+        if self.ref_meal and not self.ref_meal.is_reference:
+            raise ValidationError(_("ref_meal muss auf ein RefMeal verweisen."))
+
+        # is_synced only allowed with ref_meal
+        if self.is_synced and not self.ref_meal:
+            raise ValidationError(_("is_synced erfordert ein verknüpftes RefMeal."))
 
     def save(self, *args, **kwargs) -> None:
         self.clean()
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.is_reference:
+            # Unlink all synced meals before deleting
+            Meal.objects.filter(ref_meal=self).update(ref_meal=None, is_synced=False)
+        return super().delete(*args, **kwargs)
 
 
 class MealItem(models.Model):

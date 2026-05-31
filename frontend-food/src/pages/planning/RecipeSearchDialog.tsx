@@ -12,9 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRecipeSearch } from '@/api/mealPlans';
+import { useRecipeSearch, usePopularRecipes } from '@/api/mealPlans';
 import { useNutritionalTags } from '@/api/supplies';
-import type { IngredientSearchResult, IngredientPortion } from '@/schemas/mealPlan';
+import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } from '@/schemas/mealPlan';
+import RecipePreviewDialog from './RecipePreviewDialog';
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -106,6 +107,7 @@ export default function RecipeSearchDialog({
   const [recipeType, setRecipeType] = useState<string>(defaultTypes[0] ?? '');
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
+  const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
 
   const deferredQuery = useDeferredValue(query);
 
@@ -116,6 +118,7 @@ export default function RecipeSearchDialog({
     limit: 20,
   });
 
+  const { data: popularData } = usePopularRecipes({ mealType });
   const { data: nutritionalTags } = useNutritionalTags();
 
   // Reset state when dialog opens
@@ -125,11 +128,17 @@ export default function RecipeSearchDialog({
       setRecipeType(defaultTypes[0] ?? '');
       setSelectedTagIds([]);
       setIngredientDialog(null);
+      setPreviewRecipe(null);
     }
   }, [open]);
 
-  const handleSelect = (recipeId: number) => {
+  const handleSelect = (recipe: RecipeSearchResult) => {
+    setPreviewRecipe(recipe);
+  };
+
+  const handlePreviewConfirm = (recipeId: number) => {
     onSelect(recipeId);
+    setPreviewRecipe(null);
     onOpenChange(false);
   };
 
@@ -222,6 +231,54 @@ export default function RecipeSearchDialog({
             )}
           </div>
 
+          {/* Popular Recipes (shown when no active search) */}
+          {(!deferredQuery || deferredQuery.length < 2) && !recipeType && !selectedTagIds.length && popularData && (
+            <div className="rounded-lg border p-3 space-y-3">
+              {popularData.personal.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">star</span>
+                    Deine Top-Rezepte
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {popularData.personal.map((r) => (
+                      <button
+                        key={`pop-p-${r.id}`}
+                        onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
+                        className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
+                      >
+                        <span className="material-symbols-outlined text-[14px] text-muted-foreground">menu_book</span>
+                        {r.title}
+                        <span className="text-xs text-muted-foreground">({r.usage_count}×)</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {popularData.community.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">trending_up</span>
+                    Community-Hits
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {popularData.community.map((r) => (
+                      <button
+                        key={`pop-c-${r.id}`}
+                        onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
+                        className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
+                      >
+                        <span className="material-symbols-outlined text-[14px] text-muted-foreground">menu_book</span>
+                        {r.title}
+                        <span className="text-xs text-muted-foreground">({r.usage_count}×)</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Results */}
           <div className="flex-1 overflow-y-auto rounded-lg border divide-y min-h-0">
             {/* Recipe results */}
@@ -235,7 +292,7 @@ export default function RecipeSearchDialog({
                 {recipes.map((r) => (
                   <button
                     key={`recipe-${r.id}`}
-                    onClick={() => handleSelect(r.id)}
+                    onClick={() => handleSelect(r)}
                     className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
                   >
                     <span className="material-symbols-outlined text-muted-foreground text-xl">menu_book</span>
@@ -291,6 +348,14 @@ export default function RecipeSearchDialog({
           onConfirm={handleIngredientConfirm}
         />
       )}
+
+      {/* Recipe Preview Dialog */}
+      <RecipePreviewDialog
+        recipe={previewRecipe}
+        open={!!previewRecipe}
+        onOpenChange={(open) => { if (!open) setPreviewRecipe(null); }}
+        onConfirm={handlePreviewConfirm}
+      />
     </>
   );
 }

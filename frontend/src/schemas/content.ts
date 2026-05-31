@@ -299,7 +299,6 @@ const CONTENT_TYPE_URL_PREFIXES: Record<string, string> = {
   session: '/sessions',
   blog: '/blogs',
   game: '/games',
-  recipe: '/recipes',
 };
 
 /** Get the URL path for a content item based on its type and slug. */

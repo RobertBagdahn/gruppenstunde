@@ -38,14 +38,14 @@ function render(node: React.ReactNode): string {
 
 describe('<EntityLink> — URL resolution per type', () => {
   it('renders recipe link with slug', () => {
-    const html = render(<EntityLink type="recipe" slug="apfelmus" name="Apfelmus" />);
-    expect(html).toContain('href="/recipes/apfelmus"');
+    const html = render(<EntityLink type="session" slug="apfelmus" name="Apfelmus" />);
+    expect(html).toContain('href="/sessions/apfelmus"');
     expect(html).toContain('Apfelmus');
   });
 
   it('renders ingredient link with slug', () => {
-    const html = render(<EntityLink type="ingredient" slug="kartoffel" name="Kartoffel" />);
-    expect(html).toContain('href="/ingredients/kartoffel"');
+    const html = render(<EntityLink type="material" slug="kartoffel" name="Kartoffel" />);
+    expect(html).toContain('href="/materials/kartoffel"');
   });
 
   it('renders material link with slug', () => {
@@ -101,14 +101,14 @@ describe('<EntityLink> — URL resolution per type', () => {
 
 describe('<EntityLink> — newTab behaviour', () => {
   it('defaults to same tab when no context and no prop', () => {
-    const html = render(<EntityLink type="recipe" slug="x" name="X" />);
+    const html = render(<EntityLink type="session" slug="x" name="X" />);
     expect(html).not.toContain('target="_blank"');
   });
 
   it('defaults to new tab inside a "list" context', () => {
     const html = render(
       <EntityLinkContext.Provider value="list">
-        <EntityLink type="recipe" slug="x" name="X" />
+        <EntityLink type="session" slug="x" name="X" />
       </EntityLinkContext.Provider>,
     );
     expect(html).toContain('target="_blank"');
@@ -118,7 +118,7 @@ describe('<EntityLink> — newTab behaviour', () => {
   it('stays same tab inside a "detail" context', () => {
     const html = render(
       <EntityLinkContext.Provider value="detail">
-        <EntityLink type="recipe" slug="x" name="X" />
+        <EntityLink type="session" slug="x" name="X" />
       </EntityLinkContext.Provider>,
     );
     expect(html).not.toContain('target="_blank"');
@@ -127,7 +127,7 @@ describe('<EntityLink> — newTab behaviour', () => {
   it('explicit newTab prop overrides list context to same tab', () => {
     const html = render(
       <EntityLinkContext.Provider value="list">
-        <EntityLink type="recipe" slug="x" name="X" newTab={false} />
+        <EntityLink type="session" slug="x" name="X" newTab={false} />
       </EntityLinkContext.Provider>,
     );
     expect(html).not.toContain('target="_blank"');
@@ -136,7 +136,7 @@ describe('<EntityLink> — newTab behaviour', () => {
   it('explicit newTab prop overrides detail context to new tab', () => {
     const html = render(
       <EntityLinkContext.Provider value="detail">
-        <EntityLink type="recipe" slug="x" name="X" newTab />
+        <EntityLink type="session" slug="x" name="X" newTab />
       </EntityLinkContext.Provider>,
     );
     expect(html).toContain('target="_blank"');
@@ -150,12 +150,12 @@ describe('<EntityLink> — newTab behaviour', () => {
 
 describe('<EntityLink> — variants', () => {
   it('applies default variant class', () => {
-    const html = render(<EntityLink type="recipe" slug="x" name="X" />);
+    const html = render(<EntityLink type="session" slug="x" name="X" />);
     expect(html).toContain('text-primary');
   });
 
   it('applies muted variant class', () => {
-    const html = render(<EntityLink type="recipe" slug="x" name="X" variant="muted" />);
+    const html = render(<EntityLink type="session" slug="x" name="X" variant="muted" />);
     expect(html).toContain('text-muted-foreground');
   });
 
@@ -166,7 +166,7 @@ describe('<EntityLink> — variants', () => {
 
   it('merges custom className', () => {
     const html = render(
-      <EntityLink type="recipe" slug="x" name="X" className="my-custom" />,
+      <EntityLink type="session" slug="x" name="X" className="my-custom" />,
     );
     expect(html).toContain('my-custom');
   });
@@ -179,7 +179,7 @@ describe('<EntityLink> — variants', () => {
 describe('<EntityLink> — children and accessibility', () => {
   it('renders children instead of name when provided', () => {
     const html = render(
-      <EntityLink type="recipe" slug="x" name="Fallback">
+      <EntityLink type="session" slug="x" name="Fallback">
         <span>custom-content</span>
       </EntityLink>,
     );
@@ -192,19 +192,19 @@ describe('<EntityLink> — children and accessibility', () => {
   });
 
   it('uses name as default aria-label', () => {
-    const html = render(<EntityLink type="recipe" slug="x" name="Apfelmus" />);
+    const html = render(<EntityLink type="session" slug="x" name="Apfelmus" />);
     expect(html).toContain('aria-label="Apfelmus"');
   });
 
   it('respects aria-label override', () => {
     const html = render(
-      <EntityLink type="recipe" slug="x" name="Apfelmus" aria-label="Rezept Apfelmus öffnen" />,
+      <EntityLink type="session" slug="x" name="Apfelmus" aria-label="Rezept Apfelmus öffnen" />,
     );
     expect(html).toContain('aria-label="Rezept Apfelmus öffnen"');
   });
 
   it('includes focus-visible ring class for keyboard users', () => {
-    const html = render(<EntityLink type="recipe" slug="x" name="X" />);
+    const html = render(<EntityLink type="session" slug="x" name="X" />);
     expect(html).toContain('focus-visible:ring-2');
   });
 });

@@ -2,14 +2,14 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import RetailSectionTab from './RetailSectionTab';
 import NutritionalTagTab from './NutritionalTagTab';
-import RecipeHintTab from './RecipeHintTab';
-import HealthRuleTab from './HealthRuleTab';
+import RuleTab from './RuleTab';
+import ApprovalTab from './ApprovalTab';
 
 const TABS = [
+  { key: 'approvals', label: 'Freigaben' },
   { key: 'retail-sections', label: 'Abteilungen' },
   { key: 'nutritional-tags', label: 'Ernährungstags' },
-  { key: 'recipe-hints', label: 'Rezept-Hinweise' },
-  { key: 'health-rules', label: 'Gesundheitsregeln' },
+  { key: 'rules', label: 'Regeln' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -20,7 +20,7 @@ export default function AdminPage() {
   const activeTab: TabKey = (TABS.find((t) => t.key === section)?.key) ?? 'retail-sections';
 
   if (!section) {
-    return <Navigate to="/admin/retail-sections" replace />;
+    return <Navigate to="/admin/approvals" replace />;
   }
 
   return (
@@ -46,10 +46,10 @@ export default function AdminPage() {
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'approvals' && <ApprovalTab />}
       {activeTab === 'retail-sections' && <RetailSectionTab />}
       {activeTab === 'nutritional-tags' && <NutritionalTagTab />}
-      {activeTab === 'recipe-hints' && <RecipeHintTab />}
-      {activeTab === 'health-rules' && <HealthRuleTab />}
+      {activeTab === 'rules' && <RuleTab />}
     </div>
   );
 }

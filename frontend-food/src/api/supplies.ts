@@ -1,10 +1,8 @@
 /**
- * TanStack Query hooks for the Supply API (Material + Ingredient).
+ * TanStack Query hooks for the Supply API (Ingredient).
  * MUST stay in sync with backend/supply/api.py
  *
- * Material hooks: /api/supplies/materials/
  * Ingredient hooks: /api/ingredients/ (slug-based)
- * MeasuringUnit hooks: /api/supplies/measuring-units/
  * NutritionalTag hooks: /api/supplies/nutritional-tags/
  * RetailSection hooks: /api/retail-sections/
  */
@@ -12,10 +10,6 @@ import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
-  MaterialSchema,
-  MaterialListItemSchema,
-  PaginatedMaterialsSchema,
-  MeasuringUnitSchema,
   NutritionalTagSchema,
   RetailSectionSchema,
   IngredientDetailSchema,
@@ -24,7 +18,6 @@ import {
   IngredientAliasSchema,
 } from '@/schemas/supply';
 
-const SUPPLY_BASE = `${API_BASE_URL}/api/supplies`;
 const INGREDIENT_BASE = `${API_BASE_URL}/api/ingredients`;
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
 
@@ -87,94 +80,6 @@ async function deleteJsonRaw(url: string): Promise<void> {
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }
-}
-
-// ==========================================================================
-// Material Query Hooks
-// ==========================================================================
-
-export function useMaterials(page = 1, pageSize = 20) {
-  return useQuery({
-    queryKey: ['materials', page, pageSize] as const,
-    queryFn: () =>
-      fetchJson(
-        `${SUPPLY_BASE}/materials/?page=${page}&page_size=${pageSize}`,
-        PaginatedMaterialsSchema,
-      ),
-  });
-}
-
-export function useMaterial(id: number) {
-  return useQuery({
-    queryKey: ['material', id] as const,
-    queryFn: () => fetchJson(`${SUPPLY_BASE}/materials/${id}/`, MaterialSchema),
-    enabled: id > 0,
-  });
-}
-
-export function useMaterialBySlug(slug: string) {
-  return useQuery({
-    queryKey: ['material', 'slug', slug] as const,
-    queryFn: () =>
-      fetchJson(
-        `${SUPPLY_BASE}/materials/by-slug/${encodeURIComponent(slug)}/`,
-        MaterialSchema,
-      ),
-    enabled: slug.length > 0,
-  });
-}
-
-export function useSupplySearch(q: string) {
-  return useQuery({
-    queryKey: ['supply-search', q] as const,
-    queryFn: () =>
-      fetchJson(
-        `${SUPPLY_BASE}/materials/search/?q=${encodeURIComponent(q)}`,
-        z.array(MaterialListItemSchema),
-      ),
-    enabled: q.length >= 2,
-  });
-}
-
-// ==========================================================================
-// Material Mutation Hooks
-// ==========================================================================
-
-export interface MaterialCreatePayload {
-  name: string;
-  description?: string;
-  material_category?: string;
-  is_consumable?: boolean;
-}
-
-export function useCreateMaterial() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: MaterialCreatePayload) =>
-      postJsonRaw(`${SUPPLY_BASE}/materials/`, payload, MaterialSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materials'] });
-    },
-  });
-}
-
-export interface MaterialUpdatePayload {
-  name?: string;
-  description?: string;
-  material_category?: string;
-  is_consumable?: boolean;
-}
-
-export function useUpdateMaterial(materialId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: MaterialUpdatePayload) =>
-      patchJsonRaw(`${SUPPLY_BASE}/materials/${materialId}/`, payload, MaterialSchema),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(['material', materialId], updated);
-      queryClient.invalidateQueries({ queryKey: ['materials'] });
-    },
-  });
 }
 
 // ==========================================================================
@@ -248,21 +153,13 @@ export function useDeleteIngredient() {
 }
 
 // ==========================================================================
-// Portion Hooks
+// Portion Mutation Hooks
 // ==========================================================================
-
-export function usePortions(slug: string) {
-  return useQuery({
-    queryKey: ['ingredient-portions', slug] as const,
-    queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/portions/`, z.array(PortionSchema)),
-    enabled: !!slug,
-  });
-}
 
 export function useCreatePortion(slug: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; quantity?: number; measuring_unit_id?: number; rank?: number; priority?: number; is_default?: boolean }) =>
+    mutationFn: (data: { name: string; quantity?: number; measuring_unit_id?: number; weight_g?: number; rank?: number; priority?: number; is_default?: boolean }) =>
       postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/`, data, PortionSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
@@ -320,18 +217,6 @@ export function useDeleteAlias(slug: string) {
 }
 
 // ==========================================================================
-// MeasuringUnit Hooks (from /api/supplies/measuring-units/)
-// ==========================================================================
-
-export function useMeasuringUnits() {
-  return useQuery({
-    queryKey: ['measuring-units'] as const,
-    queryFn: () => fetchJson(`${SUPPLY_BASE}/measuring-units/`, z.array(MeasuringUnitSchema)),
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-// ==========================================================================
 // NutritionalTag Hooks (from /api/supplies/nutritional-tags/)
 // ==========================================================================
 
@@ -351,6 +236,28 @@ export function useRetailSections() {
   return useQuery({
     queryKey: ['retail-sections'] as const,
     queryFn: () => fetchJson(`${RETAIL_SECTION_BASE}/`, z.array(RetailSectionSchema)),
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+// ==========================================================================
+// MeasuringUnit Hooks (from /api/supplies/measuring-units/)
+// ==========================================================================
+
+const MeasuringUnitSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string(),
+  quantity: z.number(),
+  unit: z.string(),
+});
+
+export type MeasuringUnit = z.infer<typeof MeasuringUnitSchema>;
+
+export function useMeasuringUnits() {
+  return useQuery({
+    queryKey: ['measuring-units'] as const,
+    queryFn: () => fetchJson(`${API_BASE_URL}/api/supplies/measuring-units/`, z.array(MeasuringUnitSchema)),
     staleTime: 10 * 60 * 1000,
   });
 }
@@ -405,6 +312,25 @@ export function useConvertUnit() {
         UnitConversionResultSchema
       );
     },
+  });
+}
+
+export function useAvailableConversions(
+  items: Array<{ ingredient_id: number; from_unit_id: number; quantity: number }>,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ['available-conversions', items] as const,
+    queryFn: async () => {
+      const { AvailableConversionBatchSchema } = await import('@/schemas/supply');
+      return postJsonRaw(
+        `${UNIT_CONVERSION_BASE}/available/batch/`,
+        items,
+        AvailableConversionBatchSchema,
+      );
+    },
+    enabled: enabled && items.length > 0,
+    staleTime: 10 * 60 * 1000,
   });
 }
 

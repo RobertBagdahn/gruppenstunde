@@ -4,6 +4,7 @@ import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
 import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
+import { useUnlinkMeal, useLinkMeal, useRefMeals } from '@/api/refMeals';
 import {
   useMealPlan,
   useUpdateMealPlan,
@@ -23,8 +24,7 @@ import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, MEAL_TYPE_COLORS, getCoverageStatus 
 import type { Meal } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useMealPlanCockpit, useDayCockpit, useMealCockpit } from '@/api/cockpit';
-import { CockpitDashboard as CockpitDashboardComponent, TrafficLightIndicator } from '@/components/cockpit';
+import { SuggestionDashboard } from '@/components/suggestions';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import TableView from './TableView';
@@ -36,6 +36,7 @@ const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/Nutrient
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
   const groups: Record<string, Meal[]> = {};
   for (const meal of meals) {
+    if (!meal.start_datetime) continue; // Skip reference meals
     const date = meal.start_datetime.slice(0, 10); // "YYYY-MM-DD"
     if (!groups[date]) {
       groups[date] = [];
@@ -62,8 +63,13 @@ export default function MealPlanDetailPage() {
   const removeMealItemMutation = useRemoveMealItem(mealPlanId);
   const updateMealItemMutation = useUpdateMealItem(mealPlanId);
 
+  // RefMeal hooks
+  const { data: refMeals } = useRefMeals(mealPlanId);
+  const unlinkMealMutation = useUnlinkMeal(mealPlanId);
+  const linkMealMutation = useLinkMeal(mealPlanId);
+
   // Tab state
-  const [activeTab, setActiveTab] = useState<'plan' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'cockpit'>('plan');
+  const [activeTab, setActiveTab] = useState<'plan' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions'>('plan');
 
   // Delete confirmations
   const [deleteDayDate, setDeleteDayDate] = useState<string | null>(null);
@@ -163,12 +169,35 @@ export default function MealPlanDetailPage() {
     );
   };
 
+  const handleUnlinkMeal = (mealId: number) => {
+    unlinkMealMutation.mutate(mealId, {
+      onSuccess: () => toast.success('Mahlzeit entkoppelt'),
+      onError: (err) => toast.error('Fehler', { description: err.message }),
+    });
+  };
+
+  const handleLinkMeal = (mealId: number, mealType: string) => {
+    const ref = refMeals?.find((rm) => rm.meal_type === mealType);
+    if (!ref) {
+      toast.error('Kein RefMeal vorhanden. Erstelle zuerst eine Referenz-Mahlzeit.');
+      return;
+    }
+    linkMealMutation.mutate(
+      { mealId, data: { ref_meal_id: ref.id } },
+      {
+        onSuccess: () => toast.success('Mahlzeit verknüpft und synchronisiert'),
+        onError: (err) => toast.error('Fehler', { description: err.message }),
+      },
+    );
+  };
+
   const handleSaveSettings = (data: {
     name?: string;
     description?: string;
     norm_portions?: number;
     activity_factor?: number;
     reserve_factor?: number;
+    budget_per_person_per_day?: number | null;
     start_datetime?: string | null;
     end_datetime?: string | null;
   }) => {
@@ -229,7 +258,7 @@ export default function MealPlanDetailPage() {
           { key: 'nutrition' as const, icon: 'nutrition', label: 'Nährwerte' },
           { key: 'costs' as const, icon: 'payments', label: 'Kosten' },
           { key: 'shopping' as const, icon: 'shopping_cart', label: 'Einkaufsliste' },
-          { key: 'cockpit' as const, icon: 'speed', label: 'Cockpit' },
+          { key: 'suggestions' as const, icon: 'lightbulb', label: 'Vorschläge' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -254,6 +283,7 @@ export default function MealPlanDetailPage() {
           canEdit={plan.can_edit}
           hasTimeframe={!!(plan.start_datetime && plan.end_datetime)}
           activityFactor={plan.activity_factor}
+          normPortions={plan.norm_portions}
           onAddDayBefore={handleAddDayBefore}
           addDayBeforePending={addDayBeforeMutation.isPending}
           onAddDayAfter={handleAddDayAfter}
@@ -265,13 +295,15 @@ export default function MealPlanDetailPage() {
           onAddIngredient={handleAddIngredient}
           onDeleteItem={setDeleteItemId}
           onUpdateItemFactor={handleUpdateItemFactor}
+          onUnlinkMeal={handleUnlinkMeal}
+          onLinkMeal={handleLinkMeal}
         />
       )}
       {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} />}
       {activeTab === 'table' && <TableView meals={plan.meals} normPortions={plan.norm_portions} />}
       {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
-      {activeTab === 'cockpit' && <CockpitView mealPlanId={mealPlanId} />}
+      {activeTab === 'suggestions' && <SuggestionDashboard mealPlanId={mealPlanId} />}
 
       {/* Delete Day Confirm */}
       <ConfirmDialog
@@ -345,13 +377,14 @@ function SettingsPanel({
   onSave,
   isPending,
 }: {
-  plan: { name: string; description: string; norm_portions: number; activity_factor: number; reserve_factor: number; start_datetime: string | null; end_datetime: string | null };
+  plan: { name: string; description: string; norm_portions: number; activity_factor: number; reserve_factor: number; budget_per_person_per_day: number | null; start_datetime: string | null; end_datetime: string | null };
   onSave: (data: {
     name?: string;
     description?: string;
     norm_portions?: number;
     activity_factor?: number;
     reserve_factor?: number;
+    budget_per_person_per_day?: number | null;
     start_datetime?: string | null;
     end_datetime?: string | null;
   }) => void;
@@ -362,6 +395,7 @@ function SettingsPanel({
   const [portions, setPortions] = useState(plan.norm_portions);
   const [activity, setActivity] = useState(plan.activity_factor);
   const [reserve, setReserve] = useState(plan.reserve_factor);
+  const [budget, setBudget] = useState(plan.budget_per_person_per_day ?? '');
   const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
   const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
 
@@ -422,6 +456,18 @@ function SettingsPanel({
           />
         </div>
         <div>
+          <label className="block text-sm font-medium mb-1">Budget (€/Person/Tag)</label>
+          <input
+            type="number"
+            min={0}
+            step={0.5}
+            value={budget}
+            onChange={(e) => setBudget(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="z.B. 8.00"
+            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        <div>
           <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit)</label>
           <input
             type="datetime-local"
@@ -448,6 +494,7 @@ function SettingsPanel({
             norm_portions: portions,
             activity_factor: activity,
             reserve_factor: reserve,
+            budget_per_person_per_day: budget === '' ? null : Number(budget),
             start_datetime: startDatetime ? startDatetime + ':00' : null,
             end_datetime: endDatetime ? endDatetime + ':00' : null,
           })}
@@ -466,12 +513,13 @@ function SettingsPanel({
 // ==========================================================================
 
 function FactorInput({ value, onChange }: { value: number; onChange: (factor: number) => void }) {
-  const [localValue, setLocalValue] = useState(String(value));
+  const formatFactor = (v: number) => v.toFixed(1).replace('.', ',');
+  const [localValue, setLocalValue] = useState(formatFactor(value));
   const lastSaved = useRef(value);
 
   useEffect(() => {
     if (value !== lastSaved.current) {
-      setLocalValue(String(value));
+      setLocalValue(formatFactor(value));
       lastSaved.current = value;
     }
   }, [value]);
@@ -482,7 +530,7 @@ function FactorInput({ value, onChange }: { value: number; onChange: (factor: nu
       lastSaved.current = parsed;
       onChange(parsed);
     } else {
-      setLocalValue(String(lastSaved.current));
+      setLocalValue(formatFactor(lastSaved.current));
     }
   };
 
@@ -508,6 +556,7 @@ function DayPlanView({
   canEdit,
   hasTimeframe,
   activityFactor,
+  normPortions,
   onAddDayBefore,
   addDayBeforePending,
   onAddDayAfter,
@@ -519,12 +568,15 @@ function DayPlanView({
   onAddIngredient,
   onDeleteItem,
   onUpdateItemFactor,
+  onUnlinkMeal,
+  onLinkMeal,
 }: {
   mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
   canEdit: boolean;
   hasTimeframe: boolean;
   activityFactor: number;
+  normPortions: number;
   onAddDayBefore: () => void;
   addDayBeforePending: boolean;
   onAddDayAfter: () => void;
@@ -536,6 +588,8 @@ function DayPlanView({
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
+  onUnlinkMeal: (mealId: number) => void;
+  onLinkMeal: (mealId: number, mealType: string) => void;
 }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -546,6 +600,22 @@ function DayPlanView({
 
   return (
     <div className="space-y-6">
+      {/* RefMeal Links */}
+      {canEdit && (
+        <div className="flex flex-wrap gap-2 px-1">
+          {['breakfast', 'snack'].map((mt) => (
+            <Link
+              key={mt}
+              to={`/meal-plans/${mealPlanId}/ref-meals/${mt}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm hover:bg-accent transition-colors"
+            >
+              <span className="text-xs">🔗</span>
+              Referenz: {MEAL_TYPE_LABELS[mt] || mt}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Add Day Before */}
       {canEdit && hasTimeframe && (
         <div className="flex justify-center">
@@ -574,7 +644,6 @@ function DayPlanView({
             <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b">
               <div className="flex items-center gap-3 min-w-0">
                 <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
-                <DayCockpitDots mealPlanId={mealPlanId} date={group.date} />
               </div>
               {canEdit && (
                 <button
@@ -595,11 +664,14 @@ function DayPlanView({
                   meal={meal}
                   canEdit={canEdit}
                   activityFactor={activityFactor}
+                  normPortions={normPortions}
                   onDeleteMeal={onDeleteMeal}
                   onAddRecipe={onAddRecipe}
                   onAddIngredient={onAddIngredient}
                   onDeleteItem={onDeleteItem}
                   onUpdateItemFactor={onUpdateItemFactor}
+                  onUnlinkMeal={onUnlinkMeal}
+                  onLinkMeal={onLinkMeal}
                 />
               ))}
             </div>
@@ -659,20 +731,26 @@ function MealSlot({
   meal,
   canEdit,
   activityFactor,
+  normPortions,
   onDeleteMeal,
   onAddRecipe,
   onAddIngredient,
   onDeleteItem,
   onUpdateItemFactor,
+  onUnlinkMeal,
+  onLinkMeal,
 }: {
   meal: Meal;
   canEdit: boolean;
   activityFactor: number;
+  normPortions: number;
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
+  onUnlinkMeal: (mealId: number) => void;
+  onLinkMeal: (mealId: number, mealType: string) => void;
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -720,7 +798,7 @@ function MealSlot({
 
   const mealColors = MEAL_TYPE_COLORS[meal.meal_type] || MEAL_TYPE_COLORS.snack;
   const isEmpty = meal.items.length === 0;
-  const coverage = getCoverageStatus(meal.total_energy_kj, meal.day_part_factor, activityFactor);
+  const coverage = getCoverageStatus(meal.total_energy_kj / normPortions, meal.day_part_factor, activityFactor);
   const coverageColorClass = coverage.status === 'good' ? 'text-green-600' : coverage.status === 'warning' ? 'text-yellow-600' : 'text-red-600';
 
   return (
@@ -735,28 +813,47 @@ function MealSlot({
             {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
           </span>
           <span className="text-sm text-muted-foreground">
-            ({Math.round(meal.day_part_factor * 100)}%)
+            Soll: {Math.round(meal.day_part_factor * 100)}%
           </span>
           {!isEmpty && meal.total_energy_kj > 0 && (
             <span className={`text-sm font-medium ${coverageColorClass}`}>
-              {coverage.percent}%
+              │ Ist: {coverage.percent}%
             </span>
           )}
-          <MealCockpitDots mealId={meal.id} />
+
         </div>
         <div className="flex items-center gap-1">
           {canEdit && (
             <>
-              <button
-                onClick={() => {
-                  setIsSearching(!isSearching);
-                  setSearchQuery('');
-                }}
-                className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors"
-                title="Rezept hinzufügen"
-              >
-                <span className="material-symbols-outlined text-[20px]">add_circle</span>
-              </button>
+              {meal.is_synced ? (
+                <button
+                  onClick={() => onUnlinkMeal(meal.id)}
+                  className="p-1 rounded text-blue-600 hover:bg-blue-50 transition-colors"
+                  title="Vom RefMeal entkoppeln"
+                >
+                  <span className="material-symbols-outlined text-[20px]">link_off</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onLinkMeal(meal.id, meal.meal_type)}
+                  className="p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  title="Mit RefMeal verknüpfen"
+                >
+                  <span className="material-symbols-outlined text-[20px]">link</span>
+                </button>
+              )}
+              {!meal.is_synced && (
+                <button
+                  onClick={() => {
+                    setIsSearching(!isSearching);
+                    setSearchQuery('');
+                  }}
+                  className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors"
+                  title="Rezept hinzufügen"
+                >
+                  <span className="material-symbols-outlined text-[20px]">add_circle</span>
+                </button>
+              )}
               <button
                 onClick={() => onDeleteMeal(meal.id)}
                 className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -770,6 +867,12 @@ function MealSlot({
       </div>
 
       {/* Meal Items */}
+      {meal.is_synced && !isEmpty && (
+        <p className="text-xs text-blue-500 font-medium pl-7 flex items-center gap-1 mb-1">
+          <span className="material-symbols-outlined text-[14px]">sync</span>
+          Referenz-Mahlzeit
+        </p>
+      )}
       {isEmpty && !isSearching && (
         <p className="text-sm text-red-500 italic pl-7 flex items-center gap-1">
           <span className="material-symbols-outlined text-[16px]">error</span>
@@ -777,7 +880,7 @@ function MealSlot({
         </p>
       )}
       {meal.items.map((item) => (
-        <div key={item.id} className="flex items-start gap-2 pl-7 py-1.5 group">
+        <div key={item.id} className={`flex items-start gap-2 pl-7 py-1.5 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
           {item.recipe_image && (
             <img
               src={item.recipe_image}
@@ -795,19 +898,19 @@ function MealSlot({
             </Link>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {item.energy_kj != null && (
-                <span>{Math.round(item.energy_kj / 4.184)} kcal</span>
+                <span>{Math.round(item.energy_kj / normPortions / 4.184)} kcal</span>
               )}
               {item.cost_eur != null && (
-                <span>{item.cost_eur.toFixed(2)} €</span>
+                <span>{(item.cost_eur / normPortions).toFixed(2)} €</span>
               )}
-              {canEdit ? (
+              {canEdit && !meal.is_synced ? (
                 <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor(item.id, f)} />
               ) : (
-                item.factor !== 1.0 && <span>&times;{item.factor}</span>
+                item.factor !== 1.0 && <span>&times;{item.factor.toFixed(1).replace('.', ',')}</span>
               )}
             </div>
           </div>
-          {canEdit && (
+          {canEdit && !meal.is_synced && (
             <button
               onClick={() => onDeleteItem(item.id)}
               className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
@@ -1131,87 +1234,5 @@ function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
         </div>
       )}
     </div>
-  );
-}
-
-// ==========================================================================
-// Day Cockpit Dots — compact traffic light dots for a single day
-// ==========================================================================
-
-function DayCockpitDots({ mealPlanId, date }: { mealPlanId: number; date: string }) {
-  const { data: cockpit } = useDayCockpit(mealPlanId, date);
-
-  if (!cockpit || cockpit.evaluations.length === 0) return null;
-
-  return (
-    <div className="flex items-center gap-1">
-      {cockpit.evaluations.map((evaluation) => (
-        <TrafficLightIndicator
-          key={evaluation.rule_id}
-          evaluation={evaluation}
-          compact
-        />
-      ))}
-    </div>
-  );
-}
-
-// ==========================================================================
-// Meal Cockpit Dots — compact traffic light dots for a single meal
-// ==========================================================================
-
-function MealCockpitDots({ mealId }: { mealId: number }) {
-  const { data: cockpit } = useMealCockpit(mealId);
-
-  if (!cockpit || cockpit.evaluations.length === 0) return null;
-
-  return (
-    <div className="flex items-center gap-1">
-      {cockpit.evaluations.map((evaluation) => (
-        <TrafficLightIndicator
-          key={evaluation.rule_id}
-          evaluation={evaluation}
-          compact
-        />
-      ))}
-    </div>
-  );
-}
-
-// ==========================================================================
-// CockpitView — Health rule traffic lights (full dashboard)
-// ==========================================================================
-
-function CockpitView({ mealPlanId }: { mealPlanId: number }) {
-  const { data: cockpit, error, isLoading } = useMealPlanCockpit(mealPlanId);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <span className="material-symbols-outlined text-4xl mb-2 block">error</span>
-        <p>Cockpit konnte nicht geladen werden.</p>
-        <p className="text-sm">{error.message}</p>
-      </div>
-    );
-  }
-
-  if (!cockpit) return null;
-
-  return (
-    <CockpitDashboardComponent
-      dashboard={cockpit}
-      title="Gesamtstatus"
-      showTips
-    />
   );
 }

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
-import { useCreateIngredient, useRetailSections, useNutritionalTags } from '@/api/ingredients';
-import type { NutritionalTag } from '@/schemas/ingredient';
+import { useCreateIngredient, useRetailSections, useNutritionalTags } from '@/api/supplies';
+import type { NutritionalTag } from '@/schemas/supply';
 
 // ---------------------------------------------------------------------------
 // Section wrapper

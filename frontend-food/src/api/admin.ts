@@ -1,6 +1,6 @@
 /**
  * TanStack Query hooks for admin CRUD operations on master data.
- * Staff-only endpoints for RetailSection, NutritionalTag, HealthRule, RecipeHint.
+ * Staff-only endpoints for RetailSection, NutritionalTag.
  */
 import { API_BASE_URL } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,17 +8,12 @@ import { z } from 'zod';
 import {
   RetailSectionSchema,
   NutritionalTagSchema,
-  RecipeHintSchema,
   type RetailSectionIn,
   type NutritionalTagIn,
-  type RecipeHintIn,
 } from '@/schemas/supply';
-import { HealthRuleSchema, type HealthRuleIn } from '@/schemas/cockpit';
 
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
 const NUTRITIONAL_TAG_BASE = `${API_BASE_URL}/api/nutritional-tags`;
-const HEALTH_RULE_BASE = `${API_BASE_URL}/api/health-rules`;
-const RECIPE_HINT_BASE = `${API_BASE_URL}/api/recipe-hints`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -172,103 +167,81 @@ export function useDeleteNutritionalTag() {
   });
 }
 
-// ===========================================================================
-// HealthRule Admin Hooks
-// ===========================================================================
+// ==========================================================================
+// Content Admin: Approval Queue (Recipes)
+// ==========================================================================
 
-export function useAdminHealthRules() {
-  return useQuery({
-    queryKey: ['admin', 'health-rules'],
-    queryFn: () => fetchJson(`${HEALTH_RULE_BASE}/`, z.array(HealthRuleSchema)),
-  });
-}
+const CONTENT_API_BASE = `${API_BASE_URL}/api/content/admin`;
 
-export function useCreateHealthRule() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: HealthRuleIn) =>
-      postJson(`${HEALTH_RULE_BASE}/`, data, HealthRuleSchema),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'health-rules'] });
-      qc.invalidateQueries({ queryKey: ['health-rules'] });
-    },
-  });
-}
+const ApprovalQueueItemSchema = z.object({
+  content_type: z.string(),
+  object_id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  summary: z.string(),
+  submitted_at: z.string(),
+  author: z.string().nullable(),
+});
+export type ApprovalQueueItem = z.infer<typeof ApprovalQueueItemSchema>;
 
-export function useUpdateHealthRule() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<HealthRuleIn> }) =>
-      patchJson(`${HEALTH_RULE_BASE}/${id}/`, data, HealthRuleSchema),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'health-rules'] });
-      qc.invalidateQueries({ queryKey: ['health-rules'] });
-    },
-  });
-}
-
-export function useDeleteHealthRule() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => deleteJson(`${HEALTH_RULE_BASE}/${id}/`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'health-rules'] });
-      qc.invalidateQueries({ queryKey: ['health-rules'] });
-    },
-  });
-}
-
-// ===========================================================================
-// RecipeHint Admin Hooks
-// ===========================================================================
-
-const PaginatedRecipeHintsSchema = z.object({
-  items: z.array(RecipeHintSchema),
+const PaginatedApprovalQueueSchema = z.object({
+  items: z.array(ApprovalQueueItemSchema),
   total: z.number(),
   page: z.number(),
   page_size: z.number(),
   total_pages: z.number(),
 });
+export type PaginatedApprovalQueue = z.infer<typeof PaginatedApprovalQueueSchema>;
 
-export function useAdminRecipeHints(page = 1, pageSize = 50) {
-  return useQuery({
-    queryKey: ['admin', 'recipe-hints', page, pageSize],
-    queryFn: () =>
-      fetchJson(
-        `${RECIPE_HINT_BASE}/?page=${page}&page_size=${pageSize}`,
-        PaginatedRecipeHintsSchema,
-      ),
-  });
-}
-
-export function useCreateRecipeHint() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: RecipeHintIn) =>
-      postJson(`${RECIPE_HINT_BASE}/`, data, RecipeHintSchema),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'recipe-hints'] });
+export function useApprovalQueue(page = 1, pageSize = 20) {
+  return useQuery<PaginatedApprovalQueue>({
+    queryKey: ['admin', 'approvals', page, pageSize],
+    queryFn: async () => {
+      const res = await fetch(
+        `${CONTENT_API_BASE}/approvals/?page=${page}&page_size=${pageSize}`,
+        { credentials: 'include' },
+      );
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return PaginatedApprovalQueueSchema.parse(await res.json());
     },
   });
 }
 
-export function useUpdateRecipeHint() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<RecipeHintIn> }) =>
-      patchJson(`${RECIPE_HINT_BASE}/${id}/`, data, RecipeHintSchema),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'recipe-hints'] });
-    },
-  });
-}
+const ApprovalActionResultSchema = z.object({
+  success: z.boolean(),
+  content_type: z.string(),
+  object_id: z.number(),
+  new_status: z.string(),
+  message: z.string(),
+});
+export type ApprovalActionResult = z.infer<typeof ApprovalActionResultSchema>;
 
-export function useDeleteRecipeHint() {
+export function useApprovalAction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => deleteJson(`${RECIPE_HINT_BASE}/${id}/`),
+    mutationFn: async (params: {
+      contentType: string;
+      objectId: number;
+      action: 'approve' | 'reject';
+      reason?: string;
+    }) => {
+      const res = await fetch(
+        `${CONTENT_API_BASE}/approvals/${params.contentType}/${params.objectId}/`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          body: JSON.stringify({ action: params.action, reason: params.reason ?? '' }),
+        },
+      );
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return ApprovalActionResultSchema.parse(await res.json());
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'recipe-hints'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'approvals'] });
     },
   });
 }

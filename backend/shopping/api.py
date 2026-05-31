@@ -10,6 +10,8 @@ from content.api.helpers import paginate_queryset
 
 from .models import (
     CollaboratorRole,
+    KitchenReminder,
+    KitchenReminderCategory,
     ShoppingList,
     ShoppingListCollaborator,
     ShoppingListItem,
@@ -20,6 +22,9 @@ from .schemas import (
     CollaboratorCreateIn,
     CollaboratorUpdateIn,
     FromRecipeIn,
+    KitchenReminderCategoryOut,
+    KitchenReminderOut,
+    KitchenReminderSuggestIn,
     PaginatedShoppingListOut,
     ShoppingListCollaboratorOut,
     ShoppingListCreateIn,
@@ -449,7 +454,8 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
             continue
 
         ing = ri.portion.ingredient
-        weight_g = ri.quantity * (ri.portion.weight_g or 0) * servings
+        recipe_servings = getattr(recipe, "servings", 1) or 1
+        weight_g = ri.quantity * (ri.portion.weight_g or 0) * servings / recipe_servings
 
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
@@ -552,3 +558,101 @@ def list_users(request):
 
     User = get_user_model()
     return list(User.objects.all().order_by("username").values("id", "username"))
+
+
+# ---------------------------------------------------------------------------
+# Kitchen Reminders
+# ---------------------------------------------------------------------------
+
+kitchen_reminder_router = Router(tags=["kitchen-reminders"])
+
+
+@kitchen_reminder_router.get(
+    "/",
+    response=list[KitchenReminderCategoryOut],
+)
+def list_kitchen_reminders(request):
+    """Return all published reminders + user's own unpublished suggestions, grouped by category."""
+    categories = KitchenReminderCategory.objects.prefetch_related("reminders").all()
+
+    user = request.user if request.user.is_authenticated else None
+
+    result = []
+    for cat in categories:
+        reminders = []
+        for r in cat.reminders.all():
+            if r.is_published:
+                reminders.append(
+                    KitchenReminderOut(
+                        id=r.id,
+                        name=r.name,
+                        is_published=True,
+                        is_own_suggestion=False,
+                    )
+                )
+            elif user and r.suggested_by_id == user.id:
+                reminders.append(
+                    KitchenReminderOut(
+                        id=r.id,
+                        name=r.name,
+                        is_published=False,
+                        is_own_suggestion=True,
+                    )
+                )
+        if reminders:
+            result.append(
+                KitchenReminderCategoryOut(
+                    id=cat.id,
+                    name=cat.name,
+                    sort_order=cat.sort_order,
+                    reminders=reminders,
+                )
+            )
+
+    # Also include uncategorized user suggestions
+    if user:
+        uncategorized = KitchenReminder.objects.filter(
+            suggested_by=user, is_published=False, category__isnull=True
+        )
+        if uncategorized.exists():
+            reminders = [
+                KitchenReminderOut(
+                    id=r.id,
+                    name=r.name,
+                    is_published=False,
+                    is_own_suggestion=True,
+                )
+                for r in uncategorized
+            ]
+            result.append(
+                KitchenReminderCategoryOut(
+                    id=0,
+                    name="Deine Vorschläge",
+                    sort_order=999,
+                    reminders=reminders,
+                )
+            )
+
+    return result
+
+
+@kitchen_reminder_router.post(
+    "/suggest/",
+    response=KitchenReminderOut,
+)
+def suggest_kitchen_reminder(request, payload: KitchenReminderSuggestIn):
+    """Submit a new kitchen reminder suggestion."""
+    _require_auth(request)
+
+    reminder = KitchenReminder.objects.create(
+        name=payload.name,
+        is_published=False,
+        suggested_by=request.user,
+        category=None,
+    )
+    return KitchenReminderOut(
+        id=reminder.id,
+        name=reminder.name,
+        is_published=False,
+        is_own_suggestion=True,
+    )

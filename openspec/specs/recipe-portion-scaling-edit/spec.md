@@ -1,23 +1,23 @@
 ## ADDED Requirements
 
-### Requirement: Proportional scaling on servings change
+### Requirement: Proportional scaling on display portion change
 
-When the user changes the base servings number in the InlineIngredientEditor, all ingredient quantities must be proportionally scaled by the ratio `newServings / oldServings`.
+When the user changes the displayed portion count in the recipe detail view or InlineIngredientEditor, all ingredient quantities are scaled proportionally. The database always stores per-1-person quantities (servings=1). Scaling is for display purposes and does not change stored values unless explicitly saving in edit mode.
 
-#### Scenario: User doubles servings
+#### Scenario: User views recipe for 4 persons
 
-- **WHEN** User changes servings from 4 to 8
-- **THEN** All ingredient quantities are multiplied by 2 (e.g., 250g → 500g, 3 Stück → 6 Stück)
+- **WHEN** User selects "4 Portionen" in the portion scaler
+- **THEN** All ingredient quantities are multiplied by 4 for display (e.g., 62.5g → 250g, 0.75 Stück → 3 Stück)
 
-#### Scenario: User halves servings
+#### Scenario: User views recipe for 1 person (default)
 
-- **WHEN** User changes servings from 4 to 2
-- **THEN** All ingredient quantities are divided by 2 (e.g., 250g → 125g)
+- **WHEN** User views recipe with default portion scaler (1 Portion)
+- **THEN** All ingredient quantities are shown as stored in DB (per-person values)
 
-#### Scenario: Quantities are rounded
+#### Scenario: Quantities are rounded for display
 
 - **WHEN** Scaling produces fractional values
-- **THEN** Quantities are rounded to max 2 decimal places
+- **THEN** Quantities are rounded according to quantity-display-formatting rules (< 2 → 0.1, 2-10 → 1, etc.)
 
 ### Requirement: Visual feedback after scaling
 

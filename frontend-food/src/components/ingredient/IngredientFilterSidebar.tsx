@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRetailSections } from '@/api/ingredients';
+import { useRetailSections } from '@/api/supplies';
 
 interface IngredientFilters {
   retail_section?: number;
