@@ -13,6 +13,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from django.db.models import Q
 from django.utils import timezone
 
 if TYPE_CHECKING:
@@ -172,7 +173,19 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
     else:
         factor = 1.0
 
-    rules = Rule.objects.filter(is_active=True, scope="recipe").order_by("sort_order", "name")
+    rules = Rule.objects.filter(
+        is_active=True,
+        scope="recipe",
+        sort_order__gt=0,
+    )
+    if not rules.exists():
+        legacy_recipe_type_rules = (
+            Q(name__startswith="Frühstück:")
+            | Q(name__startswith="Snack:")
+            | Q(name__startswith="Getränk:")
+        )
+        rules = Rule.objects.filter(is_active=True, scope="recipe").exclude(legacy_recipe_type_rules)
+    rules = rules.order_by("sort_order", "name", "id")
 
     items = []
     green_count = 0
@@ -187,7 +200,20 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
         5.0: "E",
     }
 
+    seen_rules = set()
     for rule in rules:
+        rule_key = (
+            rule.parameter,
+            rule.min_green,
+            rule.min_yellow,
+            rule.max_green,
+            rule.max_yellow,
+            rule.unit,
+        )
+        if rule_key in seen_rules:
+            continue
+        seen_rules.add(rule_key)
+
         actual_value = values.get(rule.parameter, 0.0)
         if rule.parameter in ["nutri_class", "weight_g", "price_total"]:
             # nutri_class is a quality class; weight_g and price_total are

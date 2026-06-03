@@ -97,6 +97,7 @@ class TestRecipeRulesService:
             min_green=3.0,
             min_yellow=2.0,
             unit="g",
+            sort_order=1,
         )
 
         result = evaluate_recipe_rules(recipe)
@@ -138,6 +139,63 @@ class TestRecipeRulesService:
         result = evaluate_recipe_rules(recipe)
         assert len(result["items"]) == 0
 
+    def test_legacy_recipe_type_rules_are_ignored(self):
+        recipe = self._setup_recipe()
+        make_recipe_hint(
+            name="Frühstück: Zu viel Zucker",
+            parameter="sugar_g",
+            max_green=15.0,
+            unit="g",
+            sort_order=0,
+        )
+        make_recipe_hint(
+            name="Zucker Regel",
+            parameter="sugar_g",
+            max_green=20.0,
+            unit="g",
+            sort_order=1,
+        )
+
+        result = evaluate_recipe_rules(recipe)
+
+        assert [item["name"] for item in result["items"]] == ["Zucker Regel"]
+
+    def test_legacy_recipe_rules_are_fallback_when_no_seeded_rules_exist(self):
+        recipe = self._setup_recipe()
+        make_recipe_hint(
+            name="Mehr Ballaststoffe",
+            parameter="fibre_g",
+            min_green=3.0,
+            unit="g",
+            sort_order=0,
+        )
+
+        result = evaluate_recipe_rules(recipe)
+
+        assert [item["name"] for item in result["items"]] == ["Mehr Ballaststoffe"]
+
+    def test_duplicate_rule_thresholds_are_evaluated_once(self):
+        recipe = self._setup_recipe()
+        make_recipe_hint(
+            name="Etwas mehr Energie",
+            parameter="energy_kj",
+            min_green=454.1,
+            unit="kcal",
+            sort_order=1,
+        )
+        make_recipe_hint(
+            name="Etwas mehr Energie",
+            parameter="energy_kj",
+            min_green=454.1,
+            unit="kcal",
+            sort_order=2,
+        )
+
+        result = evaluate_recipe_rules(recipe)
+
+        assert result["yellow_count"] == 1
+        assert len(result["items"]) == 1
+
     def test_nutri_class_display_value(self):
         recipe = self._setup_recipe()
         # Set cached nutri class to 2 (B)
@@ -149,6 +207,7 @@ class TestRecipeRulesService:
             parameter="nutri_class",
             max_green=1,
             max_yellow=3,
+            sort_order=1,
         )
 
         result = evaluate_recipe_rules(recipe)
@@ -175,6 +234,7 @@ class TestRecipeRulesService:
             min_green=25.0,
             min_yellow=15.0,
             unit="g",
+            sort_order=1,
         )
 
         result = evaluate_recipe_rules(recipe)
