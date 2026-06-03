@@ -177,7 +177,9 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
         num_days = max(len(days), 1)
         for rule in event_rules:
             # Event rules evaluate per-day averages
-            current = values.get(rule.parameter, 0.0) / num_days
+            current = values.get(rule.parameter, 0.0)
+            if rule.parameter != "nutri_class":
+                current = current / num_days
             status = rule.evaluate(current)
             suggestions.append(
                 SuggestionOut(
@@ -186,7 +188,7 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                     scope_label=f"Gesamt: {rule.name}",
                     status=status,
                     priority=3,
-                    message=f"{current:.0f} {rule.unit}/Tag",
+                    message=_format_rule_message(rule, current, suffix="/Tag" if rule.parameter != "nutri_class" else ""),
                     current_value=round(current, 2),
                     target_range=_format_range(rule),
                     tip=rule.tip_text if status != "green" else None,
@@ -211,7 +213,7 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                             scope_label=f"Tag {day_num}: {rule.name}",
                             status=status,
                             priority=3,
-                            message=f"{current:.0f} {rule.unit}",
+                            message=_format_rule_message(rule, current),
                             current_value=round(current, 2),
                             target_range=_format_range(rule),
                             tip=rule.tip_text if status != "green" else None,
@@ -237,7 +239,7 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                             scope_label=f"Tag {day_num} {meal_label}: {rule.name}",
                             status=status,
                             priority=3,
-                            message=f"{current:.0f} {rule.unit}",
+                            message=_format_rule_message(rule, current),
                             current_value=round(current, 2),
                             target_range=_format_range(rule),
                             tip=rule.tip_text if status != "green" else None,
@@ -359,7 +361,223 @@ def _format_range(rule: Rule) -> str:
     """Format the target range as human-readable string."""
     parts = []
     if rule.min_green is not None:
-        parts.append(f"min {rule.min_green:.0f}{rule.unit}")
+        parts.append(f"min {_format_rule_value(rule, rule.min_green)}")
     if rule.max_green is not None:
-        parts.append(f"max {rule.max_green:.0f}{rule.unit}")
+        parts.append(f"max {_format_rule_value(rule, rule.max_green)}")
     return ", ".join(parts) if parts else ""
+
+
+def _format_rule_message(rule: Rule, value: float, suffix: str = "") -> str:
+    """Format rule values consistently for suggestion cards."""
+    return f"{_format_rule_value(rule, value)}{suffix}"
+
+
+def _format_rule_value(rule: Rule, value: float) -> str:
+    if rule.parameter == "price_total":
+        return f"{value:.2f}€"
+    if rule.parameter == "weight_g":
+        if value >= 1000:
+            return f"{value / 1000:.1f} kg"
+        return f"{value:.0f} g"
+    if rule.parameter == "nutri_class":
+        return _format_nutri_class(value)
+    if rule.unit:
+        return f"{value:.0f} {rule.unit}"
+    return f"{value:.0f}"
+
+
+def _format_nutri_class(value: float) -> str:
+    rounded = int(round(value))
+    letter = {
+        1: "A",
+        2: "B",
+        3: "C",
+        4: "D",
+        5: "E",
+    }.get(rounded)
+    if letter:
+        return f"{letter} ({value:.1f})"
+    return f"{value:.1f}"
+
+
+# ===========================================================================
+# LLM-based ingredient suggestion service for recipe improvement.
+# ===========================================================================
+
+import logging
+from pydantic import BaseModel, Field
+from django.core.cache import cache
+from ninja.errors import HttpError
+from core.services.gemini import gemini_call
+
+logger = logging.getLogger(__name__)
+
+GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+AI_TIMEOUT_MS = 30_000
+CACHE_TTL_SECONDS = 60 * 60 * 24  # 24 hours
+RATE_LIMIT_MAX = 10
+RATE_LIMIT_WINDOW_SECONDS = 60 * 60  # 1 hour
+
+
+class SuggestionItem(BaseModel):
+    ingredient_name: str = Field(description="Name der vorgeschlagenen Zutat")
+    recommended_amount: float = Field(description="Empfohlene Menge")
+    unit: str = Field(description="Einheit, z.B. 'g', 'ml', 'Stück'")
+    reasoning: str = Field(description="Begründung für den Vorschlag")
+    expected_improvement: str = Field(description="Erwartete Verbesserung, z.B. '+3g Ballaststoffe pro 100g'")
+
+
+class SuggestionsOutput(BaseModel):
+    suggestions: list[SuggestionItem] = Field(
+        default_factory=list,
+        description="Liste mit 3 Zutat-Vorschlägen zur Rezeptverbesserung",
+    )
+
+
+def _build_ingredient_list(recipe: "Recipe") -> str:
+    """Build a human-readable ingredient list from RecipeItems."""
+    from recipe.models import RecipeItem
+
+    items = RecipeItem.objects.filter(recipe=recipe).select_related(
+        "portion",
+        "portion__ingredient",
+        "portion__measuring_unit",
+    )
+
+    lines: list[str] = []
+    for item in items:
+        ingredient = item.portion.ingredient if item.portion else None
+        if not ingredient:
+            continue
+
+        name = ingredient.name
+        qty = item.quantity
+
+        unit_label = ""
+        if item.portion and item.portion.measuring_unit:
+            unit_label = item.portion.measuring_unit.name
+
+        lines.append(f"- {qty} {unit_label} {name}".strip())
+
+    return "\n".join(lines) if lines else "Keine Zutaten vorhanden."
+
+
+def _build_nutritional_summary(values: dict[str, float]) -> str:
+    """Format nutritional values dict as a readable summary."""
+    if not values or all(v == 0.0 for v in values.values()):
+        return "Keine Nährwertdaten vorhanden."
+
+    labels = {
+        "energy_kj": ("Energie", "kJ"),
+        "protein_g": ("Eiweiß", "g"),
+        "fat_g": ("Fett", "g"),
+        "carbohydrate_g": ("Kohlenhydrate", "g"),
+        "sugar_g": ("Zucker", "g"),
+        "fibre_g": ("Ballaststoffe", "g"),
+        "salt_g": ("Salz", "g"),
+    }
+
+    lines: list[str] = []
+    for key, (label, unit) in labels.items():
+        val = values.get(key, 0.0)
+        lines.append(f"- {label}: {val:.1f} {unit}")
+
+    return "\n".join(lines)
+
+
+def _check_rate_limit(user: "AbstractBaseUser") -> None:
+    """Enforce max 10 requests per user per hour. Raises HttpError(429) if exceeded."""
+    cache_key = f"suggestion_ratelimit:{user.id}"
+    current_count = cache.get(cache_key, 0)
+
+    if current_count >= RATE_LIMIT_MAX:
+        raise HttpError(429, "Zu viele Anfragen. Bitte warte etwas.")
+
+    # Increment; set TTL on first request in the window
+    new_count = current_count + 1
+    cache.set(cache_key, new_count, timeout=RATE_LIMIT_WINDOW_SECONDS)
+
+
+def get_suggestions(recipe: "Recipe", objective: str, user: "AbstractBaseUser", direction: str = "reduce") -> list[dict[str, Any]]:
+    """Generate LLM-based ingredient suggestions for improving a recipe.
+
+    Args:
+        recipe: The recipe to improve.
+        objective: Improvement goal, e.g. "mehr Ballaststoffe", "weniger Zucker".
+        user: The requesting user (for rate limiting).
+        direction: "reduce" or "increase" — whether the objective should be lowered or raised.
+
+    Returns:
+        List of dicts with keys: ingredient_name, recommended_amount, unit,
+        reasoning, expected_improvement. Returns empty list on error.
+    """
+    from typing import Any
+    # --- Rate limit ---
+    _check_rate_limit(user)
+
+    # --- Cache lookup ---
+    cached_at_ts = int(recipe.cached_at.timestamp()) if recipe.cached_at else 0
+    cache_key = f"recipe_suggestion:{recipe.id}:{cached_at_ts}:{hash(objective)}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    # --- Gather recipe context ---
+    from recipe.services.recipe_checks import get_recipe_nutritional_values
+
+    ingredient_list = _build_ingredient_list(recipe)
+    nutritional_values = get_recipe_nutritional_values(recipe)
+    nutritional_summary = _build_nutritional_summary(nutritional_values)
+
+    recipe_title = getattr(recipe, "title", "") or "Unbekanntes Rezept"
+    recipe_type = getattr(recipe, "recipe_type", "") or "Nicht angegeben"
+
+    # --- Build prompt ---
+    direction_text = "reduzieren" if direction == "reduce" else "erhöhen"
+    prompt = (
+        "Du bist ein Ernährungsexperte für Pfadfinder-Gruppenrezepte. "
+        "Analysiere das folgende Rezept und schlage genau 3 Zutaten vor, "
+        "die hinzugefügt oder angepasst werden könnten, um das angegebene Ziel zu erreichen.\n\n"
+        f"Rezeptname: {recipe_title}\n"
+        f"Rezepttyp: {recipe_type}\n\n"
+        f"Aktuelle Zutaten:\n{ingredient_list}\n\n"
+        f"Nährwerte (pro 100g):\n{nutritional_summary}\n\n"
+        f"Ziel: {objective} {direction_text}\n\n"
+        "Regeln:\n"
+        f"- Das Ziel ist es, den Wert '{objective}' zu {direction_text}.\n"
+        "- Schlage genau 3 Zutaten vor.\n"
+        "- Jeder Vorschlag muss den Zutatennamen, die empfohlene Menge, "
+        "die Einheit, eine Begründung und die erwartete Verbesserung enthalten.\n"
+        "- Die Vorschläge sollen praktisch und für Gruppenkochen geeignet sein.\n"
+        "- Berücksichtige die vorhandenen Zutaten und Nährwerte.\n"
+        "- Antworte auf Deutsch."
+    )
+
+    # --- Call Gemini ---
+    try:
+        from google.genai import types
+
+        response = gemini_call(
+            user=user,
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=SuggestionsOutput,
+                http_options=types.HttpOptions(timeout=AI_TIMEOUT_MS),
+            ),
+            context="recipe_suggestions",
+        )
+        if response is None:
+            logger.warning("Gemini client not available — returning empty suggestions")
+            return []
+        result = SuggestionsOutput.model_validate_json(response.text)
+        suggestions = [item.model_dump() for item in result.suggestions]
+    except Exception:
+        logger.warning("Gemini suggestion request failed", exc_info=True)
+        return []
+
+    # --- Cache result ---
+    cache.set(cache_key, suggestions, timeout=CACHE_TTL_SECONDS)
+
+    return suggestions

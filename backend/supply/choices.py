@@ -91,6 +91,9 @@ class HintLevelChoices(models.TextChoices):
     ERROR = "error", _("Fehler")
 
 
+HintLevelChoices.WARNING = HintLevelChoices.WARN
+
+
 class RecipeObjectiveChoices(models.TextChoices):
     HEALTH = "health", _("Gesundheit")
     TASTE = "taste", _("Geschmack")

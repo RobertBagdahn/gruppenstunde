@@ -36,7 +36,7 @@ class TestRecipeFactories:
         hint = make_recipe_hint()
         assert hint.pk is not None
         assert hint.parameter == "salt_g"
-        assert hint.hint_level == "warning"
+        assert hint.hint_level == "warn"
 
     def test_make_recipe_comment(self):
         comment = make_recipe_comment()

@@ -11,6 +11,7 @@ from recipe.schemas import (
     LlmSuggestionRequestIn,
     NutriScoreDetailOut,
     RecipeNutritionBreakdownOut,
+    RecipeRulesOut,
 )
 
 router = Router()
@@ -53,6 +54,20 @@ def get_recipe_improvements(request, recipe_id: int):
 
     recipe = get_object_or_404(Recipe, id=recipe_id)
     return compute_improvement_ranking(recipe)
+
+
+# ==========================================================================
+# Recipe Rules Evaluation
+# ==========================================================================
+
+
+@router.get("/{recipe_id}/rules/", response=RecipeRulesOut)
+def get_recipe_rules(request, recipe_id: int):
+    """Evaluate all active recipe-scoped rules for a recipe."""
+    from recipe.services.recipe_checks import evaluate_recipe_rules
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    return evaluate_recipe_rules(recipe)
 
 
 # ==========================================================================

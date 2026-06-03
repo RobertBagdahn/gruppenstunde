@@ -133,3 +133,32 @@ class LlmSuggestionOut(Schema):
     unit: str
     reasoning: str
     expected_improvement: str
+
+
+# --- Unified Recipe Rule Schemas ---
+
+
+class RecipeRuleResult(Schema):
+    """Evaluation result of a single Recipe rule."""
+
+    rule_id: int
+    name: str
+    parameter: str
+    status: str  # "green" | "yellow" | "red"
+    value_per_serving: float
+    display_value: str | None = None
+    unit: str
+    threshold: float | None = None
+    threshold_direction: str | None = None  # "min" | "max"
+    tip_text: str
+
+
+class RecipeRulesOut(Schema):
+    """Consolidated Recipe scope rule evaluation."""
+
+    green_count: int
+    yellow_count: int
+    red_count: int
+    items: list[RecipeRuleResult]
+    is_applicable: bool = True
+    message: str = ""

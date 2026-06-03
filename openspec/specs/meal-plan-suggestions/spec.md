@@ -1,5 +1,8 @@
-## ADDED Requirements
+# meal-plan-suggestions Specification
 
+## Purpose
+Defines rule-based and system-generated suggestions for MealPlans.
+## Requirements
 ### Requirement: Rule data model
 The system SHALL provide a unified `Rule` model replacing both `HealthRule` and `RecipeHint`. Each rule SHALL have: `name` (CharField), `description` (TextField), `parameter` (CharField, choices from nutrition parameters), `scope` (CharField, choices: "meal_event", "day", "meal", "recipe"), `rule_type` (CharField, choices: "nutrition"), `min_yellow` (DecimalField, nullable), `min_green` (DecimalField, nullable), `max_green` (DecimalField, nullable), `max_yellow` (DecimalField, nullable), `unit` (CharField), `hint_level` (CharField, choices: "info", "warn", "error"), `tip_text` (TextField), `improvement_text` (TextField), `is_active` (BooleanField, default True), `sort_order` (IntegerField). Min-fields and max-fields SHALL be independently nullable to support min-only rules (e.g. fibre) and max-only rules (e.g. sugar).
 
@@ -58,16 +61,53 @@ The MealPlan model SHALL have a `budget_per_person_per_day` field (DecimalField,
 - **THEN** budget rules SHALL evaluate as "green" (no constraint)
 
 ### Requirement: Suggestion evaluation service
-The system SHALL provide a `suggestion_service` that evaluates all rules and system checks for a MealPlan and returns a list of suggestions sorted by priority.
+The system SHALL provide a `suggestion_service` that evaluates all rules and system checks for a MealPlan and returns a list of suggestions sorted by priority. Rule evaluation SHALL include active `Rule` entries for `scope="meal"`, `scope="day"`, and `scope="meal_event"` across nutrition, price, weight, and Nutri-Score parameters when those values are available from aggregations.
+
+Planner-level rule evaluation MUST apply to all meal types in the plan. It MUST NOT skip breakfast, snack, dessert, drink, side dish, or simple meal slots merely because recipe-level rules are hidden for those recipe types.
 
 #### Scenario: Evaluating a complete plan
 - **WHEN** suggestions are requested for a fully populated MealPlan
-- **THEN** the service SHALL evaluate: completeness (system), duplicates (system), budget rules, nutrition rules
+- **THEN** the service SHALL evaluate: completeness (system), duplicates (system), budget rules, nutrition rules, price rules, weight rules, and Nutri-Score rules
 - **THEN** results SHALL be sorted by priority: completeness (1) > budget (2) > nutrition (3) > duplicates (4)
 
 #### Scenario: Evaluating an empty plan
 - **WHEN** suggestions are requested for a MealPlan with no recipes assigned
 - **THEN** the service SHALL return red suggestions for each empty meal slot with text "Kein Rezept zugewiesen"
+
+#### Scenario: Evaluating all meal types
+- **WHEN** a MealPlan contains breakfast, snack, dessert, drink, side dish, simple meal, warm meal, and cold meal slots with assigned items
+- **THEN** the service SHALL include all of those slots in meal, day, and plan aggregations
+- **THEN** matching `scope="meal"`, `scope="day"`, and `scope="meal_event"` rules SHALL be evaluated for the aggregated values
+
+### Requirement: Portion-based suggestion evaluation
+The suggestion evaluation service SHALL evaluate all nutrition rules at the meal plan, day, and meal levels using aggregated values computed in Normportion logic. Since every recipe represents exactly one Normportion, `Recipe.servings` is always treated as `1` and there SHALL be no division by `servings`. Nutrient contributions SHALL be computed as `value per 100g × total_weight_g / 100 × MealItem.factor` and summed per scope.
+
+#### Scenario: Day cockpit suggestion evaluation uses Normportion-scaled values
+- **WHEN** a day cockpit contains a recipe with 13.5g protein per 100g, weight = 800g, and meal item factor = 1.0 (108.0g protein for the Normportion)
+- **AND** a day-scope rule requires "protein_g >= 45.0"
+- **THEN** the suggestion service SHALL evaluate the Normportion value (13.5 × 800 / 100 × 1.0 = 108.0g) instead of the per-100g value (13.5g)
+- **AND** there SHALL be no division by `servings`
+- **AND** generate a green suggestion because 108.0g ≥ 45.0g
+
+### Requirement: Normportion-basierte Suggestion-Auswertung
+
+Der Suggestion-Service MUST alle Nährwert-, Preis-, Gewicht- und Nutri-Regeln auf Mahlzeit-, Tages- und Plan-Ebene anhand von Normportion-Aggregaten auswerten. Die der Regelbewertung zugrunde liegenden Werte MÜSSEN in Normportion-Logik berechnet sein (Rezept-Normportionwert × `MealItem.factor`, summiert je Scope). Es DARF KEINE Skalierung auf reale Personen-, Aktivitäts- oder Reservemengen in die Regelbewertung einfließen.
+
+#### Scenario: Mahlzeitregel nutzt Normportion-Aggregat
+
+- **WHEN** eine `scope="meal"`-Regel `protein_g >= 30` für eine Mahlzeit ausgewertet wird, deren Normportion-Aggregat 35.0g Eiweiß beträgt
+- **THEN** wertet der Service den Wert 35.0g aus und erzeugt eine grüne Bewertung
+
+#### Scenario: Keine Personen-Skalierung in der Bewertung
+
+- **WHEN** Vorschläge für einen MealPlan mit `norm_portions = 10` angefordert werden
+- **THEN** verwenden die Regelbewertungen ausschließlich Normportion-Aggregate
+- **AND** die Werte werden NICHT mit `norm_portions`, `activity_factor` oder `reserve_factor` multipliziert
+
+#### Scenario: Tagesregel summiert Mahlzeiten in Normportion-Logik
+
+- **WHEN** eine `scope="day"`-Regel für einen Tag mit drei Mahlzeiten ausgewertet wird
+- **THEN** basiert die Bewertung auf der Summe der Normportion-Mahlzeitwerte des Tages
 
 ### Requirement: Completeness system rule
 The system SHALL check that every Meal in the MealPlan has at least one MealItem (recipe or ingredient). This is a hardcoded system rule, not admin-configurable.
@@ -104,14 +144,19 @@ When a meal is empty (completeness violation), the system SHALL suggest up to 3 
 - **THEN** the suggestion SHALL have an empty recipe_suggestions list
 
 ### Requirement: Suggestions API endpoint
-The system SHALL provide a REST endpoint `GET /api/meal-plans/{id}/suggestions/` that returns all suggestions for a MealPlan.
+The system SHALL provide a REST endpoint `GET /api/meal-plans/{id}/suggestions/` that returns all suggestions for a MealPlan. The endpoint SHALL include suggestions produced from system checks and active Rules for price, weight, Nutri-Score, and supported nutrition parameters. The endpoint SHALL remain accessible only to authorized owners or collaborators.
 
 #### Scenario: Successful evaluation
-- **WHEN** GET `/api/meal-plans/{id}/suggestions/` is called
+- **WHEN** GET `/api/meal-plans/{id}/suggestions/` is called by an authorized user
 - **THEN** the response SHALL include: suggestions (list), summary_status (worst color), red_count, yellow_count, green_count, total_count
+- **THEN** suggestions generated from price, weight, Nutri-Score, and nutrition rules SHALL use the same response shape as existing nutrition suggestions
 
 #### Scenario: Unauthorized access
 - **WHEN** a user who is not owner or collaborator requests suggestions
+- **THEN** the system SHALL return 403
+
+#### Scenario: Unauthenticated access
+- **WHEN** an unauthenticated user requests suggestions for a MealPlan
 - **THEN** the system SHALL return 403
 
 ### Requirement: Suggestions tab in MealPlan UI
@@ -170,23 +215,23 @@ The system SHALL check the MealPlan's `budget_per_person_per_day` against actual
 - **THEN** the suggestion SHALL include a note: "Basierend auf X% der Zutaten mit Preisdaten"
 
 ### Requirement: Seed rules management command
-The system SHALL provide a management command `seed_rules` that creates a comprehensive set of default rules based on DGE reference values for adolescents (13-18). The command SHALL be idempotent (get_or_create by name).
+The system SHALL provide a management command `seed_rules` that creates a comprehensive set of default rules based on practical scout-camp meal planning. The command SHALL be idempotent and SHALL create or update default rules without creating duplicates.
 
 #### Scenario: Seeding day-scope rules
 - **WHEN** `uv run python manage.py seed_rules` is executed
-- **THEN** the following day-scope rules SHALL be created: energy_kj (8000-11000 green), protein_g (45-80g green), fat_g (60-95g green), carbohydrate_g (250-350g green), fibre_g (25g+ green, min-only), sugar_g (max 60g green, max-only), fat_sat_g (max 25g green, max-only), sodium_mg (max 2000mg green, max-only)
+- **THEN** day-scope rules SHALL be created for energy, protein, fat, carbohydrate, fibre, sugar, saturated fat, sodium or salt, price per day, total food weight per day, and average Nutri-Score
 
 #### Scenario: Seeding meal-scope rules
 - **WHEN** `uv run python manage.py seed_rules` is executed
-- **THEN** meal-scope rules SHALL be created: energy_kj (2000-4000 green), sugar_g (max 20g green)
+- **THEN** meal-scope rules SHALL be created for energy, protein, sugar, fibre, saturated fat, sodium or salt, price, total meal weight, and average Nutri-Score
 
 #### Scenario: Seeding recipe-scope rules
 - **WHEN** `uv run python manage.py seed_rules` is executed
-- **THEN** recipe-scope rules SHALL be created: protein_g (30g+ green, min-only), sugar_g (max 20g green), fat_sat_g (max 20g green), sodium_mg (max 500mg green), fibre_g (30g+ green, min-only)
+- **THEN** recipe-scope rules SHALL be created for protein, sugar, saturated fat, sodium or salt, fibre, price, weight, energy, fat range, and Nutri-Score
 
 #### Scenario: Seeding event-scope rules
 - **WHEN** `uv run python manage.py seed_rules` is executed
-- **THEN** event-scope rules SHALL be created: energy_kj (8500-11000 green), protein_g (45-80g green)
+- **THEN** event-scope rules SHALL be created for average daily energy, average daily protein, average daily sugar, average daily fibre, average daily price, and average Nutri-Score
 
 #### Scenario: Idempotent execution
 - **WHEN** the command is run twice
@@ -239,3 +284,19 @@ The traffic-light (Ampel) visual pattern from the Cockpit SHALL be preserved in 
 #### Scenario: Green indicator
 - **WHEN** a suggestion has status "green"
 - **THEN** a green dot SHALL be displayed (no tip needed)
+
+### Requirement: Scope-specific food quality rule set
+The system SHALL support a consistent default rule set across `recipe`, `meal`, `day`, and `meal_event` scopes for practical food quality evaluation. Rules SHALL cover at least price, weight, Nutri-Score, energy, protein, sugar, fibre, saturated fat, and sodium or salt where the parameter is meaningful for that scope.
+
+#### Scenario: Recipe and meal share comparable rules
+- **WHEN** default rules are seeded
+- **THEN** recipe-scope and meal-scope rules SHALL include comparable parameters for price, weight, Nutri-Score, protein, sugar, fibre, saturated fat, and sodium or salt
+
+#### Scenario: Day and plan use aggregate rules
+- **WHEN** default rules are seeded
+- **THEN** day-scope and meal_event-scope rules SHALL evaluate aggregate or average values appropriate for the scope
+
+#### Scenario: Admin can tune thresholds
+- **WHEN** a staff user edits any seeded rule in the Food Admin
+- **THEN** the adjusted thresholds SHALL be used by subsequent recipe or planner evaluations
+

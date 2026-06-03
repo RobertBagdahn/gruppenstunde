@@ -1934,7 +1934,7 @@ class Command(BaseCommand):
         senf = Ingredient.objects.filter(name="Senf").first()
         ketchup = Ingredient.objects.filter(name="Ketchup").first()
 
-        gram_unit = MeasuringUnit.objects.filter(name="Gramm").first()
+        gram_unit = MeasuringUnit.objects.filter(name__in=["Gramm", "g"]).first()
 
         # Map recipe -> [(ingredient, quantity_g, note)]
         # All quantities normalized to 1 Normportion (servings=1)

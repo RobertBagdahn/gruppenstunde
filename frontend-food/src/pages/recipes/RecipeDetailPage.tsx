@@ -43,12 +43,14 @@ import { ContentLinkSection } from '@/components/content/ContentLinkSection';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import RecipeImprovements from '@/components/recipe/RecipeImprovements';
+import RecipeRulesBox from '@/components/recipe/RecipeRulesBox';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
 import RecipeHeaderInfo from '@/components/recipe/RecipeHeaderInfo';
 import RecipeSidebar from '@/components/recipe/RecipeSidebar';
 import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
+import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
 // import { PositiveTraitsBadges } from '@/components/recipe/PositiveTraitsBadges';
 import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
@@ -301,11 +303,7 @@ export default function RecipeDetailPage() {
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
   const [portionSheetOpen, setPortionSheetOpen] = useState(false);
   const [isInlineEditMode, setIsInlineEditMode] = useState(false);
-
-  // Zubereitung section: default open on desktop (>=1024px), closed on mobile
-  const [descriptionDefaultOpen] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches,
-  );
+  const [showScaleDialog, setShowScaleDialog] = useState(false);
 
   const { data: currentUser } = useCurrentUser();
   const createFromRecipe = useCreateFromRecipe();
@@ -341,6 +339,7 @@ export default function RecipeDetailPage() {
   const initializeModifications = useRecipeModificationStore((s) => s.initialize);
   const resetModifications = useRecipeModificationStore((s) => s.reset);
   const scaleToNormPortion = useRecipeModificationStore((s) => s.scaleToNormPortion);
+  const scaleByFactor = useRecipeModificationStore((s) => s.scaleByFactor);
 
   // Initialize modification store when nutrition breakdown data loads
   useEffect(() => {
@@ -779,9 +778,8 @@ export default function RecipeDetailPage() {
         return null;
       })()}
 
-      {/* Info Boxes */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-        {/* Scout Levels */}
+      {/* Info Boxes — mobile only, desktop uses sidebar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 lg:hidden">
         {recipe.scout_levels.length > 0 ? (
           <div className="flex flex-col items-center text-center gap-2 bg-rose-50 rounded-xl border border-rose-200 p-5">
             <span className="material-symbols-outlined text-3xl text-rose-600">groups</span>
@@ -894,8 +892,8 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
-      {/* KPI Boxes */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+      {/* KPI Boxes — mobile only, desktop uses sidebar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 lg:hidden">
         <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-5">
           <span className="material-symbols-outlined text-3xl text-rose-600">signal_cellular_alt</span>
           <span className="text-base font-bold">{difficultyLabel}</span>
@@ -927,26 +925,50 @@ export default function RecipeDetailPage() {
 
       {/* Recipe Items (Ingredients) — using IngredientList component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="flex items-center gap-2 text-xl font-semibold">
-            <span className="material-symbols-outlined text-rose-500">egg_alt</span>
-            Zutaten
-            {!isInlineEditMode && (
-              <span className="text-sm font-normal text-muted-foreground">
-                {servingsMultiplier === 1 ? 'pro Portion' : `für ${servingsMultiplier} Portionen`}
-              </span>
-            )}
-          </h2>
-          {recipe.can_edit && !isInlineEditMode && (
-            <button
-              type="button"
-              onClick={() => setIsInlineEditMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
-              title="Zutaten bearbeiten"
-            >
-              <span className="material-symbols-outlined text-[16px]">edit</span>
-              Bearbeiten
-            </button>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+              <span className="material-symbols-outlined text-[22px]">egg_alt</span>
+            </span>
+            <div className="min-w-0">
+              <h2 className="flex items-center gap-2 text-xl font-semibold leading-tight">
+                Zutaten
+                {(recipe.recipe_items?.length ?? 0) > 0 && (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {recipe.recipe_items?.length}
+                  </span>
+                )}
+              </h2>
+              {!isInlineEditMode && (
+                <p className="text-sm text-muted-foreground leading-tight">
+                  {servingsMultiplier === 1 ? 'pro Portion' : `für ${servingsMultiplier} Portionen`}
+                </p>
+              )}
+            </div>
+          </div>
+          {!isInlineEditMode && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowScaleDialog(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+                title="Alle Zutaten skalieren"
+              >
+                <span className="material-symbols-outlined text-[16px]">scale</span>
+                Skalieren
+              </button>
+              {recipe.can_edit && (
+                <button
+                  type="button"
+                  onClick={() => setIsInlineEditMode(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+                  title="Zutaten bearbeiten"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  Bearbeiten
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -1079,29 +1101,6 @@ export default function RecipeDetailPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Description */}
-      {recipe.description && (
-        <InlineEditor
-          mode="markdown"
-          label="Zubereitung"
-          value={recipe.description}
-          canEdit={recipe.can_edit ?? false}
-          aiField="description"
-          onSave={(val) => updateRecipe.mutateAsync({ description: val })}
-          isSaving={updateRecipe.isPending}
-          className="mt-6"
-        >
-          <AnalysisSection
-            icon="description"
-            title="Zubereitung"
-            defaultOpen={descriptionDefaultOpen}
-            accentColor="text-primary"
-          >
-            <MarkdownRenderer content={recipe.description} />
-          </AnalysisSection>
-        </InlineEditor>
       )}
 
       {/* Long Summary */}
@@ -1545,6 +1544,9 @@ export default function RecipeDetailPage() {
         </AnalysisSection>
       )}
 
+      {/* --- Rezeptregeln --- */}
+      <RecipeRulesBox recipeId={recipeId} />
+
       {/* --- Gewichtsanalyse --- */}
       {nb && nb.total_weight_g > 0 && topIngredientsByWeight.length > 0 && (
         <AnalysisSection
@@ -1599,6 +1601,29 @@ export default function RecipeDetailPage() {
 
       {/* Recipe Hints + Nutri-Improvements are now rendered inside the
           Nährwert-Analyse section via <RecipeImprovements />. */}
+
+      {/* Description (Zubereitung) — collapsed by default */}
+      {recipe.description && (
+        <InlineEditor
+          mode="markdown"
+          label="Zubereitung"
+          value={recipe.description}
+          canEdit={recipe.can_edit ?? false}
+          aiField="description"
+          onSave={(val) => updateRecipe.mutateAsync({ description: val })}
+          isSaving={updateRecipe.isPending}
+          className="mt-6"
+        >
+          <AnalysisSection
+            icon="description"
+            title="Zubereitung"
+            defaultOpen={false}
+            accentColor="text-primary"
+          >
+            <MarkdownRenderer content={recipe.description} />
+          </AnalysisSection>
+        </InlineEditor>
+      )}
 
       {/* Emotions — using generic ContentEmotions component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
@@ -1706,6 +1731,18 @@ export default function RecipeDetailPage() {
         onOpenChange={setPortionSheetOpen}
         servings={servingsMultiplier}
         onServingsChange={setServingsMultiplier}
+      />
+
+      {/* Scale Ingredients Dialog */}
+      <ScaleIngredientsDialog
+        open={showScaleDialog}
+        onOpenChange={setShowScaleDialog}
+        onScale={(factor) => {
+          scaleByFactor(factor);
+          toast.success(
+            `Zutaten skaliert (Faktor: ${factor.toLocaleString('de-DE', { maximumFractionDigits: 2 })})`,
+          );
+        }}
       />
     </article>
     </EntityLinkContext.Provider>

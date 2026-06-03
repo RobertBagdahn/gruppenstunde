@@ -5,6 +5,7 @@ import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
+  RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 
 const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -35,6 +36,14 @@ export default function RecipeSidebar({
   const timeLabel =
     RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
     recipe.execution_time;
+  const prepTimeLabel =
+    RECIPE_PREPARATION_TIME_OPTIONS.find((p) => p.value === recipe.preparation_time)?.label ??
+    recipe.preparation_time ??
+    'keine';
+  const scoutLevelsLabel =
+    recipe.scout_levels.length > 0
+      ? recipe.scout_levels.map((l) => l.name).join(', ')
+      : 'Für alle';
 
   const nutriLabel = recipe.cached_nutri_class != null
     ? ['A', 'B', 'C', 'D', 'E'][recipe.cached_nutri_class - 1]
@@ -106,6 +115,45 @@ export default function RecipeSidebar({
           <span className="text-xs text-muted-foreground">Gesamtkosten</span>
         </div>
       )}
+
+      {/* Compact Stats Tiles */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-3">
+          <span className="material-symbols-outlined text-2xl text-rose-600">groups</span>
+          <span className="text-sm font-bold leading-tight">{scoutLevelsLabel}</span>
+          <span className="text-[11px] text-muted-foreground">Altersgruppe</span>
+        </div>
+        <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-3">
+          <span className="material-symbols-outlined text-2xl text-rose-600">signal_cellular_alt</span>
+          <span className="text-sm font-bold leading-tight">{difficultyLabel}</span>
+          <span className="text-[11px] text-muted-foreground">Schwierigkeit</span>
+        </div>
+        <div className="flex flex-col items-center text-center gap-1 bg-teal-50 rounded-xl border border-teal-200 p-3">
+          <span className="material-symbols-outlined text-2xl text-teal-600">timer</span>
+          <span className="text-sm font-bold leading-tight">{timeLabel}</span>
+          <span className="text-[11px] text-muted-foreground">Kochzeit</span>
+        </div>
+        <div className="flex flex-col items-center text-center gap-1 bg-indigo-50 rounded-xl border border-indigo-200 p-3">
+          <span className="material-symbols-outlined text-2xl text-indigo-600">pending_actions</span>
+          <span className="text-sm font-bold leading-tight">{prepTimeLabel}</span>
+          <span className="text-[11px] text-muted-foreground">Vorbereitungszeit</span>
+        </div>
+        <div className="flex flex-col items-center text-center gap-1 bg-violet-50 rounded-xl border border-violet-200 p-3">
+          <span className="material-symbols-outlined text-2xl text-violet-600">visibility</span>
+          <span className="text-sm font-bold leading-tight">{recipe.view_count}</span>
+          <span className="text-[11px] text-muted-foreground">Aufrufe</span>
+        </div>
+        <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-3">
+          <span
+            className="material-symbols-outlined text-2xl text-rose-500"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            favorite
+          </span>
+          <span className="text-sm font-bold leading-tight">{recipe.like_score}</span>
+          <span className="text-[11px] text-muted-foreground">Likes</span>
+        </div>
+      </div>
 
       {/* Portion Scaler (compact) */}
       <PortionScaler

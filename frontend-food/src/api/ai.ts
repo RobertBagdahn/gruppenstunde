@@ -39,6 +39,7 @@ async function postJson<S extends z.ZodTypeAny>(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    credentials: 'include',
     signal,
   });
   if (!res.ok) {

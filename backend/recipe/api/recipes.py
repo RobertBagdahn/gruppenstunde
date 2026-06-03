@@ -236,10 +236,17 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
         recipe_draft={
             "title": result.title,
             "description": result.description,
+            "summary": result.summary,
             "servings": result.servings,
             "preparation_time": result.preparation_time,
             "execution_time": result.execution_time,
             "recipe_type": result.recipe_type,
+            "difficulty": result.difficulty,
+            "execution_time_choice": result.execution_time_choice,
+            "preparation_time_choice": result.preparation_time_choice,
+            "costs_rating": result.costs_rating,
+            "scout_level_ids": result.scout_level_ids,
+            "tag_ids": result.tag_ids,
             "steps": result.steps,
             "source_url": result.source_url,
         },
@@ -252,6 +259,7 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
                 "measuring_unit_name": item.measuring_unit_name,
                 "note": item.note,
                 "is_new_ingredient": item.is_new_ingredient,
+                "portion_id": item.portion_id,
             }
             for item in result.recipe_items
         ],

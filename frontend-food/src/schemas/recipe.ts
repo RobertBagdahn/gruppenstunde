@@ -42,6 +42,7 @@ export const RecipeItemSchema = z.object({
   ingredient_density: z.number().nullable().optional(),
   ingredient_viscosity: z.string().nullable().optional(),
   ingredient_price_per_kg: z.number().nullable().optional(),
+  weight_g: z.number(),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;
 
@@ -327,3 +328,29 @@ export const EstimateQuantitiesSchema = z.object({
   items: z.array(EstimateQuantityItemSchema),
 });
 export type EstimateQuantities = z.infer<typeof EstimateQuantitiesSchema>;
+
+// --- Unified Recipe Rules (scope=recipe) ---
+
+export const RecipeRuleResultSchema = z.object({
+  rule_id: z.number(),
+  name: z.string(),
+  parameter: z.string(),
+  status: z.enum(['green', 'yellow', 'red']),
+  value_per_serving: z.number(),
+  display_value: z.string().nullable().optional(),
+  unit: z.string(),
+  threshold: z.number().nullable().optional(),
+  threshold_direction: z.enum(['min', 'max']).nullable().optional(),
+  tip_text: z.string(),
+});
+export type RecipeRuleResult = z.infer<typeof RecipeRuleResultSchema>;
+
+export const RecipeRulesSchema = z.object({
+  green_count: z.number(),
+  yellow_count: z.number(),
+  red_count: z.number(),
+  items: z.array(RecipeRuleResultSchema),
+  is_applicable: z.boolean().default(true),
+  message: z.string().default(''),
+});
+export type RecipeRules = z.infer<typeof RecipeRulesSchema>;

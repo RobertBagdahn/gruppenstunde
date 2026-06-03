@@ -18,6 +18,8 @@ from django.utils import timezone
 if TYPE_CHECKING:
     from recipe.models import Recipe
 
+from supply.choices import RecipeTypeChoices
+
 from recipe.models import Rule, RecipeItem
 
 # Micronutrient fields tracked on Ingredient — used for aggregation
@@ -102,29 +104,30 @@ def get_recipe_nutritional_values(recipe: "Recipe") -> dict[str, float]:
     return totals
 
 
-def match_recipe_hints(
-    recipe: "Recipe",
-    recipe_objective: str = "",
-) -> list[dict]:
-    """Match Rule rules (scope=recipe) against recipe nutritional values.
+def get_recipe_total_weight_g(recipe: "Recipe") -> float:
+    """Return total recipe weight in grams, using cache when available."""
+    if recipe.cached_weight_g is not None:
+        return float(recipe.cached_weight_g)
 
-    Supports all macronutrient and micronutrient parameters, plus
-    ``weight_g`` (total recipe weight) and ``nutri_class``.
-    Returns list of {hint, actual_value, message, improvement_text, status}
-    for each rule that evaluates to yellow or red.
-    """
-    values = get_recipe_nutritional_values(recipe)
-
-    # Add special computed parameters that are not per-100g nutrient fields
-    # Total weight needs to be calculated separately
     items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
     total_weight_g = 0.0
     for item in items:
-        if item.portion and item.portion.weight_g:
+        if not (item.portion and item.portion.ingredient):
+            continue
+        if item.portion.weight_g:
             total_weight_g += item.quantity * item.portion.weight_g
-        elif item.portion and item.portion.measuring_unit:
+        elif item.portion.measuring_unit:
             total_weight_g += item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
+    return total_weight_g
+
+
+def get_recipe_values_with_computed(recipe: "Recipe") -> tuple[dict[str, float], float]:
+    """Get recipe nutritional values (per 100g) and computed total weight (g), including nutri_class."""
+    values = get_recipe_nutritional_values(recipe)
+
+    total_weight_g = get_recipe_total_weight_g(recipe)
     values["weight_g"] = total_weight_g
+    values["price_total"] = float(recipe.cached_price_total or 0.0)
 
     # Add nutri_class from cached value or compute it
     if recipe.cached_nutri_class:
@@ -142,18 +145,141 @@ def match_recipe_hints(
         _ns_total, ns_class = _calc_ns(agg)
         values["nutri_class"] = float(ns_class)
 
+    return values, total_weight_g
+
+
+def evaluate_recipe_rules(recipe: "Recipe") -> dict:
+    """Evaluate all active Rules (scope=recipe) against recipe nutritional values.
+
+    Returns a dict with green/yellow/red counts and a list of all evaluated rules.
+    """
+    if recipe.recipe_type not in [RecipeTypeChoices.WARM_MEAL, RecipeTypeChoices.COLD_MEAL]:
+        return {
+            "green_count": 0,
+            "yellow_count": 0,
+            "red_count": 0,
+            "items": [],
+            "is_applicable": False,
+            "message": "Für diesen Rezepttyp sind Rezeptregeln nicht sinnvoll. Die Regeln werden im Planer auf die Mahlzeit angewandt.",
+        }
+
+    values, total_weight_g = get_recipe_values_with_computed(recipe)
+
+    # Each recipe represents exactly one Normportion (servings is always 1).
+    # Per-100g nutrient values are converted to the Normportion total via total_weight_g / 100.
+    if total_weight_g > 0:
+        factor = total_weight_g / 100.0
+    else:
+        factor = 1.0
+
+    rules = Rule.objects.filter(is_active=True, scope="recipe").order_by("sort_order", "name")
+
+    items = []
+    green_count = 0
+    yellow_count = 0
+    red_count = 0
+
+    nutri_letter_map = {
+        1.0: "A",
+        2.0: "B",
+        3.0: "C",
+        4.0: "D",
+        5.0: "E",
+    }
+
+    for rule in rules:
+        actual_value = values.get(rule.parameter, 0.0)
+        if rule.parameter in ["nutri_class", "weight_g", "price_total"]:
+            # nutri_class is a quality class; weight_g and price_total are
+            # already Normportion totals and must stay unscaled.
+            value_per_serving = actual_value
+        else:
+            value_per_serving = actual_value * factor
+
+        status = rule.evaluate(value_per_serving)
+
+        if status == "green":
+            green_count += 1
+        elif status == "yellow":
+            yellow_count += 1
+        elif status == "red":
+            red_count += 1
+
+        # Special nutri_class display mapping
+        display_value = None
+        unit = rule.unit
+        if rule.parameter == "nutri_class":
+            display_value = nutri_letter_map.get(round(value_per_serving), None)
+            unit = ""
+
+        threshold_direction = None
+        threshold = None
+        if rule.max_green is not None or rule.max_yellow is not None:
+            threshold_direction = "max"
+            threshold = rule.max_green if rule.max_green is not None else rule.max_yellow
+        elif rule.min_green is not None or rule.min_yellow is not None:
+            threshold_direction = "min"
+            threshold = rule.min_green if rule.min_green is not None else rule.min_yellow
+
+        items.append({
+            "rule_id": rule.id,
+            "name": rule.name,
+            "parameter": rule.parameter,
+            "status": status,
+            "value_per_serving": round(value_per_serving, 2),
+            "display_value": display_value,
+            "unit": unit,
+            "threshold": threshold,
+            "threshold_direction": threshold_direction,
+            "tip_text": rule.tip_text if status != "green" else ""
+        })
+
+    return {
+        "green_count": green_count,
+        "yellow_count": yellow_count,
+        "red_count": red_count,
+        "items": items,
+        "is_applicable": True,
+        "message": "",
+    }
+
+
+def match_recipe_hints(
+    recipe: "Recipe",
+    recipe_objective: str = "",
+) -> list[dict]:
+    """Match Rule rules (scope=recipe) against recipe nutritional values.
+
+    Supports all macronutrient and micronutrient parameters, plus
+    ``weight_g`` (total recipe weight) and ``nutri_class``.
+    Returns list of {hint, actual_value, message, improvement_text, status}
+    for each rule that evaluates to yellow or red.
+    """
+    values, total_weight_g = get_recipe_values_with_computed(recipe)
+
+    # Each recipe represents exactly one Normportion (servings is always 1).
+    if total_weight_g > 0:
+        factor = total_weight_g / 100.0
+    else:
+        factor = 1.0
+
     rules = Rule.objects.filter(is_active=True, scope="recipe")
 
     results = []
     for rule in rules:
         actual = values.get(rule.parameter, 0.0)
-        status = rule.evaluate(actual)
+        if rule.parameter in ["nutri_class", "weight_g", "price_total"]:
+            eval_value = actual
+        else:
+            eval_value = actual * factor
+
+        status = rule.evaluate(eval_value)
 
         if status != "green":
             results.append(
                 {
                     "hint": rule,
-                    "actual_value": round(actual, 2),
+                    "actual_value": round(eval_value, 2),
                     "message": rule.tip_text or rule.name,
                     "improvement_text": rule.improvement_text or "",
                     "status": status,
@@ -216,22 +342,29 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     # Calculate total price
     items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
     total_price = Decimal("0.00")
+    total_weight_g = 0.0
     has_prices = False
     for item in items:
         ingredient = item.portion.ingredient if item.portion else None
+        weight_g = 0.0
+        if item.portion and item.portion.weight_g:
+            weight_g = item.quantity * item.portion.weight_g
+            total_weight_g += float(weight_g)
         if ingredient and ingredient.price_per_kg:
             has_prices = True
-            weight_g = 0.0
-            if item.portion and item.portion.weight_g:
-                weight_g = item.quantity * item.portion.weight_g
             price = ingredient.price_per_kg * Decimal(str(weight_g)) / Decimal("1000")
             total_price += price
 
+    energy_per_100g = values.get("energy_kj")
+    recipe.cached_energy_total_kj = float(energy_per_100g) * (total_weight_g / 100.0) if energy_per_100g and total_weight_g else None
+    recipe.cached_weight_g = total_weight_g
     recipe.cached_price_total = total_price if has_prices else None
     recipe.cached_at = timezone.now()
 
     update_fields = [
         "cached_energy_kj",
+        "cached_energy_total_kj",
+        "cached_weight_g",
         "cached_protein_g",
         "cached_fat_g",
         "cached_carbohydrate_g",

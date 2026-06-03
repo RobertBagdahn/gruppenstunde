@@ -45,8 +45,22 @@ const SCOUT_LEVEL_COLORS: Record<string, string> = {
   'Rover': 'bg-red-50 text-red-700 border border-red-300',
 };
 
+const ALL_SCOUT_LEVELS = ['Wölflinge', 'Jungpfadfinder', 'Pfadfinder', 'Rover'];
+
 function getScoutLevelColor(name: string): string {
   return SCOUT_LEVEL_COLORS[name] ?? 'bg-gray-50 text-gray-700 border border-gray-300';
+}
+
+function getScoutLevelSummary(levels: ScoutLevel[]): { mode: 'all' | 'except' | 'list'; missing?: string; } {
+  const names = levels.map(l => l.name);
+  if (names.length === ALL_SCOUT_LEVELS.length && ALL_SCOUT_LEVELS.every(n => names.includes(n))) {
+    return { mode: 'all' };
+  }
+  if (names.length === ALL_SCOUT_LEVELS.length - 1) {
+    const missing = ALL_SCOUT_LEVELS.find(n => !names.includes(n));
+    if (missing) return { mode: 'except', missing };
+  }
+  return { mode: 'list' };
 }
 
 export default function ContentCard({
@@ -149,24 +163,40 @@ export default function ContentCard({
         )}
 
         {/* Scout Level Badges */}
-        {content.scout_levels.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {content.scout_levels.slice(0, 2).map((level: ScoutLevel) => (
-              <span
-                key={level.id}
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${getScoutLevelColor(level.name)}`}
-              >
-                {level.icon && <span className="material-symbols-outlined text-[11px] mr-0.5">{level.icon}</span>}
-                {level.name}
-              </span>
-            ))}
-            {content.scout_levels.length > 2 && (
-              <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 text-[10px] font-bold">
-                +{content.scout_levels.length - 2}
-              </span>
-            )}
-          </div>
-        )}
+        {content.scout_levels.length > 0 && (() => {
+          const summary = getScoutLevelSummary(content.scout_levels);
+          if (summary.mode === 'all') {
+            return (
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span className="inline-flex items-center rounded-full bg-gray-50 text-gray-700 border border-gray-300 px-2 py-0.5 text-[10px] font-bold">
+                  Alle Stufen
+                </span>
+              </div>
+            );
+          }
+          if (summary.mode === 'except') {
+            return (
+              <div className="flex flex-wrap gap-1 mt-2">
+                <span className="inline-flex items-center rounded-full bg-gray-50 text-gray-700 border border-gray-300 px-2 py-0.5 text-[10px] font-bold">
+                  Außer {summary.missing}
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {content.scout_levels.map((level: ScoutLevel) => (
+                <span
+                  key={level.id}
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${getScoutLevelColor(level.name)}`}
+                >
+                  {level.icon && <span className="material-symbols-outlined text-[11px] mr-0.5">{level.icon}</span>}
+                  {level.name}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Tags */}
         {content.tags.length > 0 && (

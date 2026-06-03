@@ -150,14 +150,14 @@ class TestRecalculateRecipeCacheMicronutrients:
             name="Orange",
             vitamin_c_mg=53.2,
         )
-        portion_a = make_portion(ingredient=ing_a, weight_g=200.0, name="200g Orange")
+        portion_a = make_portion(ingredient=ing_a, quantity=200.0, weight_g=200.0, name="200g Orange")
 
         # Ingredient B: some vitamin C (values per 100g)
         ing_b = make_ingredient(
             name="Spinat",
             vitamin_c_mg=28.0,
         )
-        portion_b = make_portion(ingredient=ing_b, weight_g=150.0, name="150g Spinat")
+        portion_b = make_portion(ingredient=ing_b, quantity=150.0, weight_g=150.0, name="150g Spinat")
 
         # quantity=1 -> weight = 1 * portion.weight_g
         make_recipe_item(recipe=recipe, portion=portion_a, ingredient=ing_a, quantity=1.0)
@@ -336,7 +336,7 @@ class TestNutritionBreakdownAPI:
             salt_g=0.03,
             vitamin_c_mg=89.0,
         )
-        portion = make_portion(ingredient=ing, weight_g=200.0, name="200g Brokkoli")
+        portion = make_portion(ingredient=ing, quantity=200.0, weight_g=200.0, name="200g Brokkoli")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
         return recipe
 

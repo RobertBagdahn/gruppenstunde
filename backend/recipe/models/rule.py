@@ -137,6 +137,25 @@ class Rule(models.Model):
     def __str__(self) -> str:
         return f"{self.name} ({self.scope}/{self.parameter})"
 
+    @property
+    def min_max(self) -> str:
+        """Backward compatibility helper for old RecipeHint min_max field."""
+        if self.max_green is not None or self.max_yellow is not None:
+            return "max"
+        return "min"
+
+    @property
+    def value(self) -> float:
+        """Backward compatibility helper for old RecipeHint limit value field."""
+        if self.min_max == "max":
+            return self.max_green if self.max_green is not None else (self.max_yellow or 0.0)
+        return self.min_green if self.min_green is not None else (self.min_yellow or 0.0)
+
+    @property
+    def hint(self) -> str:
+        """Backward compatibility helper for old RecipeHint hint field (tip_text)."""
+        return self.tip_text
+
     def evaluate(self, value: float) -> str:
         """Evaluate a value against thresholds. Returns 'green', 'yellow', or 'red'.
 

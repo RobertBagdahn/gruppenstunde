@@ -39,6 +39,7 @@ from planner.schemas import (
     MealPlanCollaboratorOut,
     MealPlanCollaboratorCreateIn,
     MealPlanCollaboratorUpdateIn,
+    RecipeSuggestionOut,
 )
 
 meal_plan_router = Router(tags=["meal-plans"])
@@ -759,7 +760,7 @@ def shopping_list(request, meal_plan_id: int):
 
 
 # ==========================================================================
-# Popular Recipes
+# Recipe Suggestions
 # ==========================================================================
 
 # Map meal_type to recipe_type values
@@ -770,6 +771,98 @@ MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
     "snack": ["snack", "simple_meal"],
     "dessert": ["dessert"],
 }
+
+
+@meal_plan_router.get(
+    "/recipes/suggestions/",
+    response=list[RecipeSuggestionOut],
+)
+def recipe_suggestions(
+    request,
+    meal_type: str | None = None,
+    q: str | None = None,
+    limit: int = 10,
+):
+    """Return recipe suggestions sorted by global usage frequency."""
+    from django.db.models import Count, Q
+
+    limit = min(limit, 20)
+
+    base_filter = Q(recipe__isnull=False)
+
+    # Text search filter
+    text_filter = Q()
+    if q and len(q) >= 1:
+        text_filter = Q(recipe__title__icontains=q)
+
+    # meal_type-specific results
+    type_filter = Q()
+    if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
+        type_filter = Q(meal__meal_type=meal_type)
+
+    # Primary: recipes matching meal_type, sorted by usage count
+    results = []
+    seen_ids: set[int] = set()
+
+    if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
+        type_qs = (
+            MealItem.objects.filter(base_filter & type_filter & text_filter)
+            .values("recipe_id")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:limit]
+        )
+        recipe_ids = [entry["recipe_id"] for entry in type_qs]
+        if recipe_ids:
+            recipes_map = {
+                r.id: r for r in Recipe.objects.filter(id__in=recipe_ids)
+            }
+            counts_map = {entry["recipe_id"]: entry["count"] for entry in type_qs}
+            for rid in recipe_ids:
+                r = recipes_map.get(rid)
+                if r:
+                    results.append(RecipeSuggestionOut(
+                        id=r.id,
+                        title=r.title,
+                        usage_count=counts_map[rid],
+                        image_thumbnail=r.image.url if r.image else None,
+                    ))
+                    seen_ids.add(r.id)
+
+    # Fallback: fill up with global usage (excluding already seen)
+    remaining = limit - len(results)
+    if remaining > 0:
+        exclude_filter = Q()
+        if seen_ids:
+            exclude_filter = ~Q(recipe_id__in=seen_ids)
+
+        global_qs = (
+            MealItem.objects.filter(base_filter & text_filter & exclude_filter)
+            .values("recipe_id")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:remaining]
+        )
+        recipe_ids = [entry["recipe_id"] for entry in global_qs]
+        if recipe_ids:
+            recipes_map = {
+                r.id: r for r in Recipe.objects.filter(id__in=recipe_ids)
+            }
+            counts_map = {entry["recipe_id"]: entry["count"] for entry in global_qs}
+            for rid in recipe_ids:
+                r = recipes_map.get(rid)
+                if r:
+                    results.append(RecipeSuggestionOut(
+                        id=r.id,
+                        title=r.title,
+                        usage_count=counts_map[rid],
+                        image_thumbnail=r.image.url if r.image else None,
+                    ))
+
+    return results
+
+
+# ==========================================================================
+# Popular Recipes
+# ==========================================================================
 
 
 @meal_plan_router.get("/recipes/popular/", response=dict)

@@ -496,3 +496,27 @@ class TestRecipeImageUpload:
     def test_upload_requires_auth(self, api_client, approved_recipe):
         resp = api_client.post(f"/api/recipes/{approved_recipe.id}/image/")
         assert resp.status_code == 403
+
+
+@pytest.mark.django_db
+def test_recipe_item_out_weight_g_calculation(db, portion):
+    from recipe.schemas.items import RecipeItemOut
+    recipe = Recipe.objects.create(title="Test Recipe")
+    # Test case 1: item has portion with explicit weight_g
+    item1 = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=250, sort_order=0)
+    data1 = RecipeItemOut.from_orm(item1)
+    assert data1.weight_g == 250.0
+
+    # Test case 2: item has portion with nullable weight_g, fallback to measuring_unit
+    portion2 = Portion.objects.create(
+        ingredient=portion.ingredient,
+        measuring_unit=portion.measuring_unit,
+        name="Tasse Mehl",
+        quantity=2.0,
+        weight_g=None,
+    )
+    item2 = RecipeItem.objects.create(recipe=recipe, portion=portion2, quantity=3, sort_order=1)
+    data2 = RecipeItemOut.from_orm(item2)
+    # quantity (3) * portion.quantity (2.0) * measuring_unit.quantity (1.0) = 6.0
+    assert data2.weight_g == 6.0
+

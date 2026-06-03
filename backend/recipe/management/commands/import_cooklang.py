@@ -310,6 +310,71 @@ class Command(BaseCommand):
         ingredients_created = 0
         unit_warnings = set()
 
+        def _estimate_metadata(parsed: dict) -> dict:
+            """Estimate execution_time and difficulty from metadata and ingredient count."""
+            from content.choices import DifficultyChoices, ExecutionTimeChoices
+
+            meta = parsed.get("metadata", {})
+            num_ingredients = len(parsed.get("ingredients", []))
+
+            # Parse time from Cooklang metadata (key: "time", "total time", "cook time")
+            total_minutes = None
+            for key in ("time", "total time", "cook time", "zeit"):
+                if key in meta:
+                    time_str = meta[key].lower()
+                    minutes = 0
+                    import re as _re
+                    h_match = _re.search(r"(\d+)\s*(?:h|hour|stunde)", time_str)
+                    m_match = _re.search(r"(\d+)\s*(?:m|min|minute)", time_str)
+                    if h_match:
+                        minutes += int(h_match.group(1)) * 60
+                    if m_match:
+                        minutes += int(m_match.group(1))
+                    if minutes == 0:
+                        # Try plain number (assume minutes)
+                        num_match = _re.match(r"(\d+)", time_str)
+                        if num_match:
+                            minutes = int(num_match.group(1))
+                    if minutes > 0:
+                        total_minutes = minutes
+                        break
+
+            # Determine execution_time
+            if total_minutes is not None:
+                if total_minutes < 30:
+                    execution_time = ExecutionTimeChoices.LESS_30
+                elif total_minutes < 60:
+                    execution_time = ExecutionTimeChoices.BETWEEN_30_60
+                elif total_minutes < 90:
+                    execution_time = ExecutionTimeChoices.BETWEEN_60_90
+                else:
+                    execution_time = ExecutionTimeChoices.MORE_90
+            else:
+                # Estimate from ingredient count
+                if num_ingredients <= 5:
+                    execution_time = ExecutionTimeChoices.LESS_30
+                elif num_ingredients <= 10:
+                    execution_time = ExecutionTimeChoices.BETWEEN_30_60
+                elif num_ingredients <= 15:
+                    execution_time = ExecutionTimeChoices.BETWEEN_60_90
+                else:
+                    execution_time = ExecutionTimeChoices.MORE_90
+
+            # Determine difficulty from ingredient count and steps
+            description = parsed.get("description", "")
+            step_count = description.count("\n")
+            if num_ingredients <= 5 and step_count <= 5:
+                difficulty = DifficultyChoices.EASY
+            elif num_ingredients >= 12 or step_count >= 15:
+                difficulty = DifficultyChoices.HARD
+            else:
+                difficulty = DifficultyChoices.MEDIUM
+
+            return {
+                "execution_time": execution_time,
+                "difficulty": difficulty,
+            }
+
         for (folder, _), filepath in sorted(deduped.items()):
             content = filepath.read_text(encoding="utf-8", errors="replace")
             parsed = parse_cooklang(content, filepath.name)
@@ -321,6 +386,9 @@ class Command(BaseCommand):
                 skipped_count += 1
                 continue
 
+            # Estimate metadata (time, difficulty)
+            estimated = _estimate_metadata(parsed)
+
             recipe = Recipe.objects.create(
                 title=parsed["title"],
                 summary=f"Importiert aus Cooklang ({folder})",
@@ -329,6 +397,8 @@ class Command(BaseCommand):
                 recipe_type=recipe_type,
                 status=ContentStatus.APPROVED,
                 owner=None,
+                execution_time=estimated["execution_time"],
+                difficulty=estimated["difficulty"],
             )
 
             # Create RecipeItems
@@ -463,3 +533,12 @@ class Command(BaseCommand):
                 f"{ingredients_created} new ingredients auto-created."
             )
         )
+
+        # Recalculate caches for all imported recipes
+        if created_count > 0:
+            from recipe.services.recipe_checks import recalculate_recipe_cache
+
+            self.stdout.write("Recalculating recipe caches...")
+            for recipe_obj in Recipe.objects.filter(summary__startswith="Importiert aus Cooklang"):
+                recalculate_recipe_cache(recipe_obj)
+            self.stdout.write(self.style.SUCCESS("  Done."))

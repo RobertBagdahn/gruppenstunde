@@ -27,6 +27,8 @@ interface IngredientEntry {
   unit: string;
   ingredient_id: number | null;
   ingredient_slug: string | null;
+  portion_id: number | null;
+  is_new_ingredient?: boolean;
 }
 
 /** Pending import data waiting for portion normalization confirmation. */
@@ -82,24 +84,14 @@ export default function CreateRecipePage() {
       onSuccess: (data) => {
         const importedFormData: ContentFormData = {
           title: data.recipe_draft.title,
-          summary: '',
+          summary: data.recipe_draft.summary || '',
           description: data.recipe_draft.steps.join('\n\n'),
-          difficulty: '',
-          costsRating: '',
-          executionTime: data.recipe_draft.execution_time
-            ? data.recipe_draft.execution_time <= 15 ? 'less_15'
-            : data.recipe_draft.execution_time <= 30 ? '15_30'
-            : data.recipe_draft.execution_time <= 60 ? '30_60'
-            : 'more_60'
-            : '',
-          preparationTime: data.recipe_draft.preparation_time
-            ? data.recipe_draft.preparation_time <= 15 ? 'less_15'
-            : data.recipe_draft.preparation_time <= 30 ? '15_30'
-            : data.recipe_draft.preparation_time <= 60 ? '30_60'
-            : 'more_60'
-            : '',
-          selectedTagIds: [],
-          selectedScoutIds: [],
+          difficulty: data.recipe_draft.difficulty || '',
+          costsRating: data.recipe_draft.costs_rating || '',
+          executionTime: data.recipe_draft.execution_time_choice || '',
+          preparationTime: data.recipe_draft.preparation_time_choice || '',
+          selectedTagIds: data.recipe_draft.tag_ids || [],
+          selectedScoutIds: data.recipe_draft.scout_level_ids || [],
         };
         const importedIngredients = data.recipe_items.map((item) => ({
           name: item.ingredient_name,
@@ -107,6 +99,8 @@ export default function CreateRecipePage() {
           unit: item.measuring_unit_name,
           ingredient_id: item.ingredient_id,
           ingredient_slug: null,
+          portion_id: item.portion_id,
+          is_new_ingredient: item.is_new_ingredient,
         }));
         const detectedServings = data.recipe_draft.servings ?? 1;
         const importedRecipeType = data.recipe_draft.recipe_type || 'warm_meal';
@@ -194,6 +188,8 @@ export default function CreateRecipePage() {
           unit: ing.unit,
           ingredient_id: ing.ingredient_id ?? null,
           ingredient_slug: ing.ingredient_slug ?? null,
+          portion_id: null,
+          is_new_ingredient: false,
         })),
       );
     }
@@ -218,6 +214,8 @@ export default function CreateRecipePage() {
         unit: 'Stück',
         ingredient_id: selected.id,
         ingredient_slug: selected.slug,
+        portion_id: null,
+        is_new_ingredient: false,
       },
     ]);
     setNewIngredientSearch('');
@@ -239,8 +237,8 @@ export default function CreateRecipePage() {
         scout_level_ids: formData.selectedScoutIds,
       });
 
-      // Create RecipeItems for ingredients with valid DB match
-      const validIngredients = ingredients.filter((ing) => ing.ingredient_id !== null);
+      // Create RecipeItems for ingredients with valid portion
+      const validIngredients = ingredients.filter((ing) => ing.portion_id !== null);
       for (let i = 0; i < validIngredients.length; i++) {
         const ing = validIngredients[i];
         try {
@@ -249,7 +247,7 @@ export default function CreateRecipePage() {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-              ingredient_id: ing.ingredient_id,
+              portion_id: ing.portion_id,
               quantity: parseFloat(ing.quantity) || 1,
               sort_order: i,
               note: '',
@@ -499,6 +497,9 @@ export default function CreateRecipePage() {
                     />
                     <span className="flex-1 text-sm truncate">
                       {ing.name}
+                      {ing.is_new_ingredient && (
+                        <span className="ml-1 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">Neu</span>
+                      )}
                       {ing.ingredient_id === null && (
                         <span className="ml-1 text-xs text-amber-600">(nicht zugeordnet)</span>
                       )}
@@ -615,6 +616,9 @@ export default function CreateRecipePage() {
                     <li key={idx} className="flex items-center gap-2 text-sm py-1 px-2 rounded-md hover:bg-muted/30">
                       <span className="text-muted-foreground w-16 text-right font-medium">{ing.quantity} {ing.unit}</span>
                       <span>{ing.name}</span>
+                      {ing.is_new_ingredient && (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">Neu</span>
+                      )}
                     </li>
                   ))}
                 </ul>

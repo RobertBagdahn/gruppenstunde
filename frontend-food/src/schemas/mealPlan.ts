@@ -216,6 +216,21 @@ export const RecipePopularResponseSchema = z.object({
 });
 export type RecipePopularResponse = z.infer<typeof RecipePopularResponseSchema>;
 
+// ==========================================================================
+// Recipe Suggestions
+// ==========================================================================
+
+export const RecipeSuggestionSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  usage_count: z.number(),
+  image_thumbnail: z.string().nullable(),
+});
+export type RecipeSuggestion = z.infer<typeof RecipeSuggestionSchema>;
+
+export const RecipeSuggestionsResponseSchema = z.array(RecipeSuggestionSchema);
+export type RecipeSuggestionsResponse = z.infer<typeof RecipeSuggestionsResponseSchema>;
+
 export const IngredientPortionSchema = z.object({
   id: z.number(),
   name: z.string(),

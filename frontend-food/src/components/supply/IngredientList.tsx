@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { AvailableConversionBatchItem } from '@/schemas/supply';
-import { formatQuantity, scaleQuantity } from '@/lib/unitConversion';
+import { formatQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
 import { cn } from '@/lib/utils';
 import UnitSwitcher from '@/components/recipe/UnitSwitcher';
@@ -21,6 +21,24 @@ interface IngredientListProps {
   availableConversions?: AvailableConversionBatchItem[];
   className?: string;
 }
+
+/** Short display names for measuring units */
+const UNIT_SHORT: Record<string, string> = {
+  'Esslöffel': 'EL',
+  'Teelöffel': 'TL',
+  'Kilogramm': 'kg',
+  'Gramm': 'g',
+  'Milliliter': 'ml',
+  'Liter': 'l',
+  'Stück': 'St.',
+  'Prise': 'Pr.',
+  'Dose': 'Dose',
+  'Tasse': 'Tasse',
+  'Handvoll': 'Handvoll',
+  'Tropfen': 'Tropfen',
+  'Becher': 'Becher',
+  'Portion': 'Portion',
+};
 
 export default function IngredientList({
   items,
@@ -39,7 +57,7 @@ export default function IngredientList({
     );
   }
 
-  const sortedItems = [...items].sort((a, b) => a.sort_order - b.sort_order);
+  const sortedItems = [...items].sort((a, b) => b.weight_g - a.weight_g);
 
   const toggleExpanded = (itemId: number) => {
     setExpandedItems((prev) => {
@@ -56,34 +74,32 @@ export default function IngredientList({
   return (
     <div className={className}>
       {/* Ingredient list */}
-      <ul className="space-y-1.5">
+      <ul className="divide-y divide-border/60 rounded-xl border bg-card/40 overflow-hidden">
         {sortedItems.map((item) => {
-          const scaledQty = scaleQuantity(item.quantity, servingsMultiplier);
+          // Calculate weight in grams from pre-calculated backend weight
+          const weightG = item.weight_g * servingsMultiplier;
 
-          // Calculate weight in grams: quantity × portion.weight_g
-          const portionWeightG = item.ingredient_portions?.find(
-            (p) => p.id === item.portion_id,
-          )?.weight_g ?? 1;
-          const weightG = scaledQty * portionWeightG;
-
-          // Format with intelligent unit conversion
-          const formatted = formatQuantity(
-            weightG,
-            item.ingredient_viscosity,
-            item.ingredient_density,
-          );
+          // Always show grams/ml as primary display
+          const formatted = formatQuantity(weightG, item.ingredient_viscosity, item.ingredient_density);
 
           const isExpanded = expandedItems.has(item.id);
           const allPortions = item.ingredient_portions?.length
             ? calculateNaturalPortions(weightG, item.ingredient_portions)
             : [];
 
-          // Highest-priority non-default portion (e.g. "Stück" for Apfel)
+          // Highest-priority non-default portion (e.g. "Stück", "EL", "TL")
           const highPrioPortion = item.ingredient_portions
             ?.filter((p) => !p.is_default && (p.weight_g ?? 0) > 1)
             .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
-          const highPrioDisplay = highPrioPortion?.weight_g
-            ? `≈ ${(weightG / highPrioPortion.weight_g).toLocaleString('de-DE', { maximumFractionDigits: 1 })} ${highPrioPortion.name}`
+          const highPrioAmount = highPrioPortion?.weight_g
+            ? weightG / highPrioPortion.weight_g
+            : null;
+          // Show portion subline: use measuring_unit_name with short form.
+          // Hide if less than 0.5 of a unit (not useful info).
+          const rawUnitName = highPrioPortion?.measuring_unit_name ?? highPrioPortion?.name;
+          const highPrioUnitName = rawUnitName ? (UNIT_SHORT[rawUnitName] ?? rawUnitName) : null;
+          const highPrioDisplay = highPrioAmount && highPrioAmount >= 0.5 && highPrioUnitName
+            ? `${highPrioAmount.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} ${highPrioUnitName}`
             : null;
 
           // Price calculation: price_per_kg × weightG / 1000
@@ -102,10 +118,7 @@ export default function IngredientList({
 
           const ingredientContent = (
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="material-symbols-outlined text-rose-500 text-[20px] shrink-0">
-                  check_circle
-                </span>
+              <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap">
                 <UnitSwitcher
                   originalDisplay={formatted.display}
                   conversions={itemConversions}
@@ -123,16 +136,16 @@ export default function IngredientList({
 
               {/* Secondary: highest-priority portion + price */}
               {(highPrioDisplay || priceDisplay) && (
-                <div className="ml-7 mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
                   {highPrioDisplay && <span>{highPrioDisplay}</span>}
-                  {highPrioDisplay && priceDisplay && <span>·</span>}
+                  {highPrioDisplay && priceDisplay && <span className="text-muted-foreground/40">·</span>}
                   {priceDisplay && <span>{priceDisplay}</span>}
                 </div>
               )}
 
               {/* Expanded: all portions */}
               {allPortions.length > 1 && (
-                <div className="ml-7 mt-0.5">
+                <div className="mt-1.5">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -140,21 +153,24 @@ export default function IngredientList({
                       e.stopPropagation();
                       toggleExpanded(item.id);
                     }}
-                    className="text-sm text-primary hover:underline"
+                    className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
                   >
-                    {isExpanded ? 'weniger' : `+${allPortions.length - 1} weitere Portionen`}
+                    <span className="material-symbols-outlined text-[14px]">
+                      {isExpanded ? 'expand_less' : 'expand_more'}
+                    </span>
+                    {isExpanded ? 'weniger anzeigen' : `${allPortions.length - 1} weitere Portionen`}
                   </button>
                 </div>
               )}
               {isExpanded && allPortions.length > 1 && (
-                <div className="ml-7 mt-1 space-y-0.5">
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {allPortions.map((np, idx) => (
-                    <div
+                    <span
                       key={idx}
-                      className="text-sm text-muted-foreground"
+                      className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                     >
                       {np.display}
-                    </div>
+                    </span>
                   ))}
                 </div>
               )}
@@ -163,18 +179,18 @@ export default function IngredientList({
 
           if (item.ingredient_slug) {
             return (
-              <li key={item.id} className="text-base">
+              <li key={item.id}>
                 <Link
                   to={`/ingredients/${item.ingredient_slug}`}
                   className={cn(
-                    'flex items-start gap-2 p-2 -mx-2 rounded-lg',
-                    'hover:bg-rose-50 hover:border-rose-200 transition-colors group',
+                    'flex items-start gap-3 px-4 py-3',
+                    'hover:bg-rose-50/70 transition-colors group',
                   )}
                   title={`${item.ingredient_name} – Details anzeigen`}
                 >
                   {ingredientContent}
-                  <span className="material-symbols-outlined text-[14px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0">
-                    arrow_forward
+                  <span className="material-symbols-outlined text-[18px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0">
+                    chevron_right
                   </span>
                 </Link>
               </li>
@@ -182,7 +198,7 @@ export default function IngredientList({
           }
 
           return (
-            <li key={item.id} className="flex items-start gap-2 text-base p-2 -mx-2">
+            <li key={item.id} className="flex items-start gap-3 px-4 py-3">
               {ingredientContent}
             </li>
           );

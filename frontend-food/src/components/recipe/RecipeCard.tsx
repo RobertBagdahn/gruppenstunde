@@ -4,7 +4,6 @@ import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
-  RECIPE_COSTS_OPTIONS,
 } from '@/schemas/recipe';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import RecipeBadge from './RecipeBadge';
@@ -33,8 +32,9 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
     RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
     recipe.execution_time;
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
-  const costsLabel =
-    RECIPE_COSTS_OPTIONS.find((c) => c.value === recipe.costs_rating)?.label ?? recipe.costs_rating;
+  const costsLabel = recipe.cached_price_total != null
+    ? `${recipe.cached_price_total.toFixed(2)} €`
+    : null;
 
   const hasActions = (canEdit && onEdit) || (canDelete && onDelete);
   const nutriClass = recipe.cached_nutri_class;

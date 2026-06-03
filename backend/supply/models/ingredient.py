@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
@@ -241,6 +242,13 @@ class IngredientAlias(models.Model):
         verbose_name_plural = _("Zutaten-Aliase")
         ordering = ["-rank", "name"]
         unique_together = ["ingredient", "rank"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("name"),
+                "ingredient",
+                name="unique_alias_name_per_ingredient",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name} → {self.ingredient.name}"
@@ -249,7 +257,7 @@ class IngredientAlias(models.Model):
 class Portion(models.Model):
     """A specific portion/packaging of an ingredient with a measuring unit."""
 
-    name = models.CharField(max_length=255, blank=True, default="g", verbose_name=_("Name"))
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
     measuring_unit = models.ForeignKey(
         "supply.MeasuringUnit",
         on_delete=models.PROTECT,
@@ -263,10 +271,12 @@ class Portion(models.Model):
     )
     quantity = models.FloatField(default=1, verbose_name=_("Menge"))
     weight_g = models.FloatField(
-        default=1,
+        null=True,
+        blank=True,
+        default=None,
         verbose_name=_("Gewicht (g)"),
         validators=[MinValueValidator(0.01)],
-        help_text=_("Automatisch berechnet. Gewicht einer Portion in Gramm."),
+        help_text=_("Gewicht einer Portion in Gramm. NULL = unbekannt."),
     )
     rank = models.IntegerField(default=1)
     priority = models.IntegerField(default=0, verbose_name=_("Priorität"))
@@ -296,7 +306,24 @@ class Portion(models.Model):
         verbose_name_plural = _("Portionen")
         ordering = ["-priority", "rank", "name"]
 
+    def compute_weight_g(self, explicit: float | None = None) -> float | None:
+        """Compute the weight of this portion in grams."""
+        if explicit is not None:
+            return explicit if explicit > 0 else None
+        if self.measuring_unit:
+            mu_qty = self.measuring_unit.quantity or 0
+            factor = 1.0
+            if self.measuring_unit.unit == "ml" and self.ingredient_id:
+                try:
+                    factor = self.ingredient.physical_density or 1.0
+                except Exception:
+                    pass
+            calc = (self.quantity or 0) * mu_qty * factor
+            return calc if calc > 0 else None
+        return None
+
     def save(self, *args, **kwargs):
+        self.weight_g = self.compute_weight_g(self.weight_g)
         if self.is_default:
             Portion.objects.filter(ingredient=self.ingredient, is_default=True).exclude(pk=self.pk).update(
                 is_default=False

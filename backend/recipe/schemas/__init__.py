@@ -46,6 +46,8 @@ from .nutrition import (
     NutriScoreDetailOut,
     RecipeItemNutritionOut,
     RecipeNutritionBreakdownOut,
+    RecipeRuleResult,
+    RecipeRulesOut,
     SuggestedIngredientOut,
 )
 
@@ -75,6 +77,8 @@ __all__ = [
     "RecipeItemUpdateIn",
     "RecipeListOut",
     "RecipeNutritionBreakdownOut",
+    "RecipeRuleResult",
+    "RecipeRulesOut",
     "RecipeSimilarOut",
     "RecipeSuggestionOut",
     "RecipeSuggestAllOut",

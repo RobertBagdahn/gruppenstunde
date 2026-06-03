@@ -6,6 +6,7 @@ rejection with feedback, and grouped retrieval by target type.
 """
 
 import logging
+from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractBaseUser

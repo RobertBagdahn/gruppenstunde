@@ -35,7 +35,10 @@ class PortionOut(Schema):
 
     @staticmethod
     def resolve_measuring_unit_name(obj) -> str | None:
-        if obj.measuring_unit:
+        # Support both ORM objects and dicts (from resolve_ingredient_portions)
+        if isinstance(obj, dict):
+            return obj.get("measuring_unit_name")
+        if hasattr(obj, "measuring_unit") and obj.measuring_unit:
             return obj.measuring_unit.name
         return None
 

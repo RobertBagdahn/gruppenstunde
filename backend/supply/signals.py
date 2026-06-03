@@ -10,23 +10,7 @@ from .models.ingredient import Ingredient, Portion
 @receiver(pre_save, sender=Portion)
 def calculate_portion_weight_g(sender, instance: Portion, **kwargs):
     """Auto-calculate weight_g based on quantity, measuring_unit, and ingredient density."""
-    if not instance.measuring_unit_id:
-        return
-
-    mu = instance.measuring_unit
-    if mu.unit == MeasuringUnitType.MASS:
-        # g-based: weight_g = quantity × measuring_unit.quantity
-        instance.weight_g = instance.quantity * mu.quantity
-    elif mu.unit == MeasuringUnitType.VOLUME:
-        # ml-based: weight_g = quantity × measuring_unit.quantity × density
-        density = 1.0
-        if instance.ingredient_id:
-            try:
-                density = instance.ingredient.physical_density or 1.0
-            except Ingredient.DoesNotExist:
-                pass
-        instance.weight_g = instance.quantity * mu.quantity * density
-    # else: leave weight_g as-is (manually/AI set for Stück etc.)
+    instance.weight_g = instance.compute_weight_g(instance.weight_g)
 
 
 @receiver(post_save, sender=Ingredient)

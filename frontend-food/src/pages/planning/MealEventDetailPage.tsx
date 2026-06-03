@@ -18,7 +18,7 @@ import {
   useUpdateMealItem,
   useNutritionSummary,
   useShoppingList,
-  useRecipeSearch,
+  useRecipeSuggestions,
 } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, MEAL_TYPE_COLORS, getCoverageStatus } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
@@ -716,17 +716,6 @@ function DayPlanView({
   );
 }
 
-const RECIPE_TYPE_LABELS_SHORT: Record<string, string> = {
-  breakfast: 'Frühstück',
-  warm_meal: 'Warm',
-  cold_meal: 'Kalt',
-  dessert: 'Dessert',
-  side_dish: 'Beilage',
-  snack: 'Snack',
-  drink: 'Getränk',
-  simple_meal: 'Einfach',
-};
-
 function MealSlot({
   meal,
   canEdit,
@@ -758,18 +747,21 @@ function MealSlot({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Debounce search query (300ms)
+  // Debounce search query (200ms)
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 200);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: searchResults } = useRecipeSearch({ q: debouncedQuery });
+  const { data: suggestions } = useRecipeSuggestions({
+    mealType: meal.meal_type,
+    q: debouncedQuery || undefined,
+  });
 
   // Reset highlight when results change
   useEffect(() => {
     setHighlightedIndex(-1);
-  }, [searchResults]);
+  }, [suggestions]);
 
   const handleSelect = (recipeId: number) => {
     onAddRecipe(meal.id, recipeId);
@@ -778,18 +770,18 @@ function MealSlot({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    const recipeResults = searchResults?.recipes ?? [];
-    if (!recipeResults.length) return;
+    const results = suggestions ?? [];
+    if (!results.length) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex((i) => Math.min(i + 1, recipeResults.length - 1));
+      setHighlightedIndex((i) => Math.min(i + 1, results.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === 'Enter' && highlightedIndex >= 0) {
       e.preventDefault();
-      handleSelect(recipeResults[highlightedIndex].id);
+      handleSelect(results[highlightedIndex].id);
     } else if (e.key === 'Escape') {
       setIsSearching(false);
       setSearchQuery('');
@@ -943,9 +935,9 @@ function MealSlot({
               <span className="material-symbols-outlined text-[18px]">tune</span>
             </button>
           </div>
-          {searchResults && searchResults.recipes.length > 0 && (
+          {suggestions && suggestions.length > 0 && (
             <div className="rounded-lg border bg-card max-h-40 overflow-y-auto divide-y">
-              {searchResults.recipes.map((r, idx) => (
+              {suggestions.map((r, idx) => (
                 <button
                   key={r.id}
                   onClick={() => handleSelect(r.id)}
@@ -955,13 +947,13 @@ function MealSlot({
                 >
                   <span>{r.title}</span>
                   <span className="text-xs text-muted-foreground">
-                    {RECIPE_TYPE_LABELS_SHORT[r.recipe_type] ?? ''}
+                    {r.usage_count}x
                   </span>
                 </button>
               ))}
             </div>
           )}
-          {debouncedQuery.length >= 2 && searchResults && searchResults.recipes.length === 0 && (
+          {debouncedQuery.length >= 1 && suggestions && suggestions.length === 0 && (
             <p className="text-xs text-muted-foreground">Keine Rezepte gefunden</p>
           )}
         </div>

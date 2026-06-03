@@ -240,13 +240,25 @@ class RecipeAiIngredientsService:
         return results
 
     def get_full_suggestions(self, recipe: "Recipe", user: AbstractBaseUser | None = None) -> list[MatchedIngredientResult] | None:
-        """Full pipeline: suggest → match → assign portions."""
+        """Full pipeline: suggest → match → assign portions → filter existing."""
         ai_output = self.suggest_ingredients(recipe, user=user)
         if not ai_output or not ai_output.items:
             return None
 
         matched = self.match_ingredients(ai_output.items)
-        return self.assign_portions(matched)
+        results = self.assign_portions(matched)
+
+        # Filter out ingredients already present in the recipe
+        from recipe.models import RecipeItem
+
+        existing_ingredient_ids = set(
+            RecipeItem.objects.filter(recipe=recipe)
+            .select_related("portion__ingredient")
+            .values_list("portion__ingredient_id", flat=True)
+        )
+        results = [r for r in results if r.ingredient_id not in existing_ingredient_ids]
+
+        return results
 
     def _build_suggest_prompt(self, recipe: "Recipe") -> str:
         """Build prompt for ingredient suggestion."""

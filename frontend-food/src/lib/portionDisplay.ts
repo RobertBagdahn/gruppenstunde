@@ -47,6 +47,46 @@ function formatCount(count: number): string {
 }
 
 /**
+ * Format the display of a natural portion, multiplying out leading numbers if present.
+ * For example:
+ * - count=0.2, portionName="1 TL Salz" -> "ca. 0,2 TL Salz" (instead of "ca. 0,2 x 1 TL Salz")
+ * - count=1.5, portionName="2 EL" -> "ca. 3 EL" (instead of "ca. 1,5 x 2 EL")
+ * - count=3.0, portionName="1.5 Becher" -> "ca. 4,5 Becher" (instead of "ca. 3 x 1.5 Becher")
+ */
+function formatNaturalPortionDisplay(count: number, portionName: string): string {
+  // Regex to match a leading integer or decimal (with period or comma)
+  const leadingNumberRegex = /^(\d+(?:[.,]\d+)?)\s*(.*)$/;
+  const match = portionName.match(leadingNumberRegex);
+
+  if (match) {
+    const leadingNumStr = match[1].replace(',', '.');
+    const val = parseFloat(leadingNumStr);
+    if (!isNaN(val)) {
+      const multipliedCount = count * val;
+      const rest = match[2];
+      return `ca. ${formatCount(multipliedCount)} ${rest}`;
+    }
+  }
+
+  // Fallback: Check if portionName is/starts with a known unit to omit "x "
+  const unitsWithoutX = [
+    'el', 'tl', 'esslöffel', 'teelöffel', 'g', 'kg', 'gramm', 'kilogramm',
+    'ml', 'l', 'milliliter', 'liter', 'st.', 'stk', 'stück', 'prise', 'pr.',
+    'dose', 'dosen', 'tasse', 'tassen', 'becher', 'portion', 'portionen',
+    'handvoll', 'tropfen', 'zehe', 'zehen', 'packung', 'packungen', 'beutel'
+  ];
+
+  const firstWord = portionName.split(/\s+/)[0].toLowerCase().replace(/[^a-zäöüß.]/g, '');
+  const shouldOmitX = unitsWithoutX.includes(firstWord) || unitsWithoutX.includes(portionName.toLowerCase());
+
+  if (shouldOmitX) {
+    return `ca. ${formatCount(count)} ${portionName}`;
+  }
+
+  return `ca. ${formatCount(count)} x ${portionName}`;
+}
+
+/**
  * Calculate natural portion counts from a weight in grams.
  *
  * @param weightG - Total weight in grams
@@ -81,7 +121,7 @@ export function calculateNaturalPortions(
     results.push({
       name: portionName,
       count: rounded,
-      display: `ca. ${formatCount(rounded)} x ${portionName}`,
+      display: formatNaturalPortionDisplay(rounded, portionName),
       isDefault: portion.is_default,
     });
   }

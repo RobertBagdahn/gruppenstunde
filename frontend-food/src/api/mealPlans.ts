@@ -20,6 +20,8 @@ import {
   type NutritionSummary,
   type UnifiedSearchResponse,
   type RecipePopularResponse,
+  RecipeSuggestionsResponseSchema,
+  type RecipeSuggestionsResponse,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 
@@ -30,7 +32,7 @@ function getCsrfToken(): string {
   return match ? match[1] : '';
 }
 
-async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
+async function fetchJson<T>(url: string, schema: z.ZodType<T, any, any>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
@@ -39,7 +41,7 @@ async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   return schema.parse(data);
 }
 
-async function postJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): Promise<T> {
+async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, any, any>): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
@@ -56,7 +58,7 @@ async function postJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): 
   return schema.parse(data);
 }
 
-async function patchJson<T>(url: string, body: unknown, schema: z.ZodSchema<T>): Promise<T> {
+async function patchJson<T>(url: string, body: unknown, schema: z.ZodType<T, any, any>): Promise<T> {
   const res = await fetch(url, {
     method: 'PATCH',
     credentials: 'include',
@@ -351,6 +353,34 @@ export function useRecipeSearch(params: RecipeSearchParams) {
         UnifiedSearchResponseSchema,
       ),
     enabled: q.length >= 2 || !!recipe_type || !!nutritional_tag_ids?.length,
+  });
+}
+
+// ==========================================================================
+// Recipe Suggestions
+// ==========================================================================
+
+export interface RecipeSuggestionsParams {
+  mealType?: string;
+  q?: string;
+  limit?: number;
+}
+
+export function useRecipeSuggestions(params: RecipeSuggestionsParams) {
+  const { mealType, q, limit = 10 } = params;
+
+  const searchParams = new URLSearchParams();
+  if (mealType) searchParams.set('meal_type', mealType);
+  if (q) searchParams.set('q', q);
+  searchParams.set('limit', String(limit));
+
+  return useQuery<RecipeSuggestionsResponse>({
+    queryKey: ['recipe-suggestions', mealType, q, limit],
+    queryFn: () =>
+      fetchJson(
+        `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,
+        RecipeSuggestionsResponseSchema,
+      ),
   });
 }
 

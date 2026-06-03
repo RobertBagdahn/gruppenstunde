@@ -41,6 +41,24 @@ def make_recipe(status: str = ContentStatus.APPROVED, **kwargs) -> Recipe:
 def make_recipe_item(recipe: Recipe | None = None, **kwargs) -> RecipeItem:
     if recipe is None:
         recipe = make_recipe()
+
+    ingredient = kwargs.pop("ingredient", None)
+    portion = kwargs.get("portion", None)
+
+    if portion is None and ingredient is not None:
+        from supply.models import Portion, MeasuringUnit
+        portion = Portion.objects.filter(ingredient=ingredient).first()
+        if not portion:
+            unit, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0})
+            portion = Portion.objects.create(
+                ingredient=ingredient,
+                measuring_unit=unit,
+                name="Gramm",
+                quantity=1.0,
+                weight_g=1.0,
+            )
+        kwargs["portion"] = portion
+
     defaults = {
         "quantity": 500.0,
         "sort_order": 0,
@@ -71,6 +89,67 @@ def make_rule(**kwargs) -> Rule:
         "sort_order": 1,
     }
     defaults.update(kwargs)
+    return baker.make(Rule, **defaults)
+
+
+def make_health_rule(**kwargs) -> Rule:
+    """Factory helper to create a Rule with scope=meal (formerly HealthRule)."""
+    return make_rule(**kwargs)
+
+
+def make_recipe_hint(**kwargs) -> Rule:
+    """Factory helper to create a Rule with scope=recipe (formerly RecipeHint)."""
+    defaults = {
+        "name": kwargs.get("name", "Rezeptregel"),
+        "parameter": kwargs.get("parameter", "salt_g"),
+        "scope": "recipe",
+        "rule_type": "nutrition",
+        "is_active": True,
+        "sort_order": 0,
+    }
+
+    # Map old min/max/min_max to Rule green/yellow bounds
+    min_max = kwargs.pop("min_max", "min")
+    min_value = kwargs.pop("min_value", None)
+    max_value = kwargs.pop("max_value", None)
+    hint_level = kwargs.pop("hint_level", "warn")
+
+    # Standardize hint level strings
+    if hint_level == "warning":
+        mapped_hint_level = "warn"
+    elif hint_level == "info":
+        mapped_hint_level = "info"
+    elif hint_level == "error":
+        mapped_hint_level = "error"
+    else:
+        mapped_hint_level = hint_level
+
+    defaults["hint_level"] = mapped_hint_level
+
+    if min_max == "min":
+        if mapped_hint_level == "error":
+            defaults["min_yellow"] = min_value
+            defaults["min_green"] = None
+        else:
+            defaults["min_yellow"] = None
+            defaults["min_green"] = min_value
+    else:
+        if mapped_hint_level == "error":
+            defaults["max_yellow"] = max_value
+            defaults["max_green"] = None
+        else:
+            defaults["max_yellow"] = None
+            defaults["max_green"] = max_value
+
+    # The old recipe_objective kwargs can be popped or ignored
+    kwargs.pop("recipe_objective", None)
+
+    defaults.update(kwargs)
+
+    # Ensure tip_text has a default value
+    if "tip_text" not in defaults:
+        defaults["tip_text"] = defaults["name"]
+
     return baker.make(Rule, **defaults)
 
 

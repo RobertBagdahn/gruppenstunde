@@ -36,6 +36,7 @@ class RecipeItemDraftOut(BaseModel):
     measuring_unit_name: str = ""
     note: str = ""
     is_new_ingredient: bool = False
+    portion_id: int | None = None
 
 
 class CreatedIngredientInfoOut(BaseModel):
@@ -48,10 +49,17 @@ class CreatedIngredientInfoOut(BaseModel):
 class RecipeDraftOut(BaseModel):
     title: str
     description: str = ""
+    summary: str = ""
     servings: int = 4
     preparation_time: int | None = None
     execution_time: int | None = None
     recipe_type: str = ""
+    difficulty: str = "easy"
+    execution_time_choice: str = "less_30"
+    preparation_time_choice: str = "none"
+    costs_rating: str = "less_1"
+    scout_level_ids: list[int] = []
+    tag_ids: list[int] = []
     steps: list[str] = []
     source_url: str = ""
 

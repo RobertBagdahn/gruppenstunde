@@ -49,6 +49,9 @@ interface RecipeModificationState {
   /** Scale all items to a target number of servings */
   scaleToNormPortion: (factor: number) => void;
 
+  /** Scale all items by an arbitrary factor (servings unchanged) */
+  scaleByFactor: (factor: number) => void;
+
   /** Reset all modifications back to original */
   reset: () => void;
 }
@@ -174,6 +177,38 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
           {
             type: 'scale',
             description: `Auf Normportion skaliert (Faktor: ${factor.toFixed(2)})`,
+            timestamp: Date.now(),
+          },
+        ],
+        isDirty: true,
+      };
+    }),
+
+  scaleByFactor: (factor) =>
+    set((state) => {
+      const scaledItems = state.modifiedItems.map((i) => ({
+        ...i,
+        weight_g: i.weight_g * factor,
+        quantity: i.quantity * factor,
+        energy_kj: i.energy_kj * factor,
+        energy_kcal: i.energy_kcal * factor,
+        protein_g: i.protein_g * factor,
+        fat_g: i.fat_g * factor,
+        fat_sat_g: i.fat_sat_g * factor,
+        carbohydrate_g: i.carbohydrate_g * factor,
+        sugar_g: i.sugar_g * factor,
+        fibre_g: i.fibre_g * factor,
+        salt_g: i.salt_g * factor,
+        price_eur: i.price_eur !== null ? i.price_eur * factor : null,
+      }));
+
+      return {
+        modifiedItems: scaledItems,
+        modifications: [
+          ...state.modifications,
+          {
+            type: 'scale',
+            description: `Alle Zutaten skaliert (Faktor: ${factor.toLocaleString('de-DE', { maximumFractionDigits: 2 })})`,
             timestamp: Date.now(),
           },
         ],

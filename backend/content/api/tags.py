@@ -15,8 +15,8 @@ scout_levels_router = Router(tags=["scout-levels"])
 
 @tags_router.get("/", response=list[TagOut])
 def list_tags(request):
-    """List all approved root tags with nested children."""
-    tags = Tag.objects.filter(parent__isnull=True, is_approved=True).prefetch_related("children")
+    """List all approved tags (flat list)."""
+    tags = Tag.objects.filter(is_approved=True)
     return list(tags)
 
 

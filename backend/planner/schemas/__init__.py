@@ -39,6 +39,7 @@ from .meal_plan import (
     RefMealItemIn,
     RefMealOut,
     RefMealUpdateIn,
+    RecipeSuggestionOut,
     ShoppingListItemOut,
 )
 
@@ -75,6 +76,7 @@ __all__ = [
     "PlannerEntryUpdateIn",
     "PlannerOut",
     "PlannerUpdateIn",
+    "RecipeSuggestionOut",
     "RefMealCreateIn",
     "RefMealItemIn",
     "RefMealOut",

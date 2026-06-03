@@ -479,8 +479,20 @@ class Command(BaseCommand):
         portion_entries = grouped.get("food.portion", [])
         self.stdout.write(f"  Portions importieren: {len(portion_entries)} Zeilen...")
 
+        from supply.models import MeasuringUnit, Portion
+        mu_cache = {mu.pk: mu for mu in MeasuringUnit.objects.all()}
+
+        # Load existing portions for dedup
+        existing_portions_qs = Portion.objects.filter(deleted_at__isnull=True).values(
+            'id', 'ingredient_id', 'name', 'measuring_unit_id', 'quantity'
+        )
+        existing_portions = {
+            (p['ingredient_id'], p['name'].strip().lower(), p['measuring_unit_id'], float(p['quantity'])): p['id']
+            for p in existing_portions_qs
+        }
+
         portions_to_create: list[Portion] = []
-        portion_legacy_pks: list[int] = []
+        prepared_portions = {}  # (ingredient_id, name.lower(), measuring_unit_id, quantity) -> list of legacy_pks
 
         for entry in portion_entries:
             pk = entry["pk"]
@@ -494,35 +506,75 @@ class Command(BaseCommand):
 
             legacy_mu_pk = fields.get("measuring_unit")
             new_mu_pk = self.pk_map.get("measuring_unit", legacy_mu_pk)
+            if not new_mu_pk:
+                # Fallback to default measuring unit (gram)
+                default_mu = MeasuringUnit.objects.filter(name__icontains="gramm").first()
+                if not default_mu:
+                    default_mu = MeasuringUnit.objects.first()
+                new_mu_pk = default_mu.pk if default_mu else None
+                if not new_mu_pk:
+                    self._count(f"Portion ({source_label})", "skipped")
+                    continue
 
             # weight_g from portion's metainfo
             portion_meta_pk = fields.get("meta_info")
             portion_meta = metainfo_lookup.get(portion_meta_pk, {}) if portion_meta_pk else {}
             weight_g = self._safe_float(portion_meta.get("weight_g"))
 
-            portion = Portion(
-                name=fields.get("name", "") or "",
+            # Derive and clean name (Task 4.3)
+            raw_name = fields.get("name", "") or ""
+            cleaned_name = raw_name.strip()
+            if not cleaned_name or cleaned_name == "g":
+                mu = mu_cache.get(new_mu_pk)
+                cleaned_name = mu.name if mu else "Stück"
+            if not cleaned_name:
+                cleaned_name = "Stück"
+
+            quantity = self._safe_float(fields.get("quantity")) or 1.0
+
+            # Form deduplication key
+            key = (new_ing_pk, cleaned_name.lower(), new_mu_pk, float(quantity))
+
+            if key in existing_portions:
+                self.pk_map.add("portion", pk, existing_portions[key])
+                self._count(f"Portion ({source_label})")
+                continue
+
+            if key in prepared_portions:
+                prepared_portions[key].append(pk)
+                continue
+
+            prepared_portions[key] = [pk]
+
+            # Temporary portion instance to compute weight
+            temp_portion = Portion(
+                name=cleaned_name,
                 measuring_unit_id=new_mu_pk,
                 ingredient_id=new_ing_pk,
-                quantity=self._safe_float(fields.get("quantity")) or 1.0,
+                quantity=quantity,
                 weight_g=weight_g,
                 rank=self._safe_int(fields.get("rank")) or 1,
             )
-            portions_to_create.append(portion)
-            portion_legacy_pks.append(pk)
+            # Use central weight_g-calculation (Task 4.1)
+            temp_portion.weight_g = temp_portion.compute_weight_g(temp_portion.weight_g)
+
+            portions_to_create.append(temp_portion)
 
         # Bulk create portions
         total_portions = 0
         for i in range(0, len(portions_to_create), self.batch_size):
             batch = portions_to_create[i : i + self.batch_size]
             created = Portion.objects.bulk_create(batch, batch_size=self.batch_size)
-            for j, obj in enumerate(created):
-                legacy_pk = portion_legacy_pks[i + j]
-                self.pk_map.add("portion", legacy_pk, obj.pk)
-                self._count(f"Portion ({source_label})")
+            for obj in created:
+                key = (obj.ingredient_id, obj.name.lower(), obj.measuring_unit_id, float(obj.quantity))
+                legacy_pks = prepared_portions.get(key, [])
+                for legacy_pk in legacy_pks:
+                    self.pk_map.add("portion", legacy_pk, obj.pk)
+                    self._count(f"Portion ({source_label})")
+                existing_portions[key] = obj.pk
             total_portions += len(created)
 
-        self.stdout.write(f"    Portions: {total_portions} erstellt")
+        self.stdout.write(f"    Portions: {total_portions} erstellt (Dedupliziert/Berechnet)")
 
         # Prices: count and drop
         price_count = len(grouped.get("food.price", []))
@@ -553,8 +605,20 @@ class Command(BaseCommand):
         portion_entries = grouped.get("food.portion", [])
         if portion_entries:
             self.stdout.write(f"  Portions aus Rezept-Datei: {len(portion_entries)} Zeilen...")
+            from supply.models import MeasuringUnit, Portion
+            mu_cache = {mu.pk: mu for mu in MeasuringUnit.objects.all()}
+
+            # Load existing portions for dedup
+            existing_portions_qs = Portion.objects.filter(deleted_at__isnull=True).values(
+                'id', 'ingredient_id', 'name', 'measuring_unit_id', 'quantity'
+            )
+            existing_portions = {
+                (p['ingredient_id'], p['name'].strip().lower(), p['measuring_unit_id'], float(p['quantity'])): p['id']
+                for p in existing_portions_qs
+            }
+
             portions_to_create: list[Portion] = []
-            portion_legacy_pks: list[int] = []
+            prepared_portions = {}  # (ingredient_id, name.lower(), measuring_unit_id, quantity) -> list of legacy_pks
 
             for entry in portion_entries:
                 pk = entry["pk"]
@@ -568,33 +632,72 @@ class Command(BaseCommand):
 
                 legacy_mu_pk = fields.get("measuring_unit")
                 new_mu_pk = self.pk_map.get("measuring_unit", legacy_mu_pk)
+                if not new_mu_pk:
+                    default_mu = MeasuringUnit.objects.filter(name__icontains="gramm").first()
+                    if not default_mu:
+                        default_mu = MeasuringUnit.objects.first()
+                    new_mu_pk = default_mu.pk if default_mu else None
+                    if not new_mu_pk:
+                        self._count("Portion (Recipe)", "skipped")
+                        continue
 
                 portion_meta_pk = fields.get("meta_info")
                 portion_meta = metainfo_lookup.get(portion_meta_pk, {}) if portion_meta_pk else {}
                 weight_g = self._safe_float(portion_meta.get("weight_g"))
 
-                portion = Portion(
-                    name=fields.get("name", "") or "",
+                # Derive and clean name (Task 4.3)
+                raw_name = fields.get("name", "") or ""
+                cleaned_name = raw_name.strip()
+                if not cleaned_name or cleaned_name == "g":
+                    mu = mu_cache.get(new_mu_pk)
+                    cleaned_name = mu.name if mu else "Stück"
+                if not cleaned_name:
+                    cleaned_name = "Stück"
+
+                quantity = self._safe_float(fields.get("quantity")) or 1.0
+
+                # Form deduplication key
+                key = (new_ing_pk, cleaned_name.lower(), new_mu_pk, float(quantity))
+
+                if key in existing_portions:
+                    self.pk_map.add("portion", pk, existing_portions[key])
+                    self._count("Portion (Recipe)")
+                    continue
+
+                if key in prepared_portions:
+                    prepared_portions[key].append(pk)
+                    continue
+
+                prepared_portions[key] = [pk]
+
+                # Temporary portion instance to compute weight
+                temp_portion = Portion(
+                    name=cleaned_name,
                     measuring_unit_id=new_mu_pk,
                     ingredient_id=new_ing_pk,
-                    quantity=self._safe_float(fields.get("quantity")) or 1.0,
+                    quantity=quantity,
                     weight_g=weight_g,
                     rank=self._safe_int(fields.get("rank")) or 1,
                 )
-                portions_to_create.append(portion)
-                portion_legacy_pks.append(pk)
+                # Use central weight_g-calculation (Task 4.1)
+                temp_portion.weight_g = temp_portion.compute_weight_g(temp_portion.weight_g)
+
+                portions_to_create.append(temp_portion)
 
             total_portions = 0
             for i in range(0, len(portions_to_create), self.batch_size):
                 batch = portions_to_create[i : i + self.batch_size]
                 created = Portion.objects.bulk_create(batch, batch_size=self.batch_size)
-                for j, obj in enumerate(created):
-                    legacy_pk = portion_legacy_pks[i + j]
-                    self.pk_map.add("portion", legacy_pk, obj.pk)
-                    self._count("Portion (Recipe)")
+                for obj in created:
+                    key = (obj.ingredient_id, obj.name.lower(), obj.measuring_unit_id, float(obj.quantity))
+                    legacy_pks = prepared_portions.get(key, [])
+                    for legacy_pk in legacy_pks:
+                        self.pk_map.add("portion", legacy_pk, obj.pk)
+                        self._count("Portion (Recipe)")
+                    existing_portions[key] = obj.pk
                 total_portions += len(created)
 
-            self.stdout.write(f"    Portions: {total_portions} erstellt")
+            self.stdout.write(f"    Portions: {total_portions} erstellt (Dedupliziert/Berechnet)")
 
         # Recipes (use .save() for slug generation via Content.save())
         recipe_entries = grouped.get("food.recipe", [])
@@ -626,6 +729,9 @@ class Command(BaseCommand):
         recipeitem_entries = grouped.get("food.recipeitem", [])
         self.stdout.write(f"  RecipeItems importieren: {len(recipeitem_entries)} Zeilen...")
 
+        # Load all portion IDs into a set for fast lookup to avoid DB queries per row
+        existing_portion_ids = set(Portion.objects.values_list("id", flat=True))
+
         items_to_create: list[RecipeItem] = []
         skipped = 0
 
@@ -642,18 +748,7 @@ class Command(BaseCommand):
             legacy_portion_pk = fields.get("portion")
             new_portion_pk = self.pk_map.get("portion", legacy_portion_pk)
 
-            # Resolve ingredient via portion's ingredient
-            ingredient_id = None
-            measuring_unit_id = None
-            if new_portion_pk:
-                try:
-                    portion_obj = Portion.objects.get(pk=new_portion_pk)
-                    ingredient_id = portion_obj.ingredient_id
-                    measuring_unit_id = portion_obj.measuring_unit_id
-                except Portion.DoesNotExist:
-                    pass
-
-            if not ingredient_id:
+            if not new_portion_pk or new_portion_pk not in existing_portion_ids:
                 skipped += 1
                 self._count("RecipeItem", "skipped")
                 continue
@@ -663,9 +758,7 @@ class Command(BaseCommand):
             item = RecipeItem(
                 recipe_id=new_recipe_pk,
                 portion_id=new_portion_pk,
-                ingredient_id=ingredient_id,
                 quantity=quantity,
-                measuring_unit_id=measuring_unit_id,
                 sort_order=0,
                 note="",
             )

@@ -213,11 +213,14 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     """Create a portion for an ingredient."""
     require_auth(request)
 
+    if not payload.name or not payload.name.strip():
+        raise HttpError(422, "Portionsname darf nicht leer sein.")
+
     ingredient = get_object_or_404(Ingredient, slug=slug)
 
     portion = Portion(
         ingredient=ingredient,
-        name=payload.name,
+        name=payload.name.strip(),
         quantity=payload.quantity,
         rank=payload.rank,
         priority=payload.priority,
@@ -229,11 +232,7 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
         unit = get_object_or_404(MeasuringUnit, id=payload.measuring_unit_id)
         portion.measuring_unit = unit
 
-    if portion.measuring_unit:
-        portion.weight_g = payload.quantity * portion.measuring_unit.quantity
-    elif payload.weight_g is not None:
-        portion.weight_g = payload.weight_g
-
+    portion.weight_g = payload.weight_g
     portion.save()
     return portion
 
@@ -247,8 +246,19 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
     data = payload.dict(exclude_unset=True)
+    if "name" in data:
+        if not payload.name or not payload.name.strip():
+            raise HttpError(422, "Portionsname darf nicht leer sein.")
+        portion.name = payload.name.strip()
+        data.pop("name")
+
     unit_id = data.pop("measuring_unit_id", None)
     explicit_weight_g = data.pop("weight_g", None)
+
+    # If quantity or unit changes and weight_g is not explicitly patched,
+    # reset weight_g to None so save() recalculates it.
+    if ("quantity" in data or unit_id is not None) and "weight_g" not in payload.dict(exclude_unset=True):
+        portion.weight_g = None
 
     for field, value in data.items():
         setattr(portion, field, value)
@@ -257,9 +267,7 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
         unit = get_object_or_404(MeasuringUnit, id=unit_id)
         portion.measuring_unit = unit
 
-    if portion.measuring_unit:
-        portion.weight_g = portion.quantity * portion.measuring_unit.quantity
-    elif explicit_weight_g is not None:
+    if "weight_g" in payload.dict(exclude_unset=True):
         portion.weight_g = explicit_weight_g
 
     portion.updated_by = request.user
@@ -290,6 +298,16 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    # Reject duplicate alias names (case-insensitive)
+    if IngredientAlias.objects.filter(
+        ingredient=ingredient, name__iexact=payload.name
+    ).exists():
+        raise HttpError(409, f"Alias '{payload.name}' existiert bereits für diese Zutat.")
+
+    # Also reject if alias matches the ingredient name itself
+    if ingredient.name.lower() == payload.name.lower():
+        raise HttpError(409, "Alias darf nicht identisch mit dem Zutatennamen sein.")
 
     # Auto-assign next rank if the requested rank already exists
     rank = payload.rank

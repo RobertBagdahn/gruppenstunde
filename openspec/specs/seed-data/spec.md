@@ -1,5 +1,8 @@
-## ADDED Requirements
+# seed-data Specification
 
+## Purpose
+Defines seed data requirements for development, demos, and food rule defaults.
+## Requirements
 ### Requirement: Seed-Data Management Command
 
 Das System MUSS ein Management Command bereitstellen das realistische Beispieldaten erstellt.
@@ -41,47 +44,55 @@ Die Seed-Rezepte MÜSSEN verschiedene Rezepttypen und Schwierigkeitsgrade abdeck
 
 ### Requirement: Seed data includes comprehensive nutrition rules
 
-The `seed_all.py` command SHALL seed comprehensive nutrition rules. The seed data SHALL include:
+The seed commands SHALL seed comprehensive food rules for the unified `Rule` model. Seeded rules SHALL cover recipe, meal, day, and meal_event scopes and SHALL include practical thresholds for nutrition, price, weight, and Nutri-Score.
 
-**RecipeHints (50+ rules):**
-- All macronutrient rules from the old Inspi project (20+ rules for energy, protein, fat, fat_sat, sugar, salt, sodium, fibre, weight, nutri_class)
-- New vitamin rules (6 rules for vitamin_c, vitamin_a, vitamin_d, vitamin_b12, folate)
-- New mineral rules (7 rules for calcium, iron, magnesium, zinc, potassium)
-- Type-specific rules for breakfast (3), snack (3), and drink (2)
-- Every rule SHALL have a non-empty `improvement_text` in German
+The default rule set SHALL include:
 
-**HealthRules (20+ rules):**
-- Existing 6 rules (sugar/day, energy/day, costs/day, nutri-score/event, sugar/meal, energy/meal)
-- New day-scope rules: vitamin_c, calcium, iron, fibre, protein, fat, salt, vitamin_a, folate, magnesium, potassium, zinc (12 rules)
-- New meal-scope rules: vitamin_c, fibre, salt (3 rules)
-- Every rule SHALL have a non-empty `tip_text` in German
+**Recipe rules:**
+- Macronutrients and quality rules for energy, protein, fat, saturated fat, sugar, sodium or salt, fibre, weight, price, and `nutri_class`
+- Recipe-scope rules SHALL be intended only for recipes with `recipe_type="warm_meal"` or `recipe_type="cold_meal"`
+- Every rule SHALL have a non-empty German `tip_text` and, where useful, `improvement_text`
 
-**DgeReference entries (20 entries):**
+**Meal rules:**
+- Rules for energy, protein, sugar, fibre, saturated fat, sodium or salt, price, total food weight, and average `nutri_class`
+- Meal-scope rules SHALL apply to all meal types in the planner
+
+**Day rules:**
+- Rules for daily energy, protein, fat, carbohydrate, fibre, sugar, saturated fat, sodium or salt, total price, total food weight, and average `nutri_class`
+
+**Meal event rules:**
+- Rules for average daily energy, protein, sugar, fibre, price, and average `nutri_class` across the whole MealPlan
+
+**DgeReference entries:**
 - 10 age groups x 2 genders
-- All macronutrient reference values (from existing dge_reference.py)
-- All vitamin reference values (from official DGE D-A-CH tables)
-- All mineral reference values (from official DGE D-A-CH tables)
+- All macronutrient reference values from the existing DGE reference data
+- All supported vitamin and mineral reference values
 
-#### Scenario: Seed creates all RecipeHints
-- **WHEN** `uv run python manage.py seed_all` is executed
-- **THEN** at least 50 RecipeHint objects SHALL be created with populated name, parameter, hint_level, recipe_objective, and improvement_text fields
+#### Scenario: Seed creates recipe rules
+- **WHEN** `uv run python manage.py seed_rules` or `uv run python manage.py seed_all` is executed
+- **THEN** recipe-scope Rule objects SHALL be created for energy, protein, fat, saturated fat, sugar, sodium or salt, fibre, weight, price, and `nutri_class`
+- **THEN** each recipe-scope rule SHALL include a German `tip_text`
 
-#### Scenario: Seed creates all HealthRules
-- **WHEN** `uv run python manage.py seed_all` is executed
-- **THEN** at least 20 HealthRule objects SHALL be created with populated tip_text fields
+#### Scenario: Seed creates meal rules
+- **WHEN** `uv run python manage.py seed_rules` or `uv run python manage.py seed_all` is executed
+- **THEN** meal-scope Rule objects SHALL be created for energy, protein, sugar, fibre, saturated fat, sodium or salt, price, weight, and `nutri_class`
+
+#### Scenario: Seed creates day and event rules
+- **WHEN** `uv run python manage.py seed_rules` or `uv run python manage.py seed_all` is executed
+- **THEN** day-scope and meal_event-scope Rule objects SHALL be created for aggregate nutrition quality, price, weight where meaningful, and average Nutri-Score
 
 #### Scenario: Seed creates DGE references
 - **WHEN** `uv run python manage.py seed_all` is executed
 - **THEN** 20 DgeReference objects SHALL be created (10 age groups x 2 genders)
-- **AND** each entry SHALL have vitamin and mineral reference values populated
+- **AND** each entry SHALL have supported vitamin and mineral reference values populated
 
 #### Scenario: Seed is idempotent
-- **WHEN** `uv run python manage.py seed_all` is executed twice
-- **THEN** no duplicate RecipeHint, HealthRule, or DgeReference objects SHALL be created
+- **WHEN** `uv run python manage.py seed_rules` or `uv run python manage.py seed_all` is executed twice
+- **THEN** no duplicate Rule or DgeReference objects SHALL be created
 
----
-
-## Packing List Seed Data
+#### Scenario: Existing user-edited rules
+- **WHEN** a seeded rule already exists and has been edited by an admin
+- **THEN** the seeding behavior SHALL avoid creating duplicates and SHOULD avoid overwriting intentional admin customizations unless a clear update strategy is implemented
 
 ### Requirement: Extended seed data with "do not bring" items
 The seed command SHALL create packing lists using the Unified Catalog and the Builder algorithm. "Nicht mitbringen" items SHALL be included based on catalog tags.
@@ -112,12 +123,9 @@ The seed command SHALL use the Unified Catalog which contains all categories and
 - **THEN** existing seeded packing lists SHALL be deleted before re-creation
 - **THEN** the command SHALL complete without errors
 
-
 ---
 
-# CI Seed Data
-
-## ADDED Requirements
+**CI Seed Data**
 
 ### Requirement: CI seed data for groups
 The system SHALL provide seed data (Django management command or fixture) that creates groups with fully configured corporate identities for development and testing purposes.
@@ -153,3 +161,4 @@ Neu: Korrekte Unit-Zuordnung und `quantity_type="per_person"` mit Pro-Portion-Me
 #### Scenario: Re-Import bestehender Daten
 - **WHEN** `--force` Flag beim Aufruf gesetzt ist
 - **THEN** werden vorherige Cooklang-Imports gelöscht und korrekt neu importiert
+

@@ -17,6 +17,7 @@ export const RecipeItemDraftSchema = z.object({
   measuring_unit_name: z.string(),
   note: z.string(),
   is_new_ingredient: z.boolean(),
+  portion_id: z.number().nullable(),
 });
 
 export const CreatedIngredientInfoSchema = z.object({
@@ -29,10 +30,17 @@ export const CreatedIngredientInfoSchema = z.object({
 export const RecipeDraftSchema = z.object({
   title: z.string(),
   description: z.string(),
+  summary: z.string().optional().default(''),
   servings: z.number(),
   preparation_time: z.number().nullable(),
   execution_time: z.number().nullable(),
   recipe_type: z.string(),
+  difficulty: z.string().optional().default('easy'),
+  execution_time_choice: z.string().optional().default('less_30'),
+  preparation_time_choice: z.string().optional().default('none'),
+  costs_rating: z.string().optional().default('less_1'),
+  scout_level_ids: z.array(z.number()).optional().default([]),
+  tag_ids: z.array(z.number()).optional().default([]),
   steps: z.array(z.string()),
   source_url: z.string(),
 });

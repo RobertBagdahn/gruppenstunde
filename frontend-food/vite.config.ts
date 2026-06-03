@@ -6,6 +6,9 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   plugins: [react()],
+  esbuild: {
+    charset: 'utf8',
+  },
   css: {
     postcss: {
       plugins: [tailwindcss(), autoprefixer()],

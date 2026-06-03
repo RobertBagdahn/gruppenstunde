@@ -147,11 +147,16 @@ function PortionCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleSavePortion = () => {
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      toast.error('Name darf nicht leer sein');
+      return;
+    }
     updatePortion.mutate(
       {
         portionId: portion.id,
         data: {
-          name: editName,
+          name: trimmed,
           rank: Number(editRank),
           quantity: Number(editQuantity) || 1,
           measuring_unit_id: editUnitId ? Number(editUnitId) : null,
@@ -220,7 +225,8 @@ function PortionCard({
               </div>
               <button
                 onClick={handleSavePortion}
-                className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded self-end"
+                disabled={!editName.trim()}
+                className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded self-end disabled:opacity-50"
               >
                 OK
               </button>
@@ -232,12 +238,24 @@ function PortionCard({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm">{portion.name}</span>
-              {!(portion.name === 'g' && portion.weight_g === 1) && portion.weight_g && (
-                <span className="text-xs text-muted-foreground">
-                  ≈ {portion.weight_g}g
-                </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm">
+                {portion.name.trim() || <span className="text-destructive font-medium italic">Unbenannt</span>}
+              </span>
+              {!(portion.name === 'g' && portion.weight_g === 1) && (
+                portion.weight_g ? (
+                  <span className="text-xs text-muted-foreground">
+                    ≈ {portion.weight_g}g
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium px-1.5 py-0.5 rounded border border-amber-500/20"
+                    title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
+                  >
+                    <span className="material-symbols-outlined text-[12px]">warning</span>
+                    Kein Gewicht
+                  </span>
+                )
               )}
             </div>
           )}
@@ -453,7 +471,10 @@ export default function IngredientDetailPage() {
 
   const handleAddPortion = () => {
     const trimmed = newPortionName.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      toast.error('Name darf nicht leer sein');
+      return;
+    }
     createPortion.mutate(
       {
         name: trimmed,
@@ -746,10 +767,10 @@ export default function IngredientDetailPage() {
               </div>
               <div className="flex justify-between py-1.5 border-b border-border/30">
                 <span className="text-sm text-muted-foreground">Viskosität</span>
-                <span className="text-sm font-medium">{ingredient.physical_viscosity || '\u2014'}</span>
+                <span className="text-sm font-medium">{ingredient.physical_viscosity ? ({ solid: 'Fest', beverage: 'Flüssig', powder: 'Pulver' }[ingredient.physical_viscosity] ?? ingredient.physical_viscosity) : '\u2014'}</span>
               </div>
               <NutritionRow label="Haltbarkeit" value={ingredient.durability_in_days} unit="Tage" />
-              <NutritionRow label="Max. Lagertemperatur" value={ingredient.max_storage_temperature} unit="\u00B0C" />
+              <NutritionRow label="Max. Lagertemperatur" value={ingredient.max_storage_temperature} unit="°C" />
             </div>
           </div>
 

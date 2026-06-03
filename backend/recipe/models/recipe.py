@@ -101,6 +101,16 @@ class Recipe(Content):
 
     # --- Cached nutritional values (denormalized, per-100g of total recipe) ---
     cached_energy_kj = models.FloatField(null=True, blank=True, verbose_name=_("Energie (kJ, cached)"))
+    cached_energy_total_kj = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Gesamtenergie (kJ, cached)"),
+    )
+    cached_weight_g = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Gesamtgewicht (g, cached)"),
+    )
     cached_protein_g = models.FloatField(null=True, blank=True, verbose_name=_("Eiweiß (g, cached)"))
     cached_fat_g = models.FloatField(null=True, blank=True, verbose_name=_("Fett (g, cached)"))
     cached_carbohydrate_g = models.FloatField(null=True, blank=True, verbose_name=_("Kohlenhydrate (g, cached)"))

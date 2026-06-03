@@ -3,7 +3,9 @@
  * Allows editing quantities, units, notes, adding/removing items, and AI estimation.
  */
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Sparkles } from 'lucide-react';
 import {
   useUpdateRecipe,
   useUpdateRecipeItem,
@@ -26,9 +28,19 @@ interface EditableItem {
   measuring_unit_name: string | null;
   note: string;
   sort_order: number;
+  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null }[];
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
+}
+
+interface AiIngredientSuggestion {
+  ingredient_id: number;
+  ingredient_name: string;
+  portion_id: number;
+  portion_name: string;
+  quantity: number;
+  is_new_ingredient: boolean;
 }
 
 interface InlineIngredientEditorProps {
@@ -68,6 +80,12 @@ function normalizeItems(items: RecipeItem[], servings: number | null): EditableI
       measuring_unit_name: basePortion?.measuring_unit_name ?? 'g',
       note: item.note,
       sort_order: item.sort_order,
+      ingredient_portions: (item.ingredient_portions ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        weight_g: p.weight_g,
+        measuring_unit_name: p.measuring_unit_name,
+      })),
       isDirty: s > 1 || basePortionId !== item.portion_id,
     };
   });
@@ -90,6 +108,12 @@ export default function InlineIngredientEditor({
   const [estimateResult, setEstimateResult] = useState<EstimateQuantityItem[] | null>(null);
   const [selectedEstimates, setSelectedEstimates] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [isAiSuggesting, setIsAiSuggesting] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AiIngredientSuggestion[] | null>(null);
+  const [selectedAiSuggestions, setSelectedAiSuggestions] = useState<Set<number>>(new Set());
+
+  const queryClient = useQueryClient();
 
   const updateRecipe = useUpdateRecipe(recipeId);
   const updateItem = useUpdateRecipeItem(recipeId);
@@ -108,6 +132,31 @@ export default function InlineIngredientEditor({
   const handleNoteChange = useCallback((id: number, note: string) => {
     setEditItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, note, isDirty: true } : item)),
+    );
+  }, []);
+
+  const handlePortionChange = useCallback((id: number, portionId: number) => {
+    setEditItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const oldPortion = item.ingredient_portions.find((p) => p.id === item.portion_id);
+        const newPortion = item.ingredient_portions.find((p) => p.id === portionId);
+        if (!newPortion) return item;
+
+        // Convert quantity: old quantity in grams → new unit
+        const oldWeightG = oldPortion?.weight_g ?? 1;
+        const newWeightG = newPortion.weight_g ?? 1;
+        const quantityInGrams = item.quantity * oldWeightG;
+        const newQuantity = Math.round((quantityInGrams / newWeightG) * 100) / 100;
+
+        return {
+          ...item,
+          portion_id: portionId,
+          measuring_unit_name: newPortion.measuring_unit_name ?? newPortion.name,
+          quantity: newQuantity,
+          isDirty: true,
+        };
+      }),
     );
   }, []);
 
@@ -150,6 +199,12 @@ export default function InlineIngredientEditor({
             measuring_unit_name: defaultPortion.measuring_unit_name || 'g',
             note: '',
             sort_order: maxSort + 1,
+            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null }) => ({
+              id: p.id,
+              name: p.name,
+              weight_g: p.weight_g,
+              measuring_unit_name: p.measuring_unit_name,
+            })),
             isNew: true,
             isDirty: true,
           },
@@ -191,6 +246,61 @@ export default function InlineIngredientEditor({
     setSelectedEstimates(new Set());
     toast.success(`${applied} von ${estimateResult.length} Mengen übernommen`);
   }, [estimateResult, selectedEstimates]);
+
+  // --- AI Suggest Ingredients ---
+
+  const handleAiSuggest = useCallback(async () => {
+    setIsAiSuggesting(true);
+    try {
+      const suggestRes = await fetch(`/api/recipes/${recipeId}/ai-suggest-ingredients/`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!suggestRes.ok) throw new Error('Vorschläge fehlgeschlagen');
+      const suggestions: AiIngredientSuggestion[] = await suggestRes.json();
+
+      if (!suggestions || suggestions.length === 0) {
+        toast.info('Keine weiteren Zutaten vorgeschlagen');
+        return;
+      }
+
+      setAiSuggestions(suggestions);
+      setSelectedAiSuggestions(new Set(suggestions.map((_, i) => i)));
+    } catch {
+      toast.error('KI-Vorschläge konnten nicht generiert werden');
+    } finally {
+      setIsAiSuggesting(false);
+    }
+  }, [recipeId]);
+
+  const handleApplyAiSuggestions = useCallback(async () => {
+    if (!aiSuggestions || selectedAiSuggestions.size === 0) return;
+
+    const selected = aiSuggestions.filter((_, i) => selectedAiSuggestions.has(i));
+    try {
+      const applyRes = await fetch(`/api/recipes/${recipeId}/ai-apply-ingredients/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          selected.map((s) => ({
+            ingredient_id: s.ingredient_id,
+            portion_id: s.portion_id,
+            quantity: s.quantity,
+          })),
+        ),
+      });
+      if (!applyRes.ok) throw new Error('Anwenden fehlgeschlagen');
+
+      await queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      toast.success(`${selected.length} Zutaten hinzugefügt`);
+      setAiSuggestions(null);
+      setSelectedAiSuggestions(new Set());
+      onSaved();
+    } catch {
+      toast.error('Fehler beim Hinzufügen der Zutaten');
+    }
+  }, [aiSuggestions, selectedAiSuggestions, recipeId, queryClient, onSaved]);
 
   // --- Save ---
 
@@ -261,6 +371,16 @@ export default function InlineIngredientEditor({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={handleAiSuggest}
+            disabled={isAiSuggesting}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+            title="Weitere Zutaten per KI vorschlagen"
+          >
+            <Sparkles className="w-4 h-4" />
+            {isAiSuggesting ? 'Lädt...' : 'Weitere Zutaten'}
+          </button>
+          <button
+            type="button"
             onClick={handleEstimate}
             disabled={estimateQuantities.isPending}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-violet-100 text-violet-700 border border-violet-200 rounded-lg hover:bg-violet-200 transition-colors disabled:opacity-50"
@@ -302,9 +422,23 @@ export default function InlineIngredientEditor({
               onChange={(e) => handleQuantityChange(item.id, parseFloat(e.target.value) || 0)}
               className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
             />
-            <span className="text-xs text-muted-foreground min-w-[3.5rem]">
-              {item.measuring_unit_name || 'g'}
-            </span>
+            {item.ingredient_portions.length > 1 ? (
+              <select
+                value={item.portion_id}
+                onChange={(e) => handlePortionChange(item.id, parseInt(e.target.value))}
+                className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
+              >
+                {item.ingredient_portions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.measuring_unit_name || p.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-xs text-muted-foreground min-w-[3.5rem]">
+                {item.measuring_unit_name || 'g'}
+              </span>
+            )}
             <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
             {expandedNotes.has(item.id) || item.note ? (
               <input
@@ -339,10 +473,16 @@ export default function InlineIngredientEditor({
       {/* Add Ingredient */}
       <div className="pt-2 border-t">
         <IngredientAutocomplete
-          value=""
-          onChange={() => {}}
-          onSelect={(ingredient) => handleAddIngredient(ingredient)}
-          onCreateNew={(name) => handleAddIngredient({ id: -Date.now(), name, slug: '' })}
+          value={inputValue}
+          onChange={setInputValue}
+          onSelect={(ingredient) => {
+            handleAddIngredient(ingredient);
+            setInputValue('');
+          }}
+          onCreateNew={(name) => {
+            handleAddIngredient({ id: -Date.now(), name, slug: '' });
+            setInputValue('');
+          }}
           placeholder="Zutat hinzufügen..."
         />
       </div>
@@ -442,6 +582,92 @@ export default function InlineIngredientEditor({
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Übernehmen ({selectedEstimates.size})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Suggestions Confirmation Dialog */}
+      {aiSuggestions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              KI-Vorschläge
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Folgende Zutaten wurden vorgeschlagen:
+            </p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b">
+                  <th className="pb-2 w-8">
+                    <input
+                      type="checkbox"
+                      checked={selectedAiSuggestions.size === aiSuggestions.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedAiSuggestions(new Set(aiSuggestions.map((_, i) => i)));
+                        } else {
+                          setSelectedAiSuggestions(new Set());
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                      title="Alle auswählen"
+                    />
+                  </th>
+                  <th className="pb-2">Zutat</th>
+                  <th className="pb-2 text-right">Menge</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aiSuggestions.map((s, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="py-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedAiSuggestions.has(i)}
+                        onChange={(e) => {
+                          setSelectedAiSuggestions((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) {
+                              next.add(i);
+                            } else {
+                              next.delete(i);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                    </td>
+                    <td className="py-2 font-medium">{s.ingredient_name}</td>
+                    <td className="py-2 text-right text-muted-foreground">
+                      {s.quantity} {s.portion_name}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setAiSuggestions(null);
+                  setSelectedAiSuggestions(new Set());
+                }}
+                className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+              >
+                Verwerfen
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyAiSuggestions}
+                disabled={selectedAiSuggestions.size === 0}
+                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Übernehmen ({selectedAiSuggestions.size})
               </button>
             </div>
           </div>

@@ -9,7 +9,7 @@
 - **`Meal`**: meal_plan FK, start_datetime, end_datetime, meal_type, day_part_factor. Gruppierung nach Tag via `start_datetime__date`.
 
 ### Recipe App
-- **`Recipe`** (erbt Content): recipe_type, servings, nutritional_tags M2M. Hat denormalisierte Cache-Felder: `cached_energy_kj`, `cached_protein_g`, `cached_fat_g`, `cached_carbohydrate_g`, `cached_sugar_g`, `cached_fibre_g`, `cached_salt_g`, `cached_nutri_class`, `cached_price_total`, `cached_at`.
+- **`Recipe`** (erbt Content): recipe_type, servings, nutritional_tags M2M. Hat denormalisierte Cache-Felder: `cached_energy_kj` (pro 100g), `cached_energy_total_kj` (Gesamtenergie des Rezepts), `cached_protein_g`, `cached_fat_g`, `cached_carbohydrate_g`, `cached_sugar_g`, `cached_fibre_g`, `cached_salt_g`, `cached_nutri_class`, `cached_price_total`, `cached_at`.
 - **`RecipeItem`**: recipe FK, portion FK, ingredient FK, quantity, measuring_unit FK, sort_order, note.
 - **`HealthRule`**: name, description, parameter, scope (meal_event/day/meal/recipe/ingredient), threshold_green, threshold_yellow, unit, tip_text, is_active, sort_order.
 

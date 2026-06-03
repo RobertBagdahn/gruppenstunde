@@ -293,7 +293,7 @@ export default function IngredientCreatePage() {
             <Field label="Haltbarkeit (Tage)">
               <input type="number" value={durabilityInDays} onChange={(e) => setDurabilityInDays(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Max. Lagertemp. (\u00B0C)">
+            <Field label="Max. Lagertemp. (°C)">
               <input type="number" value={maxStorageTemperature} onChange={(e) => setMaxStorageTemperature(e.target.value)} className={inputClass} />
             </Field>
           </div>

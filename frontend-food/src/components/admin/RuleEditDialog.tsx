@@ -29,6 +29,9 @@ const PARAMETER_OPTIONS = [
   { value: 'fibre_g', label: 'Ballaststoffe (g)', unit: 'g' },
   { value: 'salt_g', label: 'Salz (g)', unit: 'g' },
   { value: 'sodium_mg', label: 'Natrium (mg)', unit: 'mg' },
+  { value: 'price_total', label: 'Preis (€)', unit: '€' },
+  { value: 'weight_g', label: 'Gewicht (g)', unit: 'g' },
+  { value: 'nutri_class', label: 'Nutri-Score (A=1 bis E=5)', unit: '' },
   { value: 'calcium_mg', label: 'Calcium (mg)', unit: 'mg' },
   { value: 'iron_mg', label: 'Eisen (mg)', unit: 'mg' },
   { value: 'vitamin_c_mg', label: 'Vitamin C (mg)', unit: 'mg' },
@@ -148,6 +151,16 @@ export default function RuleEditDialog({
               </select>
             </div>
           </div>
+
+          {scope === 'recipe' ? (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-900">
+              Rezeptregeln gelten nur für Kalte und Warme Mahlzeit. Für Frühstück, Snacks, Nachtisch und Getränke werden diese Regeln im Planer auf die gesamte Mahlzeit angewandt.
+            </div>
+          ) : (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+              Planer-Regeln werden aggregiert auf alle Mahlzeittypen angewandt.
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-2">Schwellwerte ({unit})</label>

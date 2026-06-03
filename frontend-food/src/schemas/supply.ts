@@ -138,7 +138,7 @@ export type IngredientAlias = z.infer<typeof IngredientAliasSchema>;
 
 export const PortionSchema = z.object({
   id: z.number(),
-  name: z.string(),
+  name: z.string().min(1, 'Name ist erforderlich'),
   quantity: z.number(),
   weight_g: z.number().nullable(),
   rank: z.number(),

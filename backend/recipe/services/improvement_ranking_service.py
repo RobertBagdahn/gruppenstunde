@@ -115,7 +115,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
             continue
 
         delta = _compute_delta(actual, threshold, direction)
-        improvement_text = hint.hint or match.get("improvement_text") or hint.name
+        improvement_text = match.get("improvement_text") or hint.hint or hint.name
 
         if parameter in buckets:
             existing = buckets[parameter]

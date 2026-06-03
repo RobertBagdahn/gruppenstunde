@@ -91,6 +91,27 @@ describe('calculateNaturalPortions', () => {
     expect(result[0].display).toBe('ca. 3 x Apfel');
   });
 
+  it('multiplies out leading numbers in portion names', () => {
+    const portions = [makePortion({ name: '1 TL Salz', weight_g: 5 })];
+    // 1g / 5g = 0.2
+    // 0.2 * 1 = 0.2 -> "ca. 0,2 TL Salz"
+    const result1 = calculateNaturalPortions(1, portions);
+    expect(result1[0].display).toBe('ca. 0,2 TL Salz');
+
+    const portions2 = [makePortion({ name: '2 EL', weight_g: 30 })];
+    // 45g / 30g = 1.5
+    // 1.5 * 2 = 3 -> "ca. 3 EL"
+    const result2 = calculateNaturalPortions(45, portions2);
+    expect(result2[0].display).toBe('ca. 3 EL');
+  });
+
+  it('omits x for known units without leading numbers', () => {
+    const portions = [makePortion({ name: 'TL', weight_g: 5 })];
+    // 1g / 5g = 0.2 -> "ca. 0,2 TL"
+    const result = calculateNaturalPortions(1, portions);
+    expect(result[0].display).toBe('ca. 0,2 TL');
+  });
+
   it('negative weight returns empty', () => {
     const portions = [makePortion()];
     expect(calculateNaturalPortions(-100, portions)).toEqual([]);

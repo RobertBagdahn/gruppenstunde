@@ -17,6 +17,7 @@ import {
   ImprovementListSchema,
   LlmSuggestionSchema,
   EstimateQuantitiesSchema,
+  RecipeRulesSchema,
   type RecipeFilter,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
@@ -364,6 +365,14 @@ export function useRecipeNutriScore(recipeId: number) {
   return useQuery({
     queryKey: ['recipe-nutri-score', recipeId] as const,
     queryFn: () => fetchJson(`${API_BASE}/${recipeId}/nutri-score/`, NutriScoreDetailSchema),
+    enabled: recipeId > 0,
+  });
+}
+
+export function useRecipeRules(recipeId: number) {
+  return useQuery({
+    queryKey: ['recipe-rules', recipeId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/rules/`, RecipeRulesSchema),
     enabled: recipeId > 0,
   });
 }

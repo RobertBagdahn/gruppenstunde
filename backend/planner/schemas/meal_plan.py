@@ -64,11 +64,11 @@ class MealItemOut(Schema):
 
     @staticmethod
     def resolve_energy_kj(obj) -> float | None:
-        if not obj.recipe or not obj.recipe.cached_energy_kj:
+        if not obj.recipe or obj.recipe.cached_energy_total_kj is None:
             return None
         servings = obj.recipe.servings or 1
         norm_portions = obj.meal.meal_plan.norm_portions or 1
-        return float(obj.recipe.cached_energy_kj) * obj.factor * (norm_portions / servings)
+        return float(obj.recipe.cached_energy_total_kj) * obj.factor * (norm_portions / servings)
 
     @staticmethod
     def resolve_cost_eur(obj) -> float | None:
@@ -118,10 +118,10 @@ class MealOut(Schema):
     def resolve_total_energy_kj(obj) -> float:
         total = 0.0
         for item in obj.items.all():
-            if item.recipe and item.recipe.cached_energy_kj:
+            if item.recipe and item.recipe.cached_energy_total_kj is not None:
                 servings = item.recipe.servings or 1
                 norm_portions = obj.meal_plan.norm_portions or 1
-                total += float(item.recipe.cached_energy_kj) * item.factor * (norm_portions / servings)
+                total += float(item.recipe.cached_energy_total_kj) * item.factor * (norm_portions / servings)
         return total
 
     @staticmethod
@@ -402,3 +402,10 @@ class RefMealOut(Schema):
 
 class LinkMealIn(Schema):
     ref_meal_id: int
+
+
+class RecipeSuggestionOut(Schema):
+    id: int
+    title: str
+    usage_count: int
+    image_thumbnail: str | None = None
