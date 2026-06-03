@@ -7,6 +7,7 @@ interface RecipeSidebarProps {
   recipe: RecipeDetail;
   recipeId: number;
   servings: number;
+  totalPriceEur?: number | null;
   onServingsChange: (servings: number) => void;
   onOpenShoppingList: () => void;
 }
@@ -14,6 +15,7 @@ interface RecipeSidebarProps {
 export default function RecipeSidebar({
   recipe,
   servings,
+  totalPriceEur,
   onServingsChange,
   onOpenShoppingList,
 }: RecipeSidebarProps) {
@@ -34,7 +36,7 @@ export default function RecipeSidebar({
   return (
     <aside className="hidden lg:flex flex-col gap-4 w-80 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto">
       {/* Recipe Meta Card (Unified & Compact) */}
-      <RecipeMetaCard recipe={recipe} servings={servings} />
+      <RecipeMetaCard recipe={recipe} servings={servings} totalPriceEur={totalPriceEur} />
 
       {/* Portion Scaler (compact) */}
       <PortionScaler

@@ -491,6 +491,15 @@ export default function RecipeDetailPage() {
     setShowShoppingExport(true);
   };
 
+  const baseServings = recipe.servings && recipe.servings > 0 ? recipe.servings : 1;
+  const displayedServings = isDirty ? (modifiedServings ?? baseServings) : servingsMultiplier;
+  const displayedPriceTotal = nb?.total_price_eur != null
+    ? nb.total_price_eur * (isDirty ? 1 : servingsMultiplier / baseServings)
+    : null;
+  const displayedPricePerPortion = displayedPriceTotal != null && displayedServings > 0
+    ? displayedPriceTotal / displayedServings
+    : null;
+
   return (
     <EntityLinkContext.Provider value="detail">
     <article
@@ -774,6 +783,7 @@ export default function RecipeDetailPage() {
       <RecipeMetaCard
         recipe={recipe}
         servings={servingsMultiplier}
+        totalPriceEur={displayedPriceTotal}
         className="mt-6 lg:hidden"
       />
 
@@ -1073,14 +1083,14 @@ export default function RecipeDetailPage() {
       {/* ============================================================ */}
 
       {/* --- Preis-Analyse --- */}
-      {nb && nb.total_price_eur !== null && nb.total_price_eur > 0 && (
+      {nb && displayedPriceTotal !== null && displayedPriceTotal > 0 && (
         <AnalysisSection
           icon="euro"
           title="Preis-Analyse"
           accentColor="text-yellow-600"
           preview={
             <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground">
-              <span className="text-foreground font-semibold">{((nb.total_price_eur ?? 0) / effectiveServings).toFixed(2)} €</span> / Port.
+              <span className="text-foreground font-semibold">{(displayedPricePerPortion ?? 0).toFixed(2)} €</span> / Port.
             </div>
           }
         >
@@ -1089,15 +1099,16 @@ export default function RecipeDetailPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200">
                 <p className="text-2xl font-extrabold text-yellow-700">
-                  {nb.total_price_eur.toFixed(2)} EUR
+                  {displayedPriceTotal.toFixed(2)} EUR
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Gesamtpreis</p>
               </div>
-              {recipe.servings && (
+              {displayedPricePerPortion !== null && (
                 <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                   <p className="text-2xl font-extrabold text-emerald-700">
-                    {(nb.total_price_eur / effectiveServings).toFixed(2)} EUR
+                    {displayedPricePerPortion.toFixed(2)} EUR
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">pro Portion</p>
                 </div>
               )}
               <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
@@ -1636,6 +1647,7 @@ export default function RecipeDetailPage() {
         recipe={recipe}
         recipeId={recipeId}
         servings={servingsMultiplier}
+        totalPriceEur={displayedPriceTotal}
         onServingsChange={setServingsMultiplier}
         onOpenShoppingList={handleOpenShoppingList}
       />

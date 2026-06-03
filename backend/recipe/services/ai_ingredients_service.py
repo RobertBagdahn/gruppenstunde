@@ -397,12 +397,25 @@ class RecipeQuantityEstimationService:
             if item.portion and item.portion.ingredient:
                 ingredient_name = item.portion.ingredient.name
 
-            unit = "g"
-            if item.portion and item.portion.measuring_unit:
-                unit = item.portion.measuring_unit.name
+            target_portion = item.portion
+            if item.portion and item.portion.ingredient_id:
+                default_portion = (
+                    item.portion.ingredient.portions.filter(
+                        deleted_at__isnull=True,
+                        is_default=True,
+                    )
+                    .select_related("measuring_unit")
+                    .first()
+                )
+                if default_portion:
+                    target_portion = default_portion
 
-            # Convert grams to portion-based quantity (minimum 1g)
-            weight_g = item.portion.weight_g if item.portion and item.portion.weight_g else 1.0
+            unit = "g"
+            if target_portion and target_portion.measuring_unit:
+                unit = target_portion.measuring_unit.name
+
+            # Convert AI grams into the editable unit, not the stored package size.
+            weight_g = target_portion.weight_g if target_portion and target_portion.weight_g else 1.0
             estimated_grams = max(estimate.estimated_grams_per_person, 1.0)
             quantity_per_portion = estimated_grams / weight_g
 
