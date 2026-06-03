@@ -1,3 +1,8 @@
+# meal-plan-frontend Specification
+
+## Purpose
+Defines requirements for the meal planning frontend.
+## Requirements
 ### Requirement: Meal plan list page
 The system SHALL display a list of meal plans at `/meal-plans/app` showing all plans the user owns or collaborates on. Each list item SHALL show name, creation date, number of days/meals, and event name if linked.
 
@@ -25,7 +30,7 @@ The system SHALL provide a form at `/meal-plans/new` to create a new meal plan w
 - **THEN** the system navigates back to the list
 
 ### Requirement: Meal plan detail page
-The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day-based layout showing meals grouped by date, each meal showing its assigned recipes/ingredients.
+The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day-based layout showing meals grouped by date, each meal showing its assigned recipes/ingredients. The detail view MUST include a nutrition tab that supports filtering nutrition data by either the entire plan (default) or a specific day using a horizontal day-by-day (Bar7-style) selector and a leading "Gesamt" button. All nutritional metrics in this view SHALL be visualized using relative `SollIstBar` indicators displaying current value against calculated limits where rules are configured.
 
 #### Scenario: User views meal plan detail
 - **WHEN** an authenticated user with access navigates to `/meal-plans/:id`
@@ -34,6 +39,10 @@ The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day
 #### Scenario: User without access
 - **WHEN** a user without access navigates to `/meal-plans/:id`
 - **THEN** the system shows a 404 error
+
+#### Scenario: User filters nutrition by day
+- **WHEN** the user selects a specific day from the horizontal day selector in the nutrition tab
+- **THEN** the system fetches and displays nutrition totals specifically aggregated for that day
 
 ### Requirement: Meal plan editing
 The system SHALL allow users with edit permission to add/remove days, add/remove meals, and add/remove recipe items.
@@ -84,7 +93,7 @@ The system SHALL register routes `/meal-plans/app`, `/meal-plans/new`, and `/mea
 - **WHEN** a user navigates to any of the meal plan routes
 - **THEN** the correct page component renders
 
-## Added by ref-meal-sync
+<!-- Added by ref-meal-sync -->
 
 ### Requirement: Verknüpfungs-Status in Planübersicht
 Die Meal-Plan-Übersicht SHALL für jedes Meal visuell anzeigen, ob es mit einem RefMeal verknüpft ist (z.B. Link-Icon), entkoppelt ist, oder kein RefMeal für seinen Typ existiert.
@@ -118,3 +127,4 @@ Die Planübersicht SHALL einen Button/Link zum RefMeal-Editor für jeden vorhand
 #### Scenario: RefMeal-Editor öffnen
 - **WHEN** User auf "RefMeal bearbeiten" für Frühstück klickt
 - **THEN** wird der RefMeal-Editor für das Frühstücks-RefMeal des Plans geöffnet
+

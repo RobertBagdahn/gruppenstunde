@@ -16,20 +16,25 @@ import {
   useAddMealItem,
   useRemoveMealItem,
   useUpdateMealItem,
+  useUpdateMeal,
   useNutritionSummary,
   useShoppingList,
   useRecipeSuggestions,
 } from '@/api/mealPlans';
-import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, MEAL_TYPE_COLORS, getCoverageStatus } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, MEAL_TYPE_COLORS, getCoverageStatus, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
+import { kjToKcal } from '@/utils/nutritionUnits';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { SuggestionDashboard } from '@/components/suggestions';
+import { useRules } from '@/api/suggestions';
+import SollIstBar from '@/components/shared/SollIstBar';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import TableView from './TableView';
 import CostDashboard from './CostDashboard';
 
+import { cn } from '@/lib/utils';
 const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
 /** Group a flat list of meals by date (from start_datetime), preserving sort order. */
@@ -62,6 +67,7 @@ export default function MealPlanDetailPage() {
   const addMealItemMutation = useAddMealItem(mealPlanId);
   const removeMealItemMutation = useRemoveMealItem(mealPlanId);
   const updateMealItemMutation = useUpdateMealItem(mealPlanId);
+  const updateMealMutation = useUpdateMeal(mealPlanId);
 
   // RefMeal hooks
   const { data: refMeals } = useRefMeals(mealPlanId);
@@ -93,6 +99,21 @@ export default function MealPlanDetailPage() {
       },
     );
   }, [updateMealItemMutation]);
+
+  const handleUpdateMeal = useCallback((mealId: number, data: {
+    note?: string | null;
+    override_portions?: number | null;
+    day_part_factor?: number | null;
+    is_external?: boolean | null;
+    external_energy_kcal?: number | null;
+  }) => {
+    updateMealMutation.mutate(
+      { mealId, ...data },
+      {
+        onError: (err: any) => toast.error('Fehler', { description: err.message }),
+      },
+    );
+  }, [updateMealMutation]);
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
@@ -130,19 +151,21 @@ export default function MealPlanDetailPage() {
     dessert: ['19:30', '20:00'],
   };
 
-  const handleAddMealType = (date: string, mealType: string) => {
+  const handleAddMealType = (date: string, mealType: string): Promise<Meal> => {
     const [startTime, endTime] = MEAL_TYPE_DEFAULT_TIMES[mealType] ?? ['12:00', '13:00'];
-    addMealMutation.mutate(
+    return addMealMutation.mutateAsync(
       {
         start_datetime: `${date}T${startTime}:00`,
         end_datetime: `${date}T${endTime}:00`,
         meal_type: mealType,
-      },
-      {
-        onSuccess: () => toast.success('Mahlzeit hinzugefügt'),
-        onError: (err) => toast.error('Fehler', { description: err.message }),
-      },
-    );
+      }
+    ).then((res) => {
+      toast.success('Mahlzeit hinzugefügt');
+      return res;
+    }).catch((err) => {
+      toast.error('Fehler', { description: err.message });
+      throw err;
+    });
   };
 
   const handleAddRecipe = (mealId: number, recipeId: number) => {
@@ -195,7 +218,6 @@ export default function MealPlanDetailPage() {
     name?: string;
     description?: string;
     norm_portions?: number;
-    activity_factor?: number;
     reserve_factor?: number;
     budget_per_person_per_day?: number | null;
     start_datetime?: string | null;
@@ -222,9 +244,9 @@ export default function MealPlanDetailPage() {
               <span className="material-symbols-outlined text-[16px]">group</span>
               {plan.norm_portions} Portionen
             </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">speed</span>
-              PAL {plan.activity_factor}
+            <span className="inline-flex items-center gap-1" title="Reservefaktor für Einkaufsmengen">
+              <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
+              Reserve: +{Math.round((plan.reserve_factor - 1) * 100)}%
             </span>
             {plan.event_name && (
               <span className="inline-flex items-center gap-1">
@@ -282,8 +304,8 @@ export default function MealPlanDetailPage() {
           dayGroups={dayGroups}
           canEdit={plan.can_edit}
           hasTimeframe={!!(plan.start_datetime && plan.end_datetime)}
-          activityFactor={plan.activity_factor}
           normPortions={plan.norm_portions}
+          budgetPerPersonPerDay={plan.budget_per_person_per_day}
           onAddDayBefore={handleAddDayBefore}
           addDayBeforePending={addDayBeforeMutation.isPending}
           onAddDayAfter={handleAddDayAfter}
@@ -297,11 +319,26 @@ export default function MealPlanDetailPage() {
           onUpdateItemFactor={handleUpdateItemFactor}
           onUnlinkMeal={handleUnlinkMeal}
           onLinkMeal={handleLinkMeal}
+          onUpdateMeal={handleUpdateMeal}
         />
       )}
-      {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} />}
-      {activeTab === 'table' && <TableView meals={plan.meals} normPortions={plan.norm_portions} />}
-      {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} />}
+      {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} />}
+      {activeTab === 'table' && (
+        <TableView
+          meals={plan.meals}
+          normPortions={plan.norm_portions}
+          budgetPerPersonPerDay={plan.budget_per_person_per_day}
+          canEdit={plan.can_edit}
+          onAddMealType={handleAddMealType}
+          onAddRecipe={handleAddRecipe}
+          onAddIngredient={handleAddIngredient}
+          onDeleteItem={setDeleteItemId}
+          onUpdateItemFactor={handleUpdateItemFactor}
+          onDeleteMeal={setDeleteMealId}
+          onUpdateMeal={handleUpdateMeal}
+        />
+      )}
+      {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
       {activeTab === 'suggestions' && <SuggestionDashboard mealPlanId={mealPlanId} />}
 
@@ -377,27 +414,43 @@ function SettingsPanel({
   onSave,
   isPending,
 }: {
-  plan: { name: string; description: string; norm_portions: number; activity_factor: number; reserve_factor: number; budget_per_person_per_day: number | null; start_datetime: string | null; end_datetime: string | null };
+  plan: {
+    name: string;
+    description: string;
+    norm_portions: number;
+    reserve_factor: number;
+    budget_per_person_per_day: number | null;
+    start_datetime: string | null;
+    end_datetime: string | null;
+    day_part_factors?: Record<string, number>;
+  };
   onSave: (data: {
     name?: string;
     description?: string;
     norm_portions?: number;
-    activity_factor?: number;
     reserve_factor?: number;
     budget_per_person_per_day?: number | null;
     start_datetime?: string | null;
     end_datetime?: string | null;
+    day_part_factors?: Record<string, number>;
   }) => void;
   isPending: boolean;
 }) {
   const [name, setName] = useState(plan.name);
   const [description, setDescription] = useState(plan.description);
   const [portions, setPortions] = useState(plan.norm_portions);
-  const [activity, setActivity] = useState(plan.activity_factor);
   const [reserve, setReserve] = useState(plan.reserve_factor);
   const [budget, setBudget] = useState(plan.budget_per_person_per_day ?? '');
   const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
   const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
+
+  const defaultFactors = {
+    breakfast: 0.20,
+    lunch: 0.35,
+    dinner: 0.35,
+    snack: 0.10,
+  };
+  const [factors, setFactors] = useState<Record<string, number>>(plan.day_part_factors || defaultFactors);
 
   return (
     <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
@@ -428,18 +481,6 @@ function SettingsPanel({
             min={1}
             value={portions}
             onChange={(e) => setPortions(Number(e.target.value))}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Aktivitätsfaktor (PAL)</label>
-          <input
-            type="number"
-            min={1.0}
-            max={3.0}
-            step={0.1}
-            value={activity}
-            onChange={(e) => setActivity(Number(e.target.value))}
             className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
@@ -486,17 +527,48 @@ function SettingsPanel({
           />
         </div>
       </div>
+
+      <div className="border-t pt-4">
+        <h4 className="font-semibold text-sm mb-3">Tagesanteil-Faktoren für Mahlzeiten</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {Object.entries(factors).map(([key, value]) => (
+            <div key={key}>
+              <label className="block text-xs font-medium mb-1 capitalize">
+                {MEAL_TYPE_LABELS[key] || key}
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={1}
+                step={0.01}
+                value={value}
+                onChange={(e) => {
+                  const newval = Number(e.target.value);
+                  setFactors(prev => ({ ...prev, [key]: newval }));
+                }}
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Summe der Faktoren: <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-green-600 font-semibold" : "text-amber-600 font-semibold"}>
+            {Object.values(factors).reduce((a, b) => a + b, 0).toFixed(2)}
+          </span> (Sollte idealerweise 1,00 ergeben).
+        </p>
+      </div>
+
       <div className="flex justify-end">
         <button
           onClick={() => onSave({
             name,
             description,
             norm_portions: portions,
-            activity_factor: activity,
             reserve_factor: reserve,
             budget_per_person_per_day: budget === '' ? null : Number(budget),
             start_datetime: startDatetime ? startDatetime + ':00' : null,
             end_datetime: endDatetime ? endDatetime + ':00' : null,
+            day_part_factors: factors,
           })}
           disabled={isPending}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
@@ -555,8 +627,8 @@ function DayPlanView({
   dayGroups,
   canEdit,
   hasTimeframe,
-  activityFactor,
   normPortions,
+  budgetPerPersonPerDay,
   onAddDayBefore,
   addDayBeforePending,
   onAddDayAfter,
@@ -570,13 +642,14 @@ function DayPlanView({
   onUpdateItemFactor,
   onUnlinkMeal,
   onLinkMeal,
+  onUpdateMeal,
 }: {
   mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
   canEdit: boolean;
   hasTimeframe: boolean;
-  activityFactor: number;
   normPortions: number;
+  budgetPerPersonPerDay?: number | null;
   onAddDayBefore: () => void;
   addDayBeforePending: boolean;
   onAddDayAfter: () => void;
@@ -590,13 +663,20 @@ function DayPlanView({
   onUpdateItemFactor: (itemId: number, factor: number) => void;
   onUnlinkMeal: (mealId: number) => void;
   onLinkMeal: (mealId: number, mealType: string) => void;
+  onUpdateMeal: (mealId: number, data: {
+    note?: string | null;
+    override_portions?: number | null;
+    day_part_factor?: number | null;
+    is_external?: boolean | null;
+    external_energy_kcal?: number | null;
+  }) => void;
 }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert'];
+  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
 
   return (
     <div className="space-y-6">
@@ -638,43 +718,60 @@ function DayPlanView({
           description="Füge einen Tag hinzu, um mit der Planung zu beginnen."
         />
       ) : (
-        dayGroups.map((group) => (
-          <div key={group.date} className="rounded-xl border bg-card overflow-hidden">
-            {/* Day Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b">
-              <div className="flex items-center gap-3 min-w-0">
-                <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
-              </div>
-              {canEdit && (
-                <button
-                  onClick={() => onDeleteDay(group.date)}
-                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  title="Tag löschen"
-                >
-                  <span className="material-symbols-outlined text-[18px]">delete</span>
-                </button>
-              )}
-            </div>
+        dayGroups.map((group) => {
+          const dayActualKcal = Math.round(group.meals.reduce((sum, m) => sum + kjToKcal(m.total_energy_kj / normPortions), 0));
+          const dayTargetKcal = Math.round(group.meals.reduce((sum, m) => sum + NORM_PERSON_DAILY_KCAL * m.day_part_factor, 0));
+          const dayActualCost = group.meals.reduce((sum, m) => sum + m.total_cost_eur / normPortions, 0);
+          const dayTargetCost = budgetPerPersonPerDay ? group.meals.reduce((sum, m) => sum + budgetPerPersonPerDay * m.day_part_factor, 0) : 0;
 
-            {/* Meals */}
-            <div className="divide-y">
-              {group.meals.map((meal) => (
-                <MealSlot
-                  key={meal.id}
-                  meal={meal}
-                  canEdit={canEdit}
-                  activityFactor={activityFactor}
-                  normPortions={normPortions}
-                  onDeleteMeal={onDeleteMeal}
-                  onAddRecipe={onAddRecipe}
-                  onAddIngredient={onAddIngredient}
-                  onDeleteItem={onDeleteItem}
-                  onUpdateItemFactor={onUpdateItemFactor}
-                  onUnlinkMeal={onUnlinkMeal}
-                  onLinkMeal={onLinkMeal}
-                />
-              ))}
-            </div>
+          return (
+            <div key={group.date} className="rounded-xl border bg-card overflow-hidden">
+              {/* Day Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-muted/50 border-b gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+                  <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <span className="bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
+                      🔥 Kcal: Soll {dayTargetKcal} / Ist {dayActualKcal} kcal
+                    </span>
+                    {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
+                      <span className="bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
+                        💰 Preis: Soll {dayTargetCost.toFixed(2)} € / Ist {dayActualCost.toFixed(2)} €
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {canEdit && (
+                  <button
+                    onClick={() => onDeleteDay(group.date)}
+                    className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors self-end sm:self-auto"
+                    title="Tag löschen"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Meals */}
+              <div className="divide-y">
+                {group.meals.map((meal) => (
+                  <MealSlot
+                    key={meal.id}
+                    meal={meal}
+                    canEdit={canEdit}
+                    normPortions={normPortions}
+                    budgetPerPersonPerDay={budgetPerPersonPerDay}
+                    onDeleteMeal={onDeleteMeal}
+                    onAddRecipe={onAddRecipe}
+                    onAddIngredient={onAddIngredient}
+                    onDeleteItem={onDeleteItem}
+                    onUpdateItemFactor={onUpdateItemFactor}
+                    onUnlinkMeal={onUnlinkMeal}
+                    onLinkMeal={onLinkMeal}
+                    onUpdateMeal={onUpdateMeal}
+                  />
+                ))}
+              </div>
 
             {/* Add Meal */}
             {canEdit && (
@@ -696,8 +793,8 @@ function DayPlanView({
               </div>
             )}
           </div>
-        ))
-      )}
+        );
+      }))}
 
       {/* Add Day After */}
       {canEdit && hasTimeframe && (
@@ -719,8 +816,8 @@ function DayPlanView({
 function MealSlot({
   meal,
   canEdit,
-  activityFactor,
   normPortions,
+  budgetPerPersonPerDay,
   onDeleteMeal,
   onAddRecipe,
   onAddIngredient,
@@ -728,11 +825,12 @@ function MealSlot({
   onUpdateItemFactor,
   onUnlinkMeal,
   onLinkMeal,
+  onUpdateMeal,
 }: {
   meal: Meal;
   canEdit: boolean;
-  activityFactor: number;
   normPortions: number;
+  budgetPerPersonPerDay?: number | null;
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
@@ -740,12 +838,20 @@ function MealSlot({
   onUpdateItemFactor: (itemId: number, factor: number) => void;
   onUnlinkMeal: (mealId: number) => void;
   onLinkMeal: (mealId: number, mealType: string) => void;
+  onUpdateMeal: (mealId: number, data: {
+    note?: string | null;
+    override_portions?: number | null;
+    day_part_factor?: number | null;
+    is_external?: boolean | null;
+    external_energy_kcal?: number | null;
+  }) => void;
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showMealSettings, setShowMealSettings] = useState(false);
 
   // Debounce search query (200ms)
   useEffect(() => {
@@ -790,16 +896,22 @@ function MealSlot({
 
   const mealColors = MEAL_TYPE_COLORS[meal.meal_type] || MEAL_TYPE_COLORS.snack;
   const isEmpty = meal.items.length === 0;
-  const coverage = getCoverageStatus(meal.total_energy_kj / normPortions, meal.day_part_factor, activityFactor);
+  const coverage = getCoverageStatus(kjToKcal(meal.total_energy_kj / normPortions), meal.day_part_factor);
   const coverageColorClass = coverage.status === 'good' ? 'text-green-600' : coverage.status === 'warning' ? 'text-yellow-600' : 'text-red-600';
 
+  const mealTargetKcal = Math.round(NORM_PERSON_DAILY_KCAL * meal.day_part_factor);
+  const mealActualKcal = Math.round(kjToKcal(meal.total_energy_kj / normPortions));
+  const actualDailyPercent = Math.round((mealActualKcal / NORM_PERSON_DAILY_KCAL) * 100);
+  const mealTargetCost = budgetPerPersonPerDay ? budgetPerPersonPerDay * meal.day_part_factor : 0;
+  const mealActualCost = meal.total_cost_eur / normPortions;
+
   return (
-    <div className={`px-4 py-3 border-l-4 ${isEmpty ? 'border-red-400 bg-red-50/50' : mealColors.border}`}>
+    <div className={`px-4 py-3 border-l-4 ${isEmpty && !meal.is_external ? 'border-red-400 bg-red-50/50' : mealColors.border}`}>
       {/* Meal Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className={`material-symbols-outlined text-[20px] ${isEmpty ? 'text-red-500' : mealColors.text}`}>
-            {isEmpty ? 'warning' : (MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant')}
+          <span className={`material-symbols-outlined text-[20px] ${isEmpty && !meal.is_external ? 'text-red-500' : mealColors.text}`}>
+            {isEmpty && !meal.is_external ? 'warning' : (MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant')}
           </span>
           <span className="font-semibold text-base">
             {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
@@ -807,9 +919,9 @@ function MealSlot({
           <span className="text-sm text-muted-foreground">
             Soll: {Math.round(meal.day_part_factor * 100)}%
           </span>
-          {!isEmpty && meal.total_energy_kj > 0 && (
+          {(!isEmpty || meal.is_external) && meal.total_energy_kj > 0 && (
             <span className={`text-sm font-medium ${coverageColorClass}`}>
-              │ Ist: {coverage.percent}%
+              │ Ist: {actualDailyPercent}%
             </span>
           )}
 
@@ -817,6 +929,13 @@ function MealSlot({
         <div className="flex items-center gap-1">
           {canEdit && (
             <>
+              <button
+                onClick={() => setShowMealSettings(!showMealSettings)}
+                className={`p-1 rounded transition-colors ${showMealSettings ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-muted/10'}`}
+                title="Mahlzeit-Einstellungen"
+              >
+                <span className="material-symbols-outlined text-[20px]">edit</span>
+              </button>
               {meal.is_synced ? (
                 <button
                   onClick={() => onUnlinkMeal(meal.id)}
@@ -834,7 +953,7 @@ function MealSlot({
                   <span className="material-symbols-outlined text-[20px]">link</span>
                 </button>
               )}
-              {!meal.is_synced && (
+              {!meal.is_synced && !meal.is_external && (
                 <button
                   onClick={() => {
                     setIsSearching(!isSearching);
@@ -857,6 +976,77 @@ function MealSlot({
           )}
         </div>
       </div>
+
+      {/* Meal Soll/Ist stats */}
+      {(!isEmpty || meal.is_external) && (
+        <div className="pl-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
+          <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
+            🔥 Kcal: Soll {mealTargetKcal} / <span className={`${coverageColorClass} font-medium`}>Ist {mealActualKcal} kcal</span>
+          </span>
+          {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
+            <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
+              💰 Preis: Soll {mealTargetCost.toFixed(2)} € / Ist {mealActualCost.toFixed(2)} €
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Meal Settings Panel */}
+      {showMealSettings && (
+        <div className="pl-7 pr-4 py-3 border rounded-lg bg-muted/20 my-2 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold mb-1 text-muted-foreground">Tagesanteil-Faktor</label>
+              <input
+                type="number"
+                min={0}
+                max={1}
+                step={0.01}
+                value={meal.day_part_factor}
+                onChange={(e) => onUpdateMeal(meal.id, { day_part_factor: Number(e.target.value) })}
+                className="w-full rounded border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+
+            <div className="flex items-center pt-5">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={meal.is_external}
+                  onChange={(e) => onUpdateMeal(meal.id, { is_external: e.target.checked })}
+                  className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                />
+                <span className="text-sm font-medium">Externe Mahlzeit</span>
+              </label>
+            </div>
+
+            {meal.is_external && (
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-muted-foreground">Energie (kcal)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={10}
+                  value={meal.external_energy_kcal ?? ''}
+                  onChange={(e) => onUpdateMeal(meal.id, { external_energy_kcal: e.target.value === '' ? null : Number(e.target.value) })}
+                  placeholder="z.B. 450"
+                  className="w-full rounded border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between items-center text-xs text-muted-foreground border-t pt-2">
+            <span>Inhalte werden bei externen Mahlzeiten ignoriert.</span>
+            <button 
+              onClick={() => setShowMealSettings(false)}
+              className="font-medium hover:text-foreground text-primary"
+            >
+              Fertig
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Meal Items */}
       {meal.is_synced && !isEmpty && (
@@ -890,7 +1080,7 @@ function MealSlot({
             </Link>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {item.energy_kj != null && (
-                <span>{Math.round(item.energy_kj / normPortions / 4.184)} kcal</span>
+                <span>{Math.round(kjToKcal(item.energy_kj / normPortions))} kcal</span>
               )}
               {item.cost_eur != null && (
                 <span>{(item.cost_eur / normPortions).toFixed(2)} €</span>
@@ -978,59 +1168,213 @@ function MealSlot({
 // Nutrition View
 // ==========================================================================
 
-function NutritionView({ mealPlanId }: { mealPlanId: number }) {
-  const { data, error, isLoading, refetch } = useNutritionSummary(mealPlanId);
-  const [showPerPortion, setShowPerPortion] = useState(false);
+function NutritionView({ mealPlanId, meals = [] }: { mealPlanId: number; meals?: Meal[] }) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const { data, error, isLoading, refetch } = useNutritionSummary(mealPlanId, selectedDate || undefined);
+  const { data: rules } = useRules();
+  const [showPerPortion, setShowPerPortion] = useState(true);
+
+  // Group meals by date to get unique dates
+  const dayGroups = useMemo(() => groupMealsByDate(meals), [meals]);
+  const uniqueDates = useMemo(() => dayGroups.map((g) => g.date), [dayGroups]);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  };
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
   if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
   if (!data) return null;
 
-  const rows = showPerPortion
-    ? [
-        { label: 'Energie', value: `${Math.round(data.per_portion_energy_kj)} kJ`, icon: 'local_fire_department' },
-        { label: 'Protein', value: `${data.per_portion_protein_g.toFixed(1)} g`, icon: 'fitness_center' },
-        { label: 'Fett', value: `${data.per_portion_fat_g.toFixed(1)} g`, icon: 'water_drop' },
-        { label: 'Kohlenhydrate', value: `${data.per_portion_carbohydrate_g.toFixed(1)} g`, icon: 'grain' },
-        { label: 'Zucker', value: `${data.per_portion_sugar_g.toFixed(1)} g`, icon: 'cake' },
-        { label: 'Ballaststoffe', value: `${data.per_portion_fibre_g.toFixed(1)} g`, icon: 'eco' },
-        { label: 'Salz', value: `${data.per_portion_salt_g.toFixed(1)} g`, icon: 'water_drop' },
-      ]
-    : [
-        { label: 'Energie', value: `${Math.round(data.energy_kj)} kJ`, icon: 'local_fire_department' },
-        { label: 'Protein', value: `${data.protein_g.toFixed(1)} g`, icon: 'fitness_center' },
-        { label: 'Fett', value: `${data.fat_g.toFixed(1)} g`, icon: 'water_drop' },
-        { label: 'Kohlenhydrate', value: `${data.carbohydrate_g.toFixed(1)} g`, icon: 'grain' },
-        { label: 'Zucker', value: `${data.sugar_g.toFixed(1)} g`, icon: 'cake' },
-        { label: 'Ballaststoffe', value: `${data.fibre_g.toFixed(1)} g`, icon: 'eco' },
-        { label: 'Salz', value: `${data.salt_g.toFixed(1)} g`, icon: 'water_drop' },
-      ];
+  const numDays = Math.max(uniqueDates.length, 1);
+
+  function evaluateRuleStatus(
+    val: number,
+    min_green: number | null,
+    max_green: number | null,
+    min_yellow: number | null,
+    max_yellow: number | null
+  ): 'green' | 'yellow' | 'red' {
+    if (min_yellow !== null && val < min_yellow) return 'red';
+    if (max_yellow !== null && val > max_yellow) return 'red';
+    if (min_green !== null && val < min_green) return 'yellow';
+    if (max_green !== null && val > max_green) return 'yellow';
+    return 'green';
+  }
+
+  const rows = [
+    {
+      label: 'Energie',
+      parameter: 'energy_kj',
+      totalValue: Math.round(kjToKcal(data.energy_kj)),
+      perPortionValue: Math.round(kjToKcal(data.per_portion_energy_kj)),
+      unit: 'kcal',
+      icon: 'local_fire_department',
+    },
+    {
+      label: 'Protein',
+      parameter: 'protein_g',
+      totalValue: data.protein_g,
+      perPortionValue: data.per_portion_protein_g,
+      unit: 'g',
+      icon: 'fitness_center',
+    },
+    {
+      label: 'Fett',
+      parameter: 'fat_g',
+      totalValue: data.fat_g,
+      perPortionValue: data.per_portion_fat_g,
+      unit: 'g',
+      icon: 'water_drop',
+    },
+    {
+      label: 'Kohlenhydrate',
+      parameter: 'carbohydrate_g',
+      totalValue: data.carbohydrate_g,
+      perPortionValue: data.per_portion_carbohydrate_g,
+      unit: 'g',
+      icon: 'grain',
+    },
+    {
+      label: 'Zucker',
+      parameter: 'sugar_g',
+      totalValue: data.sugar_g,
+      perPortionValue: data.per_portion_sugar_g,
+      unit: 'g',
+      icon: 'cake',
+    },
+    {
+      label: 'Ballaststoffe',
+      parameter: 'fibre_g',
+      totalValue: data.fibre_g,
+      perPortionValue: data.per_portion_fibre_g,
+      unit: 'g',
+      icon: 'eco',
+    },
+    {
+      label: 'Salz',
+      parameter: 'salt_g',
+      totalValue: data.salt_g,
+      perPortionValue: data.per_portion_salt_g,
+      unit: 'g',
+      icon: 'water_drop',
+    },
+  ];
 
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
-      <div className="px-4 py-3 bg-muted/50 border-b flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">nutrition</span>
-          Nährwert-Zusammenfassung {showPerPortion ? '(pro Normportion)' : '(gesamt)'}
-        </h3>
+      <div className="px-4 py-3 bg-muted/50 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">nutrition</span>
+            Nährwert-Zusammenfassung {showPerPortion ? '(pro Normportion)' : '(gesamt)'}
+          </h3>
+
+          {/* Horizontal Day-by-Day (Bar7) Selector */}
+          {uniqueDates.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full sm:ml-2">
+              <button
+                type="button"
+                onClick={() => setSelectedDate(null)}
+                className={cn(
+                  "text-xs px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors",
+                  selectedDate === null
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Gesamter Plan ({numDays} Tage)
+              </button>
+              {uniqueDates.map((date) => (
+                <button
+                  key={date}
+                  type="button"
+                  onClick={() => setSelectedDate(date)}
+                  className={cn(
+                    "text-xs px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors",
+                    selectedDate === date
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {formatDate(date)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={() => setShowPerPortion(!showPerPortion)}
-          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium"
+          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium self-end sm:self-auto"
         >
           {showPerPortion ? 'Gesamt anzeigen' : `Pro Portion (${data.norm_portions})`}
         </button>
       </div>
       <div className="divide-y">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between px-4 py-2.5">
-            <span className="flex items-center gap-2 text-sm">
-              <span className="material-symbols-outlined text-[16px] text-muted-foreground">{row.icon}</span>
-              {row.label}
-            </span>
-            <span className="text-sm font-medium">{row.value}</span>
-          </div>
-        ))}
+        {rows.map((row) => {
+          // Find the active rule for this parameter
+          const activeRule = rules?.find(
+            (r) =>
+              r.parameter === row.parameter &&
+              (r.scope === 'meal_event' || r.scope === 'day')
+          );
+
+          // The rules operate "pro Person pro Tag" (daily average per portion).
+          // For the SollIstBar, we always compare the daily per-portion average to the rules.
+          // If a specific day is selected, we don't divide by numDays since the data is already daily.
+          const dailyPortionVal = selectedDate ? row.perPortionValue : row.perPortionValue / numDays;
+
+          const hasSollIst = !!activeRule;
+          const status = activeRule
+            ? evaluateRuleStatus(
+                dailyPortionVal,
+                activeRule.min_green,
+                activeRule.max_green,
+                activeRule.min_yellow,
+                activeRule.max_yellow
+              )
+            : 'green';
+
+          const target_mid = activeRule
+            ? activeRule.min_green !== null && activeRule.max_green !== null
+              ? (activeRule.min_green + activeRule.max_green) / 2
+              : activeRule.min_green ?? activeRule.max_green
+            : null;
+
+          const displayVal = showPerPortion
+            ? `${row.perPortionValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`
+            : `${row.totalValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`;
+
+          return (
+            <div key={row.label} className="px-4 py-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <span className="material-symbols-outlined text-[16px] text-muted-foreground">
+                    {row.icon}
+                  </span>
+                  {row.label}
+                </span>
+                <span className="text-sm font-semibold">{displayVal}</span>
+              </div>
+
+              {hasSollIst && activeRule && (
+                <div className="pl-6 max-w-xl">
+                  <SollIstBar
+                    current={dailyPortionVal}
+                    min_green={activeRule.min_green}
+                    max_green={activeRule.max_green}
+                    target_mid={target_mid}
+                    status={status}
+                    unit={row.unit}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Nutrient Balance Chart */}

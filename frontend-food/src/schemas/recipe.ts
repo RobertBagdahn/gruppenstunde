@@ -42,6 +42,7 @@ export const RecipeItemSchema = z.object({
   ingredient_density: z.number().nullable().optional(),
   ingredient_viscosity: z.string().nullable().optional(),
   ingredient_price_per_kg: z.number().nullable().optional(),
+  ingredient_nutri_class: z.number().nullable().optional(),
   weight_g: z.number(),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;

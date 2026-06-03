@@ -50,7 +50,7 @@ class TestPlannerFactories:
         assert event.pk is not None
         assert event.slug
         assert event.norm_portions == 10
-        assert event.scaling_factor == 10 * 1.5 * 1.1
+        assert event.scaling_factor == 10 * 1.1
 
     def test_make_meal(self):
         meal = make_meal()

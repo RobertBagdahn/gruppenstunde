@@ -389,6 +389,12 @@ class Command(BaseCommand):
             rs_legacy_pk = fields.get("retail_section")
             rs_new_pk = self.pk_map.get("retail_section", rs_legacy_pk) if rs_legacy_pk else None
 
+            if not rs_new_pk:
+                from supply.services.retail_section_mapping import get_retail_section
+                rs_obj = get_retail_section(name, fields.get("description", ""))
+                if rs_obj:
+                    rs_new_pk = rs_obj.pk
+
             # Generate unique slug
             slug = self._generate_slug(name, existing_slugs)
 

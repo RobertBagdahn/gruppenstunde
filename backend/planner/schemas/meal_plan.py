@@ -110,12 +110,23 @@ class MealOut(Schema):
     is_reference: bool = False
     ref_meal_id: int | None = None
     is_synced: bool = False
+    is_external: bool = False
+    external_energy_kcal: float | None = None
     total_energy_kj: float = 0.0
     total_cost_eur: float = 0.0
     items: list[MealItemOut] = []
 
     @staticmethod
+    def resolve_external_energy_kcal(obj) -> float | None:
+        if obj.external_energy_kj is not None:
+            from recipe.services.nutrition_units import kj_to_kcal
+            return round(kj_to_kcal(obj.external_energy_kj), 1)
+        return None
+
+    @staticmethod
     def resolve_total_energy_kj(obj) -> float:
+        if obj.is_external:
+            return obj.external_energy_kj or 0.0
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_energy_total_kj is not None:
@@ -126,6 +137,8 @@ class MealOut(Schema):
 
     @staticmethod
     def resolve_total_cost_eur(obj) -> float:
+        if obj.is_external:
+            return 0.0
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_price_total is not None:
@@ -146,6 +159,9 @@ class MealUpdateIn(Schema):
     override_portions: int | None = None
     note: str | None = None
     note_is_published: bool | None = None
+    day_part_factor: float | None = None
+    is_external: bool | None = None
+    external_energy_kcal: float | None = None
 
 
 class MealDayBulkCreateIn(Schema):
@@ -158,7 +174,6 @@ class MealPlanOut(Schema):
     slug: str
     description: str
     norm_portions: int
-    activity_factor: float
     reserve_factor: float
     budget_per_person_per_day: float | None = None
     event_id: int | None = None
@@ -169,6 +184,7 @@ class MealPlanOut(Schema):
     created_at: dt.datetime
     updated_at: dt.datetime
     meals_count: int = 0
+    day_part_factors: dict[str, float]
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -191,22 +207,22 @@ class MealPlanCreateIn(Schema):
     name: str
     description: str = ""
     norm_portions: int = 10
-    activity_factor: float = 1.5
     reserve_factor: float = 1.1
     event_id: int | None = None
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
+    day_part_factors: dict[str, float] | None = None
 
 
 class MealPlanUpdateIn(Schema):
     name: str | None = None
     description: str | None = None
     norm_portions: int | None = None
-    activity_factor: float | None = None
     reserve_factor: float | None = None
     budget_per_person_per_day: float | None = None
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
+    day_part_factors: dict[str, float] | None = None
 
 
 class MealPlanDetailOut(Schema):
@@ -215,7 +231,6 @@ class MealPlanDetailOut(Schema):
     slug: str
     description: str
     norm_portions: int
-    activity_factor: float
     reserve_factor: float
     budget_per_person_per_day: float | None = None
     event_id: int | None = None
@@ -225,6 +240,7 @@ class MealPlanDetailOut(Schema):
     created_by_id: int
     created_at: dt.datetime
     updated_at: dt.datetime
+    day_part_factors: dict[str, float]
     meals: list[MealOut] = []
     can_edit: bool = False
 
@@ -256,7 +272,6 @@ class NutritionSummaryOut(Schema):
 
     # Scaling metadata
     norm_portions: int = 1
-    activity_factor: float = 1.0
     reserve_factor: float = 1.0
     scaling_factor: float = 1.0
 
@@ -351,6 +366,8 @@ class RecipeCostOut(Schema):
 
 class MealPlanCostSummaryOut(Schema):
     total_cost: Decimal
+    total_cost_with_reserve: Decimal
+    reserve_factor: float
     cost_per_person: Decimal
     norm_portions: int
     total_ingredients: int

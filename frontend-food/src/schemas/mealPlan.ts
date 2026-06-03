@@ -55,6 +55,8 @@ export const MealSchema = z.object({
   is_reference: z.boolean(),
   ref_meal_id: z.number().nullable(),
   is_synced: z.boolean(),
+  is_external: z.boolean(),
+  external_energy_kcal: z.number().nullable(),
   total_energy_kj: z.number(),
   total_cost_eur: z.number(),
   items: z.array(MealItemSchema),
@@ -71,7 +73,6 @@ export const MealPlanSchema = z.object({
   slug: z.string(),
   description: z.string(),
   norm_portions: z.number(),
-  activity_factor: z.number(),
   reserve_factor: z.number(),
   budget_per_person_per_day: z.number().nullable(),
   event_id: z.number().nullable(),
@@ -82,6 +83,7 @@ export const MealPlanSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   meals_count: z.number(),
+  day_part_factors: z.record(z.string(), z.number()),
 });
 export type MealPlan = z.infer<typeof MealPlanSchema>;
 
@@ -95,7 +97,6 @@ export const MealPlanDetailSchema = z.object({
   slug: z.string(),
   description: z.string(),
   norm_portions: z.number(),
-  activity_factor: z.number(),
   reserve_factor: z.number(),
   budget_per_person_per_day: z.number().nullable(),
   event_id: z.number().nullable(),
@@ -105,6 +106,7 @@ export const MealPlanDetailSchema = z.object({
   created_by_id: z.number(),
   created_at: z.string(),
   updated_at: z.string(),
+  day_part_factors: z.record(z.string(), z.number()),
   meals: z.array(MealSchema),
   can_edit: z.boolean(),
 });
@@ -135,7 +137,6 @@ export const NutritionSummarySchema = z.object({
 
   // Scaling metadata
   norm_portions: z.number(),
-  activity_factor: z.number(),
   reserve_factor: z.number(),
   scaling_factor: z.number(),
 });
@@ -286,17 +287,21 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';
 
+/**
+ * Täglicher kcal-Bedarf der systemweiten Norm-Person.
+ * Entspricht PAL 1.75 (2335 kcal) – fester Wert, identisch zur Norm-Portion-Definition.
+ */
+export const NORM_PERSON_DAILY_KCAL = 2335;
+
 /** Calculate how well a meal covers its expected calorie share. */
 export function getCoverageStatus(
-  totalEnergyKj: number,
+  energyKcal: number,
   dayPartFactor: number,
-  activityFactor: number,
 ): { percent: number; status: CoverageStatus } {
-  // Base daily need: 2000 kcal = 8368 kJ, scaled by activity factor
-  const dailyTargetKj = 8368 * activityFactor;
-  const expectedKj = dailyTargetKj * dayPartFactor;
-  if (expectedKj <= 0) return { percent: 0, status: 'critical' };
-  const percent = Math.round((totalEnergyKj / expectedKj) * 100);
+  // Basis-Tagesbedarf: fester Norm-Person-Wert (PAL 1.75 = 2335 kcal)
+  const expectedKcal = NORM_PERSON_DAILY_KCAL * dayPartFactor;
+  if (expectedKcal <= 0) return { percent: 0, status: 'critical' };
+  const percent = Math.round((energyKcal / expectedKcal) * 100);
   let status: CoverageStatus = 'good';
   if (percent < 50 || percent > 150) status = 'critical';
   else if (percent < 80 || percent > 120) status = 'warning';
@@ -341,6 +346,8 @@ export type RecipeCost = z.infer<typeof RecipeCostSchema>;
 
 export const MealPlanCostSummarySchema = z.object({
   total_cost: z.coerce.number(),
+  total_cost_with_reserve: z.coerce.number(),
+  reserve_factor: z.coerce.number(),
   cost_per_person: z.coerce.number(),
   norm_portions: z.number(),
   total_ingredients: z.number(),

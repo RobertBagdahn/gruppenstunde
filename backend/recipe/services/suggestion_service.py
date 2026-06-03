@@ -181,6 +181,25 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
             if rule.parameter != "nutri_class":
                 current = current / num_days
             status = rule.evaluate(current)
+
+            min_green = rule.min_green
+            max_green = rule.max_green
+            target_mid = None
+            if min_green is not None and max_green is not None:
+                target_mid = round((min_green + max_green) / 2.0, 2)
+            elif min_green is not None:
+                target_mid = min_green
+            elif max_green is not None:
+                target_mid = max_green
+
+            if rule.parameter != "nutri_class":
+                if min_green is not None:
+                    min_green = round(min_green / num_days, 2)
+                if max_green is not None:
+                    max_green = round(max_green / num_days, 2)
+                if target_mid is not None:
+                    target_mid = round(target_mid / num_days, 2)
+
             suggestions.append(
                 SuggestionOut(
                     category="nutrition",
@@ -192,6 +211,9 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                     current_value=round(current, 2),
                     target_range=_format_range(rule),
                     tip=rule.tip_text if status != "green" else None,
+                    min_green=min_green,
+                    max_green=max_green,
+                    target_mid=target_mid,
                 )
             )
 
@@ -206,6 +228,16 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                 current = values.get(rule.parameter, 0.0)
                 status = rule.evaluate(current)
                 if status != "green":
+                    min_green = rule.min_green
+                    max_green = rule.max_green
+                    target_mid = None
+                    if min_green is not None and max_green is not None:
+                        target_mid = round((min_green + max_green) / 2.0, 2)
+                    elif min_green is not None:
+                        target_mid = min_green
+                    elif max_green is not None:
+                        target_mid = max_green
+
                     suggestions.append(
                         SuggestionOut(
                             category="nutrition",
@@ -217,6 +249,9 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                             current_value=round(current, 2),
                             target_range=_format_range(rule),
                             tip=rule.tip_text if status != "green" else None,
+                            min_green=min_green,
+                            max_green=max_green,
+                            target_mid=target_mid,
                         )
                     )
 
@@ -225,6 +260,8 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
     if meal_rules.exists():
         meals = Meal.objects.filter(meal_plan=meal_plan).order_by("start_datetime")
         for meal in meals:
+            if meal.is_external:
+                continue
             values = _aggregate_meal_values(meal)
             day_num = _day_number(meal_plan, meal.start_datetime.date()) if meal.start_datetime else 1
             meal_label = MEAL_TYPE_LABELS.get(meal.meal_type, meal.meal_type)
@@ -232,6 +269,16 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                 current = values.get(rule.parameter, 0.0)
                 status = rule.evaluate(current)
                 if status != "green":
+                    min_green = rule.min_green
+                    max_green = rule.max_green
+                    target_mid = None
+                    if min_green is not None and max_green is not None:
+                        target_mid = round((min_green + max_green) / 2.0, 2)
+                    elif min_green is not None:
+                        target_mid = min_green
+                    elif max_green is not None:
+                        target_mid = max_green
+
                     suggestions.append(
                         SuggestionOut(
                             category="nutrition",
@@ -243,6 +290,9 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                             current_value=round(current, 2),
                             target_range=_format_range(rule),
                             tip=rule.tip_text if status != "green" else None,
+                            min_green=min_green,
+                            max_green=max_green,
+                            target_mid=target_mid,
                         )
                     )
 
@@ -312,6 +362,9 @@ def _check_budget(meal_plan: "MealPlan") -> list[SuggestionOut]:
             target_range=f"max {budget:.2f}€/Person/Tag",
             tip=tip,
             price_coverage_pct=round(coverage_pct, 1),
+            min_green=None,
+            max_green=round(budget, 2),
+            target_mid=round(budget, 2),
         )
     ]
 
@@ -467,8 +520,9 @@ def _build_nutritional_summary(values: dict[str, float]) -> str:
     if not values or all(v == 0.0 for v in values.values()):
         return "Keine Nährwertdaten vorhanden."
 
+    from recipe.services.nutrition_units import kj_to_kcal
     labels = {
-        "energy_kj": ("Energie", "kJ"),
+        "energy_kj": ("Energie", "kcal"),
         "protein_g": ("Eiweiß", "g"),
         "fat_g": ("Fett", "g"),
         "carbohydrate_g": ("Kohlenhydrate", "g"),
@@ -480,6 +534,8 @@ def _build_nutritional_summary(values: dict[str, float]) -> str:
     lines: list[str] = []
     for key, (label, unit) in labels.items():
         val = values.get(key, 0.0)
+        if key == "energy_kj":
+            val = kj_to_kcal(val)
         lines.append(f"- {label}: {val:.1f} {unit}")
 
     return "\n".join(lines)

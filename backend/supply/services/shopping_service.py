@@ -2,6 +2,10 @@
 
 Aggregates ingredients from MealPlan -> Meal -> MealItem -> Recipe -> RecipeItem,
 groups by RetailSection, sums quantities, and estimates prices.
+
+Quantities scale with ``meal_plan.scaling_factor`` (= norm_portions * reserve_factor).
+The PAL/activity factor is intentionally NOT applied to physical purchase quantities;
+it belongs to the norm-portion calorie calculation only.
 """
 
 from __future__ import annotations
@@ -69,7 +73,7 @@ def generate_shopping_list(
     # Collect all MealItems
     meal_items = MealItem.objects.filter(
         meal__meal_plan=meal_plan,
-    ).select_related("recipe", "meal")
+    ).select_related("recipe", "meal", "ingredient", "ingredient__retail_section")
 
     # Aggregate: ingredient_id -> ShoppingListItem
     aggregated: dict[int, ShoppingListItem] = {}
@@ -79,29 +83,96 @@ def generate_shopping_list(
     raw_quantities: dict[int, tuple[float, str]] = {}
 
     for mi in meal_items:
-        recipe_items = RecipeItem.objects.filter(
-            recipe=mi.recipe,
-        ).select_related("portion__ingredient", "portion__ingredient__retail_section")
+        meal = mi.meal
+        if meal and meal.override_portions is not None:
+            meal_scaling = meal.override_portions * meal_plan.reserve_factor
+        else:
+            meal_scaling = scaling
 
         meal_label = str(mi.meal) if mi.meal else ""
-        recipe = mi.recipe
 
-        for ri in recipe_items:
-            if not ri.portion:
-                continue
+        if mi.recipe:
+            recipe = mi.recipe
+            recipe_items = RecipeItem.objects.filter(
+                recipe=recipe,
+            ).select_related("portion__ingredient", "portion__ingredient__retail_section")
 
-            ing = ri.portion.ingredient
-            if not ing:
-                # Skip items without linked ingredient (can't aggregate)
-                continue
+            for ri in recipe_items:
+                if not ri.portion:
+                    continue
 
-            recipe_servings = getattr(recipe, "servings", 1) or 1
-            weight_g = ri.quantity * (ri.portion.weight_g or 0) * mi.factor * scaling / recipe_servings
+                ing = ri.portion.ingredient
+                if not ing:
+                    # Skip items without linked ingredient (can't aggregate)
+                    continue
 
-            # Track raw quantity for items where portion has no weight
-            if not ri.portion.weight_g:
-                raw_qty = ri.quantity * mi.factor * scaling / recipe_servings
-                portion_name = ri.portion.name or ""
+                recipe_servings = getattr(recipe, "servings", 1) or 1
+                weight_g = ri.quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
+
+                # Track raw quantity for items where portion has no weight
+                if not ri.portion.weight_g:
+                    raw_qty = ri.quantity * mi.factor * meal_scaling / recipe_servings
+                    portion_name = ri.portion.name or ""
+                    if ing.id in raw_quantities:
+                        raw_quantities[ing.id] = (
+                            raw_quantities[ing.id][0] + raw_qty,
+                            raw_quantities[ing.id][1] or portion_name,
+                        )
+                    else:
+                        raw_quantities[ing.id] = (raw_qty, portion_name)
+
+                if ing.id in aggregated:
+                    aggregated[ing.id].total_quantity_g += weight_g
+                else:
+                    section_name = ""
+                    if ing.retail_section:
+                        section_name = ing.retail_section.name
+
+                    aggregated[ing.id] = ShoppingListItem(
+                        ingredient_id=ing.id,
+                        ingredient_name=ing.name,
+                        ingredient_slug=ing.slug if hasattr(ing, "slug") else "",
+                        total_quantity_g=weight_g,
+                        unit="g",
+                        retail_section=section_name,
+                        sources=[],
+                    )
+                    sources_map[ing.id] = {}
+
+                # Track source contribution
+                source_key = (recipe.id, mi.meal_id)
+                if source_key in sources_map[ing.id]:
+                    sources_map[ing.id][source_key].quantity_g += weight_g
+                else:
+                    source = ShoppingItemSource(
+                        recipe_id=recipe.id,
+                        recipe_name=recipe.title if hasattr(recipe, "title") else str(recipe),
+                        recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
+                        meal_label=meal_label,
+                        quantity_g=weight_g,
+                    )
+                    sources_map[ing.id][source_key] = source
+
+        elif mi.ingredient:
+            ing = mi.ingredient
+            # Direct ingredient case
+            from supply.models import Portion
+            portion = Portion.objects.filter(
+                ingredient=ing,
+                measuring_unit=mi.measuring_unit,
+            ).first() if mi.measuring_unit else None
+
+            portion_weight = portion.weight_g if portion else None
+            if not portion_weight and mi.measuring_unit:
+                if mi.measuring_unit.unit == "g":
+                    portion_weight = mi.measuring_unit.quantity
+
+            if portion_weight:
+                weight_g = float(mi.quantity or 0) * portion_weight * mi.factor * meal_scaling
+            else:
+                weight_g = 0.0
+                raw_qty = float(mi.quantity or 0) * mi.factor * meal_scaling
+                portion_name = portion.name if portion else (mi.measuring_unit.name if mi.measuring_unit else "")
                 if ing.id in raw_quantities:
                     raw_quantities[ing.id] = (
                         raw_quantities[ing.id][0] + raw_qty,
@@ -129,14 +200,14 @@ def generate_shopping_list(
                 sources_map[ing.id] = {}
 
             # Track source contribution
-            source_key = (recipe.id, mi.meal_id)
+            source_key = (0, mi.meal_id)
             if source_key in sources_map[ing.id]:
                 sources_map[ing.id][source_key].quantity_g += weight_g
             else:
                 source = ShoppingItemSource(
-                    recipe_id=recipe.id,
-                    recipe_name=recipe.title if hasattr(recipe, "title") else str(recipe),
-                    recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
+                    recipe_id=0,
+                    recipe_name="Direkte Zutat" if not mi.display_name else mi.display_name,
+                    recipe_slug="",
                     meal_label=meal_label,
                     quantity_g=weight_g,
                 )

@@ -7,7 +7,7 @@ export default function MealPlanLandingPage() {
     <ToolLandingPage
       tool={TOOL_MEAL_PLAN}
       subtitle="Plane Mahlzeiten für Lager, Fahrt und Wochenende – mit automatischer Einkaufsliste, Nährwert-Analyse und Portionsberechnung."
-      longDescription="Der Essensplan ist dein Küchen-Manager für jede Pfadfinder-Aktion. Erstelle Tagespläne mit Frühstück, Mittag- und Abendessen, weise Rezepte zu und lass dir automatisch die Einkaufsliste generieren. Die Portionsberechnung passt sich an Gruppengröße, Alter und Aktivitätsfaktor an."
+      longDescription="Der Essensplan ist dein Küchen-Manager für jede Pfadfinder-Aktion. Erstelle Tagespläne mit Frühstück, Mittag- und Abendessen, weise Rezepte zu und lass dir automatisch die Einkaufsliste generieren. Die Portionsberechnung passt sich an Gruppengröße und einen frei wählbaren Reservefaktor an."
       features={[
         { icon: 'calendar_view_week', title: 'Tageweise Planung', description: 'Plane Tag für Tag mit Frühstück, Mittagessen und Abendessen.' },
         { icon: 'menu_book', title: 'Rezepte zuweisen', description: 'Wähle Rezepte aus der Datenbank – Portionen werden automatisch angepasst.' },

@@ -7,6 +7,7 @@ import { useBlocker } from '@/hooks/useBlocker';
 import { useCreateFromRecipe } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import { useAvailableConversions } from '@/api/supplies';
+import { kjToKcal } from '@/utils/nutritionUnits';
 import {
   useRecipeBySlug,
   useRecipeComments,
@@ -27,7 +28,6 @@ import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
-  RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -45,7 +45,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import RecipeImprovements from '@/components/recipe/RecipeImprovements';
 import RecipeRulesBox from '@/components/recipe/RecipeRulesBox';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
-import RecipeHeaderInfo from '@/components/recipe/RecipeHeaderInfo';
+import RecipeMetaCard from '@/components/recipe/RecipeMetaCard';
 import RecipeSidebar from '@/components/recipe/RecipeSidebar';
 import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
@@ -59,14 +59,6 @@ import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import { formatWeight } from '@/utils/formatWeight';
 
 const LazyNutritionPieChart = lazy(() => import('@/components/charts/NutritionPieChart'));
-
-// Scout level colors
-const SCOUT_LEVEL_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  Wölflinge: { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700' },
-  Jungpfadfinder: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-700' },
-  Pfadfinder: { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700' },
-  Rover: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700' },
-};
 
 // Nutri-Score colors
 const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -84,29 +76,34 @@ function AnalysisSection({
   defaultOpen = false,
   children,
   accentColor = 'text-primary',
+  preview,
 }: {
   icon: string;
   title: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
   accentColor?: string;
+  preview?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section className="mt-6 bg-card rounded-xl border overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 p-5 text-left hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-muted/50 transition-colors"
       >
         <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           <span className={`material-symbols-outlined text-[18px] ${accentColor}`}>{icon}</span>
           {title}
         </h2>
-        <span
-          className={`material-symbols-outlined text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          expand_more
-        </span>
+        <div className="flex items-center gap-3">
+          {preview && <div className="shrink-0">{preview}</div>}
+          <span
+            className={`material-symbols-outlined text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          >
+            expand_more
+          </span>
+        </div>
       </button>
       {open && <div className="px-5 pb-5 pt-0">{children}</div>}
     </section>
@@ -231,7 +228,7 @@ function CollapsibleContributions({ items }: { items: RecipeItemNutrition[] }) {
 
   const parameters = ['energy', 'protein', 'fat', 'sat_fat', 'carbs', 'sugar', 'salt', 'fiber'] as const;
   const units: Record<string, string> = {
-    energy: 'kJ', protein: 'g', fat: 'g', sat_fat: 'g',
+    energy: 'kcal', protein: 'g', fat: 'g', sat_fat: 'g',
     carbs: 'g', sugar: 'g', salt: 'g', fiber: 'g',
   };
 
@@ -481,14 +478,9 @@ export default function RecipeDetailPage() {
 
 
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
-  const difficultyLabel =
-    RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
   const timeLabel =
     RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
     recipe.execution_time;
-  const prepTimeLabel =
-    RECIPE_PREPARATION_TIME_OPTIONS.find((p) => p.value === recipe.preparation_time)?.label ??
-    recipe.preparation_time;
 
   // Group tags by parent
   const topicTags = recipe.tags.filter((t) => t.parent_name === 'Themen');
@@ -738,20 +730,20 @@ export default function RecipeDetailPage() {
 
       {/* Portion Normalization Hint (10.4) */}
       {nb && (isDirty ? modifiedServings : recipe.servings) && (isDirty ? modifiedServings : recipe.servings)! > 0 && (() => {
-        // DGE reference: 15yo male, PAL 1.5 = 12000 kJ daily
-        const dailyEnergyKj = 12000;
+        // DGE reference: 15yo male, PAL 1.5 = 2868 kcal daily (approx. 12000 kJ)
+        const dailyEnergyKcal = 2868;
         const mealFractions: Record<string, number> = {
           breakfast: 0.25, warm_meal: 0.35, cold_meal: 0.25,
           dessert: 0.10, side_dish: 0.10, snack: 0.10, drink: 0.05,
         };
         const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
-        const expectedEnergyKj = dailyEnergyKj * fraction;
+        const expectedEnergyKcal = dailyEnergyKcal * fraction;
         const effectiveServings = (isDirty ? modifiedServings : recipe.servings) ?? 1;
-        const perServingEnergyKj = nb.total_energy_kj / effectiveServings;
-        const ratio = perServingEnergyKj / expectedEnergyKj;
+        const perServingEnergyKcal = kjToKcal(nb.total_energy_kj) / effectiveServings;
+        const ratio = perServingEnergyKcal / expectedEnergyKcal;
 
         if (ratio > 1.5) {
-          const normFactor = expectedEnergyKj / perServingEnergyKj;
+          const normFactor = expectedEnergyKcal / perServingEnergyKcal;
           return (
             <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-orange-300 bg-orange-50 p-4">
               <div className="flex items-start gap-2">
@@ -761,7 +753,7 @@ export default function RecipeDetailPage() {
                     Diese Portion ist größer als eine Normportion
                   </p>
                   <p className="text-xs text-orange-600 mt-0.5">
-                    Energie pro Portion: {Math.round(perServingEnergyKj)} kJ (Referenz: {Math.round(expectedEnergyKj)} kJ)
+                    Energie pro Portion: {Math.round(perServingEnergyKcal)} kcal (Referenz: {Math.round(expectedEnergyKcal)} kcal)
                   </p>
                 </div>
               </div>
@@ -778,80 +770,12 @@ export default function RecipeDetailPage() {
         return null;
       })()}
 
-      {/* Info Boxes — mobile only, desktop uses sidebar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 lg:hidden">
-        {recipe.scout_levels.length > 0 ? (
-          <div className="flex flex-col items-center text-center gap-2 bg-rose-50 rounded-xl border border-rose-200 p-5">
-            <span className="material-symbols-outlined text-3xl text-rose-600">groups</span>
-            <div className="flex flex-wrap justify-center gap-1">
-              {recipe.scout_levels.map((level) => {
-                const colors = SCOUT_LEVEL_COLORS[level.name] ?? {
-                  bg: 'bg-muted',
-                  border: 'border-border',
-                  text: 'text-foreground',
-                };
-                return (
-                  <span
-                    key={level.id}
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${colors.bg} ${colors.border} ${colors.text} border`}
-                  >
-                    {level.name}
-                  </span>
-                );
-              })}
-            </div>
-            <span className="text-xs text-muted-foreground">Altersgruppe</span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-5">
-            <span className="material-symbols-outlined text-3xl text-rose-600">groups</span>
-            <span className="text-base font-bold">Für alle</span>
-            <span className="text-xs text-muted-foreground">Altersgruppe</span>
-          </div>
-        )}
-
-        {/* Nutri-Score Badge */}
-        {recipe.cached_nutri_class != null && (() => {
-          const label = ['A', 'B', 'C', 'D', 'E'][recipe.cached_nutri_class - 1];
-          const colors = label ? NUTRI_SCORE_COLORS[label] : null;
-          if (!colors) return null;
-          return (
-            <div className="flex flex-col items-center text-center gap-2 bg-card rounded-xl border p-5">
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Nutri-Score</span>
-              <span className={`${colors.bg} ${colors.text} text-2xl font-extrabold px-5 py-2 rounded-md`}>
-                {label}
-              </span>
-            </div>
-          );
-        })()}
-
-        {/* Views */}
-        <div className="flex flex-col items-center text-center gap-1 bg-violet-50 rounded-xl border border-violet-200 p-5">
-          <span className="material-symbols-outlined text-3xl text-violet-600">visibility</span>
-          <span className="text-base font-bold">{recipe.view_count}</span>
-          <span className="text-xs text-muted-foreground">Aufrufe</span>
-        </div>
-
-        {/* Like Score */}
-        <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-5">
-          <span
-            className="material-symbols-outlined text-3xl text-rose-500"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            favorite
-          </span>
-          <span className="text-base font-bold">{recipe.like_score}</span>
-          <span className="text-xs text-muted-foreground">Likes</span>
-        </div>
-      </div>
-
-      {/* Header Info (Nutri + Price) — mobile only, desktop uses sidebar */}
-      <div className="mt-4">
-        <RecipeHeaderInfo
-          nutriClass={recipe.cached_nutri_class}
-          priceTotal={recipe.cached_price_total}
-        />
-      </div>
+      {/* Recipe Meta Card (Unified & Compact) — mobile only, desktop uses sidebar */}
+      <RecipeMetaCard
+        recipe={recipe}
+        servings={servingsMultiplier}
+        className="mt-6 lg:hidden"
+      />
 
       {/* Summary */}
       {recipe.summary && (
@@ -891,37 +815,6 @@ export default function RecipeDetailPage() {
           </div>
         </section>
       )}
-
-      {/* KPI Boxes — mobile only, desktop uses sidebar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 lg:hidden">
-        <div className="flex flex-col items-center text-center gap-1 bg-rose-50 rounded-xl border border-rose-200 p-5">
-          <span className="material-symbols-outlined text-3xl text-rose-600">signal_cellular_alt</span>
-          <span className="text-base font-bold">{difficultyLabel}</span>
-          <span className="text-xs text-muted-foreground">Schwierigkeit</span>
-        </div>
-        <div className="flex flex-col items-center text-center gap-1 bg-teal-50 rounded-xl border border-teal-200 p-5">
-          <span className="material-symbols-outlined text-3xl text-teal-600">timer</span>
-          <span className="text-base font-bold">{timeLabel}</span>
-          <span className="text-xs text-muted-foreground">Kochzeit</span>
-        </div>
-        {recipe.cached_price_total != null && (
-          <div className="flex flex-col items-center text-center gap-1 bg-yellow-50 rounded-xl border border-yellow-200 p-5">
-            <span className="material-symbols-outlined text-3xl text-yellow-600">euro</span>
-            <span className="text-base font-bold">
-              {(recipe.cached_price_total * (servingsMultiplier / (recipe.servings ?? 1))).toLocaleString('de-DE', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })} €
-            </span>
-            <span className="text-xs text-muted-foreground">Gesamtkosten</span>
-          </div>
-        )}
-        <div className="flex flex-col items-center text-center gap-1 bg-indigo-50 rounded-xl border border-indigo-200 p-5">
-          <span className="material-symbols-outlined text-3xl text-indigo-600">pending_actions</span>
-          <span className="text-base font-bold">{prepTimeLabel}</span>
-          <span className="text-xs text-muted-foreground">Vorbereitungszeit</span>
-        </div>
-      </div>
 
       {/* Recipe Items (Ingredients) — using IngredientList component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
@@ -995,22 +888,6 @@ export default function RecipeDetailPage() {
             servingsMultiplier={isDirty ? 1 : (servingsMultiplier / (recipe.servings ?? 1))}
             availableConversions={availableConversions?.items}
           />
-        )}
-
-        {/* Export to Shopping List */}
-        {currentUser && (
-          <div className="mt-4 pt-4 border-t">
-            <button
-              type="button"
-              onClick={handleOpenShoppingList}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center md:w-auto"
-            >
-              <span className="material-symbols-outlined text-[18px]">
-                shopping_cart
-              </span>
-              Zur Einkaufsliste
-            </button>
-          </div>
         )}
       </section>
 
@@ -1197,7 +1074,16 @@ export default function RecipeDetailPage() {
 
       {/* --- Preis-Analyse --- */}
       {nb && nb.total_price_eur !== null && nb.total_price_eur > 0 && (
-        <AnalysisSection icon="euro" title="Preis-Analyse" accentColor="text-yellow-600">
+        <AnalysisSection
+          icon="euro"
+          title="Preis-Analyse"
+          accentColor="text-yellow-600"
+          preview={
+            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground">
+              <span className="text-foreground font-semibold">{((nb.total_price_eur ?? 0) / effectiveServings).toFixed(2)} €</span> / Port.
+            </div>
+          }
+        >
           <div className="space-y-6">
             {/* Price overview */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1248,6 +1134,17 @@ export default function RecipeDetailPage() {
           icon="science"
           title="Inhaltsstoffanalyse"
           accentColor="text-violet-600"
+          preview={
+            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">
+              <span className="text-foreground font-semibold">{Math.round(nb.per_serving_energy_kcal ?? 0)} kcal</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="hidden sm:inline">{Math.round(nb.per_serving_protein_g ?? 0)}g P</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="hidden sm:inline">{Math.round(nb.per_serving_fat_g ?? 0)}g F</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="hidden sm:inline">{Math.round(nb.per_serving_carbohydrate_g ?? 0)}g KH</span>
+            </div>
+          }
         >
           <div className="space-y-6">
             {/* Macro overview per serving */}
@@ -1422,6 +1319,14 @@ export default function RecipeDetailPage() {
           icon="health_and_safety"
           title="Gesundheitsanalyse"
           accentColor="text-green-600"
+          preview={
+            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1.5">
+              Nutri-Score
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-extrabold ${NUTRI_SCORE_COLORS[nutriScore.nutri_label]?.bg} ${NUTRI_SCORE_COLORS[nutriScore.nutri_label]?.text}`}>
+                {nutriScore.nutri_label}
+              </span>
+            </div>
+          }
         >
           <div className="space-y-6">
             {/* Nutri-Score detail */}
@@ -1553,6 +1458,11 @@ export default function RecipeDetailPage() {
           icon="scale"
           title="Gewichtsanalyse"
           accentColor="text-indigo-600"
+          preview={
+            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground">
+              <span className="text-foreground font-semibold">{formatWeight(nb.total_weight_g / effectiveServings)}</span> / Port.
+            </div>
+          }
         >
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
@@ -1619,6 +1529,19 @@ export default function RecipeDetailPage() {
             title="Zubereitung"
             defaultOpen={false}
             accentColor="text-primary"
+            preview={
+              <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">
+                <span>{timeLabel || 'Ausführlich'}</span>
+                {recipe.description && (
+                  <>
+                    <span className="hidden sm:inline">·</span>
+                    <span className="hidden sm:inline">
+                      {recipe.description.split(/\n+/).filter(line => line.trim().length > 0).length} {recipe.description.split(/\n+/).filter(line => line.trim().length > 0).length === 1 ? 'Schritt' : 'Schritte'}
+                    </span>
+                  </>
+                )}
+              </div>
+            }
           >
             <MarkdownRenderer content={recipe.description} />
           </AnalysisSection>

@@ -20,7 +20,7 @@ const SCOPE_OPTIONS = [
 ];
 
 const PARAMETER_OPTIONS = [
-  { value: 'energy_kj', label: 'Energie (kJ)', unit: 'kJ' },
+  { value: 'energy_kj', label: 'Energie (kcal)', unit: 'kcal' },
   { value: 'protein_g', label: 'Eiweiß (g)', unit: 'g' },
   { value: 'fat_g', label: 'Fett (g)', unit: 'g' },
   { value: 'fat_sat_g', label: 'Gesättigte Fettsäuren (g)', unit: 'g' },
@@ -85,7 +85,7 @@ export default function RuleEditDialog({
       setMinGreen('');
       setMaxGreen('');
       setMaxYellow('');
-      setUnit('kJ');
+      setUnit('kcal');
       setTipText('');
       setImprovementText('');
       setIsActive(true);

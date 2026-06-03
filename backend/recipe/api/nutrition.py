@@ -105,6 +105,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     )
 
     from recipe.services.recipe_checks import MICRONUTRIENT_FIELDS
+    from recipe.services.nutrition_units import kj_to_kcal
 
     result_items = []
     total_weight_g = 0.0
@@ -166,7 +167,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             else:
                 item_micro[field] = None
 
-        energy_kcal = item_nutrition["energy_kj"] / 4.184
+        energy_kcal = kj_to_kcal(item_nutrition["energy_kj"])
 
         item_entry = {
             "recipe_item_id": item.id,
@@ -196,6 +197,8 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
 
         item_data.append(item_entry)
 
+    totals["energy_kcal"] = kj_to_kcal(totals["energy_kj"])
+
     # Second pass: calculate weight percentages and contributions
     for item in item_data:
         if total_weight_g > 0:
@@ -204,7 +207,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         # Compute per-item contributions for each nutritional parameter
         contributions = []
         param_mapping = [
-            ("energy", "energy_kj"),
+            ("energy", "energy_kcal"),
             ("protein", "protein_g"),
             ("fat", "fat_g"),
             ("sat_fat", "fat_sat_g"),
@@ -226,7 +229,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
 
         result_items.append(item)
 
-    total_energy_kcal = totals["energy_kj"] / 4.184
+    total_energy_kcal = kj_to_kcal(totals["energy_kj"])
     servings = recipe.servings or 1
 
     # Build DGE coverage if age/gender provided

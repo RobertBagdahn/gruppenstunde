@@ -20,6 +20,7 @@ import { useNutritionSummary } from '@/api/mealPlans';
 import { useMealPlan } from '@/api/mealPlans';
 import type { DgeReferencePoint } from '@/schemas/normPerson';
 import { cn } from '@/lib/utils';
+import { kjToKcal, getPalLabel } from '@/utils/nutritionUnits';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -164,7 +165,7 @@ function buildDgeEnergyOverlay(
 
   for (const pt of dgePoints) {
     const midAge = Math.round((pt.age_min + pt.age_max) / 2);
-    const energyKcal = (pt.energy_kj / 4.184) * palScale;
+    const energyKcal = kjToKcal(pt.energy_kj) * palScale;
     if (!byAge[midAge]) byAge[midAge] = {};
     if (pt.gender === 'male') byAge[midAge].male = energyKcal;
     else byAge[midAge].female = energyKcal;
@@ -318,9 +319,9 @@ function IstVsSollComparison({
 
   const comparisonData = [
     {
-      name: 'Energie (kJ)',
-      ist: Math.round(perPerson.energy_kj),
-      soll: Math.round(avgDge.energy_kj),
+      name: 'Energie (kcal)',
+      ist: Math.round(kjToKcal(perPerson.energy_kj)),
+      soll: Math.round(kjToKcal(avgDge.energy_kj)),
     },
     {
       name: 'Protein (g)',
@@ -658,7 +659,7 @@ export default function NormPortionSimulatorPage() {
                 Tagesenergiebedarf (TDEE) nach Alter
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Gesamtenergiebedarf in kcal pro Tag bei PAL {pal}
+                Gesamtenergiebedarf in kcal pro Tag bei PAL {pal} ({getPalLabel(pal)})
                 {dgeOverlay.length > 0 && ' — gepunktete Linien zeigen DGE-Empfehlung'}
               </p>
             </div>

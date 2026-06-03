@@ -91,7 +91,6 @@ def make_meal_plan(created_by=None, **kwargs) -> MealPlan:
         "name": "Sommerlager Essensplan",
         "description": "Essensplan für das Sommerlager 2026",
         "norm_portions": 10,
-        "activity_factor": 1.5,
         "reserve_factor": 1.1,
     }
     defaults.update(kwargs)

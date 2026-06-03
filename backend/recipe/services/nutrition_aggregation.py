@@ -37,6 +37,10 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
     for field in CACHED_MICRONUTRIENT_FIELDS:
         totals[field] = 0.0
 
+    if meal.is_external:
+        totals["energy_kj"] = meal.external_energy_kj or 0.0
+        return totals
+
     items = MealItem.objects.filter(meal=meal).select_related("recipe")
     for item in items:
         recipe = item.recipe
@@ -169,12 +173,25 @@ def _aggregate_meal_plan_values(meal_plan: "MealPlan") -> dict[str, float]:
 
 def _evaluate_rules(scope: str, values: dict[str, float]) -> list[dict]:
     """Evaluate all active Rules for a given scope against values."""
+    from recipe.services.nutrition_units import kj_to_kcal
     rules = Rule.objects.filter(is_active=True, scope=scope).order_by("sort_order")
 
     evaluations = []
     for rule in rules:
         current_value = values.get(rule.parameter, 0.0)
+        if rule.parameter == "energy_kj":
+            current_value = kj_to_kcal(current_value)
         status = rule.evaluate(current_value)
+        min_green = rule.min_green
+        max_green = rule.max_green
+        target_mid = None
+        if min_green is not None and max_green is not None:
+            target_mid = round((min_green + max_green) / 2.0, 2)
+        elif min_green is not None:
+            target_mid = min_green
+        elif max_green is not None:
+            target_mid = max_green
+
         evaluations.append(
             {
                 "rule_id": rule.id,
@@ -184,6 +201,9 @@ def _evaluate_rules(scope: str, values: dict[str, float]) -> list[dict]:
                 "status": status,
                 "tip_text": rule.tip_text if status != "green" else "",
                 "unit": rule.unit,
+                "min_green": min_green,
+                "max_green": max_green,
+                "target_mid": target_mid,
             }
         )
 
@@ -230,4 +250,11 @@ def evaluate_meal_cockpit(meal: "Meal") -> dict:
     """Evaluate all meal-scope Rules for a specific meal."""
     values = _aggregate_meal_values(meal)
     evaluations = _evaluate_rules("meal", values)
+    if meal.is_external:
+        for ev in evaluations:
+            ev["status"] = "green"
+            ev["min_green"] = ev["current_value"]
+            ev["max_green"] = ev["current_value"]
+            ev["target_mid"] = ev["current_value"]
+            ev["tip_text"] = ""
     return _build_dashboard(evaluations)

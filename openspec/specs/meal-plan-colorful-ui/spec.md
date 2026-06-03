@@ -34,10 +34,10 @@ The UI MUST display meals with zero items using a red accent (border, background
 - **THEN** no red accent is shown on the meal container
 
 ### Requirement: Each meal SHALL display calorie coverage percentage
-The UI MUST show a percentage indicating how much of the expected calorie need the meal covers. The expected need is `daily_target_kj * day_part_factor`. The daily target is `8368 kJ * activity_factor` (≈ 2000 kcal base).
+The UI MUST show a percentage indicating how much of the expected calorie need the meal covers. The expected need is `daily_target_kcal * day_part_factor`. The daily target is `2000 kcal * activity_factor` (base 2000 kcal). The meal energy value used for the comparison MUST be in kcal (converted from the stored kJ value via `/ 4,184`).
 
 #### Scenario: Meal covers expected calories exactly
-- **WHEN** meal.total_energy_kj equals daily_target_kj * day_part_factor (coverage = 100%)
+- **WHEN** the meal energy in kcal equals daily_target_kcal * day_part_factor (coverage = 100%)
 - **THEN** the percentage shows "100%" in green
 
 #### Scenario: Meal is significantly under target

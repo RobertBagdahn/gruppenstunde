@@ -29,7 +29,7 @@ ALL_GOOD_MESSAGE = "Dieses Rezept ist in allen bewerteten Dimensionen im grünen
 # Values correspond to roughly the "good" end of the next-better class per the
 # standard solid-food Nutri-Score scoring tables.
 _NUTRI_FALLBACK_THRESHOLDS: dict[str, float] = {
-    "energy_kj": 335.0,
+    "energy_kj": 335.0 / 4.184,
     "sugar_g": 4.5,
     "fat_sat_g": 1.0,
     "sodium_mg": 90.0,
@@ -213,7 +213,7 @@ def _format_ingredients(raw: list[dict], parameter: str) -> list[dict]:
 
 
 _UNIT_MAP = {
-    "energy_kj": "kJ",
+    "energy_kj": "kcal",
     "sugar_g": "g",
     "fat_sat_g": "g",
     "fat_g": "g",

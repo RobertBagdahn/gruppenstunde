@@ -140,17 +140,17 @@ class TestNutritionAggregationPortionScaling:
         assert plan_values["price_total"] == day_values["price_total"]
 
     def test_person_factors_do_not_affect_aggregation(self):
-        """norm_portions / activity_factor / reserve_factor must NOT change Normportion aggregates."""
+        """norm_portions / reserve_factor must NOT change Normportion aggregates."""
         recipe = make_recipe(servings=1)
         ing = make_ingredient(name="Zutat", protein_g=10.0)
         portion = make_portion(ingredient=ing, weight_g=200.0, name="200g")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
 
-        plan_a = make_meal_plan(norm_portions=10, activity_factor=1.5, reserve_factor=1.1)
+        plan_a = make_meal_plan(norm_portions=10, reserve_factor=1.1)
         meal_a = make_meal(meal_plan=plan_a)
         make_meal_item(meal=meal_a, recipe=recipe, factor=1.0)
 
-        plan_b = make_meal_plan(norm_portions=50, activity_factor=2.0, reserve_factor=1.5)
+        plan_b = make_meal_plan(norm_portions=50, reserve_factor=1.5)
         meal_b = make_meal(meal_plan=plan_b)
         make_meal_item(meal=meal_b, recipe=recipe, factor=1.0)
 
@@ -165,7 +165,7 @@ class TestNutritionAggregationPortionScaling:
 
     def test_meal_event_rule_uses_day_average_not_person_division(self):
         """meal_event-scope rules average the plan total over num_days only — no person division."""
-        meal_plan = make_meal_plan(norm_portions=10, activity_factor=1.5, reserve_factor=1.1)
+        meal_plan = make_meal_plan(norm_portions=10, reserve_factor=1.1)
         day1 = dt.date.today()
         day2 = day1 + dt.timedelta(days=1)
 
@@ -202,3 +202,67 @@ class TestNutritionAggregationPortionScaling:
         # Day average is 20.0 → green
         assert protein_event[0].current_value == 20.0
         assert protein_event[0].status == "green"
+
+    def test_evaluate_rules_returns_target_bounds_and_midpoint(self):
+        from recipe.services.nutrition_aggregation import _evaluate_rules
+        rule = make_rule(
+            name="Fett limit",
+            parameter="fat_g",
+            scope="meal",
+            min_green=10.0,
+            max_green=30.0,
+            unit="g",
+        )
+        values = {"fat_g": 25.0}
+        evals = _evaluate_rules("meal", values)
+        assert len(evals) == 1
+        ev = evals[0]
+        assert ev["min_green"] == 10.0
+        assert ev["max_green"] == 30.0
+        assert ev["target_mid"] == 20.0
+
+    def test_event_rules_normalized_by_days_in_suggestions(self):
+        day1 = dt.date(2026, 6, 3)
+        day2 = day1 + dt.timedelta(days=1)
+        day3 = day1 + dt.timedelta(days=2)
+        meal_plan = make_meal_plan()
+
+        recipe = make_recipe(servings=1)
+        ing = make_ingredient(name="Zutat", protein_g=10.0)
+        portion = make_portion(ingredient=ing, weight_g=200.0)
+        make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
+        recalculate_recipe_cache(recipe)
+
+        # Create 3 meals on 3 different days to establish a 3-day plan duration
+        meal1 = make_meal(
+            meal_plan=meal_plan,
+            start_datetime=timezone.make_aware(dt.datetime.combine(day1, dt.time(12, 0))),
+        )
+        make_meal(
+            meal_plan=meal_plan,
+            start_datetime=timezone.make_aware(dt.datetime.combine(day2, dt.time(12, 0))),
+        )
+        make_meal(
+            meal_plan=meal_plan,
+            start_datetime=timezone.make_aware(dt.datetime.combine(day3, dt.time(12, 0))),
+        )
+
+        make_meal_item(meal=meal1, recipe=recipe, factor=1.0)
+
+        make_rule(
+            name="Protein pro Tag",
+            parameter="protein_g",
+            scope="meal_event",
+            min_green=30.0,
+            max_green=60.0,
+            unit="g",
+        )
+
+        suggestions = _evaluate_admin_rules(meal_plan)
+        protein_event = [s for s in suggestions if s.scope == "event" and "Protein" in s.scope_label]
+        assert len(protein_event) == 1
+        s = protein_event[0]
+        # min_green: 30 / 3 = 10, max_green: 60 / 3 = 20, target_mid: 45 / 3 = 15
+        assert s.min_green == pytest.approx(10.0)
+        assert s.max_green == pytest.approx(20.0)
+        assert s.target_mid == pytest.approx(15.0)

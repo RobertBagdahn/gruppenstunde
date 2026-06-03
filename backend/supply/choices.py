@@ -51,7 +51,7 @@ class RecipeTypeChoices(models.TextChoices):
 
 
 class HintParameterChoices(models.TextChoices):
-    ENERGY_KJ = "energy_kj", _("Energie (kJ)")
+    ENERGY_KJ = "energy_kj", _("Energie (kcal)")
     SUGAR_G = "sugar_g", _("Zucker (g)")
     SODIUM_MG = "sodium_mg", _("Natrium (mg)")
     FIBRE_G = "fibre_g", _("Ballaststoffe (g)")

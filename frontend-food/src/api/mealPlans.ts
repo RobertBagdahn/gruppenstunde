@@ -112,11 +112,11 @@ export function useCreateMealPlan() {
       name: string;
       description?: string;
       norm_portions?: number;
-      activity_factor?: number;
       reserve_factor?: number;
       event_id?: number | null;
       start_datetime?: string | null;
       end_datetime?: string | null;
+      day_part_factors?: Record<string, number>;
     }) => postJson(`${API_BASE}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
@@ -131,10 +131,11 @@ export function useUpdateMealPlan(id: number) {
       name?: string;
       description?: string;
       norm_portions?: number;
-      activity_factor?: number;
       reserve_factor?: number;
+      budget_per_person_per_day?: number | null;
       start_datetime?: string | null;
       end_datetime?: string | null;
+      day_part_factors?: Record<string, number>;
     }) => patchJson(`${API_BASE}/${id}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
@@ -290,15 +291,40 @@ export function useUpdateMealItem(mealPlanId: number) {
   });
 }
 
+export function useUpdateMeal(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      mealId,
+      ...body
+    }: {
+      mealId: number;
+      override_portions?: number | null;
+      note?: string | null;
+      note_is_published?: boolean | null;
+      day_part_factor?: number | null;
+      is_external?: boolean | null;
+      external_energy_kcal?: number | null;
+    }) => patchJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/`, body, MealSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+    },
+  });
+}
+
 // ==========================================================================
 // Nutrition & Shopping List
 // ==========================================================================
 
-export function useNutritionSummary(mealPlanId: number) {
+export function useNutritionSummary(mealPlanId: number, date?: string) {
   return useQuery<NutritionSummary>({
-    queryKey: ['meal-plan', mealPlanId, 'nutrition'],
-    queryFn: () =>
-      fetchJson(`${API_BASE}/${mealPlanId}/nutrition-summary/`, NutritionSummarySchema),
+    queryKey: ['meal-plan', mealPlanId, 'nutrition', date],
+    queryFn: () => {
+      const url = date 
+        ? `${API_BASE}/${mealPlanId}/nutrition-summary/?date=${date}`
+        : `${API_BASE}/${mealPlanId}/nutrition-summary/`;
+      return fetchJson(url, NutritionSummarySchema);
+    },
     enabled: mealPlanId > 0,
   });
 }

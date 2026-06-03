@@ -103,6 +103,12 @@ def create_ingredient(request, payload: IngredientCreateIn):
     data = payload.dict(exclude={"nutritional_tag_ids"})
     data["retail_section_id"] = data.pop("retail_section_id", None)
 
+    if not data["retail_section_id"]:
+        from supply.services.retail_section_mapping import get_retail_section
+        rs = get_retail_section(data["name"], data.get("description", ""))
+        if rs:
+            data["retail_section_id"] = rs.id
+
     ingredient = Ingredient(**data)
     ingredient.created_by = request.user
     ingredient.status = "draft"

@@ -2,39 +2,40 @@
 
 ## Purpose
 Defines legacy cockpit migration state and nutrition aggregation behavior used by meal planning suggestions.
-## Requirements
-### Requirement: HealthRule data model
+
+## Legacy Migrations
+### Legacy Migration: HealthRule data model
 **Reason**: Replaced by unified `Rule` model in `meal-plan-suggestions` capability.
 **Migration**: All HealthRule data migrated to Rule model via data migration. Fields mapped: threshold_green → max_green, threshold_yellow → max_yellow (for max rules) or min_green/min_yellow (for min rules). rule_type set to "nutrition".
 
-### Requirement: Health rules API
+### Legacy Migration: Health rules API
 **Reason**: Replaced by `/api/rules/` endpoint in `meal-plan-suggestions` capability.
 **Migration**: Frontend consumers switch from `/api/health-rules/` to `/api/rules/`.
 
-### Requirement: MealEvent cockpit API
+### Legacy Migration: MealEvent cockpit API
 **Reason**: Replaced by `/api/meal-plans/{id}/suggestions/` endpoint in `meal-plan-suggestions` capability.
 **Migration**: Frontend switches from cockpit hooks to suggestions hooks.
 
-### Requirement: Traffic light indicators in UI
+### Legacy Migration: Traffic light indicators in UI
 **Reason**: Ampel indicators are preserved but moved into the Vorschläge tab. Standalone cockpit tab removed.
 **Migration**: TrafficLightIndicator component reused in SuggestionDashboard.
 
-### Requirement: Health tips display
+### Legacy Migration: Health tips display
 **Reason**: Tips are now part of suggestion cards in the Vorschläge tab.
 **Migration**: tip_text field preserved on Rule model, shown in suggestion cards.
 
-### Requirement: Cockpit summary card
+### Legacy Migration: Cockpit summary card
 **Reason**: Replaced by suggestion summary in the Vorschläge tab badge and header.
 **Migration**: Summary status logic preserved in suggestion service.
 
-### Requirement: Cockpit evaluates vitamin and mineral health rules
+### Legacy Migration: Cockpit evaluates vitamin and mineral health rules
 **Reason**: Vitamin/mineral evaluation preserved in the unified Rule system.
 **Migration**: All vitamin/mineral HealthRules migrated to Rules with scope and parameters intact.
 
-### Requirement: HealthRule admin interface
+### Legacy Migration: HealthRule admin interface
 **Reason**: Replaced by unified "Regeln" admin tab in `meal-plan-suggestions` capability.
 **Migration**: Django admin registration updated for Rule model.
-
+## Requirements
 ### Requirement: Portion-based nutrition cockpit aggregation
 The cockpit aggregation service SHALL calculate nutritional values in Normportion logic by scaling each recipe's cached per-100g values using the recipe's cached weight and the meal item's planned factor. Since every recipe represents exactly one Normportion, `Recipe.servings` is always treated as `1` and there SHALL be no division by `servings`.
 
@@ -68,7 +69,7 @@ Für gecachte per-100g-Nährwerte MUSS die Umrechnung auf die Normportion `Wert 
 
 ### Requirement: Tages- und Plan-Aggregation in Normportion-Logik
 
-Tages- und Plan-Aggregationen MUST die Normportion-basierten Mahlzeitwerte summieren. Eine zeitliche Mittelung über Tage (Durchschnitt pro Tag) für `scope="meal_event"`-Regeln ist ZULÄSSIG. Eine Division durch reale Personenzahl ist NICHT zulässig. `nutri_class` MUSS als Durchschnitt der vorhandenen Werte aggregiert werden; fehlende oder Null-Werte MÜSSEN ignoriert werden.
+Tages- und Plan-Aggregationen MUST die Normportion-basierten Mahlzeitwerte summieren. Eine zeitliche Mittelung über Tage (Durchschnitt pro Tag) für `scope="meal_event"`-Regeln ist ZULÄSSIG. Eine Division durch reale Personenzahl ist NICHT zulässig. `nutri_class` MUSS als Durchschnitt der vorhandenen Werte aggregiert werden; fehlende oder Null-Werte MÜSSEN ignoriert werden. Energie-Werte MUST vor der Auswertung gegen Energie-Regeln von kJ nach kcal konvertiert werden (`/ 4,184`), sodass Wert und Schwellwert in derselben Einheit (kcal) verglichen werden. Die Regelauswertung MUST zusätzlich die Soll-Grenzwerte `min_green` und `max_green` sowie den abgeleiteten Mittelwert `target_mid` für jede bewertete Regel zurückgeben, sofern diese definiert sind.
 
 #### Scenario: Tagesaggregation summiert Mahlzeiten
 
@@ -78,8 +79,12 @@ Tages- und Plan-Aggregationen MUST die Normportion-basierten Mahlzeitwerte summi
 #### Scenario: Plan-Tagesdurchschnitt ohne Personen-Division
 
 - **WHEN** eine `scope="meal_event"`-Regel über einen Plan mit 2 Tagen ausgewertet wird und der Gesamt-Energiewert 22.000 kJ beträgt
-- **THEN** wertet das System den Tagesdurchschnitt `22.000 / 2 = 11.000 kJ` aus
+- **THEN** wertet das System den Tagesdurchschnitt `22.000 / 2 = 11.000 kJ` aus, konvertiert diesen zu `11.000 / 4,184 ≈ 2629 kcal` und wertet ihn gegen die kcal-Energieregel aus
 - **AND** es erfolgt keine zusätzliche Division durch `norm_portions` oder reale Personenzahl
+
+#### Scenario: Regelauswertung liefert Soll-Band-Felder
+- **WHEN** eine Regel mit `min_green = 2000` und `max_green = 2500` gegen einen Wert ausgewertet wird
+- **THEN** gibt das System die Auswertung mit `min_green` = 2000.0, `max_green` = 2500.0 und `target_mid` = 2250.0 aus
 
 ### Requirement: Meal aggregation supports extended rule parameters
 The system SHALL aggregate values required for planner rule evaluation at meal, day, and meal_event scope. Aggregated values SHALL include nutrition parameters, `price_total`, `weight_g`, and `nutri_class` where data is available.

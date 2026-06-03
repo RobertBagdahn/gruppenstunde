@@ -27,6 +27,9 @@ class SuggestionOut(Schema):
     tip: str | None = None
     recipe_suggestions: list[RecipeSuggestionOut] = []
     price_coverage_pct: float | None = None  # Only for budget suggestions
+    min_green: float | None = None
+    max_green: float | None = None
+    target_mid: float | None = None
 
 
 class SuggestionDashboardOut(Schema):

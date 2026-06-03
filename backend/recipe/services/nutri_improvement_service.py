@@ -113,13 +113,20 @@ def calculate_nutri_improvements(recipe: "Recipe") -> list[dict]:
     for candidate in candidates:
         affected = _find_contributing_ingredients(recipe, candidate["parameter"])
 
+        current_val = candidate["current_value"]
+        target_val = candidate["target_value"]
+        if candidate["parameter"] == "energy_kj":
+            from recipe.services.nutrition_units import kj_to_kcal
+            current_val = kj_to_kcal(current_val)
+            target_val = kj_to_kcal(target_val)
+
         results.append(
             {
                 "parameter": candidate["parameter"],
                 "parameter_label": candidate["parameter_label"],
                 "direction": candidate["direction"],
-                "current_value": candidate["current_value"],
-                "target_value": candidate["target_value"],
+                "current_value": round(current_val, 2),
+                "target_value": round(target_val, 2),
                 "affected_ingredients": affected,
                 "expected_nutri_class": candidate["expected_nutri_class"],
                 "expected_nutri_label": candidate["expected_nutri_label"],
@@ -173,6 +180,9 @@ def _find_contributing_ingredients(recipe: "Recipe", parameter: str) -> list[dic
         # Convert salt_g contribution to sodium_mg
         if parameter == "sodium_mg":
             contribution = contribution * 400.0
+        elif parameter == "energy_kj":
+            from recipe.services.nutrition_units import kj_to_kcal
+            contribution = kj_to_kcal(contribution)
 
         total_contribution += contribution
 

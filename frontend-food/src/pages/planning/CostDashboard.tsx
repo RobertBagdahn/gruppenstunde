@@ -1,17 +1,21 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMealPlanCosts } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import SollIstBar from '@/components/shared/SollIstBar';
 
 interface CostDashboardProps {
   mealPlanId: number;
+  budgetPerPersonPerDay?: number | null;
 }
 
 function formatEur(value: number): string {
   return value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 }
 
-export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
+export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: CostDashboardProps) {
   const { data, isLoading, error } = useMealPlanCosts(mealPlanId);
+  const [showPerPortion, setShowPerPortion] = useState(true);
 
   if (isLoading) {
     return (
@@ -39,16 +43,60 @@ export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
   const numDays = data.days.length || 1;
   const costPerPersonPerDay = data.cost_per_person / numDays;
 
+  const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
+  const hasBudget = budget !== null && budget > 0;
+
+  const budgetStatus = hasBudget
+    ? costPerPersonPerDay <= budget
+      ? 'green'
+      : costPerPersonPerDay <= budget * 1.2
+        ? 'yellow'
+        : 'red'
+    : 'green';
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowPerPortion(!showPerPortion)}
+          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium"
+        >
+          {showPerPortion ? 'Gesamt anzeigen' : `Pro Portion (${data.norm_portions})`}
+        </button>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <SummaryCard label="Gesamtkosten" value={formatEur(data.total_cost)} />
+        <SummaryCard label="Gesamtkosten (ohne Reserve)" value={formatEur(data.total_cost)} />
+        <SummaryCard
+          label={`Gesamtkosten (inkl. Reserve +${Math.round((data.reserve_factor - 1) * 100)}%)`}
+          value={formatEur(data.total_cost_with_reserve)}
+        />
         <SummaryCard label="Pro Person" value={formatEur(data.cost_per_person)} />
         <SummaryCard label="Pro Pers./Tag" value={formatEur(costPerPersonPerDay)} />
         <SummaryCard label="Normpersonen" value={String(data.norm_portions)} />
-        <SummaryCard label="Tage" value={String(data.days.length)} />
       </div>
+
+      {/* Budget relative progress bar */}
+      {hasBudget && (
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+            <span className="material-symbols-outlined text-[18px]">payments</span>
+            Budget-Auslastung (pro Person/Tag)
+          </h3>
+          <div className="max-w-xl">
+            <SollIstBar
+              current={costPerPersonPerDay}
+              min_green={null}
+              max_green={budget}
+              target_mid={budget}
+              status={budgetStatus}
+              unit="€"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Incomplete data warning */}
       {isIncomplete && (
@@ -71,7 +119,7 @@ export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
         <div className="rounded-2xl border border-border/60 bg-amber-50/30 p-5">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <span className="material-symbols-outlined text-[20px]">restaurant</span>
-            Rezeptkosten
+            Rezeptkosten {showPerPortion ? '(pro Portion)' : '(gesamt)'}
           </h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {data.recipes.map((recipe) => {
@@ -88,11 +136,11 @@ export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
                     <span className="text-xs text-muted-foreground ml-2">Keine Preise</span>
                   ) : isPartial ? (
                     <span className="text-sm tabular-nums text-amber-600 ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
-                      ~{formatEur(recipe.total_cost)}
+                      ~{formatEur(showPerPortion ? recipe.cost_per_person : recipe.total_cost)}
                     </span>
                   ) : (
                     <span className="text-sm font-semibold tabular-nums text-emerald-700 ml-2">
-                      {formatEur(recipe.total_cost)}
+                      {formatEur(showPerPortion ? recipe.cost_per_person : recipe.total_cost)}
                     </span>
                   )}
                 </Link>
@@ -135,7 +183,11 @@ export default function CostDashboard({ mealPlanId }: CostDashboardProps) {
                             className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-xs"
                           >
                             <span>{MEAL_TYPE_LABELS[meal.meal_type] ?? meal.meal_type}</span>
-                            <span className="text-muted-foreground">{meal.cost > 0 ? formatEur(meal.cost) : '–'}</span>
+                            <span className="text-muted-foreground">
+                              {meal.cost > 0
+                                ? formatEur(showPerPortion ? meal.cost_per_person : meal.cost)
+                                : '–'}
+                            </span>
                           </span>
                         ))}
                       </div>

@@ -97,7 +97,7 @@ def _render_html(
 </head>
 <body>
     <h1>{meal_plan.name}</h1>
-    <p class="meta">{meal_plan.norm_portions} Portionen · Aktivitätsfaktor {meal_plan.activity_factor}</p>
+    <p class="meta">{meal_plan.norm_portions} Portionen · Reservefaktor {meal_plan.reserve_factor}</p>
     <table>
         <thead>
             <tr><th>Mahlzeit</th><th>Portionen</th><th>Gerichte</th></tr>

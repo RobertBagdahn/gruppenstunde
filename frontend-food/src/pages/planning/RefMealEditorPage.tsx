@@ -16,8 +16,9 @@ import { useRecipeSearch } from '@/api/mealPlans';
 import { useMealPlan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { RefMealItemIn } from '@/schemas/mealPlan';
+import { kjToKcal } from '@/utils/nutritionUnits';
 
-const ENERGY_KJ_TO_KCAL = 1 / 4.184;
+const ENERGY_KJ_TO_KCAL = kjToKcal(1);
 const DEFAULT_DAILY_KCAL = 2400;
 
 /** Category labels for recipe type grouping */

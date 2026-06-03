@@ -20,6 +20,7 @@ import type { Portion } from '@/schemas/supply';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
+import { kjToKcal } from '@/utils/nutritionUnits';
 
 // ---------------------------------------------------------------------------
 // NutriScoreBadge
@@ -676,7 +677,7 @@ export default function IngredientDetailPage() {
             Nährwerte pro 100g
           </h2>
           <div>
-            <NutritionRow label="Energie" value={ingredient.energy_kj} unit="kJ" />
+            <NutritionRow label="Energie" value={ingredient.energy_kj != null ? Math.round(kjToKcal(ingredient.energy_kj)) : null} unit="kcal" />
             <NutritionRow label="Protein" value={ingredient.protein_g} unit="g" />
             <NutritionRow label="Fett" value={ingredient.fat_g} unit="g" />
             <NutritionRow label="  davon gesättigte Fettsäuren" value={ingredient.fat_sat_g} unit="g" />

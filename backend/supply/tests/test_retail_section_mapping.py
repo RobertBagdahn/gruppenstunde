@@ -116,8 +116,20 @@ class TestGetRetailSectionFromName:
         assert _match_keywords("HÄHNCHENFLEISCH") == "Fleisch & Fisch"
 
     def test_cocktail_tomate(self):
-        # "TOMATE" doesn't match — keyword is "TOMATEN" (plural)
-        assert _match_keywords("COCKTAIL TOMATE") is None
+        # "TOMATE" matches now (singular)
+        assert _match_keywords("COCKTAIL TOMATE") == "Gemüse"
+
+    def test_schafskaese(self):
+        assert _match_keywords("SCHAFSKAESE") == "Milchprodukte & Käse"
+        assert _match_keywords("SCHAFSKÄSE") == "Milchprodukte & Käse"
+
+    def test_pflanzenoel(self):
+        assert _match_keywords("PFLANZENOEL") == "Öle & Soßen"
+        assert _match_keywords("PFLANZENÖL") == "Öle & Soßen"
+
+    def test_muesli(self):
+        assert _match_keywords("MÜSLI") == "Grundnahrungsmittel"
+        assert _match_keywords("MUESLI") == "Grundnahrungsmittel"
 
     def test_sojasosse(self):
         # "SOJASOSSE" contains "SAUCE"? No. Let's check

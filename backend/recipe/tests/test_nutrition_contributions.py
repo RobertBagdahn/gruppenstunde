@@ -91,7 +91,7 @@ class TestNutritionContributions:
         data = resp.json()
 
         field_map = {
-            "energy": "energy_kj",
+            "energy": "energy_kcal",
             "protein": "protein_g",
             "fat": "fat_g",
             "sat_fat": "fat_sat_g",

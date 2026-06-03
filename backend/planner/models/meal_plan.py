@@ -45,6 +45,17 @@ MEAL_TYPE_DEFAULT_TIMES: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
 }
 
 
+def default_day_part_factors() -> dict[str, float]:
+    """Default day_part_factor per meal type."""
+    return {
+        "breakfast": 0.25,
+        "lunch": 0.35,
+        "dinner": 0.30,
+        "snack": 0.10,
+        "dessert": 0.00,
+    }
+
+
 class MealPlan(models.Model):
     """Meal plan for scout events or standalone use."""
 
@@ -52,7 +63,6 @@ class MealPlan(models.Model):
     slug = models.SlugField(max_length=220, unique=True, blank=True, verbose_name=_("Slug"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
     norm_portions = models.IntegerField(default=10, verbose_name=_("Norm-Portionen"))
-    activity_factor = models.FloatField(default=1.5, verbose_name=_("Aktivitätsfaktor (PAL)"))
     reserve_factor = models.FloatField(default=1.1, verbose_name=_("Reservefaktor"))
     event = models.ForeignKey(
         "event.Event",
@@ -82,6 +92,11 @@ class MealPlan(models.Model):
         verbose_name=_("Budget pro Person/Tag"),
         help_text=_("Maximales Budget in Euro pro Person und Tag"),
     )
+    day_part_factors = models.JSONField(
+        default=default_day_part_factors,
+        verbose_name=_("Tagesanteile"),
+        help_text=_("Gewichtung der Mahlzeittypen für diesen Plan"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -95,6 +110,14 @@ class MealPlan(models.Model):
         return self.name
 
     def save(self, *args, **kwargs) -> None:
+        is_new = self.pk is None
+        old_day_part_factors = None
+        if not is_new:
+            try:
+                old_day_part_factors = MealPlan.objects.get(pk=self.pk).day_part_factors
+            except MealPlan.DoesNotExist:
+                pass
+
         if not self.slug:
             base_slug = slugify(self.name, allow_unicode=False)
             if not base_slug:
@@ -107,10 +130,20 @@ class MealPlan(models.Model):
             self.slug = slug
         super().save(*args, **kwargs)
 
+        if not is_new and old_day_part_factors != self.day_part_factors:
+            for meal_type, new_val in (self.day_part_factors or {}).items():
+                old_val = (old_day_part_factors or {}).get(meal_type)
+                if old_val is not None and old_val != new_val:
+                    self.meals.filter(meal_type=meal_type, day_part_factor=old_val).update(day_part_factor=new_val)
+
     @property
     def scaling_factor(self) -> float:
-        """Total scaling = norm_portions * activity_factor * reserve_factor."""
-        return self.norm_portions * self.activity_factor * self.reserve_factor
+        """Total scaling = norm_portions * reserve_factor.
+
+        PAL/activity factor is intentionally excluded: it is a calorie-demand
+        factor (norm-portion calculator), not a physical purchase-quantity factor.
+        """
+        return self.norm_portions * self.reserve_factor
 
     def create_default_meals_for_date(self, date: dt.date) -> list["Meal"]:
         """Create the default meal slots (breakfast, lunch, dinner) for a given date."""
@@ -119,6 +152,7 @@ class MealPlan(models.Model):
             times = MEAL_TYPE_DEFAULT_TIMES.get(meal_type, ((12, 0), (13, 0)))
             start_dt = timezone.make_aware(dt.datetime.combine(date, dt.time(times[0][0], times[0][1])))
             end_dt = timezone.make_aware(dt.datetime.combine(date, dt.time(times[1][0], times[1][1])))
+            factor = (self.day_part_factors or {}).get(meal_type, MEAL_TYPE_DAY_FACTORS.get(meal_type, 0.0))
             meal, _created = Meal.objects.get_or_create(
                 meal_plan=self,
                 start_datetime__date=date,
@@ -126,7 +160,7 @@ class MealPlan(models.Model):
                 defaults={
                     "start_datetime": start_dt,
                     "end_datetime": end_dt,
-                    "day_part_factor": MEAL_TYPE_DAY_FACTORS.get(meal_type, 0.0),
+                    "day_part_factor": factor,
                 },
             )
             meals.append(meal)
@@ -152,6 +186,7 @@ class MealPlan(models.Model):
 
             start_dt = timezone.make_aware(dt.datetime.combine(date, mt_start))
             end_dt = timezone.make_aware(dt.datetime.combine(date, mt_end))
+            factor = (self.day_part_factors or {}).get(meal_type, MEAL_TYPE_DAY_FACTORS.get(meal_type, 0.0))
             meal, _created = Meal.objects.get_or_create(
                 meal_plan=self,
                 start_datetime__date=date,
@@ -159,7 +194,7 @@ class MealPlan(models.Model):
                 defaults={
                     "start_datetime": start_dt,
                     "end_datetime": end_dt,
-                    "day_part_factor": MEAL_TYPE_DAY_FACTORS.get(meal_type, 0.0),
+                    "day_part_factor": factor,
                 },
             )
             meals.append(meal)
@@ -202,6 +237,17 @@ class Meal(models.Model):
         blank=True,
         verbose_name=_("Portionen-Override"),
         help_text=_("Überschreibt norm_portions des Plans für diese Mahlzeit (z.B. Tagesgäste)"),
+    )
+    is_external = models.BooleanField(
+        default=False,
+        verbose_name=_("Externe Mahlzeit"),
+        help_text=_("Wenn True, wird diese Mahlzeit als extern (z.B. Restaurant) behandelt"),
+    )
+    external_energy_kj = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Externe Energie (kJ)"),
+        help_text=_("Manuell eingegebener Energiewert für externe Mahlzeiten"),
     )
     note = models.TextField(
         blank=True,

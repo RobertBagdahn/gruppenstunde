@@ -5,7 +5,7 @@
 ## Datenmodell-Überblick
 
 ### Planner App
-- **`MealPlan`**: name, slug, description, norm_portions, activity_factor, reserve_factor, event FK (nullable). DB table: `planner_mealplan`.
+- **`MealPlan`**: name, slug, description, norm_portions, reserve_factor, event FK (nullable). DB table: `planner_mealplan`. Kein `activity_factor`/PAL mehr — PAL lebt nur noch im Norm-Portion-Rechner. `scaling_factor` = `norm_portions × reserve_factor`.
 - **`Meal`**: meal_plan FK, start_datetime, end_datetime, meal_type, day_part_factor. Gruppierung nach Tag via `start_datetime__date`.
 
 ### Recipe App

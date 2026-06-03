@@ -196,6 +196,10 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
         else:
             value_per_serving = actual_value * factor
 
+        if rule.parameter == "energy_kj":
+            from recipe.services.nutrition_units import kj_to_kcal
+            value_per_serving = kj_to_kcal(value_per_serving)
+
         status = rule.evaluate(value_per_serving)
 
         if status == "green":
@@ -272,6 +276,10 @@ def match_recipe_hints(
             eval_value = actual
         else:
             eval_value = actual * factor
+
+        if rule.parameter == "energy_kj":
+            from recipe.services.nutrition_units import kj_to_kcal
+            eval_value = kj_to_kcal(eval_value)
 
         status = rule.evaluate(eval_value)
 

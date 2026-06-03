@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { AvailableConversionBatchItem } from '@/schemas/supply';
+import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,20 @@ const UNIT_SHORT: Record<string, string> = {
   'Becher': 'Becher',
   'Portion': 'Portion',
 };
+
+const GRAM_UNIT_NAMES = new Set(['g', 'Gramm', 'kg', 'Kilogramm']);
+
+function isGramPortion(portionName?: string | null, unitName?: string | null): boolean {
+  return GRAM_UNIT_NAMES.has(unitName ?? '') || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg)\b/i.test(portionName ?? '');
+}
+
+function formatPortionAmount(amount: number, portionName: string): string {
+  const match = portionName.match(/^(\d+(?:[.,]\d+)?)\s+(.*)$/);
+  const count = match ? amount * parseFloat(match[1].replace(',', '.')) : amount;
+  const name = match ? match[2] : portionName;
+
+  return `${count.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} ${name}`;
+}
 
 export default function IngredientList({
   items,
@@ -83,24 +98,33 @@ export default function IngredientList({
           const formatted = formatQuantity(weightG, item.ingredient_viscosity, item.ingredient_density);
 
           const isExpanded = expandedItems.has(item.id);
-          const allPortions = item.ingredient_portions?.length
-            ? calculateNaturalPortions(weightG, item.ingredient_portions)
+          const displayPortions = item.ingredient_portions?.filter(
+            (p) => !isGramPortion(p.name, p.measuring_unit_name),
+          ) ?? [];
+          const allPortions = displayPortions.length
+            ? calculateNaturalPortions(weightG, displayPortions)
             : [];
 
-          // Highest-priority non-default portion (e.g. "Stück", "EL", "TL")
-          const highPrioPortion = item.ingredient_portions
+          // Highest-priority non-default natural portion (e.g. "Wrap", "Stück", "EL", "TL")
+          const highPrioPortion = displayPortions
             ?.filter((p) => !p.is_default && (p.weight_g ?? 0) > 1)
             .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
           const highPrioAmount = highPrioPortion?.weight_g
             ? weightG / highPrioPortion.weight_g
             : null;
-          // Show portion subline: use measuring_unit_name with short form.
+          // Show portion subline using the natural portion name, not its gram base unit.
           // Hide if less than 0.5 of a unit (not useful info).
-          const rawUnitName = highPrioPortion?.measuring_unit_name ?? highPrioPortion?.name;
+          const rawUnitName = highPrioPortion?.name;
           const highPrioUnitName = rawUnitName ? (UNIT_SHORT[rawUnitName] ?? rawUnitName) : null;
           const highPrioDisplay = highPrioAmount && highPrioAmount >= 0.5 && highPrioUnitName
-            ? `${highPrioAmount.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} ${highPrioUnitName}`
+            ? formatPortionAmount(highPrioAmount, highPrioUnitName)
             : null;
+
+          // When the portion subline uses a non-gram unit (e.g. Stück, Wrap, EL),
+          // additionally show the gram weight so the quantity stays comparable.
+          const isGramUnit = highPrioUnitName === 'g' || highPrioUnitName === 'kg'
+            || highPrioUnitName === 'ml' || highPrioUnitName === 'l';
+          const gramDisplay = highPrioDisplay && !isGramUnit ? formatted.display : null;
 
           // Price calculation: price_per_kg × weightG / 1000
           const pricePerKg = item.ingredient_price_per_kg;
@@ -117,63 +141,87 @@ export default function IngredientList({
             : [];
 
           const ingredientContent = (
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap">
-                <UnitSwitcher
-                  originalDisplay={formatted.display}
-                  conversions={itemConversions}
-                  weightG={weightG}
-                />
-                <span className="font-medium text-foreground text-base">
-                  {item.ingredient_name || item.note || 'Zutat'}
-                </span>
-                {item.note && (
-                  <span className="text-sm text-muted-foreground italic">
-                    ({item.note})
+            <div className="flex flex-1 min-w-0 items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap">
+                  <UnitSwitcher
+                    originalDisplay={formatted.display}
+                    conversions={itemConversions}
+                    weightG={weightG}
+                  />
+                  <span className="font-medium text-foreground text-base">
+                    {item.ingredient_name || item.note || 'Zutat'}
                   </span>
+                  {item.note && (
+                    <span className="text-sm text-muted-foreground italic">
+                      ({item.note})
+                    </span>
+                  )}
+                </div>
+
+                {/* Secondary: highest-priority portion + gram weight */}
+                {(highPrioDisplay || gramDisplay) && (
+                  <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                    {highPrioDisplay && <span>{highPrioDisplay}</span>}
+                    {highPrioDisplay && gramDisplay && <span className="text-muted-foreground/40">·</span>}
+                    {gramDisplay && <span>{gramDisplay}</span>}
+                  </div>
+                )}
+
+                {/* Expanded: all portions */}
+                {allPortions.length > 1 && (
+                  <div className="mt-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleExpanded(item.id);
+                      }}
+                      className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {isExpanded ? 'expand_less' : 'expand_more'}
+                      </span>
+                      {isExpanded ? 'weniger anzeigen' : `${allPortions.length - 1} weitere Portionen`}
+                    </button>
+                  </div>
+                )}
+                {isExpanded && allPortions.length > 1 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {allPortions.map((np, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                      >
+                        {np.display}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Secondary: highest-priority portion + price */}
-              {(highPrioDisplay || priceDisplay) && (
-                <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                  {highPrioDisplay && <span>{highPrioDisplay}</span>}
-                  {highPrioDisplay && priceDisplay && <span className="text-muted-foreground/40">·</span>}
-                  {priceDisplay && <span>{priceDisplay}</span>}
-                </div>
-              )}
-
-              {/* Expanded: all portions */}
-              {allPortions.length > 1 && (
-                <div className="mt-1.5">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleExpanded(item.id);
-                    }}
-                    className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">
-                      {isExpanded ? 'expand_less' : 'expand_more'}
-                    </span>
-                    {isExpanded ? 'weniger anzeigen' : `${allPortions.length - 1} weitere Portionen`}
-                  </button>
-                </div>
-              )}
-              {isExpanded && allPortions.length > 1 && (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {allPortions.map((np, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                    >
-                      {np.display}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {/* Nutri-Score & Price: right-aligned, vertically centered */}
+              <div className="flex items-center gap-2.5 shrink-0 self-center">
+                {item.ingredient_nutri_class != null && (
+                  (() => {
+                    const nutriColors = NUTRI_SCORE_COLORS[item.ingredient_nutri_class];
+                    return nutriColors ? (
+                      <span
+                        className={`${nutriColors.bg} ${nutriColors.text} text-[10px] font-extrabold px-1.5 py-0.5 rounded shrink-0`}
+                        title={`Nutri-Score: ${nutriColors.label}`}
+                      >
+                        {nutriColors.label}
+                      </span>
+                    ) : null;
+                  })()
+                )}
+                {priceDisplay && (
+                  <span className="text-sm font-medium text-muted-foreground tabular-nums">
+                    {priceDisplay}
+                  </span>
+                )}
+              </div>
             </div>
           );
 

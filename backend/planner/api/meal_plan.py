@@ -216,7 +216,6 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
             name=payload.name,
             description=source.description,
             norm_portions=payload.norm_portions,
-            activity_factor=source.activity_factor,
             reserve_factor=source.reserve_factor,
             start_datetime=payload.start_datetime,
             end_datetime=source.end_datetime + offset if source.end_datetime else None,
@@ -470,6 +469,16 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
         meal.note = payload.note
     if payload.note_is_published is not None:
         meal.note_is_published = payload.note_is_published
+    if payload.day_part_factor is not None:
+        meal.day_part_factor = payload.day_part_factor
+    if payload.is_external is not None:
+        meal.is_external = payload.is_external
+    if "external_energy_kcal" in payload.dict(exclude_unset=True):
+        if payload.external_energy_kcal is not None:
+            from recipe.services.nutrition_units import kcal_to_kj
+            meal.external_energy_kj = kcal_to_kj(payload.external_energy_kcal)
+        else:
+            meal.external_energy_kj = None
 
     meal.save()
     return meal
@@ -523,16 +532,19 @@ def set_meal_item_overrides(
 
 
 @meal_plan_router.get("/{meal_plan_id}/nutrition-summary/", response=NutritionSummaryOut)
-def nutrition_summary(request, meal_plan_id: int):
-    """Get aggregated nutritional values for the entire meal plan."""
+def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
+    """Get aggregated nutritional values for the entire meal plan, optionally filtered by date."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
     # Collect all MealItems
-    meal_items = MealItem.objects.filter(
+    meal_items_qs = MealItem.objects.filter(
         meal__meal_plan=meal_plan,
-    ).select_related("recipe", "meal")
+    )
+    if date:
+        meal_items_qs = meal_items_qs.filter(meal__start_datetime__date=date)
+    meal_items = meal_items_qs.select_related("recipe", "meal")
 
     totals = {
         "energy_kj": 0.0,
@@ -579,7 +591,6 @@ def nutrition_summary(request, meal_plan_id: int):
         **totals,
         **per_portion,
         norm_portions=meal_plan.norm_portions,
-        activity_factor=meal_plan.activity_factor,
         reserve_factor=meal_plan.reserve_factor,
         scaling_factor=meal_plan.scaling_factor,
     )
@@ -687,6 +698,8 @@ def cost_summary(request, meal_plan_id: int):
     # Build response
     total_cost = sum(d["total"] for d in day_costs.values())
     cost_per_person = total_cost / norm_portions if norm_portions > 0 else Decimal("0")
+    reserve_factor = meal_plan.reserve_factor or 1.0
+    total_cost_with_reserve = total_cost * Decimal(str(reserve_factor))
 
     days = []
     for date_str in sorted(day_costs.keys()):
@@ -701,6 +714,8 @@ def cost_summary(request, meal_plan_id: int):
 
     return MealPlanCostSummaryOut(
         total_cost=total_cost,
+        total_cost_with_reserve=total_cost_with_reserve,
+        reserve_factor=reserve_factor,
         cost_per_person=cost_per_person,
         norm_portions=norm_portions,
         total_ingredients=total_ingredients,
