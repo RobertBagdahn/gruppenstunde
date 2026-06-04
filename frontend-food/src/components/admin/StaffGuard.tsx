@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
+import { Loader2 } from 'lucide-react';
 
 interface StaffGuardProps {
   children: React.ReactNode;
@@ -11,9 +12,7 @@ export default function StaffGuard({ children }: StaffGuardProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <span className="material-symbols-outlined animate-spin text-4xl text-muted-foreground">
-          progress_activity
-        </span>
+        <Loader2 className="animate-spin text-4xl text-muted-foreground" />
       </div>
     );
   }

@@ -12,3 +12,5 @@ Supports partial deploys:
 - `/deploy frontend` — Only frontend
 - `/deploy checks` — Only pre-flight checks, no deploy
 - `/deploy migrations` — Only run Django migrations
+- `/deploy users` — Only create users
+- `/deploy seeding` — Only seed database

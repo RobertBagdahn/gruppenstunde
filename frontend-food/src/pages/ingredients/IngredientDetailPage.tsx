@@ -174,8 +174,8 @@ function PortionCard({
   };
 
   return (
-    <div className="border rounded-lg bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 bg-muted/30 border-b">
+    <div className="border border-border rounded-xl bg-card overflow-hidden shadow-soft">
+      <div className="flex items-center gap-2 px-4 py-3 bg-muted/20 border-b border-border/80">
         <span className="material-symbols-outlined text-primary text-lg shrink-0">
           scale
         </span>
@@ -548,7 +548,7 @@ export default function IngredientDetailPage() {
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-xl sm:text-2xl font-bold truncate">{ingredient.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground truncate">{ingredient.name}</h1>
             {ingredient.status === 'draft' && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--chart-4))]/10 border border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))] font-medium shrink-0">
                 Entwurf
@@ -618,8 +618,8 @@ export default function IngredientDetailPage() {
 
       {/* Edit Panel */}
       {showEditFields && (
-        <div className="border rounded-lg p-4 mb-6 bg-card">
-          <h3 className="text-sm font-semibold mb-3">Zutat bearbeiten</h3>
+        <div className="border border-border rounded-xl p-4 mb-6 bg-card shadow-soft">
+          <h3 className="text-sm font-display font-bold text-foreground mb-3">Zutat bearbeiten</h3>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <label className="text-xs text-muted-foreground mb-1 block">Supermarkt-Abteilung</label>
@@ -671,8 +671,8 @@ export default function IngredientDetailPage() {
       {/* Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Nutritional Values */}
-        <div className="border rounded-lg p-4 bg-card">
-          <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+          <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-lg">nutrition</span>
             Nährwerte pro 100g
           </h2>
@@ -731,8 +731,8 @@ export default function IngredientDetailPage() {
         {/* Scores & Physical */}
         <div className="space-y-6">
           {/* Scores */}
-          <div className="border rounded-lg p-4 bg-card">
-            <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+            <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-lg">health_and_safety</span>
               Bewertungen
             </h2>
@@ -756,8 +756,8 @@ export default function IngredientDetailPage() {
           </div>
 
           {/* Physical Properties */}
-          <div className="border rounded-lg p-4 bg-card">
-            <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+            <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-lg">science</span>
               Physikalische Eigenschaften
             </h2>
@@ -777,8 +777,8 @@ export default function IngredientDetailPage() {
 
           {/* References */}
           {(ingredient.fdc_id || ingredient.nan_art_id_rewe || ingredient.ean) && (
-            <div className="border rounded-lg p-4 bg-card">
-              <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+              <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-lg">link</span>
                 Referenzen
               </h2>
@@ -811,7 +811,7 @@ export default function IngredientDetailPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+            <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">scale</span>
               Portionen
             </h2>
@@ -831,7 +831,7 @@ export default function IngredientDetailPage() {
         </div>
 
         {showAddPortion && (
-          <div className="border rounded-lg p-4 mb-4 bg-card">
+          <div className="border border-border rounded-xl p-4 mb-4 bg-card shadow-soft">
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={newPortionName}
@@ -913,7 +913,7 @@ export default function IngredientDetailPage() {
       {/* Aliases Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+          <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">label</span>
             Aliase
           </h2>

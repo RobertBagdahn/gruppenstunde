@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Coffee,
@@ -11,14 +11,17 @@ import {
   X,
   AlertCircle,
   FileText,
-  Trash2,
   TrendingUp,
+  GlassWater,
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_COLORS } from '@/schemas/mealPlan';
 import { kjToKcal } from '@/utils/nutritionUnits';
 import { cn } from '@/lib/utils';
 import RecipeSearchDialog from './RecipeSearchDialog';
+import { FactorInput } from './FactorInput';
+import { CardTable, DataCardRow } from '@/components/shared/CardTable';
+import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 
 const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   breakfast: Coffee,
@@ -26,6 +29,7 @@ const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: s
   dinner: Utensils,
   snack: Cookie,
   dessert: Cake,
+  drinks: GlassWater,
 };
 
 interface TableViewProps {
@@ -47,53 +51,21 @@ interface TableViewProps {
   onDeleteMeal?: (id: number) => void;
   onUpdateMeal?: (
     mealId: number,
-    data: { note?: string | null; override_portions?: number | null }
+    data: {
+      note?: string | null;
+      override_portions?: number | null;
+      day_part_factor?: number | null;
+      is_external?: boolean | null;
+      external_energy_kcal?: number | null;
+      external_cost_per_person?: number | null;
+    }
   ) => void;
+  onScaleMeal?: (mealId: number) => void;
+  onUnlinkMeal?: (mealId: number) => void;
+  onLinkMeal?: (mealId: number, mealType: string) => void;
 }
 
-const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
-
-function FactorInput({ value, onChange }: { value: number; onChange: (factor: number) => void }) {
-  const formatFactor = (v: number) => v.toFixed(1).replace('.', ',');
-  const [localValue, setLocalValue] = useState(formatFactor(value));
-  const lastSaved = useRef(value);
-
-  useEffect(() => {
-    if (value !== lastSaved.current) {
-      setLocalValue(formatFactor(value));
-      lastSaved.current = value;
-    }
-  }, [value]);
-
-  const commit = () => {
-    const parsed = parseFloat(localValue.replace(',', '.'));
-    if (!isNaN(parsed) && parsed > 0 && parsed !== lastSaved.current) {
-      lastSaved.current = parsed;
-      onChange(parsed);
-    } else {
-      setLocalValue(formatFactor(lastSaved.current));
-    }
-  };
-
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      <span className="text-muted-foreground text-xs">&times;</span>
-      <input
-        type="text"
-        inputMode="decimal"
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.currentTarget.blur();
-          }
-        }}
-        className="w-10 px-0.5 py-0.5 text-xs border rounded bg-background text-center font-medium"
-      />
-    </span>
-  );
-}
+const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'drinks'];
 
 export default function TableView({
   meals,
@@ -107,6 +79,9 @@ export default function TableView({
   onUpdateItemFactor,
   onDeleteMeal,
   onUpdateMeal,
+  onScaleMeal,
+  onUnlinkMeal,
+  onLinkMeal,
 }: TableViewProps) {
   // Dialog state for recipe details/search
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
@@ -153,10 +128,12 @@ export default function TableView({
       for (const mealType of MEAL_TYPE_ORDER) {
         const meal = grid[mealType]?.[date];
         if (meal) {
-          if (meal.is_external) {
-            kcalSum += meal.external_energy_kcal ?? 0;
-          } else {
-            kcalSum += kjToKcal(meal.total_energy_kj);
+          if (mealType !== 'drinks') {
+            if (meal.is_external) {
+              kcalSum += meal.external_energy_kcal ?? 0;
+            } else {
+              kcalSum += kjToKcal(meal.total_energy_kj);
+            }
           }
           costSum += meal.total_cost_eur;
         }
@@ -168,165 +145,197 @@ export default function TableView({
 
   if (dates.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
+      <div className="text-center py-12 text-muted-foreground font-sans">
         Noch keine Tage im Essensplan.
       </div>
     );
   }
 
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const weekday = d.toLocaleDateString('de-DE', { weekday: 'short' });
-    const day = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    const d = new Date(dateStr + 'T00:00:00');
+    const weekday = d.toLocaleDateString('de-DE', { weekday: 'long' });
+    const day = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
     return { weekday, day };
   };
 
   return (
-    <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-xl border border-muted/80 shadow-md">
-      <table className="min-w-full border-collapse text-sm bg-background">
-        <thead>
-          <tr className="bg-slate-50/75 backdrop-blur-sm">
-            <th className="sticky left-0 bg-slate-50 border-b border-r px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground/80 min-w-[130px] z-10">
-              Mahlzeit
-            </th>
-            {dates.map((date) => {
-              const { weekday, day } = formatDate(date);
-              return (
-                <th
-                  key={date}
-                  className="border-b border-r px-4 py-3.5 text-center min-w-[220px]"
-                >
-                  <div className="inline-flex flex-col items-center justify-center bg-background border border-muted px-4 py-1.5 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-primary/80">{weekday}</span>
-                    <span className="text-sm font-extrabold text-foreground">{day}</span>
-                  </div>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {MEAL_TYPE_ORDER.map((mealType) => (
-            <tr key={mealType} className="hover:bg-slate-50/20 transition-colors">
-              {/* Sticky first column */}
-              <td className="sticky left-0 bg-background border-r border-b px-4 py-5 font-semibold whitespace-nowrap z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.03)]">
-                <div className="flex justify-start">
-                  <div className={cn(
-                    "inline-flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-                    MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
-                    MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
-                    MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
-                  )}>
-                    {(() => {
-                      const IconComponent = MEAL_TYPE_LUCIDE_ICONS[mealType] || Utensils;
-                      return <IconComponent className="w-4 h-4 shrink-0" />;
-                    })()}
-                    <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
-                  </div>
+    <div className="space-y-4 font-sans">
+      <CardTable>
+        {dates.map((date) => {
+          const { weekday, day } = formatDate(date);
+          const dailyTotal = dailyTotals[date];
+          const cost = dailyTotal ? dailyTotal.cost : 0;
+          const costPerPerson = normPortions > 0 ? cost / normPortions : 0;
+          const kcalPerPerson = dailyTotal && normPortions > 0 ? Math.round(dailyTotal.kcal / normPortions) : 0;
+          const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
+          const hasBudget = budget !== null && budget > 0;
+
+          let budgetStatus: 'green' | 'yellow' | 'red' = 'green';
+          if (hasBudget) {
+            if (costPerPerson <= budget) {
+              budgetStatus = 'green';
+            } else if (costPerPerson <= budget * 1.2) {
+              budgetStatus = 'yellow';
+            } else {
+              budgetStatus = 'red';
+            }
+          }
+
+          const diff = hasBudget ? budget - costPerPerson : 0;
+
+          return (
+            <DataCardRow key={date} className="flex flex-col gap-4 p-5 md:p-6">
+              {/* Day Header Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60 w-full">
+                <div className="flex items-baseline gap-2.5">
+                  <h3 className="font-display font-bold text-lg text-foreground">
+                    {weekday}
+                  </h3>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {day}
+                  </span>
                 </div>
-              </td>
 
-              {dates.map((date) => {
-                const meal = grid[mealType]?.[date];
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/40 border border-border/50 text-xs font-semibold text-foreground">
+                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                    <span>{kcalPerPerson} kcal</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/40 border border-border/50 text-xs font-semibold text-foreground">
+                    <span>{costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'} / Port.</span>
+                  </div>
+                  {hasBudget && (
+                    <div className={cn(
+                      "px-3 py-1 text-xs font-bold rounded-xl border shadow-sm",
+                      budgetStatus === 'green' && "bg-primary/10 text-primary border-primary/20",
+                      budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
+                      budgetStatus === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
+                    )}>
+                      {diff >= 0
+                        ? `noch ${diff.toFixed(2).replace('.', ',')} €`
+                        : `+${Math.abs(diff).toFixed(2).replace('.', ',')} €`
+                      }
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                // Case A: No meal slot exists yet
-                if (!meal) {
+              {/* Grid of Meal Slots */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                {MEAL_TYPE_ORDER.map((mealType) => {
+                  const meal = grid[mealType]?.[date];
+                  const IconComponent = MEAL_TYPE_LUCIDE_ICONS[mealType] || Utensils;
+
+                  if (!meal) {
+                    return (
+                      <div key={mealType} className="flex flex-col justify-between p-4 rounded-xl border border-dashed border-border bg-muted/10 min-h-[140px] transition-all">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground/80 mb-2">
+                          <IconComponent className="w-3.5 h-3.5" />
+                          <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
+                        </div>
+                        {canEdit ? (
+                          <div className="flex flex-col gap-1 mt-auto">
+                            {isCreatingSlot === `${date}_${mealType}` ? (
+                              <div className="text-[10px] text-muted-foreground/60 animate-pulse text-center py-2">
+                                Wird erstellt...
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={async () => {
+                                    setIsCreatingSlot(`${date}_${mealType}`);
+                                    try {
+                                      const newMeal = await onAddMealType?.(date, mealType);
+                                      if (newMeal) {
+                                        setSearchDialogMeal(newMeal);
+                                      }
+                                    } catch (e) {} finally {
+                                      setIsCreatingSlot(null);
+                                    }
+                                  }}
+                                  className="w-full inline-flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground font-semibold border border-transparent transition-all"
+                                >
+                                  <BookOpen className="w-3 h-3 text-primary" />
+                                  + Rezept
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    setIsCreatingSlot(`${date}_${mealType}`);
+                                    try {
+                                      const newMeal = await onAddMealType?.(date, mealType);
+                                      if (newMeal) {
+                                        setSearchDialogMeal(newMeal);
+                                      }
+                                    } catch (e) {} finally {
+                                      setIsCreatingSlot(null);
+                                    }
+                                  }}
+                                  className="w-full inline-flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground font-semibold border border-transparent transition-all"
+                                >
+                                  <Egg className="w-3 h-3 text-primary" />
+                                  + Zutat
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/30 italic text-center py-2 mt-auto">—</span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  const portions = meal.override_portions || normPortions;
+                  const isEmpty = meal.items.length === 0;
+
                   return (
-                    <td key={date} className="px-4 py-4 align-middle bg-slate-50/40 border-r border-b">
-                      {canEdit ? (
-                        <div className="flex flex-col gap-1.5 max-w-[170px] mx-auto p-2 bg-background border border-dashed rounded-xl border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all">
-                          {isCreatingSlot === `${date}_${mealType}` ? (
-                            <div className="text-xs text-muted-foreground/60 animate-pulse text-center py-4">
-                              Wird erstellt...
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                onClick={async () => {
-                                  setIsCreatingSlot(`${date}_${mealType}`);
-                                  try {
-                                    const newMeal = await onAddMealType?.(date, mealType);
-                                    if (newMeal) {
-                                      setSearchDialogMeal(newMeal);
-                                    }
-                                  } catch (e) {
-                                    // Ignored (handled by toast)
-                                  } finally {
-                                    setIsCreatingSlot(null);
-                                  }
-                                }}
-                                className="w-full inline-flex items-center gap-2 py-1.5 px-2.5 rounded-lg hover:bg-slate-100 text-[11px] text-muted-foreground hover:text-primary transition-all font-semibold border border-transparent hover:border-slate-200"
-                              >
-                                <BookOpen className="w-3.5 h-3.5" />
-                                + Rezept
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  setIsCreatingSlot(`${date}_${mealType}`);
-                                  try {
-                                    const newMeal = await onAddMealType?.(date, mealType);
-                                    if (newMeal) {
-                                      setSearchDialogMeal(newMeal);
-                                    }
-                                  } catch (e) {
-                                    // Ignored
-                                  } finally {
-                                    setIsCreatingSlot(null);
-                                  }
-                                }}
-                                className="w-full inline-flex items-center gap-2 py-1.5 px-2.5 rounded-lg hover:bg-slate-100 text-[11px] text-muted-foreground hover:text-primary transition-all font-semibold border border-transparent hover:border-slate-200"
-                              >
-                                <Egg className="w-3.5 h-3.5" />
-                                + Zutat
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  setIsCreatingSlot(`${date}_${mealType}`);
-                                  try {
-                                    const newMeal = await onAddMealType?.(date, mealType);
-                                    if (newMeal) {
-                                      setEditingNoteMealId(newMeal.id);
-                                      setLocalNoteValue('');
-                                    }
-                                  } catch (e) {
-                                    // Ignored
-                                  } finally {
-                                    setIsCreatingSlot(null);
-                                  }
-                                }}
-                                className="w-full inline-flex items-center gap-2 py-1.5 px-2.5 rounded-lg hover:bg-slate-100 text-[11px] text-muted-foreground hover:text-primary transition-all font-semibold border border-transparent hover:border-slate-200"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                + Notiz
-                              </button>
-                            </>
+                    <div
+                      key={mealType}
+                      className={cn(
+                        "flex flex-col justify-between p-4 rounded-xl border min-h-[160px] shadow-soft transition-all",
+                        isEmpty ? "bg-destructive/5 border-destructive/20" : "bg-card border-border"
+                      )}
+                    >
+                      {/* Slot Header */}
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className={cn(
+                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold shadow-sm",
+                          MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
+                          MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
+                          MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
+                        )}>
+                          <IconComponent className="w-3 h-3 shrink-0" />
+                          <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                            {portions} Port.
+                          </span>
+                          {canEdit && (
+                            <MealActionsMenu
+                              meal={meal}
+                              canEdit={canEdit}
+                              onDeleteMeal={onDeleteMeal || (() => {})}
+                              onUpdateMeal={onUpdateMeal || (() => {})}
+                              onScaleMeal={onScaleMeal || (() => {})}
+                              onUnlinkMeal={onUnlinkMeal || (() => {})}
+                              onLinkMeal={onLinkMeal || (() => {})}
+                            />
                           )}
                         </div>
-                      ) : (
-                        <div className="text-center text-muted-foreground/20">—</div>
-                      )}
-                    </td>
-                  );
-                }
+                      </div>
 
-                // Case B: Meal slot exists
-                const portions = meal.override_portions || normPortions;
-                const isEmpty = meal.items.length === 0;
-
-                return (
-                  <td key={date} className={`px-4 py-4 align-top border-r border-b hover:bg-muted/30 transition-colors ${isEmpty ? 'bg-[hsl(var(--chart-4))]/5' : 'bg-background'}`}>
-                    <div className="flex flex-col h-full justify-between gap-4 min-h-[120px]">
-                      {/* Items List */}
-                      <div className="space-y-2">
+                      {/* Items */}
+                      <div className="space-y-1.5 mb-4 flex-1">
                         {meal.items.length > 0 ? (
                           meal.items.map((item, i) => {
                             const name = item.recipe_title || item.ingredient_name || item.display_name || '';
                             const kcal = item.energy_kj != null ? Math.round(kjToKcal(item.energy_kj / normPortions)) : null;
                             const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
                             return (
-                              <div key={item.id || i} className="group flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
+                              <div key={item.id || i} className="group flex items-center justify-between gap-1.5 p-2 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
                                 <div className="min-w-0 flex-1">
-                                  <div className="text-xs font-semibold text-foreground truncate max-w-[170px]" title={name}>
+                                  <div className="text-[11px] font-bold text-foreground truncate max-w-[130px]" title={name}>
                                     {item.recipe_id && item.recipe_slug ? (
                                       <Link
                                         to={`/recipes/${item.recipe_slug}`}
@@ -338,7 +347,7 @@ export default function TableView({
                                       name
                                     )}
                                   </div>
-                                  <div className="text-[10px] text-muted-foreground/90 font-medium flex items-center gap-1 mt-0.5">
+                                  <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
                                     {kcal != null && <span>{kcal} kcal</span>}
                                     {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
                                     {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
@@ -353,7 +362,7 @@ export default function TableView({
                                     />
                                   ) : (
                                     item.factor !== 1.0 && (
-                                      <span className="text-xs font-bold text-muted-foreground/80 px-1 rounded bg-muted/40">
+                                      <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
                                         &times;{item.factor.toFixed(1).replace('.', ',')}
                                       </span>
                                     )
@@ -362,10 +371,10 @@ export default function TableView({
                                   {canEdit && !meal.is_synced && (
                                     <button
                                       onClick={() => onDeleteItem?.(item.id)}
-                                      className="p-1 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                                      className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
                                       title="Entfernen"
                                     >
-                                      <X className="w-3.5 h-3.5" />
+                                      <X className="w-3 h-3" />
                                     </button>
                                   )}
                                 </div>
@@ -373,39 +382,36 @@ export default function TableView({
                             );
                           })
                         ) : (
-                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[10px] uppercase tracking-wider shadow-sm">
-                            <AlertCircle className="w-3 h-3" />
+                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[9px] uppercase tracking-wider">
+                            <AlertCircle className="w-2.5 h-2.5" />
                             Mahlzeit leer
                           </div>
                         )}
                       </div>
 
-                      {/* Note and Metadata */}
-                      <div className="space-y-2 pt-2 border-t border-slate-100 mt-auto">
-                        {/* Notes Input / display */}
+                      {/* Footer actions of the slot */}
+                      <div className="pt-2 border-t border-border/40 mt-auto space-y-2">
                         {editingNoteMealId === meal.id ? (
-                          <div className="space-y-1">
-                            <input
-                              type="text"
-                              value={localNoteValue}
-                              onChange={(e) => setLocalNoteValue(e.target.value)}
-                              onBlur={() => {
+                          <input
+                            type="text"
+                            value={localNoteValue}
+                            onChange={(e) => setLocalNoteValue(e.target.value)}
+                            onBlur={() => {
+                              onUpdateMeal?.(meal.id, { note: localNoteValue });
+                              setEditingNoteMealId(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
                                 onUpdateMeal?.(meal.id, { note: localNoteValue });
                                 setEditingNoteMealId(null);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  onUpdateMeal?.(meal.id, { note: localNoteValue });
-                                  setEditingNoteMealId(null);
-                                } else if (e.key === 'Escape') {
-                                  setEditingNoteMealId(null);
-                                }
-                              }}
-                              placeholder="Notiz..."
-                              autoFocus
-                              className="w-full px-2 py-1 text-xs border rounded-lg bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:outline-none transition-all"
-                            />
-                          </div>
+                              } else if (e.key === 'Escape') {
+                                setEditingNoteMealId(null);
+                              }
+                            }}
+                            placeholder="Notiz..."
+                            autoFocus
+                            className="w-full px-2 py-1 text-[10px] border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
+                          />
                         ) : meal.note ? (
                           <div
                             onClick={() => {
@@ -414,11 +420,14 @@ export default function TableView({
                                 setLocalNoteValue(meal.note);
                               }
                             }}
-                            className={`text-xs text-muted-foreground italic flex items-start gap-1.5 py-1 px-2 rounded-lg bg-[hsl(var(--chart-4))]/5 border border-[hsl(var(--chart-4))]/10 hover:bg-[hsl(var(--chart-4))]/10 hover:border-[hsl(var(--chart-4))]/20 transition-all ${canEdit ? 'cursor-pointer' : ''}`}
+                            className={cn(
+                              "text-[10px] text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
+                              canEdit && "cursor-pointer"
+                            )}
                             title={meal.note}
                           >
-                            <FileText className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[hsl(var(--chart-4))]" />
-                            <span className="truncate max-w-[140px] font-medium">{meal.note}</span>
+                            <FileText className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{meal.note}</span>
                           </div>
                         ) : (
                           canEdit && (
@@ -427,102 +436,34 @@ export default function TableView({
                                 setEditingNoteMealId(meal.id);
                                 setLocalNoteValue('');
                               }}
-                              className="text-[10px] text-muted-foreground/60 hover:text-primary hover:bg-slate-100 px-1.5 py-0.5 rounded-md flex items-center gap-1 transition-all"
+                              className="text-[9px] text-muted-foreground/60 hover:text-primary hover:bg-muted px-1 py-0.5 rounded flex items-center gap-1 transition-all"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Plus className="w-2.5 h-2.5" />
                               Notiz hinzufügen
                             </button>
                           )
                         )}
 
-                        {/* Person count & delete slot button */}
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 font-medium">
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100/80 text-slate-700">{portions} Port.</span>
-                          
-                          {canEdit && (
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => setSearchDialogMeal(meal)}
-                                className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/30 transition-colors font-bold shadow-sm"
-                                title="Rezept oder Zutat hinzufügen"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                Hinzufügen
-                              </button>
-
-                              <button
-                                onClick={() => onDeleteMeal?.(meal.id)}
-                                className="p-1 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                title="Mahlzeit-Slot löschen"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        {canEdit && (
+                          <div className="pt-1">
+                            <button
+                              onClick={() => setSearchDialogMeal(meal)}
+                              className="w-full inline-flex items-center justify-center gap-0.5 px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/10 hover:border-primary/20 transition-all font-bold text-[9px] shadow-sm"
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                              Hinzufügen
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="border-t-2 border-slate-200 bg-slate-50/50 backdrop-blur-sm font-semibold">
-            {/* Sticky first column */}
-            <td className="sticky left-0 bg-slate-50 border-r px-4 py-4 font-bold text-foreground z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.03)]">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-xs uppercase font-extrabold tracking-wider text-slate-700">Tagessumme <span className="text-[10px] text-slate-500 font-medium block uppercase tracking-normal">(pro Port.)</span></span>
+                  );
+                })}
               </div>
-            </td>
-            {dates.map((date) => {
-              const total = dailyTotals[date];
-              const cost = total ? total.cost : 0;
-              const costPerPerson = normPortions > 0 ? cost / normPortions : 0;
-              const kcalPerPerson = total && normPortions > 0 ? Math.round(total.kcal / normPortions) : 0;
-              const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
-              const hasBudget = budget !== null && budget > 0;
-
-              let budgetStatus: 'green' | 'yellow' | 'red' = 'green';
-              if (hasBudget) {
-                if (costPerPerson <= budget) {
-                  budgetStatus = 'green';
-                } else if (costPerPerson <= budget * 1.2) {
-                  budgetStatus = 'yellow';
-                } else {
-                  budgetStatus = 'red';
-                }
-              }
-
-              const diff = hasBudget ? budget - costPerPerson : 0;
-
-              return (
-                <td key={date} className="border-r px-4 py-4 text-center align-middle bg-slate-50/30">
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="font-extrabold text-sm text-slate-800">{kcalPerPerson} kcal</span>
-                    <span className="text-xs font-semibold text-muted-foreground">{costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'}</span>
-                    {hasBudget && (
-                      <div className={cn(
-                        "mt-1.5 px-2.5 py-0.5 text-[10px] font-bold rounded-full border shadow-[0_1px_2px_rgba(0,0,0,0.02)] whitespace-nowrap",
-                        budgetStatus === 'green' && "bg-primary/10 text-primary border-primary/20",
-                        budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
-                        budgetStatus === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
-                      )}>
-                        {diff >= 0
-                          ? `noch ${diff.toFixed(2).replace('.', ',')} € / Pers.`
-                          : `+${Math.abs(diff).toFixed(2).replace('.', ',')} € / Pers.`
-                        }
-                      </div>
-                    )}
-                  </div>
-                </td>
-              );
-            })}
-          </tr>
-        </tfoot>
-      </table>
+            </DataCardRow>
+          );
+        })}
+      </CardTable>
 
       {/* Recipe Search Dialog */}
       {searchDialogMeal !== null && (

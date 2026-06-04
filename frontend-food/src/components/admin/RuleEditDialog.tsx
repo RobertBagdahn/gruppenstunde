@@ -9,6 +9,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import AmpelRangePreview from './AmpelRangePreview';
 import type { Rule, RuleIn } from '@/schemas/suggestions';
 
@@ -118,33 +121,33 @@ export default function RuleEditDialog({
     });
   };
 
-  const inputCls = 'w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50';
+  const selectCls = 'w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent className="overflow-y-auto w-full sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>{rule ? 'Regel bearbeiten' : 'Neue Regel'}</SheetTitle>
+          <SheetTitle className="font-display">{rule ? 'Regel bearbeiten' : 'Neue Regel'}</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="z.B. Zucker (Tag)" />
+        <div className="space-y-5 mt-6">
+          <div className="space-y-1.5">
+            <Label htmlFor="rule-name">Name</Label>
+            <Input id="rule-name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="z.B. Zucker (Tag)" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Parameter</label>
-              <select value={parameter} onChange={(e) => handleParameterChange(e.target.value)} className={inputCls}>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="rule-parameter">Parameter</Label>
+              <select id="rule-parameter" value={parameter} onChange={(e) => handleParameterChange(e.target.value)} className={selectCls}>
                 {PARAMETER_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Scope</label>
-              <select value={scope} onChange={(e) => setScope(e.target.value)} className={inputCls}>
+            <div className="space-y-1.5">
+              <Label htmlFor="rule-scope">Scope</Label>
+              <select id="rule-scope" value={scope} onChange={(e) => setScope(e.target.value)} className={selectCls}>
                 {SCOPE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
@@ -153,68 +156,78 @@ export default function RuleEditDialog({
           </div>
 
           {scope === 'recipe' ? (
-            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-900">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs text-foreground/85 leading-relaxed">
               Rezeptregeln gelten nur für Kalte und Warme Mahlzeit. Für Frühstück, Snacks, Nachtisch und Getränke werden diese Regeln im Planer auf die gesamte Mahlzeit angewandt.
             </div>
           ) : (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+            <div className="rounded-lg border border-border bg-muted/40 p-3.5 text-xs text-muted-foreground leading-relaxed">
               Planer-Regeln werden aggregiert auf alle Mahlzeittypen angewandt.
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Schwellwerte ({unit})</label>
+          <div className="space-y-3">
+            <Label className="block text-sm font-medium">Schwellwerte ({unit})</Label>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-muted-foreground mb-0.5">Min Gelb (rot darunter)</label>
-                <input type="number" value={minYellow} onChange={(e) => setMinYellow(e.target.value)} className={inputCls} placeholder="—" />
+              <div className="space-y-1">
+                <Label htmlFor="min-yellow" className="text-xs text-muted-foreground">Min Gelb (rot darunter)</Label>
+                <Input id="min-yellow" type="number" value={minYellow} onChange={(e) => setMinYellow(e.target.value)} placeholder="—" />
               </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-0.5">Min Grün</label>
-                <input type="number" value={minGreen} onChange={(e) => setMinGreen(e.target.value)} className={inputCls} placeholder="—" />
+              <div className="space-y-1">
+                <Label htmlFor="min-green" className="text-xs text-muted-foreground">Min Grün</Label>
+                <Input id="min-green" type="number" value={minGreen} onChange={(e) => setMinGreen(e.target.value)} placeholder="—" />
               </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-0.5">Max Grün</label>
-                <input type="number" value={maxGreen} onChange={(e) => setMaxGreen(e.target.value)} className={inputCls} placeholder="—" />
+              <div className="space-y-1">
+                <Label htmlFor="max-green" className="text-xs text-muted-foreground">Max Grün</Label>
+                <Input id="max-green" type="number" value={maxGreen} onChange={(e) => setMaxGreen(e.target.value)} placeholder="—" />
               </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-0.5">Max Gelb (rot darüber)</label>
-                <input type="number" value={maxYellow} onChange={(e) => setMaxYellow(e.target.value)} className={inputCls} placeholder="—" />
+              <div className="space-y-1">
+                <Label htmlFor="max-yellow" className="text-xs text-muted-foreground">Max Gelb (rot darüber)</Label>
+                <Input id="max-yellow" type="number" value={maxYellow} onChange={(e) => setMaxYellow(e.target.value)} placeholder="—" />
               </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Vorschau</label>
-            <AmpelRangePreview
-              minYellow={minYellow ? Number(minYellow) : null}
-              minGreen={minGreen ? Number(minGreen) : null}
-              maxGreen={maxGreen ? Number(maxGreen) : null}
-              maxYellow={maxYellow ? Number(maxYellow) : null}
-              unit={unit}
-            />
+          <div className="space-y-1.5">
+            <Label>Vorschau</Label>
+            <div className="p-1">
+              <AmpelRangePreview
+                minYellow={minYellow ? Number(minYellow) : null}
+                minGreen={minGreen ? Number(minGreen) : null}
+                maxGreen={maxGreen ? Number(maxGreen) : null}
+                maxYellow={maxYellow ? Number(maxYellow) : null}
+                unit={unit}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Tipp-Text</label>
-            <textarea value={tipText} onChange={(e) => setTipText(e.target.value)} rows={2} className={inputCls} placeholder="Empfehlung bei Gelb/Rot" />
+          <div className="space-y-1.5">
+            <Label htmlFor="tip-text">Tipp-Text</Label>
+            <Textarea id="tip-text" value={tipText} onChange={(e) => setTipText(e.target.value)} rows={2} placeholder="Empfehlung bei Gelb/Rot" className="resize-none" />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Verbesserungsvorschlag</label>
-            <textarea value={improvementText} onChange={(e) => setImprovementText(e.target.value)} rows={2} className={inputCls} placeholder="Konkreter Verbesserungsvorschlag" />
+          <div className="space-y-1.5">
+            <Label htmlFor="improvement-text">Verbesserungsvorschlag</Label>
+            <Textarea id="improvement-text" value={improvementText} onChange={(e) => setImprovementText(e.target.value)} rows={2} placeholder="Konkreter Verbesserungsvorschlag" className="resize-none" />
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded" />
-            Aktiv
-          </label>
+          <div className="flex items-center pt-1">
+            <Label htmlFor="rule-is-active" className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                id="rule-is-active"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+              />
+              Aktiv
+            </Label>
+          </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button onClick={handleSubmit} disabled={isPending || !name || !parameter}>
+          <div className="flex gap-2 pt-4 border-t border-border">
+            <Button onClick={handleSubmit} disabled={isPending || !name || !parameter} className="flex-1">
               {isPending ? 'Speichern...' : 'Speichern'}
             </Button>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Abbrechen
             </Button>
           </div>

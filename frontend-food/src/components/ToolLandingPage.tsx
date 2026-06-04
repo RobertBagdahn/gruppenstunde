@@ -76,7 +76,7 @@ export default function ToolLandingPage({
             <img
               src={tool.mascotImg}
               alt={tool.label}
-              className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-2xl float-bounce"
+              className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-xl"
             />
           )}
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -88,7 +88,7 @@ export default function ToolLandingPage({
                 {tool.icon}
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight font-display">
               {tool.label}
             </h1>
           </div>
@@ -128,7 +128,7 @@ export default function ToolLandingPage({
       {/* ============================================================ */}
       <section className="container py-12 md:py-16">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
+          <h2 className="text-2xl md:text-3xl font-extrabold mb-4 font-display">
             Was ist der {tool.label}?
           </h2>
           <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
@@ -143,7 +143,7 @@ export default function ToolLandingPage({
       <section id="features" className="panel-muted py-12 md:py-16">
         <div className="container">
           <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
+            <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2 font-display">
               <span
                 className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
                 style={{ fontVariationSettings: "'FILL' 1" }}
@@ -160,7 +160,7 @@ export default function ToolLandingPage({
             {features.map((feat) => (
               <div
                 key={feat.title}
-                className="relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 shadow-soft hover:shadow-fun hover:-translate-y-1 transition-all duration-300"
+                className="relative flex items-start gap-4 p-5 rounded-2xl bg-card border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
               >
                 <div className={cn(
                   'flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br text-white shadow-md shrink-0',
@@ -174,7 +174,7 @@ export default function ToolLandingPage({
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base mb-1">{feat.title}</h3>
+                  <h3 className="font-extrabold text-base mb-1 font-display">{feat.title}</h3>
                   <p className="text-muted-foreground text-sm">{feat.description}</p>
                 </div>
               </div>
@@ -188,7 +188,7 @@ export default function ToolLandingPage({
       {/* ============================================================ */}
       <section className="container py-12 md:py-16">
         <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
+          <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2 font-display">
             <span
               className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
               style={{ fontVariationSettings: "'FILL' 1" }}
@@ -205,7 +205,7 @@ export default function ToolLandingPage({
           {examples.map((ex) => (
             <div
               key={ex.title}
-              className="group relative p-6 rounded-2xl bg-card border border-border/60 shadow-soft hover:shadow-colorful hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+              className="group relative p-6 rounded-2xl bg-card border border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden"
             >
               <div className={cn(
                 'absolute -top-8 -right-8 w-32 h-32 rounded-full bg-gradient-to-br opacity-10 blur-2xl group-hover:opacity-25 transition-opacity duration-300',
@@ -223,7 +223,7 @@ export default function ToolLandingPage({
                     {ex.icon}
                   </span>
                 </div>
-                <h3 className="text-lg font-extrabold mb-2">{ex.title}</h3>
+                <h3 className="text-lg font-extrabold mb-2 font-display">{ex.title}</h3>
                 <p className="text-muted-foreground text-sm">{ex.description}</p>
               </div>
             </div>
@@ -238,7 +238,7 @@ export default function ToolLandingPage({
         <section id="sandbox" className="panel-muted py-12 md:py-16">
           <div className="container">
             <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
+              <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2 font-display">
                 <span
                   className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
                   style={{ fontVariationSettings: "'FILL' 1" }}
@@ -266,23 +266,23 @@ export default function ToolLandingPage({
       {/* ============================================================ */}
       <section className="container py-12 md:py-16">
         <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
+          <h2 className="text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2 font-display">
             <span
               className={cn('material-symbols-outlined text-[32px]', tool.textColor)}
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               help
             </span>
-            Haeufig gestellte Fragen
+            Häufig gestellte Fragen
           </h2>
         </div>
         <div className="max-w-3xl mx-auto space-y-4">
           {faq.map((item) => (
             <details
               key={item.question}
-              className="group p-5 rounded-2xl bg-card border border-border/60 shadow-soft"
+              className="group p-5 rounded-2xl bg-card border border-border/60 shadow-sm"
             >
-              <summary className="flex items-center justify-between cursor-pointer font-bold text-base">
+              <summary className="flex items-center justify-between cursor-pointer font-bold text-base font-display">
                 {item.question}
                 <span className="material-symbols-outlined text-[20px] text-muted-foreground group-open:rotate-180 transition-transform">
                   expand_more
@@ -302,10 +302,10 @@ export default function ToolLandingPage({
       <section className={cn('relative overflow-hidden text-white py-14 md:py-20 bg-gradient-to-br', tool.gradient)}>
         <div className="absolute inset-0 bg-dots-pattern opacity-[0.04] pointer-events-none" />
         <div className="container relative text-center">
-          <h2 className="text-2xl md:text-4xl font-extrabold mb-4">
+          <h2 className="text-2xl md:text-4xl font-extrabold mb-4 font-display">
             Bereit loszulegen?
           </h2>
-          <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
+          <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto font-medium">
             Erstelle ein kostenloses Konto und nutze alle Funktionen des {tool.label}s.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">

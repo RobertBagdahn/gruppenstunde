@@ -106,11 +106,17 @@ def make_meal(meal_plan: MealPlan | None = None, **kwargs) -> Meal:
     if meal_plan is None:
         meal_plan = make_meal_plan()
     today = datetime.date.today()
+    meal_type = kwargs.get("meal_type", MealTypeChoices.LUNCH)
+    
+    # Dynamically select day part factor based on meal type if not explicitly provided
+    from planner.models.meal_plan import MEAL_TYPE_DAY_FACTORS
+    day_part_factor = kwargs.get("day_part_factor", MEAL_TYPE_DAY_FACTORS.get(meal_type, 0.30))
+    
     defaults = {
         "start_datetime": timezone.make_aware(datetime.datetime.combine(today, datetime.time(12, 0))),
         "end_datetime": timezone.make_aware(datetime.datetime.combine(today, datetime.time(13, 0))),
-        "meal_type": MealTypeChoices.LUNCH,
-        "day_part_factor": 0.35,
+        "meal_type": meal_type,
+        "day_part_factor": day_part_factor,
     }
     defaults.update(kwargs)
     return baker.make(Meal, meal_plan=meal_plan, **defaults)

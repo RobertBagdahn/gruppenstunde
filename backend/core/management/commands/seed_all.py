@@ -362,10 +362,11 @@ class Command(BaseCommand):
 
         retail_section_map = {}
         for rs_data in retail_sections_data:
-            rs, created = RetailSection.objects.get_or_create(name=rs_data["name"], defaults=rs_data)
-            retail_section_map[rs_data["name"]] = rs
-            if created:
+            rs = RetailSection.objects.filter(name=rs_data["name"]).first()
+            if not rs:
+                rs = RetailSection.objects.create(**rs_data)
                 self.stdout.write(f"  + RetailSection: {rs_data['name']}")
+            retail_section_map[rs_data["name"]] = rs
 
         # --- NutritionalTags ---
         nutritional_tags_data = [
@@ -1284,10 +1285,69 @@ class Command(BaseCommand):
                 "retail_section": "Gewürze & Öle",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
+            {
+                "name": "Apfelsaft",
+                "description": "Naturtrüber Apfelsaft",
+                "physical_density": 1.0,
+                "energy_kj": 190.0,
+                "protein_g": 0.1,
+                "fat_g": 0.1,
+                "fat_sat_g": 0.0,
+                "carbohydrate_g": 11.0,
+                "sugar_g": 10.0,
+                "fibre_g": 0.2,
+                "salt_g": 0.01,
+                "price_per_kg": Decimal("1.29"),
+                "retail_section": "Getränke",
+                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
+            },
+            {
+                "name": "Schwarzer Tee",
+                "description": "Schwarzer Tee (Beutel)",
+                "physical_density": 0.5,
+                "energy_kj": 4.0,
+                "protein_g": 0.1,
+                "fat_g": 0.0,
+                "fat_sat_g": 0.0,
+                "carbohydrate_g": 0.2,
+                "sugar_g": 0.0,
+                "fibre_g": 0.0,
+                "salt_g": 0.01,
+                "price_per_kg": Decimal("15.00"),
+                "retail_section": "Getränke",
+                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
+            },
+            {
+                "name": "Mineralwasser",
+                "description": "Prickelndes Mineralwasser",
+                "physical_density": 1.0,
+                "energy_kj": 0.0,
+                "protein_g": 0.0,
+                "fat_g": 0.0,
+                "fat_sat_g": 0.0,
+                "carbohydrate_g": 0.0,
+                "sugar_g": 0.0,
+                "fibre_g": 0.0,
+                "salt_g": 0.01,
+                "price_per_kg": Decimal("0.35"),
+                "retail_section": "Getränke",
+                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
+            },
         ]
 
         # Portions per ingredient (name, quantity, weight_g, unit_name)
         extra_portions = {
+            "Apfelsaft": [
+                ("1 Liter", 1.0, 1000.0, "Liter"),
+                ("1 Glas", 1.0, 200.0, "Glas"),
+            ],
+            "Mineralwasser": [
+                ("1 Liter", 1.0, 1000.0, "Liter"),
+                ("1 Glas", 1.0, 200.0, "Glas"),
+            ],
+            "Schwarzer Tee": [
+                ("1 Beutel", 1.0, 2.0, "Stück"),
+            ],
             "Mehl": [
                 ("1 EL Mehl", 1.0, 10.0, "Esslöffel"),
                 ("1 Tasse Mehl", 1.0, 125.0, "Tasse"),
@@ -1458,9 +1518,9 @@ class Command(BaseCommand):
 
         unit_map = {}
         for u_name, u_desc, u_qty, u_unit in measuring_units_data:
-            unit, _ = MeasuringUnit.objects.get_or_create(
-                name=u_name, defaults={"description": u_desc, "quantity": u_qty, "unit": u_unit}
-            )
+            unit = MeasuringUnit.objects.filter(name=u_name).first()
+            if not unit:
+                unit = MeasuringUnit.objects.create(name=u_name, description=u_desc, quantity=u_qty, unit=u_unit)
             unit_map[u_name] = unit
 
         gram_unit = unit_map["Gramm"]
@@ -1765,6 +1825,26 @@ class Command(BaseCommand):
                 "servings": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
+            {
+                "title": "Apfelsaftschorle",
+                "summary": "Erfrischende Schorle – das Standard-Getränk für heiße Lagertage",
+                "description": "## Zubereitung\n\n1. Apfelsaft und Sprudelwasser zu gleichen Teilen in Gläser/Krüge füllen\n2. Kalt servieren",
+                "difficulty": DifficultyChoices.EASY,
+                "execution_time": ExecutionTimeChoices.LESS_30,
+                "recipe_type": RecipeTypeChoices.DRINK,
+                "servings": 1,
+                "status": RecipeStatusChoices.APPROVED,
+            },
+            {
+                "title": "Zitronentee",
+                "summary": "Warmer Zitronentee für gemütliche Abende",
+                "description": "## Zubereitung\n\n1. Wasser kochen\n2. Schwarztee aufgießen und ziehen lassen\n3. Mit frischem Zitronensaft und etwas Zucker abschmecken",
+                "difficulty": DifficultyChoices.EASY,
+                "execution_time": ExecutionTimeChoices.LESS_30,
+                "recipe_type": RecipeTypeChoices.DRINK,
+                "servings": 1,
+                "status": RecipeStatusChoices.APPROVED,
+            },
         ]
 
         created_recipes = []
@@ -1838,6 +1918,8 @@ class Command(BaseCommand):
             "Porridge": ["Frühstück", "Schnell & Einfach", "Gesund", "Vegetarisch"],
             "Brotzeit": ["Abendessen", "Schnell & Einfach", "Vegetarisch"],
             "Grillwürstchen": ["Lagerfeuer", "Schnell & Einfach", "Abendessen"],
+            "Apfelsaftschorle": ["Schnell & Einfach", "Vegan", "Vegetarisch"],
+            "Zitronentee": ["Schnell & Einfach", "Vegan", "Vegetarisch"],
         }
 
         for recipe in created_recipes:
@@ -1884,6 +1966,8 @@ class Command(BaseCommand):
             "Porridge": all_levels,
             "Brotzeit": all_levels,
             "Grillwürstchen": all_levels,
+            "Apfelsaftschorle": all_levels,
+            "Zitronentee": all_levels,
         }
 
         for recipe in created_recipes:
@@ -1933,6 +2017,9 @@ class Command(BaseCommand):
         wuerstchen = Ingredient.objects.filter(name="Würstchen").first()
         senf = Ingredient.objects.filter(name="Senf").first()
         ketchup = Ingredient.objects.filter(name="Ketchup").first()
+        apfelsaft = Ingredient.objects.filter(name="Apfelsaft").first()
+        schwarztee = Ingredient.objects.filter(name="Schwarzer Tee").first()
+        mineralwasser = Ingredient.objects.filter(name="Mineralwasser").first()
 
         gram_unit = MeasuringUnit.objects.filter(name__in=["Gramm", "g"]).first()
 
@@ -2074,6 +2161,15 @@ class Command(BaseCommand):
                 (brot, 60.0, ""),
                 (senf, 5.0, ""),
                 (ketchup, 10.0, ""),
+            ],
+            "Apfelsaftschorle": [
+                (apfelsaft, 150.0, ""),
+                (mineralwasser, 150.0, ""),
+            ],
+            "Zitronentee": [
+                (schwarztee, 2.0, ""),
+                (zucker, 10.0, ""),
+                (zitrone, 10.0, "Saft"),
             ],
         }
 
@@ -4086,8 +4182,10 @@ class Command(BaseCommand):
 
             # Create 7 days with meals
             from recipe.models import Recipe
+            from recipe.choices import RecipeTypeChoices
 
-            recipes = list(Recipe.objects.filter(status="approved")[:10])
+            recipes = list(Recipe.objects.filter(status="approved").exclude(recipe_type=RecipeTypeChoices.DRINK)[:10])
+            drink_recipes = list(Recipe.objects.filter(status="approved", recipe_type=RecipeTypeChoices.DRINK))
 
             for day_offset in range(7):
                 day_date = datetime.date.today() + datetime.timedelta(days=day_offset)
@@ -4100,12 +4198,21 @@ class Command(BaseCommand):
                         start_datetime__date=day_date,
                     )
                     for idx, meal in enumerate(day_meals):
-                        recipe_idx = (day_offset * 4 + idx) % len(recipes)
-                        MealItem.objects.create(
-                            meal=meal,
-                            recipe=recipes[recipe_idx],
-                            factor=1.0,
-                        )
+                        if meal.meal_type == MealTypeChoices.DRINKS:
+                            if drink_recipes:
+                                drink_idx = day_offset % len(drink_recipes)
+                                MealItem.objects.create(
+                                    meal=meal,
+                                    recipe=drink_recipes[drink_idx],
+                                    factor=1.0,
+                                )
+                        else:
+                            recipe_idx = (day_offset * 4 + idx) % len(recipes)
+                            MealItem.objects.create(
+                                meal=meal,
+                                recipe=recipes[recipe_idx],
+                                factor=1.0,
+                            )
 
             self.stdout.write(f"  + 7 days with Meals")
 
@@ -4122,7 +4229,8 @@ class Command(BaseCommand):
             )
             self.stdout.write(f"  + MealPlan: {meal_plan2.name}")
 
-            recipes = list(Recipe.objects.filter(status="approved")[:10])
+            recipes = list(Recipe.objects.filter(status="approved").exclude(recipe_type=RecipeTypeChoices.DRINK)[:10])
+            drink_recipes = list(Recipe.objects.filter(status="approved", recipe_type=RecipeTypeChoices.DRINK))
             for day_offset in range(4):
                 day_date = datetime.date.today() + datetime.timedelta(days=50 + day_offset)
                 meal_plan2.create_default_meals_for_date(day_date)
@@ -4133,12 +4241,21 @@ class Command(BaseCommand):
                         start_datetime__date=day_date,
                     )
                     for idx, meal in enumerate(day_meals):
-                        recipe_idx = (day_offset * 3 + idx) % len(recipes)
-                        MealItem.objects.create(
-                            meal=meal,
-                            recipe=recipes[recipe_idx],
-                            factor=1.0,
-                        )
+                        if meal.meal_type == MealTypeChoices.DRINKS:
+                            if drink_recipes:
+                                drink_idx = day_offset % len(drink_recipes)
+                                MealItem.objects.create(
+                                    meal=meal,
+                                    recipe=drink_recipes[drink_idx],
+                                    factor=1.0,
+                                )
+                        else:
+                            recipe_idx = (day_offset * 3 + idx) % len(recipes)
+                            MealItem.objects.create(
+                                    meal=meal,
+                                    recipe=recipes[recipe_idx],
+                                    factor=1.0,
+                                )
 
             self.stdout.write(f"  + 4 days with Meals (Pfingstlager)")
 

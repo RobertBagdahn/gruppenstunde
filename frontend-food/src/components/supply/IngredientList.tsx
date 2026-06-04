@@ -89,7 +89,7 @@ export default function IngredientList({
   return (
     <div className={className}>
       {/* Ingredient list */}
-      <ul className="divide-y divide-border/60 rounded-xl border bg-card/40 overflow-hidden">
+      <ul className="divide-y divide-border rounded-xl border bg-card overflow-hidden">
         {sortedItems.map((item) => {
           // Calculate weight in grams from pre-calculated backend weight
           const weightG = item.weight_g * servingsMultiplier;
@@ -232,7 +232,7 @@ export default function IngredientList({
                   to={`/ingredients/${item.ingredient_slug}`}
                   className={cn(
                     'flex items-start gap-3 px-4 py-3',
-                    'hover:bg-rose-50/70 transition-colors group',
+                    'hover:bg-muted/50 transition-colors group',
                   )}
                   title={`${item.ingredient_name} – Details anzeigen`}
                 >

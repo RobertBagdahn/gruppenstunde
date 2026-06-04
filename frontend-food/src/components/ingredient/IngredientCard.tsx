@@ -21,7 +21,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
   return (
     <Link
       to={`/ingredients/${ingredient.slug}`}
-      className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border/50 hover:border-primary/50 hover:shadow-md p-4"
+      className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border hover:border-primary/50 hover:shadow-md p-4"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
         <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">

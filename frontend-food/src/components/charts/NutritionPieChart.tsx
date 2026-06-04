@@ -12,9 +12,9 @@ import {
 } from 'recharts';
 
 const COLORS = {
-  protein: '#ef4444',   // red-500 — matches NutrientCard "Protein" color
-  fat: '#f59e0b',       // amber-500 — matches NutrientCard "Fett" color
-  carbs: '#14b8a6',     // teal-500 — matches NutrientCard "Kohlenhydrate" color
+  protein: 'hsl(var(--chart-5))', // red/rose — matches NutrientCard "Protein" color
+  fat: 'hsl(var(--chart-2))',     // amber — matches NutrientCard "Fett" color
+  carbs: 'hsl(var(--chart-3))',   // teal/blue — matches NutrientCard "Kohlenhydrate" color
 };
 
 interface NutritionPieChartProps {

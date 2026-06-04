@@ -1,4 +1,4 @@
-.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-backend push-frontend push-backend deploy-frontend deploy-backend
+.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-frontend-food build-backend push-frontend push-frontend-food push-backend deploy-frontend deploy-frontend-food deploy-backend migrate-cloud
 
 # ============================================================
 # Inspi – Makefile for local development
@@ -11,11 +11,14 @@ PODMAN := podman compose
 # GCP settings – override via environment or .env
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
 GCP_REGION ?= europe-west3
+GCP_FOOD_REGION ?= europe-west1
 BACKEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/backend
 FRONTEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend
+FRONTEND_FOOD_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend-food
 VPC_CONNECTOR ?= inspi-connector
 CLOUD_SQL_INSTANCE ?= inspi-db
 DB_PASSWORD ?= changeme
+GCS_BUCKET_NAME ?= inspi-media
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -186,41 +189,68 @@ setup-infra: ## Create GCP infrastructure (one-time)
 	@echo "Infrastructure setup complete."
 
 build-backend: ## Build backend container image
-	podman build -t $(BACKEND_IMAGE):latest -f Dockerfile.backend .
+	printf '%s\n' \
+		"steps:" \
+		"  - name: 'gcr.io/cloud-builders/docker'" \
+		"    args: ['build', '-t', '$(BACKEND_IMAGE):latest', '-f', 'Dockerfile.backend', '.']" \
+		"images:" \
+		"  - '$(BACKEND_IMAGE):latest'" \
+		> /tmp/cloudbuild-backend.yaml
+	gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
 
 build-frontend: ## Build frontend container image
-	podman build -t $(FRONTEND_IMAGE):latest -f Dockerfile.frontend .
+	BACKEND_URL=$$(gcloud run services describe inspi-backend --region=$(GCP_REGION) --project=$(GCP_PROJECT) --format='value(status.url)' 2>/dev/null); \
+	printf '%s\n' \
+		"steps:" \
+		"  - name: 'gcr.io/cloud-builders/docker'" \
+		"    args: ['build', '-t', '$(FRONTEND_IMAGE):latest', '-f', 'Dockerfile.frontend', '--build-arg', 'VITE_API_URL=$${BACKEND_URL}', '.']" \
+		"images:" \
+		"  - '$(FRONTEND_IMAGE):latest'" \
+		> /tmp/cloudbuild-frontend.yaml; \
+	gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
+
+build-frontend-food: ## Build food frontend container image
+	BACKEND_URL=$$(gcloud run services describe inspi-backend --region=$(GCP_REGION) --project=$(GCP_PROJECT) --format='value(status.url)' 2>/dev/null); \
+	printf '%s\n' \
+		"steps:" \
+		"  - name: 'gcr.io/cloud-builders/docker'" \
+		"    args: ['build', '-t', '$(FRONTEND_FOOD_IMAGE):latest', '-f', 'Dockerfile.frontend-food', '--build-arg', 'VITE_API_URL=$${BACKEND_URL}', '.']" \
+		"images:" \
+		"  - '$(FRONTEND_FOOD_IMAGE):latest'" \
+		> /tmp/cloudbuild-frontend-food.yaml; \
+	gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
 
 push-backend: build-backend ## Push backend image to Artifact Registry
-	podman push $(BACKEND_IMAGE):latest
+	@echo "Backend image was pushed by Cloud Build."
 
 push-frontend: build-frontend ## Push frontend image to Artifact Registry
-	podman push $(FRONTEND_IMAGE):latest
+	@echo "Frontend image was pushed by Cloud Build."
+
+push-frontend-food: build-frontend-food ## Push food frontend image to Artifact Registry
+	@echo "Food frontend image was pushed by Cloud Build."
 
 deploy-backend: push-backend ## Deploy backend to Cloud Run
-	$(eval DB_HOST := $(shell gcloud sql instances describe $(CLOUD_SQL_INSTANCE) --format='value(ipAddresses[0].ipAddress)' 2>/dev/null))
 	gcloud run deploy inspi-backend \
 		--image $(BACKEND_IMAGE):latest \
 		--region $(GCP_REGION) \
-		--port 8000 \
-		--cpu 1 --memory 512Mi \
-		--min-instances 0 --max-instances 10 \
-		--vpc-connector $(VPC_CONNECTOR) \
-		--set-env-vars DJANGO_SETTINGS_MODULE=inspi.settings.production,DB_HOST=$(DB_HOST),DB_NAME=inspi,DB_USER=inspi,DB_PASSWORD=$(DB_PASSWORD) \
-		--allow-unauthenticated
+		--project $(GCP_PROJECT)
+
+migrate-cloud: ## Run Django migrations via Cloud Run job
+	gcloud run jobs execute inspi-migrate --region $(GCP_REGION) --wait
 
 deploy-frontend: push-frontend ## Deploy frontend to Cloud Run
-	$(eval BACKEND_URL := $(shell gcloud run services describe inspi-backend --region=$(GCP_REGION) --format='value(status.url)' 2>/dev/null))
 	gcloud run deploy inspi-frontend \
 		--image $(FRONTEND_IMAGE):latest \
 		--region $(GCP_REGION) \
-		--port 80 \
-		--cpu 1 --memory 256Mi \
-		--min-instances 0 --max-instances 5 \
-		--set-env-vars BACKEND_URL=$(BACKEND_URL) \
-		--allow-unauthenticated
+		--project $(GCP_PROJECT)
 
-deploy: deploy-backend deploy-frontend ## Deploy everything (backend first, then frontend)
+deploy-frontend-food: push-frontend-food ## Deploy food frontend to Cloud Run in europe-west1
+	gcloud run deploy inspi-frontend-food \
+		--image $(FRONTEND_FOOD_IMAGE):latest \
+		--region $(GCP_FOOD_REGION) \
+		--project $(GCP_PROJECT)
+
+deploy: deploy-backend migrate-cloud deploy-frontend deploy-frontend-food ## Deploy everything (backend first, migrations, then frontends)
 
 # -----------------------------------------------
 # Cleanup

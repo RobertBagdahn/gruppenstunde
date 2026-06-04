@@ -35,12 +35,12 @@ export const TOOL_MEAL_PLAN: ToolConfig = {
   key: 'meal-plan',
   label: 'Essensplan',
   icon: 'restaurant_menu',
-  gradient: 'from-sky-500 to-cyan-600',
-  bgSolid: 'bg-sky-600',
-  textColor: 'text-sky-600',
-  bgTint: 'bg-sky-50',
-  borderColor: 'border-sky-200',
-  ringColor: 'ring-sky-500/30',
+  gradient: 'from-primary to-primary/90',
+  bgSolid: 'bg-primary',
+  textColor: 'text-primary',
+  bgTint: 'bg-primary/5',
+  borderColor: 'border-primary/20',
+  ringColor: 'ring-primary/30',
   basePath: '/meal-plans',
 };
 

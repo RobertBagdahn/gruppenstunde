@@ -1,5 +1,8 @@
-## ADDED Requirements
+# food-design-system Specification
 
+## Purpose
+TBD - created by archiving change food-frontend-facelift. Update Purpose after archive.
+## Requirements
 ### Requirement: Zentrales Design-Token-System
 Das Food Frontend SHALL alle Farben, Schatten, Radien und Schrift-Familien ausschließlich über zentrale Design-Token in `frontend-food/src/index.css` (CSS-Variablen) und `frontend-food/tailwind.config.ts` definieren. Komponenten MUST diese Token über Tailwind-Utilities referenzieren (z.B. `bg-card`, `border-border`, `text-foreground`, `text-primary`) und SHALL NOT hartcodierte Farb-Utilities (z.B. `emerald-500`, `blue-500`, `gray-100`) für semantische Flächen, Texte oder Borders verwenden.
 
@@ -87,3 +90,4 @@ Das Food Frontend SHALL eine Route `/styleguide` bereitstellen, die als lebendes
 #### Scenario: Styleguide spiegelt aktuelle Token
 - **WHEN** ein Design-Token geändert wurde
 - **THEN** zeigt die Styleguide-Page den aktualisierten Wert ohne separate Pflege
+

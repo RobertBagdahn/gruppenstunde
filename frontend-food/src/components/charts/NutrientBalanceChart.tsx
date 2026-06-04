@@ -15,9 +15,9 @@ import {
 } from 'recharts';
 
 const COLORS = {
-  protein: '#ef4444',   // red-500
-  fat: '#f59e0b',       // amber-500
-  carbs: '#14b8a6',     // teal-500
+  protein: 'hsl(var(--chart-5))',   // red/rose
+  fat: 'hsl(var(--chart-2))',       // amber
+  carbs: 'hsl(var(--chart-3))',     // teal/blue
 };
 
 interface NutrientBalanceChartProps {
@@ -56,9 +56,9 @@ export default function NutrientBalanceChart({
     COLORS.protein,
     COLORS.fat,
     COLORS.carbs,
-    '#f97316',   // orange-500 (sugar)
-    '#22c55e',   // green-500 (fibre)
-    '#6366f1',   // indigo-500 (salt)
+    'hsl(var(--chart-4))', // purple (sugar)
+    'hsl(var(--chart-1))', // green (fibre)
+    'hsl(var(--chart-3) / 0.5)', // half-opacity teal/blue (salt)
   ];
 
   return (

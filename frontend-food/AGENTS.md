@@ -26,3 +26,11 @@ Herkömmliche Tabellen-Schnittstellen mit dünnen, blassen Zeilenlinien werden d
 * **Komponenten:** `CardTable` als Container und `DataCardRow` für einzelne Zeilen.
 * **Stil:** Einzelne Zeilen haben abgerundete Ecken (`rounded-xl`), eine dezente weiße Card-Fläche auf grauem Seitenhintergrund, eine sichtbare Border (`border-border`) und einen feinen Schatten.
 * **Mobile-First:** Spalten klappen auf Viewports < 768px untereinander zusammen.
+
+### 5. Styleguide & Referenz-Umgebung
+Der integrierte interaktive Styleguide unter `/styleguide` dient als „Single Source of Truth“ für das gesamte visuelle System im Food Frontend. Er demonstriert live:
+* Alle aktiven Farb-Token und die HSL-Farbpaletten.
+* Die Typografie-Skala und Fonts.
+* UI-Muster wie Buttons, Badges, standardisierte Formularelemente und Card-Tabellen.
+* Vorlagen für Lade- und leere Zustände.
+Bei der Entwicklung neuer Komponenten oder Seiten muss immer zuerst der `/styleguide` herangezogen und als visuelle Referenz verwendet werden.

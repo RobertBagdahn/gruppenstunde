@@ -48,39 +48,39 @@ export default function SettingsPanel({
   const [factors, setFactors] = useState<Record<string, number>>(plan.day_part_factors || defaultFactors);
 
   return (
-    <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
-      <h3 className="font-semibold">Einstellungen</h3>
+    <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
+      <h3 className="font-display font-bold text-lg text-foreground">Einstellungen</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium mb-1">Name</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium mb-1">Beschreibung</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Beschreibung</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Portionen (Personen)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen)</label>
           <input
             type="number"
             min={1}
             value={portions}
             onChange={(e) => setPortions(Number(e.target.value))}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Reservefaktor</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Reservefaktor</label>
           <input
             type="number"
             min={1.0}
@@ -88,11 +88,11 @@ export default function SettingsPanel({
             step={0.05}
             value={reserve}
             onChange={(e) => setReserve(Number(e.target.value))}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Budget (€/Person/Tag)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Budget (€/Person/Tag)</label>
           <input
             type="number"
             min={0}
@@ -100,35 +100,35 @@ export default function SettingsPanel({
             value={budget}
             onChange={(e) => setBudget(e.target.value === '' ? '' : Number(e.target.value))}
             placeholder="z.B. 8.00"
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
           <input
             type="datetime-local"
             value={startDatetime}
             onChange={(e) => setStartDatetime(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Ende (Datum & Uhrzeit)</label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
           <input
             type="datetime-local"
             value={endDatetime}
             onChange={(e) => setEndDatetime(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
         </div>
       </div>
 
-      <div className="border-t pt-4">
-        <h4 className="font-semibold text-sm mb-3">Tagesanteil-Faktoren für Mahlzeiten</h4>
+      <div className="border-t border-border pt-5">
+        <h4 className="font-display font-bold text-sm text-foreground mb-3">Tagesanteil-Faktoren für Mahlzeiten</h4>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {Object.entries(factors).map(([key, value]) => (
             <div key={key}>
-              <label className="block text-xs font-medium mb-1 capitalize">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
                 {MEAL_TYPE_LABELS[key] || key}
               </label>
               <input
@@ -141,19 +141,20 @@ export default function SettingsPanel({
                   const newval = Number(e.target.value);
                   setFactors(prev => ({ ...prev, [key]: newval }));
                 }}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Summe der Faktoren: <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-green-600 font-semibold" : "text-amber-600 font-semibold"}>
+        <p className="text-xs text-muted-foreground mt-3 font-medium">
+          Summe der Faktoren:{' '}
+          <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-primary font-bold" : "text-accent font-bold"}>
             {Object.values(factors).reduce((a, b) => a + b, 0).toFixed(2)}
           </span> (Sollte idealerweise 1,00 ergeben).
         </p>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-2">
         <button
           onClick={() => onSave({
             name,
@@ -166,7 +167,7 @@ export default function SettingsPanel({
             day_part_factors: factors,
           })}
           disabled={isPending}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
         >
           {isPending ? 'Speichern...' : 'Speichern'}
         </button>

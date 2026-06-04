@@ -35,14 +35,14 @@ function ShoppingListCard({ list }: { list: ShoppingList }) {
   return (
     <Link
       to={`/shopping-lists/${list.id}`}
-      className="group block rounded-2xl border border-border bg-card p-4 hover:border-primary/50 hover:shadow-md transition-all"
+      className="group block rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-semibold text-sm truncate group-hover:text-primary transition-colors font-display">
+          <h3 className="font-display font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
             {list.name}
           </h3>
-          <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 mt-2 text-xs font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <SourceIcon className="w-3.5 h-3.5 text-primary" />
               {sourceLabel}
@@ -53,7 +53,7 @@ function ShoppingListCard({ list }: { list: ShoppingList }) {
               <>
                 <span>•</span>
                 <span className="inline-flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />
+                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
                   {list.collaborators_count}
                 </span>
               </>
@@ -68,7 +68,7 @@ function ShoppingListCard({ list }: { list: ShoppingList }) {
       <ShoppingListProgress
         checked={list.checked_count}
         total={list.items_count}
-        className="mt-3.5"
+        className="mt-4"
       />
     </Link>
   );
@@ -106,11 +106,11 @@ export default function ShoppingListPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-32 bg-muted rounded-2xl" />
-          <div className="h-16 bg-muted rounded-2xl" />
+          <div className="h-32 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted rounded-xl" />
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-28 bg-muted rounded-2xl" />
+              <div key={i} className="h-28 bg-muted rounded-xl" />
             ))}
           </div>
         </div>
@@ -160,14 +160,14 @@ export default function ShoppingListPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 font-sans">
       <ConfirmDialog
         open={deleteTargetId !== null}
         onConfirm={() => {
           if (deleteTargetId !== null) {
             deleteList.mutate(deleteTargetId, {
               onSuccess: () => {
-                toast.success('Einkaufsliste geloescht');
+                toast.success('Einkaufsliste gelöscht');
                 setDeleteTargetId(null);
               },
               onError: (err) => {
@@ -178,9 +178,9 @@ export default function ShoppingListPage() {
           }
         }}
         onCancel={() => setDeleteTargetId(null)}
-        title="Einkaufsliste loeschen?"
-        description="Die Einkaufsliste und alle Eintraege werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Einkaufsliste löschen?"
+        description="Die Einkaufsliste und alle Einträge werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deleteList.isPending}
       />
 
@@ -189,7 +189,7 @@ export default function ShoppingListPage() {
         title="Einkaufslisten"
         description="Erstelle und verwalte deine Einkaufslisten."
         icon="shopping_cart"
-        gradientClasses="bg-gradient-to-br from-emerald-500 to-teal-600"
+        gradientClasses="gradient-primary"
         totalCount={data?.total}
         countLabel="Liste"
         countIcon="shopping_cart"
@@ -203,20 +203,20 @@ export default function ShoppingListPage() {
         onSubmit={() => {}}
         createLabel="Neue Liste"
         onCreateClick={() => setShowCreate(true)}
-        gradientClasses="from-emerald-500/5 via-teal-500/5 to-emerald-500/5"
+        gradientClasses=""
       />
 
       {/* Sort */}
       <div className="flex items-center justify-end mb-4">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-lg">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
           <ArrowUpDown className="w-4 h-4 text-primary" />
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-medium"
+            className="px-3.5 py-1.5 rounded-xl border border-border text-sm bg-card hover:bg-muted/50 focus:ring-2 focus:ring-primary focus:outline-none font-semibold transition-all shadow-soft"
           >
             <option value="newest">Neueste</option>
-            <option value="oldest">Aelteste</option>
+            <option value="oldest">Älteste</option>
             <option value="name_asc">Name A-Z</option>
           </select>
         </div>
@@ -224,35 +224,37 @@ export default function ShoppingListPage() {
 
       {/* Create form */}
       {showCreate && (
-        <div className="mb-4 p-4 bg-card rounded-xl border">
-          <div className="flex gap-2">
+        <div className="mb-4 p-5 bg-card rounded-xl border border-border shadow-soft">
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Name der Einkaufsliste"
-              className="flex-1 px-3 py-2 text-sm border rounded-lg bg-background"
+              className="flex-1 px-3.5 py-2 text-sm border border-border rounded-xl bg-background font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               autoFocus
             />
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={createList.isPending || !newName.trim()}
-              className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              Erstellen
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreate(false);
-                setNewName('');
-              }}
-              className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
-            >
-              Abbrechen
-            </button>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={createList.isPending || !newName.trim()}
+                className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+              >
+                Erstellen
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreate(false);
+                  setNewName('');
+                }}
+                className="px-4 py-2 text-sm font-semibold border border-border rounded-xl hover:bg-muted bg-card transition-all shadow-soft"
+              >
+                Abbrechen
+              </button>
+            </div>
           </div>
         </div>
       )}

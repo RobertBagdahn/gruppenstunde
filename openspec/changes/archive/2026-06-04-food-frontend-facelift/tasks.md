@@ -26,31 +26,31 @@
 ## 3. Phase C — Seiten-Rollout: Home & Rezepte
 
 - [x] 3.1 `pages/HomePage.tsx` auf neues Token-System, Display-Schrift und reduzierte Gradients/Animationen umstellen
-- [ ] 3.2 `pages/recipes/RecipeListPage.tsx` + `MyRecipesPage.tsx`: Card-Pattern für Item-Karten, neuer Hero/Such-Container
-- [ ] 3.3 `pages/recipes/RecipeDetailPage.tsx` + `RecipeCookingMode.tsx`: Token, Typo, klare Flächen
-- [ ] 3.4 `pages/recipes/CreateRecipePage.tsx` / `EditRecipePage.tsx` / `RecipeImportPage.tsx`: Formular-Flächen auf Token/Borders
-- [ ] 3.5 Komponenten `components/ingredient/IngredientCard.tsx`, `components/supply/IngredientList.tsx` auf Card-Pattern/Token
+- [x] 3.2 `pages/recipes/RecipeListPage.tsx` + `MyRecipesPage.tsx`: Card-Pattern für Item-Karten, neuer Hero/Such-Container
+- [x] 3.3 `pages/recipes/RecipeDetailPage.tsx` + `RecipeCookingMode.tsx`: Token, Typo, klare Flächen
+- [x] 3.4 `pages/recipes/CreateRecipePage.tsx` / `EditRecipePage.tsx` / `RecipeImportPage.tsx`: Formular-Flächen auf Token/Borders
+- [x] 3.5 Komponenten `components/ingredient/IngredientCard.tsx`, `components/supply/IngredientList.tsx` auf Card-Pattern/Token
 
 ## 4. Phase C — Seiten-Rollout: Zutaten & Tabellen
 
-- [ ] 4.1 `pages/ingredients/IngredientListPage.tsx` (+ `IngredientFilterSidebar.tsx`): Card-Pattern, Filter-Sidebar auf Token
-- [ ] 4.2 `pages/ingredients/IngredientDetailPage.tsx` / `IngredientCreatePage.tsx`: Token/Typo
-- [ ] 4.3 `pages/planning/TableView.tsx`: auf Card-basierte Tabellen-Zeilen (`CardTable`) migrieren, semantische Token-Farben
-- [ ] 4.4 `pages/planning/CostDashboard.tsx`: Card-Zeilen, Warning/Critical-Token, `recharts`-Farben aus `--chart-*`
-- [ ] 4.5 `pages/planning/MealEventDetailPage.tsx` / `MealEventListPage.tsx`: Token, Card-Pattern, Display-Schrift
+- [x] 4.1 `pages/ingredients/IngredientListPage.tsx` (+ `IngredientFilterSidebar.tsx`): Card-Pattern, Filter-Sidebar auf Token
+- [x] 4.2 `pages/ingredients/IngredientDetailPage.tsx` / `IngredientCreatePage.tsx`: Token/Typo
+- [x] 4.3 `pages/planning/TableView.tsx`: auf Card-basierte Tabellen-Zeilen (`CardTable`) migrieren, semantische Token-Farben
+- [x] 4.4 `pages/planning/CostDashboard.tsx`: Card-Zeilen, Warning/Critical-Token, `recharts`-Farben aus `--chart-*`
+- [x] 4.5 `pages/planning/MealEventDetailPage.tsx` / `MealEventListPage.tsx`: Token, Card-Pattern, Display-Schrift
 
 ## 5. Phase C — Seiten-Rollout: Shopping, Admin, Tools, Charts
 
-- [ ] 5.1 `pages/shopping/ShoppingListPage.tsx` + `ShoppingListDetailPage.tsx`: Card-Pattern, Token, Print-Styles verifizieren
-- [ ] 5.2 `pages/admin/*` (AdminPage, ApprovalTab, RuleTab, NutritionalTagTab, RetailSectionTab) + `components/admin/*`: Token/Borders, lesbare Tabellen
-- [ ] 5.3 `pages/tools/*` (MealEventLandingPage, NormPortionSimulatorPage) + `components/ToolLandingPage.tsx`: Token, reduzierte Gradients
-- [ ] 5.4 `components/charts/*` (NutritionPieChart, NutrientBalanceChart) + `components/suggestions/*` + `components/shared/SollIstBar.tsx`: Farben aus `--chart-*`/Token
-- [ ] 5.5 `pages/LoginPage.tsx` / `RegisterPage.tsx`: Token/Typo
+- [x] 5.1 `pages/shopping/ShoppingListPage.tsx` + `ShoppingListDetailPage.tsx`: Card-Pattern, Token, Print-Styles verifizieren
+- [x] 5.2 `pages/admin/*` (AdminPage, ApprovalTab, RuleTab, NutritionalTagTab, RetailSectionTab) + `components/admin/*`: Token/Borders, lesbare Tabellen
+- [x] 5.3 `pages/tools/*` (MealEventLandingPage, NormPortionSimulatorPage) + `components/ToolLandingPage.tsx`: Token, reduzierte Gradients
+- [x] 5.4 `components/charts/*` (NutritionPieChart, NutrientBalanceChart) + `components/suggestions/*` + `components/shared/SollIstBar.tsx`: Farben aus `--chart-*`/Token
+- [x] 5.5 `pages/LoginPage.tsx` / `RegisterPage.tsx`: Token/Typo
 
 ## 6. Phase D — Aufräumen & Abnahme
 
-- [ ] 6.1 Audit erneut laufen lassen: keine verbliebenen hartcodierten semantischen Farb-Utilities (außer bewusst kuratierte)
-- [ ] 6.2 Mobile-Check 320px über alle migrierten Seiten; Kontrast-Check (keine Hellgrau-auf-Hellgrau-Flächen)
-- [ ] 6.3 Print-Styles (Einkaufsliste, Rezept) final verifizieren
-- [ ] 6.4 `npm run lint` + `npm run build` (`tsc -b`) grün; keine `console.log`-Statements
-- [ ] 6.5 `frontend-food/AGENTS.md` aktualisieren: Token-System, Typo, Icon-Regel, Card-Tabellen-Pattern, Styleguide-Verweis
+- [x] 6.1 Audit erneut laufen lassen: keine verbliebenen hartcodierten semantischen Farb-Utilities (außer bewusst kuratierte)
+- [x] 6.2 Mobile-Check 320px über alle migrierten Seiten; Kontrast-Check (keine Hellgrau-auf-Hellgrau-Flächen)
+- [x] 6.3 Print-Styles (Einkaufsliste, Rezept) final verifizieren
+- [x] 6.4 `npm run lint` + `npm run build` (`tsc -b`) grün; keine `console.log`-Statements
+- [x] 6.5 `frontend-food/AGENTS.md` aktualisieren: Token-System, Typo, Icon-Regel, Card-Tabellen-Pattern, Styleguide-Verweis

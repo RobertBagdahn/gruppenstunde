@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { ShoppingListItem } from '@/schemas/shoppingList';
+import { Check, ChevronRight } from 'lucide-react';
 
 interface ShoppingListItemRowProps {
   item: ShoppingListItem;
@@ -48,10 +49,10 @@ export default function ShoppingListItemRow({
   };
 
   return (
-    <div>
+    <div className="font-sans">
       <div
         className={cn(
-          'flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg transition-colors',
+          'flex items-center gap-3 py-2 px-2 -mx-2 rounded-xl transition-colors',
           item.is_checked && 'opacity-60',
           canEdit && 'hover:bg-muted/50',
         )}
@@ -62,16 +63,16 @@ export default function ShoppingListItemRow({
           disabled={!canEdit}
           onClick={() => onCheck(item.id, !item.is_checked)}
           className={cn(
-            'flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border-2 transition-all',
+            'flex items-center justify-center w-11 h-11 shrink-0 rounded-xl border-2 transition-all shadow-soft',
             item.is_checked
-              ? 'bg-emerald-500 border-emerald-500 text-white'
-              : 'border-muted-foreground/30 hover:border-primary',
+              ? 'bg-primary border-primary text-primary-foreground'
+              : 'border-muted-foreground/30 hover:border-primary bg-card',
             !canEdit && 'cursor-default opacity-50',
           )}
           aria-label={item.is_checked ? 'Als unerledigt markieren' : 'Als erledigt markieren'}
         >
           {item.is_checked && (
-            <span className="material-symbols-outlined text-[20px]">check</span>
+            <Check className="w-5 h-5 stroke-[3px]" />
           )}
         </button>
 
@@ -82,18 +83,16 @@ export default function ShoppingListItemRow({
         >
           <div className="flex items-center gap-2 flex-wrap">
             {hasSources && (
-              <span className={cn(
-                'material-symbols-outlined text-[14px] text-muted-foreground transition-transform',
+              <ChevronRight className={cn(
+                'w-4 h-4 text-muted-foreground transition-transform duration-200',
                 sourcesExpanded && 'rotate-90',
-              )}>
-                chevron_right
-              </span>
+              )} />
             )}
             {item.ingredient_slug ? (
               <Link
                 to={`/ingredients/${item.ingredient_slug}`}
                 className={cn(
-                  'font-medium text-sm hover:text-primary transition-colors',
+                  'font-semibold text-sm hover:text-primary transition-colors text-foreground',
                   item.is_checked && 'line-through text-muted-foreground',
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -103,7 +102,7 @@ export default function ShoppingListItemRow({
             ) : (
               <span
                 className={cn(
-                  'font-medium text-sm',
+                  'font-semibold text-sm text-foreground',
                   item.is_checked && 'line-through text-muted-foreground',
                 )}
               >
@@ -111,7 +110,7 @@ export default function ShoppingListItemRow({
               </span>
             )}
             {item.quantity_g > 0 && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-lg border border-border/40">
                 {formatQuantity(item.quantity_g, item.unit)}
               </span>
             )}
@@ -121,7 +120,7 @@ export default function ShoppingListItemRow({
           )}
           {/* Real-time checker indicator */}
           {showChecker && recentChecker && (
-            <p className="text-xs text-emerald-600 font-medium mt-0.5 animate-fade-in">
+            <p className="text-xs text-primary font-semibold mt-0.5 animate-fade-inUp">
               {recentChecker} hat abgehakt
             </p>
           )}
@@ -129,7 +128,7 @@ export default function ShoppingListItemRow({
 
         {/* Checked-by indicator */}
         {item.is_checked && item.checked_by_username && !showChecker && (
-          <span className="text-xs text-muted-foreground shrink-0">
+          <span className="text-xs font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-lg border border-border/40 shrink-0">
             {item.checked_by_username}
           </span>
         )}
@@ -137,15 +136,15 @@ export default function ShoppingListItemRow({
 
       {/* Expanded sources */}
       {sourcesExpanded && hasSources && (
-        <div className="pl-16 pr-2 pb-2 space-y-1">
+        <div className="pl-16 pr-2 pb-2.5 space-y-1.5">
           {item.sources.map((source, idx) => (
             <div key={idx} className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 font-medium">
                 <span className="text-muted-foreground/60">&#8226;</span>
                 {source.recipe_slug ? (
                   <Link
                     to={`/recipes/${source.recipe_slug}`}
-                    className="hover:text-primary transition-colors"
+                    className="hover:text-primary hover:underline transition-colors text-muted-foreground hover:text-foreground"
                   >
                     {source.recipe_name}
                   </Link>
@@ -153,10 +152,10 @@ export default function ShoppingListItemRow({
                   <span>{source.recipe_name}</span>
                 )}
                 {source.meal_label && (
-                  <span className="text-muted-foreground/60">({source.meal_label})</span>
+                  <span className="text-muted-foreground/60 font-normal">({source.meal_label})</span>
                 )}
               </div>
-              <span>{Math.round(source.quantity_g)} g</span>
+              <span className="font-semibold">{Math.round(source.quantity_g)} g</span>
             </div>
           ))}
         </div>

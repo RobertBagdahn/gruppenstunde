@@ -27,6 +27,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag } from 'lucide-react';
 
 export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -86,12 +87,12 @@ export default function ShoppingListDetailPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-2/3" />
-          <div className="h-6 bg-muted rounded w-1/3" />
-          <div className="h-3 bg-muted rounded" />
+          <div className="h-8 bg-muted rounded-xl w-2/3" />
+          <div className="h-6 bg-muted rounded-xl w-1/3" />
+          <div className="h-3 bg-muted rounded-xl" />
           <div className="space-y-2 mt-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-12 bg-muted rounded" />
+              <div key={i} className="h-12 bg-muted rounded-xl" />
             ))}
           </div>
         </div>
@@ -172,7 +173,7 @@ export default function ShoppingListDetailPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 py-8 font-sans">
       <ConfirmDialog
         open={showDeleteConfirm}
         onConfirm={() => {
@@ -197,75 +198,76 @@ export default function ShoppingListDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <BackButton to="/shopping-lists" />
-        <div className="border-l pl-3 flex-1 min-w-0">
+        <div className="border-l border-border pl-3 flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4">
-        {editingName ? (
-          <div className="flex items-center gap-2 flex-1">
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="flex-1 px-3 py-1.5 text-lg font-bold border rounded-lg bg-background"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveName();
-                if (e.key === 'Escape') setEditingName(false);
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleSaveName}
-              className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg"
-            >
-              OK
-            </button>
-          </div>
-        ) : (
-          <h1
-            className={cn(
-              'text-2xl font-bold',
-              isOwner && 'cursor-pointer hover:text-primary transition-colors',
+            {editingName ? (
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="flex-1 px-3.5 py-1.5 text-lg font-bold border border-border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') setEditingName(false);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveName}
+                  className="px-4 py-1.5 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-soft shrink-0"
+                >
+                  OK
+                </button>
+              </div>
+            ) : (
+              <h1
+                className={cn(
+                  'text-2xl font-display font-bold text-foreground',
+                  isOwner && 'cursor-pointer hover:text-primary transition-colors',
+                )}
+                onClick={() => {
+                  if (isOwner) {
+                    setEditName(list.name);
+                    setEditingName(true);
+                  }
+                }}
+                title={isOwner ? 'Klicken zum Bearbeiten' : undefined}
+              >
+                {list.name}
+              </h1>
             )}
-            onClick={() => {
-              if (isOwner) {
-                setEditName(list.name);
-                setEditingName(true);
-              }
-            }}
-            title={isOwner ? 'Klicken zum Bearbeiten' : undefined}
-          >
-            {list.name}
-          </h1>
-        )}
 
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Connection indicator */}
-          <div
-            className={cn(
-              'w-2 h-2 rounded-full',
-              isConnected ? 'bg-primary' : 'bg-muted-foreground/30',
-            )}
-            title={isConnected ? 'Verbunden' : 'Nicht verbunden'}
-          />
-          {isOwner && (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1 px-2 py-1.5 text-sm text-destructive border border-destructive/30 rounded-lg hover:bg-destructive/10 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[16px]">delete</span>
-            </button>
-          )}
-        </div>
+            <div className="flex items-center gap-3.5 shrink-0">
+              {/* Connection indicator */}
+              <div
+                className={cn(
+                  'w-2 h-2 rounded-full ring-4 shrink-0 transition-all',
+                  isConnected ? 'bg-primary ring-primary/20' : 'bg-muted-foreground/30 ring-muted/10',
+                )}
+                title={isConnected ? 'Verbunden' : 'Nicht verbunden'}
+              />
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center justify-center p-2 text-destructive border border-destructive/20 bg-card rounded-xl hover:bg-destructive/10 hover:border-destructive/30 transition-all shadow-soft"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Source info */}
-      <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
+      <div className="flex items-center gap-3 text-xs font-semibold text-muted-foreground mb-4 pl-8">
         <span>
           {SOURCE_TYPE_LABELS[list.source_type] ?? list.source_type}
         </span>
+        <span className="text-border/85">•</span>
         <span>von {list.owner_username}</span>
       </div>
 
@@ -274,27 +276,23 @@ export default function ShoppingListDetailPage() {
 
       {/* Items grouped by section */}
       {totalCount === 0 ? (
-        <div className="text-center py-8">
-          <span className="material-symbols-outlined text-4xl text-muted-foreground mb-2 block">
-            shopping_bag
-          </span>
-          <p className="text-muted-foreground text-sm">
+        <div className="text-center py-12 bg-card border border-border rounded-xl shadow-soft">
+          <ShoppingBag className="w-10 h-10 text-muted-foreground/80 mb-2.5 mx-auto" />
+          <p className="text-muted-foreground text-sm font-semibold">
             Diese Liste ist noch leer. Füge Einträge hinzu.
           </p>
         </div>
       ) : (
         <div className="space-y-6">
           {Object.entries(groupedItems).map(([section, items]) => (
-            <div key={section}>
+            <div key={section} className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-soft">
               {section && (
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[16px]">
-                    store
-                  </span>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5 border-b border-border/40 pb-2">
+                  <Store className="w-4 h-4 text-primary shrink-0" />
                   {section}
                 </h3>
               )}
-              <div className="divide-y">
+              <div className="divide-y divide-border/40 space-y-1">
                 {items.map((item) => (
                   <ShoppingListItemRow
                     key={item.id}
@@ -314,13 +312,13 @@ export default function ShoppingListDetailPage() {
       {canEdit && (
         <div className="mt-4">
           {showAddItem ? (
-            <div className="flex gap-2 p-3 bg-card rounded-xl border">
+            <div className="flex gap-2 p-3 bg-card rounded-xl border border-border shadow-soft">
               <input
                 type="text"
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
                 placeholder="Neuer Eintrag..."
-                className="flex-1 px-3 py-2 text-sm border rounded-lg bg-background"
+                className="flex-1 px-3.5 py-2 text-sm border border-border bg-background rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
                 autoFocus
               />
@@ -328,7 +326,7 @@ export default function ShoppingListDetailPage() {
                 type="button"
                 onClick={handleAddItem}
                 disabled={addItem.isPending || !newItemName.trim()}
-                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
               >
                 Hinzufügen
               </button>
@@ -338,7 +336,7 @@ export default function ShoppingListDetailPage() {
                   setShowAddItem(false);
                   setNewItemName('');
                 }}
-                className="px-3 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+                className="px-4 py-2 text-sm font-semibold border border-border bg-card rounded-xl hover:bg-muted transition-all shadow-soft"
               >
                 Abbrechen
               </button>
@@ -347,9 +345,9 @@ export default function ShoppingListDetailPage() {
             <button
               type="button"
               onClick={() => setShowAddItem(true)}
-              className="flex items-center gap-1.5 text-sm text-primary font-medium hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm text-primary font-bold hover:underline py-2"
             >
-              <span className="material-symbols-outlined text-[18px]">add</span>
+              <Plus className="w-4 h-4 stroke-[3px]" />
               Eintrag hinzufügen
             </button>
           )}
@@ -360,27 +358,25 @@ export default function ShoppingListDetailPage() {
       <KitchenReminderSection />
 
       {/* Collaborators section */}
-      <section className="mt-8 bg-card rounded-xl border p-5">
+      <section className="mt-8 bg-card rounded-xl border border-border p-5 shadow-soft">
         <button
           type="button"
           onClick={() => setShowCollaborators(!showCollaborators)}
           className="w-full flex items-center justify-between"
         >
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            <span className="material-symbols-outlined text-[18px]">group</span>
+          <h2 className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            <Users className="w-4 h-4 text-primary shrink-0" />
             Mitglieder ({collabs.length})
           </h2>
-          <span
+          <ChevronDown
             className={cn(
-              'material-symbols-outlined text-muted-foreground transition-transform duration-200',
+              'w-4 h-4 text-muted-foreground transition-transform duration-200',
               showCollaborators && 'rotate-180',
             )}
-          >
-            expand_more
-          </span>
+          />
         </button>
         {showCollaborators && (
-          <div className="mt-4">
+          <div className="mt-4 border-t border-border/40 pt-4">
             <CollaboratorManager
               listId={listId}
               collaborators={collabs}

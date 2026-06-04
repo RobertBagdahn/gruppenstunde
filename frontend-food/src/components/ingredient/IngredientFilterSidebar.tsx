@@ -95,8 +95,8 @@ export default function IngredientFilterSidebar({
 
         {/* Retail Section */}
         <div className="bg-card rounded-xl border p-4">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary mb-3">
-            <span className="material-symbols-outlined text-[18px]">store</span>
+          <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-3">
+            <span className="material-symbols-outlined text-muted-foreground text-[18px]">store</span>
             Abteilung
           </h3>
           <div className="space-y-1">
@@ -130,8 +130,8 @@ export default function IngredientFilterSidebar({
 
         {/* Status */}
         <div className="bg-card rounded-xl border p-4">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary mb-3">
-            <span className="material-symbols-outlined text-[18px]">verified</span>
+          <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-3">
+            <span className="material-symbols-outlined text-muted-foreground text-[18px]">verified</span>
             Status
           </h3>
           <div className="space-y-1">

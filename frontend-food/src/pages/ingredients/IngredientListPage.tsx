@@ -129,17 +129,17 @@ export default function IngredientListPage() {
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => navigate('/ingredients/new')}
-              className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-primary to-[hsl(174,60%,41%)] text-white text-sm font-medium hover:shadow-lg transition-all"
+              className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all shadow-soft"
             >
               <span className="material-symbols-outlined text-[16px]">add_circle</span>
               Neue Zutat
             </button>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-lg ml-auto">
-              <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="material-symbols-outlined text-muted-foreground text-[18px]">sort</span>
               <select
                 value={sort}
                 onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none font-medium"
+                className="px-3 py-1.5 rounded-xl border border-border text-sm bg-card text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium shadow-sm transition-all"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -157,7 +157,7 @@ export default function IngredientListPage() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border bg-gradient-to-br from-primary/5 via-muted/50 to-primary/10 animate-pulse h-40"
+                  className="rounded-2xl border border-border bg-muted/40 animate-pulse h-40"
                 />
               ))}
             </div>

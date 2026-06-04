@@ -35,7 +35,7 @@ import {
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Neueste' },
-  { value: 'oldest', label: 'Aelteste' },
+  { value: 'oldest', label: 'Älteste' },
   { value: 'name_asc', label: 'Name A-Z' },
 ];
 
@@ -175,7 +175,7 @@ function MealPlanListPageInner() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 font-sans">
       {/* Hero */}
       <ListPageHero
         title="Essenspläne"
@@ -191,7 +191,7 @@ function MealPlanListPageInner() {
       <div className="mb-4">
         <Link
           to="/tools/norm-portion-simulator"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/25 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 shadow-soft transition-all"
         >
           <Calculator className="w-4 h-4" />
           Norm-Portion-Simulator
@@ -211,12 +211,12 @@ function MealPlanListPageInner() {
 
       {/* Sort */}
       <div className="flex items-center justify-end mb-4">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-lg">
+        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
           <ArrowUpDown className="w-4 h-4 text-primary" />
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-medium"
+            className="px-3.5 py-1.5 rounded-xl border border-border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -252,14 +252,14 @@ function MealPlanListPageInner() {
             <div
               key={plan.id}
               onClick={() => navigate(`/meal-plans/${plan.id}`)}
-              className="group rounded-2xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer border-l-4 border-l-primary"
+              className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all cursor-pointer border-l-4 border-l-primary"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-display font-bold text-sm truncate group-hover:text-primary transition-colors">
+                  <h3 className="font-display font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
                     {plan.name}
                   </h3>
-                  <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-3 mt-3 text-xs font-semibold text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                       {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}
@@ -280,13 +280,14 @@ function MealPlanListPageInner() {
                   <DropdownMenuTrigger asChild>
                     <button
                       onClick={(e) => e.stopPropagation()}
-                      className="p-1 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                      className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
                     <DropdownMenuItem
+                      className="font-semibold text-xs"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDuplicateSourceId(plan.id);
@@ -300,7 +301,7 @@ function MealPlanListPageInner() {
                         e.stopPropagation();
                         setDeleteId(plan.id);
                       }}
-                      className="text-destructive focus:text-destructive"
+                      className="text-destructive focus:text-destructive font-semibold text-xs"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Löschen
@@ -315,62 +316,62 @@ function MealPlanListPageInner() {
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl border-border p-6 shadow-soft">
           <DialogHeader>
-            <DialogTitle>Neuen Essensplan erstellen</DialogTitle>
+            <DialogTitle className="font-display font-bold text-lg text-foreground">Neuen Essensplan erstellen</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">Name *</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name *</label>
               <input
                 type="text"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 placeholder="z.B. Sommerlager 2026"
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit)</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
               <input
                 type="datetime-local"
                 value={createStartDatetime}
                 onChange={(e) => setCreateStartDatetime(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Ende (Datum & Uhrzeit)</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
               <input
                 type="datetime-local"
                 value={createEndDatetime}
                 onChange={(e) => setCreateEndDatetime(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">Portionen (Personen)</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen)</label>
               <input
                 type="number"
                 min={1}
                 max={500}
                 value={createPortions}
                 onChange={(e) => setCreatePortions(Number(e.target.value))}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4 gap-2">
             <button
               onClick={() => setShowCreate(false)}
-              className="px-4 py-2 rounded-lg border text-sm hover:bg-muted transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all"
             >
               Abbrechen
             </button>
             <button
               onClick={handleCreate}
               disabled={!createName.trim() || createMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
             >
               {createMutation.isPending ? 'Erstelle...' : 'Erstellen'}
             </button>
@@ -380,59 +381,59 @@ function MealPlanListPageInner() {
 
       {/* Duplicate Dialog */}
       <Dialog open={duplicateSourceId !== null} onOpenChange={(open) => { if (!open) setDuplicateSourceId(null); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl border-border p-6 shadow-soft">
           <DialogHeader>
-            <DialogTitle>Plan aus Vorlage erstellen</DialogTitle>
+            <DialogTitle className="font-display font-bold text-lg text-foreground">Plan aus Vorlage erstellen</DialogTitle>
           </DialogHeader>
           {duplicateSource && (
-            <p className="text-sm text-muted-foreground">
-              Vorlage: <span className="font-medium">{duplicateSource.name}</span>
+            <p className="text-sm font-medium text-muted-foreground mt-1">
+              Vorlage: <span className="font-bold text-foreground">{duplicateSource.name}</span>
               {' '}({duplicateSource.meals_count} Mahlzeiten)
             </p>
           )}
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-3 mt-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Name *</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name *</label>
               <input
                 type="text"
                 value={duplicateName}
                 onChange={(e) => setDuplicateName(e.target.value)}
                 placeholder="z.B. Sommerlager 2026"
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit) *</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit) *</label>
               <input
                 type="datetime-local"
                 value={duplicateStart}
                 onChange={(e) => setDuplicateStart(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Portionen (Personen) *</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen) *</label>
               <input
                 type="number"
                 min={1}
                 max={500}
                 value={duplicatePortions}
                 onChange={(e) => setDuplicatePortions(e.target.value ? Number(e.target.value) : '')}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4 gap-2">
             <button
               onClick={() => setDuplicateSourceId(null)}
-              className="px-4 py-2 rounded-lg border text-sm hover:bg-muted transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all"
             >
               Abbrechen
             </button>
             <button
               onClick={handleDuplicate}
               disabled={!duplicateName.trim() || !duplicateStart || !duplicatePortions || duplicateMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
             >
               {duplicateMutation.isPending ? 'Erstelle...' : 'Erstellen'}
             </button>
@@ -445,9 +446,9 @@ function MealPlanListPageInner() {
         open={deleteId !== null}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
-        title="Essensplan loeschen?"
-        description="Der Essensplan und alle zugehoerigen Tage, Mahlzeiten und Rezeptzuordnungen werden unwiderruflich geloescht."
-        confirmLabel="Loeschen"
+        title="Essensplan löschen?"
+        description="Der Essensplan und alle zugehörigen Tage, Mahlzeiten und Rezeptzuordnungen werden unwiderruflich gelöscht."
+        confirmLabel="Löschen"
         loading={deleteMutation.isPending}
       />
     </div>

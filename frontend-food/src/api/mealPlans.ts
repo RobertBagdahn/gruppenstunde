@@ -22,6 +22,8 @@ import {
   type RecipePopularResponse,
   RecipeSuggestionsResponseSchema,
   type RecipeSuggestionsResponse,
+  type MealUpdateIn,
+  type CopyMealItemIn,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 
@@ -299,14 +301,7 @@ export function useUpdateMeal(mealPlanId: number) {
       ...body
     }: {
       mealId: number;
-      override_portions?: number | null;
-      note?: string | null;
-      note_is_published?: boolean | null;
-      day_part_factor?: number | null;
-      is_external?: boolean | null;
-      external_energy_kcal?: number | null;
-      external_cost_per_person?: number | null;
-    }) => patchJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/`, body, MealSchema),
+    } & MealUpdateIn) => patchJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/`, body, MealSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
     },
@@ -327,7 +322,7 @@ export function useScaleMealToTarget(mealPlanId: number) {
 export function useCopyMealItem(mealPlanId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, target_meal_id }: { itemId: number; target_meal_id: number | null }) =>
+    mutationFn: ({ itemId, target_meal_id }: { itemId: number } & CopyMealItemIn) =>
       postJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/copy/`, { target_meal_id }, MealItemSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });

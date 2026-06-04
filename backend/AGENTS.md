@@ -72,7 +72,7 @@ if not request.user.is_authenticated or not request.user.is_staff:
 
 ## GCP Kontext
 
-- **Bilder**: GCS Bucket (`gs://gruppenstunde-media/`)
+- **Bilder**: GCS Bucket (`gs://inspi-media/`)
 - **Datenbank**: Cloud SQL PostgreSQL 15 + pgvector
 - **AI**: Vertex AI Gemini Flash – ADC, keine API Keys
 - **Secrets**: Google Secret Manager

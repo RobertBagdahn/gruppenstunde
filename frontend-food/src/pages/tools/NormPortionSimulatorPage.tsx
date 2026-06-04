@@ -2,8 +2,6 @@ import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calculator, Info, BarChart3, ArrowLeftRight, Loader2, Flame, Scale, Utensils } from 'lucide-react';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -14,11 +12,14 @@ import {
   ReferenceDot,
   BarChart,
   Bar,
+  Line,
   ComposedChart,
 } from 'recharts';
 import { useNormPersonCalculation, useNormPersonCurves } from '@/api/normPerson';
 import { useNutritionSummary } from '@/api/mealPlans';
 import { useMealPlan } from '@/api/mealPlans';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { DgeReferencePoint } from '@/schemas/normPerson';
 import { cn } from '@/lib/utils';
 import { kjToKcal, getPalLabel } from '@/utils/nutritionUnits';
@@ -37,19 +38,19 @@ const PAL_OPTIONS = [
 const GENDER_OPTIONS = [
   { value: 'male', label: 'Männlich' },
   { value: 'female', label: 'Weiblich' },
-] as const;
+ ] as const;
 
 const CHART_COLORS = {
-  male: '#3b82f6',
-  female: '#ec4899',
-  reference: '#f59e0b',
-  dge_male: '#93c5fd',
-  dge_female: '#f9a8d4',
-  protein: '#10b981',
-  fat: '#f59e0b',
-  carbohydrate: '#6366f1',
-  fibre: '#8b5cf6',
-  ist: '#ef4444',
+  male: 'var(--chart-2, #3b82f6)',
+  female: 'var(--chart-4, #ec4899)',
+  reference: 'var(--chart-3, #f59e0b)',
+  dge_male: 'var(--chart-2, #3b82f6)',
+  dge_female: 'var(--chart-4, #ec4899)',
+  protein: 'var(--chart-1, #10b981)',
+  fat: 'var(--chart-3, #f59e0b)',
+  carbohydrate: 'var(--chart-5, #6366f1)',
+  fibre: 'var(--chart-2, #8b5cf6)',
+  ist: 'var(--chart-1, #10b981)',
 } as const;
 
 const DGE_BASE_PAL = 1.4;
@@ -130,14 +131,14 @@ function PalSelector({ value, onChange }: PalSelectorProps) {
 
 function ReferenceInfoCard() {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
       <div className="flex items-start gap-3">
-        <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <h4 className="text-sm font-bold text-amber-900 font-display">
+          <h4 className="text-sm font-bold text-foreground font-display">
             Referenz-Normperson
           </h4>
-          <p className="text-sm text-amber-800 mt-1">
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             15 Jahre, männlich, PAL 1.5 (moderat). Ein Normfaktor von 1.0
             entspricht dem Energiebedarf dieser Referenzperson. Werte über 1.0
             bedeuten höheren Bedarf, Werte unter 1.0 geringeren.
@@ -235,7 +236,7 @@ function MacroBreakdownChart({ dgePoints }: { dgePoints: DgeReferencePoint[] }) 
   if (!data.length) return null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
           <BarChart3 className="w-5 h-5 text-primary" />
@@ -345,7 +346,7 @@ function IstVsSollComparison({
   ];
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
           <ArrowLeftRight className="w-5 h-5 text-primary" />
@@ -395,7 +396,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
   const { data, isLoading, error } = useNormPersonCalculation(age, gender, pal);
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-border bg-muted/30">
         <h3 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
           <Calculator className="w-5 h-5 text-primary" />
@@ -406,32 +407,33 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
       <div className="p-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Age input */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="calculator-age" className="text-sm font-medium text-foreground">
               Alter (Jahre)
-            </label>
-            <input
+            </Label>
+            <Input
+              id="calculator-age"
               type="number"
               min={0}
               max={99}
               value={age ?? ''}
-              onChange={(e) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const v = e.target.value;
                 setAge(v === '' ? null : Math.min(99, Math.max(0, parseInt(v, 10))));
               }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
 
           {/* Gender select */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="calculator-gender" className="text-sm font-medium text-foreground">
               Geschlecht
-            </label>
+            </Label>
             <select
+              id="calculator-gender"
               value={gender}
               onChange={(e) => setGender(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               {GENDER_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -442,14 +444,15 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
           </div>
 
           {/* PAL select */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="calculator-pal" className="text-sm font-medium text-foreground">
               Aktivitätslevel (PAL)
-            </label>
+            </Label>
             <select
+              id="calculator-pal"
               value={pal}
               onChange={(e) => setPal(parseFloat(e.target.value))}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               {PAL_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -469,7 +472,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
         )}
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
             Fehler bei der Berechnung.
           </div>
         )}
@@ -514,9 +517,9 @@ function ResultCard({ label, value, highlight }: ResultCardProps) {
   return (
     <div
       className={cn(
-        'rounded-xl border px-3 py-2.5 text-center',
+        'rounded-xl border px-3 py-2.5 text-center transition-all',
         highlight
-          ? 'border-primary bg-primary/5'
+          ? 'border-primary bg-primary/5 shadow-sm'
           : 'border-border bg-muted/20',
       )}
     >
@@ -601,14 +604,14 @@ export default function NormPortionSimulatorPage() {
 
       {/* MealPlan context banner */}
       {mealPlanId && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <div className="flex items-start gap-3">
-            <Utensils className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <Utensils className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-sm font-semibold text-blue-900 font-display">
+              <h4 className="text-sm font-semibold text-foreground font-display">
                 Essensplan-Kontext aktiv
               </h4>
-              <p className="text-sm text-blue-800 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Ist vs. Soll Vergleich wird unten angezeigt basierend auf den
                 tatsächlichen Nährwerten des Essensplans.
               </p>
@@ -621,8 +624,8 @@ export default function NormPortionSimulatorPage() {
       <ReferenceInfoCard />
 
       {/* PAL Selector */}
-      <div>
-        <h2 className="text-base font-semibold text-foreground mb-2 font-display">
+      <div className="space-y-2">
+        <h2 className="text-base font-semibold text-foreground font-display">
           Aktivitätslevel (PAL)
         </h2>
         <PalSelector value={pal} onChange={handlePalChange} />
@@ -636,7 +639,7 @@ export default function NormPortionSimulatorPage() {
       )}
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+        <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-4 text-sm text-destructive">
           Daten konnten nicht geladen werden.
         </div>
       )}
@@ -645,7 +648,7 @@ export default function NormPortionSimulatorPage() {
       {curves && (
         <div className="space-y-6">
           {/* TDEE Chart with DGE overlay */}
-          <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-muted/30">
               <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
                 <Flame className="w-5 h-5 text-primary" />
@@ -733,7 +736,7 @@ export default function NormPortionSimulatorPage() {
           </div>
 
           {/* Norm Factor Chart */}
-          <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-muted/30">
               <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
                 <Scale className="w-5 h-5 text-primary" />
@@ -746,7 +749,7 @@ export default function NormPortionSimulatorPage() {
             <div className="p-4 overflow-x-auto">
               <div className="min-w-[400px]">
                 <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={curves.data_points}>
+                  <ComposedChart data={curves.data_points}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis
                       dataKey="age"
@@ -800,7 +803,7 @@ export default function NormPortionSimulatorPage() {
                         strokeWidth={2}
                       />
                     )}
-                  </LineChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>

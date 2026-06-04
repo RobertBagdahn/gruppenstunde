@@ -25,7 +25,7 @@ export default function AdminPage() {
 
   return (
     <div className="container py-6 space-y-6">
-      <h1 className="text-2xl font-bold">Stammdaten</h1>
+      <h1 className="text-2xl font-bold font-display">Stammdaten</h1>
 
       {/* Tab Navigation */}
       <div className="flex gap-1 border-b overflow-x-auto">

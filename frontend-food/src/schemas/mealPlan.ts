@@ -414,6 +414,26 @@ export const LinkMealInSchema = z.object({
 export type LinkMealIn = z.infer<typeof LinkMealInSchema>;
 
 // ==========================================================================
+// Meal Update / Actions Input
+// ==========================================================================
+
+export const MealUpdateInSchema = z.object({
+  override_portions: z.number().nullable().optional(),
+  note: z.string().nullable().optional(),
+  note_is_published: z.boolean().nullable().optional(),
+  day_part_factor: z.number().nullable().optional(),
+  is_external: z.boolean().nullable().optional(),
+  external_energy_kcal: z.number().nullable().optional(),
+  external_cost_per_person: z.number().nullable().optional(),
+});
+export type MealUpdateIn = z.infer<typeof MealUpdateInSchema>;
+
+export const CopyMealItemInSchema = z.object({
+  target_meal_id: z.number().nullable().optional(),
+});
+export type CopyMealItemIn = z.infer<typeof CopyMealItemInSchema>;
+
+// ==========================================================================
 // Backward compatibility re-exports
 // ==========================================================================
 

@@ -9,6 +9,7 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import ListPageHero from '@/components/shared/ListPageHero';
 
 export default function MyRecipesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -73,22 +74,27 @@ export default function MyRecipesPage() {
   const totalPages = data?.total_pages ?? 1;
 
   return (
-    <div className="container py-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-extrabold">Meine Rezepte</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {data?.total ?? 0} persönliche Rezepte
-          </p>
-        </div>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <div className="mb-4">
         <Link
           to="/recipes"
-          className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="w-4 h-4" />
           Alle Rezepte
         </Link>
       </div>
+
+      {/* Hero Header */}
+      <ListPageHero
+        title="Meine Rezepte"
+        description="Deine persönlichen Rezepte"
+        icon="menu_book"
+        gradientClasses="gradient-primary"
+        totalCount={data?.total}
+        countLabel="persönliches Rezept"
+        countIcon="menu_book"
+      />
 
       {recipes.length === 0 ? (
         <div className="text-center py-16 space-y-4 bg-card rounded-2xl border border-border p-8">
@@ -108,7 +114,7 @@ export default function MyRecipesPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {recipes.map((recipe) => (
               <div key={recipe.id} className="relative">
                 <RecipeCard recipe={recipe} />

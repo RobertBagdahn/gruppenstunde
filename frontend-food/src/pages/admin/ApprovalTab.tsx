@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useApprovalQueue, useApprovalAction, type ApprovalQueueItem } from '@/api/admin';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Check, X, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 
 export default function ApprovalTab() {
   const [page, setPage] = useState(1);
@@ -35,113 +39,150 @@ export default function ApprovalTab() {
   }
 
   if (error) {
-    return <p className="text-sm text-destructive">Fehler beim Laden: {error.message}</p>;
+    return (
+      <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+        Fehler beim Laden: {error.message}
+      </div>
+    );
   }
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Lade Freigaben...</p>;
+    return (
+      <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+        Lade Freigaben...
+      </div>
+    );
   }
 
   const items = data?.items ?? [];
   const recipeItems = items.filter((i) => i.content_type === 'recipe');
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Rezepte, die auf Freigabe warten ({recipeItems.length} offen).
-      </p>
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm text-muted-foreground">
+          Rezepte, die auf Freigabe warten ({recipeItems.length} offen).
+        </p>
+      </div>
 
-      {recipeItems.length === 0 && (
-        <p className="text-sm text-muted-foreground italic">Keine Rezepte zur Freigabe.</p>
-      )}
-
-      <div className="space-y-3">
-        {recipeItems.map((item) => (
-          <div key={`${item.content_type}-${item.object_id}`} className="border rounded-lg p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">{item.title}</p>
+      {recipeItems.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-border bg-card text-center text-muted-foreground">
+          <Inbox className="h-8 w-8 mb-2 text-muted-foreground/60" />
+          <p className="text-sm font-medium">Keine Rezepte zur Freigabe</p>
+          <p className="text-xs text-muted-foreground mt-1">Es liegen aktuell keine neuen Freigabeanfragen vor.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {recipeItems.map((item) => (
+            <div
+              key={`${item.content_type}-${item.object_id}`}
+              className="bg-card rounded-xl border border-border p-5 space-y-4 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+            >
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-base font-display text-foreground leading-snug line-clamp-1">
+                    {item.title}
+                  </h3>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  von {item.author ?? 'Unbekannt'} &middot; {new Date(item.submitted_at).toLocaleDateString('de-DE')}
+                  von <span className="font-medium text-foreground">{item.author ?? 'Unbekannt'}</span> &middot; {new Date(item.submitted_at).toLocaleDateString('de-DE')}
                 </p>
+                {item.summary && (
+                  <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                    {item.summary}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-border">
+                <Button
+                  size="sm"
+                  onClick={() => handleApprove(item)}
+                  disabled={approvalAction.isPending}
+                  className="flex-1 gap-1.5"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Freigeben
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRejectItem(item)}
+                  disabled={approvalAction.isPending}
+                  className="flex-1 gap-1.5 border-destructive/30 hover:border-destructive text-destructive hover:bg-destructive/5"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Ablehnen
+                </Button>
               </div>
             </div>
-            {item.summary && (
-              <p className="text-xs text-muted-foreground line-clamp-2">{item.summary}</p>
-            )}
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleApprove(item)}
-                disabled={approvalAction.isPending}
-                className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-50"
-              >
-                Freigeben
-              </button>
-              <button
-                onClick={() => setRejectItem(item)}
-                disabled={approvalAction.isPending}
-                className="px-3 py-1.5 text-xs font-medium rounded-md border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
-              >
-                Ablehnen
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       {data && data.total_pages > 1 && (
-        <div className="flex gap-2 pt-2">
-          <button
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-3 py-1 text-xs border rounded disabled:opacity-50"
+            className="gap-1"
           >
+            <ChevronLeft className="h-4 w-4" />
             Zurück
-          </button>
-          <span className="text-xs py-1">Seite {page} / {data.total_pages}</span>
-          <button
+          </Button>
+          <span className="text-xs text-muted-foreground font-medium">
+            Seite {page} von {data.total_pages}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setPage((p) => p + 1)}
             disabled={page >= data.total_pages}
-            className="px-3 py-1 text-xs border rounded disabled:opacity-50"
+            className="gap-1"
           >
             Weiter
-          </button>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
 
       {/* Reject Dialog */}
-      {rejectItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-xl p-6 w-full max-w-md space-y-4">
-            <h3 className="font-semibold">Rezept ablehnen</h3>
-            <p className="text-sm text-muted-foreground">
-              „{rejectItem.title}" wird abgelehnt. Bitte gib einen Grund an.
+      <Dialog open={!!rejectItem} onOpenChange={(open) => !open && setRejectItem(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Rezept ablehnen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              „<span className="font-medium text-foreground">{rejectItem?.title}</span>“ wird abgelehnt. Bitte gib einen Grund für die Ablehnung an.
             </p>
-            <textarea
+            <Textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Grund für die Ablehnung..."
-              className="w-full border rounded-lg p-3 text-sm min-h-[80px]"
+              className="min-h-[100px] resize-none"
             />
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { setRejectItem(null); setRejectReason(''); }}
-                className="px-4 py-2 text-sm border rounded-lg"
-              >
-                Abbrechen
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={!rejectReason.trim() || approvalAction.isPending}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-              >
-                Ablehnen
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => { setRejectItem(null); setRejectReason(''); }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={!rejectReason.trim() || approvalAction.isPending}
+            >
+              Ablehnen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

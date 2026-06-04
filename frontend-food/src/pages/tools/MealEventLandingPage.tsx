@@ -55,8 +55,8 @@ export default function MealPlanLandingPage() {
 
           {/* Related Tool: Normportion-Simulator */}
           <div className="rounded-2xl border border-border bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-100 shrink-0">
-              <Calculator className="w-5 h-5 text-violet-600" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
+              <Calculator className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
               <h3 className="text-base font-bold font-display mb-0.5">Normportion-Simulator</h3>
@@ -66,7 +66,7 @@ export default function MealPlanLandingPage() {
             </div>
             <Link
               to="/tools/norm-portion-simulator"
-              className="shrink-0 flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold hover:scale-105 transition-all"
+              className="shrink-0 flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-full text-sm font-bold hover:scale-105 transition-all"
             >
               <ExternalLink className="w-4 h-4" />
               Zum Simulator

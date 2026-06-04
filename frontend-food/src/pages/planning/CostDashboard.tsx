@@ -4,6 +4,7 @@ import { Wallet, AlertCircle, Info, Utensils, Lightbulb } from 'lucide-react';
 import { useMealPlanCosts } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import SollIstBar from '@/components/shared/SollIstBar';
+import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 
 interface CostDashboardProps {
   mealPlanId: number;
@@ -21,15 +22,15 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-24 bg-muted rounded-lg animate-pulse" />
-        <div className="h-48 bg-muted rounded-lg animate-pulse" />
+        <div className="h-24 bg-muted rounded-xl animate-pulse" />
+        <div className="h-48 bg-muted rounded-xl animate-pulse" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8 text-destructive">
+      <div className="text-center py-8 text-destructive font-sans">
         Fehler beim Laden der Kostendaten.
       </div>
     );
@@ -56,12 +57,12 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
     : 'green';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <div className="flex justify-end">
         <button
           type="button"
           onClick={() => setShowPerPortion(!showPerPortion)}
-          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium"
+          className="text-xs px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all font-semibold shadow-soft"
         >
           {showPerPortion ? 'Gesamt anzeigen' : `Pro Portion (${data.norm_portions})`}
         </button>
@@ -81,8 +82,8 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
 
       {/* Budget relative progress bar */}
       {hasBudget && (
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="text-sm font-semibold flex items-center gap-2 mb-2 font-display">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-5 shadow-soft">
+          <h3 className="text-sm font-bold flex items-center gap-2 mb-3 font-display text-foreground">
             <Wallet className="w-4 h-4 text-primary" />
             Budget-Auslastung (pro Person/Tag)
           </h3>
@@ -101,17 +102,17 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
 
       {/* Incomplete data warning */}
       {isIncomplete && (
-        <div className={`flex items-start gap-2 p-3 border rounded-lg text-sm ${
+        <div className={`flex items-start gap-3 p-4 border rounded-xl text-sm shadow-soft ${
           coverage < 50
             ? 'bg-destructive/10 border-destructive/20 text-destructive'
-            : 'bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]'
+            : 'bg-accent/10 border-accent/20 text-accent-foreground'
         }`}>
           {coverage < 50 ? (
-            <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+            <AlertCircle className="w-4.5 h-4.5 text-destructive shrink-0 mt-0.5" />
           ) : (
-            <Info className="w-4 h-4 text-[hsl(var(--chart-4))] shrink-0 mt-0.5" />
+            <Info className="w-4.5 h-4.5 text-accent shrink-0 mt-0.5" />
           )}
-          <span>
+          <span className="font-medium">
             Geschätzte Kosten — {data.priced_ingredients} von {data.total_ingredients} Zutaten haben einen Preis ({coverage}% Abdeckung).
           </span>
         </div>
@@ -119,8 +120,8 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
 
       {/* Recipe costs */}
       {data.recipes.length > 0 && (
-        <div className="rounded-2xl border border-border bg-muted/30 p-5">
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-4 font-display">
+        <div className="rounded-xl border border-border bg-muted/30 p-5">
+          <h3 className="text-lg font-bold flex items-center gap-2 mb-4 font-display text-foreground">
             <Utensils className="w-5 h-5 text-primary" />
             Rezeptkosten {showPerPortion ? '(pro Portion)' : '(gesamt)'}
           </h3>
@@ -132,17 +133,17 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
                 <Link
                   key={recipe.recipe_id}
                   to={`/recipes/${recipe.recipe_slug}`}
-                  className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-white hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-card hover:bg-muted/40 hover:border-primary/20 transition-all shadow-soft"
                 >
-                  <span className="text-sm font-medium truncate">{recipe.recipe_title}</span>
+                  <span className="text-sm font-semibold truncate text-foreground">{recipe.recipe_title}</span>
                   {hasNoPrice ? (
-                    <span className="text-xs text-muted-foreground ml-2">Keine Preise</span>
+                    <span className="text-xs font-semibold text-muted-foreground ml-2">Keine Preise</span>
                   ) : isPartial ? (
-                    <span className="text-sm tabular-nums text-[hsl(var(--chart-4))] ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
+                    <span className="text-sm font-semibold tabular-nums text-accent ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
                       ~{formatEur(showPerPortion ? recipe.cost_per_person : recipe.total_cost)}
                     </span>
                   ) : (
-                    <span className="text-sm font-semibold tabular-nums text-primary ml-2">
+                    <span className="text-sm font-bold tabular-nums text-primary ml-2">
                       {formatEur(showPerPortion ? recipe.cost_per_person : recipe.total_cost)}
                     </span>
                   )}
@@ -153,72 +154,80 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
         </div>
       )}
 
-      {/* Daily breakdown table */}
+      {/* Daily breakdown list */}
       {data.days.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Tag</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground">Gesamt</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground">Pro Person</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground hidden sm:table-cell">Mahlzeiten</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.days.map((day) => {
-                const d = new Date(day.date);
-                const dateLabel = d.toLocaleDateString('de-DE', {
-                  weekday: 'short',
-                  day: '2-digit',
-                  month: '2-digit',
-                });
-                return (
-                  <tr key={day.date} className="border-b hover:bg-muted/50">
-                    <td className="px-3 py-2 font-medium">{dateLabel}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{day.total_cost > 0 ? formatEur(day.total_cost) : '–'}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{day.cost_per_person > 0 ? formatEur(day.cost_per_person) : '–'}</td>
-                    <td className="px-3 py-2 hidden sm:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {day.meals.map((meal) => (
-                          <span
-                            key={meal.meal_id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-xs"
-                          >
-                            <span>{MEAL_TYPE_LABELS[meal.meal_type] ?? meal.meal_type}</span>
-                            <span className="text-muted-foreground">
-                              {meal.cost > 0
-                                ? formatEur(showPerPortion ? meal.cost_per_person : meal.cost)
-                                : '–'}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 font-medium">
-                <td className="px-3 py-2">Gesamt</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatEur(data.total_cost)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatEur(data.cost_per_person)}</td>
-                <td className="px-3 py-2 hidden sm:table-cell" />
-              </tr>
-            </tfoot>
-          </table>
+        <div className="space-y-3.5">
+          <h3 className="text-lg font-bold font-display text-foreground flex items-center gap-2">
+            Tagesübersicht
+          </h3>
+          <CardTable>
+            {data.days.map((day) => {
+              const d = new Date(day.date + 'T00:00:00');
+              const weekday = d.toLocaleDateString('de-DE', { weekday: 'long' });
+              const dateLabel = d.toLocaleDateString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              });
+              return (
+                <DataCardRow key={day.date} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 md:p-5">
+                  {/* Tag Info */}
+                  <div className="flex flex-col min-w-[120px]">
+                    <span className="font-display font-bold text-base text-foreground">
+                      {weekday}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {dateLabel}
+                    </span>
+                  </div>
+
+                  {/* Meals */}
+                  <div className="flex flex-wrap gap-2 flex-grow md:justify-start">
+                    {day.meals.map((meal) => (
+                      <span
+                        key={meal.meal_id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/60 border border-border/40 rounded-lg text-xs font-medium"
+                      >
+                        <span className="text-foreground font-semibold">{MEAL_TYPE_LABELS[meal.meal_type] ?? meal.meal_type}</span>
+                        <span className="text-muted-foreground">
+                          {meal.cost > 0
+                            ? formatEur(showPerPortion ? meal.cost_per_person : meal.cost)
+                            : '–'}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Costs */}
+                  <div className="flex items-center gap-6 border-t border-border/40 pt-3 md:pt-0 md:border-0 justify-between md:justify-end w-full md:w-auto shrink-0">
+                    <div className="text-right">
+                      <span className="block text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Gesamt</span>
+                      <span className="text-sm font-bold tabular-nums text-foreground">
+                        {day.total_cost > 0 ? formatEur(day.total_cost) : '–'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="block text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Pro Person</span>
+                      <span className="text-sm font-bold tabular-nums text-primary">
+                        {day.cost_per_person > 0 ? formatEur(day.cost_per_person) : '–'}
+                      </span>
+                    </div>
+                  </div>
+                </DataCardRow>
+              );
+            })}
+          </CardTable>
         </div>
       )}
 
       {/* Hinweis-Banner */}
-      <div className="rounded-2xl border border-[hsl(var(--chart-4))]/20 bg-[hsl(var(--chart-4))]/10 p-4 flex items-start gap-3">
-        <Lightbulb className="text-[hsl(var(--chart-4))] w-5 h-5 shrink-0 mt-0.5" />
+      <div className="rounded-xl border border-accent/20 bg-accent/10 p-4 flex items-start gap-3 shadow-soft">
+        <Lightbulb className="text-accent w-5 h-5 shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold text-[hsl(var(--chart-4))] font-display">Preise verwalten</p>
-          <p className="text-sm text-[hsl(var(--chart-4))]/80">
+          <p className="font-bold text-accent font-display text-sm">Preise verwalten</p>
+          <p className="text-xs font-semibold text-accent-foreground/80 mt-0.5 leading-relaxed">
             Zutatenpreise kannst du in der{' '}
-            <Link to="/ingredients" className="font-semibold underline hover:no-underline text-[hsl(var(--chart-4))]">
+            <Link to="/ingredients" className="font-bold underline hover:no-underline text-accent">
               Zutatendatenbank
             </Link>{' '}
             hinterlegen.
@@ -231,9 +240,9 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-card p-3 text-center">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
-      <div className="text-lg font-semibold tabular-nums">{value}</div>
+    <div className="rounded-xl border border-border bg-card p-4 text-center shadow-soft transition-all hover:shadow-md">
+      <div className="text-xs font-semibold text-muted-foreground mb-1.5 leading-snug">{label}</div>
+      <div className="text-lg font-bold font-display text-foreground tabular-nums">{value}</div>
     </div>
   );
 }

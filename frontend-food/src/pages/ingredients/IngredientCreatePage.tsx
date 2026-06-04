@@ -18,8 +18,8 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border rounded-lg p-4 bg-card">
-      <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
+    <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+      <h2 className="text-sm font-display font-bold text-foreground mb-4 flex items-center gap-2">
         <span className="material-symbols-outlined text-primary text-lg">{icon}</span>
         {title}
       </h2>
@@ -187,7 +187,7 @@ export default function IngredientCreatePage() {
         Alle Zutaten
       </button>
 
-      <h1 className="text-2xl font-bold mb-6 flex items-center gap-3">
+      <h1 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center gap-3">
         <span className="material-symbols-outlined text-primary text-2xl">egg_alt</span>
         Neue Zutat erstellen
       </h1>

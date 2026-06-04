@@ -1,6 +1,7 @@
 import { useMealPlanSuggestions } from '@/api/suggestions';
 import SuggestionCard from './SuggestionCard';
 import SuggestionBadge from './SuggestionBadge';
+import { Loader2, AlertTriangle, ThumbsUp } from 'lucide-react';
 
 interface SuggestionDashboardProps {
   mealPlanId: number;
@@ -11,18 +12,18 @@ export default function SuggestionDashboard({ mealPlanId }: SuggestionDashboardP
 
   if (isLoading) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <span className="material-symbols-outlined text-4xl mb-2 block animate-spin">progress_activity</span>
-        <p>Vorschläge werden geladen…</p>
+      <div className="text-center py-12 text-muted-foreground flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+        <p className="text-sm font-medium">Vorschläge werden geladen…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8 text-red-600">
-        <span className="material-symbols-outlined text-4xl mb-2 block">error</span>
-        <p>Fehler beim Laden der Vorschläge</p>
+      <div className="text-center py-12 text-destructive flex flex-col items-center justify-center">
+        <AlertTriangle className="w-8 h-8 mb-3" />
+        <p className="text-sm font-semibold font-display">Fehler beim Laden der Vorschläge</p>
       </div>
     );
   }
@@ -33,10 +34,10 @@ export default function SuggestionDashboard({ mealPlanId }: SuggestionDashboardP
 
   if (nonGreenSuggestions.length === 0) {
     return (
-      <div className="text-center py-8 text-green-600">
-        <span className="material-symbols-outlined text-4xl mb-2 block">thumb_up</span>
-        <p className="font-medium">Alles gut!</p>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="text-center py-12 text-primary flex flex-col items-center justify-center bg-primary/[0.02] border border-primary/10 rounded-2xl p-6">
+        <ThumbsUp className="w-8 h-8 mb-3 text-primary opacity-80" />
+        <p className="font-bold font-display text-sm tracking-tight">Alles gut!</p>
+        <p className="text-xs text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
           Keine Verbesserungsvorschläge für diesen Essensplan.
         </p>
       </div>
@@ -45,8 +46,8 @@ export default function SuggestionDashboard({ mealPlanId }: SuggestionDashboardP
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Vorschläge</h3>
+      <div className="flex items-center justify-between border-b border-border/60 pb-2">
+        <h3 className="font-bold font-display text-sm text-foreground tracking-tight">Vorschläge</h3>
         <SuggestionBadge
           summaryStatus={data.summary_status}
           nonGreenCount={data.red_count + data.yellow_count}

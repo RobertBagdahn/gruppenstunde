@@ -46,22 +46,22 @@ export default function SollIstBar({
   // Status colors
   const statusColors = {
     green: {
-      bar: 'bg-emerald-500',
-      text: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-100 dark:bg-emerald-950/30',
-      border: 'border-emerald-300 dark:border-emerald-800',
+      bar: 'bg-primary',
+      text: 'text-primary',
+      bg: 'bg-primary/10',
+      border: 'border-primary/20',
     },
     yellow: {
-      bar: 'bg-amber-500',
-      text: 'text-amber-600 dark:text-amber-400',
-      bg: 'bg-amber-100 dark:bg-amber-950/30',
-      border: 'border-amber-300 dark:border-amber-800',
+      bar: 'bg-[hsl(var(--chart-2))]',
+      text: 'text-[hsl(var(--chart-2))]',
+      bg: 'bg-[hsl(var(--chart-2))]/10',
+      border: 'border-[hsl(var(--chart-2))]/20',
     },
     red: {
-      bar: 'bg-rose-500',
-      text: 'text-rose-600 dark:text-rose-400',
-      bg: 'bg-rose-100 dark:bg-rose-950/30',
-      border: 'border-rose-300 dark:border-rose-800',
+      bar: 'bg-destructive',
+      text: 'text-destructive',
+      bg: 'bg-destructive/10',
+      border: 'border-destructive/20',
     },
   };
 
@@ -94,11 +94,11 @@ export default function SollIstBar({
         </span>
       </div>
 
-      <div className="relative h-2.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+      <div className="relative h-2.5 w-full bg-muted rounded-full overflow-hidden">
         {/* Underlay representing the target green zone */}
         {maxGreenPct !== null && (
           <div
-            className="absolute top-0 bottom-0 bg-emerald-100 dark:bg-emerald-950/40 opacity-70"
+            className="absolute top-0 bottom-0 bg-primary/20 opacity-70"
             style={{
               left: `${minGreenPct ?? 0}%`,
               width: `${maxGreenPct - (minGreenPct ?? 0)}%`,
@@ -109,7 +109,7 @@ export default function SollIstBar({
         {/* Ideal center/midpoint indicator */}
         {targetMidPct !== null && (
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-slate-400 dark:bg-slate-500 z-10 opacity-80"
+            className="absolute top-0 bottom-0 w-0.5 bg-muted-foreground/50 z-10 opacity-80"
             style={{ left: `${targetMidPct}%` }}
             title="Zielwert"
           />

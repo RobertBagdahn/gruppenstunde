@@ -33,6 +33,8 @@ Interactive, step-by-step deployment for the Inspi platform to Google Cloud Run.
 | Frontend Service | `inspi-frontend` |
 | Frontend Food Service | `inspi-frontend-food` |
 
+**Region split:** Backend and main frontend run in `europe-west3`. The Food Frontend runs in `europe-west1`.
+
 ---
 
 ## Critical Learnings
@@ -215,7 +217,7 @@ gcloud run deploy inspi-backend \
   --port 8000 \
   --cpu 1 --memory 512Mi \
   --min-instances 0 --max-instances 10 \
-  --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,GOOGLE_CLOUD_PROJECT=inspi-441320,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,GOOGLE_CLOUD_PROJECT=inspi-441320,GCS_BUCKET_NAME=inspi-media,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
   --set-secrets "DB_PASSWORD=prod_db_password:latest" \
   --allow-unauthenticated
 ```
@@ -242,12 +244,64 @@ DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python ma
 gcloud run jobs execute inspi-migrate --region europe-west3 --wait
 ```
 
-### Phase 5: Deploy Frontend
+### Phase 5: Create Users
+
+Ask: "Sollen Benutzer angelegt werden?"
+
+Uses the `add_users` management command to create initial users. Requires Cloud SQL Proxy or a Cloud Run Job.
+
+**Option A: Via Cloud SQL Proxy (local)**
+
+```bash
+# Start proxy if not running (if not already running)
+cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
+
+# Run add_users
+DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py add_users
+```
+
+**Option B: Via Cloud Run Jobs**
+
+```bash
+gcloud run jobs execute inspi-add-users --region europe-west3 --wait
+```
+
+The `add_users` command creates:
+- Superuser (admin)
+- Test users for development
+
+### Phase 6: Seed Database
+
+Ask: "Soll die Datenbank geseedet werden?"
+
+Uses the `seed_all` management command to seed initial/test data. Requires Cloud SQL Proxy or a Cloud Run Job.
+
+**Option A: Via Cloud SQL Proxy (local)**
+
+```bash
+# Start proxy if not running (if not already running)
+cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
+
+# Run seed_all
+DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py seed_all
+```
+
+**Option B: Via Cloud Run Jobs**
+
+```bash
+gcloud run jobs execute inspi-seed --region europe-west3 --wait
+```
+
+The `seed_all` command seeds:
+- Content (sessions, blogs, games, materials)
+- Recipes, events, and planner data
+
+### Phase 7: Deploy Frontend
 
 Ask: "Frontend deployen? (build + push + deploy)" — proceed only on confirmation.
 
 ```bash
-# 5.1 Build via Cloud Build with VITE_API_URL baked in
+# 7.1 Build via Cloud Build with VITE_API_URL baked in
 BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
 
 cat > /tmp/cloudbuild-frontend.yaml <<EOF
@@ -259,24 +313,24 @@ images:
 EOF
 gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=europe-west3 .
 
-# 5.2 Deploy (minimal flags)
+# 7.2 Deploy (minimal flags)
 gcloud run deploy inspi-frontend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest \
   --region europe-west3
 
-# 5.3 Verify
+# 7.3 Verify
 FRONTEND_URL=$(gcloud run services describe inspi-frontend --region=europe-west3 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_URL}/"
 ```
 
 Expected: HTTP 200.
 
-### Phase 6: Deploy Frontend Food
+### Phase 8: Deploy Frontend Food
 
 Ask: "Food Frontend deployen? (build + push + deploy)" — proceed only on confirmation.
 
 ```bash
-# 6.1 Build via Cloud Build with VITE_API_URL baked in
+# 8.1 Build via Cloud Build with VITE_API_URL baked in
 BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
 
 cat > /tmp/cloudbuild-frontend-food.yaml <<EOF
@@ -288,34 +342,19 @@ images:
 EOF
 gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=europe-west3 .
 
-# 6.2 Deploy (minimal flags)
+# 8.2 Deploy to the Food Frontend region (minimal flags)
 gcloud run deploy inspi-frontend-food \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest \
   --region europe-west1
 
-# 6.3 Verify
+# 8.3 Verify
 FRONTEND_FOOD_URL=$(gcloud run services describe inspi-frontend-food --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_FOOD_URL}/"
 ```
 
 Expected: HTTP 200.
 
-### Phase 7: Create Users
-
-Ask: "Sollen Benutzer angelegt werden?"
-
-Uses the `add_users` management command to create initial users. Requires Cloud SQL Proxy or a Cloud Run Job.
-
-```bash
-# Via Cloud SQL Proxy (local)
-DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py add_users
-```
-
-The `add_users` command creates:
-- Superuser (admin)
-- Test users for development
-
-### Phase 8: Post-Deploy Summary
+### Phase 9: Post-Deploy Summary
 
 ```bash
 gcloud run services list --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"
@@ -349,9 +388,10 @@ Deployment Complete:
 
 The user can request partial deploys:
 - "nur backend" → Only Phase 3
-- "nur frontend" → Only Phase 5+6
+- "nur frontend" → Only Phase 7+8
 - "nur checks" → Only Phase 1+2
 - "nur migrations" → Only Phase 4
-- "nur users" → Only Phase 7
+- "nur users" → Only Phase 5
+- "nur seeding" → Only Phase 6
 
 Adapt accordingly.
