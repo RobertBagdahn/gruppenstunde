@@ -14,7 +14,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
-import { MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
 import { kjToKcal } from '@/utils/nutritionUnits';
 import { cn } from '@/lib/utils';
 import RecipeSearchDialog from './RecipeSearchDialog';
@@ -67,8 +67,6 @@ interface TableViewProps {
   onUnlinkMeal?: (mealId: number) => void;
   onLinkMeal?: (mealId: number, mealType: string) => void;
 }
-
-const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'];
 
 export default function TableView({
   meals,

@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +19,7 @@ interface CopyMealItemDialogProps {
   isPending: boolean;
 }
 
-/** Group a flat list of meals by date (from start_datetime), preserving sort order. */
+/** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
   const groups: Record<string, Meal[]> = {};
   for (const meal of meals) {
@@ -34,7 +34,16 @@ function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
   }
   return Object.entries(groups)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, meals]) => ({ date, meals }));
+    .map(([date, meals]) => ({
+      date,
+      meals: meals.sort((a, b) => {
+        const getOrder = (mt: string) => {
+          const idx = MEAL_TYPE_ORDER.indexOf(mt as typeof MEAL_TYPE_ORDER[number]);
+          return idx === -1 ? 999 : idx;
+        };
+        return getOrder(a.meal_type) - getOrder(b.meal_type);
+      }),
+    }));
 }
 
 export function CopyMealItemDialog({ open, onOpenChange, onConfirm, meals, isPending }: CopyMealItemDialogProps) {

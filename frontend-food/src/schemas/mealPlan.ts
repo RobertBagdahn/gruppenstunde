@@ -262,6 +262,8 @@ export type UnifiedSearchResponse = z.infer<typeof UnifiedSearchResponseSchema>;
 // Meal Type Labels (German)
 // ==========================================================================
 
+export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'] as const;
+
 export const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
   lunch: 'Mittagessen',

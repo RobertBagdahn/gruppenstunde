@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Link2 } from 'lucide-react';
 import { MealSlot } from './MealSlot';
-import { MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import { kjToKcal } from '@/utils/nutritionUnits';
 import EmptyState from '@/components/shared/EmptyState';
@@ -67,7 +67,6 @@ export function DayPlanView({
     return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'];
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
 
   return (
@@ -173,7 +172,7 @@ export function DayPlanView({
               {canEdit && (
                 <div className="px-4 py-2 border-t bg-muted/30">
                   <div className="flex flex-wrap gap-1">
-                    {mealTypes
+                    {MEAL_TYPE_ORDER
                       .filter((mt) => !group.meals.some((m) => m.meal_type === mt))
                       .map((mt) => (
                         <button

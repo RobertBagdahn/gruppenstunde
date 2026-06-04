@@ -289,7 +289,7 @@ class Meal(models.Model):
     class Meta:
         verbose_name = _("Mahlzeit")
         verbose_name_plural = _("Mahlzeiten")
-        ordering = ["start_datetime", "meal_type"]
+        ordering = ["start_datetime"]
         constraints = [
             models.UniqueConstraint(
                 fields=["meal_plan", "meal_type"],
