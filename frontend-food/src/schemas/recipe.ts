@@ -157,7 +157,6 @@ export const RECIPE_TYPE_OPTIONS = [
   { value: 'cold_meal', label: 'Kalte Mahlzeit', icon: 'takeout_dining' },
   { value: 'dessert', label: 'Nachtisch', icon: 'cake' },
   { value: 'side_dish', label: 'Beilage', icon: 'rice_bowl' },
-  { value: 'snack', label: 'Snack', icon: 'cookie' },
   { value: 'drink', label: 'Getränk', icon: 'local_cafe' },
 ] as const;
 

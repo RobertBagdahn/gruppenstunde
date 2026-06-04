@@ -372,6 +372,8 @@ export const IngredientSuggestAllSchema = z.object({
   durability_in_days: z.number().nullable(),
   max_storage_temperature: z.number().nullable(),
 
+  price_per_kg: z.number().nullable(),
+
   portions: z.array(PortionSuggestionSchema).default([]),
   aliases: z.array(z.string()).default([]),
 });

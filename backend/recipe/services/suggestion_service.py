@@ -30,14 +30,14 @@ MEAL_TYPE_TO_RECIPE_TYPE = {
     "breakfast": "breakfast",
     "lunch": "warm_meal",
     "dinner": "warm_meal",
-    "snack": "snack",
+    "snack": "simple_meal",
 }
 
 MEAL_TYPE_LABELS = {
     "breakfast": "Frühstück",
     "lunch": "Mittagessen",
     "dinner": "Abendessen",
-    "snack": "Snack",
+    "snack": "Snack",  # kept for backward compat — recipe type maps to simple_meal
 }
 
 

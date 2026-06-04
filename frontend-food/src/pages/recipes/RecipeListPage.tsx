@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
-import { useRecipes, useDeleteRecipe } from '@/api/recipes';
+import { useRecipes, useDeleteRecipe, useForkRecipe } from '@/api/recipes';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeFilterSidebar from '@/components/recipe/RecipeFilterSidebar';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -11,6 +11,13 @@ import Pagination from '@/components/shared/Pagination';
 import ListPageHero from '@/components/shared/ListPageHero';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import EmptyState from '@/components/shared/EmptyState';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 const DEFAULT_FILTERS: Partial<RecipeFilter> = {
@@ -71,9 +78,12 @@ export default function RecipeListPage() {
   const [filters, setFilters] = useState<Partial<RecipeFilter>>(DEFAULT_FILTERS);
   const [searchInput, setSearchInput] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
+  const [cloneTarget, setCloneTarget] = useState<{ id: number; title: string } | null>(null);
+  const [cloneTitle, setCloneTitle] = useState('');
 
   const { data, isLoading, error, refetch } = useRecipes(filters);
   const deleteRecipe = useDeleteRecipe();
+  const forkRecipe = useForkRecipe(cloneTarget?.id ?? 0);
 
   // On mount: read URL params
   useEffect(() => {
@@ -207,6 +217,10 @@ export default function RecipeListPage() {
                   canDelete={recipe.can_delete}
                   onEdit={() => navigate(`/recipes/${recipe.slug}`)}
                   onDelete={() => setDeleteTarget({ id: recipe.id, title: recipe.title })}
+                  onClone={() => {
+                    setCloneTarget({ id: recipe.id, title: recipe.title });
+                    setCloneTitle(`${recipe.title} (Kopie)`);
+                  }}
                 />
               ))}
             </div>
@@ -220,6 +234,71 @@ export default function RecipeListPage() {
           />
         </div>
       </div>
+
+      {/* Clone Dialog */}
+      <Dialog open={!!cloneTarget} onOpenChange={(open) => { if (!open) setCloneTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <span className="material-symbols-outlined text-primary">content_copy</span>
+              Rezept clonen
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Erstelle eine persönliche Kopie dieses Rezepts. Du kannst sie danach frei bearbeiten.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <label className="block text-sm font-medium">Name für die Kopie</label>
+            <input
+              type="text"
+              value={cloneTitle}
+              onChange={(e) => setCloneTitle(e.target.value)}
+              placeholder="Name des Rezepts"
+              className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setCloneTarget(null)}
+              className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              disabled={!cloneTitle.trim() || forkRecipe.isPending}
+              onClick={() => {
+                if (!cloneTarget) return;
+                forkRecipe.mutate(
+                  { title: cloneTitle.trim() },
+                  {
+                    onSuccess: (forkedRecipe) => {
+                      setCloneTarget(null);
+                      toast.success('Rezept geklont');
+                      navigate(`/recipes/${forkedRecipe.slug}`);
+                    },
+                    onError: (err) => {
+                      toast.error('Fehler beim Klonen', { description: err.message });
+                    },
+                  },
+                );
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+            >
+              {forkRecipe.isPending ? (
+                <>
+                  <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                  Wird geklont...
+                </>
+              ) : (
+                'Rezept clonen'
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <ConfirmDialog

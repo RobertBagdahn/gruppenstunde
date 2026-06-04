@@ -300,6 +300,12 @@ class ShoppingItemSourceOut(Schema):
     quantity_g: float = 0.0
 
 
+class ShoppingItemPortionOptionOut(Schema):
+    name: str
+    display: str
+    is_default: bool
+
+
 class ShoppingListItemOut(Schema):
     ingredient_id: int | None = None
     ingredient_name: str
@@ -311,6 +317,7 @@ class ShoppingListItemOut(Schema):
     display_quantity: str = ""
     display_text: str = ""
     natural_portions: str = ""
+    portion_options: list[ShoppingItemPortionOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
 
 

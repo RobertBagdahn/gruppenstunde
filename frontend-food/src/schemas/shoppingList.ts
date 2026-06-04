@@ -15,6 +15,16 @@ export const ShoppingListCollaboratorSchema = z.object({
 
 export type ShoppingListCollaborator = z.output<typeof ShoppingListCollaboratorSchema>;
 
+// --- Portion Option ---
+
+export const PortionOptionSchema = z.object({
+  name: z.string(),
+  display: z.string(),
+  is_default: z.boolean(),
+});
+
+export type PortionOption = z.output<typeof PortionOptionSchema>;
+
 // --- Item Source (provenance) ---
 
 export const ShoppingItemSourceSchema = z.object({
@@ -44,6 +54,10 @@ export const ShoppingListItemSchema = z.object({
   note: z.string().default(''),
   ingredient_id: z.number().nullable().optional(),
   ingredient_slug: z.string().nullable().optional(),
+  estimated_price_eur: z.number().nullable().optional(),
+  display_quantity: z.string().default(''),
+  natural_portions: z.string().default(''),
+  portion_options: z.array(PortionOptionSchema).default([]),
   sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 

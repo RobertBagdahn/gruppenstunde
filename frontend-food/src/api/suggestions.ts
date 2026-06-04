@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SuggestionDashboardSchema, RuleSchema } from "@/schemas/suggestions";
 import type { SuggestionDashboard, Rule, RuleIn } from "@/schemas/suggestions";
+import { API_BASE_URL } from "@/lib/api";
 
-const API_BASE = "/api";
+const API_BASE = `${API_BASE_URL}/api`;
 
 export function useMealPlanSuggestions(mealPlanId: number | undefined) {
   return useQuery<SuggestionDashboard>({

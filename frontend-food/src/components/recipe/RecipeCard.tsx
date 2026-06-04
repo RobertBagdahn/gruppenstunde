@@ -23,9 +23,10 @@ interface RecipeCardProps {
   canDelete?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onClone?: () => void;
 }
 
-export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelete }: RecipeCardProps) {
+export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelete, onClone }: RecipeCardProps) {
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
   const timeLabel =
@@ -36,7 +37,7 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
     ? `${recipe.cached_price_total.toFixed(2)} €`
     : null;
 
-  const hasActions = (canEdit && onEdit) || (canDelete && onDelete);
+  const hasActions = (canEdit && onEdit) || (canDelete && onDelete) || onClone;
   const nutriClass = recipe.cached_nutri_class;
   const nutriColors = nutriClass ? NUTRI_SCORE_COLORS[nutriClass] : null;
 
@@ -107,6 +108,19 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
                 title="Löschen"
               >
                 <span className="material-symbols-outlined text-[14px]">delete</span>
+              </button>
+            )}
+            {onClone && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClone();
+                }}
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-primary shadow-md hover:bg-white transition-colors"
+                title="Rezept clonen"
+              >
+                <span className="material-symbols-outlined text-[14px]">content_copy</span>
               </button>
             )}
           </div>

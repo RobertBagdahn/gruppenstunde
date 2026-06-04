@@ -45,7 +45,6 @@ class RecipeTypeChoices(models.TextChoices):
     COLD_MEAL = "cold_meal", _("Kalte Mahlzeit")
     DESSERT = "dessert", _("Nachtisch")
     SIDE_DISH = "side_dish", _("Beilage")
-    SNACK = "snack", _("Snack")
     DRINK = "drink", _("Getränk")
     SIMPLE_MEAL = "simple_meal", _("Einfache Mahlzeit")
 

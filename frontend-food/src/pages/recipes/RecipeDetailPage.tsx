@@ -752,7 +752,7 @@ export default function RecipeDetailPage() {
         const dailyEnergyKcal = 2868;
         const mealFractions: Record<string, number> = {
           breakfast: 0.25, warm_meal: 0.35, cold_meal: 0.25,
-          dessert: 0.10, side_dish: 0.10, snack: 0.10, drink: 0.05,
+          dessert: 0.10, side_dish: 0.10, drink: 0.05,
         };
         const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
         const expectedEnergyKcal = dailyEnergyKcal * fraction;
@@ -1003,23 +1003,6 @@ export default function RecipeDetailPage() {
       {recipe.summary_long && (
         <div className="mt-6 bg-card rounded-xl border p-6">
           <MarkdownRenderer content={recipe.summary_long} />
-        </div>
-      )}
-
-      {/* Rezept clonen (für eigene Variante) */}
-      {currentUser && (
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={() => {
-              setCloneTitle(`${recipe.title} (Kopie)`);
-              setShowCloneDialog(true);
-            }}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-          >
-            <span className="material-symbols-outlined text-lg">content_copy</span>
-            Rezept clonen
-          </button>
         </div>
       )}
 

@@ -1079,6 +1079,10 @@ function buildIngredientSuggestionFields(
     { key: 'max_storage_temperature', label: 'Max. Lagertemperatur (°C)' },
   ];
 
+  const priceFields = [
+    { key: 'price_per_kg', label: 'Preis pro kg (€)' },
+  ];
+
   for (const { key, label } of nutritionFields) {
     fields.push({
       key,
@@ -1106,6 +1110,17 @@ function buildIngredientSuggestionFields(
       key,
       label,
       group: 'Physikalische Eigenschaften',
+      currentValue: ingredient[key] as unknown,
+      suggestedValue: suggestions[key] as unknown,
+      type: 'scalar',
+    });
+  }
+
+  for (const { key, label } of priceFields) {
+    fields.push({
+      key,
+      label,
+      group: 'Preis',
       currentValue: ingredient[key] as unknown,
       suggestedValue: suggestions[key] as unknown,
       type: 'scalar',

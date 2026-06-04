@@ -69,6 +69,9 @@ class IngredientSuggestAllSchema(BaseModel):
     durability_in_days: int | None = Field(None, description="Haltbarkeit in Tagen")
     max_storage_temperature: int | None = Field(None, description="Maximale Lagertemperatur in °C")
 
+    # Preis
+    price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen")
+
     # Portionen
     portions: list[PortionSuggestion] | None = Field(None, description="Typische Portionsgrößen")
 
@@ -108,6 +111,9 @@ class IngredientAiCreateSchema(BaseModel):
     durability_in_days: int = Field(description="Haltbarkeit in Tagen")
     max_storage_temperature: int = Field(description="Maximale Lagertemperatur in °C")
 
+    # Preis
+    price_per_kg: float = Field(description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen")
+
     # Portionen
     portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen")
 
@@ -134,6 +140,8 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
         f"Gib außerdem typische Portionsgrößen (z.B. '1 Esslöffel', '1 Tasse', '1 Scheibe') "
         f"mit dem jeweiligen Gewicht in Gramm an.\n\n"
         f"Gib auch alternative Bezeichnungen/Aliase für die Zutat an.\n\n"
+        f"Schätze den typischen Preis in EUR pro kg (price_per_kg) basierend auf "
+        f"durchschnittlichen Supermarktpreisen in Deutschland.\n\n"
         f"Wenn du einen Wert nicht sicher bestimmen kannst, setze ihn auf null."
     )
 
@@ -170,8 +178,9 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
     prompt = (
         f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
         f"Gib vollständige Nährwerte pro 100g, Bewertungen, physikalische Eigenschaften, "
-        f"typische Portionsgrößen und alternative Bezeichnungen an. "
-        f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen."
+        f"typische Portionsgrößen, alternative Bezeichnungen und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
+        f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen. "
+        f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren."
     )
 
     config = types.GenerateContentConfig(
@@ -229,6 +238,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         physical_viscosity=data.physical_viscosity,
         durability_in_days=data.durability_in_days,
         max_storage_temperature=data.max_storage_temperature,
+        price_per_kg=data.price_per_kg,
         created_by=user if user and user.is_authenticated else None,
     )
 

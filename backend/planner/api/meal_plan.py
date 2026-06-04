@@ -836,6 +836,7 @@ def shopping_list(request, meal_plan_id: int):
             estimated_price_eur=item.estimated_price_eur,
             display_quantity=item.display_quantity,
             natural_portions=item.natural_portions,
+            portion_options=item.portion_options or [],
             sources=[
                 {"recipe_id": s.recipe_id, "recipe_name": s.recipe_name, "recipe_slug": s.recipe_slug, "meal_label": s.meal_label, "quantity_g": s.quantity_g}
                 for s in (item.sources or [])
@@ -854,7 +855,7 @@ MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
     "breakfast": ["breakfast", "simple_meal"],
     "lunch": ["warm_meal", "cold_meal", "side_dish"],
     "dinner": ["warm_meal", "cold_meal", "side_dish"],
-    "snack": ["snack", "simple_meal"],
+    "snack": ["simple_meal"],
 }
 
 

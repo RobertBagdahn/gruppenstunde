@@ -1,6 +1,6 @@
 """Seed breakfast mini-recipes for the RefMeal baukasten.
 
-Each mini-recipe is a small Recipe (recipe_type=breakfast/snack/drink) with 1-3 RecipeItems.
+Each mini-recipe is a small Recipe (recipe_type=breakfast/drink) with 1-3 RecipeItems.
 Portions are AI-estimated for 1 person per serving.
 
 Idempotent: uses slug-based deduplication.

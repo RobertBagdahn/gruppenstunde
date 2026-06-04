@@ -14,7 +14,6 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   cold_meal: 'Kalte Mahlzeit',
   dessert: 'Nachtisch',
   side_dish: 'Beilage',
-  snack: 'Snack',
   drink: 'Getränk',
   simple_meal: 'Einfache Mahlzeit',
 };

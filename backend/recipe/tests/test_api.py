@@ -96,7 +96,7 @@ def draft_recipe(db):
     return Recipe.objects.create(
         title="Entwurf-Rezept",
         summary="Noch nicht fertig",
-        recipe_type="snack",
+        recipe_type="simple_meal",
         status=ContentStatus.DRAFT,
     )
 

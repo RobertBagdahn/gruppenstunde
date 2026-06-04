@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Link2 } from 'lucide-react';
 import { MealSlot } from './MealSlot';
@@ -5,6 +6,7 @@ import { MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import { kjToKcal } from '@/utils/nutritionUnits';
 import EmptyState from '@/components/shared/EmptyState';
+import RecipeSearchDialog from './RecipeSearchDialog';
 
 export function DayPlanView({
   mealPlanId,
@@ -41,7 +43,7 @@ export function DayPlanView({
   onAddDayAfter: () => void;
   addDayAfterPending: boolean;
   onDeleteDay: (date: string) => void;
-  onAddMealType: (date: string, mealType: string) => void;
+  onAddMealType: (date: string, mealType: string) => Promise<Meal>;
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
@@ -66,6 +68,7 @@ export function DayPlanView({
   };
 
   const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'];
+  const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
 
   return (
     <div className="space-y-6">
@@ -175,7 +178,10 @@ export function DayPlanView({
                       .map((mt) => (
                         <button
                           key={mt}
-                          onClick={() => onAddMealType(group.date, mt)}
+                          onClick={async () => {
+                            const newMeal = await onAddMealType(group.date, mt);
+                            if (newMeal) setSearchDialogMeal(newMeal);
+                          }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm text-primary hover:bg-primary/5 transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5 text-primary" />
@@ -202,6 +208,23 @@ export function DayPlanView({
             Tag danach
           </button>
         </div>
+      )}
+
+      {/* Recipe Search Dialog (after creating a new meal) */}
+      {searchDialogMeal && (
+        <RecipeSearchDialog
+          mealType={searchDialogMeal.meal_type}
+          open={!!searchDialogMeal}
+          onOpenChange={(open) => { if (!open) setSearchDialogMeal(null); }}
+          onSelect={(recipeId) => {
+            onAddRecipe(searchDialogMeal.id, recipeId);
+            setSearchDialogMeal(null);
+          }}
+          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
+            onAddIngredient(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
+            setSearchDialogMeal(null);
+          }}
+        />
       )}
     </div>
   );

@@ -235,28 +235,15 @@ export default function CreateRecipePage() {
         servings: 1,
         tag_ids: formData.selectedTagIds,
         scout_level_ids: formData.selectedScoutIds,
+        recipe_items: ingredients
+          .filter((ing) => ing.portion_id !== null)
+          .map((ing, i) => ({
+            portion_id: ing.portion_id!,
+            quantity: parseFloat(ing.quantity) || 1,
+            sort_order: i,
+            note: '',
+          })),
       });
-
-      // Create RecipeItems for ingredients with valid portion
-      const validIngredients = ingredients.filter((ing) => ing.portion_id !== null);
-      for (let i = 0; i < validIngredients.length; i++) {
-        const ing = validIngredients[i];
-        try {
-          await fetch(`/api/recipes/${result.id}/recipe-items/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              portion_id: ing.portion_id,
-              quantity: parseFloat(ing.quantity) || 1,
-              sort_order: i,
-              note: '',
-            }),
-          });
-        } catch {
-          // Silently skip failed items — user can add them later
-        }
-      }
 
       toast.success('Rezept erstellt!');
       navigate(`/recipes/${result.slug}`);

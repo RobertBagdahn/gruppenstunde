@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
 
 # Valid choice values for validation
-VALID_RECIPE_TYPES = {"breakfast", "warm_meal", "cold_meal", "dessert", "side_dish", "snack", "drink", "simple_meal"}
+VALID_RECIPE_TYPES = {"breakfast", "warm_meal", "cold_meal", "dessert", "side_dish", "drink", "simple_meal"}
 VALID_DIFFICULTIES = {"easy", "medium", "hard"}
 VALID_EXECUTION_TIMES = {"less_30", "30_60", "60_90", "more_90"}
 VALID_PREPARATION_TIMES = {"none", "less_15", "15_30", "30_60", "more_60"}
@@ -119,7 +119,7 @@ class GeminiRecipeExtraction(BaseModel):
     servings: int = Field(4, description="Number of servings")
     preparation_time: int | None = Field(None, description="Prep time in minutes")
     execution_time: int | None = Field(None, description="Cook/execution time in minutes")
-    recipe_type: str = Field("", description="One of: breakfast, warm_meal, cold_meal, dessert, side_dish, snack, drink, simple_meal")
+    recipe_type: str = Field("", description="One of: breakfast, warm_meal, cold_meal, dessert, side_dish, drink, simple_meal")
     difficulty: str = Field("easy", description="One of: easy, medium, hard")
     execution_time_choice: str = Field("less_30", description="One of: less_30, 30_60, 60_90, more_90")
     preparation_time_choice: str = Field("none", description="One of: none, less_15, 15_30, 30_60, more_60")
@@ -492,7 +492,7 @@ AUFGABEN:
 1. Extrahiere/validiere die Rezept-Metadaten (title, description, summary, servings, preparation_time, execution_time, steps)
 2. Schätze folgende Felder:
    - summary: Kurzbeschreibung in 1-2 Sätzen
-   - recipe_type: MUSS einer dieser Werte sein: breakfast, warm_meal, cold_meal, dessert, side_dish, snack, drink, simple_meal
+    - recipe_type: MUSS einer dieser Werte sein: breakfast, warm_meal, cold_meal, dessert, side_dish, drink, simple_meal
    - difficulty: MUSS sein: easy, medium, hard
    - execution_time_choice: MUSS sein: less_30, 30_60, 60_90, more_90 (basierend auf Gesamtkochzeit)
    - preparation_time_choice: MUSS sein: none, less_15, 15_30, 30_60, more_60 (basierend auf Vorbereitungszeit)

@@ -274,6 +274,21 @@ export default function ShoppingListDetailPage() {
       {/* Progress */}
       <ShoppingListProgress checked={checkedCount} total={totalCount} className="mb-6" />
 
+      {/* Total price */}
+      {items.some((i) => i.estimated_price_eur !== null && i.estimated_price_eur !== undefined) && (
+        <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 shadow-soft mb-6">
+          <span className="text-sm font-semibold text-muted-foreground">
+            Geschätzter Gesamtpreis
+          </span>
+          <span className="text-lg font-bold text-foreground">
+            {items
+              .reduce((sum, i) => sum + (i.estimated_price_eur ?? 0), 0)
+              .toFixed(2)}{' '}
+            €
+          </span>
+        </div>
+      )}
+
       {/* Items grouped by section */}
       {totalCount === 0 ? (
         <div className="text-center py-12 bg-card border border-border rounded-xl shadow-soft">

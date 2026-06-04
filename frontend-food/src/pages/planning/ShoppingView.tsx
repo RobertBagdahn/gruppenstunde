@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart, RefreshCw, ChevronRight, Store } from 'lucide-react';
+import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store } from 'lucide-react';
 import { useShoppingList } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
 import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import EmptyState from '@/components/shared/EmptyState';
 import { toast } from 'sonner';
+
+interface PortionOption {
+  name: string;
+  display: string;
+  is_default: boolean;
+}
 
 interface TransientShoppingItem {
   ingredient_name: string;
@@ -18,22 +24,25 @@ interface TransientShoppingItem {
   display_quantity?: string;
   display_text?: string;
   natural_portions?: string;
+  portion_options?: PortionOption[];
   sources?: Array<{ recipe_id: number; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
 }
 
 function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
   const [expanded, setExpanded] = useState(false);
+  const [portionsExpanded, setPortionsExpanded] = useState(false);
   const hasSources = item.sources && item.sources.length > 0;
+  const hasPortionOptions = item.portion_options && item.portion_options.length > 1;
 
   return (
     <div>
       <div
-        className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-muted/30 transition-colors"
+        className="flex items-center justify-between px-4 py-2 hover:bg-muted/30 transition-colors"
         onClick={() => hasSources && setExpanded(!expanded)}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {hasSources && (
-            <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${expanded ? 'rotate-90' : ''}`} />
           )}
           {item.ingredient_slug ? (
             <Link
@@ -47,8 +56,25 @@ function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
             <span className="text-sm">{item.ingredient_name}</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
           <span>{item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g)} ${item.unit}`}</span>
+          {item.natural_portions && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                hasPortionOptions && setPortionsExpanded(!portionsExpanded);
+              }}
+              className={`inline-flex items-center gap-1 text-xs transition-colors ${
+                hasPortionOptions ? 'cursor-pointer hover:text-muted-foreground' : ''
+              }`}
+            >
+              {hasPortionOptions && (
+                <ChevronDown className={`w-3 h-3 transition-transform ${portionsExpanded ? 'rotate-180' : ''}`} />
+              )}
+              {item.natural_portions}
+            </button>
+          )}
           {item.estimated_price_eur !== null ? (
             <span className="text-foreground font-medium">
               {item.estimated_price_eur.toFixed(2)} EUR
@@ -58,6 +84,25 @@ function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
           )}
         </div>
       </div>
+      {/* Expanded portion options */}
+      {portionsExpanded && hasPortionOptions && (
+        <div className="pl-10 pr-4 pb-1.5 space-y-0.5">
+          {item.portion_options!.map((opt, idx) => (
+            <div
+              key={idx}
+              className={`flex items-center gap-2 text-xs ${
+                opt.is_default ? 'text-muted-foreground font-semibold' : 'text-muted-foreground/60'
+              }`}
+            >
+              <span className="text-muted-foreground/40">&#8226;</span>
+              <span>{opt.display}</span>
+              {opt.is_default && (
+                <span className="text-[10px] text-muted-foreground/40 font-normal">(Standard)</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       {expanded && hasSources && (
         <div className="pl-10 pr-4 pb-2 space-y-1">
           {item.sources!.map((source, idx) => (

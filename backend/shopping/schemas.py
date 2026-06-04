@@ -35,6 +35,14 @@ class ShoppingItemSourceOut(Schema):
     quantity_g: float = 0.0
 
 
+class ShoppingItemPortionOptionOut(Schema):
+    """Output schema for a single portion option in the shopping list."""
+
+    name: str
+    display: str
+    is_default: bool
+
+
 class ShoppingListItemOut(Schema):
     """Output schema for a shopping list item."""
 
@@ -51,6 +59,10 @@ class ShoppingListItemOut(Schema):
     note: str = ""
     ingredient_id: int | None = None
     ingredient_slug: str | None = None
+    estimated_price_eur: float | None = None
+    display_quantity: str = ""
+    natural_portions: str = ""
+    portion_options: list[ShoppingItemPortionOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
 
     @staticmethod
@@ -74,6 +86,44 @@ class ShoppingListItemOut(Schema):
     @staticmethod
     def resolve_sources(obj) -> list:
         return obj.sources.all()
+
+    @staticmethod
+    def resolve_estimated_price_eur(obj) -> float | None:
+        if not obj.ingredient or not obj.ingredient.price_per_kg or not obj.quantity_g:
+            return None
+        from supply.services.price_service import get_portion_price
+        price = get_portion_price(obj.ingredient, obj.quantity_g)
+        return float(price) if price is not None else None
+
+    @staticmethod
+    def resolve_display_quantity(obj) -> str:
+        if not obj.quantity_g or obj.quantity_g <= 0:
+            return ""
+        if obj.unit != "g":
+            return f"{obj.quantity_g} {obj.unit}"
+        return _format_weight(obj.quantity_g)
+
+    @staticmethod
+    def resolve_natural_portions(obj) -> str:
+        if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0:
+            return ""
+        portions = list(obj.ingredient.portions.order_by("-priority", "rank", "name"))
+        if not portions:
+            return ""
+        from supply.services.shopping_service import compute_portion_options
+        best_display, _ = compute_portion_options(obj.quantity_g, portions)
+        return best_display
+
+    @staticmethod
+    def resolve_portion_options(obj) -> list[dict]:
+        if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0:
+            return []
+        portions = list(obj.ingredient.portions.order_by("-priority", "rank", "name"))
+        if not portions:
+            return []
+        from supply.services.shopping_service import compute_portion_options
+        _, options = compute_portion_options(obj.quantity_g, portions)
+        return options
 
 
 class ShoppingListItemCreateIn(Schema):
@@ -156,7 +206,9 @@ class ShoppingListDetailOut(Schema):
 
     @staticmethod
     def resolve_items(obj) -> list:
-        return obj.items.select_related("retail_section", "checked_by", "ingredient").prefetch_related("sources").all()
+        return obj.items.select_related(
+            "retail_section", "checked_by", "ingredient"
+        ).prefetch_related("sources", "ingredient__portions").all()
 
     @staticmethod
     def resolve_collaborators(obj) -> list:
@@ -165,6 +217,24 @@ class ShoppingListDetailOut(Schema):
     @staticmethod
     def resolve_can_edit(obj) -> bool:
         return getattr(obj, "_can_edit", False)
+
+
+def _format_weight(weight_g: float) -> str:
+    """Format weight with smart unit conversion (g->kg) and rounding."""
+    if weight_g >= 1000:
+        kg = weight_g / 1000
+        if kg == int(kg):
+            return f"{int(kg)} kg"
+        return f"{kg:.1f} kg"
+    if weight_g >= 100:
+        rounded = round(weight_g / 10) * 10
+        return f"{int(rounded)} g"
+    if weight_g >= 10:
+        rounded = round(weight_g / 5) * 5
+        return f"{int(rounded)} g"
+    if weight_g >= 1:
+        return f"{round(weight_g)} g"
+    return f"{weight_g:.1f} g"
 
 
 class ShoppingListCreateIn(Schema):

@@ -277,6 +277,7 @@ class IngredientUpdateIn(Schema):
     nan_art_id_rewe: int | None = None
     ean: str | None = None
 
+    price_per_kg: float | None = None
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] | None = None
     status: str | None = None
@@ -333,6 +334,9 @@ class IngredientSuggestAllOut(Schema):
     physical_viscosity: str | None = None
     durability_in_days: int | None = None
     max_storage_temperature: int | None = None
+
+    # Preis
+    price_per_kg: float | None = None
 
     # Portionen und Aliase
     portions: list[PortionSuggestionOut] = []

@@ -24,7 +24,6 @@ const DEFAULT_DAILY_KCAL = 2400;
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
   breakfast: 'Frühstück',
-  snack: 'Snacks',
   drink: 'Getränke',
 };
 

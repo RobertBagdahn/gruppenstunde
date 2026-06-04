@@ -24,7 +24,6 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   cold_meal: 'Kalte Mahlzeit',
   dessert: 'Nachtisch',
   side_dish: 'Beilage',
-  snack: 'Snack',
   drink: 'Getränk',
   simple_meal: 'Einfache Mahlzeit',
 };
@@ -35,7 +34,6 @@ const RECIPE_TYPE_COLORS: Record<string, string> = {
   cold_meal: 'bg-blue-100 text-blue-800',
   dessert: 'bg-pink-100 text-pink-800',
   side_dish: 'bg-lime-100 text-lime-800',
-  snack: 'bg-green-100 text-green-800',
   drink: 'bg-cyan-100 text-cyan-800',
   simple_meal: 'bg-slate-100 text-slate-800',
 };
@@ -45,7 +43,7 @@ const MEAL_TYPE_TO_RECIPE_TYPES: Record<string, string[]> = {
   breakfast: ['breakfast', 'simple_meal'],
   lunch: ['warm_meal', 'cold_meal', 'side_dish'],
   dinner: ['warm_meal', 'cold_meal', 'side_dish'],
-  snack: ['snack', 'simple_meal'],
+  snack: ['simple_meal'],
 };
 
 interface RecipeSearchDialogProps {

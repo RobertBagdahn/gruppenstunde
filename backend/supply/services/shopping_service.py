@@ -10,6 +10,7 @@ it belongs to the norm-portion calorie calculation only.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -42,6 +43,7 @@ class ShoppingListItem:
     estimated_price_eur: float | None = None
     display_quantity: str = ""
     natural_portions: str = ""
+    portion_options: list[dict] | None = None
     display_text: str = ""
     sources: list[ShoppingItemSource] | None = None
 
@@ -258,6 +260,94 @@ def _format_weight(weight_g: float) -> str:
     return f"{weight_g:.1f} g"
 
 
+def _format_natural_portion(count: int | float, name: str) -> str:
+    """Format a natural portion display string like the frontend does.
+
+    Omits "x" for known units (Stück, Scheibe, Packung, etc.)
+    and handles leading numbers in portion names (e.g. "1 TL").
+    """
+    units_without_x = {
+        'el', 'tl', 'esslöffel', 'teelöffel', 'g', 'kg', 'gramm', 'kilogramm',
+        'ml', 'l', 'milliliter', 'liter', 'st.', 'stk', 'stück', 'prise', 'pr.',
+        'dose', 'dosen', 'tasse', 'tassen', 'becher', 'portion', 'portionen',
+        'handvoll', 'tropfen', 'zehe', 'zehen', 'packung', 'packungen', 'beutel',
+        'scheibe', 'scheiben',
+    }
+
+    match = re.match(r'^(\d+(?:[.,]\d+)?)\s*(.*)$', name.strip())
+    if match:
+        val = float(match.group(1).replace(',', '.'))
+        rest = match.group(2).strip()
+        multiplied = count * val
+        if multiplied == int(multiplied):
+            multiplied = int(multiplied)
+        return f"ca. {multiplied} {rest}" if rest else f"ca. {multiplied}"
+
+    first_word = name.split()[0].lower().rstrip('.,')
+    should_omit_x = first_word in units_without_x or name.lower() in units_without_x
+
+    if should_omit_x:
+        return f"ca. {count} {name}"
+    return f"ca. {count} x {name}"
+
+
+def compute_portion_options(
+    quantity_g: float,
+    portions: list,
+) -> tuple[str, list[dict]]:
+    """Compute the best-matching natural portion display and all portion options.
+
+    Returns (best_display_string, list_of_option_dicts).
+    """
+    options: list[dict] = []
+    best_portion = None
+    best_diff = float('inf')
+
+    for p in portions:
+        if not p.weight_g or p.weight_g <= 0:
+            continue
+        count = quantity_g / p.weight_g
+        if count < 0.5:
+            continue
+
+        count_display = round(count, 1)
+        if count_display < 1:
+            count_display = 1
+        elif count_display == int(count_display):
+            count_display = int(count_display)
+
+        display = _format_natural_portion(count_display, p.name)
+        options.append({
+            "name": p.name,
+            "display": display,
+            "is_default": p.is_default,
+            "weight_g": p.weight_g,
+            "count": round(count, 1),
+        })
+
+        # Find best portion (closest to 1 whole unit)
+        diff = abs(count - 1.0)
+        if p.is_default and diff <= 0.5:
+            best_diff = diff
+            best_portion = p
+        elif diff < best_diff:
+            best_diff = diff
+            best_portion = p
+
+    if not best_portion or not options:
+        return ("", options)
+
+    count = quantity_g / best_portion.weight_g
+    count_display = round(count, 1)
+    if count_display < 1:
+        count_display = 1
+    elif count_display == int(count_display):
+        count_display = int(count_display)
+
+    best_display = _format_natural_portion(count_display, best_portion.name)
+    return (best_display, options)
+
+
 def _enrich_display_fields(
     aggregated: dict[int, ShoppingListItem],
     raw_quantities: dict[int, tuple[float, str]] | None = None,
@@ -296,20 +386,12 @@ def _enrich_display_fields(
         # Display quantity with smart unit conversion
         item.display_quantity = _format_weight(item.total_quantity_g)
 
-        # Natural portions — find the default/highest priority portion
+        # Natural portions — compute best match and all options
         portions = list(ing.portions.order_by("-priority", "rank", "name"))
         if portions:
-            default_portion = next((p for p in portions if p.is_default), portions[0])
-            if default_portion.weight_g and default_portion.weight_g > 0:
-                count = item.total_quantity_g / default_portion.weight_g
-                if count >= 0.5:
-                    count_display = round(count, 1)
-                    # Round up fractions < 1 for natural portions
-                    if count_display < 1:
-                        count_display = 1
-                    elif count_display == int(count_display):
-                        count_display = int(count_display)
-                    item.natural_portions = f"ca. {count_display} x {default_portion.name}"
+            best_display, options = compute_portion_options(item.total_quantity_g, portions)
+            item.natural_portions = best_display
+            item.portion_options = options
 
 
 def get_total_estimated_price(items: list[ShoppingListItem]) -> float | None:

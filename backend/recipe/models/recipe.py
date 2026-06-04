@@ -35,7 +35,7 @@ class Recipe(Content):
         blank=True,
         default="",
         verbose_name=_("Rezepttyp"),
-        help_text=_("Frühstück, Warme Mahlzeit, Snack, etc."),
+        help_text=_("Frühstück, Warme Mahlzeit, etc."),
     )
     servings = models.IntegerField(
         default=1,
