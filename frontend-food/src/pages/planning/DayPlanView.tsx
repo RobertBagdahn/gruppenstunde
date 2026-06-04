@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Link2 } from 'lucide-react';
 import { MealSlot } from './MealSlot';
 import { MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
@@ -78,7 +78,7 @@ export function DayPlanView({
               to={`/meal-plans/${mealPlanId}/ref-meals/${mt}`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm hover:bg-accent transition-colors"
             >
-              <span className="text-xs">🔗</span>
+              <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
               Referenz: {MEAL_TYPE_LABELS[mt] || mt}
             </Link>
           ))}
@@ -120,12 +120,14 @@ export function DayPlanView({
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
                   <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                    <span className="bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
-                      🔥 Kcal: Soll {dayTargetKcal} / {dayActualKcal} kcal
+                    <span className="inline-flex items-center gap-1 bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
+                      <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
+                      <span>Kcal: Soll {dayTargetKcal} / {dayActualKcal} kcal</span>
                     </span>
                     {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
-                      <span className="bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
-                        💰 Preis: Soll {dayTargetCost.toFixed(2)} € / Ist {dayActualCost.toFixed(2)} €
+                      <span className="inline-flex items-center gap-1 bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
+                        <span className="material-symbols-outlined text-[14px]">payments</span>
+                        <span>Preis: Soll {dayTargetCost.toFixed(2)} € / Ist {dayActualCost.toFixed(2)} €</span>
                       </span>
                     )}
                   </div>

@@ -7,12 +7,12 @@ import {
   Cake,
   BookOpen,
   Egg,
-  Plus,
   X,
   AlertCircle,
   FileText,
   TrendingUp,
   GlassWater,
+  MoreVertical,
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_COLORS } from '@/schemas/mealPlan';
@@ -20,8 +20,13 @@ import { kjToKcal } from '@/utils/nutritionUnits';
 import { cn } from '@/lib/utils';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
-import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   breakfast: Coffee,
@@ -65,7 +70,7 @@ interface TableViewProps {
   onLinkMeal?: (mealId: number, mealType: string) => void;
 }
 
-const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'drinks'];
+const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'];
 
 export default function TableView({
   meals,
@@ -160,310 +165,322 @@ export default function TableView({
 
   return (
     <div className="space-y-4 font-sans">
-      <CardTable>
-        {dates.map((date) => {
-          const { weekday, day } = formatDate(date);
-          const dailyTotal = dailyTotals[date];
-          const cost = dailyTotal ? dailyTotal.cost : 0;
-          const costPerPerson = normPortions > 0 ? cost / normPortions : 0;
-          const kcalPerPerson = dailyTotal && normPortions > 0 ? Math.round(dailyTotal.kcal / normPortions) : 0;
-          const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
-          const hasBudget = budget !== null && budget > 0;
-
-          let budgetStatus: 'green' | 'yellow' | 'red' = 'green';
-          if (hasBudget) {
-            if (costPerPerson <= budget) {
-              budgetStatus = 'green';
-            } else if (costPerPerson <= budget * 1.2) {
-              budgetStatus = 'yellow';
-            } else {
-              budgetStatus = 'red';
-            }
-          }
-
-          const diff = hasBudget ? budget - costPerPerson : 0;
-
-          return (
-            <DataCardRow key={date} className="flex flex-col gap-4 p-5 md:p-6">
-              {/* Day Header Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60 w-full">
-                <div className="flex items-baseline gap-2.5">
-                  <h3 className="font-display font-bold text-lg text-foreground">
-                    {weekday}
-                  </h3>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {day}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/40 border border-border/50 text-xs font-semibold text-foreground">
-                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                    <span>{kcalPerPerson} kcal</span>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/40 border border-border/50 text-xs font-semibold text-foreground">
-                    <span>{costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'} / Port.</span>
-                  </div>
-                  {hasBudget && (
+      <div className="w-full overflow-x-auto rounded-xl border border-border shadow-soft bg-card">
+        <table className="w-full border-collapse text-left min-w-[800px]">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-4 py-3 font-display font-semibold text-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[180px]">
+                Mahlzeit
+              </th>
+              {dates.map((date) => {
+                const { weekday, day } = formatDate(date);
+                return (
+                  <th
+                    key={date}
+                    className="px-4 py-3 text-left font-display font-semibold text-sm border-b border-border min-w-[240px]"
+                  >
+                    <div className="font-bold text-foreground">{weekday}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{day}</div>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {MEAL_TYPE_ORDER.map((mealType) => {
+              const IconComponent = MEAL_TYPE_LUCIDE_ICONS[mealType] || Utensils;
+              return (
+                <tr key={mealType}>
+                  <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm border-r border-b border-border px-4 py-4 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-middle">
                     <div className={cn(
-                      "px-3 py-1 text-xs font-bold rounded-xl border shadow-sm",
-                      budgetStatus === 'green' && "bg-primary/10 text-primary border-primary/20",
-                      budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
-                      budgetStatus === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
+                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold shadow-sm",
+                      MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
+                      MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
+                      MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
                     )}>
-                      {diff >= 0
-                        ? `noch ${diff.toFixed(2).replace('.', ',')} €`
-                        : `+${Math.abs(diff).toFixed(2).replace('.', ',')} €`
-                      }
+                      <IconComponent className="w-3.5 h-3.5 shrink-0" />
+                      <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </td>
+                  {dates.map((date) => {
+                    const meal = grid[mealType]?.[date];
+                    const portions = meal ? (meal.override_portions || normPortions) : normPortions;
+                    const isEmpty = !meal || meal.items.length === 0;
 
-              {/* Grid of Meal Slots */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-                {MEAL_TYPE_ORDER.map((mealType) => {
-                  const meal = grid[mealType]?.[date];
-                  const IconComponent = MEAL_TYPE_LUCIDE_ICONS[mealType] || Utensils;
-
-                  if (!meal) {
                     return (
-                      <div key={mealType} className="flex flex-col justify-between p-4 rounded-xl border border-dashed border-border bg-muted/10 min-h-[140px] transition-all">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground/80 mb-2">
-                          <IconComponent className="w-3.5 h-3.5" />
-                          <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
-                        </div>
-                        {canEdit ? (
-                          <div className="flex flex-col gap-1 mt-auto">
-                            {isCreatingSlot === `${date}_${mealType}` ? (
-                              <div className="text-[10px] text-muted-foreground/60 animate-pulse text-center py-2">
-                                Wird erstellt...
-                              </div>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={async () => {
-                                    setIsCreatingSlot(`${date}_${mealType}`);
-                                    try {
-                                      const newMeal = await onAddMealType?.(date, mealType);
-                                      if (newMeal) {
-                                        setSearchDialogMeal(newMeal);
-                                      }
-                                    } catch (e) {} finally {
-                                      setIsCreatingSlot(null);
-                                    }
-                                  }}
-                                  className="w-full inline-flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground font-semibold border border-transparent transition-all"
-                                >
-                                  <BookOpen className="w-3 h-3 text-primary" />
-                                  + Rezept
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    setIsCreatingSlot(`${date}_${mealType}`);
-                                    try {
-                                      const newMeal = await onAddMealType?.(date, mealType);
-                                      if (newMeal) {
-                                        setSearchDialogMeal(newMeal);
-                                      }
-                                    } catch (e) {} finally {
-                                      setIsCreatingSlot(null);
-                                    }
-                                  }}
-                                  className="w-full inline-flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground font-semibold border border-transparent transition-all"
-                                >
-                                  <Egg className="w-3 h-3 text-primary" />
-                                  + Zutat
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/30 italic text-center py-2 mt-auto">—</span>
+                      <td
+                        key={date}
+                        className={cn(
+                          "border-b border-r border-border p-3 align-top min-h-[120px] bg-card hover:bg-muted/5 transition-colors",
+                          isEmpty && meal && "bg-destructive/5"
                         )}
-                      </div>
-                    );
-                  }
-
-                  const portions = meal.override_portions || normPortions;
-                  const isEmpty = meal.items.length === 0;
-
-                  return (
-                    <div
-                      key={mealType}
-                      className={cn(
-                        "flex flex-col justify-between p-4 rounded-xl border min-h-[160px] shadow-soft transition-all",
-                        isEmpty ? "bg-destructive/5 border-destructive/20" : "bg-card border-border"
-                      )}
-                    >
-                      {/* Slot Header */}
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold shadow-sm",
-                          MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
-                          MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
-                          MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
-                        )}>
-                          <IconComponent className="w-3 h-3 shrink-0" />
-                          <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
                           <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
                             {portions} Port.
                           </span>
-                          {canEdit && (
-                            <MealActionsMenu
-                              meal={meal}
-                              canEdit={canEdit}
-                              onDeleteMeal={onDeleteMeal || (() => {})}
-                              onUpdateMeal={onUpdateMeal || (() => {})}
-                              onScaleMeal={onScaleMeal || (() => {})}
-                              onUnlinkMeal={onUnlinkMeal || (() => {})}
-                              onLinkMeal={onLinkMeal || (() => {})}
-                            />
+                          {isCreatingSlot === `${date}_${mealType}` ? (
+                            <div className="text-[10px] text-muted-foreground/60 animate-pulse">
+                              Wird erstellt...
+                            </div>
+                          ) : meal ? (
+                            canEdit && (
+                              <MealActionsMenu
+                                meal={meal}
+                                canEdit={canEdit}
+                                onDeleteMeal={onDeleteMeal || (() => {})}
+                                onUpdateMeal={onUpdateMeal || (() => {})}
+                                onScaleMeal={onScaleMeal || (() => {})}
+                                onUnlinkMeal={onUnlinkMeal || (() => {})}
+                                onLinkMeal={onLinkMeal || (() => {})}
+                                onAddClick={() => setSearchDialogMeal(meal)}
+                                onAddNoteClick={() => {
+                                  setEditingNoteMealId(meal.id);
+                                  setLocalNoteValue(meal.note || '');
+                                }}
+                              />
+                            )
+                          ) : (
+                            canEdit && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
+                                    title="Aktionen"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      setIsCreatingSlot(`${date}_${mealType}`);
+                                      try {
+                                        const newMeal = await onAddMealType?.(date, mealType);
+                                        if (newMeal) {
+                                          setSearchDialogMeal(newMeal);
+                                        }
+                                      } catch (e) {} finally {
+                                        setIsCreatingSlot(null);
+                                      }
+                                    }}
+                                  >
+                                    <BookOpen className="mr-2 h-4 w-4 text-primary" />
+                                    <span>Rezept hinzufügen...</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      setIsCreatingSlot(`${date}_${mealType}`);
+                                      try {
+                                        const newMeal = await onAddMealType?.(date, mealType);
+                                        if (newMeal) {
+                                          setSearchDialogMeal(newMeal);
+                                        }
+                                      } catch (e) {} finally {
+                                        setIsCreatingSlot(null);
+                                      }
+                                    }}
+                                  >
+                                    <Egg className="mr-2 h-4 w-4 text-primary" />
+                                    <span>Zutat hinzufügen...</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      setIsCreatingSlot(`${date}_${mealType}`);
+                                      try {
+                                        const newMeal = await onAddMealType?.(date, mealType);
+                                        if (newMeal) {
+                                          setEditingNoteMealId(newMeal.id);
+                                          setLocalNoteValue('');
+                                        }
+                                      } catch (e) {} finally {
+                                        setIsCreatingSlot(null);
+                                      }
+                                    }}
+                                  >
+                                    <FileText className="mr-2 h-4 w-4 text-primary" />
+                                    <span>Notiz hinzufügen / bearbeiten...</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )
                           )}
                         </div>
-                      </div>
 
-                      {/* Items */}
-                      <div className="space-y-1.5 mb-4 flex-1">
-                        {meal.items.length > 0 ? (
-                          meal.items.map((item, i) => {
-                            const name = item.recipe_title || item.ingredient_name || item.display_name || '';
-                            const kcal = item.energy_kj != null ? Math.round(kjToKcal(item.energy_kj / normPortions)) : null;
-                            const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
-                            return (
-                              <div key={item.id || i} className="group flex items-center justify-between gap-1.5 p-2 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-[11px] font-bold text-foreground truncate max-w-[130px]" title={name}>
-                                    {item.recipe_id && item.recipe_slug ? (
-                                      <Link
-                                        to={`/recipes/${item.recipe_slug}`}
-                                        className="hover:underline hover:text-primary transition-colors"
-                                      >
-                                        {name}
-                                      </Link>
+                        {/* Items list */}
+                        {meal && meal.items.length > 0 ? (
+                          <div className="space-y-1.5 mb-3">
+                            {meal.items.map((item, i) => {
+                              const name = item.recipe_title || item.ingredient_name || item.display_name || '';
+                              const kcal = item.energy_kj != null ? Math.round(kjToKcal(item.energy_kj / normPortions)) : null;
+                              const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
+                              return (
+                                <div key={item.id || i} className="group flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-[11px] font-bold text-foreground truncate max-w-[150px]" title={name}>
+                                      {item.recipe_id && item.recipe_slug ? (
+                                        <Link
+                                          to={`/recipes/${item.recipe_slug}`}
+                                          className="hover:underline hover:text-primary transition-colors"
+                                        >
+                                          {name}
+                                        </Link>
+                                      ) : (
+                                        name
+                                      )}
+                                    </div>
+                                    <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
+                                      {kcal != null && <span>{kcal} kcal</span>}
+                                      {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
+                                      {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {canEdit && !meal.is_synced ? (
+                                      <FactorInput
+                                        value={item.factor}
+                                        onChange={(f) => onUpdateItemFactor?.(item.id, f)}
+                                      />
                                     ) : (
-                                      name
+                                      item.factor !== 1.0 && (
+                                        <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                          &times;{item.factor.toFixed(1).replace('.', ',')}
+                                        </span>
+                                      )
+                                    )}
+
+                                    {canEdit && !meal.is_synced && (
+                                      <button
+                                        onClick={() => onDeleteItem?.(item.id)}
+                                        className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                                        title="Entfernen"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
                                     )}
                                   </div>
-                                  <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
-                                    {kcal != null && <span>{kcal} kcal</span>}
-                                    {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
-                                    {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
-                                  </div>
                                 </div>
-
-                                <div className="flex items-center gap-1 shrink-0">
-                                  {canEdit && !meal.is_synced ? (
-                                    <FactorInput
-                                      value={item.factor}
-                                      onChange={(f) => onUpdateItemFactor?.(item.id, f)}
-                                    />
-                                  ) : (
-                                    item.factor !== 1.0 && (
-                                      <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
-                                        &times;{item.factor.toFixed(1).replace('.', ',')}
-                                      </span>
-                                    )
-                                  )}
-
-                                  {canEdit && !meal.is_synced && (
-                                    <button
-                                      onClick={() => onDeleteItem?.(item.id)}
-                                      className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
-                                      title="Entfernen"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[9px] uppercase tracking-wider">
+                              );
+                            })}
+                          </div>
+                        ) : meal ? (
+                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[9px] uppercase tracking-wider mb-2">
                             <AlertCircle className="w-2.5 h-2.5" />
                             Mahlzeit leer
                           </div>
-                        )}
-                      </div>
-
-                      {/* Footer actions of the slot */}
-                      <div className="pt-2 border-t border-border/40 mt-auto space-y-2">
-                        {editingNoteMealId === meal.id ? (
-                          <input
-                            type="text"
-                            value={localNoteValue}
-                            onChange={(e) => setLocalNoteValue(e.target.value)}
-                            onBlur={() => {
-                              onUpdateMeal?.(meal.id, { note: localNoteValue });
-                              setEditingNoteMealId(null);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                onUpdateMeal?.(meal.id, { note: localNoteValue });
-                                setEditingNoteMealId(null);
-                              } else if (e.key === 'Escape') {
-                                setEditingNoteMealId(null);
-                              }
-                            }}
-                            placeholder="Notiz..."
-                            autoFocus
-                            className="w-full px-2 py-1 text-[10px] border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
-                          />
-                        ) : meal.note ? (
-                          <div
-                            onClick={() => {
-                              if (canEdit) {
-                                setEditingNoteMealId(meal.id);
-                                setLocalNoteValue(meal.note);
-                              }
-                            }}
-                            className={cn(
-                              "text-[10px] text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
-                              canEdit && "cursor-pointer"
-                            )}
-                            title={meal.note}
-                          >
-                            <FileText className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
-                            <span className="truncate">{meal.note}</span>
-                          </div>
                         ) : (
-                          canEdit && (
-                            <button
-                              onClick={() => {
-                                setEditingNoteMealId(meal.id);
-                                setLocalNoteValue('');
-                              }}
-                              className="text-[9px] text-muted-foreground/60 hover:text-primary hover:bg-muted px-1 py-0.5 rounded flex items-center gap-1 transition-all"
-                            >
-                              <Plus className="w-2.5 h-2.5" />
-                              Notiz hinzufügen
-                            </button>
-                          )
+                          <div className="text-xs text-muted-foreground/30 italic py-2">—</div>
                         )}
 
-                        {canEdit && (
-                          <div className="pt-1">
-                            <button
-                              onClick={() => setSearchDialogMeal(meal)}
-                              className="w-full inline-flex items-center justify-center gap-0.5 px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/10 hover:border-primary/20 transition-all font-bold text-[9px] shadow-sm"
-                            >
-                              <Plus className="w-2.5 h-2.5" />
-                              Hinzufügen
-                            </button>
+                        {/* Note area */}
+                        {meal && (
+                          <div className="pt-2 border-t border-border/40 mt-auto space-y-2">
+                            {editingNoteMealId === meal.id ? (
+                              <input
+                                type="text"
+                                value={localNoteValue}
+                                onChange={(e) => setLocalNoteValue(e.target.value)}
+                                onBlur={() => {
+                                  onUpdateMeal?.(meal.id, { note: localNoteValue });
+                                  setEditingNoteMealId(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    onUpdateMeal?.(meal.id, { note: localNoteValue });
+                                    setEditingNoteMealId(null);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingNoteMealId(null);
+                                  }
+                                }}
+                                placeholder="Notiz..."
+                                autoFocus
+                                className="w-full px-2 py-1 text-[10px] border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
+                              />
+                            ) : meal.note ? (
+                              <div
+                                onClick={() => {
+                                  if (canEdit) {
+                                    setEditingNoteMealId(meal.id);
+                                    setLocalNoteValue(meal.note);
+                                  }
+                                }}
+                                className={cn(
+                                  "text-[10px] text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
+                                  canEdit && "cursor-pointer"
+                                )}
+                                title={meal.note}
+                              >
+                                <FileText className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{meal.note}</span>
+                              </div>
+                            ) : null}
                           </div>
                         )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-4 py-4 font-bold text-xs text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
+                Tagesbilanz
+              </td>
+              {dates.map((date) => {
+                const dailyTotal = dailyTotals[date];
+                const cost = dailyTotal ? dailyTotal.cost : 0;
+                const costPerPerson = normPortions > 0 ? cost / normPortions : 0;
+                const kcalPerPerson = dailyTotal && normPortions > 0 ? Math.round(dailyTotal.kcal / normPortions) : 0;
+                const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
+                const hasBudget = budget !== null && budget > 0;
+
+                let budgetStatus: 'green' | 'yellow' | 'red' = 'green';
+                if (hasBudget) {
+                  if (costPerPerson <= budget) {
+                    budgetStatus = 'green';
+                  } else if (costPerPerson <= budget * 1.2) {
+                    budgetStatus = 'yellow';
+                  } else {
+                    budgetStatus = 'red';
+                  }
+                }
+
+                const diff = hasBudget ? budget - costPerPerson : 0;
+
+                return (
+                  <td key={date} className="border-t border-r border-border bg-muted/40 p-3 text-xs align-top">
+                    <div className="flex flex-col gap-1.5 font-sans">
+                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-foreground">
+                        <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                        <span>{kcalPerPerson} kcal</span>
                       </div>
+                      <div className="text-[11px] font-semibold text-muted-foreground">
+                        {costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'} / Port.
+                      </div>
+                      {hasBudget && (
+                        <div className={cn(
+                          "inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border w-fit shadow-xs",
+                          budgetStatus === 'green' && "bg-primary/10 text-primary border-primary/20",
+                          budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
+                          budgetStatus === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
+                        )}>
+                          {diff >= 0
+                            ? `noch ${diff.toFixed(2).replace('.', ',')} €`
+                            : `+${Math.abs(diff).toFixed(2).replace('.', ',')} €`
+                          }
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            </DataCardRow>
-          );
-        })}
-      </CardTable>
+                  </td>
+                );
+              })}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
       {/* Recipe Search Dialog */}
       {searchDialogMeal !== null && (

@@ -10,6 +10,7 @@ separately via `loaddata initial_data.json`.
 
 Usage:
     uv run python manage.py seed_all                # seed everything
+    uv run python manage.py seed_all --if-empty     # seed only when selected sections have no data yet
     uv run python manage.py seed_all --only content  # seed only content (sessions, blogs, games, materials)
     uv run python manage.py seed_all --only recipes
     uv run python manage.py seed_all --only events
@@ -21,6 +22,7 @@ Usage:
 import datetime
 from decimal import Decimal
 
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -29,6 +31,20 @@ from django.utils import timezone
 User = get_user_model()
 
 SECTIONS = ["content", "recipes", "events", "planner", "profiles", "packing"]
+SECTION_MODEL_LABELS = {
+    "content": [
+        ("session", "GroupSession"),
+        ("blog", "Blog"),
+        ("game", "Game"),
+        ("supply", "Material"),
+        ("supply", "Ingredient"),
+    ],
+    "recipes": [("recipe", "Recipe")],
+    "events": [("event", "Event")],
+    "planner": [("planner", "MealPlan"), ("planner", "Planner")],
+    "profiles": [("profiles", "UserGroup")],
+    "packing": [("packinglist", "PackingList")],
+}
 
 
 class Command(BaseCommand):
@@ -41,9 +57,19 @@ class Command(BaseCommand):
             choices=SECTIONS,
             help="Seed only a specific section.",
         )
+        parser.add_argument(
+            "--if-empty",
+            action="store_true",
+            help="Seed only when the selected seed sections do not contain data yet.",
+        )
 
     def handle(self, *args, **options):
         only = options.get("only")
+
+        if options.get("if_empty") and self._selected_sections_have_data(only):
+            selected = only or "any section"
+            self.stdout.write(self.style.WARNING(f"Seed data already exists in {selected}; skipping seed_all."))
+            return
 
         with transaction.atomic():
             # Ensure we have at least one user to assign as author/owner
@@ -67,6 +93,17 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _selected_sections_have_data(self, only: str | None) -> bool:
+        sections = [only] if only else SECTIONS
+        return any(self._section_has_data(section) for section in sections)
+
+    def _section_has_data(self, section: str) -> bool:
+        for app_label, model_name in SECTION_MODEL_LABELS[section]:
+            model = apps.get_model(app_label, model_name)
+            if model.objects.exists():
+                return True
+        return False
 
     def _ensure_users(self) -> list:
         """Return a list of existing users; create a fallback user if none exist."""

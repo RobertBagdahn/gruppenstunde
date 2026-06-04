@@ -1,4 +1,9 @@
-## ADDED Requirements
+# extended-nutrition-rules Specification
+
+## Purpose
+Defines comprehensive RecipeHint rules for macronutrients, RecipeHint rules by type, improvement texts, extended HealthRules for day/meal scope, DGE reference values model, and tracked micronutrients.
+
+## Requirements
 
 ### Requirement: Comprehensive RecipeHint rules for macronutrients
 The system SHALL provide at least the following RecipeHint rules for macronutrient evaluation (per 100g values of a recipe), seeded via `seed_all.py`:
@@ -132,7 +137,7 @@ The RecipeHint model SHALL have an `improvement_text` field (TextField, blank=Tr
 - **THEN** the API response SHALL include both the hint description and the improvement_text
 
 ### Requirement: Extended HealthRules for cockpit
-The system SHALL provide HealthRules for the cockpit dashboard covering macronutrients and vitamin_c_mg. New HealthRules:
+The system SHALL provide HealthRules for the cockpit dashboard covering macronutrients and vitamin_c_mg. To ensure visual indicators (Soll-Ist-Balken) are always rendered in the frontend, the system MUST use robust static DGE (Deutsche Gesellschaft für Ernährung) target value fallbacks for 13-18 year olds if database rules are empty or still loading. New HealthRules:
 
 **Day scope:**
 | Name | Parameter | Green | Yellow | Unit | Tip Text |
@@ -158,13 +163,24 @@ The system SHALL provide HealthRules for the cockpit dashboard covering macronut
 - **WHEN** a meal day meets all nutrient thresholds for green status
 - **THEN** the cockpit SHALL show all-green summary with green_count equal to total rule count
 
+#### Scenario: Day cockpit uses static fallback rules
+- **WHEN** database rules are empty or loading and the user views the day nutrition dashboard
+- **THEN** the cockpit SHALL display the target range comparison (SollIstBar) using the static DGE fallback guidelines
 
----
+#### Scenario: Day cockpit uses database rules when available
+- **WHEN** database rules are successfully loaded and the user views the day nutrition dashboard
+- **THEN** the cockpit SHALL display the target range comparison (SollIstBar) using the loaded database rules
 
-# Extended Nutrition Data
+### Requirement: Nutrient balance chart with target values
+The nutrient balance chart (NutrientBalanceChart) SHALL display side-by-side or grouped visual comparison between the actual nutrient intake (Ist) and the recommended target ranges/values (Soll). The chart MUST represent the target values for each displayed parameter (Eiweiß, Fett, Kohlenhydrate, Zucker, Ballaststoffe, Salz).
 
-## ADDED Requirements
+#### Scenario: Nutrient balance chart shows comparison
+- **WHEN** the user views the nutrition tab
+- **THEN** the NutrientBalanceChart SHALL render two separate bars/values for each nutrient parameter (one for Ist, one for Soll)
 
+#### Scenario: Chart tooltip includes target ranges
+- **WHEN** the user hovers over a nutrient column in the chart
+- **THEN** the tooltip SHALL display both the actual value (Ist) and the recommended target/range value (Soll)
 
 
 ### Requirement: DGE reference values as database model

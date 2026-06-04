@@ -21,3 +21,8 @@ MEDIA_ROOT = "/tmp/inspi-media/"
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+
+# Use console backend for emails locally if no App Password is provided
+if not env("EMAIL_HOST_PASSWORD", default=None):
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+

@@ -63,7 +63,7 @@ createsuperuser: ## Create Django superuser
 	$(MANAGE) createsuperuser
 
 seed-users: ## Create seed users only
-	$(MANAGE) add_users
+	$(MANAGE) add_users --if-empty
 
 import-inspi: ## Import data from legacy Inspi project
 	$(MANAGE) import_inspi_data
@@ -76,7 +76,7 @@ generate-embeddings-force: ## Regenerate ALL embeddings (even existing ones)
 
 init-db: ## Initialize database: migrate + create users
 	$(MANAGE) migrate
-	$(MANAGE) add_users
+	$(MANAGE) add_users --if-empty
 	$(MANAGE) generate_embeddings
 	@echo "Database initialized with migrations and users."
 
@@ -86,9 +86,9 @@ reset-db: ## Reset database completely (WARNING: destroys all data)
 	@echo "Waiting for PostgreSQL to start..."
 	@sleep 3
 	$(MANAGE) migrate
-	$(MANAGE) add_users
-	$(MANAGE) seed_all --only recipes
-	$(MANAGE) seed_all --only planner
+	$(MANAGE) add_users --if-empty
+	$(MANAGE) seed_all --only recipes --if-empty
+	$(MANAGE) seed_all --only planner --if-empty
 	@echo "Database reset complete."
 
 # -----------------------------------------------

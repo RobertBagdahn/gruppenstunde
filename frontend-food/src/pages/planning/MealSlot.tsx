@@ -7,6 +7,7 @@ import {
   X,
   Sliders,
   RefreshCw,
+  FileText,
 } from 'lucide-react';
 import { useRecipeSuggestions } from '@/api/mealPlans';
 import {
@@ -178,8 +179,9 @@ export function MealSlot({
 
       {/* Meal Note */}
       {meal.note && (
-        <div className="pl-7 text-xs text-muted-foreground italic mb-2">
-          📝 {meal.note}
+        <div className="pl-7 text-xs text-muted-foreground italic mb-2 flex items-center gap-1">
+          <FileText className="w-3.5 h-3.5" />
+          <span>{meal.note}</span>
         </div>
       )}
 
@@ -189,22 +191,26 @@ export function MealSlot({
           {meal.meal_type === 'drinks' ? (
             <>
               <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                🔥 Kcal: <span className="text-primary font-medium">Ist {mealActualKcal} kcal</span>
+                <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
+                <span>Kcal: <span className="text-primary font-medium">Ist {mealActualKcal} kcal</span></span>
               </span>
               {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
                 <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                  💰 Preis: Ist {mealActualCost.toFixed(2)} €
+                  <span className="material-symbols-outlined text-[14px]">payments</span>
+                  <span>Preis: Ist {mealActualCost.toFixed(2)} €</span>
                 </span>
               )}
             </>
           ) : (
             <>
               <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                🔥 Kcal: Soll {mealTargetKcal} / <span className={`${coverageColorClass} font-medium`}>Ist {mealActualKcal} kcal</span>
+                <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
+                <span>Kcal: Soll {mealTargetKcal} / <span className={`${coverageColorClass} font-medium`}>Ist {mealActualKcal} kcal</span></span>
               </span>
               {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
                 <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                  💰 Preis: Soll {mealTargetCost.toFixed(2)} € / Ist {mealActualCost.toFixed(2)} €
+                  <span className="material-symbols-outlined text-[14px]">payments</span>
+                  <span>Preis: Soll {mealTargetCost.toFixed(2)} € / Ist {mealActualCost.toFixed(2)} €</span>
                 </span>
               )}
             </>

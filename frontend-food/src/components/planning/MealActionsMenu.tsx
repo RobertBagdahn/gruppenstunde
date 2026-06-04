@@ -6,6 +6,9 @@ import {
   Unlink,
   Link2,
   Trash2,
+  BookOpen,
+  Egg,
+  FileText,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -43,6 +46,8 @@ interface MealActionsMenuProps {
   onScaleMeal: (mealId: number) => void;
   onUnlinkMeal: (mealId: number) => void;
   onLinkMeal: (mealId: number, mealType: string) => void;
+  onAddClick?: () => void;
+  onAddNoteClick?: () => void;
 }
 
 export function MealActionsMenu({
@@ -53,6 +58,8 @@ export function MealActionsMenu({
   onScaleMeal,
   onUnlinkMeal,
   onLinkMeal,
+  onAddClick,
+  onAddNoteClick,
 }: MealActionsMenuProps) {
   const [showSettings, setShowSettings] = useState(false);
 
@@ -112,6 +119,24 @@ export function MealActionsMenu({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
+          {canEdit && onAddClick && (
+            <>
+              <DropdownMenuItem onClick={onAddClick}>
+                <BookOpen className="mr-2 h-4 w-4 text-primary" />
+                <span>Rezept hinzufügen...</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onAddClick}>
+                <Egg className="mr-2 h-4 w-4 text-primary" />
+                <span>Zutat hinzufügen...</span>
+              </DropdownMenuItem>
+            </>
+          )}
+          {canEdit && onAddNoteClick && (
+            <DropdownMenuItem onClick={onAddNoteClick}>
+              <FileText className="mr-2 h-4 w-4 text-primary" />
+              <span>Notiz hinzufügen / bearbeiten...</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setShowSettings(true)}>
             <Edit className="mr-2 h-4 w-4 text-primary" />
             <span>Einstellungen</span>

@@ -28,7 +28,7 @@ interface EditableItem {
   measuring_unit_name: string | null;
   note: string;
   sort_order: number;
-  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null }[];
+  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean }[];
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -70,13 +70,17 @@ function normalizeItems(items: RecipeItem[], servings: number | null): EditableI
     // Use the base (default) portion for editing (weight_g ≈ 1)
     const basePortion = item.ingredient_portions?.find((p) => p.is_default) ?? currentPortion;
     const basePortionId = basePortion?.id ?? item.portion_id;
+    const basePortionWeightG = basePortion?.weight_g ?? 1;
+
+    // Quantity as multiplier on the base portion
+    const quantityForBasePortion = normalizedQty / basePortionWeightG;
 
     return {
       id: item.id,
       portion_id: basePortionId,
       ingredient_id: item.ingredient_id ?? null,
       ingredient_name: item.ingredient_name,
-      quantity: Math.round(normalizedQty * 100) / 100,
+      quantity: Math.round(quantityForBasePortion * 100) / 100,
       measuring_unit_name: basePortion?.measuring_unit_name ?? 'g',
       note: item.note,
       sort_order: item.sort_order,
@@ -85,6 +89,7 @@ function normalizeItems(items: RecipeItem[], servings: number | null): EditableI
         name: p.name,
         weight_g: p.weight_g,
         measuring_unit_name: p.measuring_unit_name,
+        is_default: p.is_default,
       })),
       isDirty: s > 1 || basePortionId !== item.portion_id,
     };
@@ -199,11 +204,12 @@ export default function InlineIngredientEditor({
             measuring_unit_name: defaultPortion.measuring_unit_name || 'g',
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean }) => ({
               id: p.id,
               name: p.name,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
+              is_default: p.is_default,
             })),
             isNew: true,
             isDirty: true,

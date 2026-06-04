@@ -99,13 +99,13 @@ node_modules/
 docker-compose.yml
 ```
 
-### DB Password via Secret Manager
+### DB Password & Email Password via Secret Manager
 
-Use `--set-secrets` instead of plain env vars for the DB password:
+Use `--set-secrets` instead of plain env vars for secrets:
 
 ```bash
 gcloud run deploy inspi-backend \
-  --set-secrets "DB_PASSWORD=prod_db_password:latest"
+  --set-secrets "DB_PASSWORD=prod_db_password:latest,EMAIL_HOST_PASSWORD=gmail_app_password:latest"
 ```
 
 ### GOOGLE_CLOUD_PROJECT must be set
@@ -183,6 +183,8 @@ if total == 0:
 
 If seeds are missing, ask: "Keine Daten gefunden. Soll ich Seeds laden? (erfordert Cloud SQL Proxy oder Cloud Run Job)"
 
+Only run `add_users` and `seed_all` when the target database is empty for the relevant data. Use the `--if-empty` guards below; do not run unguarded seed/user commands on an existing database.
+
 ### Phase 3: Deploy Backend
 
 Ask: "Backend deployen? (build + push + deploy)" — proceed only on confirmation.
@@ -218,7 +220,7 @@ gcloud run deploy inspi-backend \
   --cpu 1 --memory 512Mi \
   --min-instances 0 --max-instances 10 \
   --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,GOOGLE_CLOUD_PROJECT=inspi-441320,GCS_BUCKET_NAME=inspi-media,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
-  --set-secrets "DB_PASSWORD=prod_db_password:latest" \
+  --set-secrets "DB_PASSWORD=prod_db_password:latest,EMAIL_HOST_PASSWORD=gmail_app_password:latest" \
   --allow-unauthenticated
 ```
 
@@ -228,7 +230,7 @@ Expected: HTTP 200. If not, show error and ask.
 
 Ask: "Django Migrations auf dem Backend ausführen?"
 
-**Option A: Via Cloud SQL Proxy (local)**
+**Via Cloud SQL Proxy (local)**
 
 ```bash
 # Start proxy if not running
@@ -238,17 +240,11 @@ cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
 DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py migrate --noinput
 ```
 
-**Option B: Via Cloud Run Jobs**
-
-```bash
-gcloud run jobs execute inspi-migrate --region europe-west3 --wait
-```
-
 ### Phase 5: Create Users
 
-Ask: "Sollen Benutzer angelegt werden?"
+First check whether users already exist. Ask "Sollen Benutzer angelegt werden?" only when the user table is empty.
 
-Uses the `add_users` management command to create initial users. Requires Cloud SQL Proxy or a Cloud Run Job.
+Uses the `add_users --if-empty` management command to create initial users. Requires Cloud SQL Proxy or a Cloud Run Job.
 
 **Option A: Via Cloud SQL Proxy (local)**
 
@@ -257,7 +253,7 @@ Uses the `add_users` management command to create initial users. Requires Cloud 
 cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
 
 # Run add_users
-DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py add_users
+DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py add_users --if-empty
 ```
 
 **Option B: Via Cloud Run Jobs**
@@ -272,9 +268,9 @@ The `add_users` command creates:
 
 ### Phase 6: Seed Database
 
-Ask: "Soll die Datenbank geseedet werden?"
+First check whether seed data already exists. Ask "Soll die Datenbank geseedet werden?" only when the relevant seed sections are empty.
 
-Uses the `seed_all` management command to seed initial/test data. Requires Cloud SQL Proxy or a Cloud Run Job.
+Uses the `seed_all --if-empty` management command to seed initial/test data. Requires Cloud SQL Proxy or a Cloud Run Job.
 
 **Option A: Via Cloud SQL Proxy (local)**
 
@@ -283,7 +279,7 @@ Uses the `seed_all` management command to seed initial/test data. Requires Cloud
 cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
 
 # Run seed_all
-DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py seed_all
+DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py seed_all --if-empty
 ```
 
 **Option B: Via Cloud Run Jobs**

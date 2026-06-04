@@ -70,8 +70,19 @@ USERS = [
 class Command(BaseCommand):
     help = "Create seed users with profiles for local development"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--if-empty",
+            action="store_true",
+            help="Create seed users only when no users exist yet.",
+        )
+
     def handle(self, *args, **options):
         UserModel = get_user_model()
+
+        if options.get("if_empty") and UserModel.objects.exists():
+            self.stdout.write(self.style.WARNING("Users already exist; skipping add_users."))
+            return
 
         for data in USERS:
             username = data["username"]

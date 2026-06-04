@@ -25,6 +25,74 @@ function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
     .map(([date, meals]) => ({ date, meals }));
 }
 
+interface FallbackRule {
+  name: string;
+  min_green: number | null;
+  max_green: number | null;
+  min_yellow: number | null;
+  max_yellow: number | null;
+  unit: string;
+}
+
+const NUTRITION_FALLBACKS: Record<string, FallbackRule> = {
+  energy_kj: {
+    name: 'Energie',
+    min_green: 1912,
+    max_green: 2629,
+    min_yellow: 1554,
+    max_yellow: 3107,
+    unit: 'kcal',
+  },
+  protein_g: {
+    name: 'Protein',
+    min_green: 45,
+    max_green: 80,
+    min_yellow: 35,
+    max_yellow: 100,
+    unit: 'g',
+  },
+  fat_g: {
+    name: 'Fett',
+    min_green: 55,
+    max_green: 85,
+    min_yellow: 40,
+    max_yellow: 100,
+    unit: 'g',
+  },
+  carbohydrate_g: {
+    name: 'Kohlenhydrate',
+    min_green: 250,
+    max_green: 400,
+    min_yellow: 200,
+    max_yellow: 450,
+    unit: 'g',
+  },
+  sugar_g: {
+    name: 'Zucker',
+    min_green: null,
+    max_green: 50,
+    min_yellow: null,
+    max_yellow: 75,
+    unit: 'g',
+  },
+  fibre_g: {
+    name: 'Ballaststoffe',
+    min_green: 25,
+    max_green: null,
+    min_yellow: 18,
+    max_yellow: null,
+    unit: 'g',
+  },
+  salt_g: {
+    name: 'Salz',
+    min_green: null,
+    max_green: 5,
+    min_yellow: null,
+    max_yellow: 7,
+    unit: 'g',
+  },
+};
+
 export default function NutritionView({ mealPlanId, meals = [] }: { mealPlanId: number; meals?: Meal[] }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { data, error, isLoading, refetch } = useNutritionSummary(mealPlanId, selectedDate || undefined);
@@ -173,11 +241,22 @@ export default function NutritionView({ mealPlanId, meals = [] }: { mealPlanId: 
       <div className="divide-y">
         {rows.map((row) => {
           // Find the active rule for this parameter
-          const activeRule = rules?.find(
+          const dbRule = rules?.find(
             (r) =>
               r.parameter === row.parameter &&
               (r.scope === 'meal_event' || r.scope === 'day')
           );
+
+          const activeRule = dbRule || (NUTRITION_FALLBACKS[row.parameter] ? {
+            parameter: row.parameter,
+            scope: 'day',
+            min_green: NUTRITION_FALLBACKS[row.parameter].min_green,
+            max_green: NUTRITION_FALLBACKS[row.parameter].max_green,
+            min_yellow: NUTRITION_FALLBACKS[row.parameter].min_yellow,
+            max_yellow: NUTRITION_FALLBACKS[row.parameter].max_yellow,
+            name: NUTRITION_FALLBACKS[row.parameter].name,
+            unit: NUTRITION_FALLBACKS[row.parameter].unit,
+          } : undefined);
 
           // The rules operate "pro Person pro Tag" (daily average per portion).
           // For the SollIstBar, we always compare the daily per-portion average to the rules.
@@ -249,7 +328,9 @@ export default function NutritionView({ mealPlanId, meals = [] }: { mealPlanId: 
               sugarG={showPerPortion ? data.per_portion_sugar_g : data.sugar_g}
               fibreG={showPerPortion ? data.per_portion_fibre_g : data.fibre_g}
               saltG={showPerPortion ? data.per_portion_salt_g : data.salt_g}
-              label={showPerPortion ? 'Pro Normportion' : 'Gesamt'}
+              numDays={selectedDate ? 1 : numDays}
+              showPerPortion={showPerPortion}
+              normPortions={data.norm_portions}
             />
           </Suspense>
         </div>
