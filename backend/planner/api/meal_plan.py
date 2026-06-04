@@ -30,6 +30,7 @@ from planner.schemas import (
     MealItemCreateIn,
     MealItemOut,
     MealItemUpdateIn,
+    CopyMealItemIn,
     MealItemOverrideIn,
     MealItemOverrideOut,
     MealOut,
@@ -479,9 +480,77 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
             meal.external_energy_kj = kcal_to_kj(payload.external_energy_kcal)
         else:
             meal.external_energy_kj = None
+    if "external_cost_per_person" in payload.dict(exclude_unset=True):
+        meal.external_cost_per_person = payload.external_cost_per_person
 
     meal.save()
     return meal
+
+
+@meal_plan_router.post("/{meal_plan_id}/meals/{meal_id}/scale-to-target/", response=MealOut)
+def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
+    """Scale all items in a meal proportionally to target calories."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
+
+    if meal.is_synced:
+        raise HttpError(400, "Synchronisierte Mahlzeiten können nicht skaliert werden.")
+    if meal.is_external:
+        raise HttpError(400, "Externe Mahlzeiten können nicht skaliert werden.")
+
+    from recipe.services.nutrition_units import kj_to_kcal
+    portions = meal.override_portions or meal_plan.norm_portions or 1
+    
+    current_energy_kj = MealOut.resolve_total_energy_kj(meal)
+    current_kcal = kj_to_kcal(current_energy_kj) / portions
+
+    if current_kcal <= 0:
+        raise HttpError(400, "Mahlzeit enthält keine Kalorien, Skalierung nicht möglich.")
+
+    target_kcal = 2335.0 * meal.day_part_factor
+    scale = target_kcal / current_kcal
+
+    from django.db import transaction
+    with transaction.atomic():
+        for item in meal.items.all():
+            item.factor = round(item.factor * scale, 1)
+            item.save()
+
+    meal.refresh_from_db()
+    return meal
+
+
+@meal_plan_router.post("/{meal_plan_id}/meal-items/{item_id}/copy/", response=MealItemOut)
+def copy_meal_item(request, meal_plan_id: int, item_id: int, payload: CopyMealItemIn):
+    """Copy or duplicate a meal item."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
+
+    target_meal_id = payload.target_meal_id
+    if target_meal_id is None:
+        target_meal = item.meal
+    else:
+        target_meal = get_object_or_404(Meal, id=target_meal_id, meal_plan=meal_plan)
+
+    if target_meal.is_synced:
+        raise HttpError(400, "Einträge können nicht in synchronisierte Mahlzeiten kopiert werden.")
+
+    copied_item = MealItem.objects.create(
+        meal=target_meal,
+        recipe=item.recipe,
+        ingredient=item.ingredient,
+        quantity=item.quantity,
+        measuring_unit=item.measuring_unit,
+        factor=item.factor,
+        display_name=item.display_name,
+    )
+    return copied_item
 
 
 # ==========================================================================
@@ -580,6 +649,8 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
             scale = (weight_g / 100.0) * mi.factor * (norm_portions / recipe_servings)
 
             for field in totals:
+                if field == "energy_kj" and mi.meal.meal_type == "drinks":
+                    continue
                 ing_val = getattr(ing, field, None)
                 if ing_val is not None:
                     totals[field] += float(ing_val) * scale

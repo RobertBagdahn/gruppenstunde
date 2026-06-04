@@ -21,6 +21,7 @@ Interactive, step-by-step deployment for the Inspi platform to Google Cloud Run.
 |-----|-------|
 | Project ID | `inspi-441320` |
 | Region | `europe-west3` |
+| Food Frontend Region | `europe-west1` |
 | Artifact Registry | `europe-west3-docker.pkg.dev/inspi-441320/inspi` |
 | Backend Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest` |
 | Frontend Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest` |
@@ -137,7 +138,7 @@ gcloud artifacts repositories describe inspi --location=europe-west3 --format="v
 gcloud sql instances describe inspi-db --format="value(state)"
 
 # 1.5 Cloud Run services exist?
-gcloud run services list --region=europe-west3 --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"
+gcloud run services list --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"
 ```
 
 Present results as a checklist:
@@ -290,10 +291,10 @@ gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=europe
 # 6.2 Deploy (minimal flags)
 gcloud run deploy inspi-frontend-food \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest \
-  --region europe-west3
+  --region europe-west1
 
 # 6.3 Verify
-FRONTEND_FOOD_URL=$(gcloud run services describe inspi-frontend-food --region=europe-west3 --format="value(status.url)")
+FRONTEND_FOOD_URL=$(gcloud run services describe inspi-frontend-food --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_FOOD_URL}/"
 ```
 
@@ -317,7 +318,7 @@ The `add_users` command creates:
 ### Phase 8: Post-Deploy Summary
 
 ```bash
-gcloud run services list --region=europe-west3 --format="table(SERVICE,URL,LAST_DEPLOYED_BY,LAST_DEPLOYED)"
+gcloud run services list --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"
 ```
 
 Show final summary:

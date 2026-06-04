@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { BookOpen, Calculator, ExternalLink } from 'lucide-react';
 import ToolLandingPage from '@/components/ToolLandingPage';
 import { TOOL_MEAL_PLAN } from '@/lib/toolColors';
 
@@ -33,36 +34,32 @@ export default function MealPlanLandingPage() {
       {/* Related Tool: Rezepte */}
       <section className="container py-10 md:py-14">
         <div className="max-w-3xl mx-auto space-y-4">
-          <div className="rounded-2xl border border-border/60 bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-soft">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-100 shrink-0">
-              <span className="material-symbols-outlined text-amber-600 text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                menu_book
-              </span>
+          <div className="rounded-2xl border border-border bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
+              <BookOpen className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-bold mb-0.5">Rezepte</h3>
+              <h3 className="text-base font-bold font-display mb-0.5">Rezepte</h3>
               <p className="text-sm text-muted-foreground">
                 Durchsuche und erstelle Rezepte für deine Essenspläne.
               </p>
             </div>
             <Link
               to="/recipes"
-              className="shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full text-sm font-bold hover:scale-105 transition-all"
+              className="shrink-0 flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-full text-sm font-bold hover:scale-105 transition-all"
             >
-              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+              <ExternalLink className="w-4 h-4" />
               Zu den Rezepten
             </Link>
           </div>
 
           {/* Related Tool: Normportion-Simulator */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-soft">
+          <div className="rounded-2xl border border-border bg-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-100 shrink-0">
-              <span className="material-symbols-outlined text-violet-600 text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                calculate
-              </span>
+              <Calculator className="w-5 h-5 text-violet-600" />
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-bold mb-0.5">Normportion-Simulator</h3>
+              <h3 className="text-base font-bold font-display mb-0.5">Normportion-Simulator</h3>
               <p className="text-sm text-muted-foreground">
                 Berechne Energiebedarf und Normfaktoren nach Alter und Geschlecht.
               </p>
@@ -71,7 +68,7 @@ export default function MealPlanLandingPage() {
               to="/tools/norm-portion-simulator"
               className="shrink-0 flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold hover:scale-105 transition-all"
             >
-              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+              <ExternalLink className="w-4 h-4" />
               Zum Simulator
             </Link>
           </div>

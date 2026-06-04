@@ -98,7 +98,7 @@ export default function IngredientListPage() {
         title="Zutatendatenbank"
         description="Verwalte alle Zutaten mit Nährwerten, Preisen und Nutri-Score."
         icon="egg_alt"
-        gradientClasses="bg-gradient-to-br from-amber-500 to-orange-600"
+        gradientClasses="gradient-primary"
         totalCount={data?.total}
         countLabel="Zutat"
         countIcon="egg_alt"
@@ -112,7 +112,7 @@ export default function IngredientListPage() {
         onSubmit={() => { setName(searchInput); setPage(1); }}
         createLabel="Neue Zutat"
         createHref="/ingredients/new"
-        gradientClasses="from-amber-500/5 via-orange-500/5 to-amber-500/5"
+        gradientClasses="from-primary/5 via-primary/10 to-primary/5"
       />
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
@@ -134,12 +134,12 @@ export default function IngredientListPage() {
               <span className="material-symbols-outlined text-[16px]">add_circle</span>
               Neue Zutat
             </button>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500/5 to-transparent px-4 py-2 rounded-lg ml-auto">
-              <span className="material-symbols-outlined text-amber-600 text-[18px]">sort</span>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-lg ml-auto">
+              <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
               <select
                 value={sort}
                 onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium"
+                className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none font-medium"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -157,7 +157,7 @@ export default function IngredientListPage() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border bg-gradient-to-br from-amber-500/10 via-muted/50 to-orange-500/10 animate-pulse h-40"
+                  className="rounded-xl border bg-gradient-to-br from-primary/5 via-muted/50 to-primary/10 animate-pulse h-40"
                 />
               ))}
             </div>

@@ -21,10 +21,10 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
   return (
     <Link
       to={`/ingredients/${ingredient.slug}`}
-      className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border/50 hover:border-amber-500/40 hover:shadow-colorful p-4"
+      className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border/50 hover:border-primary/50 hover:shadow-md p-4"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-amber-700 transition-colors">
+        <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
           {ingredient.name}
         </h3>
         {nutriColors && (
@@ -64,7 +64,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
       </div>
 
       {ingredient.status === 'draft' && (
-        <span className="mt-2 inline-block text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+        <span className="mt-2 inline-block text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--chart-4))]/10 border border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))] font-medium">
           Entwurf
         </span>
       )}

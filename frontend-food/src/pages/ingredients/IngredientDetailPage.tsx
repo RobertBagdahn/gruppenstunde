@@ -48,10 +48,10 @@ function NutritionalTagBadge({
 }) {
   return (
     <span
-      className={`text-xs px-2 py-1 rounded-full font-medium ${
+      className={`text-xs px-2.5 py-1 rounded-full font-medium ${
         isDangerous
-          ? 'bg-red-100 text-red-700 border border-red-200'
-          : 'bg-gray-100 text-gray-600 border border-gray-200'
+          ? 'bg-destructive/10 text-destructive border border-destructive/20'
+          : 'bg-muted text-muted-foreground border border-border'
       }`}
     >
       {name}
@@ -250,7 +250,7 @@ function PortionCard({
                   </span>
                 ) : (
                   <span
-                    className="inline-flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium px-1.5 py-0.5 rounded border border-amber-500/20"
+                    className="inline-flex items-center gap-1 text-[11px] bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] font-medium px-1.5 py-0.5 rounded border border-[hsl(var(--chart-4))]/20"
                     title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
                   >
                     <span className="material-symbols-outlined text-[12px]">warning</span>
@@ -550,7 +550,7 @@ export default function IngredientDetailPage() {
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-xl sm:text-2xl font-bold truncate">{ingredient.name}</h1>
             {ingredient.status === 'draft' && (
-              <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--chart-4))]/10 border border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))] font-medium shrink-0">
                 Entwurf
               </span>
             )}
@@ -692,7 +692,7 @@ export default function IngredientDetailPage() {
 
           {/* Vitamins */}
           {(ingredient.vitamin_a_mg != null || ingredient.vitamin_b1_mg != null || ingredient.vitamin_c_mg != null) && (
-            <CollapsibleNutritionGroup title="Vitamine" icon="medication" iconColor="text-amber-600">
+            <CollapsibleNutritionGroup title="Vitamine" icon="medication" iconColor="text-primary">
               <NutritionRow label="Vitamin A" value={ingredient.vitamin_a_mg ?? null} unit="mg" />
               <NutritionRow label="Vitamin B1" value={ingredient.vitamin_b1_mg ?? null} unit="mg" />
               <NutritionRow label="Vitamin B2" value={ingredient.vitamin_b2_mg ?? null} unit="mg" />
@@ -711,7 +711,7 @@ export default function IngredientDetailPage() {
 
           {/* Minerals */}
           {(ingredient.calcium_mg != null || ingredient.iron_mg != null || ingredient.magnesium_mg != null) && (
-            <CollapsibleNutritionGroup title="Mineralstoffe" icon="diamond" iconColor="text-cyan-600">
+            <CollapsibleNutritionGroup title="Mineralstoffe" icon="diamond" iconColor="text-[hsl(var(--chart-3))]">
               <NutritionRow label="Calcium" value={ingredient.calcium_mg ?? null} unit="mg" />
               <NutritionRow label="Eisen" value={ingredient.iron_mg ?? null} unit="mg" />
               <NutritionRow label="Magnesium" value={ingredient.magnesium_mg ?? null} unit="mg" />

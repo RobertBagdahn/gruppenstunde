@@ -305,7 +305,30 @@ export function useUpdateMeal(mealPlanId: number) {
       day_part_factor?: number | null;
       is_external?: boolean | null;
       external_energy_kcal?: number | null;
+      external_cost_per_person?: number | null;
     }) => patchJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/`, body, MealSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+    },
+  });
+}
+
+export function useScaleMealToTarget(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (mealId: number) =>
+      postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/scale-to-target/`, {}, MealSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+    },
+  });
+}
+
+export function useCopyMealItem(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, target_meal_id }: { itemId: number; target_meal_id: number | null }) =>
+      postJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/copy/`, { target_meal_id }, MealItemSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
     },

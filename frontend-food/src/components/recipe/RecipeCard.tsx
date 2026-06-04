@@ -10,11 +10,11 @@ import RecipeBadge from './RecipeBadge';
 import { cn } from '@/lib/utils';
 
 const TAG_COLORS = [
-  'bg-primary/15 text-primary border border-primary/20',
-  'bg-[hsl(174,60%,41%)]/15 text-[hsl(174,60%,41%)] border border-[hsl(174,60%,41%)]/20',
-  'bg-accent/15 text-accent border border-accent/20',
-  'bg-violet-500/15 text-violet-600 border border-violet-500/20',
-  'bg-rose-500/15 text-rose-600 border border-rose-500/20',
+  'bg-primary/10 text-primary border border-primary/20',
+  'bg-[hsl(var(--chart-3))]/10 text-[hsl(var(--chart-3))] border border-[hsl(var(--chart-3))]/20',
+  'bg-[hsl(var(--chart-2))]/10 text-[hsl(var(--chart-2))] border border-[hsl(var(--chart-2))]/20',
+  'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border border-[hsl(var(--chart-4))]/20',
+  'bg-[hsl(var(--chart-5))]/10 text-[hsl(var(--chart-5))] border border-[hsl(var(--chart-5))]/20',
 ];
 
 interface RecipeCardProps {
@@ -43,7 +43,7 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
   return (
     <Link
       to={`/recipes/${recipe.slug}`}
-      className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border/50 hover:border-primary/40 hover:shadow-colorful"
+      className="group block rounded-2xl bg-card overflow-hidden shadow-soft card-hover border border-border hover:border-primary/40 hover:shadow-colorful"
     >
       {/* Image with gradient overlay */}
       <div className="relative overflow-hidden aspect-square">
@@ -58,13 +58,13 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-amber-500/10" />
         {/* Like badge */}
-        <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-extrabold text-rose-500 shadow-md">
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-extrabold text-[hsl(var(--chart-5))] shadow-md">
           <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
           {recipe.like_score}
         </div>
         {/* Type badge */}
         {typeOpt && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-extrabold text-amber-600 shadow-md">
+          <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-extrabold text-[hsl(var(--chart-2))] shadow-md">
             <span className="material-symbols-outlined text-[12px]">{typeOpt.icon}</span>
             {typeOpt.label}
           </div>
@@ -143,18 +143,18 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
         )}
 
         {/* Meta info */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-border/50 text-[11px] font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1 bg-[hsl(174,60%,41%)]/10 rounded-full px-2 py-0.5">
-            <span className="material-symbols-outlined text-[13px] text-[hsl(174,60%,41%)]" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+        <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-border text-[11px] font-semibold text-muted-foreground">
+          <span className="flex items-center gap-1 bg-[hsl(var(--chart-3))]/10 rounded-full px-2 py-0.5">
+            <span className="material-symbols-outlined text-[13px] text-[hsl(var(--chart-3))]" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
             {timeLabel}
           </span>
-          <span className="flex items-center gap-1 bg-accent/10 rounded-full px-2 py-0.5">
-            <span className="material-symbols-outlined text-[13px] text-accent" style={{ fontVariationSettings: "'FILL' 1" }}>signal_cellular_alt</span>
+          <span className="flex items-center gap-1 bg-primary/10 rounded-full px-2 py-0.5">
+            <span className="material-symbols-outlined text-[13px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>signal_cellular_alt</span>
             {difficultyLabel}
           </span>
           {costsLabel && (
-            <span className="flex items-center gap-1 bg-amber-500/10 rounded-full px-2 py-0.5">
-              <span className="material-symbols-outlined text-[13px] text-amber-600" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+            <span className="flex items-center gap-1 bg-[hsl(var(--chart-2))]/10 rounded-full px-2 py-0.5">
+              <span className="material-symbols-outlined text-[13px] text-[hsl(var(--chart-2))]" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
               {costsLabel}
             </span>
           )}

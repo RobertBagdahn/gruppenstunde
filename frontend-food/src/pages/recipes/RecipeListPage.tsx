@@ -126,7 +126,7 @@ export default function RecipeListPage() {
         title="Rezepte"
         description="Finde das perfekte Rezept für deine Gruppe"
         icon="menu_book"
-        gradientClasses="bg-gradient-to-br from-rose-500 via-pink-500 to-rose-600"
+        gradientClasses="gradient-primary"
         totalCount={data?.total}
         countLabel="Rezept"
         countIcon="restaurant"
@@ -140,7 +140,7 @@ export default function RecipeListPage() {
         onSubmit={() => handleFilterChange('q', searchInput.trim() || undefined)}
         createLabel="Neues Rezept"
         createHref="/recipes/new"
-        gradientClasses="from-rose-500/5 via-pink-500/5 to-rose-500/5"
+        gradientClasses=""
       />
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
@@ -157,17 +157,17 @@ export default function RecipeListPage() {
           <div className="flex items-center justify-between mb-4">
             <Link
               to="/recipes/new"
-              className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-primary to-[hsl(174,60%,41%)] text-white text-sm font-medium hover:shadow-lg transition-all"
+              className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-all"
             >
               <span className="material-symbols-outlined text-[16px]">add_circle</span>
               Neues Rezept
             </Link>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-rose-500/5 to-transparent px-4 py-2 rounded-lg ml-auto">
-              <span className="material-symbols-outlined text-rose-500 text-[18px]">sort</span>
+            <div className="flex items-center gap-2 bg-secondary border border-border px-3 py-1.5 rounded-lg ml-auto">
+              <span className="material-symbols-outlined text-primary text-[18px]">sort</span>
               <select
                 value={filters.sort ?? 'newest'}
                 onChange={(e) => handleFilterChange('sort', e.target.value)}
-                className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-rose-500 focus:outline-none font-medium"
+                className="px-2 py-1 rounded-md border text-sm bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none font-medium"
               >
                 {RECIPE_SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -185,7 +185,7 @@ export default function RecipeListPage() {
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border bg-gradient-to-br from-rose-500/10 via-muted/50 to-pink-500/10 animate-pulse h-72"
+                  className="rounded-xl border bg-muted border-border animate-pulse h-72"
                 />
               ))}
             </div>

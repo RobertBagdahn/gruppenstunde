@@ -38,9 +38,9 @@ export default function IngredientFilterSidebar({
         className="md:hidden w-full flex items-center justify-between gap-2 bg-card rounded-xl border p-4 mb-2 font-semibold text-sm"
       >
         <span className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-amber-600 text-[20px]">tune</span>
+          <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
           Filter {activeFilterCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-amber-600 text-white text-xs px-1.5">
+            <span className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full bg-primary text-white text-xs px-1.5">
               {activeFilterCount}
             </span>
           )}
@@ -70,7 +70,7 @@ export default function IngredientFilterSidebar({
                 return rs ? (
                   <button
                     onClick={() => onFilterChange('retail_section', undefined)}
-                    className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 text-xs font-medium hover:bg-amber-100 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
                   >
                     {rs.name}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -82,7 +82,7 @@ export default function IngredientFilterSidebar({
                 return opt ? (
                   <button
                     onClick={() => onFilterChange('status', undefined)}
-                    className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 text-xs font-medium hover:bg-amber-100 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -95,32 +95,32 @@ export default function IngredientFilterSidebar({
 
         {/* Retail Section */}
         <div className="bg-card rounded-xl border p-4">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-700 mb-3">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary mb-3">
             <span className="material-symbols-outlined text-[18px]">store</span>
             Abteilung
           </h3>
           <div className="space-y-1">
-            <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-amber-700">
+            <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary">
               <input
                 type="radio"
                 name="retail_section"
                 checked={!filters.retail_section}
                 onChange={() => onFilterChange('retail_section', undefined)}
-                className="accent-amber-600"
+                className="accent-primary"
               />
               Alle
             </label>
             {retailSections?.map((rs) => (
               <label
                 key={rs.id}
-                className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-amber-700"
+                className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary"
               >
                 <input
                   type="radio"
                   name="retail_section"
                   checked={filters.retail_section === rs.id}
                   onChange={() => onFilterChange('retail_section', rs.id)}
-                  className="accent-amber-600"
+                  className="accent-primary"
                 />
                 {rs.name}
               </label>
@@ -130,7 +130,7 @@ export default function IngredientFilterSidebar({
 
         {/* Status */}
         <div className="bg-card rounded-xl border p-4">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-700 mb-3">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary mb-3">
             <span className="material-symbols-outlined text-[18px]">verified</span>
             Status
           </h3>
@@ -138,14 +138,14 @@ export default function IngredientFilterSidebar({
             {STATUS_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-amber-700"
+                className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary"
               >
                 <input
                   type="radio"
                   name="status"
                   checked={(filters.status ?? '') === opt.value}
                   onChange={() => onFilterChange('status', opt.value || undefined)}
-                  className="accent-amber-600"
+                  className="accent-primary"
                 />
                 <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
                 {opt.label}

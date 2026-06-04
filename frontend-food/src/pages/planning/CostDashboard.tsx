@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Wallet, AlertCircle, Info, Utensils, Lightbulb } from 'lucide-react';
 import { useMealPlanCosts } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import SollIstBar from '@/components/shared/SollIstBar';
@@ -81,8 +82,8 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
       {/* Budget relative progress bar */}
       {hasBudget && (
         <div className="rounded-xl border bg-card p-4">
-          <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-[18px]">payments</span>
+          <h3 className="text-sm font-semibold flex items-center gap-2 mb-2 font-display">
+            <Wallet className="w-4 h-4 text-primary" />
             Budget-Auslastung (pro Person/Tag)
           </h3>
           <div className="max-w-xl">
@@ -102,13 +103,15 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
       {isIncomplete && (
         <div className={`flex items-start gap-2 p-3 border rounded-lg text-sm ${
           coverage < 50
-            ? 'bg-red-50 border-red-200'
-            : 'bg-amber-50 border-amber-200'
+            ? 'bg-destructive/10 border-destructive/20 text-destructive'
+            : 'bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]'
         }`}>
-          <span className={`material-symbols-outlined text-[18px] mt-0.5 ${coverage < 50 ? 'text-red-600' : 'text-amber-600'}`}>
-            {coverage < 50 ? 'error' : 'info'}
-          </span>
-          <span className={coverage < 50 ? 'text-red-800' : 'text-amber-800'}>
+          {coverage < 50 ? (
+            <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+          ) : (
+            <Info className="w-4 h-4 text-[hsl(var(--chart-4))] shrink-0 mt-0.5" />
+          )}
+          <span>
             Geschätzte Kosten — {data.priced_ingredients} von {data.total_ingredients} Zutaten haben einen Preis ({coverage}% Abdeckung).
           </span>
         </div>
@@ -116,9 +119,9 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
 
       {/* Recipe costs */}
       {data.recipes.length > 0 && (
-        <div className="rounded-2xl border border-border/60 bg-amber-50/30 p-5">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <span className="material-symbols-outlined text-[20px]">restaurant</span>
+        <div className="rounded-2xl border border-border bg-muted/30 p-5">
+          <h3 className="text-lg font-bold flex items-center gap-2 mb-4 font-display">
+            <Utensils className="w-5 h-5 text-primary" />
             Rezeptkosten {showPerPortion ? '(pro Portion)' : '(gesamt)'}
           </h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -135,11 +138,11 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
                   {hasNoPrice ? (
                     <span className="text-xs text-muted-foreground ml-2">Keine Preise</span>
                   ) : isPartial ? (
-                    <span className="text-sm tabular-nums text-amber-600 ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
+                    <span className="text-sm tabular-nums text-[hsl(var(--chart-4))] ml-2" title={`${recipe.priced_ingredients}/${recipe.total_ingredients} Zutaten mit Preis`}>
                       ~{formatEur(showPerPortion ? recipe.cost_per_person : recipe.total_cost)}
                     </span>
                   ) : (
-                    <span className="text-sm font-semibold tabular-nums text-emerald-700 ml-2">
+                    <span className="text-sm font-semibold tabular-nums text-primary ml-2">
                       {formatEur(showPerPortion ? recipe.cost_per_person : recipe.total_cost)}
                     </span>
                   )}
@@ -209,13 +212,13 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
       )}
 
       {/* Hinweis-Banner */}
-      <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 flex items-start gap-3">
-        <span className="material-symbols-outlined text-amber-600 text-[20px] mt-0.5">lightbulb</span>
+      <div className="rounded-2xl border border-[hsl(var(--chart-4))]/20 bg-[hsl(var(--chart-4))]/10 p-4 flex items-start gap-3">
+        <Lightbulb className="text-[hsl(var(--chart-4))] w-5 h-5 shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold text-amber-800">Preise verwalten</p>
-          <p className="text-sm text-amber-700">
+          <p className="font-semibold text-[hsl(var(--chart-4))] font-display">Preise verwalten</p>
+          <p className="text-sm text-[hsl(var(--chart-4))]/80">
             Zutatenpreise kannst du in der{' '}
-            <Link to="/ingredients" className="font-semibold underline hover:no-underline">
+            <Link to="/ingredients" className="font-semibold underline hover:no-underline text-[hsl(var(--chart-4))]">
               Zutatendatenbank
             </Link>{' '}
             hinterlegen.

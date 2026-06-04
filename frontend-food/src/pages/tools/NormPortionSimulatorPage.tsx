@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Calculator, Info, BarChart3, ArrowLeftRight, Loader2, Flame, Scale, Utensils } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -107,8 +108,8 @@ function PalSelector({ value, onChange }: PalSelectorProps) {
           className={cn(
             'rounded-xl border px-3 py-2.5 text-left transition-all',
             value === option.value
-              ? 'border-amber-400 bg-amber-50 shadow-sm'
-              : 'border-border/60 bg-card hover:border-amber-300 hover:bg-amber-50/50',
+              ? 'border-primary bg-primary/5 shadow-sm'
+              : 'border-border bg-card hover:border-primary/50 hover:bg-primary/5',
           )}
         >
           <span className="block text-sm font-semibold text-foreground">
@@ -129,15 +130,13 @@ function PalSelector({ value, onChange }: PalSelectorProps) {
 
 function ReferenceInfoCard() {
   return (
-    <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
       <div className="flex items-start gap-3">
-        <span className="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">
-          info
-        </span>
+        <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-amber-900">
+          <h4 className="text-sm font-bold text-amber-900 font-display">
             Referenz-Normperson
-          </p>
+          </h4>
           <p className="text-sm text-amber-800 mt-1">
             15 Jahre, männlich, PAL 1.5 (moderat). Ein Normfaktor von 1.0
             entspricht dem Energiebedarf dieser Referenzperson. Werte über 1.0
@@ -236,10 +235,10 @@ function MacroBreakdownChart({ dgePoints }: { dgePoints: DgeReferencePoint[] }) 
   if (!data.length) return null;
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card shadow-soft overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg">stacked_bar_chart</span>
+    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+      <div className="px-4 py-3 border-b border-border bg-muted/30">
+        <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+          <BarChart3 className="w-5 h-5 text-primary" />
           Makronährstoff-Verteilung (DGE-Empfehlung)
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -346,10 +345,10 @@ function IstVsSollComparison({
   ];
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card shadow-soft overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg">compare_arrows</span>
+    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+      <div className="px-4 py-3 border-b border-border bg-muted/30">
+        <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+          <ArrowLeftRight className="w-5 h-5 text-primary" />
           Ist vs. Soll - {mealPlan.name}
         </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -396,10 +395,10 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
   const { data, isLoading, error } = useNormPersonCalculation(age, gender, pal);
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card shadow-soft overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-        <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg">calculate</span>
+    <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+      <div className="px-4 py-3 border-b border-border bg-muted/30">
+        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+          <Calculator className="w-5 h-5 text-primary" />
           Einzelperson berechnen
         </h3>
       </div>
@@ -420,7 +419,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
                 const v = e.target.value;
                 setAge(v === '' ? null : Math.min(99, Math.max(0, parseInt(v, 10))));
               }}
-              className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
 
@@ -432,7 +431,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
             <select
               value={gender}
               onChange={(e) => setGender(e.target.value)}
-              className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               {GENDER_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -450,7 +449,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
             <select
               value={pal}
               onChange={(e) => setPal(parseFloat(e.target.value))}
-              className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               {PAL_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -464,7 +463,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
         {/* Results */}
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
             Berechne...
           </div>
         )}
@@ -517,15 +516,15 @@ function ResultCard({ label, value, highlight }: ResultCardProps) {
       className={cn(
         'rounded-xl border px-3 py-2.5 text-center',
         highlight
-          ? 'border-amber-300 bg-amber-50'
-          : 'border-border/60 bg-muted/20',
+          ? 'border-primary bg-primary/5'
+          : 'border-border bg-muted/20',
       )}
     >
       <p className="text-xs text-muted-foreground">{label}</p>
       <p
         className={cn(
           'text-lg font-bold mt-0.5',
-          highlight ? 'text-amber-700' : 'text-foreground',
+          highlight ? 'text-primary' : 'text-foreground',
         )}
       >
         {value}
@@ -589,10 +588,8 @@ export default function NormPortionSimulatorPage() {
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <span className="material-symbols-outlined text-amber-500 text-2xl">
-            calculate
-          </span>
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 font-display">
+          <Calculator className="w-6 h-6 text-primary" />
           Normportion-Simulator
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -604,15 +601,13 @@ export default function NormPortionSimulatorPage() {
 
       {/* MealPlan context banner */}
       {mealPlanId && (
-        <div className="rounded-xl border border-blue-300 bg-blue-50 p-4">
+        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
           <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">
-              restaurant_menu
-            </span>
+            <Utensils className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-blue-900">
+              <h4 className="text-sm font-semibold text-blue-900 font-display">
                 Essensplan-Kontext aktiv
-              </p>
+              </h4>
               <p className="text-sm text-blue-800 mt-1">
                 Ist vs. Soll Vergleich wird unten angezeigt basierend auf den
                 tatsächlichen Nährwerten des Essensplans.
@@ -627,7 +622,7 @@ export default function NormPortionSimulatorPage() {
 
       {/* PAL Selector */}
       <div>
-        <h2 className="text-base font-semibold text-foreground mb-2">
+        <h2 className="text-base font-semibold text-foreground mb-2 font-display">
           Aktivitätslevel (PAL)
         </h2>
         <PalSelector value={pal} onChange={handlePalChange} />
@@ -636,9 +631,7 @@ export default function NormPortionSimulatorPage() {
       {/* Loading / Error */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <span className="material-symbols-outlined animate-spin text-2xl text-amber-500">
-            progress_activity
-          </span>
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       )}
 
@@ -652,10 +645,10 @@ export default function NormPortionSimulatorPage() {
       {curves && (
         <div className="space-y-6">
           {/* TDEE Chart with DGE overlay */}
-          <div className="rounded-2xl border border-border/60 bg-card shadow-soft overflow-hidden">
-            <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-              <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                <span className="material-symbols-outlined text-lg">local_fire_department</span>
+          <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+            <div className="px-4 py-3 border-b border-border bg-muted/30">
+              <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+                <Flame className="w-5 h-5 text-primary" />
                 Tagesenergiebedarf (TDEE) nach Alter
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -740,10 +733,10 @@ export default function NormPortionSimulatorPage() {
           </div>
 
           {/* Norm Factor Chart */}
-          <div className="rounded-2xl border border-border/60 bg-card shadow-soft overflow-hidden">
-            <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-              <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                <span className="material-symbols-outlined text-lg">balance</span>
+          <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+            <div className="px-4 py-3 border-b border-border bg-muted/30">
+              <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
+                <Scale className="w-5 h-5 text-primary" />
                 Normfaktor nach Alter
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">

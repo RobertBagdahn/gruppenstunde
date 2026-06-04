@@ -151,7 +151,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                 return opt ? (
                   <button
                     onClick={() => onFilterChange('recipe_type', undefined)}
-                    className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 text-xs font-medium hover:bg-amber-100 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--chart-2))]/10 text-[hsl(var(--chart-2))] border border-[hsl(var(--chart-2))]/20 px-2.5 py-1 text-xs font-medium hover:bg-[hsl(var(--chart-2))]/20 transition-colors"
                   >
                     {opt.label}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -163,7 +163,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                 return opt ? (
                   <button
                     onClick={() => onFilterChange('origin', undefined)}
-                    className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-xs font-medium hover:bg-emerald-100 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
                   >
                     {opt.label}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -176,7 +176,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                   <button
                     key={slug}
                     onClick={() => toggleTag(slug)}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
                   >
                     {tag.name}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -189,7 +189,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                   <button
                     key={id}
                     onClick={() => toggleScoutLevel(id)}
-                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-medium hover:bg-blue-100 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--chart-3))]/10 text-[hsl(var(--chart-3))] border border-[hsl(var(--chart-3))]/20 px-2.5 py-1 text-xs font-medium hover:bg-[hsl(var(--chart-3))]/20 transition-colors"
                   >
                     {level.name}
                     <span className="material-symbols-outlined text-[14px]">close</span>
@@ -201,10 +201,10 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         )}
 
         {/* Recipe Type */}
-        <div className="bg-card rounded-xl border-l-4 border-l-amber-500 border p-4 shadow-sm">
+        <div className="bg-card rounded-xl border-l-4 border-l-[hsl(var(--chart-2))] border p-4 shadow-sm">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-            <span className="material-symbols-outlined text-amber-500 text-[18px]">restaurant</span>
-            <span className="text-amber-600">Rezeptart</span>
+            <span className="material-symbols-outlined text-[hsl(var(--chart-2))] text-[18px]">restaurant</span>
+            <span className="text-[hsl(var(--chart-2))]">Rezeptart</span>
           </h3>
           {RECIPE_TYPE_OPTIONS.map((opt) => (
             <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
@@ -222,10 +222,10 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         </div>
 
         {/* Origin / Herkunft */}
-        <div className="bg-card rounded-xl border-l-4 border-l-emerald-500 border p-4 shadow-sm">
+        <div className="bg-card rounded-xl border-l-4 border-l-primary border p-4 shadow-sm">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-            <span className="material-symbols-outlined text-emerald-500 text-[18px]">verified</span>
-            <span className="text-emerald-600">Herkunft</span>
+            <span className="material-symbols-outlined text-primary text-[18px]">verified</span>
+            <span className="text-primary">Herkunft</span>
           </h3>
           {RECIPE_ORIGIN_OPTIONS.map((opt) => (
             <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
@@ -250,7 +250,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
             <div className="bg-card rounded-xl border-l-4 border-l-primary border p-4 shadow-sm">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
                 <span className="material-symbols-outlined text-primary text-[18px]">label</span>
-                <span className="bg-gradient-to-r from-primary to-[hsl(174,60%,41%)] bg-clip-text text-transparent">Themen</span>
+                <span className="bg-gradient-to-r from-primary to-[hsl(var(--chart-3))] bg-clip-text text-transparent">Themen</span>
               </h3>
               <div className="max-h-64 overflow-y-auto pr-1">
                 {topicChildren.map((tag) => (
@@ -281,10 +281,10 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
 
         {/* Scout Levels */}
         {scoutLevels && (
-          <div className="bg-card rounded-xl border-l-4 border-l-blue-500 border p-4 shadow-sm">
+          <div className="bg-card rounded-xl border-l-4 border-l-[hsl(var(--chart-3))] border p-4 shadow-sm">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-              <span className="material-symbols-outlined text-blue-500 text-[18px]">groups</span>
-              <span className="text-blue-600">Stufe</span>
+              <span className="material-symbols-outlined text-[hsl(var(--chart-3))] text-[18px]">groups</span>
+              <span className="text-[hsl(var(--chart-3))]">Stufe</span>
             </h3>
             {scoutLevels.map((level) => (
               <label key={level.id} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
@@ -302,10 +302,10 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         )}
 
         {/* Difficulty */}
-        <div className="bg-card rounded-xl border-l-4 border-l-accent border p-4 shadow-sm">
+        <div className="bg-card rounded-xl border-l-4 border-l-[hsl(var(--chart-2))] border p-4 shadow-sm">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-            <span className="material-symbols-outlined text-accent text-[18px]">signal_cellular_alt</span>
-            <span className="text-accent">Schwierigkeit</span>
+            <span className="material-symbols-outlined text-[hsl(var(--chart-2))] text-[18px]">signal_cellular_alt</span>
+            <span className="text-[hsl(var(--chart-2))]">Schwierigkeit</span>
           </h3>
           {RECIPE_DIFFICULTY_OPTIONS.map((opt) => (
             <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
@@ -322,10 +322,10 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         </div>
 
         {/* Costs */}
-        <div className="bg-card rounded-xl border-l-4 border-l-secondary border p-4 shadow-sm">
+        <div className="bg-card rounded-xl border-l-4 border-l-[hsl(var(--chart-4))] border p-4 shadow-sm">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-            <span className="material-symbols-outlined text-secondary text-[18px]">payments</span>
-            <span className="text-[hsl(45,93%,45%)]">Kosten</span>
+            <span className="material-symbols-outlined text-[hsl(var(--chart-4))] text-[18px]">payments</span>
+            <span className="text-[hsl(var(--chart-4))]">Kosten</span>
           </h3>
           {RECIPE_COSTS_OPTIONS.map((opt) => (
             <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
@@ -342,10 +342,10 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         </div>
 
         {/* Duration */}
-        <div className="bg-card rounded-xl border-l-4 border-l-[hsl(174,60%,41%)] border p-4 shadow-sm">
+        <div className="bg-card rounded-xl border-l-4 border-l-[hsl(var(--chart-1))] border p-4 shadow-sm">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-            <span className="material-symbols-outlined text-[hsl(174,60%,41%)] text-[18px]">schedule</span>
-            <span className="text-[hsl(174,60%,41%)]">Dauer</span>
+            <span className="material-symbols-outlined text-[hsl(var(--chart-1))] text-[18px]">schedule</span>
+            <span className="text-[hsl(var(--chart-1))]">Dauer</span>
           </h3>
           {RECIPE_EXECUTION_TIME_OPTIONS.map((opt) => (
             <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">

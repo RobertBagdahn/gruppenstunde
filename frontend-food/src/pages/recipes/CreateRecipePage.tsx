@@ -389,7 +389,7 @@ export default function CreateRecipePage() {
       key={importedKey}
       typeLabel="Rezept"
       typeIcon="menu_book"
-      typeGradient="from-rose-500 to-pink-600"
+      typeGradient="from-primary to-emerald-600"
       contentType="recipe"
       isSaving={createRecipe.isPending}
       onSave={handleSave}
@@ -403,8 +403,8 @@ export default function CreateRecipePage() {
           onClick={() => setShowUrlInput(true)}
           className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary/50 hover:shadow-md transition-all text-center"
         >
-          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50">
-            <span className="material-symbols-outlined text-[32px] text-emerald-600">link</span>
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20">
+            <span className="material-symbols-outlined text-[32px] text-primary">link</span>
           </div>
           <span className="font-semibold">Von URL importieren</span>
           <span className="text-xs text-muted-foreground">
@@ -428,20 +428,20 @@ export default function CreateRecipePage() {
                     onClick={() => setRecipeType(opt.value)}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
                       recipeType === opt.value
-                        ? 'border-rose-500 bg-rose-50 shadow-md shadow-rose-500/10'
-                        : 'border-border hover:border-rose-500/30 hover:bg-rose-50/50'
+                        ? 'border-primary bg-primary/10 shadow-md shadow-primary/10'
+                        : 'border-border hover:border-primary/30 hover:bg-primary/5'
                     }`}
                   >
                     <span
                       className={`material-symbols-outlined text-[24px] ${
-                        recipeType === opt.value ? 'text-rose-600' : 'text-muted-foreground'
+                        recipeType === opt.value ? 'text-primary' : 'text-muted-foreground'
                       }`}
                     >
                       {opt.icon}
                     </span>
                     <span
                       className={`font-medium text-xs ${
-                        recipeType === opt.value ? 'text-rose-700' : 'text-foreground'
+                        recipeType === opt.value ? 'text-primary' : 'text-foreground'
                       }`}
                     >
                       {opt.label}
@@ -498,7 +498,7 @@ export default function CreateRecipePage() {
                     <span className="flex-1 text-sm truncate">
                       {ing.name}
                       {ing.is_new_ingredient && (
-                        <span className="ml-1 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">Neu</span>
+                        <span className="ml-1 inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">Neu</span>
                       )}
                       {ing.ingredient_id === null && (
                         <span className="ml-1 text-xs text-amber-600">(nicht zugeordnet)</span>
@@ -528,10 +528,10 @@ export default function CreateRecipePage() {
           </div>
 
           {/* Info box */}
-          <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+          <div className="bg-[hsl(var(--chart-3))]/10 rounded-lg border border-[hsl(var(--chart-3))]/20 p-4">
             <div className="flex items-start gap-2.5">
-              <span className="material-symbols-outlined text-blue-500 text-[20px] mt-0.5">info</span>
-              <p className="text-xs text-blue-700">
+              <span className="material-symbols-outlined text-[hsl(var(--chart-3))] text-[20px] mt-0.5">info</span>
+              <p className="text-xs text-[hsl(var(--chart-3))]">
                 Bilder und weitere Details kannst du nach dem Erstellen hinzufügen.
                 Das Rezept wird als Entwurf gespeichert.
               </p>
@@ -550,12 +550,12 @@ export default function CreateRecipePage() {
             {(recipeType || servings) && (
               <div className="flex flex-wrap gap-3">
                 {recipeType && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
                     <span className="material-symbols-outlined text-[16px]">restaurant</span>
                     {RECIPE_TYPE_OPTIONS.find((o) => o.value === recipeType)?.label ?? recipeType}
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 text-sm font-medium">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
                   <span className="material-symbols-outlined text-[16px]">people</span>
                   {servings} Portionen
                 </span>
@@ -617,7 +617,7 @@ export default function CreateRecipePage() {
                       <span className="text-muted-foreground w-16 text-right font-medium">{ing.quantity} {ing.unit}</span>
                       <span>{ing.name}</span>
                       {ing.is_new_ingredient && (
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">Neu</span>
+                        <span className="inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">Neu</span>
                       )}
                     </li>
                   ))}

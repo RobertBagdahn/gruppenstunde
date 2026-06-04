@@ -1,10 +1,32 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Coffee,
+  Utensils,
+  Cookie,
+  Cake,
+  BookOpen,
+  Egg,
+  Plus,
+  X,
+  AlertCircle,
+  FileText,
+  Trash2,
+  TrendingUp,
+} from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
-import { MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, MEAL_TYPE_ICONS } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_COLORS } from '@/schemas/mealPlan';
 import { kjToKcal } from '@/utils/nutritionUnits';
 import { cn } from '@/lib/utils';
 import RecipeSearchDialog from './RecipeSearchDialog';
+
+const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  breakfast: Coffee,
+  lunch: Utensils,
+  dinner: Utensils,
+  snack: Cookie,
+  dessert: Cake,
+};
 
 interface TableViewProps {
   meals: Meal[];
@@ -195,9 +217,10 @@ export default function TableView({
                     MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
                     MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
                   )}>
-                    <span className="material-symbols-outlined text-[16px] shrink-0">
-                      {MEAL_TYPE_ICONS[mealType] || 'restaurant'}
-                    </span>
+                    {(() => {
+                      const IconComponent = MEAL_TYPE_LUCIDE_ICONS[mealType] || Utensils;
+                      return <IconComponent className="w-4 h-4 shrink-0" />;
+                    })()}
                     <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
                   </div>
                 </div>
@@ -234,7 +257,7 @@ export default function TableView({
                                 }}
                                 className="w-full inline-flex items-center gap-2 py-1.5 px-2.5 rounded-lg hover:bg-slate-100 text-[11px] text-muted-foreground hover:text-primary transition-all font-semibold border border-transparent hover:border-slate-200"
                               >
-                                <span className="material-symbols-outlined text-[14px]">menu_book</span>
+                                <BookOpen className="w-3.5 h-3.5" />
                                 + Rezept
                               </button>
                               <button
@@ -253,7 +276,7 @@ export default function TableView({
                                 }}
                                 className="w-full inline-flex items-center gap-2 py-1.5 px-2.5 rounded-lg hover:bg-slate-100 text-[11px] text-muted-foreground hover:text-primary transition-all font-semibold border border-transparent hover:border-slate-200"
                               >
-                                <span className="material-symbols-outlined text-[14px]">egg_alt</span>
+                                <Egg className="w-3.5 h-3.5" />
                                 + Zutat
                               </button>
                               <button
@@ -273,7 +296,7 @@ export default function TableView({
                                 }}
                                 className="w-full inline-flex items-center gap-2 py-1.5 px-2.5 rounded-lg hover:bg-slate-100 text-[11px] text-muted-foreground hover:text-primary transition-all font-semibold border border-transparent hover:border-slate-200"
                               >
-                                <span className="material-symbols-outlined text-[14px]">add</span>
+                                <Plus className="w-3.5 h-3.5" />
                                 + Notiz
                               </button>
                             </>
@@ -291,7 +314,7 @@ export default function TableView({
                 const isEmpty = meal.items.length === 0;
 
                 return (
-                  <td key={date} className={`px-4 py-4 align-top border-r border-b hover:bg-slate-50/10 transition-colors ${isEmpty ? 'bg-amber-50/10' : 'bg-background'}`}>
+                  <td key={date} className={`px-4 py-4 align-top border-r border-b hover:bg-muted/30 transition-colors ${isEmpty ? 'bg-[hsl(var(--chart-4))]/5' : 'bg-background'}`}>
                     <div className="flex flex-col h-full justify-between gap-4 min-h-[120px]">
                       {/* Items List */}
                       <div className="space-y-2">
@@ -301,7 +324,7 @@ export default function TableView({
                             const kcal = item.energy_kj != null ? Math.round(kjToKcal(item.energy_kj / normPortions)) : null;
                             const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
                             return (
-                              <div key={item.id || i} className="group flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50/60 border border-slate-100 hover:bg-slate-50 hover:border-slate-200 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.01)]">
+                              <div key={item.id || i} className="group flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
                                 <div className="min-w-0 flex-1">
                                   <div className="text-xs font-semibold text-foreground truncate max-w-[170px]" title={name}>
                                     {item.recipe_id && item.recipe_slug ? (
@@ -342,7 +365,7 @@ export default function TableView({
                                       className="p-1 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
                                       title="Entfernen"
                                     >
-                                      <span className="material-symbols-outlined text-[13px] block">close</span>
+                                      <X className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                 </div>
@@ -350,8 +373,8 @@ export default function TableView({
                             );
                           })
                         ) : (
-                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-100/80 text-rose-600 font-semibold text-[10px] uppercase tracking-wider shadow-sm">
-                            <span className="material-symbols-outlined text-[12px]">error</span>
+                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[10px] uppercase tracking-wider shadow-sm">
+                            <AlertCircle className="w-3 h-3" />
                             Mahlzeit leer
                           </div>
                         )}
@@ -391,10 +414,10 @@ export default function TableView({
                                 setLocalNoteValue(meal.note);
                               }
                             }}
-                            className={`text-xs text-slate-600 italic flex items-start gap-1.5 py-1 px-2 rounded-lg bg-amber-50/40 border border-amber-100/50 hover:bg-amber-50/70 hover:border-amber-200/60 transition-all ${canEdit ? 'cursor-pointer' : ''}`}
+                            className={`text-xs text-muted-foreground italic flex items-start gap-1.5 py-1 px-2 rounded-lg bg-[hsl(var(--chart-4))]/5 border border-[hsl(var(--chart-4))]/10 hover:bg-[hsl(var(--chart-4))]/10 hover:border-[hsl(var(--chart-4))]/20 transition-all ${canEdit ? 'cursor-pointer' : ''}`}
                             title={meal.note}
                           >
-                            <span className="material-symbols-outlined text-[13px] mt-0.5 shrink-0 text-amber-600/80">sticky_note_2</span>
+                            <FileText className="w-3.5 h-3.5 mt-0.5 shrink-0 text-[hsl(var(--chart-4))]" />
                             <span className="truncate max-w-[140px] font-medium">{meal.note}</span>
                           </div>
                         ) : (
@@ -406,7 +429,7 @@ export default function TableView({
                               }}
                               className="text-[10px] text-muted-foreground/60 hover:text-primary hover:bg-slate-100 px-1.5 py-0.5 rounded-md flex items-center gap-1 transition-all"
                             >
-                              <span className="material-symbols-outlined text-[12px]">add</span>
+                              <Plus className="w-3 h-3" />
                               Notiz hinzufügen
                             </button>
                           )
@@ -420,10 +443,10 @@ export default function TableView({
                             <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => setSearchDialogMeal(meal)}
-                                className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 hover:border-emerald-200 transition-colors font-bold shadow-sm"
+                                className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/30 transition-colors font-bold shadow-sm"
                                 title="Rezept oder Zutat hinzufügen"
                               >
-                                <span className="material-symbols-outlined text-[13px]">add</span>
+                                <Plus className="w-3.5 h-3.5" />
                                 Hinzufügen
                               </button>
 
@@ -432,7 +455,7 @@ export default function TableView({
                                 className="p-1 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
                                 title="Mahlzeit-Slot löschen"
                               >
-                                <span className="material-symbols-outlined text-[14px]">delete</span>
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           )}
@@ -450,9 +473,7 @@ export default function TableView({
             {/* Sticky first column */}
             <td className="sticky left-0 bg-slate-50 border-r px-4 py-4 font-bold text-foreground z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.03)]">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-[20px] shrink-0">
-                  monitoring
-                </span>
+                <TrendingUp className="w-5 h-5 text-primary shrink-0" />
                 <span className="text-xs uppercase font-extrabold tracking-wider text-slate-700">Tagessumme <span className="text-[10px] text-slate-500 font-medium block uppercase tracking-normal">(pro Port.)</span></span>
               </div>
             </td>
@@ -485,9 +506,9 @@ export default function TableView({
                     {hasBudget && (
                       <div className={cn(
                         "mt-1.5 px-2.5 py-0.5 text-[10px] font-bold rounded-full border shadow-[0_1px_2px_rgba(0,0,0,0.02)] whitespace-nowrap",
-                        budgetStatus === 'green' && "bg-emerald-50 text-emerald-700 border-emerald-200/80",
-                        budgetStatus === 'yellow' && "bg-amber-50 text-amber-700 border-amber-200/80",
-                        budgetStatus === 'red' && "bg-rose-50 text-rose-700 border-rose-200/80"
+                        budgetStatus === 'green' && "bg-primary/10 text-primary border-primary/20",
+                        budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
+                        budgetStatus === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
                       )}>
                         {diff >= 0
                           ? `noch ${diff.toFixed(2).replace('.', ',')} € / Pers.`

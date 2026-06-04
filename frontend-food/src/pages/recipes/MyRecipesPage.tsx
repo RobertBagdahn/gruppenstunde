@@ -2,6 +2,7 @@
  * MyRecipesPage — Paginated list of the current user's personal recipes.
  */
 import { useSearchParams, Link } from 'react-router-dom';
+import { ArrowLeft, BookOpen, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMyRecipes } from '@/api/recipes';
 import { useCurrentUser } from '@/api/auth';
 import RecipeCard from '@/components/recipe/RecipeCard';
@@ -19,7 +20,7 @@ export default function MyRecipesPage() {
 
   useDocumentMeta({
     title: 'Meine Rezepte',
-    description: 'Deine persoenlichen Rezepte',
+    description: 'Deine persönlichen Rezepte',
     url: '/recipes/my-recipes',
   });
 
@@ -42,14 +43,16 @@ export default function MyRecipesPage() {
     return (
       <div className="container py-8">
         <div className="max-w-md mx-auto text-center space-y-4">
-          <span className="material-symbols-outlined text-5xl text-muted-foreground">lock</span>
+          <div className="flex justify-center">
+            <Lock className="w-12 h-12 text-muted-foreground" />
+          </div>
           <h1 className="text-xl font-bold">Anmeldung erforderlich</h1>
           <p className="text-sm text-muted-foreground">
-            Melde dich an, um deine persoenlichen Rezepte zu sehen.
+            Melde dich an, um deine persönlichen Rezepte zu sehen.
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
           >
             Anmelden
           </Link>
@@ -75,32 +78,32 @@ export default function MyRecipesPage() {
         <div>
           <h1 className="text-2xl font-extrabold">Meine Rezepte</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {data?.total ?? 0} persoenliche Rezepte
+            {data?.total ?? 0} persönliche Rezepte
           </p>
         </div>
         <Link
           to="/recipes"
-          className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
         >
-          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+          <ArrowLeft className="w-4 h-4" />
           Alle Rezepte
         </Link>
       </div>
 
       {recipes.length === 0 ? (
-        <div className="text-center py-16 space-y-4">
-          <span className="material-symbols-outlined text-5xl text-muted-foreground">
-            menu_book
-          </span>
-          <p className="text-lg font-semibold">Noch keine persoenlichen Rezepte</p>
+        <div className="text-center py-16 space-y-4 bg-card rounded-2xl border border-border p-8">
+          <div className="flex justify-center">
+            <BookOpen className="w-12 h-12 text-muted-foreground" />
+          </div>
+          <p className="text-lg font-semibold">Noch keine persönlichen Rezepte</p>
           <p className="text-sm text-muted-foreground">
-            Speichere ein Rezept als persoenliches Rezept, um es hier zu sehen.
+            Speichere ein Rezept als persönliches Rezept, um es hier zu sehen.
           </p>
           <Link
             to="/recipes"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
           >
-            Rezepte durchstoebern
+            Rezepte durchstöbern
           </Link>
         </div>
       ) : (
@@ -125,7 +128,7 @@ export default function MyRecipesPage() {
                 onClick={() => setSearchParams({ page: String(page - 1) })}
                 className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
               >
-                <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                <ChevronLeft className="w-4 h-4" />
                 Zurück
               </button>
               <span className="text-sm text-muted-foreground">
@@ -138,7 +141,7 @@ export default function MyRecipesPage() {
                 className="flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted transition-colors"
               >
                 Weiter
-                <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}

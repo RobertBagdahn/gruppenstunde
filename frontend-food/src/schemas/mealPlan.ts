@@ -57,6 +57,7 @@ export const MealSchema = z.object({
   is_synced: z.boolean(),
   is_external: z.boolean(),
   external_energy_kcal: z.number().nullable(),
+  external_cost_per_person: z.number().nullable(),
   total_energy_kj: z.number(),
   total_cost_eur: z.number(),
   items: z.array(MealItemSchema),
@@ -267,6 +268,7 @@ export const MEAL_TYPE_LABELS: Record<string, string> = {
   dinner: 'Abendessen',
   snack: 'Snack',
   dessert: 'Dessert',
+  drinks: 'Getränke',
 };
 
 export const MEAL_TYPE_ICONS: Record<string, string> = {
@@ -275,6 +277,7 @@ export const MEAL_TYPE_ICONS: Record<string, string> = {
   dinner: 'dinner_dining',
   snack: 'cookie',
   dessert: 'cake',
+  drinks: 'local_bar',
 };
 
 export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border: string }> = {
@@ -283,6 +286,7 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
   dinner: { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-300' },
   snack: { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-300' },
   dessert: { text: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-300' },
+  drinks: { text: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-300' },
 };
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';

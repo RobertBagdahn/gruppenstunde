@@ -53,7 +53,7 @@ export default function ListPageHero({
                 {icon}
               </span>
             )}
-            <h1 className="text-2xl md:text-3xl font-extrabold text-white">{title}</h1>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white font-display">{title}</h1>
           </div>
           <p className="text-white/80 text-sm md:text-base max-w-2xl">{description}</p>
           {totalCount !== undefined && (

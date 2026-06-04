@@ -1,4 +1,5 @@
 import { useState, useDeferredValue, useEffect } from 'react';
+import { Search, Star, TrendingUp, BookOpen, Egg } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -173,15 +174,15 @@ export default function RecipeSearchDialog({
       <Dialog open={open && !ingredientDialog} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <span className="material-symbols-outlined text-primary">search</span>
+            <DialogTitle className="flex items-center gap-2 text-lg font-display">
+              <Search className="w-5 h-5 text-primary" />
               Rezept-Detailsuche
             </DialogTitle>
           </DialogHeader>
 
           {/* Search input */}
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xl">search</span>
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={query}
@@ -237,7 +238,7 @@ export default function RecipeSearchDialog({
               {popularData.personal.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">star</span>
+                    <Star className="w-3.5 h-3.5 text-primary" />
                     Deine Top-Rezepte
                   </p>
                   <div className="flex flex-wrap gap-1.5">
@@ -247,7 +248,7 @@ export default function RecipeSearchDialog({
                         onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
                         className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
                       >
-                        <span className="material-symbols-outlined text-[14px] text-muted-foreground">menu_book</span>
+                        <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
                         {r.title}
                         <span className="text-xs text-muted-foreground">({r.usage_count}×)</span>
                       </button>
@@ -258,7 +259,7 @@ export default function RecipeSearchDialog({
               {popularData.community.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">trending_up</span>
+                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
                     Community-Hits
                   </p>
                   <div className="flex flex-wrap gap-1.5">
@@ -268,7 +269,7 @@ export default function RecipeSearchDialog({
                         onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
                         className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
                       >
-                        <span className="material-symbols-outlined text-[14px] text-muted-foreground">menu_book</span>
+                        <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
                         {r.title}
                         <span className="text-xs text-muted-foreground">({r.usage_count}×)</span>
                       </button>
@@ -295,7 +296,7 @@ export default function RecipeSearchDialog({
                     onClick={() => handleSelect(r)}
                     className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
                   >
-                    <span className="material-symbols-outlined text-muted-foreground text-xl">menu_book</span>
+                    <BookOpen className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{r.title}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RECIPE_TYPE_COLORS[r.recipe_type] ?? 'bg-muted text-muted-foreground'}`}>
                       {RECIPE_TYPE_LABELS[r.recipe_type] ?? r.recipe_type}
@@ -317,7 +318,7 @@ export default function RecipeSearchDialog({
                     onClick={() => setIngredientDialog(ing)}
                     className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
                   >
-                    <span className="material-symbols-outlined text-muted-foreground text-xl">egg_alt</span>
+                    <Egg className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span className="flex-1">{ing.name}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
                       {ing.standalone_type ? (RECIPE_TYPE_LABELS[ing.standalone_type] ?? ing.standalone_type) : 'Zutat'}
@@ -394,8 +395,8 @@ function IngredientQuantityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="material-symbols-outlined text-primary">egg_alt</span>
+          <DialogTitle className="flex items-center gap-2 text-lg font-display">
+            <Egg className="w-5 h-5 text-primary" />
             {ingredient.name} hinzufügen
           </DialogTitle>
         </DialogHeader>

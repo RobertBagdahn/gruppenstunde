@@ -243,7 +243,7 @@ export default function ShoppingListDetailPage() {
           <div
             className={cn(
               'w-2 h-2 rounded-full',
-              isConnected ? 'bg-emerald-500' : 'bg-muted-foreground/30',
+              isConnected ? 'bg-primary' : 'bg-muted-foreground/30',
             )}
             title={isConnected ? 'Verbunden' : 'Nicht verbunden'}
           />

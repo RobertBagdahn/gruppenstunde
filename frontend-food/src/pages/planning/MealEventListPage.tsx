@@ -1,6 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  Calendar,
+  Users,
+  Sparkles,
+  MoreVertical,
+  Copy,
+  Trash2,
+  Calculator,
+  ArrowUpDown,
+} from 'lucide-react';
 import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -171,7 +181,7 @@ function MealPlanListPageInner() {
         title="Essenspläne"
         description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden."
         icon="restaurant_menu"
-        gradientClasses="bg-gradient-to-br from-sky-500 to-cyan-600"
+        gradientClasses="gradient-primary"
         totalCount={mealPlans?.length}
         countLabel="Plan"
         countIcon="restaurant_menu"
@@ -181,9 +191,9 @@ function MealPlanListPageInner() {
       <div className="mb-4">
         <Link
           to="/tools/norm-portion-simulator"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-violet-200 bg-violet-50 text-violet-700 text-sm font-semibold hover:bg-violet-100 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">calculate</span>
+          <Calculator className="w-4 h-4" />
           Norm-Portion-Simulator
         </Link>
       </div>
@@ -196,17 +206,17 @@ function MealPlanListPageInner() {
         onSubmit={() => {}}
         createLabel="Neuer Essensplan"
         onCreateClick={() => setShowCreate(true)}
-        gradientClasses="from-sky-500/5 via-cyan-500/5 to-sky-500/5"
+        gradientClasses=""
       />
 
       {/* Sort */}
       <div className="flex items-center justify-end mb-4">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-sky-500/5 to-transparent px-4 py-2 rounded-lg">
-          <span className="material-symbols-outlined text-sky-600 text-[18px]">sort</span>
+        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-lg">
+          <ArrowUpDown className="w-4 h-4 text-primary" />
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-sky-500 focus:outline-none font-medium"
+            className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-medium"
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -221,7 +231,7 @@ function MealPlanListPageInner() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-sky-500/10 via-muted/50 to-cyan-500/10 animate-pulse" />
+            <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-primary/10 via-muted/50 to-primary/5 animate-pulse" />
           ))}
         </div>
       ) : filteredPlans.length === 0 ? (
@@ -242,25 +252,25 @@ function MealPlanListPageInner() {
             <div
               key={plan.id}
               onClick={() => navigate(`/meal-plans/${plan.id}`)}
-              className="group rounded-2xl border border-border/50 border-l-4 border-l-sky-500 bg-card p-4 hover:border-sky-500/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+              className="group rounded-2xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer border-l-4 border-l-primary"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm truncate group-hover:text-sky-700 transition-colors">
+                  <h3 className="font-display font-bold text-sm truncate group-hover:text-primary transition-colors">
                     {plan.name}
                   </h3>
                   <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">calendar_month</span>
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                       {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">group</span>
+                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
                       {plan.norm_portions} Portionen
                     </span>
                     {plan.event_name && (
                       <span className="inline-flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">celebration</span>
+                        <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
                         {plan.event_name}
                       </span>
                     )}
@@ -272,7 +282,7 @@ function MealPlanListPageInner() {
                       onClick={(e) => e.stopPropagation()}
                       className="p-1 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
                     >
-                      <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                      <MoreVertical className="w-4 h-4" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -282,7 +292,7 @@ function MealPlanListPageInner() {
                         setDuplicateSourceId(plan.id);
                       }}
                     >
-                      <span className="material-symbols-outlined text-[16px] mr-2">content_copy</span>
+                      <Copy className="w-4 h-4 mr-2" />
                       Als Vorlage verwenden
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -292,7 +302,7 @@ function MealPlanListPageInner() {
                       }}
                       className="text-destructive focus:text-destructive"
                     >
-                      <span className="material-symbols-outlined text-[16px] mr-2">delete</span>
+                      <Trash2 className="w-4 h-4 mr-2" />
                       Löschen
                     </DropdownMenuItem>
                   </DropdownMenuContent>

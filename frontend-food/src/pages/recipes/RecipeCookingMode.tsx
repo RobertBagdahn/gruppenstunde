@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import type { RecipeDetail } from '@/schemas/recipe';
 import { parseRecipeSteps } from '@/lib/parseRecipeSteps';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -82,14 +83,14 @@ export default function RecipeCookingMode({
         variant="ghost"
         size="icon"
         onClick={exit}
-        className="absolute top-3 right-3 z-10"
+        className="absolute top-3 right-3 z-10 animate-fade-in"
         aria-label="Kochmodus verlassen"
       >
-        <span className="material-symbols-outlined text-2xl">close</span>
+        <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
       </Button>
 
       {/* Ingredients panel (left on desktop, top on mobile) */}
-      <div className="lg:w-80 lg:border-r overflow-y-auto p-4 lg:p-6 shrink-0 max-h-[40vh] lg:max-h-full">
+      <div className="lg:w-80 lg:border-r border-border overflow-y-auto p-4 lg:p-6 shrink-0 max-h-[40vh] lg:max-h-full">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Zutaten
         </h2>
@@ -123,23 +124,25 @@ export default function RecipeCookingMode({
         </div>
 
         {/* Navigation buttons */}
-        <div className="flex items-center justify-between gap-4 p-4 border-t">
+        <div className="flex items-center justify-between gap-4 p-4 border-t border-border">
           <Button
             variant="outline"
             size="lg"
             onClick={() => goToStep(currentStep - 1)}
             disabled={currentStep <= 0}
+            className="font-semibold"
           >
-            <span className="material-symbols-outlined mr-1">arrow_back</span>
+            <ArrowLeft className="mr-2 w-4 h-4" />
             Zurück
           </Button>
           <Button
             size="lg"
             onClick={() => goToStep(currentStep + 1)}
             disabled={currentStep >= steps.length - 1}
+            className="bg-primary hover:bg-primary/90 text-white font-semibold"
           >
             Weiter
-            <span className="material-symbols-outlined ml-1">arrow_forward</span>
+            <ArrowRight className="ml-2 w-4 h-4" />
           </Button>
         </div>
       </div>

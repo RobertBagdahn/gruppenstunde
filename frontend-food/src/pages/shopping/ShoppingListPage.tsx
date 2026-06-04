@@ -3,6 +3,7 @@
  */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown } from 'lucide-react';
 import {
   useShoppingLists,
   useCreateShoppingList,
@@ -25,47 +26,49 @@ function ShoppingListCard({ list }: { list: ShoppingList }) {
   const updatedAt = new Date(list.updated_at);
   const timeAgo = getTimeAgo(updatedAt);
 
+  const SourceIcon = list.source_type === 'recipe'
+    ? Utensils
+    : list.source_type === 'meal_event'
+      ? Calendar
+      : Edit3;
+
   return (
     <Link
       to={`/shopping-lists/${list.id}`}
-      className="group block rounded-2xl border border-border/50 bg-card p-4 hover:border-teal-500/40 hover:shadow-md transition-all"
+      className="group block rounded-2xl border border-border bg-card p-4 hover:border-primary/50 hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-semibold text-sm truncate group-hover:text-teal-700 transition-colors">
+          <h3 className="font-semibold text-sm truncate group-hover:text-primary transition-colors font-display">
             {list.name}
           </h3>
-          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">
-                {list.source_type === 'recipe'
-                  ? 'restaurant'
-                  : list.source_type === 'meal_event'
-                    ? 'calendar_today'
-                    : 'edit_note'}
-              </span>
+              <SourceIcon className="w-3.5 h-3.5 text-primary" />
               {sourceLabel}
             </span>
+            <span>•</span>
             <span>{timeAgo}</span>
             {list.collaborators_count > 0 && (
-              <span className="inline-flex items-center gap-0.5">
-                <span className="material-symbols-outlined text-[14px]">group</span>
-                {list.collaborators_count}
-              </span>
+              <>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  {list.collaborators_count}
+                </span>
+              </>
             )}
           </div>
         </div>
         {list.items_count === list.checked_count && list.items_count > 0 && (
-          <span className="material-symbols-outlined text-emerald-500 text-[20px] shrink-0">
-            check_circle
-          </span>
+          <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
         )}
       </div>
 
       <ShoppingListProgress
         checked={list.checked_count}
         total={list.items_count}
-        className="mt-3"
+        className="mt-3.5"
       />
     </Link>
   );
@@ -186,7 +189,7 @@ export default function ShoppingListPage() {
         title="Einkaufslisten"
         description="Erstelle und verwalte deine Einkaufslisten."
         icon="shopping_cart"
-        gradientClasses="bg-gradient-to-br from-teal-500 to-cyan-600"
+        gradientClasses="bg-gradient-to-br from-emerald-500 to-teal-600"
         totalCount={data?.total}
         countLabel="Liste"
         countIcon="shopping_cart"
@@ -200,17 +203,17 @@ export default function ShoppingListPage() {
         onSubmit={() => {}}
         createLabel="Neue Liste"
         onCreateClick={() => setShowCreate(true)}
-        gradientClasses="from-teal-500/5 via-cyan-500/5 to-teal-500/5"
+        gradientClasses="from-emerald-500/5 via-teal-500/5 to-emerald-500/5"
       />
 
       {/* Sort */}
       <div className="flex items-center justify-end mb-4">
-        <div className="flex items-center gap-2 bg-gradient-to-r from-teal-500/5 to-transparent px-4 py-2 rounded-lg">
-          <span className="material-symbols-outlined text-teal-600 text-[18px]">sort</span>
+        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-lg">
+          <ArrowUpDown className="w-4 h-4 text-primary" />
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-teal-500 focus:outline-none font-medium"
+            className="px-3 py-2 rounded-lg border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-medium"
           >
             <option value="newest">Neueste</option>
             <option value="oldest">Aelteste</option>

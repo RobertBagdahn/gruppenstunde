@@ -38,7 +38,13 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
         totals[field] = 0.0
 
     if meal.is_external:
-        totals["energy_kj"] = meal.external_energy_kj or 0.0
+        if meal.external_energy_kj is not None:
+            totals["energy_kj"] = meal.external_energy_kj
+        else:
+            from recipe.services.nutrition_units import kcal_to_kj
+            totals["energy_kj"] = kcal_to_kj(2335.0 * meal.day_part_factor)
+        if meal.meal_type == "drinks":
+            totals["energy_kj"] = 0.0
         return totals
 
     items = MealItem.objects.filter(meal=meal).select_related("recipe")
@@ -90,6 +96,9 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
         if item.recipe.cached_nutri_class:
             nutri_classes.append(item.recipe.cached_nutri_class)
     totals["nutri_class"] = sum(nutri_classes) / len(nutri_classes) if nutri_classes else 0.0
+
+    if meal.meal_type == "drinks":
+        totals["energy_kj"] = 0.0
 
     return totals
 

@@ -85,7 +85,18 @@ export default function RecipeImportPage() {
 
   return (
     <div className="container max-w-2xl py-8">
-      <h1 className="text-2xl font-bold mb-6">Rezept importieren</h1>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+          <span className="material-symbols-outlined text-[24px]">download</span>
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Rezept importieren</h1>
+          <p className="text-sm text-muted-foreground">
+            Rezepte automatisch von externen Webseiten übernehmen
+          </p>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>

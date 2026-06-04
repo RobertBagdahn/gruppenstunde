@@ -572,7 +572,7 @@ export default function RecipeDetailPage() {
       {/* Recipe Type Badge + Recipe Badge */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         {typeOpt && (
-          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 uppercase tracking-wide bg-rose-50 rounded-full px-3 py-1 border border-rose-200">
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-[hsl(var(--chart-2))] uppercase tracking-wide bg-[hsl(var(--chart-2))]/10 rounded-full px-3 py-1 border border-[hsl(var(--chart-2))]/20">
             <span className="material-symbols-outlined text-[16px]">{typeOpt.icon}</span>
             {typeOpt.label}
           </p>
@@ -830,7 +830,7 @@ export default function RecipeDetailPage() {
       <section className="mt-8 bg-card rounded-xl border p-6">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
               <span className="material-symbols-outlined text-[22px]">egg_alt</span>
             </span>
             <div className="min-w-0">
@@ -912,7 +912,7 @@ export default function RecipeDetailPage() {
             {recipe.nutritional_tags?.map((nt) => (
               <span
                 key={nt.id}
-                className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 px-3 py-1 text-sm font-medium"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--chart-2))]/10 text-[hsl(var(--chart-2))] border border-[hsl(var(--chart-2))]/20 px-3 py-1 text-sm font-medium"
               >
                 {nt.name}
               </span>

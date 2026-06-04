@@ -64,6 +64,8 @@ class MealItemOut(Schema):
 
     @staticmethod
     def resolve_energy_kj(obj) -> float | None:
+        if obj.meal.meal_type == "drinks":
+            return 0.0
         if not obj.recipe or obj.recipe.cached_energy_total_kj is None:
             return None
         servings = obj.recipe.servings or 1
@@ -98,6 +100,10 @@ class MealItemUpdateIn(Schema):
     factor: float | None = None
 
 
+class CopyMealItemIn(Schema):
+    target_meal_id: int | None = None
+
+
 class MealOut(Schema):
     id: int
     start_datetime: dt.datetime | None = None
@@ -112,6 +118,7 @@ class MealOut(Schema):
     is_synced: bool = False
     is_external: bool = False
     external_energy_kcal: float | None = None
+    external_cost_per_person: float | None = None
     total_energy_kj: float = 0.0
     total_cost_eur: float = 0.0
     items: list[MealItemOut] = []
@@ -125,8 +132,13 @@ class MealOut(Schema):
 
     @staticmethod
     def resolve_total_energy_kj(obj) -> float:
+        if obj.meal_type == "drinks":
+            return 0.0
         if obj.is_external:
-            return obj.external_energy_kj or 0.0
+            if obj.external_energy_kj is not None:
+                return obj.external_energy_kj
+            from recipe.services.nutrition_units import kcal_to_kj
+            return kcal_to_kj(2335.0 * obj.day_part_factor)
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_energy_total_kj is not None:
@@ -138,6 +150,9 @@ class MealOut(Schema):
     @staticmethod
     def resolve_total_cost_eur(obj) -> float:
         if obj.is_external:
+            if obj.external_cost_per_person is not None:
+                portions = obj.override_portions or obj.meal_plan.norm_portions or 0
+                return float(obj.external_cost_per_person) * portions
             return 0.0
         total = 0.0
         for item in obj.items.all():
@@ -162,6 +177,7 @@ class MealUpdateIn(Schema):
     day_part_factor: float | None = None
     is_external: bool | None = None
     external_energy_kcal: float | None = None
+    external_cost_per_person: float | None = None
 
 
 class MealDayBulkCreateIn(Schema):

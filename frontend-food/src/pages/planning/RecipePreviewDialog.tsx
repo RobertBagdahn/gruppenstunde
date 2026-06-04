@@ -1,3 +1,4 @@
+import { BookOpen, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -65,8 +66,8 @@ export default function RecipePreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="material-symbols-outlined text-primary">menu_book</span>
+          <DialogTitle className="flex items-center gap-2 text-lg font-display">
+            <BookOpen className="w-5 h-5 text-primary" />
             {recipe.title}
           </DialogTitle>
         </DialogHeader>
@@ -89,7 +90,7 @@ export default function RecipePreviewDialog({
             </span>
             {recipe.servings && (
               <span className="flex items-center gap-1 text-muted-foreground">
-                <span className="material-symbols-outlined text-[16px]">group</span>
+                <Users className="w-4 h-4 text-muted-foreground" />
                 {recipe.servings} Portionen
               </span>
             )}

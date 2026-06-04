@@ -14,20 +14,20 @@ interface RecipeBadgeProps {
 const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   verified: {
     label: 'Inspi-verifiziert',
-    bg: 'bg-green-100',
-    text: 'text-green-700',
+    bg: 'bg-primary/10 border border-primary/20',
+    text: 'text-primary',
     icon: 'verified',
   },
   community: {
     label: 'Community',
-    bg: 'bg-blue-100',
-    text: 'text-blue-700',
+    bg: 'bg-[hsl(var(--chart-3))]/10 border border-[hsl(var(--chart-3))]/20',
+    text: 'text-[hsl(var(--chart-3))]',
     icon: 'group',
   },
   personal: {
     label: 'Mein Rezept',
-    bg: 'bg-amber-100',
-    text: 'text-amber-700',
+    bg: 'bg-[hsl(var(--chart-2))]/10 border border-[hsl(var(--chart-2))]/20',
+    text: 'text-[hsl(var(--chart-2))]',
     icon: 'person',
   },
 };

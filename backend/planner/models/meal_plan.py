@@ -16,6 +16,7 @@ class MealTypeChoices(models.TextChoices):
     DINNER = "dinner", _("Abendessen")
     SNACK = "snack", _("Snack")
     DESSERT = "dessert", _("Dessert")
+    DRINKS = "drinks", _("Getränke")
 
 
 # Default day_part_factor per meal type
@@ -25,6 +26,7 @@ MEAL_TYPE_DAY_FACTORS: dict[str, float] = {
     MealTypeChoices.DINNER: 0.30,
     MealTypeChoices.SNACK: 0.10,
     MealTypeChoices.DESSERT: 0.00,
+    MealTypeChoices.DRINKS: 0.00,
 }
 
 # Default meals auto-created for each day
@@ -33,6 +35,7 @@ DEFAULT_MEAL_TYPES = [
     MealTypeChoices.LUNCH,
     MealTypeChoices.DINNER,
     MealTypeChoices.SNACK,
+    MealTypeChoices.DRINKS,
 ]
 
 # Default start/end times per meal type (hour, minute)
@@ -42,6 +45,7 @@ MEAL_TYPE_DEFAULT_TIMES: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
     MealTypeChoices.DINNER: ((18, 0), (19, 0)),
     MealTypeChoices.SNACK: ((15, 0), (15, 30)),
     MealTypeChoices.DESSERT: ((19, 30), (20, 0)),
+    MealTypeChoices.DRINKS: ((16, 0), (16, 30)),
 }
 
 
@@ -53,6 +57,7 @@ def default_day_part_factors() -> dict[str, float]:
         "dinner": 0.30,
         "snack": 0.10,
         "dessert": 0.00,
+        "drinks": 0.00,
     }
 
 
@@ -248,6 +253,12 @@ class Meal(models.Model):
         blank=True,
         verbose_name=_("Externe Energie (kJ)"),
         help_text=_("Manuell eingegebener Energiewert für externe Mahlzeiten"),
+    )
+    external_cost_per_person = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name=_("Externe Kosten pro Person"),
+        help_text=_("Fixpreis pro Person für externe Mahlzeiten"),
     )
     note = models.TextField(
         blank=True,

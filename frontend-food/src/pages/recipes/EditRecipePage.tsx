@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe } from '@/api/recipes';
 import { useTags, useScoutLevels } from '@/api/tags';
 import MarkdownEditor from '@/components/MarkdownEditor';
+import { ArrowLeft, Save } from 'lucide-react';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
@@ -130,7 +131,7 @@ export default function EditRecipePage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 text-white">
+        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary">
           <span className="material-symbols-outlined text-[24px]">edit</span>
         </div>
         <div>
@@ -145,7 +146,7 @@ export default function EditRecipePage() {
         {/* Recipe Type */}
         <div className="bg-card rounded-xl border p-5">
           <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-            <span className="material-symbols-outlined text-rose-500 text-[18px]">restaurant</span>
+            <span className="material-symbols-outlined text-primary text-[18px]">restaurant</span>
             Rezeptart
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -156,20 +157,20 @@ export default function EditRecipePage() {
                 onClick={() => setRecipeType(opt.value)}
                 className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
                   recipeType === opt.value
-                    ? 'border-rose-500 bg-rose-50 shadow-md shadow-rose-500/10'
-                    : 'border-border hover:border-rose-500/30 hover:bg-rose-50/50'
+                    ? 'border-primary bg-primary/10 shadow-md shadow-primary/10'
+                    : 'border-border hover:border-primary/30 hover:bg-primary/5'
                 }`}
               >
                 <span
                   className={`material-symbols-outlined text-[24px] ${
-                    recipeType === opt.value ? 'text-rose-600' : 'text-muted-foreground'
+                    recipeType === opt.value ? 'text-primary' : 'text-muted-foreground'
                   }`}
                 >
                   {opt.icon}
                 </span>
                 <span
                   className={`font-medium text-xs ${
-                    recipeType === opt.value ? 'text-rose-700' : 'text-foreground'
+                    recipeType === opt.value ? 'text-primary' : 'text-foreground'
                   }`}
                 >
                   {opt.label}
@@ -191,7 +192,7 @@ export default function EditRecipePage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="z.B. Lagerfeuer-Stockbrot, Pfadfinder-Eintopf..."
             required
-            className="w-full px-4 py-2.5 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="w-full px-4 py-2.5 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
           />
         </div>
 
@@ -206,7 +207,7 @@ export default function EditRecipePage() {
             onChange={(e) => setSummary(e.target.value)}
             rows={2}
             placeholder="Kurze Beschreibung des Rezepts..."
-            className="w-full px-4 py-2.5 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="w-full px-4 py-2.5 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
           />
         </div>
 
@@ -241,7 +242,7 @@ export default function EditRecipePage() {
                   const v = parseInt(e.target.value, 10);
                   if (!isNaN(v) && v >= 1) setServings(v);
                 }}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               />
             </div>
             <div>
@@ -249,7 +250,7 @@ export default function EditRecipePage() {
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">–</option>
                 {RECIPE_DIFFICULTY_OPTIONS.map((o) => (
@@ -264,7 +265,7 @@ export default function EditRecipePage() {
               <select
                 value={costsRating}
                 onChange={(e) => setCostsRating(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">–</option>
                 {RECIPE_COSTS_OPTIONS.map((o) => (
@@ -279,7 +280,7 @@ export default function EditRecipePage() {
               <select
                 value={executionTime}
                 onChange={(e) => setExecutionTime(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">–</option>
                 {RECIPE_EXECUTION_TIME_OPTIONS.map((o) => (
@@ -294,7 +295,7 @@ export default function EditRecipePage() {
               <select
                 value={preparationTime}
                 onChange={(e) => setPreparationTime(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="">–</option>
                 {RECIPE_PREPARATION_TIME_OPTIONS.map((o) => (
@@ -321,7 +322,7 @@ export default function EditRecipePage() {
                 onClick={() => toggleTag(tag.id)}
                 className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
                   selectedTagIds.includes(tag.id)
-                    ? 'bg-rose-500 text-white border-rose-500'
+                    ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background hover:bg-muted'
                 }`}
               >
@@ -337,21 +338,21 @@ export default function EditRecipePage() {
         {/* Scout Levels */}
         {scoutLevels && (
           <div className="bg-card rounded-xl border p-5">
-            <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
-              <span className="material-symbols-outlined text-blue-500 text-[18px]">groups</span>
-              Stufen
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {scoutLevels.map((level) => (
-                <button
-                  key={level.id}
-                  type="button"
-                  onClick={() => toggleScoutLevel(level.id)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                    selectedScoutIds.includes(level.id)
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-background hover:bg-muted'
-                  }`}
+          <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
+            <span className="material-symbols-outlined text-[hsl(var(--chart-3))] text-[18px]">groups</span>
+            Stufen
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {scoutLevels.map((level) => (
+              <button
+                key={level.id}
+                type="button"
+                onClick={() => toggleScoutLevel(level.id)}
+                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                  selectedScoutIds.includes(level.id)
+                    ? 'bg-[hsl(var(--chart-3))] text-white border-[hsl(var(--chart-3))]'
+                    : 'bg-background hover:bg-muted'
+                }`}
                 >
                   {level.name}
                 </button>
@@ -367,15 +368,15 @@ export default function EditRecipePage() {
             onClick={() => navigate(`/recipes/${slug}`)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
           >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            <ArrowLeft className="w-4.5 h-4.5" />
             Abbrechen
           </button>
           <button
             type="submit"
             disabled={!title.trim() || updateRecipe.isPending}
-            className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-xl text-lg font-semibold hover:shadow-lg disabled:opacity-50 transition-all"
+            className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-lg font-semibold hover:bg-primary/90 shadow-md hover:shadow-lg disabled:opacity-50 transition-all"
           >
-            <span className="material-symbols-outlined text-[24px]">save</span>
+            <Save className="w-6 h-6" />
             {updateRecipe.isPending ? 'Wird gespeichert...' : 'Änderungen speichern'}
           </button>
         </div>

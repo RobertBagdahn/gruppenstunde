@@ -1,9 +1,30 @@
-import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
-import { useCreateFromMealPlan } from '@/api/shoppingLists';
-import { useCurrentUser } from '@/api/auth';
+import {
+  Calendar,
+  Users,
+  ShoppingCart,
+  Sparkles,
+  Settings,
+  Grid3X3,
+  Scale,
+  DollarSign,
+  Lightbulb,
+  Plus,
+  Trash2,
+  Edit,
+  Link2,
+  Unlink,
+  PlusCircle,
+  RefreshCw,
+  AlertCircle,
+  X,
+  Sliders,
+  MoreVertical,
+  Copy,
+} from 'lucide-react';
 import { useUnlinkMeal, useLinkMeal, useRefMeals } from '@/api/refMeals';
 import {
   useMealPlan,
@@ -17,9 +38,9 @@ import {
   useRemoveMealItem,
   useUpdateMealItem,
   useUpdateMeal,
-  useNutritionSummary,
-  useShoppingList,
   useRecipeSuggestions,
+  useScaleMealToTarget,
+  useCopyMealItem,
 } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS, MEAL_TYPE_COLORS, getCoverageStatus, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
@@ -27,15 +48,30 @@ import { kjToKcal } from '@/utils/nutritionUnits';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { SuggestionDashboard } from '@/components/suggestions';
-import { useRules } from '@/api/suggestions';
-import SollIstBar from '@/components/shared/SollIstBar';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import TableView from './TableView';
 import CostDashboard from './CostDashboard';
+import SettingsPanel from './SettingsPanel';
+import NutritionView from './NutritionView';
+import ShoppingView from './ShoppingView';
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 import { cn } from '@/lib/utils';
-const LazyNutrientBalanceChart = lazy(() => import('@/components/charts/NutrientBalanceChart'));
 
 /** Group a flat list of meals by date (from start_datetime), preserving sort order. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -69,6 +105,9 @@ export default function MealPlanDetailPage() {
   const updateMealItemMutation = useUpdateMealItem(mealPlanId);
   const updateMealMutation = useUpdateMeal(mealPlanId);
 
+  const scaleMealMutation = useScaleMealToTarget(mealPlanId);
+  const copyMealItemMutation = useCopyMealItem(mealPlanId);
+
   // RefMeal hooks
   const { data: refMeals } = useRefMeals(mealPlanId);
   const unlinkMealMutation = useUnlinkMeal(mealPlanId);
@@ -81,6 +120,7 @@ export default function MealPlanDetailPage() {
   const [deleteDayDate, setDeleteDayDate] = useState<string | null>(null);
   const [deleteMealId, setDeleteMealId] = useState<number | null>(null);
   const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+  const [copyItemId, setCopyItemId] = useState<number | null>(null);
 
   // Edit settings
   const [showSettings, setShowSettings] = useState(false);
@@ -106,6 +146,7 @@ export default function MealPlanDetailPage() {
     day_part_factor?: number | null;
     is_external?: boolean | null;
     external_energy_kcal?: number | null;
+    external_cost_per_person?: number | null;
   }) => {
     updateMealMutation.mutate(
       { mealId, ...data },
@@ -114,6 +155,33 @@ export default function MealPlanDetailPage() {
       },
     );
   }, [updateMealMutation]);
+
+  const handleScaleMeal = useCallback((mealId: number) => {
+    scaleMealMutation.mutate(mealId, {
+      onSuccess: () => {
+        toast.success('Mahlzeit erfolgreich auf Soll-Kcal skaliert');
+      },
+      onError: (err: any) => {
+        toast.error('Fehler beim Skalieren', { description: err.message });
+      },
+    });
+  }, [scaleMealMutation]);
+
+  const handleCopyItemConfirm = useCallback((targetMealId: number) => {
+    if (copyItemId === null) return;
+    copyMealItemMutation.mutate(
+      { itemId: copyItemId, target_meal_id: targetMealId },
+      {
+        onSuccess: () => {
+          toast.success('Eintrag erfolgreich kopiert');
+          setCopyItemId(null);
+        },
+        onError: (err: any) => {
+          toast.error('Fehler beim Kopieren', { description: err.message });
+        },
+      }
+    );
+  }, [copyItemId, copyMealItemMutation]);
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
@@ -232,25 +300,34 @@ export default function MealPlanDetailPage() {
     });
   };
 
+  const TAB_ICONS = {
+    plan: Calendar,
+    table: Grid3X3,
+    nutrition: Scale,
+    costs: DollarSign,
+    shopping: ShoppingCart,
+    suggestions: Lightbulb,
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <BackButton to="/meal-plans/app" />
         <div className="border-l pl-3 flex-1 min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold truncate">{plan.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-display font-bold truncate">{plan.name}</h1>
           <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">group</span>
+              <Users className="w-4 h-4 text-muted-foreground" />
               {plan.norm_portions} Portionen
             </span>
             <span className="inline-flex items-center gap-1" title="Reservefaktor für Einkaufsmengen">
-              <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
+              <ShoppingCart className="w-4 h-4 text-muted-foreground" />
               Reserve: +{Math.round((plan.reserve_factor - 1) * 100)}%
             </span>
             {plan.event_name && (
               <span className="inline-flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px]">celebration</span>
+                <Sparkles className="w-4 h-4 text-muted-foreground" />
                 {plan.event_name}
               </span>
             )}
@@ -261,7 +338,7 @@ export default function MealPlanDetailPage() {
             onClick={() => setShowSettings(!showSettings)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm hover:bg-muted transition-colors self-start"
           >
-            <span className="material-symbols-outlined text-[18px]">settings</span>
+            <Settings className="w-4 h-4" />
             Einstellungen
           </button>
         )}
@@ -275,26 +352,29 @@ export default function MealPlanDetailPage() {
       {/* Tab Bar */}
       <div className="flex gap-1 border-b overflow-x-auto">
         {[
-          { key: 'plan' as const, icon: 'calendar_month', label: 'Tagesplan' },
-          { key: 'table' as const, icon: 'grid_on', label: 'Tabelle' },
-          { key: 'nutrition' as const, icon: 'nutrition', label: 'Nährwerte' },
-          { key: 'costs' as const, icon: 'payments', label: 'Kosten' },
-          { key: 'shopping' as const, icon: 'shopping_cart', label: 'Einkaufsliste' },
-          { key: 'suggestions' as const, icon: 'lightbulb', label: 'Vorschläge' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap ${
-              activeTab === tab.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
+          { key: 'plan' as const, label: 'Tagesplan' },
+          { key: 'table' as const, label: 'Tabelle' },
+          { key: 'nutrition' as const, label: 'Nährwerte' },
+          { key: 'costs' as const, label: 'Kosten' },
+          { key: 'shopping' as const, label: 'Einkaufsliste' },
+          { key: 'suggestions' as const, label: 'Vorschläge' },
+        ].map((tab) => {
+          const IconComponent = TAB_ICONS[tab.key];
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap ${
+                activeTab === tab.key
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
+              }`}
+            >
+              <IconComponent className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}
@@ -320,6 +400,8 @@ export default function MealPlanDetailPage() {
           onUnlinkMeal={handleUnlinkMeal}
           onLinkMeal={handleLinkMeal}
           onUpdateMeal={handleUpdateMeal}
+          onScaleMeal={handleScaleMeal}
+          onCopyItem={setCopyItemId}
         />
       )}
       {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} />}
@@ -401,182 +483,108 @@ export default function MealPlanDetailPage() {
         confirmLabel="Entfernen"
         loading={removeMealItemMutation.isPending}
       />
+
+      {/* Copy Item Dialog */}
+      <CopyItemDialog
+        open={copyItemId !== null}
+        onOpenChange={(open) => {
+          if (!open) setCopyItemId(null);
+        }}
+        onConfirm={handleCopyItemConfirm}
+        meals={plan.meals}
+        isPending={copyMealItemMutation.isPending}
+      />
     </div>
   );
 }
 
 // ==========================================================================
-// Settings Panel
+// Copy Item Dialog
 // ==========================================================================
 
-function SettingsPanel({
-  plan,
-  onSave,
-  isPending,
-}: {
-  plan: {
-    name: string;
-    description: string;
-    norm_portions: number;
-    reserve_factor: number;
-    budget_per_person_per_day: number | null;
-    start_datetime: string | null;
-    end_datetime: string | null;
-    day_part_factors?: Record<string, number>;
-  };
-  onSave: (data: {
-    name?: string;
-    description?: string;
-    norm_portions?: number;
-    reserve_factor?: number;
-    budget_per_person_per_day?: number | null;
-    start_datetime?: string | null;
-    end_datetime?: string | null;
-    day_part_factors?: Record<string, number>;
-  }) => void;
+interface CopyItemDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (targetMealId: number) => void;
+  meals: Meal[];
   isPending: boolean;
-}) {
-  const [name, setName] = useState(plan.name);
-  const [description, setDescription] = useState(plan.description);
-  const [portions, setPortions] = useState(plan.norm_portions);
-  const [reserve, setReserve] = useState(plan.reserve_factor);
-  const [budget, setBudget] = useState(plan.budget_per_person_per_day ?? '');
-  const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
-  const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
+}
 
-  const defaultFactors = {
-    breakfast: 0.20,
-    lunch: 0.35,
-    dinner: 0.35,
-    snack: 0.10,
+function CopyItemDialog({ open, onOpenChange, onConfirm, meals, isPending }: CopyItemDialogProps) {
+  const [selectedMealId, setSelectedMealId] = useState<number | null>(null);
+
+  const groups = useMemo(() => {
+    return groupMealsByDate(meals);
+  }, [meals]);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
   };
-  const [factors, setFactors] = useState<Record<string, number>>(plan.day_part_factors || defaultFactors);
+
+  const handleConfirm = () => {
+    if (selectedMealId) {
+      onConfirm(selectedMealId);
+    }
+  };
 
   return (
-    <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
-      <h3 className="font-semibold">Einstellungen</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium mb-1">Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Eintrag kopieren</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto pr-1 my-4 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Wähle eine Ziel-Mahlzeit aus, in die dieser Eintrag kopiert werden soll:
+          </p>
+          
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <div key={group.date} className="space-y-1.5">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {formatDate(group.date)}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {group.meals.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedMealId(m.id)}
+                      className={cn(
+                        "w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors flex items-center justify-between",
+                        selectedMealId === m.id
+                          ? "border-primary bg-primary/5 text-primary font-medium"
+                          : "border-border hover:bg-muted/50"
+                      )}
+                    >
+                      <span>{MEAL_TYPE_LABELS[m.meal_type] || m.meal_type}</span>
+                      {m.is_synced && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                          Ref
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium mb-1">Beschreibung</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Portionen (Personen)</label>
-          <input
-            type="number"
-            min={1}
-            value={portions}
-            onChange={(e) => setPortions(Number(e.target.value))}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Reservefaktor</label>
-          <input
-            type="number"
-            min={1.0}
-            max={2.0}
-            step={0.05}
-            value={reserve}
-            onChange={(e) => setReserve(Number(e.target.value))}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Budget (€/Person/Tag)</label>
-          <input
-            type="number"
-            min={0}
-            step={0.5}
-            value={budget}
-            onChange={(e) => setBudget(e.target.value === '' ? '' : Number(e.target.value))}
-            placeholder="z.B. 8.00"
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Start (Datum & Uhrzeit)</label>
-          <input
-            type="datetime-local"
-            value={startDatetime}
-            onChange={(e) => setStartDatetime(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Ende (Datum & Uhrzeit)</label>
-          <input
-            type="datetime-local"
-            value={endDatetime}
-            onChange={(e) => setEndDatetime(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-      </div>
 
-      <div className="border-t pt-4">
-        <h4 className="font-semibold text-sm mb-3">Tagesanteil-Faktoren für Mahlzeiten</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {Object.entries(factors).map(([key, value]) => (
-            <div key={key}>
-              <label className="block text-xs font-medium mb-1 capitalize">
-                {MEAL_TYPE_LABELS[key] || key}
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={value}
-                onChange={(e) => {
-                  const newval = Number(e.target.value);
-                  setFactors(prev => ({ ...prev, [key]: newval }));
-                }}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Summe der Faktoren: <span className={Math.abs(Object.values(factors).reduce((a, b) => a + b, 0) - 1.0) < 0.001 ? "text-green-600 font-semibold" : "text-amber-600 font-semibold"}>
-            {Object.values(factors).reduce((a, b) => a + b, 0).toFixed(2)}
-          </span> (Sollte idealerweise 1,00 ergeben).
-        </p>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          onClick={() => onSave({
-            name,
-            description,
-            norm_portions: portions,
-            reserve_factor: reserve,
-            budget_per_person_per_day: budget === '' ? null : Number(budget),
-            start_datetime: startDatetime ? startDatetime + ':00' : null,
-            end_datetime: endDatetime ? endDatetime + ':00' : null,
-            day_part_factors: factors,
-          })}
-          disabled={isPending}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {isPending ? 'Speichern...' : 'Speichern'}
-        </button>
-      </div>
-    </div>
+        <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Abbrechen
+          </Button>
+          <Button 
+            onClick={handleConfirm} 
+            disabled={!selectedMealId || isPending}
+          >
+            {isPending ? 'Kopieren...' : 'Kopieren'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -643,6 +651,8 @@ function DayPlanView({
   onUnlinkMeal,
   onLinkMeal,
   onUpdateMeal,
+  onScaleMeal,
+  onCopyItem,
 }: {
   mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
@@ -669,14 +679,17 @@ function DayPlanView({
     day_part_factor?: number | null;
     is_external?: boolean | null;
     external_energy_kcal?: number | null;
+    external_cost_per_person?: number | null;
   }) => void;
+  onScaleMeal: (mealId: number) => void;
+  onCopyItem: (itemId: number) => void;
 }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'drinks'];
 
   return (
     <div className="space-y-6">
@@ -702,9 +715,9 @@ function DayPlanView({
           <button
             onClick={onAddDayBefore}
             disabled={addDayBeforePending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-green-200 text-sm text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-sm text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <Plus className="w-4 h-4" />
             Tag davor
           </button>
         </div>
@@ -747,7 +760,7 @@ function DayPlanView({
                     className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors self-end sm:self-auto"
                     title="Tag löschen"
                   >
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                    <Trash2 className="w-4.5 h-4.5" />
                   </button>
                 )}
               </div>
@@ -769,6 +782,8 @@ function DayPlanView({
                     onUnlinkMeal={onUnlinkMeal}
                     onLinkMeal={onLinkMeal}
                     onUpdateMeal={onUpdateMeal}
+                    onScaleMeal={onScaleMeal}
+                    onCopyItem={onCopyItem}
                   />
                 ))}
               </div>
@@ -783,9 +798,9 @@ function DayPlanView({
                       <button
                         key={mt}
                         onClick={() => onAddMealType(group.date, mt)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm text-green-600 hover:bg-green-50 transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm text-primary hover:bg-primary/5 transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[14px]">{MEAL_TYPE_ICONS[mt] || 'add'}</span>
+                        <Plus className="w-3.5 h-3.5 text-primary" />
                         {MEAL_TYPE_LABELS[mt] || mt}
                       </button>
                     ))}
@@ -802,9 +817,9 @@ function DayPlanView({
           <button
             onClick={onAddDayAfter}
             disabled={addDayAfterPending}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-green-200 text-sm text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-primary/20 text-sm text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <Plus className="w-4 h-4" />
             Tag danach
           </button>
         </div>
@@ -826,6 +841,8 @@ function MealSlot({
   onUnlinkMeal,
   onLinkMeal,
   onUpdateMeal,
+  onScaleMeal,
+  onCopyItem,
 }: {
   meal: Meal;
   canEdit: boolean;
@@ -844,7 +861,10 @@ function MealSlot({
     day_part_factor?: number | null;
     is_external?: boolean | null;
     external_energy_kcal?: number | null;
+    external_cost_per_person?: number | null;
   }) => void;
+  onScaleMeal: (mealId: number) => void;
+  onCopyItem: (itemId: number) => void;
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -897,7 +917,7 @@ function MealSlot({
   const mealColors = MEAL_TYPE_COLORS[meal.meal_type] || MEAL_TYPE_COLORS.snack;
   const isEmpty = meal.items.length === 0;
   const coverage = getCoverageStatus(kjToKcal(meal.total_energy_kj / normPortions), meal.day_part_factor);
-  const coverageColorClass = coverage.status === 'good' ? 'text-green-600' : coverage.status === 'warning' ? 'text-yellow-600' : 'text-red-600';
+  const coverageColorClass = coverage.status === 'good' ? 'text-primary font-semibold' : coverage.status === 'warning' ? 'text-chart-4 font-semibold' : 'text-destructive font-bold';
 
   const mealTargetKcal = Math.round(NORM_PERSON_DAILY_KCAL * meal.day_part_factor);
   const mealActualKcal = Math.round(kjToKcal(meal.total_energy_kj / normPortions));
@@ -906,13 +926,17 @@ function MealSlot({
   const mealActualCost = meal.total_cost_eur / normPortions;
 
   return (
-    <div className={`px-4 py-3 border-l-4 ${isEmpty && !meal.is_external ? 'border-red-400 bg-red-50/50' : mealColors.border}`}>
+    <div className={`px-4 py-3 border-l-4 ${isEmpty && !meal.is_external ? 'border-destructive bg-destructive/5' : mealColors.border}`}>
       {/* Meal Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className={`material-symbols-outlined text-[20px] ${isEmpty && !meal.is_external ? 'text-red-500' : mealColors.text}`}>
-            {isEmpty && !meal.is_external ? 'warning' : (MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant')}
-          </span>
+          {isEmpty && !meal.is_external ? (
+            <AlertCircle className="w-5 h-5 text-destructive animate-pulse" />
+          ) : (
+            <span className={`material-symbols-outlined text-[20px] ${mealColors.text}`}>
+              {MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'}
+            </span>
+          )}
           <span className="font-semibold text-base">
             {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
           </span>
@@ -928,51 +952,57 @@ function MealSlot({
         </div>
         <div className="flex items-center gap-1">
           {canEdit && (
-            <>
-              <button
-                onClick={() => setShowMealSettings(!showMealSettings)}
-                className={`p-1 rounded transition-colors ${showMealSettings ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-muted/10'}`}
-                title="Mahlzeit-Einstellungen"
-              >
-                <span className="material-symbols-outlined text-[20px]">edit</span>
-              </button>
-              {meal.is_synced ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
-                  onClick={() => onUnlinkMeal(meal.id)}
-                  className="p-1 rounded text-blue-600 hover:bg-blue-50 transition-colors"
-                  title="Vom RefMeal entkoppeln"
+                  className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
+                  title="Aktionen"
                 >
-                  <span className="material-symbols-outlined text-[20px]">link_off</span>
+                  <MoreVertical className="w-4.5 h-4.5" />
                 </button>
-              ) : (
-                <button
-                  onClick={() => onLinkMeal(meal.id, meal.meal_type)}
-                  className="p-1 rounded text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                  title="Mit RefMeal verknüpfen"
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {!meal.is_synced && !meal.is_external && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsSearching(true);
+                      setSearchQuery('');
+                    }}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4 text-primary" />
+                    <span>Rezept hinzufügen</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => setShowMealSettings(!showMealSettings)}>
+                  <Edit className="mr-2 h-4 w-4 text-primary" />
+                  <span>Einstellungen</span>
+                </DropdownMenuItem>
+                {canEdit && !meal.is_synced && !meal.is_external && meal.items.length > 0 && (
+                  <DropdownMenuItem onClick={() => onScaleMeal(meal.id)}>
+                    <Scale className="mr-2 h-4 w-4 text-primary" />
+                    <span>Auf Soll skalieren</span>
+                  </DropdownMenuItem>
+                )}
+                {meal.is_synced ? (
+                  <DropdownMenuItem onClick={() => onUnlinkMeal(meal.id)}>
+                    <Unlink className="mr-2 h-4 w-4 text-primary" />
+                    <span>Vom RefMeal entkoppeln</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => onLinkMeal(meal.id, meal.meal_type)}>
+                    <Link2 className="mr-2 h-4 w-4 text-primary" />
+                    <span>Mit RefMeal verknüpfen</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => onDeleteMeal(meal.id)}
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                 >
-                  <span className="material-symbols-outlined text-[20px]">link</span>
-                </button>
-              )}
-              {!meal.is_synced && !meal.is_external && (
-                <button
-                  onClick={() => {
-                    setIsSearching(!isSearching);
-                    setSearchQuery('');
-                  }}
-                  className="p-1 rounded text-green-600 hover:bg-green-50 transition-colors"
-                  title="Rezept hinzufügen"
-                >
-                  <span className="material-symbols-outlined text-[20px]">add_circle</span>
-                </button>
-              )}
-              <button
-                onClick={() => onDeleteMeal(meal.id)}
-                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                title="Mahlzeit löschen"
-              >
-                <span className="material-symbols-outlined text-[20px]">delete</span>
-              </button>
-            </>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Mahlzeit löschen</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>
@@ -994,7 +1024,7 @@ function MealSlot({
       {/* Meal Settings Panel */}
       {showMealSettings && (
         <div className="pl-7 pr-4 py-3 border rounded-lg bg-muted/20 my-2 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className={cn("grid grid-cols-1 gap-3", meal.is_external ? "sm:grid-cols-4" : "sm:grid-cols-3")}>
             <div>
               <label className="block text-xs font-semibold mb-1 text-muted-foreground">Tagesanteil-Faktor</label>
               <input
@@ -1021,18 +1051,32 @@ function MealSlot({
             </div>
 
             {meal.is_external && (
-              <div>
-                <label className="block text-xs font-semibold mb-1 text-muted-foreground">Energie (kcal)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={10}
-                  value={meal.external_energy_kcal ?? ''}
-                  onChange={(e) => onUpdateMeal(meal.id, { external_energy_kcal: e.target.value === '' ? null : Number(e.target.value) })}
-                  placeholder="z.B. 450"
-                  className="w-full rounded border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-muted-foreground">Energie (kcal)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={meal.external_energy_kcal ?? ''}
+                    onChange={(e) => onUpdateMeal(meal.id, { external_energy_kcal: e.target.value === '' ? null : Number(e.target.value) })}
+                    placeholder="Auto (Soll)"
+                    className="w-full rounded border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-muted-foreground">Festpreis pro Person (€)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={meal.external_cost_per_person ?? ''}
+                    onChange={(e) => onUpdateMeal(meal.id, { external_cost_per_person: e.target.value === '' ? null : Number(e.target.value) })}
+                    placeholder="z.B. 4,50"
+                    className="w-full rounded border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+              </>
             )}
           </div>
           
@@ -1050,14 +1094,14 @@ function MealSlot({
 
       {/* Meal Items */}
       {meal.is_synced && !isEmpty && (
-        <p className="text-xs text-blue-500 font-medium pl-7 flex items-center gap-1 mb-1">
-          <span className="material-symbols-outlined text-[14px]">sync</span>
+        <p className="text-xs text-primary font-medium pl-7 flex items-center gap-1 mb-1">
+          <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" />
           Referenz-Mahlzeit
         </p>
       )}
       {isEmpty && !isSearching && (
-        <p className="text-sm text-red-500 italic pl-7 flex items-center gap-1">
-          <span className="material-symbols-outlined text-[16px]">error</span>
+        <p className="text-sm text-destructive italic pl-7 flex items-center gap-1">
+          <AlertCircle className="w-4 h-4 text-destructive" />
           Noch kein Rezept zugeordnet
         </p>
       )}
@@ -1074,7 +1118,7 @@ function MealSlot({
           <div className="flex-1 min-w-0">
             <Link
               to={`/recipes/${item.recipe_slug}`}
-              className="text-base hover:text-primary transition-colors truncate block"
+              className="text-base hover:text-primary transition-colors truncate block font-medium"
             >
               {item.recipe_title}
             </Link>
@@ -1093,13 +1137,22 @@ function MealSlot({
             </div>
           </div>
           {canEdit && !meal.is_synced && (
-            <button
-              onClick={() => onDeleteItem(item.id)}
-              className="p-1 rounded text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
-              title="Entfernen"
-            >
-              <span className="material-symbols-outlined text-[16px]">close</span>
-            </button>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+              <button
+                onClick={() => onCopyItem(item.id)}
+                className="p-1 rounded text-muted-foreground hover:text-primary transition-colors"
+                title="Eintrag kopieren"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onDeleteItem(item.id)}
+                className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                title="Entfernen"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </div>
       ))}
@@ -1122,7 +1175,7 @@ function MealSlot({
               className="p-1.5 rounded-lg border text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               title="Detailsuche"
             >
-              <span className="material-symbols-outlined text-[18px]">tune</span>
+              <Sliders className="w-4 h-4" />
             </button>
           </div>
           {suggestions && suggestions.length > 0 && (
@@ -1160,415 +1213,6 @@ function MealSlot({
           setDialogOpen(false);
         }}
       />
-    </div>
-  );
-}
-
-// ==========================================================================
-// Nutrition View
-// ==========================================================================
-
-function NutritionView({ mealPlanId, meals = [] }: { mealPlanId: number; meals?: Meal[] }) {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const { data, error, isLoading, refetch } = useNutritionSummary(mealPlanId, selectedDate || undefined);
-  const { data: rules } = useRules();
-  const [showPerPortion, setShowPerPortion] = useState(true);
-
-  // Group meals by date to get unique dates
-  const dayGroups = useMemo(() => groupMealsByDate(meals), [meals]);
-  const uniqueDates = useMemo(() => dayGroups.map((g) => g.date), [dayGroups]);
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
-  };
-
-  if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
-  if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
-  if (!data) return null;
-
-  const numDays = Math.max(uniqueDates.length, 1);
-
-  function evaluateRuleStatus(
-    val: number,
-    min_green: number | null,
-    max_green: number | null,
-    min_yellow: number | null,
-    max_yellow: number | null
-  ): 'green' | 'yellow' | 'red' {
-    if (min_yellow !== null && val < min_yellow) return 'red';
-    if (max_yellow !== null && val > max_yellow) return 'red';
-    if (min_green !== null && val < min_green) return 'yellow';
-    if (max_green !== null && val > max_green) return 'yellow';
-    return 'green';
-  }
-
-  const rows = [
-    {
-      label: 'Energie',
-      parameter: 'energy_kj',
-      totalValue: Math.round(kjToKcal(data.energy_kj)),
-      perPortionValue: Math.round(kjToKcal(data.per_portion_energy_kj)),
-      unit: 'kcal',
-      icon: 'local_fire_department',
-    },
-    {
-      label: 'Protein',
-      parameter: 'protein_g',
-      totalValue: data.protein_g,
-      perPortionValue: data.per_portion_protein_g,
-      unit: 'g',
-      icon: 'fitness_center',
-    },
-    {
-      label: 'Fett',
-      parameter: 'fat_g',
-      totalValue: data.fat_g,
-      perPortionValue: data.per_portion_fat_g,
-      unit: 'g',
-      icon: 'water_drop',
-    },
-    {
-      label: 'Kohlenhydrate',
-      parameter: 'carbohydrate_g',
-      totalValue: data.carbohydrate_g,
-      perPortionValue: data.per_portion_carbohydrate_g,
-      unit: 'g',
-      icon: 'grain',
-    },
-    {
-      label: 'Zucker',
-      parameter: 'sugar_g',
-      totalValue: data.sugar_g,
-      perPortionValue: data.per_portion_sugar_g,
-      unit: 'g',
-      icon: 'cake',
-    },
-    {
-      label: 'Ballaststoffe',
-      parameter: 'fibre_g',
-      totalValue: data.fibre_g,
-      perPortionValue: data.per_portion_fibre_g,
-      unit: 'g',
-      icon: 'eco',
-    },
-    {
-      label: 'Salz',
-      parameter: 'salt_g',
-      totalValue: data.salt_g,
-      perPortionValue: data.per_portion_salt_g,
-      unit: 'g',
-      icon: 'water_drop',
-    },
-  ];
-
-  return (
-    <div className="rounded-xl border bg-card overflow-hidden">
-      <div className="px-4 py-3 bg-muted/50 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <h3 className="font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">nutrition</span>
-            Nährwert-Zusammenfassung {showPerPortion ? '(pro Normportion)' : '(gesamt)'}
-          </h3>
-
-          {/* Horizontal Day-by-Day (Bar7) Selector */}
-          {uniqueDates.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full sm:ml-2">
-              <button
-                type="button"
-                onClick={() => setSelectedDate(null)}
-                className={cn(
-                  "text-xs px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors",
-                  selectedDate === null
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Gesamter Plan ({numDays} Tage)
-              </button>
-              {uniqueDates.map((date) => (
-                <button
-                  key={date}
-                  type="button"
-                  onClick={() => setSelectedDate(date)}
-                  className={cn(
-                    "text-xs px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors",
-                    selectedDate === date
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {formatDate(date)}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowPerPortion(!showPerPortion)}
-          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/50 transition-colors font-medium self-end sm:self-auto"
-        >
-          {showPerPortion ? 'Gesamt anzeigen' : `Pro Portion (${data.norm_portions})`}
-        </button>
-      </div>
-      <div className="divide-y">
-        {rows.map((row) => {
-          // Find the active rule for this parameter
-          const activeRule = rules?.find(
-            (r) =>
-              r.parameter === row.parameter &&
-              (r.scope === 'meal_event' || r.scope === 'day')
-          );
-
-          // The rules operate "pro Person pro Tag" (daily average per portion).
-          // For the SollIstBar, we always compare the daily per-portion average to the rules.
-          // If a specific day is selected, we don't divide by numDays since the data is already daily.
-          const dailyPortionVal = selectedDate ? row.perPortionValue : row.perPortionValue / numDays;
-
-          const hasSollIst = !!activeRule;
-          const status = activeRule
-            ? evaluateRuleStatus(
-                dailyPortionVal,
-                activeRule.min_green,
-                activeRule.max_green,
-                activeRule.min_yellow,
-                activeRule.max_yellow
-              )
-            : 'green';
-
-          const target_mid = activeRule
-            ? activeRule.min_green !== null && activeRule.max_green !== null
-              ? (activeRule.min_green + activeRule.max_green) / 2
-              : activeRule.min_green ?? activeRule.max_green
-            : null;
-
-          const displayVal = showPerPortion
-            ? `${row.perPortionValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`
-            : `${row.totalValue.toFixed(row.unit === 'kcal' ? 0 : 1)} ${row.unit}`;
-
-          return (
-            <div key={row.label} className="px-4 py-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-medium">
-                  <span className="material-symbols-outlined text-[16px] text-muted-foreground">
-                    {row.icon}
-                  </span>
-                  {row.label}
-                </span>
-                <span className="text-sm font-semibold">{displayVal}</span>
-              </div>
-
-              {hasSollIst && activeRule && (
-                <div className="pl-6 max-w-xl">
-                  <SollIstBar
-                    current={dailyPortionVal}
-                    min_green={activeRule.min_green}
-                    max_green={activeRule.max_green}
-                    target_mid={target_mid}
-                    status={status}
-                    unit={row.unit}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Nutrient Balance Chart */}
-      {(data.protein_g > 0 || data.fat_g > 0 || data.carbohydrate_g > 0) && (
-        <div className="px-4 py-4 border-t">
-          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[16px]">bar_chart</span>
-            Nährstoff-Verteilung {showPerPortion ? '(pro Portion)' : '(gesamt)'}
-          </h4>
-          <Suspense fallback={<div className="h-[260px] bg-muted rounded-xl animate-pulse" />}>
-            <LazyNutrientBalanceChart
-              proteinG={showPerPortion ? data.per_portion_protein_g : data.protein_g}
-              fatG={showPerPortion ? data.per_portion_fat_g : data.fat_g}
-              carbsG={showPerPortion ? data.per_portion_carbohydrate_g : data.carbohydrate_g}
-              sugarG={showPerPortion ? data.per_portion_sugar_g : data.sugar_g}
-              fibreG={showPerPortion ? data.per_portion_fibre_g : data.fibre_g}
-              saltG={showPerPortion ? data.per_portion_salt_g : data.salt_g}
-              label={showPerPortion ? 'Pro Normportion' : 'Gesamt'}
-            />
-          </Suspense>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ==========================================================================
-// Shopping Item with Sources (Expand/Collapse)
-// ==========================================================================
-
-interface TransientShoppingItem {
-  ingredient_name: string;
-  ingredient_slug?: string;
-  total_quantity_g: number;
-  unit: string;
-  retail_section: string;
-  estimated_price_eur: number | null;
-  display_quantity?: string;
-  display_text?: string;
-  natural_portions?: string;
-  sources?: Array<{ recipe_id: number; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
-}
-
-function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasSources = item.sources && item.sources.length > 0;
-
-  return (
-    <div>
-      <div
-        className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={() => hasSources && setExpanded(!expanded)}
-      >
-        <div className="flex items-center gap-2">
-          {hasSources && (
-            <span className={`material-symbols-outlined text-[16px] text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`}>
-              chevron_right
-            </span>
-          )}
-          {item.ingredient_slug ? (
-            <Link
-              to={`/ingredients/${item.ingredient_slug}`}
-              className="text-sm hover:text-primary transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {item.ingredient_name}
-            </Link>
-          ) : (
-            <span className="text-sm">{item.ingredient_name}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g)} ${item.unit}`}</span>
-          {item.estimated_price_eur !== null ? (
-            <span className="text-foreground font-medium">
-              {item.estimated_price_eur.toFixed(2)} EUR
-            </span>
-          ) : (
-            <span className="text-red-400 text-xs">kein Preis</span>
-          )}
-        </div>
-      </div>
-      {expanded && hasSources && (
-        <div className="pl-10 pr-4 pb-2 space-y-1">
-          {item.sources!.map((source, idx) => (
-            <div key={idx} className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground/60">&#8226;</span>
-                {source.recipe_slug ? (
-                  <Link
-                    to={`/recipes/${source.recipe_slug}`}
-                    className="hover:text-primary transition-colors"
-                  >
-                    {source.recipe_name}
-                  </Link>
-                ) : (
-                  <span>{source.recipe_name}</span>
-                )}
-                {source.meal_label && (
-                  <span className="text-muted-foreground/60">({source.meal_label})</span>
-                )}
-              </div>
-              <span>{Math.round(source.quantity_g || 0)} g</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ==========================================================================
-// Shopping View
-// ==========================================================================
-
-function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
-  const navigate = useNavigate();
-  const { data: currentUser } = useCurrentUser();
-  const { data, error, isLoading, refetch } = useShoppingList(mealPlanId);
-  const createFromMealPlan = useCreateFromMealPlan();
-
-  if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
-  if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
-  if (!data || data.length === 0) {
-    return (
-      <EmptyState
-        icon="shopping_cart"
-        title="Noch keine Zutaten"
-        description="Füge Rezepte zu den Mahlzeiten hinzu, um die Einkaufsliste zu sehen."
-      />
-    );
-  }
-
-  // Group by retail section
-  const grouped: Record<string, typeof data> = {};
-  for (const item of data) {
-    const section = item.retail_section || 'Sonstiges';
-    if (!grouped[section]) grouped[section] = [];
-    grouped[section].push(item);
-  }
-
-  const totalPrice = data.reduce((sum, item) => sum + (item.estimated_price_eur || 0), 0);
-
-  return (
-    <div className="space-y-4">
-      {/* Export to persistent shopping list */}
-      {currentUser && (
-        <button
-          type="button"
-          disabled={createFromMealPlan.isPending}
-          onClick={() => {
-            createFromMealPlan.mutate(mealPlanId, {
-              onSuccess: (created) => {
-                toast.success('Einkaufsliste erstellt');
-                navigate(`/shopping-lists/${created.id}`);
-              },
-              onError: (err) =>
-                toast.error('Fehler', { description: err.message }),
-            });
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors w-full justify-center disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {createFromMealPlan.isPending ? 'hourglass_empty' : 'shopping_cart'}
-          </span>
-          {createFromMealPlan.isPending
-            ? 'Erstelle Einkaufsliste...'
-            : 'Einkaufsliste erstellen'}
-        </button>
-      )}
-
-      {Object.entries(grouped).map(([section, items]) => (
-        <div key={section} className="rounded-xl border bg-card overflow-hidden">
-          <div className="px-4 py-2.5 bg-muted/50 border-b">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <span className="material-symbols-outlined text-[16px]">storefront</span>
-              {section}
-            </h3>
-          </div>
-          <div className="divide-y">
-            {items.map((item, idx) => (
-              <ShoppingItemWithSources key={idx} item={item} />
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {/* Total */}
-      {totalPrice > 0 && (
-        <div className="rounded-xl border bg-card px-4 py-3 flex items-center justify-between">
-          <span className="font-semibold">Geschätzter Gesamtpreis</span>
-          <span className="font-bold text-lg">{totalPrice.toFixed(2)} EUR</span>
-        </div>
-      )}
     </div>
   );
 }

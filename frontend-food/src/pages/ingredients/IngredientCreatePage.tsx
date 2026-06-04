@@ -349,8 +349,8 @@ export default function IngredientCreatePage() {
                     className={`text-xs px-3 py-1.5 rounded-full border transition ${
                       selected
                         ? tag.is_dangerous
-                          ? 'bg-red-100 text-red-700 border-red-300'
-                          : 'bg-primary/10 text-primary border-primary/30'
+                          ? 'bg-destructive/10 text-destructive border-destructive/20'
+                          : 'bg-primary/10 text-primary border-primary/20'
                         : 'bg-background text-muted-foreground border-border hover:bg-muted'
                     }`}
                   >

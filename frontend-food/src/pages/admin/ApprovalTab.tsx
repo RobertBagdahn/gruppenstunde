@@ -73,7 +73,7 @@ export default function ApprovalTab() {
               <button
                 onClick={() => handleApprove(item)}
                 disabled={approvalAction.isPending}
-                className="px-3 py-1.5 text-xs font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-50"
               >
                 Freigeben
               </button>

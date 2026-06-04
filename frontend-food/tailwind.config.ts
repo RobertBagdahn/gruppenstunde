@@ -18,7 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Source Sans 3', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -62,10 +63,10 @@ export default {
           5: "hsl(var(--chart-5))",
         },
         inspi: {
-          green: "#0f6c8f",
-          yellow: "#f0b429",
-          orange: "#d39b1d",
-          teal: "#105f75",
+          green: "#16a34a",
+          yellow: "#f59e0b",
+          orange: "#ea580c",
+          teal: "#0d9488",
         },
       },
       borderRadius: {
