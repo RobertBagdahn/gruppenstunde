@@ -855,7 +855,6 @@ MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
     "lunch": ["warm_meal", "cold_meal", "side_dish"],
     "dinner": ["warm_meal", "cold_meal", "side_dish"],
     "snack": ["snack", "simple_meal"],
-    "dessert": ["dessert"],
 }
 
 

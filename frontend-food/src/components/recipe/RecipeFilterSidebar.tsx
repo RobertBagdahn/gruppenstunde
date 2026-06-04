@@ -8,61 +8,7 @@ import {
   RECIPE_ORIGIN_OPTIONS,
   type RecipeFilter,
 } from '@/schemas/recipe';
-import type { Tag } from '@/schemas/content';
-
-/** Build a tree structure from flat tag list */
-function buildTagTree(tags: Tag[]): (Tag & { children: Tag[] })[] {
-  const map = new Map<number, Tag & { children: Tag[] }>();
-  const roots: (Tag & { children: Tag[] })[] = [];
-
-  tags.forEach((t) => map.set(t.id, { ...t, children: [] }));
-  tags.forEach((t) => {
-    const node = map.get(t.id)!;
-    if (t.parent_id && map.has(t.parent_id)) {
-      map.get(t.parent_id)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-
-  return roots.sort((a, b) => a.sort_order - b.sort_order);
-}
-
-function TagCheckbox({
-  tag,
-  selectedSlugs,
-  onToggle,
-  depth = 0,
-}: {
-  tag: Tag & { children: Tag[] };
-  selectedSlugs: string[];
-  onToggle: (slug: string) => void;
-  depth?: number;
-}) {
-  return (
-    <div style={{ paddingLeft: depth * 16 }}>
-      <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary">
-        <input
-          type="checkbox"
-          checked={selectedSlugs.includes(tag.slug)}
-          onChange={() => onToggle(tag.slug)}
-          className="rounded border-muted-foreground"
-        />
-        {tag.icon && <span className="material-symbols-outlined text-[16px]">{tag.icon}</span>}
-        {tag.name}
-      </label>
-      {tag.children.map((child) => (
-        <TagCheckbox
-          key={child.id}
-          tag={child as Tag & { children: Tag[] }}
-          selectedSlugs={selectedSlugs}
-          onToggle={onToggle}
-          depth={depth + 1}
-        />
-      ))}
-    </div>
-  );
-}
+import TagMultiSelect from './TagMultiSelect';
 
 interface RecipeFilterSidebarProps {
   filters: Partial<RecipeFilter>;
@@ -75,7 +21,6 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
   const { data: scoutLevels } = useScoutLevels();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const tagTree = tags ? buildTagTree(tags) : [];
   const selectedTagSlugs = (filters.tag_slugs as string[]) ?? [];
   const selectedScoutIds = (filters.scout_level_ids as number[]) ?? [];
 
@@ -202,10 +147,13 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
 
         {/* Recipe Type */}
         <div className="bg-card rounded-xl border-l-4 border-l-[hsl(var(--chart-2))] border p-4 shadow-sm">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-            <span className="material-symbols-outlined text-[hsl(var(--chart-2))] text-[18px]">restaurant</span>
-            <span className="text-[hsl(var(--chart-2))]">Rezeptart</span>
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+              <span className="material-symbols-outlined text-[hsl(var(--chart-2))] text-[18px]">restaurant</span>
+              <span className="text-[hsl(var(--chart-2))]">Rezeptart</span>
+            </h3>
+            <TagMultiSelect selectedSlugs={selectedTagSlugs} onToggle={toggleTag} />
+          </div>
           {RECIPE_TYPE_OPTIONS.map((opt) => (
             <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
               <input
@@ -241,43 +189,6 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
             </label>
           ))}
         </div>
-
-        {/* Themen tags */}
-        {(() => {
-          const topicRoot = tagTree.find((t) => t.slug === 'thema');
-          const topicChildren = topicRoot?.children ?? [];
-          return topicChildren.length > 0 ? (
-            <div className="bg-card rounded-xl border-l-4 border-l-primary border p-4 shadow-sm">
-              <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-                <span className="material-symbols-outlined text-primary text-[18px]">label</span>
-                <span className="bg-gradient-to-r from-primary to-[hsl(var(--chart-3))] bg-clip-text text-transparent">Themen</span>
-              </h3>
-              <div className="max-h-64 overflow-y-auto pr-1">
-                {topicChildren.map((tag) => (
-                  <TagCheckbox key={tag.id} tag={tag as Tag & { children: Tag[] }} selectedSlugs={selectedTagSlugs} onToggle={toggleTag} />
-                ))}
-              </div>
-            </div>
-          ) : null;
-        })()}
-
-        {/* Other tag categories */}
-        {tagTree
-          .filter((t) => t.slug !== 'thema' && t.children.length > 0)
-          .map((category) => (
-            <div key={category.id} className="bg-card rounded-xl border-l-4 border-l-primary/60 border p-4 shadow-sm">
-              <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
-                {category.icon && <span className="material-symbols-outlined text-primary/60 text-[18px]">{category.icon}</span>}
-                {!category.icon && <span className="material-symbols-outlined text-primary/60 text-[18px]">category</span>}
-                <span className="text-primary/80">{category.name}</span>
-              </h3>
-              <div className="max-h-64 overflow-y-auto pr-1">
-                {category.children.map((child) => (
-                  <TagCheckbox key={child.id} tag={child as Tag & { children: Tag[] }} selectedSlugs={selectedTagSlugs} onToggle={toggleTag} />
-                ))}
-              </div>
-            </div>
-          ))}
 
         {/* Scout Levels */}
         {scoutLevels && (

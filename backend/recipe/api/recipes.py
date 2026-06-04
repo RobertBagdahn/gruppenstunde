@@ -24,6 +24,7 @@ from content.schemas import ImageFromUrlIn
 
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
+    ForkRecipeIn,
     PaginatedRecipeOut,
     RecipeAiCreateIn,
     RecipeCreateIn,
@@ -389,6 +390,8 @@ def create_recipe(request, payload: RecipeCreateIn):
         preparation_time=payload.preparation_time,
         difficulty=payload.difficulty,
         created_by=request.user,
+        owner=request.user,
+        visibility="private",
         status="draft",
     )
     recipe.save()
@@ -625,12 +628,16 @@ def set_recipe_image_from_url(request, recipe_id: int, payload: ImageFromUrlIn):
 
 
 @router.post("/{recipe_id}/fork/", response=RecipeDetailOut)
-def fork_recipe(request, recipe_id: int):
+def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
     """Create a personal copy (fork) of a recipe.
 
     Copies the recipe and all its RecipeItems, setting owner to the current user.
+    Accepts an optional custom title for the clone.
     """
     _require_auth(request)
+
+    if payload is None:
+        payload = ForkRecipeIn()
 
     original = get_object_or_404(
         Recipe.objects.prefetch_related(
@@ -644,7 +651,7 @@ def fork_recipe(request, recipe_id: int):
 
     # Create the fork
     fork = Recipe(
-        title=original.title,
+        title=payload.title or original.title,
         summary=original.summary,
         summary_long=original.summary_long,
         description=original.description,

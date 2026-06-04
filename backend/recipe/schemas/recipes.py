@@ -248,6 +248,12 @@ class RecipeFilterIn(Schema):
     page_size: int = 20
 
 
+class ForkRecipeIn(Schema):
+    """Schema for forking/cloning a recipe with optional new title."""
+
+    title: str | None = None
+
+
 class VisibilityUpdateIn(Schema):
     """Schema for updating recipe visibility."""
 

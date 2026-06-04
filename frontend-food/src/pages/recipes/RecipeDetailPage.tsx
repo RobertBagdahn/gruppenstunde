@@ -41,6 +41,13 @@ import IngredientList from '@/components/supply/IngredientList';
 import InlineIngredientEditor from '@/components/recipe/InlineIngredientEditor';
 import { ContentLinkSection } from '@/components/content/ContentLinkSection';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import RecipeImprovements from '@/components/recipe/RecipeImprovements';
 import RecipeRulesBox from '@/components/recipe/RecipeRulesBox';
@@ -301,6 +308,8 @@ export default function RecipeDetailPage() {
   const [portionSheetOpen, setPortionSheetOpen] = useState(false);
   const [isInlineEditMode, setIsInlineEditMode] = useState(false);
   const [showScaleDialog, setShowScaleDialog] = useState(false);
+  const [showCloneDialog, setShowCloneDialog] = useState(false);
+  const [cloneTitle, setCloneTitle] = useState('');
 
   const { data: currentUser } = useCurrentUser();
   const createFromRecipe = useCreateFromRecipe();
@@ -997,30 +1006,86 @@ export default function RecipeDetailPage() {
         </div>
       )}
 
-      {/* Als persönliches Rezept speichern (12.6) */}
-      {currentUser && !recipe.can_edit && (
+      {/* Rezept clonen (für eigene Variante) */}
+      {currentUser && (
         <div className="mt-6">
           <button
             type="button"
             onClick={() => {
-              forkRecipe.mutate(undefined, {
-                onSuccess: (forkedRecipe) => {
-                  toast.success('Rezept als persönliche Kopie gespeichert');
-                  navigate(`/recipes/${forkedRecipe.slug}`);
-                },
-                onError: (err) => {
-                  toast.error('Fehler beim Speichern', { description: err.message });
-                },
-              });
+              setCloneTitle(`${recipe.title} (Kopie)`);
+              setShowCloneDialog(true);
             }}
-            disabled={forkRecipe.isPending}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <span className="material-symbols-outlined text-lg">content_copy</span>
-            {forkRecipe.isPending ? 'Wird gespeichert...' : 'Als persönliches Rezept speichern'}
+            Rezept clonen
           </button>
         </div>
       )}
+
+      {/* Clone Dialog */}
+      <Dialog open={showCloneDialog} onOpenChange={(open) => { if (!open) setShowCloneDialog(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <span className="material-symbols-outlined text-primary">content_copy</span>
+              Rezept clonen
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Erstelle eine persönliche Kopie dieses Rezepts. Du kannst sie danach frei bearbeiten.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <label className="block text-sm font-medium">Name für die Kopie</label>
+            <input
+              type="text"
+              value={cloneTitle}
+              onChange={(e) => setCloneTitle(e.target.value)}
+              placeholder="Name des Rezepts"
+              className="w-full rounded-lg border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCloneDialog(false)}
+              className="px-4 py-2 border rounded-md text-sm hover:bg-muted transition"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              disabled={!cloneTitle.trim() || forkRecipe.isPending}
+              onClick={() => {
+                forkRecipe.mutate(
+                  { title: cloneTitle.trim() },
+                  {
+                    onSuccess: (forkedRecipe) => {
+                      setShowCloneDialog(false);
+                      toast.success('Rezept geklont');
+                      navigate(`/recipes/${forkedRecipe.slug}`);
+                    },
+                    onError: (err) => {
+                      toast.error('Fehler beim Klonen', { description: err.message });
+                    },
+                  },
+                );
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+            >
+              {forkRecipe.isPending ? (
+                <>
+                  <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                  Wird geklont...
+                </>
+              ) : (
+                'Rezept clonen'
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Visibility UI for recipe owner (13.6) */}
       {recipe.is_owner && recipe.visibility && (
@@ -1650,6 +1715,10 @@ export default function RecipeDetailPage() {
         totalPriceEur={displayedPriceTotal}
         onServingsChange={setServingsMultiplier}
         onOpenShoppingList={handleOpenShoppingList}
+        onClone={() => {
+          setCloneTitle(`${recipe.title} (Kopie)`);
+          setShowCloneDialog(true);
+        }}
       />
 
       {/* Mobile Action Bar */}

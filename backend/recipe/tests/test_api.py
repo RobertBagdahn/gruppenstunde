@@ -259,7 +259,13 @@ class TestCreateRecipe:
         assert data["title"] == "Kartoffelsalat"
         assert data["status"] == "draft"
         assert data["recipe_type"] == "side_dish"
-        assert data["servings"] == 6
+        assert data["servings"] == 1  # Always stored per-1-portion
+        assert data["visibility"] == "private"
+        assert data["recipe_badge"] == "personal"
+
+        # Verify owner is set in DB
+        recipe = Recipe.objects.get(id=data["id"])
+        assert recipe.owner == auth_client._user
 
     def test_create_generates_slug(self, auth_client):
         resp = auth_client.post(

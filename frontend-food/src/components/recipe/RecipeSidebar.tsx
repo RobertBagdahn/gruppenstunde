@@ -10,6 +10,7 @@ interface RecipeSidebarProps {
   totalPriceEur?: number | null;
   onServingsChange: (servings: number) => void;
   onOpenShoppingList: () => void;
+  onClone: () => void;
 }
 
 export default function RecipeSidebar({
@@ -18,6 +19,7 @@ export default function RecipeSidebar({
   totalPriceEur,
   onServingsChange,
   onOpenShoppingList,
+  onClone,
 }: RecipeSidebarProps) {
   const handleShare = async () => {
     const url = window.location.href;
@@ -83,6 +85,14 @@ export default function RecipeSidebar({
         >
           <span className="material-symbols-outlined text-[18px]">share</span>
           Teilen
+        </button>
+        <button
+          type="button"
+          onClick={onClone}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border-2 border-dashed border-primary/30 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[18px]">content_copy</span>
+          Rezept clonen
         </button>
       </div>
     </aside>

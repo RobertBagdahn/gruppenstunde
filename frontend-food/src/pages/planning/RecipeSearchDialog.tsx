@@ -14,9 +14,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useRecipeSearch, usePopularRecipes } from '@/api/mealPlans';
-import { useNutritionalTags } from '@/api/supplies';
 import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipePreviewDialog from './RecipePreviewDialog';
+import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -27,44 +27,6 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   snack: 'Snack',
   drink: 'Getränk',
   simple_meal: 'Einfache Mahlzeit',
-};
-
-const TAG_COLOR_MAP: Record<string, string> = {
-  // Tierisch — rot
-  'Tierbestandteile (nicht Vegetarisch)': 'bg-red-100 text-red-700 border-red-200',
-  'Tierische Produkte (nicht Vegan)': 'bg-red-100 text-red-700 border-red-200',
-  // Allergene — amber
-  'Gluten (Zöliakie)': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Laktose': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Erdnüsse': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Fisch': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Soja, Sojaerzeugnisse': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Sellerie, Sellerieerzeugnisse': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Senf': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Sesam': 'bg-amber-100 text-amber-700 border-amber-200',
-  'Lupinen': 'bg-amber-100 text-amber-700 border-amber-200',
-  // Intoleranzen — purple
-  'Histamin': 'bg-purple-100 text-purple-700 border-purple-200',
-  'Fructose': 'bg-purple-100 text-purple-700 border-purple-200',
-  'Koffeinhaltig': 'bg-purple-100 text-purple-700 border-purple-200',
-  // Religiös/Ethisch — green
-  'Halal': 'bg-green-100 text-green-700 border-green-200',
-  'Koscher': 'bg-green-100 text-green-700 border-green-200',
-  // Getreide — stone
-  'Gluten (nicht zöliakie)': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Weizen': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Roggen': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Gerste': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Hafer': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Dinkel': 'bg-stone-100 text-stone-700 border-stone-200',
-  'Kamut': 'bg-stone-100 text-stone-700 border-stone-200',
-  // Sonstige — sky
-  'Alkohol': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Scharf': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Schwefeldioxid und Sulfide': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Hülsenfrüchte': 'bg-sky-100 text-sky-700 border-sky-200',
-  'Knoblauch': 'bg-sky-100 text-sky-700 border-sky-200',
 };
 
 const RECIPE_TYPE_COLORS: Record<string, string> = {
@@ -84,7 +46,6 @@ const MEAL_TYPE_TO_RECIPE_TYPES: Record<string, string[]> = {
   lunch: ['warm_meal', 'cold_meal', 'side_dish'],
   dinner: ['warm_meal', 'cold_meal', 'side_dish'],
   snack: ['snack', 'simple_meal'],
-  dessert: ['dessert'],
 };
 
 interface RecipeSearchDialogProps {
@@ -120,7 +81,6 @@ export default function RecipeSearchDialog({
   });
 
   const { data: popularData } = usePopularRecipes({ mealType });
-  const { data: nutritionalTags } = useNutritionalTags();
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -209,27 +169,7 @@ export default function RecipeSearchDialog({
               </SelectContent>
             </Select>
 
-            {nutritionalTags && nutritionalTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {nutritionalTags.map((tag) => {
-                  const isSelected = selectedTagIds.includes(tag.id);
-                  const colorClasses = TAG_COLOR_MAP[tag.name] ?? 'bg-muted text-muted-foreground border-border';
-                  return (
-                    <button
-                      key={tag.id}
-                      onClick={() => toggleTag(tag.id)}
-                      className={`px-2.5 py-1 rounded-full text-sm border transition-colors ${
-                        isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : `${colorClasses} hover:opacity-80`
-                      }`}
-                    >
-                      {tag.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <NutritionalTagMultiSelect selectedTagIds={selectedTagIds} onToggle={toggleTag} />
           </div>
 
           {/* Popular Recipes (shown when no active search) */}

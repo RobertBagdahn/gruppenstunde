@@ -184,7 +184,6 @@ export default function MealPlanDetailPage() {
     lunch: ['12:00', '13:00'],
     dinner: ['18:00', '19:00'],
     snack: ['15:00', '15:30'],
-    dessert: ['19:30', '20:00'],
   };
 
   const handleAddMealType = (date: string, mealType: string): Promise<Meal> => {

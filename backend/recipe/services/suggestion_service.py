@@ -31,7 +31,6 @@ MEAL_TYPE_TO_RECIPE_TYPE = {
     "lunch": "warm_meal",
     "dinner": "warm_meal",
     "snack": "snack",
-    "dessert": "dessert",
 }
 
 MEAL_TYPE_LABELS = {
@@ -39,7 +38,6 @@ MEAL_TYPE_LABELS = {
     "lunch": "Mittagessen",
     "dinner": "Abendessen",
     "snack": "Snack",
-    "dessert": "Nachtisch",
 }
 
 

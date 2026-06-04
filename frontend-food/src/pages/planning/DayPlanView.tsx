@@ -65,7 +65,7 @@ export function DayPlanView({
     return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'drinks'];
+  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'];
 
   return (
     <div className="space-y-6">

@@ -13,7 +13,6 @@ MEAL_TYPE_LABELS = {
     "lunch": "Mittagessen",
     "dinner": "Abendessen",
     "snack": "Snacks",
-    "dessert": "Dessert",
 }
 
 

@@ -477,7 +477,8 @@ export function useLlmSuggestions(recipeId: number) {
 export function useForkRecipe(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => postJson(`${API_BASE}/${recipeId}/fork/`, {}, RecipeDetailSchema),
+    mutationFn: (payload?: { title?: string }) =>
+      postJson(`${API_BASE}/${recipeId}/fork/`, payload ?? {}, RecipeDetailSchema),
     onSuccess: (forkedRecipe) => {
       invalidateRecipeData(queryClient, forkedRecipe.id);
       invalidateRecipeData(queryClient, recipeId);
@@ -489,9 +490,10 @@ export function useForkRecipe(recipeId: number) {
 export function useForkAndSaveRecipe(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { servings?: number | null; recipe_items: RecipeUpdatePayload['recipe_items'] }) => {
-      const forked = await postJson(`${API_BASE}/${recipeId}/fork/`, {}, RecipeDetailSchema);
-      const updated = await patchJson(`${API_BASE}/${forked.id}/`, payload, RecipeDetailSchema);
+    mutationFn: async (payload: { title?: string; servings?: number | null; recipe_items: RecipeUpdatePayload['recipe_items'] }) => {
+      const { title, ...updatePayload } = payload;
+      const forked = await postJson(`${API_BASE}/${recipeId}/fork/`, { title }, RecipeDetailSchema);
+      const updated = await patchJson(`${API_BASE}/${forked.id}/`, updatePayload, RecipeDetailSchema);
       return updated;
     },
     onSuccess: (updatedRecipe) => {

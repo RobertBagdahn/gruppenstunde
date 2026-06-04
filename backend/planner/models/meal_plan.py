@@ -15,7 +15,6 @@ class MealTypeChoices(models.TextChoices):
     LUNCH = "lunch", _("Mittagessen")
     DINNER = "dinner", _("Abendessen")
     SNACK = "snack", _("Snack")
-    DESSERT = "dessert", _("Dessert")
     DRINKS = "drinks", _("Getränke")
 
 
@@ -25,7 +24,6 @@ MEAL_TYPE_DAY_FACTORS: dict[str, float] = {
     MealTypeChoices.LUNCH: 0.35,
     MealTypeChoices.DINNER: 0.30,
     MealTypeChoices.SNACK: 0.10,
-    MealTypeChoices.DESSERT: 0.00,
     MealTypeChoices.DRINKS: 0.00,
 }
 
@@ -44,7 +42,6 @@ MEAL_TYPE_DEFAULT_TIMES: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
     MealTypeChoices.LUNCH: ((12, 0), (13, 0)),
     MealTypeChoices.DINNER: ((18, 0), (19, 0)),
     MealTypeChoices.SNACK: ((15, 0), (15, 30)),
-    MealTypeChoices.DESSERT: ((19, 30), (20, 0)),
     MealTypeChoices.DRINKS: ((16, 0), (16, 30)),
 }
 
@@ -56,7 +53,6 @@ def default_day_part_factors() -> dict[str, float]:
         "lunch": 0.35,
         "dinner": 0.30,
         "snack": 0.10,
-        "dessert": 0.00,
         "drinks": 0.00,
     }
 

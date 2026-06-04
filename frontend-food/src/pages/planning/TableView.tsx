@@ -4,7 +4,6 @@ import {
   Coffee,
   Utensils,
   Cookie,
-  Cake,
   BookOpen,
   Egg,
   X,
@@ -15,7 +14,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
-import { MEAL_TYPE_LABELS, MEAL_TYPE_COLORS } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
 import { kjToKcal } from '@/utils/nutritionUnits';
 import { cn } from '@/lib/utils';
 import RecipeSearchDialog from './RecipeSearchDialog';
@@ -33,7 +32,6 @@ const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: s
   lunch: Utensils,
   dinner: Utensils,
   snack: Cookie,
-  dessert: Cake,
   drinks: GlassWater,
 };
 
@@ -126,10 +124,12 @@ export default function TableView({
   }, [meals]);
 
   const dailyTotals = useMemo(() => {
-    const totals: Record<string, { kcal: number; cost: number }> = {};
+    const totals: Record<string, { kcal: number; cost: number; targetKcal: number; targetCost: number }> = {};
     for (const date of dates) {
       let kcalSum = 0;
       let costSum = 0;
+      let targetKcalSum = 0;
+      let targetCostSum = 0;
       for (const mealType of MEAL_TYPE_ORDER) {
         const meal = grid[mealType]?.[date];
         if (meal) {
@@ -139,14 +139,23 @@ export default function TableView({
             } else {
               kcalSum += kjToKcal(meal.total_energy_kj);
             }
+            targetKcalSum += NORM_PERSON_DAILY_KCAL * meal.day_part_factor;
           }
           costSum += meal.total_cost_eur;
+          if (budgetPerPersonPerDay) {
+            targetCostSum += budgetPerPersonPerDay * meal.day_part_factor;
+          }
         }
       }
-      totals[date] = { kcal: Math.round(kcalSum), cost: costSum };
+      totals[date] = {
+        kcal: Math.round(kcalSum),
+        cost: costSum,
+        targetKcal: Math.round(targetKcalSum),
+        targetCost: targetCostSum,
+      };
     }
     return totals;
-  }, [dates, grid]);
+  }, [dates, grid, budgetPerPersonPerDay]);
 
   if (dates.length === 0) {
     return (
@@ -430,10 +439,10 @@ export default function TableView({
                 Tagesbilanz
               </td>
               {dates.map((date) => {
-                const dailyTotal = dailyTotals[date];
-                const cost = dailyTotal ? dailyTotal.cost : 0;
+                const dailyTotal = dailyTotals[date] || { kcal: 0, cost: 0, targetKcal: 0, targetCost: 0 };
+                const cost = dailyTotal.cost;
                 const costPerPerson = normPortions > 0 ? cost / normPortions : 0;
-                const kcalPerPerson = dailyTotal && normPortions > 0 ? Math.round(dailyTotal.kcal / normPortions) : 0;
+                const kcalPerPerson = normPortions > 0 ? Math.round(dailyTotal.kcal / normPortions) : 0;
                 const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
                 const hasBudget = budget !== null && budget > 0;
 
@@ -455,10 +464,10 @@ export default function TableView({
                     <div className="flex flex-col gap-1.5 font-sans">
                       <div className="inline-flex items-center gap-1 text-[11px] font-bold text-foreground">
                         <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                        <span>{kcalPerPerson} kcal</span>
+                        <span>Soll {dailyTotal.targetKcal} · {kcalPerPerson} kcal ({dailyTotal.targetKcal > 0 ? Math.round((kcalPerPerson / dailyTotal.targetKcal) * 100) : 0} %)</span>
                       </div>
                       <div className="text-[11px] font-semibold text-muted-foreground">
-                        {costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'} / Port.
+                        Soll {dailyTotal.targetCost.toFixed(2).replace('.', ',')} € · {costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'} ({dailyTotal.targetCost > 0 ? Math.round((costPerPerson / dailyTotal.targetCost) * 100) : 0} %)
                       </div>
                       {hasBudget && (
                         <div className={cn(

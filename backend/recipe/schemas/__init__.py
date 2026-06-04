@@ -11,6 +11,7 @@ from .suggestions import (
     SuggestionOut,
 )
 from .recipes import (
+    ForkRecipeIn,
     NutritionalTagOut,
     PaginatedRecipeOut,
     RecipeAiCreateIn,
@@ -59,6 +60,7 @@ __all__ = [
     "EstimateQuantitiesOut",
     "EstimateQuantityItemOut",
     "FoodDashboardOut",
+    "ForkRecipeIn",
     "ImprovementListOut",
     "ImprovementOut",
     "LlmSuggestionOut",

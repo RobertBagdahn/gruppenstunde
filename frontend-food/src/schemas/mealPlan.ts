@@ -267,7 +267,6 @@ export const MEAL_TYPE_LABELS: Record<string, string> = {
   lunch: 'Mittagessen',
   dinner: 'Abendessen',
   snack: 'Snack',
-  dessert: 'Dessert',
   drinks: 'Getränke',
 };
 
@@ -276,7 +275,6 @@ export const MEAL_TYPE_ICONS: Record<string, string> = {
   lunch: 'restaurant',
   dinner: 'dinner_dining',
   snack: 'cookie',
-  dessert: 'cake',
   drinks: 'local_bar',
 };
 
@@ -285,7 +283,6 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
   lunch: { text: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-300' },
   dinner: { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-300' },
   snack: { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-300' },
-  dessert: { text: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-300' },
   drinks: { text: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-300' },
 };
 
