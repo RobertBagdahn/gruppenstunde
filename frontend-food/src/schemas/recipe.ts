@@ -309,6 +309,8 @@ export const RecipeNutritionBreakdownSchema = z.object({
   per_serving_vitamin_c_mg: z.number().nullable().optional(),
   // DGE coverage percentages (nutrient -> %)
   dge_coverage: z.record(z.string(), z.number().nullable()).default({}),
+  // DGE reference values (nutrient -> daily reference in g/mg/kJ)
+  dge_reference: z.record(z.string(), z.number().nullable()).default({}),
   positive_traits: z.array(z.string()).default([]),
   items: z.array(RecipeItemNutritionSchema),
 });

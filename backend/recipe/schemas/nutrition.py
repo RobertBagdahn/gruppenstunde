@@ -75,6 +75,8 @@ class RecipeNutritionBreakdownOut(Schema):
     per_serving_vitamin_c_mg: float | None = None
     # DGE coverage percentages (nutrient -> %)
     dge_coverage: dict[str, float | None] = {}
+    # DGE reference values (nutrient -> daily reference value in g/mg/kJ)
+    dge_reference: dict[str, float | None] = {}
     positive_traits: list[str] = []
     items: list[RecipeItemNutritionOut]
 

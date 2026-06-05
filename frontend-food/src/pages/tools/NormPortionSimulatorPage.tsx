@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calculator, Info, BarChart3, ArrowLeftRight, Loader2, Flame, Scale, Utensils } from 'lucide-react';
+import { Calculator, Info, BarChart3, ArrowLeftRight, Loader2, Scale, Utensils } from 'lucide-react';
 import {
   XAxis,
   YAxis,
@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DgeReferencePoint } from '@/schemas/normPerson';
 import { cn } from '@/lib/utils';
-import { kjToKcal, getPalLabel } from '@/utils/nutritionUnits';
+import { kjToKcal } from '@/utils/nutritionUnits';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -41,16 +41,16 @@ const GENDER_OPTIONS = [
  ] as const;
 
 const CHART_COLORS = {
-  male: 'var(--chart-2, #3b82f6)',
-  female: 'var(--chart-4, #ec4899)',
-  reference: 'var(--chart-3, #f59e0b)',
-  dge_male: 'var(--chart-2, #3b82f6)',
-  dge_female: 'var(--chart-4, #ec4899)',
-  protein: 'var(--chart-1, #10b981)',
-  fat: 'var(--chart-3, #f59e0b)',
-  carbohydrate: 'var(--chart-5, #6366f1)',
-  fibre: 'var(--chart-2, #8b5cf6)',
-  ist: 'var(--chart-1, #10b981)',
+  male: 'hsl(var(--chart-2))',
+  female: 'hsl(var(--chart-4))',
+  reference: 'hsl(var(--chart-3))',
+  dge_male: 'hsl(var(--chart-2))',
+  dge_female: 'hsl(var(--chart-4))',
+  protein: 'hsl(var(--chart-1))',
+  fat: 'hsl(var(--chart-3))',
+  carbohydrate: 'hsl(var(--chart-5))',
+  fibre: 'hsl(var(--chart-2))',
+  ist: 'hsl(var(--chart-1))',
 } as const;
 
 const DGE_BASE_PAL = 1.4;
@@ -152,33 +152,6 @@ function ReferenceInfoCard() {
 /* ------------------------------------------------------------------ */
 /*  DGE data helpers                                                   */
 /* ------------------------------------------------------------------ */
-
-/** Convert DGE reference points to per-age data for chart overlay. */
-function buildDgeEnergyOverlay(
-  dgePoints: DgeReferencePoint[],
-  pal: number,
-): { age: number; dge_male_kcal: number | null; dge_female_kcal: number | null }[] {
-  if (!dgePoints.length) return [];
-
-  const palScale = pal / DGE_BASE_PAL;
-  const byAge: Record<number, { male?: number; female?: number }> = {};
-
-  for (const pt of dgePoints) {
-    const midAge = Math.round((pt.age_min + pt.age_max) / 2);
-    const energyKcal = kjToKcal(pt.energy_kj) * palScale;
-    if (!byAge[midAge]) byAge[midAge] = {};
-    if (pt.gender === 'male') byAge[midAge].male = energyKcal;
-    else byAge[midAge].female = energyKcal;
-  }
-
-  return Object.entries(byAge)
-    .map(([age, vals]) => ({
-      age: Number(age),
-      dge_male_kcal: vals.male ?? null,
-      dge_female_kcal: vals.female ?? null,
-    }))
-    .sort((a, b) => a.age - b.age);
-}
 
 /** Build macronutrient breakdown data for bar chart. */
 function buildMacroBreakdownData(dgePoints: DgeReferencePoint[]) {
@@ -391,9 +364,8 @@ interface CalculatorProps {
 function SinglePersonCalculator({ chartPal }: CalculatorProps) {
   const [age, setAge] = useState<number | null>(12);
   const [gender, setGender] = useState<string>('male');
-  const [pal, setPal] = useState<number>(chartPal);
 
-  const { data, isLoading, error } = useNormPersonCalculation(age, gender, pal);
+  const { data, isLoading, error } = useNormPersonCalculation(age, gender, chartPal);
 
   return (
     <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
@@ -405,7 +377,7 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
       </div>
 
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Age input */}
           <div className="space-y-1.5">
             <Label htmlFor="calculator-age" className="text-sm font-medium text-foreground">
@@ -438,25 +410,6 @@ function SinglePersonCalculator({ chartPal }: CalculatorProps) {
               {GENDER_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* PAL select */}
-          <div className="space-y-1.5">
-            <Label htmlFor="calculator-pal" className="text-sm font-medium text-foreground">
-              Aktivitätslevel (PAL)
-            </Label>
-            <select
-              id="calculator-pal"
-              value={pal}
-              onChange={(e) => setPal(parseFloat(e.target.value))}
-              className="w-full rounded-lg border border-input bg-background px-3 h-10 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              {PAL_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label} ({opt.value})
                 </option>
               ))}
             </select>
@@ -570,23 +523,6 @@ export default function NormPortionSimulatorPage() {
     (p: { age: number }) => p.age === 15,
   );
 
-  // Merge DGE overlay data into curve data points for the energy chart
-  const dgeOverlay = useMemo(() => {
-    if (!curves?.dge_reference?.length) return [];
-    return buildDgeEnergyOverlay(curves.dge_reference, pal);
-  }, [curves?.dge_reference, pal]);
-
-  // Merge dge overlay into the data_points for the composed chart
-  const energyChartData = useMemo(() => {
-    if (!curves) return [];
-    const dgeMap = new Map(dgeOverlay.map((d) => [d.age, d]));
-    return curves.data_points.map((dp: { age: number; male_tdee: number; female_tdee: number }) => ({
-      ...dp,
-      dge_male_kcal: dgeMap.get(dp.age)?.dge_male_kcal ?? null,
-      dge_female_kcal: dgeMap.get(dp.age)?.dge_female_kcal ?? null,
-    }));
-  }, [curves, dgeOverlay]);
-
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
@@ -631,6 +567,9 @@ export default function NormPortionSimulatorPage() {
         <PalSelector value={pal} onChange={handlePalChange} />
       </div>
 
+      {/* Single Person Calculator */}
+      <SinglePersonCalculator chartPal={pal} />
+
       {/* Loading / Error */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -647,94 +586,6 @@ export default function NormPortionSimulatorPage() {
       {/* Charts */}
       {curves && (
         <div className="space-y-6">
-          {/* TDEE Chart with DGE overlay */}
-          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-muted/30">
-              <h2 className="text-base font-semibold text-foreground flex items-center gap-2 font-display">
-                <Flame className="w-5 h-5 text-primary" />
-                Tagesenergiebedarf (TDEE) nach Alter
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Gesamtenergiebedarf in kcal pro Tag bei PAL {pal} ({getPalLabel(pal)})
-                {dgeOverlay.length > 0 && ' — gepunktete Linien zeigen DGE-Empfehlung'}
-              </p>
-            </div>
-            <div className="p-4 overflow-x-auto">
-              <div className="min-w-[400px]">
-                <ResponsiveContainer width="100%" height={320}>
-                  <ComposedChart data={energyChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="age"
-                      label={{ value: 'Alter (Jahre)', position: 'insideBottom', offset: -5, fontSize: 12 }}
-                      tick={{ fontSize: 11 }}
-                    />
-                    <YAxis
-                      label={{ value: 'kcal/Tag', angle: -90, position: 'insideLeft', offset: 10, fontSize: 12 }}
-                      tick={{ fontSize: 11 }}
-                    />
-                    <Tooltip content={<ChartTooltip unit="kcal" />} />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    {/* DGE reference lines (dashed) */}
-                    {dgeOverlay.length > 0 && (
-                      <>
-                        <Line
-                          type="stepAfter"
-                          dataKey="dge_male_kcal"
-                          name="DGE Männlich"
-                          stroke={CHART_COLORS.dge_male}
-                          strokeWidth={2}
-                          strokeDasharray="6 3"
-                          dot={false}
-                          connectNulls
-                        />
-                        <Line
-                          type="stepAfter"
-                          dataKey="dge_female_kcal"
-                          name="DGE Weiblich"
-                          stroke={CHART_COLORS.dge_female}
-                          strokeWidth={2}
-                          strokeDasharray="6 3"
-                          dot={false}
-                          connectNulls
-                        />
-                      </>
-                    )}
-                    {/* TDEE calculated lines */}
-                    <Line
-                      type="monotone"
-                      dataKey="male_tdee"
-                      name="Männlich"
-                      stroke={CHART_COLORS.male}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="female_tdee"
-                      name="Weiblich"
-                      stroke={CHART_COLORS.female}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                    {referencePointIndex !== undefined && referencePointIndex >= 0 && (
-                      <ReferenceDot
-                        x={15}
-                        y={curves.data_points[referencePointIndex].male_tdee}
-                        r={6}
-                        fill={CHART_COLORS.reference}
-                        stroke="#fff"
-                        strokeWidth={2}
-                      />
-                    )}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
           {/* Norm Factor Chart */}
           <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-border bg-muted/30">
@@ -825,8 +676,6 @@ export default function NormPortionSimulatorPage() {
         />
       )}
 
-      {/* Single Person Calculator */}
-      <SinglePersonCalculator chartPal={pal} />
     </div>
   );
 }

@@ -124,12 +124,16 @@ function MacroBar({
   max,
   color,
   unit = 'g',
+  dgeRef,
+  dgeCoverage,
 }: {
   label: string;
   value: number;
   max: number;
   color: string;
   unit?: string;
+  dgeRef?: number | null;
+  dgeCoverage?: number | null;
 }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
@@ -138,6 +142,18 @@ function MacroBar({
         <span className="font-medium">{label}</span>
         <span className="text-muted-foreground">
           {value.toFixed(1)} {unit}
+          {dgeRef != null && dgeRef > 0 && (
+            <span className="ml-2 text-[10px] text-muted-foreground">
+              Referenz: {dgeRef.toFixed(1)} {unit}
+            </span>
+          )}
+          {dgeCoverage != null && (
+            <span className={`ml-1.5 text-[10px] font-semibold ${
+              dgeCoverage >= 80 ? 'text-green-600' : dgeCoverage >= 40 ? 'text-amber-600' : 'text-red-600'
+            }`}>
+              {dgeCoverage.toFixed(0)}%
+            </span>
+          )}
         </span>
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -292,7 +308,7 @@ export default function RecipeDetailPage() {
   const updateRecipe = useUpdateRecipe(recipeId);
   const deleteRecipe = useDeleteRecipe();
   const { data: nutriScore } = useRecipeNutriScore(recipeId);
-  const { data: nutritionBreakdown } = useRecipeNutritionBreakdown(recipeId);
+  const { data: nutritionBreakdown } = useRecipeNutritionBreakdown(recipeId, 25, 'male');
   const forkRecipe = useForkRecipe(recipeId);
   const forkAndSaveRecipe = useForkAndSaveRecipe(recipeId);
   const updateVisibility = useUpdateVisibility(recipeId);
@@ -421,6 +437,7 @@ export default function RecipeDetailPage() {
       per_serving_fat_g: totalFatG / servings,
       per_serving_carbohydrate_g: totalCarbohydrateG / servings,
       dge_coverage: nutritionBreakdown.dge_coverage ?? {},
+      dge_reference: nutritionBreakdown.dge_reference ?? {},
       items: itemsWithPct,
     };
   }, [nutritionBreakdown, isDirty, modifiedItems, modifiedServings]);
@@ -1266,51 +1283,70 @@ export default function RecipeDetailPage() {
               </div>
             )}
 
-            {/* Macro bars (total) */}
+            {/* Macro bars (total) with DGE reference values */}
             <div>
               <h3 className="text-sm font-semibold mb-3">Gesamtnährwerte</h3>
+              {(Object.keys(nb.dge_reference).length > 0) && (
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  DGE-Referenzwerte (25 Jahre, männlich)
+                </p>
+              )}
               <div className="space-y-3 bg-muted/30 rounded-xl p-4">
                 <MacroBar
                   label="Protein"
                   value={nb.total_protein_g}
                   max={Math.max(nb.total_protein_g, nb.total_fat_g, nb.total_carbohydrate_g)}
                   color="bg-red-500"
+                  dgeRef={nb.dge_reference.protein_g}
+                  dgeCoverage={nb.dge_coverage.protein_g}
                 />
                 <MacroBar
                   label="Fett"
                   value={nb.total_fat_g}
                   max={Math.max(nb.total_protein_g, nb.total_fat_g, nb.total_carbohydrate_g)}
                   color="bg-amber-500"
+                  dgeRef={nb.dge_reference.fat_g}
+                  dgeCoverage={nb.dge_coverage.fat_g}
                 />
                 <MacroBar
                   label="davon gesättigt"
                   value={nb.total_fat_sat_g}
                   max={nb.total_fat_g || 1}
                   color="bg-amber-300"
+                  dgeRef={nb.dge_reference.fat_sat_g}
+                  dgeCoverage={nb.dge_coverage.fat_sat_g}
                 />
                 <MacroBar
                   label="Kohlenhydrate"
                   value={nb.total_carbohydrate_g}
                   max={Math.max(nb.total_protein_g, nb.total_fat_g, nb.total_carbohydrate_g)}
                   color="bg-teal-500"
+                  dgeRef={nb.dge_reference.carbohydrate_g}
+                  dgeCoverage={nb.dge_coverage.carbohydrate_g}
                 />
                 <MacroBar
                   label="davon Zucker"
                   value={nb.total_sugar_g}
                   max={nb.total_carbohydrate_g || 1}
                   color="bg-teal-300"
+                  dgeRef={nb.dge_reference.sugar_g}
+                  dgeCoverage={nb.dge_coverage.sugar_g}
                 />
                 <MacroBar
                   label="Ballaststoffe"
                   value={nb.total_fibre_g}
-                  max={30}
+                  max={nb.dge_reference.fibre_g ?? 30}
                   color="bg-green-500"
+                  dgeRef={nb.dge_reference.fibre_g}
+                  dgeCoverage={nb.dge_coverage.fibre_g}
                 />
                 <MacroBar
                   label="Salz"
                   value={nb.total_salt_g}
-                  max={6}
+                  max={nb.dge_reference.salt_g ?? 6}
                   color="bg-blue-500"
+                  dgeRef={nb.dge_reference.salt_g}
+                  dgeCoverage={nb.dge_coverage.salt_g}
                 />
               </div>
             </div>

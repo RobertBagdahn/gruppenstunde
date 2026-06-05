@@ -234,6 +234,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
 
     # Build DGE coverage if age/gender provided
     dge_coverage: dict[str, float | None] = {}
+    dge_reference: dict[str, float | None] = {}
     if age is not None and gender:
         from supply.models import DgeReference
 
@@ -243,23 +244,36 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             gender=gender,
         ).first()
         if ref:
-            # Coverage = total recipe value / (daily reference * servings share)
-            # We compare total recipe values against daily reference
+            # All fields we can compute coverage for
             coverage_fields = [
                 "energy_kj",
                 "protein_g",
                 "fat_g",
+                "fat_sat_g_max",
                 "carbohydrate_g",
+                "sugar_g_max",
                 "fibre_g",
+                "salt_g_max",
             ] + MICRONUTRIENT_FIELDS
             for field in coverage_fields:
                 ref_val = getattr(ref, field, None)
                 if ref_val and ref_val > 0:
-                    if field in totals:
-                        actual = totals[field]
+                    # Map max fields to the corresponding total field
+                    if field == "fat_sat_g_max":
+                        total_key = "fat_sat_g"
+                    elif field == "sugar_g_max":
+                        total_key = "sugar_g"
+                    elif field == "salt_g_max":
+                        total_key = "salt_g"
                     else:
-                        actual = micro_totals.get(field, 0.0)
-                    dge_coverage[field] = round(actual / ref_val * 100, 1)
+                        total_key = field
+
+                    if total_key in totals:
+                        actual = totals[total_key]
+                    else:
+                        actual = micro_totals.get(total_key, 0.0)
+                    dge_coverage[total_key] = round(actual / ref_val * 100, 1)
+                    dge_reference[total_key] = round(ref_val, 1)
 
     # Helper to get rounded micronutrient total or None
     def _micro_total(field: str) -> float | None:
@@ -293,6 +307,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         "per_serving_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0) / servings, 3) or None,
         # DGE coverage
         "dge_coverage": dge_coverage,
+        "dge_reference": dge_reference,
         "positive_traits": positive_traits,
         "items": result_items,
     }

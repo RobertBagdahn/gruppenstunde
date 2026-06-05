@@ -377,11 +377,15 @@ export function useRecipeRules(recipeId: number) {
   });
 }
 
-export function useRecipeNutritionBreakdown(recipeId: number) {
+export function useRecipeNutritionBreakdown(recipeId: number, age?: number, gender?: string) {
+  const params = new URLSearchParams();
+  if (age !== undefined) params.set('age', String(age));
+  if (gender) params.set('gender', gender);
+  const qs = params.toString();
   return useQuery({
-    queryKey: ['recipe-nutrition-breakdown', recipeId] as const,
+    queryKey: ['recipe-nutrition-breakdown', recipeId, age, gender] as const,
     queryFn: () =>
-      fetchJson(`${API_BASE}/${recipeId}/nutrition-breakdown/`, RecipeNutritionBreakdownSchema),
+      fetchJson(`${API_BASE}/${recipeId}/nutrition-breakdown/${qs ? `?${qs}` : ''}`, RecipeNutritionBreakdownSchema),
     enabled: recipeId > 0,
   });
 }
