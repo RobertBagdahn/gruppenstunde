@@ -19,11 +19,10 @@ import {
   type MealPlanCostSummary,
   type NutritionSummary,
   type UnifiedSearchResponse,
-  type RecipePopularResponse,
-  RecipeSuggestionsResponseSchema,
   type RecipeSuggestionsResponse,
+  RecipeSuggestionsResponseSchema,
   type MealUpdateIn,
-  type CopyMealItemIn,
+  type CopyItemsFromPlanIn,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 
@@ -319,13 +318,22 @@ export function useScaleMealToTarget(mealPlanId: number) {
   });
 }
 
-export function useCopyMealItem(mealPlanId: number) {
+export function useCopyItemsFromPlan(planId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, target_meal_id }: { itemId: number } & CopyMealItemIn) =>
-      postJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/copy/`, { target_meal_id }, MealItemSchema),
+    mutationFn: ({
+      mealId,
+      ...body
+    }: {
+      mealId: number;
+    } & CopyItemsFromPlanIn) =>
+      postJson(
+        `${API_BASE}/${planId}/meals/${mealId}/copy-items-from/`,
+        body,
+        z.array(MealItemSchema),
+      ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
     },
   });
 }

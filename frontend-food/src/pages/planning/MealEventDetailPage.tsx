@@ -27,7 +27,6 @@ import {
   useUpdateMealItem,
   useUpdateMeal,
   useScaleMealToTarget,
-  useCopyMealItem,
 } from '@/api/mealPlans';
 import { MEAL_TYPE_ORDER } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
@@ -40,7 +39,7 @@ import SettingsPanel from './SettingsPanel';
 import NutritionView from './NutritionView';
 import ShoppingView from './ShoppingView';
 import { DayPlanView } from './DayPlanView';
-import { CopyMealItemDialog } from './CopyMealItemDialog';
+import { CopyFromPlanDialog } from './CopyFromPlanDialog';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -84,7 +83,6 @@ export default function MealPlanDetailPage() {
   const updateMealMutation = useUpdateMeal(mealPlanId);
 
   const scaleMealMutation = useScaleMealToTarget(mealPlanId);
-  const copyMealItemMutation = useCopyMealItem(mealPlanId);
 
   // RefMeal hooks
   const { data: refMeals } = useRefMeals(mealPlanId);
@@ -98,7 +96,9 @@ export default function MealPlanDetailPage() {
   const [deleteDayDate, setDeleteDayDate] = useState<string | null>(null);
   const [deleteMealId, setDeleteMealId] = useState<number | null>(null);
   const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
-  const [copyItemId, setCopyItemId] = useState<number | null>(null);
+
+  // Cross-plan copy dialog state
+  const [copyDialogTargetMealId, setCopyDialogTargetMealId] = useState<number | null>(null);
 
   // Edit settings
   const [showSettings, setShowSettings] = useState(false);
@@ -144,22 +144,6 @@ export default function MealPlanDetailPage() {
       },
     });
   }, [scaleMealMutation]);
-
-  const handleCopyItemConfirm = useCallback((targetMealId: number) => {
-    if (copyItemId === null) return;
-    copyMealItemMutation.mutate(
-      { itemId: copyItemId, target_meal_id: targetMealId },
-      {
-        onSuccess: () => {
-          toast.success('Eintrag erfolgreich kopiert');
-          setCopyItemId(null);
-        },
-        onError: (err: any) => {
-          toast.error('Fehler beim Kopieren', { description: err.message });
-        },
-      }
-    );
-  }, [copyItemId, copyMealItemMutation]);
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
@@ -378,7 +362,7 @@ export default function MealPlanDetailPage() {
           onLinkMeal={handleLinkMeal}
           onUpdateMeal={handleUpdateMeal}
           onScaleMeal={handleScaleMeal}
-          onCopyItem={setCopyItemId}
+          onCopyFromPlan={setCopyDialogTargetMealId}
         />
       )}
       {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} />}
@@ -464,15 +448,14 @@ export default function MealPlanDetailPage() {
         loading={removeMealItemMutation.isPending}
       />
 
-      {/* Copy Item Dialog */}
-      <CopyMealItemDialog
-        open={copyItemId !== null}
+      {/* Copy From Plan Dialog */}
+      <CopyFromPlanDialog
+        open={copyDialogTargetMealId !== null}
         onOpenChange={(open) => {
-          if (!open) setCopyItemId(null);
+          if (!open) setCopyDialogTargetMealId(null);
         }}
-        onConfirm={handleCopyItemConfirm}
-        meals={plan.meals}
-        isPending={copyMealItemMutation.isPending}
+        targetMealId={copyDialogTargetMealId ?? 0}
+        targetPlanId={mealPlanId}
       />
     </div>
   );

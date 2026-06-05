@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useCurrentUser } from '@/api/auth';
+import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { ArrowRight, Shield } from 'lucide-react';
 
 export default function DatenschutzPage() {
   const { data: user } = useCurrentUser();
+  useDocumentMeta({ title: 'Datenschutz' });
 
   return (
     <div>
-      {/* Hero */}
       <section className="gradient-hero text-white py-12 md:py-16">
         <div className="container text-center">
           <img
@@ -14,14 +16,13 @@ export default function DatenschutzPage() {
             alt="Inspi Baby Keks"
             className="mx-auto w-36 md:w-48 h-auto mb-6 drop-shadow-lg"
           />
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Datenschutz</h1>
+          <h1 className="text-3xl md:text-5xl font-display font-bold">Datenschutz</h1>
           <p className="mt-4 text-lg text-white/85 max-w-2xl mx-auto">
             Informationen zum Schutz deiner persönlichen Daten
           </p>
         </div>
       </section>
 
-      {/* Logged-in user banner */}
       {user && (
         <section className="container py-6">
           <div className="max-w-3xl mx-auto">
@@ -30,7 +31,7 @@ export default function DatenschutzPage() {
               className="flex items-center gap-4 rounded-xl border border-primary/30 bg-primary/5 p-4 hover:bg-primary/10 transition-colors group"
             >
               <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary shrink-0">
-                <span className="material-symbols-outlined text-[22px]">shield</span>
+                <Shield className="w-5 h-5" />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground">Meine Daten & Datenschutz</p>
@@ -38,19 +39,16 @@ export default function DatenschutzPage() {
                   Sieh dir an, welche Daten wir über dich gespeichert haben, exportiere sie oder lösche dein Konto.
                 </p>
               </div>
-              <span className="material-symbols-outlined text-[20px] text-muted-foreground group-hover:text-primary transition-colors ml-auto shrink-0">
-                arrow_forward
-              </span>
+              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors ml-auto shrink-0" />
             </Link>
           </div>
         </section>
       )}
 
-      {/* Content */}
       <section className="container py-12 md:py-16">
         <div className="max-w-3xl mx-auto space-y-6">
-          <div className="rounded-xl border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-foreground">1. Datenschutz auf einen Blick</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+            <h3 className="text-lg font-display font-bold text-foreground">1. Datenschutz auf einen Blick</h3>
             <h4 className="mt-4 font-medium text-foreground">Allgemeine Hinweise</h4>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren
@@ -59,8 +57,8 @@ export default function DatenschutzPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-foreground">2. Verantwortliche Stelle</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+            <h3 className="text-lg font-display font-bold text-foreground">2. Verantwortliche Stelle</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Die verantwortliche Stelle für die Datenverarbeitung auf dieser Website ist:
             </p>
@@ -74,8 +72,8 @@ export default function DatenschutzPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-foreground">3. Datenerfassung auf dieser Website</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+            <h3 className="text-lg font-display font-bold text-foreground">3. Datenerfassung auf dieser Website</h3>
             <h4 className="mt-4 font-medium text-foreground">Cookies</h4>
             <p className="mt-2 text-muted-foreground leading-relaxed">
               Diese Website verwendet Cookies. Dabei handelt es sich um kleine Textdateien, die
@@ -94,8 +92,8 @@ export default function DatenschutzPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-foreground">4. Registrierung und Nutzerkonto</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+            <h3 className="text-lg font-display font-bold text-foreground">4. Registrierung und Nutzerkonto</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Sie können sich auf unserer Website registrieren, um zusätzliche Funktionen
               nutzen zu können. Die dazu eingegebenen Daten verwenden wir nur zum Zwecke
@@ -110,8 +108,8 @@ export default function DatenschutzPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-foreground">5. Ihre Rechte</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+            <h3 className="text-lg font-display font-bold text-foreground">5. Ihre Rechte</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Sie haben jederzeit das Recht, unentgeltlich Auskunft über Herkunft, Empfänger und
               Zweck Ihrer gespeicherten personenbezogenen Daten zu erhalten. Sie haben außerdem
@@ -125,8 +123,8 @@ export default function DatenschutzPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border bg-card p-6 shadow-soft">
-            <h3 className="text-lg font-semibold text-foreground">6. Analyse-Tools und Werbung</h3>
+          <div className="rounded-xl border border-border bg-card p-6 shadow-soft">
+            <h3 className="text-lg font-display font-bold text-foreground">6. Analyse-Tools und Werbung</h3>
             <p className="mt-3 text-muted-foreground leading-relaxed">
               Diese Website verwendet keine Analyse-Tools und keine Werbung. Es werden keine
               personenbezogenen Daten an Dritte weitergegeben.

@@ -231,6 +231,10 @@ def generate_shopping_list(
         except Ingredient.DoesNotExist:
             pass
 
+    # Round quantities to avoid floating point artifacts
+    for item in aggregated.values():
+        item.total_quantity_g = round(item.total_quantity_g, 2)
+
     # Add display_quantity and natural_portions
     _enrich_display_fields(aggregated, raw_quantities)
 
@@ -244,6 +248,7 @@ def generate_shopping_list(
 
 def _format_weight(weight_g: float) -> str:
     """Format weight with smart unit conversion (g->kg) and rounding."""
+    weight_g = round(weight_g, 2)
     if weight_g >= 1000:
         kg = weight_g / 1000
         if kg == int(kg):
@@ -260,6 +265,14 @@ def _format_weight(weight_g: float) -> str:
     return f"{weight_g:.1f} g"
 
 
+def _clean_float_display(value: float) -> int | float:
+    """Round a float for display, converting to int if whole number."""
+    rounded = round(value, 1)
+    if rounded == int(rounded):
+        return int(rounded)
+    return rounded
+
+
 def _format_natural_portion(count: int | float, name: str) -> str:
     """Format a natural portion display string like the frontend does.
 
@@ -274,13 +287,14 @@ def _format_natural_portion(count: int | float, name: str) -> str:
         'scheibe', 'scheiben',
     }
 
+    count = _clean_float_display(float(count))
+
     match = re.match(r'^(\d+(?:[.,]\d+)?)\s*(.*)$', name.strip())
     if match:
         val = float(match.group(1).replace(',', '.'))
         rest = match.group(2).strip()
         multiplied = count * val
-        if multiplied == int(multiplied):
-            multiplied = int(multiplied)
+        multiplied = _clean_float_display(multiplied)
         return f"ca. {multiplied} {rest}" if rest else f"ca. {multiplied}"
 
     first_word = name.split()[0].lower().rstrip('.,')

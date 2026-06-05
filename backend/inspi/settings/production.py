@@ -43,7 +43,6 @@ STORAGES = {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
         "OPTIONS": {
             "bucket_name": env("GCS_BUCKET_NAME", default="inspi-media"),  # noqa: F405
-            "default_acl": "publicRead",
             "querystring_auth": False,
         },
     },

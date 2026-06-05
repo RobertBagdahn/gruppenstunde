@@ -86,6 +86,12 @@ resource "google_storage_bucket" "media" {
   depends_on = [google_project_service.apis["storage.googleapis.com"]]
 }
 
+resource "google_storage_bucket_iam_member" "media_public" {
+  bucket = google_storage_bucket.media.name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
+}
+
 # -----------------------------------------------
 # Secret Manager – Django Settings
 # -----------------------------------------------

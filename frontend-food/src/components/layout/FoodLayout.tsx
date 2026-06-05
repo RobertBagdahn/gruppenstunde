@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useCurrentUser, useLogout } from '@/api/auth';
 import { cn } from '@/lib/utils';
+import Footer from './Footer';
 import {
   TOOL_RECIPES,
   TOOL_INGREDIENTS,
@@ -136,6 +137,11 @@ export default function FoodLayout() {
       <main className="flex-1 pb-safe-bottom md:pb-0">
         <Outlet />
       </main>
+
+      {/* Footer (hidden on mobile — bottom nav takes that space) */}
+      <div className="hidden md:block">
+        <Footer />
+      </div>
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-border/60">

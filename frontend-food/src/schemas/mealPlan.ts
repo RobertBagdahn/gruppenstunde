@@ -427,10 +427,12 @@ export const MealUpdateInSchema = z.object({
 });
 export type MealUpdateIn = z.infer<typeof MealUpdateInSchema>;
 
-export const CopyMealItemInSchema = z.object({
-  target_meal_id: z.number().nullable().optional(),
+export const CopyItemsFromPlanInSchema = z.object({
+  source_plan_id: z.number(),
+  source_meal_id: z.number(),
+  item_ids: z.array(z.number()).nullable().optional(),
 });
-export type CopyMealItemIn = z.infer<typeof CopyMealItemInSchema>;
+export type CopyItemsFromPlanIn = z.infer<typeof CopyItemsFromPlanInSchema>;
 
 // ==========================================================================
 // Backward compatibility re-exports

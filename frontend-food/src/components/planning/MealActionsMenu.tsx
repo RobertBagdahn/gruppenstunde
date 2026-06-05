@@ -9,6 +9,7 @@ import {
   BookOpen,
   Egg,
   FileText,
+  ClipboardCopy,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -48,6 +49,7 @@ interface MealActionsMenuProps {
   onLinkMeal: (mealId: number, mealType: string) => void;
   onAddClick?: () => void;
   onAddNoteClick?: () => void;
+  onCopyFromPlan?: () => void;
 }
 
 export function MealActionsMenu({
@@ -60,6 +62,7 @@ export function MealActionsMenu({
   onLinkMeal,
   onAddClick,
   onAddNoteClick,
+  onCopyFromPlan,
 }: MealActionsMenuProps) {
   const [showSettings, setShowSettings] = useState(false);
 
@@ -141,6 +144,12 @@ export function MealActionsMenu({
             <Edit className="mr-2 h-4 w-4 text-primary" />
             <span>Einstellungen</span>
           </DropdownMenuItem>
+          {onCopyFromPlan && (
+            <DropdownMenuItem onClick={onCopyFromPlan}>
+              <ClipboardCopy className="mr-2 h-4 w-4 text-primary" />
+              <span>Aus anderem Plan kopieren</span>
+            </DropdownMenuItem>
+          )}
           {canEdit && !meal.is_synced && !meal.is_external && meal.items.length > 0 && (
             <DropdownMenuItem onClick={() => onScaleMeal(meal.id)}>
               <Scale className="mr-2 h-4 w-4 text-primary" />

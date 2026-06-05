@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   AlertCircle,
   PlusCircle,
-  Copy,
+  ClipboardCopy,
   X,
   Sliders,
   RefreshCw,
@@ -37,7 +37,7 @@ export function MealSlot({
   onLinkMeal,
   onUpdateMeal,
   onScaleMeal,
-  onCopyItem,
+  onCopyFromPlan,
 }: {
   meal: Meal;
   canEdit: boolean;
@@ -59,7 +59,7 @@ export function MealSlot({
     external_cost_per_person?: number | null;
   }) => void;
   onScaleMeal: (mealId: number) => void;
-  onCopyItem: (itemId: number) => void;
+  onCopyFromPlan: (mealId: number) => void;
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,6 +171,7 @@ export function MealSlot({
                 onScaleMeal={onScaleMeal}
                 onUnlinkMeal={onUnlinkMeal}
                 onLinkMeal={onLinkMeal}
+                onCopyFromPlan={() => onCopyFromPlan(meal.id)}
               />
             </>
           )}
@@ -265,11 +266,11 @@ export function MealSlot({
           {canEdit && !meal.is_synced && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
               <button
-                onClick={() => onCopyItem(item.id)}
+                onClick={() => onCopyFromPlan(meal.id)}
                 className="p-1 rounded text-muted-foreground hover:text-primary transition-colors"
-                title="Eintrag kopieren"
+                title="Aus anderem Plan kopieren"
               >
-                <Copy className="w-4 h-4" />
+                <ClipboardCopy className="w-4 h-4" />
               </button>
               <button
                 onClick={() => onDeleteItem(item.id)}

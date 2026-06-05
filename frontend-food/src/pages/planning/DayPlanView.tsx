@@ -30,7 +30,7 @@ export function DayPlanView({
   onLinkMeal,
   onUpdateMeal,
   onScaleMeal,
-  onCopyItem,
+  onCopyFromPlan,
 }: {
   mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
@@ -60,7 +60,7 @@ export function DayPlanView({
     external_cost_per_person?: number | null;
   }) => void;
   onScaleMeal: (mealId: number) => void;
-  onCopyItem: (itemId: number) => void;
+  onCopyFromPlan: (mealId: number) => void;
 }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -163,7 +163,7 @@ export function DayPlanView({
                     onLinkMeal={onLinkMeal}
                     onUpdateMeal={onUpdateMeal}
                     onScaleMeal={onScaleMeal}
-                    onCopyItem={onCopyItem}
+                    onCopyFromPlan={onCopyFromPlan}
                   />
                 ))}
               </div>

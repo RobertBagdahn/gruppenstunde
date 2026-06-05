@@ -53,7 +53,7 @@ export default function ContentAuthorSection({
               <div>
                 <span className="text-sm font-medium">
                   {author.display_name}
-                  {author.scout_name ? ` (${author.scout_name})` : ''}
+                  {author.scout_name && author.scout_name !== author.display_name ? ` (${author.scout_name})` : ''}
                 </span>
               </div>
             </div>

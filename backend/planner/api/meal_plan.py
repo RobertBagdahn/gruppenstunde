@@ -30,7 +30,7 @@ from planner.schemas import (
     MealItemCreateIn,
     MealItemOut,
     MealItemUpdateIn,
-    CopyMealItemIn,
+    CopyItemsFromPlanIn,
     MealItemOverrideIn,
     MealItemOverrideOut,
     MealOut,
@@ -523,34 +523,50 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     return meal
 
 
-@meal_plan_router.post("/{meal_plan_id}/meal-items/{item_id}/copy/", response=MealItemOut)
-def copy_meal_item(request, meal_plan_id: int, item_id: int, payload: CopyMealItemIn):
-    """Copy or duplicate a meal item."""
+# ==========================================================================
+# Copy items from another plan
+# ==========================================================================
+
+
+@meal_plan_router.post(
+    "/{meal_plan_id}/meals/{meal_id}/copy-items-from/",
+    response=list[MealItemOut],
+)
+def copy_items_from_plan(
+    request, meal_plan_id: int, meal_id: int, payload: CopyItemsFromPlanIn
+):
+    """Copy selected items from a source plan's meal into the target meal."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
-    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
-
-    target_meal_id = payload.target_meal_id
-    if target_meal_id is None:
-        target_meal = item.meal
-    else:
-        target_meal = get_object_or_404(Meal, id=target_meal_id, meal_plan=meal_plan)
-
+    target_meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
     if target_meal.is_synced:
         raise HttpError(400, "Einträge können nicht in synchronisierte Mahlzeiten kopiert werden.")
 
-    copied_item = MealItem.objects.create(
-        meal=target_meal,
-        recipe=item.recipe,
-        ingredient=item.ingredient,
-        quantity=item.quantity,
-        measuring_unit=item.measuring_unit,
-        factor=item.factor,
-        display_name=item.display_name,
-    )
-    return copied_item
+    source_plan = get_object_or_404(MealPlan, id=payload.source_plan_id)
+    _require_access(source_plan, request.user)
+
+    source_meal = get_object_or_404(Meal, id=payload.source_meal_id, meal_plan=source_plan)
+
+    items_to_copy = source_meal.items.all()
+    if payload.item_ids is not None:
+        items_to_copy = items_to_copy.filter(id__in=payload.item_ids)
+
+    copied_items = []
+    for item in items_to_copy:
+        copied = MealItem.objects.create(
+            meal=target_meal,
+            recipe=item.recipe,
+            ingredient=item.ingredient,
+            quantity=item.quantity,
+            measuring_unit=item.measuring_unit,
+            display_name=item.display_name,
+            factor=item.factor,
+        )
+        copied_items.append(copied)
+
+    return copied_items
 
 
 # ==========================================================================
@@ -744,14 +760,40 @@ def cost_summary(request, meal_plan_id: int):
                         recipe_item_cost += price
 
                 recipe_costs[rid]["total_cost"] += recipe_item_cost
-            elif item.portion and item.portion.ingredient:
+            elif item.ingredient:
                 # Standalone ingredient
+                ing = item.ingredient
                 total_ingredients += 1
-                if item.quantity:
-                    price = get_portion_price(item.portion.ingredient, float(item.quantity))
-                    if price is not None:
-                        priced_ingredients += 1
-                        meal_cost += price
+
+                from supply.models import Portion
+                portion = (
+                    Portion.objects.filter(
+                        ingredient=ing,
+                        measuring_unit=item.measuring_unit,
+                    ).first()
+                    if item.measuring_unit
+                    else None
+                )
+
+                portion_weight = portion.weight_g if portion else None
+                if not portion_weight and item.measuring_unit:
+                    if item.measuring_unit.unit == "g":
+                        portion_weight = item.measuring_unit.quantity
+
+                if portion_weight and item.quantity:
+                    weight_g = (
+                        float(item.quantity)
+                        * float(portion_weight)
+                        * item.factor
+                        * float(effective_portions)
+                    )
+                else:
+                    weight_g = 0.0
+
+                price = get_portion_price(ing, weight_g)
+                if price is not None:
+                    priced_ingredients += 1
+                    meal_cost += price
 
         cost_per_person = (
             meal_cost / effective_portions if effective_portions > 0 else Decimal("0")

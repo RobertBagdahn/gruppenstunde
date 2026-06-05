@@ -1,4 +1,5 @@
 """Tests for scale-to-target and copy meal item endpoints, plus drinks and external meal behavior."""
+import json
 
 import datetime as dt
 import pytest
@@ -142,50 +143,68 @@ class TestScaleAndCopyAPI:
         assert response.status_code == 400
         assert "keine Kalorien" in response.json()["detail"]
 
-    def test_copy_meal_item_same_meal(self):
-        """Duplicate a meal item in the same meal."""
-        meal = make_meal(meal_plan=self.plan)
-        recipe = make_recipe()
-        item = make_meal_item(meal=meal, recipe=recipe, factor=1.5, display_name="My Pancake")
+    def test_copy_items_from_plan_all_items(self):
+        """Copy all items from a source plan's meal into the target meal."""
+        source_plan = make_meal_plan(created_by=self.user, norm_portions=10)
+        source_meal = make_meal(meal_plan=source_plan, meal_type=MealTypeChoices.BREAKFAST)
+        recipe1 = make_recipe()
+        recipe2 = make_recipe()
+        item1 = make_meal_item(meal=source_meal, recipe=recipe1, factor=1.5, display_name="Pancake")
+        item2 = make_meal_item(meal=source_meal, recipe=recipe2, factor=2.0, display_name="Omelette")
+
+        target_meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST)
 
         response = self.client.post(
-            f"/api/meal-plans/{self.plan.id}/meal-items/{item.id}/copy/",
-            data={"target_meal_id": None},
+            f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
+            data=json.dumps({
+                "source_plan_id": source_plan.id,
+                "source_meal_id": source_meal.id,
+            }),
             content_type="application/json"
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] != item.id
-        assert data["factor"] == 1.5
-        assert data["display_name"] == "My Pancake"
-        assert MealItem.objects.filter(meal=meal).count() == 2
+        assert len(data) == 2
 
-    def test_copy_meal_item_other_meal(self):
-        """Copy a meal item to another meal in the same plan."""
-        meal1 = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST)
-        meal2 = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH)
-        recipe = make_recipe()
-        item = make_meal_item(meal=meal1, recipe=recipe, factor=1.2, display_name="Special Toast")
+        copied_items = MealItem.objects.filter(meal=target_meal)
+        assert copied_items.count() == 2
+        titles = {ci.recipe.title for ci in copied_items}
+        assert recipe1.title in titles
+        assert recipe2.title in titles
+
+    def test_copy_items_from_plan_selected_items(self):
+        """Copy only selected items from a source plan's meal."""
+        source_plan = make_meal_plan(created_by=self.user, norm_portions=10)
+        source_meal = make_meal(meal_plan=source_plan)
+        recipe1 = make_recipe()
+        recipe2 = make_recipe()
+        item1 = make_meal_item(meal=source_meal, recipe=recipe1, factor=1.0)
+        item2 = make_meal_item(meal=source_meal, recipe=recipe2, factor=2.0)
+
+        target_meal = make_meal(meal_plan=self.plan)
 
         response = self.client.post(
-            f"/api/meal-plans/{self.plan.id}/meal-items/{item.id}/copy/",
-            data={"target_meal_id": meal2.id},
+            f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
+            data=json.dumps({
+                "source_plan_id": source_plan.id,
+                "source_meal_id": source_meal.id,
+                "item_ids": [item1.id],
+            }),
             content_type="application/json"
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] != item.id
-        assert data["factor"] == 1.2
-        assert data["display_name"] == "Special Toast"
-        
-        # Verify it is in the target meal
-        assert MealItem.objects.filter(meal=meal2).count() == 1
-        copied = MealItem.objects.filter(meal=meal2).first()
-        assert copied.recipe == recipe
+        assert len(data) == 1
+        assert data[0]["factor"] == 1.0
+        assert MealItem.objects.filter(meal=target_meal).count() == 1
 
-    def test_copy_meal_item_fails_synced_target(self):
+    def test_copy_items_from_plan_fails_synced_target(self):
         """Copying into a synced meal should fail with 400."""
-        meal1 = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST)
+        source_plan = make_meal_plan(created_by=self.user)
+        source_meal = make_meal(meal_plan=source_plan)
+        recipe = make_recipe()
+        make_meal_item(meal=source_meal, recipe=recipe)
+
         ref_meal = Meal.objects.create(
             meal_plan=self.plan,
             meal_type=MealTypeChoices.LUNCH,
@@ -193,13 +212,35 @@ class TestScaleAndCopyAPI:
             is_reference=True,
         )
         synced_meal = make_meal(meal_plan=self.plan, is_synced=True, ref_meal=ref_meal)
-        recipe = make_recipe()
-        item = make_meal_item(meal=meal1, recipe=recipe)
 
         response = self.client.post(
-            f"/api/meal-plans/{self.plan.id}/meal-items/{item.id}/copy/",
-            data={"target_meal_id": synced_meal.id},
+            f"/api/meal-plans/{self.plan.id}/meals/{synced_meal.id}/copy-items-from/",
+            data=json.dumps({
+                "source_plan_id": source_plan.id,
+                "source_meal_id": source_meal.id,
+            }),
             content_type="application/json"
         )
         assert response.status_code == 400
-        assert "Einträge können nicht in synchronisierte Mahlzeiten kopiert werden" in response.json()["detail"]
+        assert "synchronisierte Mahlzeiten" in response.json()["detail"]
+
+    def test_copy_items_from_plan_fails_no_access(self):
+        """Copying from a plan the user has no access to should fail with 404."""
+        other_user = baker.make(User)
+        source_plan = make_meal_plan(created_by=other_user)
+        source_meal = make_meal(meal_plan=source_plan)
+        recipe = make_recipe()
+        make_meal_item(meal=source_meal, recipe=recipe)
+
+        target_meal = make_meal(meal_plan=self.plan)
+
+        response = self.client.post(
+            f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
+            data=json.dumps({
+                "source_plan_id": source_plan.id,
+                "source_meal_id": source_meal.id,
+            }),
+            content_type="application/json"
+        )
+        assert response.status_code == 404
+        assert "Essensplan nicht gefunden" in response.json()["detail"]

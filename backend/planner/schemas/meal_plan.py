@@ -100,8 +100,10 @@ class MealItemUpdateIn(Schema):
     factor: float | None = None
 
 
-class CopyMealItemIn(Schema):
-    target_meal_id: int | None = None
+class CopyItemsFromPlanIn(Schema):
+    source_plan_id: int
+    source_meal_id: int
+    item_ids: list[int] | None = None
 
 
 class MealOut(Schema):

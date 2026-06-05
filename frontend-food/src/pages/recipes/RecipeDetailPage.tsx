@@ -1267,6 +1267,9 @@ export default function RecipeDetailPage() {
               </div>
             </div>
 
+            {/* Contribution panels per parameter (collapsible) */}
+            <CollapsibleContributions items={nb.items} />
+
             {/* Macro pie chart */}
             {(nb.per_serving_protein_g || nb.per_serving_fat_g || nb.per_serving_carbohydrate_g) && (
               <div>
@@ -1350,46 +1353,6 @@ export default function RecipeDetailPage() {
                 />
               </div>
             </div>
-
-            {/* Contribution panels per parameter (collapsible) */}
-            <CollapsibleContributions items={nb.items} />
-
-            {/* Top calorie contributors */}
-            {topIngredientsByCalories.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Kalorien nach Zutat</h3>
-                <div className="space-y-2">
-                  {topIngredientsByCalories.slice(0, 8).map((item) => (
-                    <div key={item.recipe_item_id} className="flex items-center gap-3">
-                      {item.ingredient_id && ingredientSlugById.get(item.ingredient_id) ? (
-                        <EntityLink
-                          type="ingredient"
-                          slug={ingredientSlugById.get(item.ingredient_id)!}
-                          name={item.ingredient_name}
-                          variant="muted"
-                          className="text-sm font-medium w-32 truncate"
-                        />
-                      ) : (
-                        <span className="text-sm font-medium w-32 truncate">
-                          {item.ingredient_name}
-                        </span>
-                      )}
-                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-orange-400 rounded-full"
-                          style={{
-                            width: `${nb.total_energy_kcal > 0 ? (item.energy_kcal / nb.total_energy_kcal) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground w-16 text-right">
-                        {item.energy_kcal.toFixed(0)} kcal
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Collapsible Vitamins section */}
             <MicronutrientSection

@@ -37,6 +37,10 @@ import StaffGuard from './components/admin/StaffGuard';
 // Styleguide
 import StyleguidePage from './pages/StyleguidePage';
 
+// Legal
+import ImpressumPage from './pages/legal/ImpressumPage';
+import DatenschutzPage from './pages/legal/DatenschutzPage';
+
 // Auth
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -79,6 +83,10 @@ export default function App() {
 
         {/* Tools */}
         <Route path="/tools/norm-portion-simulator" element={<NormPortionSimulatorPage />} />
+
+        {/* Legal */}
+        <Route path="/privacy" element={<DatenschutzPage />} />
+        <Route path="/imprint" element={<ImpressumPage />} />
 
         {/* Styleguide */}
         <Route path="/styleguide" element={<StyleguidePage />} />

@@ -103,21 +103,39 @@ export function calculateNaturalPortions(
 
   const results: NaturalPortion[] = [];
 
-  // Sort: is_default first, then by priority desc
+  // Sort: is_default first, then by priority desc, then known weight before unknown
   const sorted = [...portions].sort((a, b) => {
     if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
+    const aHasWeight = a.weight_g != null && a.weight_g >= 0.01;
+    const bHasWeight = b.weight_g != null && b.weight_g >= 0.01;
+    if (aHasWeight !== bHasWeight) return aHasWeight ? -1 : 1;
     return b.priority - a.priority;
   });
 
   for (const portion of sorted) {
-    if (!portion.weight_g || portion.weight_g <= 1) continue;
+    const portionName = portion.name || 'Stück';
+
+    if (portion.weight_g != null && portion.weight_g < 0.01) {
+      // Skip tiny portions (below 0.01g — effectively zero)
+      continue;
+    }
+
+    if (portion.weight_g == null) {
+      // Unknown weight: show as label only (e.g., "1 Liter Milch", "1 Glas")
+      results.push({
+        name: portionName,
+        count: 0,
+        display: portionName,
+        isDefault: portion.is_default,
+      });
+      continue;
+    }
 
     const rawCount = weightG / portion.weight_g;
     const rounded = roundPortionCount(rawCount);
 
     if (rounded <= 0) continue;
 
-    const portionName = portion.name || 'Stück';
     results.push({
       name: portionName,
       count: rounded,

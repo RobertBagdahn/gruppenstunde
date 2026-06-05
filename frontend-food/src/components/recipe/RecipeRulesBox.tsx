@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRecipeRules } from '@/api/recipes';
 
 interface RecipeRulesBoxProps {
@@ -35,6 +35,11 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
       </section>
     );
   }
+
+  const sortedItems = useMemo(() => {
+    const priority = { red: 0, yellow: 1, green: 2 };
+    return [...data.items].sort((a, b) => priority[a.status] - priority[b.status]);
+  }, [data.items]);
 
   return (
     <section className="mt-6 bg-card rounded-xl border overflow-hidden">
@@ -74,13 +79,13 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
 
       {open && (
         <div className="px-5 pb-5 pt-0">
-          {data.items.length === 0 ? (
+          {sortedItems.length === 0 ? (
             <p className="text-sm text-muted-foreground italic py-4 text-center">
               Keine Regeln für dieses Rezept definiert.
             </p>
           ) : (
             <div className="divide-y divide-border/60">
-              {data.items.map((item) => {
+              {sortedItems.map((item) => {
                 const statusMeta = {
                   green: {
                     icon: 'check_circle',
