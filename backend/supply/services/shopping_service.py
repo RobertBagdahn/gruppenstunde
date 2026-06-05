@@ -234,6 +234,9 @@ def generate_shopping_list(
     # Round quantities to avoid floating point artifacts
     for item in aggregated.values():
         item.total_quantity_g = round(item.total_quantity_g, 2)
+        if item.sources:
+            for source in item.sources:
+                source.quantity_g = round(source.quantity_g, 2)
 
     # Add display_quantity and natural_portions
     _enrich_display_fields(aggregated, raw_quantities)

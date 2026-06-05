@@ -40,8 +40,10 @@ export default function ShoppingListItemRow({
   }, [recentChecker]);
 
   const formatQuantity = (g: number, unit: string): string => {
-    if (unit !== 'g' || g === 0) {
-      return g > 0 ? `${g} ${unit}` : '';
+    if (g === 0) return '';
+    if (unit !== 'g') {
+      const rounded = Math.round(g * 100) / 100;
+      return `${rounded} ${unit}`;
     }
     if (g >= 1000) {
       const kg = g / 1000;

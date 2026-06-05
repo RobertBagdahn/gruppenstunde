@@ -322,6 +322,10 @@ class ShoppingListItemOut(Schema):
     portion_options: list[ShoppingItemPortionOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
 
+    @staticmethod
+    def resolve_total_quantity_g(obj) -> float:
+        return round(obj.total_quantity_g, 2)
+
 
 # ==========================================================================
 # MealPlan Collaborator Schemas

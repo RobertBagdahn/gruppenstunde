@@ -34,6 +34,10 @@ class ShoppingItemSourceOut(Schema):
     meal_label: str = ""
     quantity_g: float = 0.0
 
+    @staticmethod
+    def resolve_quantity_g(obj) -> float:
+        return round(obj.quantity_g, 2)
+
 
 class ShoppingItemPortionOptionOut(Schema):
     """Output schema for a single portion option in the shopping list."""
@@ -50,6 +54,10 @@ class ShoppingListItemOut(Schema):
     name: str
     quantity_g: float
     unit: str
+
+    @staticmethod
+    def resolve_quantity_g(obj) -> float:
+        return round(obj.quantity_g, 2)
     retail_section_id: int | None = None
     retail_section_name: str = ""
     is_checked: bool
@@ -93,14 +101,17 @@ class ShoppingListItemOut(Schema):
             return None
         from supply.services.price_service import get_portion_price
         price = get_portion_price(obj.ingredient, obj.quantity_g)
-        return float(price) if price is not None else None
+        return round(float(price), 2) if price is not None else None
 
     @staticmethod
     def resolve_display_quantity(obj) -> str:
         if not obj.quantity_g or obj.quantity_g <= 0:
             return ""
         if obj.unit != "g":
-            return f"{obj.quantity_g} {obj.unit}"
+            qty = round(obj.quantity_g, 2)
+            if qty == int(qty):
+                qty = int(qty)
+            return f"{qty} {obj.unit}"
         return _format_weight(obj.quantity_g)
 
     @staticmethod
@@ -221,6 +232,7 @@ class ShoppingListDetailOut(Schema):
 
 def _format_weight(weight_g: float) -> str:
     """Format weight with smart unit conversion (g->kg) and rounding."""
+    weight_g = round(weight_g, 2)
     if weight_g >= 1000:
         kg = weight_g / 1000
         if kg == int(kg):

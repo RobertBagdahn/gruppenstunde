@@ -57,7 +57,7 @@ function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
           )}
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
-          <span>{item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g)} ${item.unit}`}</span>
+          <span>{item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g || 0)} ${item.unit}`}</span>
           {item.natural_portions && (
             <button
               type="button"

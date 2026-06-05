@@ -128,6 +128,10 @@ class ShoppingListItem(models.Model):
         verbose_name_plural = _("Einkaufslisten-Einträge")
         ordering = ["sort_order", "id"]
 
+    def save(self, *args, **kwargs):
+        self.quantity_g = round(self.quantity_g, 2)
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         checked = " [x]" if self.is_checked else ""
         return f"{self.name} ({self.quantity_g}{self.unit}){checked}"
@@ -185,6 +189,10 @@ class ShoppingListItemSource(models.Model):
         verbose_name = _("Einkaufslisten-Herkunft")
         verbose_name_plural = _("Einkaufslisten-Herkünfte")
         ordering = ["-quantity_g"]
+
+    def save(self, *args, **kwargs):
+        self.quantity_g = round(self.quantity_g, 2)
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"{self.recipe_name} – {self.quantity_g}g"
