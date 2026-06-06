@@ -9,6 +9,12 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
   const { data, isLoading, error } = useRecipeRules(recipeId);
   const [open, setOpen] = useState(false);
 
+  const sortedItems = useMemo(() => {
+    if (!data?.items) return [];
+    const priority = { red: 0, yellow: 1, green: 2 };
+    return [...data.items].sort((a, b) => priority[a.status] - priority[b.status]);
+  }, [data?.items]);
+
   if (isLoading) {
     return (
       <div className="mt-6 bg-card rounded-xl border p-5 animate-pulse">
@@ -35,11 +41,6 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
       </section>
     );
   }
-
-  const sortedItems = useMemo(() => {
-    const priority = { red: 0, yellow: 1, green: 2 };
-    return [...data.items].sort((a, b) => priority[a.status] - priority[b.status]);
-  }, [data.items]);
 
   return (
     <section className="mt-6 bg-card rounded-xl border overflow-hidden">
