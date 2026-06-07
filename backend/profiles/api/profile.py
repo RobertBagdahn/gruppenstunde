@@ -6,10 +6,17 @@ from ninja import File, Router
 from ninja.errors import HttpError
 from ninja.files import UploadedFile
 
+from django.core.validators import validate_slug
+from django.core.exceptions import ValidationError
+
 from profiles.models import GroupMembership, UserPreference, UserProfile
 from profiles.schemas import (
     MyContentOut,
     ProfilePictureOut,
+    PublicMealPlanOut,
+    PublicRecipeOut,
+    PublicShoppingListOut,
+    PublicUserFoodProfileOut,
     PublicUserProfileOut,
     UserGroupOut,
     JoinRequestOut,
@@ -45,6 +52,19 @@ def update_my_profile(request, payload: UserProfileUpdateIn):
     profile, _ = UserProfile.objects.prefetch_related("nutritional_tags").get_or_create(user=request.user)
     data = payload.dict(exclude_unset=True)
     tag_ids = data.pop("nutritional_tag_ids", None)
+
+    slug_value = data.get("slug")
+    if slug_value is not None:
+        if slug_value == "":
+            data["slug"] = None
+        else:
+            try:
+                validate_slug(slug_value)
+            except ValidationError:
+                raise HttpError(422, "Ungültiges Slug-Format. Erlaubt: Kleinbuchstaben, Zahlen, Bindestriche und Unterstriche.")
+            if UserProfile.objects.filter(slug=slug_value).exclude(pk=profile.pk).exists():
+                raise HttpError(422, "Dieser Slug ist bereits vergeben")
+
     for field, value in data.items():
         setattr(profile, field, value)
     profile.save()
@@ -136,6 +156,51 @@ def get_my_content(request):
 def get_my_ideas_legacy(request):
     """Legacy alias for get_my_content."""
     return get_my_content(request)
+
+
+@profile_router.get("/by-slug/{slug}/", response=PublicUserFoodProfileOut)
+def get_public_user_food_profile(request, slug: str):
+    """Get a user's public profile with recipes, shopping lists, and meal plans."""
+    profile = UserProfile.objects.filter(slug=slug).first()
+    if profile is None and slug.isdigit():
+        profile = UserProfile.objects.filter(user_id=int(slug)).first()
+
+    if profile is None:
+        raise HttpError(404, "Profil nicht gefunden")
+
+    is_own_profile = request.user.is_authenticated and request.user.id == profile.user_id
+    if not profile.is_public and not is_own_profile:
+        raise HttpError(404, "Profil nicht gefunden")
+
+    from content.choices import ContentStatus
+    from recipe.models import RecipeVisibility
+    from recipe.models import Recipe
+
+    profile.recipes = list(
+        Recipe.objects.filter(
+            Q(owner_id=profile.user_id) | Q(authors__id=profile.user_id),
+            visibility=RecipeVisibility.PUBLIC,
+            status=ContentStatus.APPROVED,
+        ).distinct().order_by("-created_at")[:20]
+    )
+
+    from shopping.models import ShoppingList
+
+    profile.shopping_lists = list(
+        ShoppingList.objects.filter(
+            owner_id=profile.user_id,
+        ).order_by("-created_at")[:20]
+    )
+
+    from planner.models.meal_plan import MealPlan
+
+    profile.meal_plans = list(
+        MealPlan.objects.filter(
+            created_by_id=profile.user_id,
+        ).order_by("-created_at")[:20]
+    )
+
+    return profile
 
 
 @profile_router.get("/{user_id}/", response=PublicUserProfileOut)

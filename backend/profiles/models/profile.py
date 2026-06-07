@@ -67,6 +67,14 @@ class UserProfile(models.Model):
         verbose_name=_("Öffentlich sichtbar"),
         help_text=_("Wenn aktiv, kann das Profil von allen Nutzern gefunden werden"),
     )
+    slug = models.SlugField(
+        max_length=50,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name=_("Slug"),
+        help_text=_("Human-readable Identifier für die Profil-URL"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

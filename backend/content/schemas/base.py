@@ -62,6 +62,7 @@ class ContentAuthorOut(Schema):
     """Author info exposed on content detail."""
 
     id: int | None = None
+    slug: str | None = None
     display_name: str
     scout_name: str = ""
     profile_picture_url: str | None = None

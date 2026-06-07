@@ -21,8 +21,8 @@ export function getEntityUrl(type: EntityType, ref: EntityRef): string {
   if ((type === 'recipe' || type === 'ingredient' || type === 'tag') && !slug) {
     return handleMissing(type, 'slug', ref);
   }
-  if (type === 'user' && (id === undefined || id === null || id === '')) {
-    return handleMissing(type, 'id', ref);
+  if (type === 'user' && !slug && (id === undefined || id === null || id === '')) {
+    return handleMissing(type, 'slug', ref);
   }
 
   switch (type) {
@@ -33,7 +33,7 @@ export function getEntityUrl(type: EntityType, ref: EntityRef): string {
     case 'tag':
       return `/search?tag_slugs=${encodeURIComponent(slug!)}`;
     case 'user':
-      return `/profile/name/${encodeURIComponent(String(id))}`;
+      return `/profile/name/${encodeURIComponent(slug ? String(slug) : String(id))}`;
     default: {
       const _exhaustive: never = type;
       return _exhaustive;

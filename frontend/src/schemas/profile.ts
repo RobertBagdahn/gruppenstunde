@@ -89,6 +89,7 @@ export type MyContent = z.infer<typeof MyContentSchema>;
 
 export const PublicUserProfileSchema = z.object({
   id: z.number(),
+  slug: z.string().nullable().optional(),
   scout_name: z.string(),
   first_name: z.string(),
   about_me: z.string(),

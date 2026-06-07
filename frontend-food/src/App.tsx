@@ -41,6 +41,9 @@ import StyleguidePage from './pages/StyleguidePage';
 import ImpressumPage from './pages/legal/ImpressumPage';
 import DatenschutzPage from './pages/legal/DatenschutzPage';
 
+// Profile
+import ProfilePage from './pages/profile/ProfilePage';
+
 // Auth
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -83,6 +86,9 @@ export default function App() {
 
         {/* Tools */}
         <Route path="/tools/norm-portion-simulator" element={<NormPortionSimulatorPage />} />
+
+        {/* Profile */}
+        <Route path="/profile/name/:slug" element={<ProfilePage />} />
 
         {/* Legal */}
         <Route path="/privacy" element={<DatenschutzPage />} />

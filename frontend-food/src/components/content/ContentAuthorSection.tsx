@@ -8,6 +8,7 @@ import { EntityLink } from '@/components/shared/EntityLink';
 /** Loose author type compatible with both Zod output and input */
 interface Author {
   id?: number | null;
+  slug?: string | null;
   display_name: string;
   scout_name?: string;
   profile_picture_url?: string | null;
@@ -59,12 +60,13 @@ export default function ContentAuthorSection({
             </div>
           );
 
-          if (author.is_registered && author.id) {
+          if (author.is_registered && (author.id || author.slug)) {
             return (
               <EntityLink
-                key={author.id}
+                key={author.id ?? author.slug}
                 type="user"
-                id={author.id}
+                id={author.id ?? undefined}
+                slug={author.slug ?? undefined}
                 name={author.display_name}
                 className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-muted transition-colors"
               >

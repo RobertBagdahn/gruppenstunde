@@ -69,6 +69,7 @@ class GameDetailOut(ContentDetailOut):
                 result.append(
                     {
                         "id": user.id,
+                        "slug": profile.slug if profile else None,
                         "display_name": display,
                         "scout_name": scout_name,
                         "profile_picture_url": pic_url,

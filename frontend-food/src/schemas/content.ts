@@ -30,6 +30,7 @@ export type ScoutLevel = z.infer<typeof ScoutLevelSchema>;
 
 export const ContentAuthorSchema = z.object({
   id: z.number().nullable().default(null),
+  slug: z.string().nullable().default(null),
   display_name: z.string(),
   scout_name: z.string().default(''),
   profile_picture_url: z.string().nullable().default(null),
