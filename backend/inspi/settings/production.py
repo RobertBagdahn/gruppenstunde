@@ -73,3 +73,30 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.essensplan.app",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# Logging – send ALL Django errors to stderr (visible in Cloud Logging)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}

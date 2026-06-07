@@ -14,6 +14,7 @@ from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
     Meal,
     MealPlan,
+    MealPlanVisibility,
     MealPlanCollaborator,
     MealPlanCollaboratorRole,
     MealItem,
@@ -102,20 +103,43 @@ def _require_admin(meal_plan: MealPlan, user) -> str:
 def list_meal_plans(
     request,
     search: str | None = None,
+    origin: str | None = None,
+    sort: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
 ):
-    """List meal plans the user owns or collaborates on."""
+    """List meal plans the user has access to.
+
+    Filters:
+    - search: text search on name/description/event
+    - origin: 'all' (default), 'mine', 'community', 'verified'
+    - sort: 'date_newest' (default), 'date_oldest', 'name_asc', 'name_desc'
+    - date_from/date_to: date range filter
+    """
     _require_auth(request)
 
-    qs = MealPlan.objects.select_related("event").prefetch_related("meals")
+    qs = MealPlan.objects.select_related("event", "owner").prefetch_related("meals")
 
-    if request.user.is_staff:
-        qs = qs.all()
+    if origin == "verified":
+        qs = qs.filter(owner__isnull=True)
+    elif origin == "community":
+        qs = qs.filter(owner__isnull=False, visibility=MealPlanVisibility.PUBLIC)
+    elif origin == "mine":
+        if request.user.is_staff:
+            qs = qs.all()
+        else:
+            qs = qs.filter(created_by=request.user)
     else:
-        qs = qs.filter(
-            Q(created_by=request.user) | Q(collaborators__user=request.user)
-        ).distinct()
+        # "all" — show what user has access to
+        if request.user.is_staff:
+            qs = qs.all()
+        else:
+            own = Q(created_by=request.user)
+            collab = Q(collaborators__user=request.user)
+            public = Q(owner__isnull=False, visibility=MealPlanVisibility.PUBLIC)
+            verified = Q(owner__isnull=True)
+            qs = qs.filter(own | collab | public | verified)
+            qs = qs.distinct()
 
     if search:
         qs = qs.filter(
@@ -129,6 +153,18 @@ def list_meal_plans(
 
     if date_to:
         qs = qs.filter(start_datetime__date__lte=date_to)
+
+    # Sort
+    sort_map = {
+        "date_newest": "-start_datetime",
+        "date_oldest": "start_datetime",
+        "name_asc": "name",
+        "name_desc": "-name",
+    }
+    if sort and sort in sort_map:
+        qs = qs.order_by(sort_map[sort], "-created_at")
+    else:
+        qs = qs.order_by("-start_datetime", "-created_at")
 
     return qs
 
@@ -181,7 +217,7 @@ def get_meal_plan(request, meal_plan_id: int):
     _require_auth(request)
 
     meal_plan = get_object_or_404(
-        MealPlan.objects.select_related("event").prefetch_related(
+        MealPlan.objects.select_related("event", "owner").prefetch_related(
             Prefetch(
                 "meals__items",
                 queryset=MealItem.objects.select_related("recipe", "meal__meal_plan"),

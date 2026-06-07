@@ -199,6 +199,9 @@ class MealPlanOut(Schema):
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     created_by_id: int
+    owner_id: int | None = None
+    owner_name: str | None = None
+    visibility: str = "private"
     created_at: dt.datetime
     updated_at: dt.datetime
     meals_count: int = 0
@@ -213,6 +216,12 @@ class MealPlanOut(Schema):
     @staticmethod
     def resolve_meals_count(obj) -> int:
         return obj.meals.count()
+
+    @staticmethod
+    def resolve_owner_name(obj) -> str | None:
+        if obj.owner:
+            return obj.owner.get_full_name() or obj.owner.username
+        return None
 
 
 class MealPlanDuplicateIn(Schema):
@@ -241,6 +250,7 @@ class MealPlanUpdateIn(Schema):
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     day_part_factors: dict[str, float] | None = None
+    visibility: str | None = None
 
 
 class MealPlanDetailOut(Schema):
@@ -256,6 +266,9 @@ class MealPlanDetailOut(Schema):
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     created_by_id: int
+    owner_id: int | None = None
+    owner_name: str | None = None
+    visibility: str = "private"
     created_at: dt.datetime
     updated_at: dt.datetime
     day_part_factors: dict[str, float]
@@ -267,6 +280,12 @@ class MealPlanDetailOut(Schema):
         if obj.event:
             return obj.event.name
         return ""
+
+    @staticmethod
+    def resolve_owner_name(obj) -> str | None:
+        if obj.owner:
+            return obj.owner.get_full_name() or obj.owner.username
+        return None
 
 
 class NutritionSummaryOut(Schema):
@@ -321,10 +340,6 @@ class ShoppingListItemOut(Schema):
     natural_portions: str = ""
     portion_options: list[ShoppingItemPortionOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
-
-    @staticmethod
-    def resolve_total_quantity_g(obj) -> float:
-        return round(obj.total_quantity_g, 2)
 
 
 # ==========================================================================

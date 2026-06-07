@@ -57,6 +57,11 @@ def default_day_part_factors() -> dict[str, float]:
     }
 
 
+class MealPlanVisibility(models.TextChoices):
+    PRIVATE = "private", _("Privat")
+    PUBLIC = "public", _("Öffentlich")
+
+
 class MealPlan(models.Model):
     """Meal plan for scout events or standalone use."""
 
@@ -85,6 +90,22 @@ class MealPlan(models.Model):
         related_name="meal_plans",
         verbose_name=_("Erstellt von"),
     )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="owned_meal_plans",
+        verbose_name=_("Besitzer"),
+        help_text=_("Null = Inspi-verifiziert, gesetzt = persönlicher Plan"),
+    )
+    visibility = models.CharField(
+        max_length=10,
+        choices=MealPlanVisibility.choices,
+        default=MealPlanVisibility.PRIVATE,
+        verbose_name=_("Sichtbarkeit"),
+        help_text=_("private = nur ich, public = für alle sichtbar"),
+    )
     budget_per_person_per_day = models.DecimalField(
         max_digits=8,
         decimal_places=2,
@@ -106,6 +127,10 @@ class MealPlan(models.Model):
         verbose_name = _("Essensplan")
         verbose_name_plural = _("Essenspläne")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["owner", "visibility"]),
+            models.Index(fields=["start_datetime"]),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -118,6 +143,9 @@ class MealPlan(models.Model):
                 old_day_part_factors = MealPlan.objects.get(pk=self.pk).day_part_factors
             except MealPlan.DoesNotExist:
                 pass
+
+        if is_new and self.owner_id is None and self.created_by_id is not None:
+            self.owner = self.created_by
 
         if not self.slug:
             base_slug = slugify(self.name, allow_unicode=False)
