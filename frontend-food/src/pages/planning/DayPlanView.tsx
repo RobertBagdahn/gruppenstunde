@@ -26,8 +26,6 @@ export function DayPlanView({
   onAddIngredient,
   onDeleteItem,
   onUpdateItemFactor,
-  onUnlinkMeal,
-  onLinkMeal,
   onUpdateMeal,
   onScaleMeal,
   onCopyFromPlan,
@@ -49,8 +47,6 @@ export function DayPlanView({
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
-  onUnlinkMeal: (mealId: number) => void;
-  onLinkMeal: (mealId: number, mealType: string) => void;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
     override_portions?: number | null;
@@ -159,8 +155,6 @@ export function DayPlanView({
                     onAddIngredient={onAddIngredient}
                     onDeleteItem={onDeleteItem}
                     onUpdateItemFactor={onUpdateItemFactor}
-                    onUnlinkMeal={onUnlinkMeal}
-                    onLinkMeal={onLinkMeal}
                     onUpdateMeal={onUpdateMeal}
                     onScaleMeal={onScaleMeal}
                     onCopyFromPlan={onCopyFromPlan}

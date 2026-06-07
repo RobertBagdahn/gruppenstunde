@@ -155,6 +155,7 @@ class PublicUserFoodProfileOut(Schema):
     about_me: str
     profile_picture_url: str | None = None
     created_at: datetime
+    updated_at: datetime
     recipes: list[PublicRecipeOut] = []
     shopping_lists: list[PublicShoppingListOut] = []
     meal_plans: list[PublicMealPlanOut] = []

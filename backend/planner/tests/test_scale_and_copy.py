@@ -11,6 +11,7 @@ from model_bakery import baker
 from planner.models import Meal, MealItem, MealPlan, MealTypeChoices
 from planner.schemas.meal_plan import MealOut
 from planner.tests import make_meal, make_meal_item, make_meal_plan
+from event.tests import make_event
 from recipe.tests import make_recipe, make_recipe_item
 from supply.tests import make_ingredient, make_portion
 
@@ -172,14 +173,12 @@ class TestScaleAndCopyAPI:
         assert recipe1.title in titles
         assert recipe2.title in titles
 
-    def test_copy_items_from_plan_selected_items(self):
-        """Copy only selected items from a source plan's meal."""
-        source_plan = make_meal_plan(created_by=self.user, norm_portions=10)
+    def test_copy_items_from_plan_sets_note(self):
+        """Copy items and verify the note is set on the target meal."""
+        source_plan = make_meal_plan(created_by=self.user, norm_portions=10, name="Sommerlager 2025")
         source_meal = make_meal(meal_plan=source_plan)
-        recipe1 = make_recipe()
-        recipe2 = make_recipe()
-        item1 = make_meal_item(meal=source_meal, recipe=recipe1, factor=1.0)
-        item2 = make_meal_item(meal=source_meal, recipe=recipe2, factor=2.0)
+        recipe = make_recipe()
+        make_meal_item(meal=source_meal, recipe=recipe)
 
         target_meal = make_meal(meal_plan=self.plan)
 
@@ -188,15 +187,36 @@ class TestScaleAndCopyAPI:
             data=json.dumps({
                 "source_plan_id": source_plan.id,
                 "source_meal_id": source_meal.id,
-                "item_ids": [item1.id],
+                "note": source_plan.name,
             }),
             content_type="application/json"
         )
         assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 1
-        assert data[0]["factor"] == 1.0
-        assert MealItem.objects.filter(meal=target_meal).count() == 1
+        target_meal.refresh_from_db()
+        assert target_meal.note == "Importiert aus «Sommerlager 2025»"
+
+    def test_copy_items_from_plan_appends_note(self):
+        """Copy items and verify note appends to existing note."""
+        source_plan = make_meal_plan(created_by=self.user, norm_portions=10, name="Zeltlager")
+        source_meal = make_meal(meal_plan=source_plan)
+        recipe = make_recipe()
+        make_meal_item(meal=source_meal, recipe=recipe)
+
+        target_meal = make_meal(meal_plan=self.plan, note="Bestehende Notiz")
+
+        response = self.client.post(
+            f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
+            data=json.dumps({
+                "source_plan_id": source_plan.id,
+                "source_meal_id": source_meal.id,
+                "note": source_plan.name,
+            }),
+            content_type="application/json"
+        )
+        assert response.status_code == 200
+        target_meal.refresh_from_db()
+        assert "Importiert aus «Zeltlager»" in target_meal.note
+        assert "Bestehende Notiz" in target_meal.note
 
     def test_copy_items_from_plan_fails_synced_target(self):
         """Copying into a synced meal should fail with 400."""
@@ -244,3 +264,68 @@ class TestScaleAndCopyAPI:
         )
         assert response.status_code == 404
         assert "Essensplan nicht gefunden" in response.json()["detail"]
+
+    def test_list_meal_plans_search_by_name(self):
+        """Searching meal plans by name should return matching plans."""
+        make_meal_plan(created_by=self.user, name="Sommerlager", description="")
+        make_meal_plan(created_by=self.user, name="Winterfahrt", description="")
+
+        response = self.client.get("/api/meal-plans/?search=sommer")
+        assert response.status_code == 200
+        data = response.json()
+        names = {p["name"] for p in data}
+        assert "Sommerlager" in names
+        assert "Winterfahrt" not in names
+
+    def test_list_meal_plans_search_by_event_name(self):
+        """Searching by event name should return matching plans."""
+        event = make_event(name="Pfingstlager")
+        make_meal_plan(created_by=self.user, name="Essen 2025", description="", event=event)
+        make_meal_plan(created_by=self.user, name="Anderer Plan", description="")
+
+        response = self.client.get("/api/meal-plans/?search=pfingst")
+        assert response.status_code == 200
+        data = response.json()
+        names = {p["name"] for p in data}
+        assert "Essen 2025" in names
+        assert "Anderer Plan" not in names
+
+    def test_list_meal_plans_date_from_filter(self):
+        """Filtering by date_from should exclude plans ending before that date."""
+        make_meal_plan(
+            created_by=self.user, name="Früher Plan",
+            start_datetime=timezone.make_aware(dt.datetime(2024, 6, 1)),
+            end_datetime=timezone.make_aware(dt.datetime(2024, 6, 10)),
+        )
+        make_meal_plan(
+            created_by=self.user, name="Später Plan",
+            start_datetime=timezone.make_aware(dt.datetime(2025, 7, 1)),
+            end_datetime=timezone.make_aware(dt.datetime(2025, 7, 10)),
+        )
+
+        response = self.client.get("/api/meal-plans/?date_from=2025-01-01")
+        assert response.status_code == 200
+        data = response.json()
+        names = {p["name"] for p in data}
+        assert "Später Plan" in names
+        assert "Früher Plan" not in names
+
+    def test_list_meal_plans_date_to_filter(self):
+        """Filtering by date_to should exclude plans starting after that date."""
+        make_meal_plan(
+            created_by=self.user, name="Früher Plan",
+            start_datetime=timezone.make_aware(dt.datetime(2024, 6, 1)),
+            end_datetime=timezone.make_aware(dt.datetime(2024, 6, 10)),
+        )
+        make_meal_plan(
+            created_by=self.user, name="Später Plan",
+            start_datetime=timezone.make_aware(dt.datetime(2025, 7, 1)),
+            end_datetime=timezone.make_aware(dt.datetime(2025, 7, 10)),
+        )
+
+        response = self.client.get("/api/meal-plans/?date_to=2024-12-31")
+        assert response.status_code == 200
+        data = response.json()
+        names = {p["name"] for p in data}
+        assert "Früher Plan" in names
+        assert "Später Plan" not in names

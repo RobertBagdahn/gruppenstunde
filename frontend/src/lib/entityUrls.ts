@@ -12,7 +12,7 @@
  *   | session    | slug       | /sessions/:slug                  |
  *   | game       | slug       | /games/:slug                     |
  *   | blog       | slug       | /blogs/:slug                     |
- *   | user       | id         | /profile/name/:id                |  (legacy redirect target → profile)
+ *   | user       | id         | /profile/name/:id                |
  *   | group      | slug       | /groups/:slug                    |
  *   | tag        | slug       | /search?tag_slugs=:slug          |
  *

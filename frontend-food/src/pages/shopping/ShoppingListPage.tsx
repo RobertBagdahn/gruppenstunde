@@ -3,7 +3,7 @@
  */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown } from 'lucide-react';
+import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, User as UserIcon } from 'lucide-react';
 import {
   useShoppingLists,
   useCreateShoppingList,
@@ -101,6 +101,7 @@ export default function ShoppingListPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [sort, setSort] = useState('newest');
+  const [myDataOnly, setMyDataOnly] = useState(false);
 
   if (userLoading || isLoading) {
     return (
@@ -130,10 +131,14 @@ export default function ShoppingListPage() {
   const lists = data?.items ?? [];
   const totalPages = data?.total_pages ?? 1;
 
-  // Client-side search filtering
-  const filteredLists = searchInput.trim()
-    ? lists.filter((l) => l.name.toLowerCase().includes(searchInput.toLowerCase()))
-    : lists;
+  // Client-side search + owner filtering
+  const filteredLists = lists.filter((l) => {
+    const matchesSearch = searchInput.trim()
+      ? l.name.toLowerCase().includes(searchInput.toLowerCase())
+      : true;
+    const matchesOwner = myDataOnly ? l.owner_id === user.id : true;
+    return matchesSearch && matchesOwner;
+  });
 
   // Client-side sorting
   const sortedLists = [...filteredLists].sort((a, b) => {
@@ -206,8 +211,21 @@ export default function ShoppingListPage() {
         gradientClasses=""
       />
 
-      {/* Sort */}
-      <div className="flex items-center justify-end mb-4">
+      {/* My Data + Sort */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          type="button"
+          onClick={() => setMyDataOnly(!myDataOnly)}
+          className={[
+            'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-semibold border transition-all shadow-soft',
+            myDataOnly
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/40',
+          ].join(' ')}
+        >
+          <UserIcon className="w-4 h-4" />
+          Meine Daten
+        </button>
         <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
           <ArrowUpDown className="w-4 h-4 text-primary" />
           <select

@@ -33,6 +33,7 @@ dependencies = [
     "beautifulsoup4>=4.12,<5.0",
     "weasyprint>=62.0,<63.0",
     "httpx>=0.28,<1.0",
+    "django-debug-toolbar>=4.4.6",
 ]
 
 [project.optional-dependencies]

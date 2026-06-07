@@ -32,6 +32,7 @@ import PackingListSharePage from './pages/PackingListSharePage';
 import PackingListWizardPage from './pages/PackingListWizardPage';
 import PackingListLandingPage from './pages/tools/PackingListLandingPage';
 import PrivacyPage from './pages/profile/PrivacyPage';
+import MeineDatenPage from './pages/profile/MeineDatenPage';
 import CreateSessionPage from './pages/sessions/CreateSessionPage';
 import CreateBlogPage from './pages/blogs/CreateBlogPage';
 import CreateGamePage from './pages/games/CreateGamePage';
@@ -67,7 +68,7 @@ function App() {
         <Route path="/my-dashboard" element={<MyDashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/name" element={<Navigate to="/profile" replace />} />
-        <Route path="/profile/name/:userId" element={<Navigate to="/profile" replace />} />
+        <Route path="/profile/name/:userId" element={<MeineDatenPage />} />
         <Route path="/profile/groups" element={<GruppenPage />} />
         <Route path="/groups/:slug" element={<GroupDetailPage />} />
         <Route path="/groups/:slug/settings/corporate-identity" element={<GroupCorporateIdentityPage />} />

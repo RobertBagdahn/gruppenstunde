@@ -64,8 +64,6 @@ interface TableViewProps {
     }
   ) => void;
   onScaleMeal?: (mealId: number) => void;
-  onUnlinkMeal?: (mealId: number) => void;
-  onLinkMeal?: (mealId: number, mealType: string) => void;
 }
 
 export default function TableView({
@@ -81,8 +79,6 @@ export default function TableView({
   onDeleteMeal,
   onUpdateMeal,
   onScaleMeal,
-  onUnlinkMeal,
-  onLinkMeal,
 }: TableViewProps) {
   // Dialog state for recipe details/search
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
@@ -238,8 +234,6 @@ export default function TableView({
                                 onDeleteMeal={onDeleteMeal || (() => {})}
                                 onUpdateMeal={onUpdateMeal || (() => {})}
                                 onScaleMeal={onScaleMeal || (() => {})}
-                                onUnlinkMeal={onUnlinkMeal || (() => {})}
-                                onLinkMeal={onLinkMeal || (() => {})}
                                 onAddClick={() => setSearchDialogMeal(meal)}
                                 onAddNoteClick={() => {
                                   setEditingNoteMealId(meal.id);

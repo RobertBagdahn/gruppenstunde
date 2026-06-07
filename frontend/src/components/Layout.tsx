@@ -165,6 +165,7 @@ export default function Layout({ children }: LayoutProps) {
   const profileMenuItems = [
     { to: '/my-dashboard', icon: 'space_dashboard', label: 'Mein Bereich' },
     { to: '/profile', icon: 'person', label: 'Profil' },
+    ...(user ? [{ to: `/profile/name/${user.id}`, icon: 'badge', label: 'Meine Daten' }] : []),
     { to: '/profile/groups', icon: 'groups', label: 'Gruppen' },
     { to: '/profile/persons', icon: 'family_restroom', label: 'Personen' },
     { to: '/profile/privacy', icon: 'shield', label: 'Datenschutz' },

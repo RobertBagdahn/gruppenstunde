@@ -13,7 +13,6 @@ import {
   DollarSign,
   Lightbulb,
 } from 'lucide-react';
-import { useUnlinkMeal, useLinkMeal, useRefMeals } from '@/api/refMeals';
 import {
   useMealPlan,
   useUpdateMealPlan,
@@ -83,11 +82,6 @@ export default function MealPlanDetailPage() {
   const updateMealMutation = useUpdateMeal(mealPlanId);
 
   const scaleMealMutation = useScaleMealToTarget(mealPlanId);
-
-  // RefMeal hooks
-  const { data: refMeals } = useRefMeals(mealPlanId);
-  const unlinkMealMutation = useUnlinkMeal(mealPlanId);
-  const linkMealMutation = useLinkMeal(mealPlanId);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'plan' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions'>('plan');
@@ -221,28 +215,6 @@ export default function MealPlanDetailPage() {
     );
   };
 
-  const handleUnlinkMeal = (mealId: number) => {
-    unlinkMealMutation.mutate(mealId, {
-      onSuccess: () => toast.success('Mahlzeit entkoppelt'),
-      onError: (err) => toast.error('Fehler', { description: err.message }),
-    });
-  };
-
-  const handleLinkMeal = (mealId: number, mealType: string) => {
-    const ref = refMeals?.find((rm) => rm.meal_type === mealType);
-    if (!ref) {
-      toast.error('Kein RefMeal vorhanden. Erstelle zuerst eine Referenz-Mahlzeit.');
-      return;
-    }
-    linkMealMutation.mutate(
-      { mealId, data: { ref_meal_id: ref.id } },
-      {
-        onSuccess: () => toast.success('Mahlzeit verknüpft und synchronisiert'),
-        onError: (err) => toast.error('Fehler', { description: err.message }),
-      },
-    );
-  };
-
   const handleSaveSettings = (data: {
     name?: string;
     description?: string;
@@ -358,8 +330,6 @@ export default function MealPlanDetailPage() {
           onAddIngredient={handleAddIngredient}
           onDeleteItem={setDeleteItemId}
           onUpdateItemFactor={handleUpdateItemFactor}
-          onUnlinkMeal={handleUnlinkMeal}
-          onLinkMeal={handleLinkMeal}
           onUpdateMeal={handleUpdateMeal}
           onScaleMeal={handleScaleMeal}
           onCopyFromPlan={setCopyDialogTargetMealId}
@@ -380,8 +350,6 @@ export default function MealPlanDetailPage() {
           onDeleteMeal={setDeleteMealId}
           onUpdateMeal={handleUpdateMeal}
           onScaleMeal={handleScaleMeal}
-          onUnlinkMeal={handleUnlinkMeal}
-          onLinkMeal={handleLinkMeal}
         />
       )}
       {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} />}

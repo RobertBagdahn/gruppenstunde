@@ -12,22 +12,41 @@ The system SHALL display a list of meal plans at `/meal-plans/app` showing all p
 
 #### Scenario: User creates a new meal plan
 - **WHEN** the user clicks the create button
-- **THEN** the system navigates to `/meal-plans/new`
+- **THEN** a dialog opens with default values and optional source plan selector
 
 #### Scenario: User opens a meal plan
 - **WHEN** the user clicks a meal plan in the list
 - **THEN** the system navigates to `/meal-plans/:id`
 
 ### Requirement: Meal plan creation page
-The system SHALL provide a form at `/meal-plans/new` to create a new meal plan with name, description, norm portions, start date, and number of days.
+The system SHALL provide a dialog-based meal plan creation flow on the list page (`/meal-plans/app`). The dialog SHALL NOT be a separate page/route but open as an overlay on the list page. The dialog SHALL support both creating an empty plan and copying an existing plan.
 
-#### Scenario: User creates a meal plan
-- **WHEN** the user fills in name and submits
-- **THEN** the system creates the plan and navigates to its detail page
+#### Scenario: User creates a new meal plan
+- **WHEN** the user clicks "Neuer Essensplan" on the list page
+- **THEN** a dialog opens with the fields Name (default "Neuer Essensplan"), Start (default next Friday 18:00), End (default next Sunday 14:00), Portionen (default 10), and optionally a source plan selector
+
+#### Scenario: User creates a copy of an existing plan
+- **WHEN** the user checks "Von Plan kopieren" in the dialog and selects a source plan
+- **THEN** the system creates a deep copy of the source plan with the specified settings
 
 #### Scenario: User cancels creation
-- **WHEN** the user clicks cancel
-- **THEN** the system navigates back to the list
+- **WHEN** the user clicks "Abbrechen"
+- **THEN** the dialog closes without creating anything
+
+#### Scenario: User triggers "Als Vorlage verwenden" from card menu
+- **WHEN** the user clicks "Als Vorlage verwenden" in a plan card's context menu
+- **THEN** the create dialog opens with "Von Plan kopieren" pre-checked and the source plan pre-selected
+
+### Requirement: Default date computation
+The system SHALL compute the next weekend dates (Friday–Sunday) using smart logic based on the current day of the week.
+
+#### Scenario: Default start is Friday 18:00
+- **WHEN** the dialog opens
+- **THEN** the start field is pre-filled to Friday at 18:00 (this Friday if Mon–Wed, next Friday if Thu–Sun)
+
+#### Scenario: Default end is Sunday 14:00
+- **WHEN** the dialog opens
+- **THEN** the end field is pre-filled to Sunday at 14:00 of the same weekend
 
 ### Requirement: Meal plan detail page
 The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day-based layout showing meals grouped by date, each meal showing its assigned recipes/ingredients. The detail view MUST include a nutrition tab that supports filtering nutrition data by either the entire plan (default) or a specific day using a horizontal day-by-day (Bar7-style) selector and a leading "Gesamt" button. All nutritional metrics in this view SHALL be visualized using relative `SollIstBar` indicators displaying current value against calculated limits where rules are configured.
@@ -87,7 +106,7 @@ The system SHALL show a collaborator section on the meal plan detail page allowi
 - **THEN** the collaborator management controls are not shown (only the list)
 
 ### Requirement: Route registration
-The system SHALL register routes `/meal-plans/app`, `/meal-plans/new`, and `/meal-plans/:id` in `App.tsx`.
+The system SHALL register routes `/meal-plans/app` and `/meal-plans/:id` in `App.tsx`. The create flow SHALL be dialog-based on the list page, not a separate route.
 
 #### Scenario: Routes are accessible
 - **WHEN** a user navigates to any of the meal plan routes

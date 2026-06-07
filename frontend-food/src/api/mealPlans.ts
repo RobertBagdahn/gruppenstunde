@@ -98,6 +98,20 @@ export function useMealPlans() {
   });
 }
 
+export function useMealPlansSearch(search?: string, dateFrom?: string, dateTo?: string) {
+  return useQuery<MealPlan[]>({
+    queryKey: ['meal-plans', 'search', search, dateFrom, dateTo],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (dateFrom) params.set('date_from', dateFrom);
+      if (dateTo) params.set('date_to', dateTo);
+      const qs = params.toString();
+      return fetchJson(`${API_BASE}/?${qs}`, z.array(MealPlanSchema));
+    },
+  });
+}
+
 export function useMealPlan(id: number) {
   return useQuery<MealPlanDetail>({
     queryKey: ['meal-plan', id],

@@ -31,6 +31,7 @@ export default function IngredientListPage() {
     searchParams.get('retail_section') ? Number(searchParams.get('retail_section')) : undefined,
   );
   const [status, setStatus] = useState(searchParams.get('status') || '');
+  const [origin, setOrigin] = useState(searchParams.get('origin') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
 
@@ -40,10 +41,11 @@ export default function IngredientListPage() {
     if (name) params.set('name', name);
     if (retailSection) params.set('retail_section', String(retailSection));
     if (status) params.set('status', status);
+    if (origin && origin !== 'all') params.set('origin', origin);
     if (sort && sort !== 'newest') params.set('sort', sort);
     if (page > 1) params.set('page', String(page));
     setSearchParams(params, { replace: true });
-  }, [name, retailSection, status, sort, page, setSearchParams]);
+  }, [name, retailSection, status, origin, sort, page, setSearchParams]);
 
   const { data, isLoading, error, refetch } = useIngredients({
     page,
@@ -51,6 +53,7 @@ export default function IngredientListPage() {
     name: name || undefined,
     retail_section: retailSection,
     status: status || undefined,
+    origin: origin || undefined,
     sort: sort || undefined,
   });
 
@@ -70,12 +73,14 @@ export default function IngredientListPage() {
   const handleFilterChange = useCallback((key: string, value: unknown) => {
     if (key === 'retail_section') setRetailSection(value as number | undefined);
     else if (key === 'status') setStatus((value as string) ?? '');
+    else if (key === 'origin') setOrigin((value as string) ?? '');
     setPage(1);
   }, []);
 
   const handleReset = useCallback(() => {
     setRetailSection(undefined);
     setStatus('');
+    setOrigin('');
     setName('');
     setSearchInput('');
     setSort('newest');
@@ -118,7 +123,7 @@ export default function IngredientListPage() {
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         {/* Filter Sidebar */}
         <IngredientFilterSidebar
-          filters={{ retail_section: retailSection, status: status || undefined }}
+          filters={{ retail_section: retailSection, status: status || undefined, origin: origin || undefined }}
           onFilterChange={handleFilterChange}
           onReset={handleReset}
         />

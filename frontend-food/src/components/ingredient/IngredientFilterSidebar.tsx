@@ -4,6 +4,7 @@ import { useRetailSections } from '@/api/supplies';
 interface IngredientFilters {
   retail_section?: number;
   status?: string;
+  origin?: string;
 }
 
 interface IngredientFilterSidebarProps {
@@ -27,8 +28,8 @@ export default function IngredientFilterSidebar({
   const { data: retailSections } = useRetailSections();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const hasActiveFilters = !!filters.retail_section || !!filters.status;
-  const activeFilterCount = (filters.retail_section ? 1 : 0) + (filters.status ? 1 : 0);
+  const hasActiveFilters = !!filters.retail_section || !!filters.status || (filters.origin && filters.origin !== 'all');
+  const activeFilterCount = (filters.retail_section ? 1 : 0) + (filters.status ? 1 : 0) + (filters.origin && filters.origin !== 'all' ? 1 : 0);
 
   return (
     <aside className="w-full md:w-64 shrink-0">
@@ -89,6 +90,15 @@ export default function IngredientFilterSidebar({
                   </button>
                 ) : null;
               })()}
+              {filters.origin && filters.origin !== 'all' && (
+                <button
+                  onClick={() => onFilterChange('origin', undefined)}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 text-primary px-2.5 py-1 text-xs font-medium hover:bg-primary/20 transition-colors"
+                >
+                  Meine Zutaten
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -151,6 +161,38 @@ export default function IngredientFilterSidebar({
                 {opt.label}
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* Herkunft */}
+        <div className="bg-card rounded-xl border p-4">
+          <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-3">
+            <span className="material-symbols-outlined text-muted-foreground text-[18px]">person</span>
+            Herkunft
+          </h3>
+          <div className="space-y-1">
+            <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary">
+              <input
+                type="radio"
+                name="origin"
+                checked={!filters.origin || filters.origin === 'all'}
+                onChange={() => onFilterChange('origin', undefined)}
+                className="accent-primary"
+              />
+              <span className="material-symbols-outlined text-[16px]">public</span>
+              Alle
+            </label>
+            <label className="flex items-center gap-2 py-1 cursor-pointer text-sm hover:text-primary">
+              <input
+                type="radio"
+                name="origin"
+                checked={filters.origin === 'mine'}
+                onChange={() => onFilterChange('origin', 'mine')}
+                className="accent-primary"
+              />
+              <span className="material-symbols-outlined text-[16px]">person</span>
+              Meine Zutaten
+            </label>
           </div>
         </div>
       </div>

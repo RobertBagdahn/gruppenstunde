@@ -3,8 +3,6 @@ import {
   MoreVertical,
   Edit,
   Scale,
-  Unlink,
-  Link2,
   Trash2,
   BookOpen,
   Egg,
@@ -45,8 +43,6 @@ interface MealActionsMenuProps {
     external_cost_per_person?: number | null;
   }) => void;
   onScaleMeal: (mealId: number) => void;
-  onUnlinkMeal: (mealId: number) => void;
-  onLinkMeal: (mealId: number, mealType: string) => void;
   onAddClick?: () => void;
   onAddNoteClick?: () => void;
   onCopyFromPlan?: () => void;
@@ -58,8 +54,6 @@ export function MealActionsMenu({
   onDeleteMeal,
   onUpdateMeal,
   onScaleMeal,
-  onUnlinkMeal,
-  onLinkMeal,
   onAddClick,
   onAddNoteClick,
   onCopyFromPlan,
@@ -154,17 +148,6 @@ export function MealActionsMenu({
             <DropdownMenuItem onClick={() => onScaleMeal(meal.id)}>
               <Scale className="mr-2 h-4 w-4 text-primary" />
               <span>Auf Soll skalieren</span>
-            </DropdownMenuItem>
-          )}
-          {meal.is_synced ? (
-            <DropdownMenuItem onClick={() => onUnlinkMeal(meal.id)}>
-              <Unlink className="mr-2 h-4 w-4 text-primary" />
-              <span>Vom RefMeal entkoppeln</span>
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={() => onLinkMeal(meal.id, meal.meal_type)}>
-              <Link2 className="mr-2 h-4 w-4 text-primary" />
-              <span>Mit RefMeal verknüpfen</span>
             </DropdownMenuItem>
           )}
           <DropdownMenuItem

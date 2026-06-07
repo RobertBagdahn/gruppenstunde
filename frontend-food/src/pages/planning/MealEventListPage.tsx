@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -10,9 +10,12 @@ import {
   Trash2,
   Calculator,
   ArrowUpDown,
+  User as UserIcon,
+  FileUp,
 } from 'lucide-react';
 import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
+import { getNextWeekend } from '@/lib/dateUtils';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import UnauthGate from '@/components/shared/UnauthGate';
@@ -68,23 +71,24 @@ export default function MealPlanListPage() {
 
 function MealPlanListPageInner() {
   const navigate = useNavigate();
+  const { data: user } = useCurrentUser();
   const { data: mealPlans, error, isLoading, refetch } = useMealPlans();
   const createMutation = useCreateMealPlan();
   const deleteMutation = useDeleteMealPlan();
   const duplicateMutation = useDuplicateMealPlan();
 
+  const weekend = useMemo(() => getNextWeekend(), []);
   const [showCreate, setShowCreate] = useState(false);
-  const [createName, setCreateName] = useState('');
-  const [createStartDatetime, setCreateStartDatetime] = useState('');
-  const [createEndDatetime, setCreateEndDatetime] = useState('');
+  const [createName, setCreateName] = useState('Neuer Essensplan');
+  const [createStartDatetime, setCreateStartDatetime] = useState(weekend.friday);
+  const [createEndDatetime, setCreateEndDatetime] = useState(weekend.sunday);
   const [createPortions, setCreatePortions] = useState(10);
+  const [copyEnabled, setCopyEnabled] = useState(false);
+  const [copySourceId, setCopySourceId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [sort, setSort] = useState('newest');
-  const [duplicateSourceId, setDuplicateSourceId] = useState<number | null>(null);
-  const [duplicateName, setDuplicateName] = useState('');
-  const [duplicateStart, setDuplicateStart] = useState('');
-  const [duplicatePortions, setDuplicatePortions] = useState<number | ''>('');
+  const [myDataOnly, setMyDataOnly] = useState(false);
 
   // Client-side filtering & sorting (API returns full array)
   const filteredPlans = useMemo(() => {
@@ -101,38 +105,97 @@ function MealPlanListPageInner() {
       );
     }
 
+    // My Data filter
+    if (myDataOnly && user) {
+      items = items.filter((p) => p.created_by_id === user.id);
+    }
+
     // Sort
     if (sort === 'newest') items.sort((a, b) => b.id - a.id);
     else if (sort === 'oldest') items.sort((a, b) => a.id - b.id);
     else if (sort === 'name_asc') items.sort((a, b) => a.name.localeCompare(b.name));
 
     return items;
-  }, [mealPlans, searchInput, sort]);
+  }, [mealPlans, searchInput, sort, myDataOnly, user]);
 
   if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
 
-  const handleCreate = () => {
+  const copySource = useMemo(
+    () => (copyEnabled && copySourceId ? mealPlans?.find((p) => p.id === copySourceId) ?? null : null),
+    [mealPlans, copySourceId, copyEnabled],
+  );
+
+  useEffect(() => {
+    if (!copySource || !copySource.start_datetime || !copySource.end_datetime) return;
+    const sourceStart = new Date(copySource.start_datetime);
+    const sourceEnd = new Date(copySource.end_datetime);
+    const durationMs = sourceEnd.getTime() - sourceStart.getTime();
+    const currentStart = new Date(createStartDatetime);
+    const newEnd = new Date(currentStart.getTime() + durationMs);
+    const fmt = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const h = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      return `${y}-${m}-${day}T${h}:${min}`;
+    };
+    setCreateEndDatetime(fmt(newEnd));
+    setCreatePortions(copySource.norm_portions);
+  }, [copySourceId]);
+
+  const resetCreateForm = () => {
+    const w = getNextWeekend();
+    setCreateName('Neuer Essensplan');
+    setCreateStartDatetime(w.friday);
+    setCreateEndDatetime(w.sunday);
+    setCreatePortions(10);
+    setCopyEnabled(false);
+    setCopySourceId(null);
+  };
+
+  const handleSubmit = () => {
     if (!createName.trim()) return;
-    createMutation.mutate(
-      {
-        name: createName.trim(),
-        start_datetime: createStartDatetime ? createStartDatetime + ':00' : null,
-        end_datetime: createEndDatetime ? createEndDatetime + ':00' : null,
-        norm_portions: createPortions,
-      },
-      {
-        onSuccess: (plan) => {
-          toast.success('Essensplan erstellt');
-          setShowCreate(false);
-          setCreateName('');
-          setCreateStartDatetime('');
-          setCreateEndDatetime('');
-          setCreatePortions(10);
-          navigate(`/meal-plans/${plan.id}`);
+
+    if (copyEnabled && copySourceId) {
+      const source = mealPlans?.find((p) => p.id === copySourceId);
+      if (!source) return;
+      duplicateMutation.mutate(
+        {
+          id: copySourceId,
+          name: createName.trim() + ' (Kopie)',
+          start_datetime: createStartDatetime + ':00',
+          norm_portions: createPortions,
         },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
-      },
-    );
+        {
+          onSuccess: (plan) => {
+            toast.success('Essensplan aus Vorlage erstellt');
+            setShowCreate(false);
+            resetCreateForm();
+            navigate(`/meal-plans/${plan.id}`);
+          },
+          onError: (err) => toast.error('Fehler', { description: err.message }),
+        },
+      );
+    } else {
+      createMutation.mutate(
+        {
+          name: createName.trim(),
+          start_datetime: createStartDatetime ? createStartDatetime + ':00' : null,
+          end_datetime: createEndDatetime ? createEndDatetime + ':00' : null,
+          norm_portions: createPortions,
+        },
+        {
+          onSuccess: (plan) => {
+            toast.success('Essensplan erstellt');
+            setShowCreate(false);
+            resetCreateForm();
+            navigate(`/meal-plans/${plan.id}`);
+          },
+          onError: (err) => toast.error('Fehler', { description: err.message }),
+        },
+      );
+    }
   };
 
   const handleDelete = () => {
@@ -144,34 +207,6 @@ function MealPlanListPageInner() {
       },
       onError: (err) => toast.error('Fehler', { description: err.message }),
     });
-  };
-
-  const duplicateSource = useMemo(
-    () => mealPlans?.find((p) => p.id === duplicateSourceId) ?? null,
-    [mealPlans, duplicateSourceId],
-  );
-
-  const handleDuplicate = () => {
-    if (!duplicateSourceId || !duplicateName.trim() || !duplicateStart || !duplicatePortions) return;
-    duplicateMutation.mutate(
-      {
-        id: duplicateSourceId,
-        name: duplicateName.trim(),
-        start_datetime: duplicateStart + ':00',
-        norm_portions: Number(duplicatePortions),
-      },
-      {
-        onSuccess: (plan) => {
-          toast.success('Essensplan aus Vorlage erstellt');
-          setDuplicateSourceId(null);
-          setDuplicateName('');
-          setDuplicateStart('');
-          setDuplicatePortions('');
-          navigate(`/meal-plans/${plan.id}`);
-        },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
-      },
-    );
   };
 
   return (
@@ -209,8 +244,21 @@ function MealPlanListPageInner() {
         gradientClasses=""
       />
 
-      {/* Sort */}
-      <div className="flex items-center justify-end mb-4">
+      {/* Sort + My Data filter */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          type="button"
+          onClick={() => setMyDataOnly(!myDataOnly)}
+          className={[
+            'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-semibold border transition-all shadow-soft',
+            myDataOnly
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/40',
+          ].join(' ')}
+        >
+          <UserIcon className="w-4 h-4" />
+          Meine Daten
+        </button>
         <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
           <ArrowUpDown className="w-4 h-4 text-primary" />
           <select
@@ -290,7 +338,14 @@ function MealPlanListPageInner() {
                       className="font-semibold text-xs"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDuplicateSourceId(plan.id);
+                        const w = getNextWeekend();
+                        setCreateName('Neuer Essensplan');
+                        setCreateStartDatetime(w.friday);
+                        setCreateEndDatetime(w.sunday);
+                        setCreatePortions(10);
+                        setCopyEnabled(true);
+                        setCopySourceId(plan.id);
+                        setShowCreate(true);
                       }}
                     >
                       <Copy className="w-4 h-4 mr-2" />
@@ -314,8 +369,16 @@ function MealPlanListPageInner() {
         </div>
       )}
 
-      {/* Create Dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+      {/* Create / Kopie Dialog */}
+      <Dialog
+        open={showCreate}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowCreate(false);
+            resetCreateForm();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md rounded-2xl border-border p-6 shadow-soft">
           <DialogHeader>
             <DialogTitle className="font-display font-bold text-lg text-foreground">Neuen Essensplan erstellen</DialogTitle>
@@ -331,6 +394,57 @@ function MealPlanListPageInner() {
                 className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
             </div>
+
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={copyEnabled}
+                  onChange={(e) => {
+                    setCopyEnabled(e.target.checked);
+                    if (!e.target.checked) {
+                      setCopySourceId(null);
+                      const w = getNextWeekend();
+                      setCreateEndDatetime(w.sunday);
+                      setCreatePortions(10);
+                    }
+                  }}
+                  className="rounded border-border text-primary focus:ring-primary/50"
+                />
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Von bestehendem Plan kopieren
+                </span>
+              </label>
+            </div>
+
+            {copyEnabled && (
+              <>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Quelle</label>
+                  <select
+                    value={copySourceId ?? ''}
+                    onChange={(e) => setCopySourceId(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  >
+                    <option value="">Plan auswählen...</option>
+                    {mealPlans?.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.meals_count} Mahlzeiten)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {copySource && (
+                  <div className="sm:col-span-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
+                      <FileUp className="w-3.5 h-3.5" />
+                      Vorlage: {copySource.name} ({copySource.meals_count} Mahlzeiten)
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
               <input
@@ -363,79 +477,20 @@ function MealPlanListPageInner() {
           </div>
           <DialogFooter className="mt-4 gap-2">
             <button
-              onClick={() => setShowCreate(false)}
+              onClick={() => {
+                setShowCreate(false);
+                resetCreateForm();
+              }}
               className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all"
             >
               Abbrechen
             </button>
             <button
-              onClick={handleCreate}
-              disabled={!createName.trim() || createMutation.isPending}
+              onClick={handleSubmit}
+              disabled={!createName.trim() || createMutation.isPending || duplicateMutation.isPending}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
             >
-              {createMutation.isPending ? 'Erstelle...' : 'Erstellen'}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Duplicate Dialog */}
-      <Dialog open={duplicateSourceId !== null} onOpenChange={(open) => { if (!open) setDuplicateSourceId(null); }}>
-        <DialogContent className="sm:max-w-md rounded-2xl border-border p-6 shadow-soft">
-          <DialogHeader>
-            <DialogTitle className="font-display font-bold text-lg text-foreground">Plan aus Vorlage erstellen</DialogTitle>
-          </DialogHeader>
-          {duplicateSource && (
-            <p className="text-sm font-medium text-muted-foreground mt-1">
-              Vorlage: <span className="font-bold text-foreground">{duplicateSource.name}</span>
-              {' '}({duplicateSource.meals_count} Mahlzeiten)
-            </p>
-          )}
-          <div className="grid grid-cols-1 gap-3 mt-2">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name *</label>
-              <input
-                type="text"
-                value={duplicateName}
-                onChange={(e) => setDuplicateName(e.target.value)}
-                placeholder="z.B. Sommerlager 2026"
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit) *</label>
-              <input
-                type="datetime-local"
-                value={duplicateStart}
-                onChange={(e) => setDuplicateStart(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen) *</label>
-              <input
-                type="number"
-                min={1}
-                max={500}
-                value={duplicatePortions}
-                onChange={(e) => setDuplicatePortions(e.target.value ? Number(e.target.value) : '')}
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-              />
-            </div>
-          </div>
-          <DialogFooter className="mt-4 gap-2">
-            <button
-              onClick={() => setDuplicateSourceId(null)}
-              className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-all"
-            >
-              Abbrechen
-            </button>
-            <button
-              onClick={handleDuplicate}
-              disabled={!duplicateName.trim() || !duplicateStart || !duplicatePortions || duplicateMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
-            >
-              {duplicateMutation.isPending ? 'Erstelle...' : 'Erstellen'}
+              {(createMutation.isPending || duplicateMutation.isPending) ? 'Erstelle...' : 'Erstellen'}
             </button>
           </DialogFooter>
         </DialogContent>

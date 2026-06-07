@@ -92,6 +92,7 @@ export interface IngredientFilters {
   name?: string;
   retail_section?: number;
   status?: string;
+  origin?: string;
   sort?: string;
 }
 
@@ -102,6 +103,7 @@ export function useIngredients(filters: IngredientFilters = {}) {
   if (filters.name) params.set('name', filters.name);
   if (filters.retail_section) params.set('retail_section', String(filters.retail_section));
   if (filters.status) params.set('status', filters.status);
+  if (filters.origin && filters.origin !== 'all') params.set('origin', filters.origin);
   if (filters.sort) params.set('sort', filters.sort);
 
   const qs = params.toString();

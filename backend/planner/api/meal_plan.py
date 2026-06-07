@@ -4,6 +4,7 @@ import datetime as dt
 
 from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from ninja import Router
 from ninja.errors import HttpError
 
@@ -98,18 +99,38 @@ def _require_admin(meal_plan: MealPlan, user) -> str:
 
 
 @meal_plan_router.get("/", response=list[MealPlanOut])
-def list_meal_plans(request):
+def list_meal_plans(
+    request,
+    search: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+):
     """List meal plans the user owns or collaborates on."""
     _require_auth(request)
 
     qs = MealPlan.objects.select_related("event").prefetch_related("meals")
 
     if request.user.is_staff:
-        return qs.all()
+        qs = qs.all()
+    else:
+        qs = qs.filter(
+            Q(created_by=request.user) | Q(collaborators__user=request.user)
+        ).distinct()
 
-    return qs.filter(
-        Q(created_by=request.user) | Q(collaborators__user=request.user)
-    ).distinct()
+    if search:
+        qs = qs.filter(
+            Q(name__icontains=search)
+            | Q(description__icontains=search)
+            | Q(event__name__icontains=search)
+        )
+
+    if date_from:
+        qs = qs.filter(end_datetime__date__gte=date_from)
+
+    if date_to:
+        qs = qs.filter(start_datetime__date__lte=date_to)
+
+    return qs
 
 
 @meal_plan_router.post("/", response=MealPlanOut)
@@ -117,8 +138,11 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
     """Create a new meal plan with auto-generated default meals."""
     _require_auth(request)
 
-    data = payload.dict(exclude={"event_id", "start_datetime", "end_datetime"})
+    data = payload.dict(exclude={"event_id", "start_datetime", "end_datetime", "day_part_factors"})
     meal_plan = MealPlan(created_by=request.user, **data)
+
+    if payload.day_part_factors is not None:
+        meal_plan.day_part_factors = payload.day_part_factors
 
     # Optional event binding
     if payload.event_id is not None:
@@ -127,13 +151,13 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
         event = get_object_or_404(Event, id=payload.event_id)
         meal_plan.event = event
 
-    # Set start/end datetime
+    # Set start/end datetime (make timezone-aware if naive)
     if payload.start_datetime and payload.end_datetime:
-        meal_plan.start_datetime = payload.start_datetime
-        meal_plan.end_datetime = payload.end_datetime
+        meal_plan.start_datetime = timezone.make_aware(payload.start_datetime) if timezone.is_naive(payload.start_datetime) else payload.start_datetime
+        meal_plan.end_datetime = timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
     elif meal_plan.event and meal_plan.event.start_date and meal_plan.event.end_date:
-        meal_plan.start_datetime = meal_plan.event.start_date
-        meal_plan.end_datetime = meal_plan.event.end_date
+        meal_plan.start_datetime = timezone.make_aware(dt.datetime.combine(meal_plan.event.start_date, dt.time(0, 0)))
+        meal_plan.end_datetime = timezone.make_aware(dt.datetime.combine(meal_plan.event.end_date, dt.time(0, 0)))
 
     meal_plan.save()
 
@@ -179,6 +203,8 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
     _require_edit(meal_plan, request.user)
 
     for field, value in payload.dict(exclude_unset=True).items():
+        if field in ("start_datetime", "end_datetime") and value is not None and timezone.is_naive(value):
+            value = timezone.make_aware(value)
         setattr(meal_plan, field, value)
     meal_plan.save()
     return meal_plan
@@ -210,7 +236,8 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
     if not source.start_datetime:
         raise HttpError(400, "Quell-Essensplan hat kein Startdatum")
 
-    offset = payload.start_datetime - source.start_datetime
+    start_dt = timezone.make_aware(payload.start_datetime) if timezone.is_naive(payload.start_datetime) else payload.start_datetime
+    offset = start_dt - source.start_datetime
 
     with transaction.atomic():
         new_plan = MealPlan(
@@ -218,7 +245,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
             description=source.description,
             norm_portions=payload.norm_portions,
             reserve_factor=source.reserve_factor,
-            start_datetime=payload.start_datetime,
+            start_datetime=start_dt,
             end_datetime=source.end_datetime + offset if source.end_datetime else None,
             created_by=request.user,
         )
@@ -355,10 +382,13 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
     if day_part_factor is None:
         day_part_factor = MEAL_TYPE_DAY_FACTORS.get(payload.meal_type, 0.0)
 
+    start_dt = timezone.make_aware(payload.start_datetime) if timezone.is_naive(payload.start_datetime) else payload.start_datetime
+    end_dt = timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
+
     meal = Meal.objects.create(
         meal_plan=meal_plan,
-        start_datetime=payload.start_datetime,
-        end_datetime=payload.end_datetime,
+        start_datetime=start_dt,
+        end_datetime=end_dt,
         meal_type=payload.meal_type,
         day_part_factor=day_part_factor,
     )
@@ -535,7 +565,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
 def copy_items_from_plan(
     request, meal_plan_id: int, meal_id: int, payload: CopyItemsFromPlanIn
 ):
-    """Copy selected items from a source plan's meal into the target meal."""
+    """Copy all items from a source plan's meal into the target meal."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
@@ -550,8 +580,6 @@ def copy_items_from_plan(
     source_meal = get_object_or_404(Meal, id=payload.source_meal_id, meal_plan=source_plan)
 
     items_to_copy = source_meal.items.all()
-    if payload.item_ids is not None:
-        items_to_copy = items_to_copy.filter(id__in=payload.item_ids)
 
     copied_items = []
     for item in items_to_copy:
@@ -565,6 +593,15 @@ def copy_items_from_plan(
             factor=item.factor,
         )
         copied_items.append(copied)
+
+    if payload.note:
+        existing = target_meal.note or ""
+        note_prefix = f"Importiert aus «{payload.note}»"
+        if existing:
+            target_meal.note = f"{note_prefix}\n{existing}"
+        else:
+            target_meal.note = note_prefix
+        target_meal.save(update_fields=["note"])
 
     return copied_items
 

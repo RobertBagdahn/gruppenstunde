@@ -103,7 +103,7 @@ class MealItemUpdateIn(Schema):
 class CopyItemsFromPlanIn(Schema):
     source_plan_id: int
     source_meal_id: int
-    item_ids: list[int] | None = None
+    note: str | None = None
 
 
 class MealOut(Schema):

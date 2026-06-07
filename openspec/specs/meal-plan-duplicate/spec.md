@@ -37,17 +37,3 @@ The system SHALL NOT copy MealPlanCollaborators, MealItemOverrides, or Meal note
 - **WHEN** a plan with Meal notes is duplicated
 - **THEN** the new plan's Meals have empty note fields
 
-### Requirement: Duplicate from card context menu
-The frontend SHALL show an "Als Vorlage verwenden" option in the context menu (three-dot menu) of each meal plan card on the list page.
-
-#### Scenario: User triggers duplicate from card
-- **WHEN** user clicks "Als Vorlage verwenden" in a plan card's context menu
-- **THEN** a dialog opens with three required fields: Name (empty), Start (empty datetime), Portionen (empty number)
-
-#### Scenario: User submits duplicate dialog
-- **WHEN** user fills all three fields and clicks "Erstellen"
-- **THEN** the system calls the duplicate API and navigates to the new plan's detail page
-
-#### Scenario: User cancels duplicate dialog
-- **WHEN** user clicks "Abbrechen"
-- **THEN** the dialog closes without any API call

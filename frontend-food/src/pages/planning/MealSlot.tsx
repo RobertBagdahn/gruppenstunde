@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   AlertCircle,
   PlusCircle,
-  ClipboardCopy,
   X,
   Sliders,
   RefreshCw,
@@ -33,8 +32,6 @@ export function MealSlot({
   onAddIngredient,
   onDeleteItem,
   onUpdateItemFactor,
-  onUnlinkMeal,
-  onLinkMeal,
   onUpdateMeal,
   onScaleMeal,
   onCopyFromPlan,
@@ -48,8 +45,6 @@ export function MealSlot({
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
-  onUnlinkMeal: (mealId: number) => void;
-  onLinkMeal: (mealId: number, mealType: string) => void;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
     override_portions?: number | null;
@@ -169,8 +164,6 @@ export function MealSlot({
                 onDeleteMeal={onDeleteMeal}
                 onUpdateMeal={onUpdateMeal}
                 onScaleMeal={onScaleMeal}
-                onUnlinkMeal={onUnlinkMeal}
-                onLinkMeal={onLinkMeal}
                 onCopyFromPlan={() => onCopyFromPlan(meal.id)}
               />
             </>
@@ -265,13 +258,6 @@ export function MealSlot({
           </div>
           {canEdit && !meal.is_synced && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-              <button
-                onClick={() => onCopyFromPlan(meal.id)}
-                className="p-1 rounded text-muted-foreground hover:text-primary transition-colors"
-                title="Aus anderem Plan kopieren"
-              >
-                <ClipboardCopy className="w-4 h-4" />
-              </button>
               <button
                 onClick={() => onDeleteItem(item.id)}
                 className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"

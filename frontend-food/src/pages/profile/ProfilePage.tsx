@@ -1,7 +1,28 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { User, Utensils, ShoppingCart, CalendarDays } from 'lucide-react';
+import { User, Utensils, ShoppingCart, CalendarDays, ChevronDown, Clock } from 'lucide-react';
 import { usePublicProfile } from '@/api/profile';
 import ErrorDisplay from '@/components/ErrorDisplay';
+
+function relativeTime(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMin < 1) return 'gerade eben';
+  if (diffMin < 60) return `vor ${diffMin} Min.`;
+  if (diffHr < 24) return `vor ${diffHr} Std.`;
+  if (diffDays < 7) return `vor ${diffDays} Tagen`;
+  if (diffDays < 30) return `vor ${Math.floor(diffDays / 7)} Wochen`;
+  return new Date(dateStr).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 function ProfileSkeleton() {
   return (
@@ -28,6 +49,7 @@ function ProfileSkeleton() {
 export default function ProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: profile, isLoading, error } = usePublicProfile(slug!);
+  const [recipeCount, setRecipeCount] = useState(5);
 
   if (isLoading) return <ProfileSkeleton />;
 
@@ -65,6 +87,10 @@ export default function ProfilePage() {
           <p className="text-sm text-muted-foreground">
             Mitglied seit {new Date(profile.created_at).toLocaleDateString('de-DE', { year: 'numeric', month: 'long' })}
           </p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+            <Clock className="w-3 h-3" />
+            Zuletzt aktiv {relativeTime(profile.updated_at)}
+          </p>
         </div>
       </div>
 
@@ -86,7 +112,7 @@ export default function ProfilePage() {
           <p className="text-muted-foreground text-sm">Noch keine öffentlichen Rezepte.</p>
         ) : (
           <div className="space-y-3">
-            {profile.recipes.map((recipe) => (
+            {profile.recipes.slice(0, recipeCount).map((recipe) => (
               <Link
                 key={recipe.id}
                 to={`/recipes/${recipe.slug}`}
@@ -102,9 +128,20 @@ export default function ProfilePage() {
                 <div className="min-w-0">
                   <h3 className="font-display font-semibold text-foreground truncate">{recipe.title}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-1">{recipe.summary}</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">{formatDate(recipe.created_at)}</p>
                 </div>
               </Link>
             ))}
+            {recipeCount < profile.recipes.length && (
+              <button
+                type="button"
+                onClick={() => setRecipeCount(profile.recipes.length)}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+              >
+                <ChevronDown className="w-4 h-4" />
+                Weitere anzeigen ({profile.recipes.length - recipeCount})
+              </button>
+            )}
           </div>
         )}
       </section>
@@ -125,7 +162,10 @@ export default function ProfilePage() {
                 to={`/shopping-lists/${list.id}`}
                 className="flex items-center justify-between rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md transition-all"
               >
-                <span className="font-display font-semibold text-foreground">{list.name}</span>
+                <div>
+                  <span className="font-display font-semibold text-foreground">{list.name}</span>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">{formatDate(list.created_at)}</p>
+                </div>
                 <span className="text-sm text-muted-foreground">{list.item_count} Items</span>
               </Link>
             ))}
@@ -149,7 +189,10 @@ export default function ProfilePage() {
                 to={`/meal-plans/${plan.id}`}
                 className="flex items-center justify-between rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md transition-all"
               >
-                <span className="font-display font-semibold text-foreground">{plan.name}</span>
+                <div>
+                  <span className="font-display font-semibold text-foreground">{plan.name}</span>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">{formatDate(plan.created_at)}</p>
+                </div>
               </Link>
             ))}
           </div>
