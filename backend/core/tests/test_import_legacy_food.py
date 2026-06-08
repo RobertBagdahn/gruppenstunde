@@ -71,7 +71,7 @@ class TestImportLegacyFoodMetainfoFlattening:
         # Find our test ingredient by name
         ing = Ingredient.objects.filter(name="Testapfel").first()
         assert ing is not None
-        assert ing.energy_kj == pytest.approx(250.5)
+        assert ing.energy_kcal == pytest.approx(250.5)
         assert ing.protein_g == pytest.approx(3.5)
         assert ing.fat_g == pytest.approx(1.2)
         assert ing.fat_sat_g == pytest.approx(0.3)

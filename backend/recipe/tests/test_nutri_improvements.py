@@ -24,7 +24,7 @@ def unhealthy_ingredient(db):
         name="Zucker",
         slug="zucker",
         status="approved",
-        energy_kj=1700.0,
+        energy_kcal=406,
         protein_g=0.0,
         fat_g=0.0,
         fat_sat_g=0.0,
@@ -42,7 +42,7 @@ def salty_ingredient(db):
         name="Salz",
         slug="salz",
         status="approved",
-        energy_kj=0.0,
+        energy_kcal=0,
         protein_g=0.0,
         fat_g=0.0,
         fat_sat_g=0.0,
@@ -60,7 +60,7 @@ def flour_ingredient(db):
         name="Mehl",
         slug="mehl",
         status="approved",
-        energy_kj=1418.0,
+        energy_kcal=339,
         protein_g=10.3,
         fat_g=1.0,
         fat_sat_g=0.2,
@@ -108,7 +108,7 @@ def portion_flour(flour_ingredient, measuring_unit):
 def recipe_poor_nutrition(portion_sugar, portion_salt, portion_flour):
     """Recipe with poor nutritional values (high sugar, fat, salt) → Nutri-Score D or E."""
     recipe = make_recipe(
-        cached_energy_kj=1500.0,
+        cached_energy_kcal=359,
         cached_sugar_g=50.0,
         cached_fat_g=5.0,
         cached_salt_g=3.0,
@@ -132,7 +132,7 @@ class TestNutriImprovements:
     def test_returns_empty_for_nutri_score_a(self):
         """Recipe with Nutri-Score A (class 1) should return no improvements."""
         recipe = make_recipe(
-            cached_energy_kj=200.0,
+            cached_energy_kcal=48,
             cached_protein_g=15.0,
             cached_fat_g=2.0,
             cached_sugar_g=1.0,
@@ -168,7 +168,7 @@ class TestNutriImprovements:
     def test_empty_recipe_returns_empty(self):
         """Recipe with no items → no nutritional data → empty list."""
         recipe = make_recipe(
-            cached_energy_kj=None,
+            cached_energy_kcal=None,
             cached_nutri_class=None,
         )
         result = calculate_nutri_improvements(recipe)

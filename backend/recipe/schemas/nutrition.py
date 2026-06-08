@@ -35,8 +35,8 @@ class RecipeItemNutritionOut(Schema):
     portion_name: str
     weight_g: float
     price_eur: float | None
-    energy_kj: float
     energy_kcal: float
+    # No duplicate energy_kcal field — primary field is already in kcal
     protein_g: float
     fat_g: float
     fat_sat_g: float
@@ -56,7 +56,6 @@ class RecipeNutritionBreakdownOut(Schema):
 
     total_weight_g: float
     total_price_eur: float | None
-    total_energy_kj: float
     total_energy_kcal: float
     total_protein_g: float
     total_fat_g: float
@@ -75,7 +74,7 @@ class RecipeNutritionBreakdownOut(Schema):
     per_serving_vitamin_c_mg: float | None = None
     # DGE coverage percentages (nutrient -> %)
     dge_coverage: dict[str, float | None] = {}
-    # DGE reference values (nutrient -> daily reference value in g/mg/kJ)
+    # DGE reference values (nutrient -> daily reference value in g/mg/kcal)
     dge_reference: dict[str, float | None] = {}
     positive_traits: list[str] = []
     items: list[RecipeItemNutritionOut]

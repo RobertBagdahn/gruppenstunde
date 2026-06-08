@@ -7,7 +7,6 @@ import { useBlocker } from '@/hooks/useBlocker';
 import { useCreateFromRecipe } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
 import { useAvailableConversions } from '@/api/supplies';
-import { kjToKcal } from '@/utils/nutritionUnits';
 import {
   useRecipeBySlug,
   useRecipeComments,
@@ -401,7 +400,7 @@ export default function RecipeDetailPage() {
     const totalWeightG = items.reduce((s, i) => s + i.weight_g, 0);
     const totalPriceItems = items.filter((i) => i.price_eur !== null);
     const totalPriceEur = totalPriceItems.length > 0 ? totalPriceItems.reduce((s, i) => s + (i.price_eur ?? 0), 0) : null;
-    const totalEnergyKj = items.reduce((s, i) => s + i.energy_kj, 0);
+    const totalEnergyKj = items.reduce((s, i) => s + i.energy_kcal, 0);
     const totalEnergyKcal = items.reduce((s, i) => s + i.energy_kcal, 0);
     const totalProteinG = items.reduce((s, i) => s + i.protein_g, 0);
     const totalFatG = items.reduce((s, i) => s + i.fat_g, 0);
@@ -421,7 +420,7 @@ export default function RecipeDetailPage() {
     return {
       total_weight_g: totalWeightG,
       total_price_eur: totalPriceEur,
-      total_energy_kj: totalEnergyKj,
+      total_energy_kcal: totalEnergyKj,
       total_energy_kcal: totalEnergyKcal,
       total_protein_g: totalProteinG,
       total_fat_g: totalFatG,
@@ -447,9 +446,6 @@ export default function RecipeDetailPage() {
     : [];
   const topIngredientsByPrice = nb
     ? [...nb.items].filter((i) => i.price_eur !== null).sort((a, b) => (b.price_eur ?? 0) - (a.price_eur ?? 0))
-    : [];
-  const topIngredientsByCalories = nb
-    ? [...nb.items].sort((a, b) => b.energy_kcal - a.energy_kcal)
     : [];
 
   // Build ingredient_id → slug lookup from recipe items for nutrition links
@@ -774,7 +770,7 @@ export default function RecipeDetailPage() {
         const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
         const expectedEnergyKcal = dailyEnergyKcal * fraction;
         const effectiveServings = (isDirty ? modifiedServings : recipe.servings) ?? 1;
-        const perServingEnergyKcal = kjToKcal(nb.total_energy_kj) / effectiveServings;
+        const perServingEnergyKcal = nb.total_energy_kcal / effectiveServings;
         const ratio = perServingEnergyKcal / expectedEnergyKcal;
 
         if (ratio > 1.5) {

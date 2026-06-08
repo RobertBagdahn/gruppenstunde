@@ -190,14 +190,6 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
             elif max_green is not None:
                 target_mid = max_green
 
-            if rule.parameter != "nutri_class":
-                if min_green is not None:
-                    min_green = round(min_green / num_days, 2)
-                if max_green is not None:
-                    max_green = round(max_green / num_days, 2)
-                if target_mid is not None:
-                    target_mid = round(target_mid / num_days, 2)
-
             suggestions.append(
                 SuggestionOut(
                     category="nutrition",
@@ -518,9 +510,8 @@ def _build_nutritional_summary(values: dict[str, float]) -> str:
     if not values or all(v == 0.0 for v in values.values()):
         return "Keine Nährwertdaten vorhanden."
 
-    from recipe.services.nutrition_units import kj_to_kcal
     labels = {
-        "energy_kj": ("Energie", "kcal"),
+        "energy_kcal": ("Energie", "kcal"),
         "protein_g": ("Eiweiß", "g"),
         "fat_g": ("Fett", "g"),
         "carbohydrate_g": ("Kohlenhydrate", "g"),
@@ -532,8 +523,6 @@ def _build_nutritional_summary(values: dict[str, float]) -> str:
     lines: list[str] = []
     for key, (label, unit) in labels.items():
         val = values.get(key, 0.0)
-        if key == "energy_kj":
-            val = kj_to_kcal(val)
         lines.append(f"- {label}: {val:.1f} {unit}")
 
     return "\n".join(lines)

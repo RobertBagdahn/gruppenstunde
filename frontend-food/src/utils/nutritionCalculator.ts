@@ -19,7 +19,7 @@ export interface ModifiedItem {
   price_eur: number | null;
   /** Per-100g nutritional values from the ingredient */
   per100g: {
-    energy_kj: number;
+    energy_kcal: number;
     energy_kcal: number;
     protein_g: number;
     fat_g: number;
@@ -34,7 +34,6 @@ export interface ModifiedItem {
 export interface NutritionTotals {
   total_weight_g: number;
   total_price_eur: number | null;
-  total_energy_kj: number;
   total_energy_kcal: number;
   total_protein_g: number;
   total_fat_g: number;
@@ -74,7 +73,7 @@ export function calculateNutrition(
     portion_name: item.portion_name,
     weight_g: item.weight_g,
     price_eur: item.price_eur,
-    energy_kj: scaleNutrient(item.per100g.energy_kj, item.weight_g),
+    energy_kcal: scaleNutrient(item.per100g.energy_kcal, item.weight_g),
     energy_kcal: scaleNutrient(item.per100g.energy_kcal, item.weight_g),
     protein_g: scaleNutrient(item.per100g.protein_g, item.weight_g),
     fat_g: scaleNutrient(item.per100g.fat_g, item.weight_g),
@@ -89,7 +88,7 @@ export function calculateNutrition(
 
   const totals = itemResults.reduce(
     (acc, item) => ({
-      energy_kj: acc.energy_kj + item.energy_kj,
+      energy_kcal: acc.energy_kcal + item.energy_kcal,
       energy_kcal: acc.energy_kcal + item.energy_kcal,
       protein_g: acc.protein_g + item.protein_g,
       fat_g: acc.fat_g + item.fat_g,
@@ -100,7 +99,7 @@ export function calculateNutrition(
       salt_g: acc.salt_g + item.salt_g,
     }),
     {
-      energy_kj: 0, energy_kcal: 0, protein_g: 0, fat_g: 0, fat_sat_g: 0,
+      energy_kcal: 0, energy_kcal: 0, protein_g: 0, fat_g: 0, fat_sat_g: 0,
       carbohydrate_g: 0, sugar_g: 0, fibre_g: 0, salt_g: 0,
     },
   );
@@ -115,7 +114,7 @@ export function calculateNutrition(
   return {
     total_weight_g: totalWeight,
     total_price_eur: totalPriceEur,
-    total_energy_kj: totals.energy_kj,
+    total_energy_kcal: totals.energy_kcal,
     total_energy_kcal: totals.energy_kcal,
     total_protein_g: totals.protein_g,
     total_fat_g: totals.fat_g,

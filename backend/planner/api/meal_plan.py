@@ -43,6 +43,7 @@ from planner.schemas import (
     MealPlanCollaboratorCreateIn,
     MealPlanCollaboratorUpdateIn,
     RecipeSuggestionOut,
+    NutritionalTagScanOut,
 )
 
 meal_plan_router = Router(tags=["meal-plans"])
@@ -174,11 +175,22 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
     """Create a new meal plan with auto-generated default meals."""
     _require_auth(request)
 
-    data = payload.dict(exclude={"event_id", "start_datetime", "end_datetime", "day_part_factors"})
+    nutritional_tags_to_set = None
+    if payload.nutritional_tag_ids is not None:
+        from supply.models.reference import NutritionalTag
+        tags = list(NutritionalTag.objects.filter(id__in=payload.nutritional_tag_ids))
+        if len(tags) != len(payload.nutritional_tag_ids):
+            raise HttpError(422, "Einige der angegebenen Tags wurden nicht gefunden")
+        nutritional_tags_to_set = tags
+
+    data = payload.dict(exclude={"event_id", "start_datetime", "end_datetime", "day_part_factors", "nutritional_tag_ids", "meal_default_times"})
     meal_plan = MealPlan(created_by=request.user, **data)
 
     if payload.day_part_factors is not None:
         meal_plan.day_part_factors = payload.day_part_factors
+
+    if payload.meal_default_times is not None:
+        meal_plan.meal_default_times = payload.meal_default_times
 
     # Optional event binding
     if payload.event_id is not None:
@@ -196,6 +208,9 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
         meal_plan.end_datetime = timezone.make_aware(dt.datetime.combine(meal_plan.event.end_date, dt.time(0, 0)))
 
     meal_plan.save()
+
+    if nutritional_tags_to_set is not None:
+        meal_plan.nutritional_tags.set(nutritional_tags_to_set)
 
     # Generate default meals for date range (time-aware)
     if meal_plan.start_datetime and meal_plan.end_datetime:
@@ -238,11 +253,23 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
-    for field, value in payload.dict(exclude_unset=True).items():
+    nutritional_tags_to_set = None
+    if payload.nutritional_tag_ids is not None:
+        from supply.models.reference import NutritionalTag
+        tags = list(NutritionalTag.objects.filter(id__in=payload.nutritional_tag_ids))
+        if len(tags) != len(payload.nutritional_tag_ids):
+            raise HttpError(422, "Einige der angegebenen Tags wurden nicht gefunden")
+        nutritional_tags_to_set = tags
+
+    for field, value in payload.dict(exclude_unset=True, exclude={"nutritional_tag_ids"}).items():
         if field in ("start_datetime", "end_datetime") and value is not None and timezone.is_naive(value):
             value = timezone.make_aware(value)
         setattr(meal_plan, field, value)
     meal_plan.save()
+
+    if nutritional_tags_to_set is not None:
+        meal_plan.nutritional_tags.set(nutritional_tags_to_set)
+
     return meal_plan
 
 
@@ -294,6 +321,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                 end_datetime=meal.end_datetime + offset,
                 meal_type=meal.meal_type,
                 day_part_factor=meal.day_part_factor,
+                display_name=meal.display_name,
                 override_portions=meal.override_portions,
             )
             new_meal.save()
@@ -407,12 +435,14 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
     _require_edit(meal_plan, request.user)
 
     meal_date = payload.start_datetime.date()
-    if Meal.objects.filter(
-        meal_plan=meal_plan,
-        start_datetime__date=meal_date,
-        meal_type=payload.meal_type,
-    ).exists():
-        raise HttpError(400, "Diese Mahlzeit existiert bereits für diesen Tag")
+    # Only enforce uniqueness for non-snack meal types (snack can have multiple per day)
+    if payload.meal_type != "snack":
+        if Meal.objects.filter(
+            meal_plan=meal_plan,
+            start_datetime__date=meal_date,
+            meal_type=payload.meal_type,
+        ).exists():
+            raise HttpError(400, "Diese Mahlzeit existiert bereits für diesen Tag")
 
     day_part_factor = payload.day_part_factor
     if day_part_factor is None:
@@ -427,6 +457,7 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
         end_datetime=end_dt,
         meal_type=payload.meal_type,
         day_part_factor=day_part_factor,
+        display_name=payload.display_name or "",
     )
     return meal
 
@@ -538,14 +569,15 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
         meal.note_is_published = payload.note_is_published
     if payload.day_part_factor is not None:
         meal.day_part_factor = payload.day_part_factor
+    if payload.display_name is not None:
+        meal.display_name = payload.display_name
     if payload.is_external is not None:
         meal.is_external = payload.is_external
     if "external_energy_kcal" in payload.dict(exclude_unset=True):
         if payload.external_energy_kcal is not None:
-            from recipe.services.nutrition_units import kcal_to_kj
-            meal.external_energy_kj = kcal_to_kj(payload.external_energy_kcal)
+            meal.external_energy_kcal = payload.external_energy_kcal
         else:
-            meal.external_energy_kj = None
+            meal.external_energy_kcal = None
     if "external_cost_per_person" in payload.dict(exclude_unset=True):
         meal.external_cost_per_person = payload.external_cost_per_person
 
@@ -567,11 +599,10 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     if meal.is_external:
         raise HttpError(400, "Externe Mahlzeiten können nicht skaliert werden.")
 
-    from recipe.services.nutrition_units import kj_to_kcal
     portions = meal.override_portions or meal_plan.norm_portions or 1
-    
-    current_energy_kj = MealOut.resolve_total_energy_kj(meal)
-    current_kcal = kj_to_kcal(current_energy_kj) / portions
+
+    current_energy_kcal = MealOut.resolve_total_energy_kcal(meal)
+    current_kcal = current_energy_kcal / portions
 
     if current_kcal <= 0:
         raise HttpError(400, "Mahlzeit enthält keine Kalorien, Skalierung nicht möglich.")
@@ -705,7 +736,7 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     meal_items = meal_items_qs.select_related("recipe", "meal")
 
     totals = {
-        "energy_kj": 0.0,
+        "energy_kcal": 0.0,
         "protein_g": 0.0,
         "fat_g": 0.0,
         "carbohydrate_g": 0.0,
@@ -738,8 +769,6 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
             scale = (weight_g / 100.0) * mi.factor * (norm_portions / recipe_servings)
 
             for field in totals:
-                if field == "energy_kj" and mi.meal.meal_type == "drinks":
-                    continue
                 ing_val = getattr(ing, field, None)
                 if ing_val is not None:
                     totals[field] += float(ing_val) * scale
@@ -965,12 +994,22 @@ def shopping_list(request, meal_plan_id: int):
 # Recipe Suggestions
 # ==========================================================================
 
+def _resolve_recipe_badge(recipe, user):
+    """Resolve recipe reliability badge: verified, community, or draft."""
+    if recipe.owner_id is None:
+        return "verified"
+    if recipe.visibility == "public" and recipe.status == "approved":
+        return "community"
+    if recipe.owner_id == user.id:
+        return "draft"
+    return "community"
+
 # Map meal_type to recipe_type values
 MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
-    "breakfast": ["breakfast", "simple_meal"],
-    "lunch": ["warm_meal", "cold_meal", "side_dish"],
-    "dinner": ["warm_meal", "cold_meal", "side_dish"],
-    "snack": ["simple_meal"],
+    "breakfast": ["breakfast", "simple_meal", "dessert"],
+    "lunch": ["warm_meal", "cold_meal", "side_dish", "dessert"],
+    "dinner": ["warm_meal", "cold_meal", "side_dish", "dessert"],
+    "snack": ["simple_meal", "dessert"],
 }
 
 
@@ -983,13 +1022,31 @@ def recipe_suggestions(
     meal_type: str | None = None,
     q: str | None = None,
     limit: int = 10,
+    nutritional_tag_ids: str | None = None,
+    require_nutritional_tags: bool = True,
+    random: bool = False,
 ):
-    """Return recipe suggestions sorted by global usage frequency."""
+    """Return recipe suggestions sorted by usage frequency, then price."""
     from django.db.models import Count, Q
+    import random as _random
 
     limit = min(limit, 20)
 
     base_filter = Q(recipe__isnull=False)
+
+    # Include own drafts
+    if request.user.is_authenticated:
+        base_filter &= Q(
+            Q(recipe__status="approved") | Q(recipe__owner=request.user)
+        )
+    else:
+        base_filter &= Q(recipe__status="approved")
+
+    # Hard dietary filter
+    if nutritional_tag_ids and require_nutritional_tags:
+        tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        for tag_id in tag_ids:
+            base_filter &= Q(recipe__nutritional_tags__id=tag_id)
 
     # Text search filter
     text_filter = Q()
@@ -1021,12 +1078,14 @@ def recipe_suggestions(
             for rid in recipe_ids:
                 r = recipes_map.get(rid)
                 if r:
-                    results.append(RecipeSuggestionOut(
-                        id=r.id,
-                        title=r.title,
-                        usage_count=counts_map[rid],
-                        image_thumbnail=r.image.url if r.image else None,
-                    ))
+                    price = float(r.cached_price_total) if r.cached_price_total else None
+                    badge = _resolve_recipe_badge(r, request.user)
+                    price_per_serving = (
+                        round(float(r.cached_price_total) / r.servings, 2)
+                        if r.cached_price_total and r.servings and r.servings > 0
+                        else None
+                    )
+                    results.append((r, counts_map[rid], badge, price_per_serving, price))
                     seen_ids.add(r.id)
 
     # Fallback: fill up with global usage (excluding already seen)
@@ -1051,14 +1110,46 @@ def recipe_suggestions(
             for rid in recipe_ids:
                 r = recipes_map.get(rid)
                 if r:
-                    results.append(RecipeSuggestionOut(
-                        id=r.id,
-                        title=r.title,
-                        usage_count=counts_map[rid],
-                        image_thumbnail=r.image.url if r.image else None,
-                    ))
+                    price = float(r.cached_price_total) if r.cached_price_total else None
+                    badge = _resolve_recipe_badge(r, request.user)
+                    price_per_serving = (
+                        round(float(r.cached_price_total) / r.servings, 2)
+                        if r.cached_price_total and r.servings and r.servings > 0
+                        else None
+                    )
+                    results.append((r, counts_map[rid], badge, price_per_serving, price))
 
-    return results
+    # Sort: usage_count DESC, price ASC NULLS LAST
+    results.sort(key=lambda x: (x[1], -(x[4] or 1e9)), reverse=True)
+    # Fix: actually we want DESC on count, ASC on price with nulls last
+    results.sort(key=lambda x: (-x[1], x[4] if x[4] is not None else 1e9))
+
+    if random and results:
+        top_n = results[:min(20, len(results))]
+        chosen = _random.choice(top_n)
+        r, count, badge, pps, _ = chosen
+        return [RecipeSuggestionOut(
+            id=r.id,
+            title=r.title,
+            usage_count=count,
+            image_thumbnail=r.image.url if r.image else None,
+            recipe_badge=badge,
+            price_per_serving=pps,
+            recipe_type=r.recipe_type,
+        )]
+
+    return [
+        RecipeSuggestionOut(
+            id=r.id,
+            title=r.title,
+            usage_count=count,
+            image_thumbnail=r.image.url if r.image else None,
+            recipe_badge=badge,
+            price_per_serving=pps,
+            recipe_type=r.recipe_type,
+        )
+        for r, count, badge, pps, _ in results
+    ]
 
 
 # ==========================================================================
@@ -1077,13 +1168,17 @@ def popular_recipes(
 
     limit = min(limit, 20)
 
-    # Base filter
-    recipe_filter = Q(status="approved", usage_count__gt=0)
+    # Base filter — include own drafts
+    recipe_filter = Q(usage_count__gt=0)
+    if request.user.is_authenticated:
+        recipe_filter &= Q(Q(status="approved") | Q(owner=request.user))
+    else:
+        recipe_filter &= Q(status="approved")
     if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
         recipe_filter &= Q(recipe_type__in=MEAL_TYPE_TO_RECIPE_TYPES[meal_type])
 
-    # Community: top by usage_count
-    community_qs = Recipe.objects.filter(recipe_filter).order_by("-usage_count")[:limit]
+    # Community: top by usage_count, then price
+    community_qs = Recipe.objects.filter(recipe_filter).order_by("-usage_count", "cached_price_total")[:limit]
     community = [
         {
             "id": r.id,
@@ -1091,6 +1186,12 @@ def popular_recipes(
             "recipe_type": r.recipe_type,
             "image": r.image.url if r.image else None,
             "usage_count": r.usage_count,
+            "recipe_badge": _resolve_recipe_badge(r, request.user),
+            "price_per_serving": (
+                round(float(r.cached_price_total) / r.servings, 2)
+                if r.cached_price_total and r.servings and r.servings > 0
+                else None
+            ),
         }
         for r in community_qs
     ]
@@ -1122,15 +1223,76 @@ def popular_recipes(
             for rid in recipe_ids:
                 r = recipes_map.get(rid)
                 if r:
+                    badge = _resolve_recipe_badge(r, request.user)
+                    pps = (
+                        round(float(r.cached_price_total) / r.servings, 2)
+                        if r.cached_price_total and r.servings and r.servings > 0
+                        else None
+                    )
                     personal.append({
                         "id": r.id,
                         "title": r.title,
                         "recipe_type": r.recipe_type,
                         "image": r.image.url if r.image else None,
                         "usage_count": counts_map[rid],
+                        "recipe_badge": badge,
+                        "price_per_serving": pps,
                     })
 
     return {"personal": personal, "community": community}
+
+
+# ==========================================================================
+# Recently Used Recipes
+# ==========================================================================
+
+
+@meal_plan_router.get("/recipes/recently-used/", response=dict)
+def recently_used_recipes(
+    request,
+    limit: int = 5,
+):
+    """Return user's last 5 distinct recipes used across all meal plans."""
+    _require_auth(request)
+    limit = min(limit, 10)
+
+    recipe_ids = (
+        MealItem.objects
+        .filter(
+            recipe__isnull=False,
+            meal__meal_plan__created_by=request.user,
+        )
+        .order_by("-id")
+        .values_list("recipe_id", flat=True)
+        .distinct()[:limit]
+    )
+
+    recipes = []
+    if recipe_ids:
+        recipes_map = {r.id: r for r in Recipe.objects.filter(id__in=list(recipe_ids))}
+        for rid in recipe_ids:
+            r = recipes_map.get(rid)
+            if r:
+                badge = _resolve_recipe_badge(r, request.user)
+                pps = (
+                    round(float(r.cached_price_total) / r.servings, 2)
+                    if r.cached_price_total and r.servings and r.servings > 0
+                    else None
+                )
+                tags = [{"id": t.id, "name": t.name} for t in r.nutritional_tags.all()]
+                recipes.append({
+                    "id": r.id,
+                    "title": r.title,
+                    "slug": r.slug,
+                    "recipe_type": r.recipe_type,
+                    "image": r.image.url if r.image else None,
+                    "usage_count": r.usage_count,
+                    "recipe_badge": badge,
+                    "price_per_serving": pps,
+                    "nutritional_tags": tags,
+                })
+
+    return {"recipes": recipes}
 
 
 # ==========================================================================
@@ -1142,17 +1304,22 @@ def popular_recipes(
 def search_recipes(
     request,
     q: str = "",
+    meal_type: str | None = None,
     recipe_type: str | None = None,
     nutritional_tag_ids: str | None = None,
+    exclude_nutritional_tag_ids: str | None = None,
     limit: int = 8,
 ):
     """Search for recipes and standalone ingredients to add to meals."""
     _require_auth(request)
 
     limit = min(limit, 50)
+    fallback_applied = False
 
     # --- Recipes ---
-    qs = Recipe.objects.filter(status="approved")
+    qs = Recipe.objects.filter(
+        Q(status="approved") | Q(owner=request.user)
+    )
 
     if q and len(q) >= 2:
         from django.contrib.postgres.search import SearchQuery, SearchRank
@@ -1166,32 +1333,74 @@ def search_recipes(
         else:
             qs = qs.filter(title__icontains=q)
 
+    # Determine recipe_type filter: explicit > meal_type mapping > all
     if recipe_type:
-        qs = qs.filter(recipe_type=recipe_type)
+        type_filter = [recipe_type]
+    elif meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
+        type_filter = MEAL_TYPE_TO_RECIPE_TYPES[meal_type]
+    else:
+        type_filter = []
+
+    if type_filter:
+        # Primary query: filtered by recipe types
+        primary_qs = qs.filter(recipe_type__in=type_filter)
+        primary_recipes = list(primary_qs.order_by("-usage_count", "cached_price_total")[:limit])
+        if len(primary_recipes) < limit:
+            fallback_applied = True
+            seen_ids = {r.id for r in primary_recipes}
+            remaining = limit - len(primary_recipes)
+            fallback_qs = qs.exclude(id__in=seen_ids).order_by("-usage_count", "cached_price_total")[:remaining]
+            recipes_qs = primary_recipes + list(fallback_qs)
+        else:
+            recipes_qs = primary_recipes
+    else:
+        recipes_qs = list(qs.order_by("-usage_count", "cached_price_total")[:limit])
 
     if nutritional_tag_ids:
         tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
         for tag_id in tag_ids:
-            qs = qs.filter(nutritional_tags__id=tag_id)
+            recipes_qs = [r for r in recipes_qs if r.nutritional_tags.filter(id=tag_id).exists()]
 
-    recipes_qs = qs.select_related().prefetch_related(
-        "nutritional_tags",
-        Prefetch(
-            "recipe_items",
-            queryset=RecipeItem.objects.select_related("portion__ingredient").order_by("sort_order")[:8],
-            to_attr="preview_items",
-        ),
-    )[:limit]
+    if exclude_nutritional_tag_ids:
+        exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        if exclude_tag_ids:
+            recipes_qs = [r for r in recipes_qs if not r.nutritional_tags.filter(id__in=exclude_tag_ids).exists()]
+
+    # Fetch related data
+    recipe_ids = [r.id for r in recipes_qs]
+    recipes_map = {r.id: r for r in recipes_qs}
+    # Prefetch nutritional_tags for all recipes
+    nutritional_tags_map: dict[int, list] = {}
+    # Prefetch recipe_items for ingredients_preview
+    ingredients_map: dict[int, list[str]] = {}
+    if recipe_ids:
+        from supply.models.reference import NutritionalTag
+        through_model = Recipe.nutritional_tags.through
+        through_rows = through_model.objects.filter(recipe_id__in=recipe_ids).values_list("recipe_id", "nutritionaltag_id")
+        tag_ids_all = set(tid for _, tid in through_rows)
+        tags_map: dict[int, str] = {}
+        if tag_ids_all:
+            for tag in NutritionalTag.objects.filter(id__in=tag_ids_all).values("id", "name"):
+                tags_map[tag["id"]] = tag["name"]
+        for rid, tid in through_rows:
+            nutritional_tags_map.setdefault(rid, []).append({"id": tid, "name": tags_map.get(tid, "")})
+
+        # Fetch recipe items for preview
+        from recipe.models import RecipeItem
+        for item in RecipeItem.objects.filter(recipe_id__in=recipe_ids).select_related("portion__ingredient").order_by("sort_order"):
+            if hasattr(item, 'portion') and item.portion and item.portion.ingredient:
+                ingredients_map.setdefault(item.recipe_id, []).append(item.portion.ingredient.name)
 
     recipes = []
     for r in recipes_qs:
-        ingredients_preview = [
-            item.portion.ingredient.name
-            for item in (r.preview_items if hasattr(r, "preview_items") else [])
-            if item.portion and item.portion.ingredient
-        ][:8]
-        tags = [{"id": t.id, "name": t.name} for t in r.nutritional_tags.all()]
+        tags = nutritional_tags_map.get(r.id, [])
         description = (r.description or "")[:200] if r.description else None
+        badge = _resolve_recipe_badge(r, request.user)
+        price_per_serving = (
+            round(float(r.cached_price_total) / r.servings, 2)
+            if r.cached_price_total and r.servings and r.servings > 0
+            else None
+        )
         recipes.append({
             "id": r.id,
             "title": r.title,
@@ -1199,7 +1408,7 @@ def search_recipes(
             "recipe_type": r.recipe_type,
             "image": r.image.url if r.image else None,
             "servings": r.servings,
-            "cached_energy_kj": r.cached_energy_kj,
+            "cached_energy_kcal": r.cached_energy_kcal,
             "cached_protein_g": r.cached_protein_g,
             "cached_fat_g": r.cached_fat_g,
             "cached_carbohydrate_g": r.cached_carbohydrate_g,
@@ -1208,7 +1417,9 @@ def search_recipes(
             "nutritional_tags": tags,
             "usage_count": r.usage_count,
             "description": description,
-            "ingredients_preview": ingredients_preview,
+            "ingredients_preview": ingredients_map.get(r.id, [])[:8],
+            "recipe_badge": badge,
+            "price_per_serving": price_per_serving,
         })
 
     # --- Standalone Ingredients ---
@@ -1226,6 +1437,11 @@ def search_recipes(
         tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
         for tag_id in tag_ids:
             ing_qs = ing_qs.filter(nutritional_tags__id=tag_id)
+
+    if exclude_nutritional_tag_ids:
+        exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        if exclude_tag_ids:
+            ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
     ing_list = list(ing_qs.values("id", "name", "slug", "standalone_type")[:limit])
 
@@ -1246,7 +1462,7 @@ def search_recipes(
         for ing in ing_list:
             ing["portions"] = portions_by_ing.get(ing["id"], [])
 
-    return {"recipes": recipes, "ingredients": ing_list}
+    return {"recipes": recipes, "ingredients": ing_list, "fallback_applied": fallback_applied}
 
 
 # ==========================================================================
@@ -1372,3 +1588,84 @@ def get_suggestions(request, meal_plan_id: int):
 
     dashboard = evaluate_suggestions(meal_plan)
     return dashboard.dict()
+
+
+# --- Allergen Scanner ---
+
+
+@meal_plan_router.get(
+    "/{meal_plan_id}/allergen-scan/",
+    response=NutritionalTagScanOut,
+    summary="Check recipe nutritional tags against plan restrictions",
+)
+def get_allergen_scan(request, meal_plan_id: int):
+    """Scan the meal plan for nutritional tag violations."""
+    _require_auth(request)
+
+    try:
+        meal_plan = MealPlan.objects.prefetch_related(
+            Prefetch(
+                "meals",
+                queryset=Meal.objects.filter(is_reference=False).order_by("start_datetime").prefetch_related(
+                    Prefetch(
+                        "items",
+                        queryset=MealItem.objects.select_related("recipe").prefetch_related(
+                            "recipe__nutritional_tags"
+                        )
+                    )
+                )
+                if hasattr(Meal, "is_reference")
+                else Meal.objects.order_by("start_datetime").prefetch_related(
+                    Prefetch(
+                        "items",
+                        queryset=MealItem.objects.select_related("recipe").prefetch_related(
+                            "recipe__nutritional_tags"
+                        )
+                    )
+                )
+            ),
+            "nutritional_tags"
+        ).get(id=meal_plan_id)
+    except MealPlan.DoesNotExist:
+        raise HttpError(404, "Essensplan nicht gefunden")
+
+    _require_access(meal_plan, request.user)
+
+    plan_tag_ids = {tag.id for tag in meal_plan.nutritional_tags.all()}
+    violations = []
+    affected_meal_ids = set()
+    unique_tag_ids = set()
+
+    for meal in meal_plan.meals.all():
+        meal_date = meal.start_datetime.date() if meal.start_datetime else dt.date.today()
+        for item in meal.items.all():
+            if not item.recipe:
+                continue
+
+            for tag in item.recipe.nutritional_tags.all():
+                if tag.id in plan_tag_ids:
+                    violations.append({
+                        "meal_id": meal.id,
+                        "meal_type": meal.meal_type,
+                        "date": meal_date,
+                        "recipe_id": item.recipe.id,
+                        "recipe_title": item.recipe.title,
+                        "recipe_slug": item.recipe.slug,
+                        "nutritional_tag": tag,
+                        "source": "recipe_tag",
+                    })
+                    affected_meal_ids.add(meal.id)
+                    unique_tag_ids.add(tag.id)
+
+    summary = {
+        "total_violations": len(violations),
+        "affected_meals": len(affected_meal_ids),
+        "unique_tags": len(unique_tag_ids),
+    }
+
+    return {
+        "nutritional_tags": list(meal_plan.nutritional_tags.all()),
+        "violations": violations,
+        "summary": summary,
+    }
+

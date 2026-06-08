@@ -2,6 +2,7 @@
 
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -100,11 +101,11 @@ class Recipe(Content):
     )
 
     # --- Cached nutritional values (denormalized, per-100g of total recipe) ---
-    cached_energy_kj = models.FloatField(null=True, blank=True, verbose_name=_("Energie (kJ, cached)"))
-    cached_energy_total_kj = models.FloatField(
+    cached_energy_kcal = models.FloatField(null=True, blank=True, verbose_name=_("Energie (kcal, cached)"))
+    cached_energy_total_kcal = models.FloatField(
         null=True,
         blank=True,
-        verbose_name=_("Gesamtenergie (kJ, cached)"),
+        verbose_name=_("Gesamtenergie (kcal, cached)"),
     )
     cached_weight_g = models.FloatField(
         null=True,
@@ -138,6 +139,15 @@ class Recipe(Content):
         verbose_name=_("Cache-Zeitpunkt"),
         help_text=_("Wann die gecachten Werte zuletzt berechnet wurden"),
     )
+
+    # Data quality
+    quality_score = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name=_("Datenqualität (0-100)"),
+    )
+    quality_score_updated_at = models.DateTimeField(null=True, blank=True)
 
     # --- Recipe-specific relations ---
     nutritional_tags = models.ManyToManyField(

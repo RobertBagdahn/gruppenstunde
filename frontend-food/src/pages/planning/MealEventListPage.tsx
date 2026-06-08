@@ -10,18 +10,20 @@ import {
   Trash2,
   Calculator,
   ArrowUpDown,
-  User as UserIcon,
-  FileUp,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useMealPlans, useCreateMealPlan, useDeleteMealPlan, useDuplicateMealPlan } from '@/api/mealPlans';
 import { useCurrentUser } from '@/api/auth';
 import { getNextWeekend } from '@/lib/dateUtils';
+import { MEALPLAN_SORT_OPTIONS } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import UnauthGate from '@/components/shared/UnauthGate';
 import ListPageHero from '@/components/shared/ListPageHero';
 import ListPageSearchBar from '@/components/shared/ListPageSearchBar';
 import EmptyState from '@/components/shared/EmptyState';
+import MealPlanFilterSidebar from '@/components/planning/MealPlanFilterSidebar';
 import {
   Dialog,
   DialogContent,
@@ -35,12 +37,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { MealPlan } from '@/schemas/mealPlan';
+import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Neueste' },
-  { value: 'oldest', label: 'Älteste' },
-  { value: 'name_asc', label: 'Name A-Z' },
-];
+const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
+  verified: {
+    label: 'Inspi-verifiziert',
+    bg: 'bg-primary/10 border border-primary/20',
+    text: 'text-primary',
+    icon: 'verified',
+  },
+  community: {
+    label: 'Community',
+    bg: 'bg-[hsl(var(--chart-3))]/10 border border-[hsl(var(--chart-3))]/20',
+    text: 'text-[hsl(var(--chart-3))]',
+    icon: 'groups',
+  },
+  personal: {
+    label: 'Mein Plan',
+    bg: 'bg-[hsl(var(--chart-2))]/10 border border-[hsl(var(--chart-2))]/20',
+    text: 'text-[hsl(var(--chart-2))]',
+    icon: 'person',
+  },
+};
+
+function getPlanBadge(plan: MealPlan, userId: number | undefined): string | null {
+  if (plan.owner_id === null) return 'verified';
+  if (plan.visibility === 'public') return 'community';
+  if (userId && plan.owner_id === userId) return 'personal';
+  return null;
+}
 
 export default function MealPlanListPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -72,7 +98,18 @@ export default function MealPlanListPage() {
 function MealPlanListPageInner() {
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
-  const { data: mealPlans, error, isLoading, refetch } = useMealPlans();
+  const [origin, setOrigin] = useState('all');
+  const [sort, setSort] = useState('date_newest');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filters = useMemo(() => ({
+    origin: origin === 'all' ? undefined : origin,
+    sort,
+    search: searchQuery || undefined,
+  }), [origin, sort, searchQuery]);
+
+  const { data: mealPlans, error, isLoading, refetch } = useMealPlans(filters);
   const createMutation = useCreateMealPlan();
   const deleteMutation = useDeleteMealPlan();
   const duplicateMutation = useDuplicateMealPlan();
@@ -86,39 +123,26 @@ function MealPlanListPageInner() {
   const [copyEnabled, setCopyEnabled] = useState(false);
   const [copySourceId, setCopySourceId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [searchInput, setSearchInput] = useState('');
-  const [sort, setSort] = useState('newest');
-  const [myDataOnly, setMyDataOnly] = useState(false);
+  const [nutritionalTagIds, setNutritionalTagIds] = useState<number[]>([]);
+  const [pastOpen, setPastOpen] = useState(false);
 
-  // Client-side filtering & sorting (API returns full array)
-  const filteredPlans = useMemo(() => {
-    if (!mealPlans) return [];
-    let items = [...mealPlans];
+  const now = useMemo(() => new Date().toISOString(), []);
 
-    // Search filter
-    if (searchInput.trim()) {
-      const q = searchInput.toLowerCase();
-      items = items.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          (p.event_name && p.event_name.toLowerCase().includes(q)),
-      );
+  const { futurePlans, pastPlans } = useMemo(() => {
+    if (!mealPlans) return { futurePlans: [], pastPlans: [] };
+    const future: MealPlan[] = [];
+    const past: MealPlan[] = [];
+    for (const plan of mealPlans) {
+      if (!plan.end_datetime || plan.end_datetime >= now) {
+        future.push(plan);
+      } else {
+        past.push(plan);
+      }
     }
+    return { futurePlans: future, pastPlans: past };
+  }, [mealPlans, now]);
 
-    // My Data filter
-    if (myDataOnly && user) {
-      items = items.filter((p) => p.created_by_id === user.id);
-    }
-
-    // Sort
-    if (sort === 'newest') items.sort((a, b) => b.id - a.id);
-    else if (sort === 'oldest') items.sort((a, b) => a.id - b.id);
-    else if (sort === 'name_asc') items.sort((a, b) => a.name.localeCompare(b.name));
-
-    return items;
-  }, [mealPlans, searchInput, sort, myDataOnly, user]);
-
-  if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
+  const totalCount = mealPlans?.length;
 
   const copySource = useMemo(
     () => (copyEnabled && copySourceId ? mealPlans?.find((p) => p.id === copySourceId) ?? null : null),
@@ -144,6 +168,12 @@ function MealPlanListPageInner() {
     setCreatePortions(copySource.norm_portions);
   }, [copySourceId]);
 
+  const toggleTag = (tagId: number) => {
+    setNutritionalTagIds(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
+  };
+
   const resetCreateForm = () => {
     const w = getNextWeekend();
     setCreateName('Neuer Essensplan');
@@ -152,6 +182,7 @@ function MealPlanListPageInner() {
     setCreatePortions(10);
     setCopyEnabled(false);
     setCopySourceId(null);
+    setNutritionalTagIds([]);
   };
 
   const handleSubmit = () => {
@@ -184,6 +215,7 @@ function MealPlanListPageInner() {
           start_datetime: createStartDatetime ? createStartDatetime + ':00' : null,
           end_datetime: createEndDatetime ? createEndDatetime + ':00' : null,
           norm_portions: createPortions,
+          nutritional_tag_ids: nutritionalTagIds.length > 0 ? nutritionalTagIds : undefined,
         },
         {
           onSuccess: (plan) => {
@@ -209,6 +241,140 @@ function MealPlanListPageInner() {
     });
   };
 
+  const formatDateRange = (plan: MealPlan) => {
+    if (!plan.start_datetime && !plan.end_datetime) return null;
+    const start = plan.start_datetime ? new Date(plan.start_datetime) : null;
+    const end = plan.end_datetime ? new Date(plan.end_datetime) : null;
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (start && end) {
+      if (start.toDateString() === end.toDateString()) return fmt(start);
+      return `${fmt(start)} – ${fmt(end)}`;
+    }
+    if (start) return `ab ${fmt(start)}`;
+    if (end) return `bis ${fmt(end)}`;
+    return null;
+  };
+
+  if (error) return <ErrorDisplay error={error} onRetry={() => refetch()} />;
+
+  const handleSearch = () => {
+    setSearchQuery(searchInput.trim());
+  };
+
+  const PlanCard = ({ plan }: { plan: MealPlan }) => {
+    const badge = getPlanBadge(plan, user?.id);
+    const badgeConfig = badge ? BADGE_CONFIG[badge] : null;
+    const dateRange = formatDateRange(plan);
+
+    return (
+      <div
+        key={plan.id}
+        onClick={() => navigate(`/meal-plans/${plan.id}`)}
+        className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all cursor-pointer border-l-4 border-l-primary"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-display font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
+                {plan.name}
+              </h3>
+              {badgeConfig && (
+                <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeConfig.bg} ${badgeConfig.text}`}>
+                  <span className="material-symbols-outlined text-[12px]">{badgeConfig.icon}</span>
+                  {badgeConfig.label}
+                </span>
+              )}
+            </div>
+            {dateRange && (
+              <p className="text-xs text-muted-foreground font-medium mb-2">
+                {dateRange}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3 text-xs font-semibold text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                {plan.norm_portions} Portionen
+              </span>
+              {plan.event_name && (
+                <span className="inline-flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
+                  {plan.event_name}
+                </span>
+              )}
+            </div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
+              <DropdownMenuItem
+                className="font-semibold text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const w = getNextWeekend();
+                  setCreateName('Neuer Essensplan');
+                  setCreateStartDatetime(w.friday);
+                  setCreateEndDatetime(w.sunday);
+                  setCreatePortions(10);
+                  setCopyEnabled(true);
+                  setCopySourceId(plan.id);
+                  setShowCreate(true);
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Als Vorlage verwenden
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteId(plan.id);
+                }}
+                className="text-destructive focus:text-destructive font-semibold text-xs"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Löschen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    );
+  };
+
+  const PlanSection = ({ title, plans, open, onToggle }: { title: string; plans: MealPlan[]; open: boolean; onToggle: () => void }) => {
+    if (plans.length === 0) return null;
+    return (
+      <div className="mb-6">
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 mb-3 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          {title}
+          <span className="text-xs font-semibold text-muted-foreground">({plans.length})</span>
+        </button>
+        {open && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <PlanCard key={plan.id} plan={plan} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 font-sans">
       {/* Hero */}
@@ -217,7 +383,7 @@ function MealPlanListPageInner() {
         description="Plane Mahlzeiten für Lager, Fahrten und Gruppenstunden."
         icon="restaurant_menu"
         gradientClasses="gradient-primary"
-        totalCount={mealPlans?.length}
+        totalCount={totalCount}
         countLabel="Plan"
         countIcon="restaurant_menu"
       />
@@ -238,136 +404,71 @@ function MealPlanListPageInner() {
         placeholder="Essensplan suchen..."
         value={searchInput}
         onChange={setSearchInput}
-        onSubmit={() => {}}
+        onSubmit={handleSearch}
         createLabel="Neuer Essensplan"
         onCreateClick={() => setShowCreate(true)}
         gradientClasses=""
       />
 
-      {/* Sort + My Data filter */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={() => setMyDataOnly(!myDataOnly)}
-          className={[
-            'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-semibold border transition-all shadow-soft',
-            myDataOnly
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-primary/40',
-          ].join(' ')}
-        >
-          <UserIcon className="w-4 h-4" />
-          Meine Daten
-        </button>
-        <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
-          <ArrowUpDown className="w-4 h-4 text-primary" />
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="px-3.5 py-1.5 rounded-xl border border-border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+        {/* Filter Sidebar */}
+        <MealPlanFilterSidebar
+          origin={origin}
+          onOriginChange={(o) => setOrigin(o)}
+          onReset={() => setOrigin('all')}
+        />
+
+        {/* Results */}
+        <div className="flex-1 min-w-0">
+          {/* Sort */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-xs text-muted-foreground font-semibold">
+              {totalCount ?? 0} {totalCount === 1 ? 'Plan' : 'Pläne'}
+            </div>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-primary/5 to-transparent px-4 py-2 rounded-xl">
+              <ArrowUpDown className="w-4 h-4 text-primary" />
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="px-3.5 py-1.5 rounded-xl border border-border text-sm bg-card focus:ring-2 focus:ring-primary focus:outline-none font-semibold shadow-soft"
+              >
+                {MEALPLAN_SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-primary/10 via-muted/50 to-primary/5 animate-pulse" />
+              ))}
+            </div>
+          ) : futurePlans.length === 0 && pastPlans.length === 0 ? (
+            <EmptyState
+              icon="restaurant_menu"
+              title="Keine Essenspläne gefunden"
+              description={
+                searchQuery
+                  ? 'Keine Essenspläne für diese Suche gefunden.'
+                  : 'Erstelle deinen ersten Essensplan für eine Fahrt oder den Gruppenalltag.'
+              }
+              ctaLabel="Neuen Essensplan erstellen"
+              onCtaClick={() => setShowCreate(true)}
+            />
+          ) : (
+            <>
+              <PlanSection title="Zukünftige Pläne" plans={futurePlans} open={true} onToggle={() => {}} />
+              {pastPlans.length > 0 && (
+                <PlanSection title="Vergangene Pläne" plans={pastPlans} open={pastOpen} onToggle={() => setPastOpen(!pastOpen)} />
+              )}
+            </>
+          )}
         </div>
       </div>
-
-      {/* Content */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 rounded-xl bg-gradient-to-br from-primary/10 via-muted/50 to-primary/5 animate-pulse" />
-          ))}
-        </div>
-      ) : filteredPlans.length === 0 ? (
-        <EmptyState
-          icon="restaurant_menu"
-          title="Noch keine Essenspläne"
-          description={
-            searchInput
-              ? 'Keine Essenspläne für diese Suche gefunden.'
-              : 'Erstelle deinen ersten Essensplan für eine Fahrt oder den Gruppenalltag.'
-          }
-          ctaLabel="Neuen Essensplan erstellen"
-          onCtaClick={() => setShowCreate(true)}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPlans.map((plan) => (
-            <div
-              key={plan.id}
-              onClick={() => navigate(`/meal-plans/${plan.id}`)}
-              className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 shadow-soft transition-all cursor-pointer border-l-4 border-l-primary"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-display font-bold text-base text-foreground truncate group-hover:text-primary transition-colors">
-                    {plan.name}
-                  </h3>
-                  <div className="flex flex-wrap gap-3 mt-3 text-xs font-semibold text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                      {plan.meals_count} {plan.meals_count === 1 ? 'Mahlzeit' : 'Mahlzeiten'}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                      {plan.norm_portions} Portionen
-                    </span>
-                    {plan.event_name && (
-                      <span className="inline-flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-                        {plan.event_name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      onClick={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
-                    <DropdownMenuItem
-                      className="font-semibold text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const w = getNextWeekend();
-                        setCreateName('Neuer Essensplan');
-                        setCreateStartDatetime(w.friday);
-                        setCreateEndDatetime(w.sunday);
-                        setCreatePortions(10);
-                        setCopyEnabled(true);
-                        setCopySourceId(plan.id);
-                        setShowCreate(true);
-                      }}
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      Als Vorlage verwenden
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteId(plan.id);
-                      }}
-                      className="text-destructive focus:text-destructive font-semibold text-xs"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Löschen
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Create / Kopie Dialog */}
       <Dialog
@@ -437,7 +538,7 @@ function MealPlanListPageInner() {
                 {copySource && (
                   <div className="sm:col-span-2">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-semibold text-primary">
-                      <FileUp className="w-3.5 h-3.5" />
+                      <Copy className="w-3.5 h-3.5" />
                       Vorlage: {copySource.name} ({copySource.meals_count} Mahlzeiten)
                     </div>
                   </div>
@@ -473,6 +574,10 @@ function MealPlanListPageInner() {
                 onChange={(e) => setCreatePortions(Number(e.target.value))}
                 className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
               />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ernährungstags</label>
+              <NutritionalTagMultiSelect selectedTagIds={nutritionalTagIds} onToggle={toggleTag} />
             </div>
           </div>
           <DialogFooter className="mt-4 gap-2">

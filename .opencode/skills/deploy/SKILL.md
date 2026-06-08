@@ -155,13 +155,40 @@ Pre-Flight Results:
 
 If project is not `inspi-441320`, **ask the user** before continuing.
 
-### Phase 2: Database Check
+### Phase 2: Infrastructure (OpenTofu)
+
+Ask: "Infrastructure changes via OpenTofu prüfen und anwenden?" — proceed only on confirmation.
 
 ```bash
-# 2.1 Check Cloud SQL connectivity
+# 2.1 Navigate to terraform directory
+cd terraform
+
+# 2.2 Init (if not already)
+tofu init
+
+# 2.3 Plan – show full diff
+tofu plan
+```
+
+Show the plan output. Ask: "Soll ich diese Änderungen anwenden (`tofu apply`)?" — only on confirmation.
+
+```bash
+# 2.4 Apply
+tofu apply
+
+# 2.5 Return to root
+cd ..
+```
+
+If the user declines, skip apply and continue with the plan visible.
+
+### Phase 3: Database Check
+
+```bash
+# 3.1 Check Cloud SQL connectivity
 gcloud sql instances describe inspi-db --format="value(ipAddresses[0].ipAddress)"
 
-# 2.2 Check backend API is reachable
+# 3.2 Check backend API is reachable
 BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 ```
@@ -169,7 +196,7 @@ curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 Expected: HTTP 200. If not, the backend may need redeployment.
 
 ```bash
-# 2.3 Seed check: verify data exists
+# 3.3 Seed check: verify data exists
 curl -s "${BACKEND_URL}/api/sessions/?page_size=1" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
@@ -185,7 +212,7 @@ If seeds are missing, ask: "Keine Daten gefunden. Soll ich Seeds laden? (erforde
 
 Only run `add_users` and `seed_all` when the target database is empty for the relevant data. Use the `--if-empty` guards below; do not run unguarded seed/user commands on an existing database.
 
-### Phase 3: Deploy Backend
+### Phase 4: Deploy Backend
 
 Ask: "Backend deployen? (build + push + deploy)" — proceed only on confirmation.
 
@@ -226,7 +253,7 @@ gcloud run deploy inspi-backend \
 
 Expected: HTTP 200. If not, show error and ask.
 
-### Phase 4: Run Migrations
+### Phase 5: Run Migrations
 
 Ask: "Django Migrations auf dem Backend ausführen?"
 
@@ -240,7 +267,7 @@ cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
 DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py migrate --noinput
 ```
 
-### Phase 5: Create Users
+### Phase 6: Create Users
 
 First check whether users already exist. Ask "Sollen Benutzer angelegt werden?" only when the user table is empty.
 
@@ -266,7 +293,7 @@ The `add_users` command creates:
 - Superuser (admin)
 - Test users for development
 
-### Phase 6: Seed Database
+### Phase 7: Seed Database
 
 First check whether seed data already exists. Ask "Soll die Datenbank geseedet werden?" only when the relevant seed sections are empty.
 
@@ -292,7 +319,7 @@ The `seed_all` command seeds:
 - Content (sessions, blogs, games, materials)
 - Recipes, events, and planner data
 
-### Phase 7: Deploy Frontend
+### Phase 8: Deploy Frontend
 
 Ask: "Frontend deployen? (build + push + deploy)" — proceed only on confirmation.
 
@@ -321,7 +348,7 @@ curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_URL}/"
 
 Expected: HTTP 200.
 
-### Phase 8: Deploy Frontend Food
+### Phase 9: Deploy Frontend Food
 
 Ask: "Food Frontend deployen? (build + push + deploy)" — proceed only on confirmation.
 
@@ -350,7 +377,7 @@ curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_FOOD_URL}/"
 
 Expected: HTTP 200.
 
-### Phase 9: Post-Deploy Summary
+### Phase 10: Post-Deploy Summary
 
 ```bash
 gcloud run services list --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"
@@ -383,11 +410,12 @@ Deployment Complete:
 ## Partial Deploys
 
 The user can request partial deploys:
-- "nur backend" → Only Phase 3
-- "nur frontend" → Only Phase 7+8
-- "nur checks" → Only Phase 1+2
-- "nur migrations" → Only Phase 4
-- "nur users" → Only Phase 5
-- "nur seeding" → Only Phase 6
+- "nur backend" → Only Phase 4
+- "nur frontend" → Only Phase 8+9
+- "nur checks" → Only Phase 1+3
+- "nur migrations" → Only Phase 5
+- "nur users" → Only Phase 6
+- "nur seeding" → Only Phase 7
+- "nur tofu" / "nur terraform" → Only Phase 2
 
 Adapt accordingly.

@@ -33,15 +33,15 @@ def is_high_fiber(fibre_per_100g: float) -> bool:
     return fibre_per_100g >= FIBER_THRESHOLD_G
 
 
-def is_high_protein(protein_per_100g: float, energy_kj_per_100g: float) -> bool:
+def is_high_protein(protein_per_100g: float, energy_kcal_per_100g: float) -> bool:
     """Return True if protein provides ≥ 20% of energy.
 
-    Protein provides 17 kJ per gram.
+    Protein provides 4 kcal per gram.
     """
-    if energy_kj_per_100g <= 0:
+    if energy_kcal_per_100g <= 0:
         return False
-    protein_energy_kj = protein_per_100g * 17.0
-    pct = protein_energy_kj / energy_kj_per_100g * 100.0
+    protein_energy_kcal = protein_per_100g * 4.0
+    pct = protein_energy_kcal / energy_kcal_per_100g * 100.0
     return pct >= PROTEIN_ENERGY_PCT
 
 
@@ -94,8 +94,8 @@ def compute_positive_traits(recipe: "Recipe") -> list[str]:
         traits.append("high_fiber")
 
     protein = values.get("protein_g", 0.0)
-    energy_kj = values.get("energy_kj", 0.0)
-    if is_high_protein(protein, energy_kj):
+    energy_kcal = values.get("energy_kcal", 0.0)
+    if is_high_protein(protein, energy_kcal):
         traits.append("high_protein")
 
     salt = values.get("salt_g", 0.0)

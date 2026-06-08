@@ -262,7 +262,7 @@ class TestNutritionAggregationPortionScaling:
         protein_event = [s for s in suggestions if s.scope == "event" and "Protein" in s.scope_label]
         assert len(protein_event) == 1
         s = protein_event[0]
-        # min_green: 30 / 3 = 10, max_green: 60 / 3 = 20, target_mid: 45 / 3 = 15
-        assert s.min_green == pytest.approx(10.0)
-        assert s.max_green == pytest.approx(20.0)
-        assert s.target_mid == pytest.approx(15.0)
+        # Thresholds remain as original per-day values, not divided by num_days
+        assert s.min_green == pytest.approx(30.0)
+        assert s.max_green == pytest.approx(60.0)
+        assert s.target_mid == pytest.approx(45.0)

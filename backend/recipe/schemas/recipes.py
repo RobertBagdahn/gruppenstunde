@@ -34,7 +34,7 @@ class RecipeListOut(ContentListOut):
 
     recipe_type: str
     servings: int | None
-    cached_energy_kj: float | None = None
+    cached_energy_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
     cached_carbohydrate_g: float | None = None
@@ -94,7 +94,7 @@ class RecipeDetailOut(ContentDetailOut):
 
     recipe_type: str
     servings: int | None
-    cached_energy_kj: float | None = None
+    cached_energy_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
     cached_carbohydrate_g: float | None = None

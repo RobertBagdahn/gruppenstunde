@@ -14,6 +14,7 @@ import {
   ShoppingListItemSchema,
   UnifiedSearchResponseSchema,
   RecipePopularResponseSchema,
+  type RecipePopularResponse,
   type MealPlan,
   type MealPlanDetail,
   type MealPlanCostSummary,
@@ -23,6 +24,11 @@ import {
   RecipeSuggestionsResponseSchema,
   type MealUpdateIn,
   type CopyItemsFromPlanIn,
+  NutritionalTagScanResponseSchema,
+  type NutritionalTagScanResponse,
+  RecentlyUsedResponseSchema,
+  type RecentlyUsedResponse,
+  type RecipeSuggestion,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 
@@ -91,23 +97,27 @@ async function deleteJson(url: string): Promise<void> {
 // MealPlan Hooks
 // ==========================================================================
 
-export function useMealPlans() {
-  return useQuery<MealPlan[]>({
-    queryKey: ['meal-plans'],
-    queryFn: () => fetchJson(`${API_BASE}/`, z.array(MealPlanSchema)),
-  });
+export interface MealPlanFilterParams {
+  search?: string;
+  origin?: string;
+  sort?: string;
+  date_from?: string;
+  date_to?: string;
 }
 
-export function useMealPlansSearch(search?: string, dateFrom?: string, dateTo?: string) {
+export function useMealPlans(filters: MealPlanFilterParams = {}) {
+  const queryKey = ['meal-plans', filters] as const;
   return useQuery<MealPlan[]>({
-    queryKey: ['meal-plans', 'search', search, dateFrom, dateTo],
+    queryKey,
     queryFn: () => {
       const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (dateFrom) params.set('date_from', dateFrom);
-      if (dateTo) params.set('date_to', dateTo);
+      if (filters.search) params.set('search', filters.search);
+      if (filters.origin && filters.origin !== 'all') params.set('origin', filters.origin);
+      if (filters.sort) params.set('sort', filters.sort);
+      if (filters.date_from) params.set('date_from', filters.date_from);
+      if (filters.date_to) params.set('date_to', filters.date_to);
       const qs = params.toString();
-      return fetchJson(`${API_BASE}/?${qs}`, z.array(MealPlanSchema));
+      return fetchJson(`${API_BASE}/${qs ? `?${qs}` : ''}`, z.array(MealPlanSchema));
     },
   });
 }
@@ -117,6 +127,14 @@ export function useMealPlan(id: number) {
     queryKey: ['meal-plan', id],
     queryFn: () => fetchJson(`${API_BASE}/${id}/`, MealPlanDetailSchema),
     enabled: id > 0,
+  });
+}
+
+export function useAllergenScan(mealPlanId: number) {
+  return useQuery<NutritionalTagScanResponse>({
+    queryKey: ['meal-plan-allergen-scan', mealPlanId],
+    queryFn: () => fetchJson(`${API_BASE}/${mealPlanId}/allergen-scan/`, NutritionalTagScanResponseSchema),
+    enabled: mealPlanId > 0,
   });
 }
 
@@ -132,6 +150,7 @@ export function useCreateMealPlan() {
       start_datetime?: string | null;
       end_datetime?: string | null;
       day_part_factors?: Record<string, number>;
+      nutritional_tag_ids?: number[];
     }) => postJson(`${API_BASE}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
@@ -151,10 +170,12 @@ export function useUpdateMealPlan(id: number) {
       start_datetime?: string | null;
       end_datetime?: string | null;
       day_part_factors?: Record<string, number>;
+      nutritional_tag_ids?: number[];
     }) => patchJson(`${API_BASE}/${id}/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
       queryClient.invalidateQueries({ queryKey: ['meal-plan', id] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan-allergen-scan', id] });
     },
   });
 }
@@ -396,29 +417,34 @@ export function useMealPlanCosts(mealPlanId: number) {
 
 export interface RecipeSearchParams {
   q: string;
+  meal_type?: string;
   recipe_type?: string;
   nutritional_tag_ids?: number[];
+  require_nutritional_tags?: boolean;
   limit?: number;
 }
 
 export function useRecipeSearch(params: RecipeSearchParams) {
-  const { q, recipe_type, nutritional_tag_ids, limit } = params;
+  const { q, meal_type, recipe_type, nutritional_tag_ids, require_nutritional_tags, limit } = params;
 
   const searchParams = new URLSearchParams();
   if (q) searchParams.set('q', q);
+  if (meal_type) searchParams.set('meal_type', meal_type);
   if (recipe_type) searchParams.set('recipe_type', recipe_type);
   if (nutritional_tag_ids?.length)
     searchParams.set('nutritional_tag_ids', nutritional_tag_ids.join(','));
+  if (require_nutritional_tags !== undefined)
+    searchParams.set('require_nutritional_tags', String(require_nutritional_tags));
   if (limit) searchParams.set('limit', String(limit));
 
   return useQuery<UnifiedSearchResponse>({
-    queryKey: ['recipe-search', q, recipe_type, nutritional_tag_ids, limit],
+    queryKey: ['recipe-search', q, meal_type, recipe_type, nutritional_tag_ids, require_nutritional_tags, limit],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/search/?${searchParams.toString()}`,
         UnifiedSearchResponseSchema,
       ),
-    enabled: q.length >= 2 || !!recipe_type || !!nutritional_tag_ids?.length,
+    enabled: q.length >= 2 || !!recipe_type || !!nutritional_tag_ids?.length || !!meal_type,
   });
 }
 
@@ -430,18 +456,24 @@ export interface RecipeSuggestionsParams {
   mealType?: string;
   q?: string;
   limit?: number;
+  nutritionalTagIds?: number[];
+  requireNutritionalTags?: boolean;
 }
 
 export function useRecipeSuggestions(params: RecipeSuggestionsParams) {
-  const { mealType, q, limit = 10 } = params;
+  const { mealType, q, limit = 10, nutritionalTagIds, requireNutritionalTags } = params;
 
   const searchParams = new URLSearchParams();
   if (mealType) searchParams.set('meal_type', mealType);
   if (q) searchParams.set('q', q);
   searchParams.set('limit', String(limit));
+  if (nutritionalTagIds?.length)
+    searchParams.set('nutritional_tag_ids', nutritionalTagIds.join(','));
+  if (requireNutritionalTags !== undefined)
+    searchParams.set('require_nutritional_tags', String(requireNutritionalTags));
 
   return useQuery<RecipeSuggestionsResponse>({
-    queryKey: ['recipe-suggestions', mealType, q, limit],
+    queryKey: ['recipe-suggestions', mealType, q, limit, nutritionalTagIds, requireNutritionalTags],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,
@@ -477,11 +509,62 @@ export function usePopularRecipes(params: PopularRecipesParams) {
 }
 
 // ==========================================================================
+// Recently Used Recipes
+// ==========================================================================
+
+export function useRecentlyUsedRecipes(limit = 5) {
+  return useQuery<RecentlyUsedResponse>({
+    queryKey: ['recently-used-recipes', limit],
+    queryFn: () =>
+      fetchJson(
+        `${API_BASE}/recipes/recently-used/?limit=${limit}`,
+        RecentlyUsedResponseSchema,
+      ),
+  });
+}
+
+// ==========================================================================
+// Random Recipe Suggestion
+// ==========================================================================
+
+export function useRandomRecipeSuggestion(params: {
+  mealType?: string;
+  nutritionalTagIds?: number[];
+  requireNutritionalTags?: boolean;
+}) {
+  const { mealType, nutritionalTagIds, requireNutritionalTags } = params;
+
+  const searchParams = new URLSearchParams();
+  if (mealType) searchParams.set('meal_type', mealType);
+  searchParams.set('random', 'true');
+  searchParams.set('limit', '1');
+  if (nutritionalTagIds?.length)
+    searchParams.set('nutritional_tag_ids', nutritionalTagIds.join(','));
+  if (requireNutritionalTags !== undefined)
+    searchParams.set('require_nutritional_tags', String(requireNutritionalTags));
+
+  return useQuery<RecipeSuggestion[]>({
+    queryKey: ['random-recipe-suggestion', mealType, nutritionalTagIds, requireNutritionalTags],
+    queryFn: () =>
+      fetchJson(
+        `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,
+        RecipeSuggestionsResponseSchema,
+      ),
+    enabled: false, // only fetch on demand
+  });
+}
+
+// ==========================================================================
 // Backward compatibility re-exports
 // ==========================================================================
 
 /** @deprecated Use useMealPlans */
 export const useMealEvents = useMealPlans;
+
+/** @deprecated Use useMealPlans with search filter */
+export function useMealPlansSearch(search?: string, dateFrom?: string, dateTo?: string) {
+  return (useMealPlans as (filters?: MealPlanFilterParams) => ReturnType<typeof useMealPlans>)({ search, date_from: dateFrom, date_to: dateTo });
+}
 /** @deprecated Use useMealPlan */
 export const useMealEvent = useMealPlan;
 /** @deprecated Use useCreateMealPlan */

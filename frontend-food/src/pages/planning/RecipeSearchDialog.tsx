@@ -1,5 +1,5 @@
 import { useState, useDeferredValue, useEffect } from 'react';
-import { Search, Star, TrendingUp, BookOpen, Egg } from 'lucide-react';
+import { Search, Star, TrendingUp, BookOpen, Egg, Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,10 @@ import {
 import { useRecipeSearch, usePopularRecipes } from '@/api/mealPlans';
 import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipePreviewDialog from './RecipePreviewDialog';
-import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
+import CategoryPills from '@/components/recipe/CategoryPills';
+import RecipeSearchCard from '@/components/recipe/RecipeSearchCard';
+import RecipeBadge from '@/components/recipe/RecipeBadge';
+import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -28,30 +31,14 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   simple_meal: 'Einfache Mahlzeit',
 };
 
-const RECIPE_TYPE_COLORS: Record<string, string> = {
-  breakfast: 'bg-yellow-100 text-yellow-800',
-  warm_meal: 'bg-orange-100 text-orange-800',
-  cold_meal: 'bg-blue-100 text-blue-800',
-  dessert: 'bg-pink-100 text-pink-800',
-  side_dish: 'bg-lime-100 text-lime-800',
-  drink: 'bg-cyan-100 text-cyan-800',
-  simple_meal: 'bg-slate-100 text-slate-800',
-};
-
-/** Map meal_type to default recipe_type filter values */
-const MEAL_TYPE_TO_RECIPE_TYPES: Record<string, string[]> = {
-  breakfast: ['breakfast', 'simple_meal'],
-  lunch: ['warm_meal', 'cold_meal', 'side_dish'],
-  dinner: ['warm_meal', 'cold_meal', 'side_dish'],
-  snack: ['simple_meal'],
-};
-
 interface RecipeSearchDialogProps {
   mealType: string;
   onSelect: (recipeId: number) => void;
   onSelectIngredient?: (ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  nutritionalTagIds?: number[];
+  nutritionalTagNames?: string[];
 }
 
 export default function RecipeSearchDialog({
@@ -60,32 +47,32 @@ export default function RecipeSearchDialog({
   onSelectIngredient,
   open,
   onOpenChange,
+  nutritionalTagIds,
+  nutritionalTagNames,
 }: RecipeSearchDialogProps) {
-  const defaultTypes = MEAL_TYPE_TO_RECIPE_TYPES[mealType] ?? [];
-
   const [query, setQuery] = useState('');
-  const [recipeType, setRecipeType] = useState<string>(defaultTypes[0] ?? '');
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [recipeType, setRecipeType] = useState<string | null>(null);
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
+  const [requireDietaryTags, setRequireDietaryTags] = useState(true);
 
   const deferredQuery = useDeferredValue(query);
 
   const { data: results } = useRecipeSearch({
     q: deferredQuery,
+    meal_type: mealType,
     recipe_type: recipeType || undefined,
-    nutritional_tag_ids: selectedTagIds.length ? selectedTagIds : undefined,
+    nutritional_tag_ids: requireDietaryTags && nutritionalTagIds?.length ? nutritionalTagIds : undefined,
+    require_nutritional_tags: requireDietaryTags && nutritionalTagIds?.length ? true : undefined,
     limit: 20,
   });
 
   const { data: popularData } = usePopularRecipes({ mealType });
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setQuery('');
-      setRecipeType(defaultTypes[0] ?? '');
-      setSelectedTagIds([]);
+      setRecipeType(null);
       setIngredientDialog(null);
       setPreviewRecipe(null);
     }
@@ -118,14 +105,10 @@ export default function RecipeSearchDialog({
     onOpenChange(false);
   };
 
-  const toggleTag = (tagId: number) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
-    );
-  };
-
   const recipes = results?.recipes ?? [];
   const ingredients = results?.ingredients ?? [];
+  const fallbackApplied = results?.fallback_applied ?? false;
+  const hasActiveFilter = !!recipeType || deferredQuery.length >= 2;
 
   return (
     <>
@@ -151,27 +134,34 @@ export default function RecipeSearchDialog({
             />
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <Select value={recipeType || '_all'} onValueChange={(v) => setRecipeType(v === '_all' ? '' : v)}>
-              <SelectTrigger className="w-[180px] h-8 text-xs">
-                <SelectValue placeholder="Rezepttyp" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_all">Alle Typen</SelectItem>
-                {Object.entries(RECIPE_TYPE_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Category Pills */}
+          <CategoryPills selected={recipeType} onChange={setRecipeType} />
 
-            <NutritionalTagMultiSelect selectedTagIds={selectedTagIds} onToggle={toggleTag} />
-          </div>
+          {/* Dietary filter checkbox */}
+          {nutritionalTagIds && nutritionalTagIds.length > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-muted-foreground select-none bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border/50 w-fit">
+              <input
+                type="checkbox"
+                checked={requireDietaryTags}
+                onChange={(e) => setRequireDietaryTags(e.target.checked)}
+                className="rounded border-muted-foreground accent-primary"
+              />
+              <span>Nur {nutritionalTagNames?.join(', ') ?? nutritionalTagIds.join(', ')}</span>
+            </label>
+          )}
+
+          {/* Fallback hint */}
+          {fallbackApplied && (
+            <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 px-3 py-1.5 rounded-md">
+              Keine Rezepte in dieser Kategorie gefunden — zeige alle Typen
+            </p>
+          )}
+
+          {/* Recently Used */}
+          {!hasActiveFilter && <RecentlyUsedSection />}
 
           {/* Popular Recipes (shown when no active search) */}
-          {(!deferredQuery || deferredQuery.length < 2) && !recipeType && !selectedTagIds.length && popularData && (
+          {!hasActiveFilter && popularData && (
             <div className="rounded-lg border p-3 space-y-3">
               {popularData.personal.length > 0 && (
                 <div>
@@ -180,17 +170,23 @@ export default function RecipeSearchDialog({
                     Deine Top-Rezepte
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {popularData.personal.map((r) => (
-                      <button
-                        key={`pop-p-${r.id}`}
-                        onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
-                        className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
-                      >
-                        <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                        {r.title}
-                        <span className="text-xs text-muted-foreground">({r.usage_count}×)</span>
-                      </button>
-                    ))}
+                    {popularData.personal.map((r) => {
+                      const price = r.price_per_serving != null
+                        ? `${r.price_per_serving.toFixed(2).replace('.', ',')} €`
+                        : '—';
+                      return (
+                        <button
+                          key={`pop-p-${r.id}`}
+                          onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
+                          className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
+                        >
+                          <RecipeBadge badge={r.recipe_badge ?? 'community'} />
+                          <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                          {r.title}
+                          <span className="text-xs text-muted-foreground">({r.usage_count}×, {price})</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -201,17 +197,23 @@ export default function RecipeSearchDialog({
                     Community-Hits
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {popularData.community.map((r) => (
-                      <button
-                        key={`pop-c-${r.id}`}
-                        onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
-                        className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
-                      >
-                        <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                        {r.title}
-                        <span className="text-xs text-muted-foreground">({r.usage_count}×)</span>
-                      </button>
-                    ))}
+                    {popularData.community.map((r) => {
+                      const price = r.price_per_serving != null
+                        ? `${r.price_per_serving.toFixed(2).replace('.', ',')} €`
+                        : '—';
+                      return (
+                        <button
+                          key={`pop-c-${r.id}`}
+                          onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
+                          className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
+                        >
+                          <RecipeBadge badge={r.recipe_badge ?? 'community'} />
+                          <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                          {r.title}
+                          <span className="text-xs text-muted-foreground">({r.usage_count}×, {price})</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -220,7 +222,6 @@ export default function RecipeSearchDialog({
 
           {/* Results */}
           <div className="flex-1 overflow-y-auto rounded-lg border divide-y min-h-0">
-            {/* Recipe results */}
             {recipes.length > 0 && (
               <>
                 {ingredients.length > 0 && (
@@ -229,22 +230,15 @@ export default function RecipeSearchDialog({
                   </div>
                 )}
                 {recipes.map((r) => (
-                  <button
+                  <RecipeSearchCard
                     key={`recipe-${r.id}`}
+                    recipe={r}
                     onClick={() => handleSelect(r)}
-                    className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
-                  >
-                    <BookOpen className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{r.title}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${RECIPE_TYPE_COLORS[r.recipe_type] ?? 'bg-muted text-muted-foreground'}`}>
-                      {RECIPE_TYPE_LABELS[r.recipe_type] ?? r.recipe_type}
-                    </span>
-                  </button>
+                  />
                 ))}
               </>
             )}
 
-            {/* Ingredient results */}
             {ingredients.length > 0 && (
               <>
                 <div className="px-3 py-1.5 bg-muted/50 text-sm font-semibold text-muted-foreground">
@@ -266,13 +260,23 @@ export default function RecipeSearchDialog({
               </>
             )}
 
-            {/* Empty state */}
             {recipes.length === 0 && ingredients.length === 0 && (
-              <p className="text-xs text-muted-foreground p-3 text-center">
-                {deferredQuery.length >= 2 || recipeType || selectedTagIds.length
-                  ? 'Keine Ergebnisse gefunden'
-                  : 'Suchbegriff oder Filter wählen'}
-              </p>
+              <div className="p-4 text-center space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {hasActiveFilter
+                    ? 'Keine Ergebnisse gefunden'
+                    : 'Suchbegriff oder Filter wählen'}
+                </p>
+                {hasActiveFilter && (
+                  <a
+                    href="/recipes/new"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Neues Rezept erstellen
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </DialogContent>
@@ -340,7 +344,6 @@ function IngredientQuantityDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Quantity */}
           <div>
             <label className="text-sm font-medium">Menge</label>
             <input
@@ -353,7 +356,6 @@ function IngredientQuantityDialog({
             />
           </div>
 
-          {/* Portion select */}
           {ingredient.portions.length > 0 && (
             <div>
               <label className="text-sm font-medium">Einheit</label>
@@ -374,14 +376,12 @@ function IngredientQuantityDialog({
             </div>
           )}
 
-          {/* Weight display */}
           {totalWeightG && (
             <p className="text-xs text-muted-foreground">
               = {Math.round(totalWeightG)}g
             </p>
           )}
 
-          {/* Actions */}
           <div className="flex gap-2 justify-end">
             <button
               onClick={() => onOpenChange(false)}

@@ -18,7 +18,7 @@ RULES_DATA = [
     # --- Day-level rules (most important) ---
     {
         "name": "Energie",
-        "parameter": "energy_kj",
+        "parameter": "energy_kcal",
         "scope": "day",
         "min_green": 1912,
         "min_yellow": 1554,
@@ -200,7 +200,7 @@ RULES_DATA = [
     # --- Event-level rules (averages) ---
     {
         "name": "Energie (Durchschnitt)",
-        "parameter": "energy_kj",
+        "parameter": "energy_kcal",
         "scope": "meal_event",
         "min_green": 1912,
         "min_yellow": 1554,
@@ -273,7 +273,7 @@ RULES_DATA = [
     # --- Meal-level rules ---
     {
         "name": "Energie (Mahlzeit)",
-        "parameter": "energy_kj",
+        "parameter": "energy_kcal",
         "scope": "meal",
         "min_green": 478,
         "min_yellow": 359,
@@ -478,7 +478,7 @@ RULES_DATA = [
     },
     {
         "name": "Energie (Rezept)",
-        "parameter": "energy_kj",
+        "parameter": "energy_kcal",
         "scope": "recipe",
         "min_green": 430,
         "min_yellow": 287,

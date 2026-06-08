@@ -7,7 +7,7 @@ Infrastruktur, Deployment und CI/CD-Konfiguration für die Inspi-Plattform. Defi
 ## Context
 
 - **Hosting**: Google Cloud Run (Migration von App Engine)
-- **Datenbank**: Self-hosted PostgreSQL (pgvector) als Cloud Run Service
+- **Datenbank**: Cloud SQL PostgreSQL (kostenoptimiert)
 - **Container Runtime**: Podman (lokal), Docker (Cloud Build CI)
 - **CI/CD**: Google Cloud Build (nicht GitHub Actions)
 - **IaC**: OpenTofu (nicht Terraform/HashiCorp)
@@ -39,11 +39,11 @@ Das System SHALL folgende Cloud-Architektur verwenden.
 - **THEN** besteht sie aus:
   - **GitHub** als Source Repository
   - **Artifact Registry** für Container-Images
-  - **Cloud Run Frontend** (`inspi-frontend`) — Nginx Reverse Proxy + Static Files auf Port 80
-  - **Cloud Run Backend** (`inspi-backend`) — Django/Gunicorn auf Port 8000
-  - **Cloud SQL** — Managed PostgreSQL (Private IP)
-  - **GCS Media Bucket** — Benutzer-Uploads
-  - **Serverless VPC Access Connector** — Cloud Run → Cloud SQL Verbindung
+- **Cloud Run Frontend** (`inspi-frontend`) — Nginx Reverse Proxy + Static Files auf Port 80
+- **Cloud Run Backend** (`inspi-backend`) — Django/Gunicorn auf Port 8000
+- **Cloud SQL** — Managed PostgreSQL, `db-f1-micro`, `SD_HDD`, Backups deaktiviert
+- **GCS Media Bucket** — Benutzer-Uploads
+- **Serverless VPC Access Connector** — Cloud Run → Cloud SQL Verbindung
 
 ### Requirement: Pre-Commit Hooks
 
@@ -161,17 +161,16 @@ Das System SHALL die Cloud Run Service-Konfiguration definieren.
   - Env Vars: `DJANGO_SETTINGS_MODULE=inspi.settings.production`
   - Allow unauthenticated: Ja (öffentliche API)
 
-#### Scenario: Database Service (inspi-db)
+#### Scenario: Cloud SQL Database (inspi-db)
 
-- GIVEN der Datenbank Cloud Run Service
-- THEN hat er folgende Konfiguration:
-  - Image: `europe-west3-docker.pkg.dev/$PROJECT/inspi/db:latest`
-  - Port: 5432
-  - CPU: 1, Memory: 1Gi
-  - Min Instances: 1 (immer laufen), Max: 1
-  - No CPU Throttling: Ja
-  - Volume: Cloud Storage Bucket `inspi-pgdata-$PROJECT` gemountet auf `/var/lib/postgresql/data`
-  - Allow unauthenticated: Nein (nur Backend darf zugreifen)
+- GIVEN die Cloud SQL PostgreSQL Instanz
+- THEN hat sie folgende kostenoptimierte Konfiguration:
+  - Tier: `db-f1-micro` (günstigster Shared-Core)
+  - Edition: `ENTERPRISE`
+  - Disk: 10GB `SD_HDD` (günstiger als SSD)
+  - Backups: **deaktiviert** (spart Backup-Speicherkosten)
+  - Disk Auto-Resize: aus
+  - Kein Point-in-Time Recovery
 
 #### Scenario: Frontend (GCS Static Hosting)
 
@@ -181,32 +180,34 @@ Das System SHALL die Cloud Run Service-Konfiguration definieren.
   - Build: `npm run build` → `gsutil rsync` zu GCS
   - Optional: Cloud CDN für bessere Performance
 
-### Requirement: Datenbank-Migration (Cloud SQL zu Cloud Run PostgreSQL)
+### Requirement: Datenbank-Kostenoptimierung
 
-Das System SHALL einen klaren Migrationsplan für die Datenbank bereitstellen.
+Das System SHALL die Cloud SQL Instanz kostenoptimiert betreiben.
 
-#### Scenario: Migrationsschritte
+#### Scenario: Aktuelle Cloud SQL Konfiguration
 
-- GIVEN die Migration von Cloud SQL zu Cloud Run PostgreSQL
-- THEN ist die Reihenfolge:
-  1. Cloud Run PostgreSQL Service deployen (`make deploy-db`)
-  2. Daten aus Cloud SQL exportieren (`pg_dump`)
-  3. Daten in Cloud Run PostgreSQL importieren (`pg_restore`)
-  4. Backend `production.py` Env-Vars auf Cloud Run DB Host umstellen
-  5. Cloud SQL Instanz abschalten
-  6. Cloud SQL Proxy aus dem Projekt entfernen
+- GIVEN die Cloud SQL PostgreSQL Instanz
+- THEN gilt folgende kostenoptimierte Konfiguration:
+  - Tier: `SD_HDD-micro` (~$7,67/Monat Compute)
+  - Disk: 10GB `SD_HDD` (~$0,40/Monat statt $1,70 mit SSD)
+  - Backups: deaktiviert (spart ~$2-4/Monat)
 
-#### Scenario: Settings-Änderung (production.py)
+#### Scenario: Kosten-Entscheidungen
 
-- GIVEN die Datenbank-Konfiguration in `backend/inspi/settings/production.py`
-- WHEN auf Cloud Run PostgreSQL umgestellt wird
-- THEN ändern sich die Settings zu:
-  - `ENGINE`: `django.db.backends.postgresql`
-  - `NAME`: env `DB_NAME` (default: `inspi`)
-  - `USER`: env `DB_USER` (default: `inspi`)
-  - `PASSWORD`: env `DB_PASSWORD`
-  - `HOST`: env `DB_HOST` (Cloud Run DB Service URL)
-  - `PORT`: env `DB_PORT` (default: `5432`)
+- GIVEN die Kostenoptimierung
+- THEN gelten folgende Entscheidungen:
+  - **Keine Backups**: Datenbank ist nicht geschäftskritisch; Backups können manuell via `pg_dump` gemacht werden
+  - **HDD statt SSD**: Bei geringem Datenvolumen (<10GB) ist der Performance-Unterschied vernachlässigbar
+  - **`db-f1-micro`**: Günstigster verfügbarer Tier, ausreichend für die aktuelle Last
+  - **Keine Migration zu Cloud Run PostgreSQL**: Bleibt vorerst bei Cloud SQL; Migration wäre bei Bedarf möglich
+
+#### Scenario: Manuelles Backup
+
+- GIVEN ein Administrator möchte ein Backup erstellen
+- WHEN er ein manuelles Backup benötigt
+- THEN führt er aus:
+  - `pg_dump -h $DB_HOST -U inspi -d inspi > backup_$(date +%Y-%m-%d).sql`
+  - AND lädt es z.B. in den Media Bucket hoch
 
 ### Requirement: OpenTofu Infrastruktur-as-Code
 
@@ -232,10 +233,9 @@ Das System MUST alle GCP-Ressourcen über OpenTofu verwalten (nicht manuell per 
   - Artifact Registry — `google_artifact_registry_repository`
   - GCS Frontend Bucket — `google_storage_bucket.frontend`
   - GCS Media Bucket — `google_storage_bucket.media`
-  - GCS pgdata Bucket — `google_storage_bucket.pgdata`
   - Secret Manager (DB Password) — `google_secret_manager_secret`
+  - Cloud SQL — `google_sql_database_instance.db`
   - Cloud Run Backend — `google_cloud_run_v2_service.backend`
-  - Cloud Run DB — `google_cloud_run_v2_service.db`
   - Cloud Build IAM — `google_project_iam_member` (4 Rollen)
   - Cloud Build Triggers — `google_cloudbuild_trigger` (deploy + PR)
   - IAM Public Access — `google_cloud_run_v2_service_iam_member`
@@ -249,8 +249,7 @@ Das System MUST alle GCP-Ressourcen über OpenTofu verwalten (nicht manuell per 
   - Domain: `gruppenstunde.de`
   - Backend Max Instances: 10
   - Backend Memory: 512Mi
-  - DB Memory: 1Gi
-  - Min Instances: 0 (scale to zero — auch Datenbank)
+  - DB Tier: `db-f1-micro`, Disk: 10GB `PD_HDD`, Backups: deaktiviert
   - PR Check Trigger: Ja
 
 #### Scenario: OpenTofu Nutzung
@@ -286,7 +285,5 @@ Das System SHALL die Migration in folgender Reihenfolge durchführen.
   - **Phase 4**: Cloud Build GitHub-Verbindung — Manuell über Console
   - **Phase 5**: OpenTofu Apply (Triggers) — Mit cloudbuild_repo gesetzt
   - **Phase 6**: Testen — Push auf main, Cloud Build deployt automatisch
-  - **Phase 7**: Daten-Migration — Cloud SQL nach Cloud Run PostgreSQL
-  - **Phase 8**: Cloud SQL abschalten — Instanz und Proxy entfernen
-  - **Phase 9**: App Engine Reste entfernen — app.yaml Referenzen und Code
-  - **Phase 10**: Frontend CDN — Optional: Cloud CDN für bessere Performance
+  - **Phase 7**: App Engine Reste entfernen — app.yaml Referenzen und Code
+  - **Phase 8**: Frontend CDN — Optional: Cloud CDN für bessere Performance

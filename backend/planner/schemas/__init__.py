@@ -42,6 +42,9 @@ from .meal_plan import (
     RefMealUpdateIn,
     RecipeSuggestionOut,
     ShoppingListItemOut,
+    NutritionalTagScanOut,
+    NutritionalTagViolationOut,
+    NutritionalTagScanSummaryOut,
 )
 
 __all__ = [
@@ -84,4 +87,7 @@ __all__ = [
     "RefMealOut",
     "RefMealUpdateIn",
     "ShoppingListItemOut",
+    "NutritionalTagScanOut",
+    "NutritionalTagViolationOut",
+    "NutritionalTagScanSummaryOut",
 ]

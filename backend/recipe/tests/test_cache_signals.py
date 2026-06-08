@@ -42,15 +42,15 @@ class TestRecipeCacheSignals:
     def test_ingredient_change_invalidates_recipe_cache(self):
         """Changing an Ingredient should recalculate caches for related recipes."""
         recipe = make_recipe()
-        ingredient = make_ingredient(energy_kj=100.0)
+        ingredient = make_ingredient(energy_kcal=24)
         portion = make_portion(ingredient=ingredient)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient)
 
         recipe.refresh_from_db()
-        first_energy = recipe.cached_energy_kj
+        first_energy = recipe.cached_energy_kcal
 
         # Update the ingredient
-        ingredient.energy_kj = 200.0
+        ingredient.energy_kcal = 200.0
         ingredient.save()
 
         recipe.refresh_from_db()
@@ -59,12 +59,12 @@ class TestRecipeCacheSignals:
         # The exact value depends on the portion weight calculation
         # but it should have changed
         if first_energy is not None and first_energy > 0:
-            assert recipe.cached_energy_kj != first_energy
+            assert recipe.cached_energy_kcal != first_energy
 
     def test_ingredient_delete_invalidates_recipe_cache(self):
         """Deleting an Ingredient should recalculate caches for related recipes."""
         recipe = make_recipe()
-        ingredient = make_ingredient(energy_kj=500.0)
+        ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient)
 
@@ -82,7 +82,7 @@ class TestRecipeCacheSignals:
     def test_portion_save_triggers_cache_recalculation(self):
         """Saving a Portion with changed weight_g should recalculate recipe cache."""
         recipe = make_recipe()
-        ingredient = make_ingredient(energy_kj=500.0)
+        ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=100.0)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
 
@@ -102,7 +102,7 @@ class TestRecipeCacheSignals:
     def test_portion_delete_triggers_cache_recalculation(self):
         """Deleting a Portion should recalculate caches for recipes that referenced it."""
         recipe = make_recipe()
-        ingredient = make_ingredient(energy_kj=500.0)
+        ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=100.0)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
 
@@ -119,7 +119,7 @@ class TestRecipeCacheSignals:
     def test_measuring_unit_save_triggers_cache_recalculation(self):
         """Saving a MeasuringUnit with changed quantity should recalculate recipe cache."""
         recipe = make_recipe()
-        ingredient = make_ingredient(energy_kj=500.0)
+        ingredient = make_ingredient(energy_kcal=120)
         measuring_unit = make_measuring_unit(quantity=1.0)
         portion = make_portion(ingredient=ingredient, weight_g=100.0, measuring_unit=measuring_unit)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
@@ -140,7 +140,7 @@ class TestRecipeCacheSignals:
         """Cache fields should be populated after RecipeItem creation."""
         recipe = make_recipe()
         ingredient = make_ingredient(
-            energy_kj=500.0,
+            energy_kcal=120,
             protein_g=20.0,
             fat_g=10.0,
             carbohydrate_g=60.0,
@@ -154,7 +154,7 @@ class TestRecipeCacheSignals:
         recipe.refresh_from_db()
         assert recipe.cached_at is not None
         # Nutritional values should be set (exact values depend on normalization)
-        assert recipe.cached_energy_kj is not None
+        assert recipe.cached_energy_kcal is not None
         assert recipe.cached_nutri_class is not None
 
 
@@ -165,7 +165,7 @@ class TestSuggestionCacheKey:
         from recipe.services.suggestion_service import get_suggestions
 
         recipe = make_recipe()
-        ingredient = make_ingredient(energy_kj=100.0)
+        ingredient = make_ingredient(energy_kcal=24)
         portion = make_portion(ingredient=ingredient)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient)
 
@@ -179,7 +179,7 @@ class TestSuggestionCacheKey:
         key1 = f"recipe_suggestion:{recipe.id}:{ts1}:{hash(objective)}"
 
         # Trigger recalculation by changing the ingredient
-        ingredient.energy_kj = 200.0
+        ingredient.energy_kcal = 200.0
         ingredient.save()
 
         recipe.refresh_from_db()

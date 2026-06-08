@@ -47,7 +47,7 @@ def get_recipe_nutritional_values(recipe: "Recipe") -> dict[str, float]:
 
     # Macronutrient totals
     macro_fields = [
-        "energy_kj",
+        "energy_kcal",
         "protein_g",
         "fat_g",
         "fat_sat_g",
@@ -222,10 +222,6 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
         else:
             value_per_serving = actual_value * factor
 
-        if rule.parameter == "energy_kj":
-            from recipe.services.nutrition_units import kj_to_kcal
-            value_per_serving = kj_to_kcal(value_per_serving)
-
         status = rule.evaluate(value_per_serving)
 
         if status == "green":
@@ -303,10 +299,6 @@ def match_recipe_hints(
         else:
             eval_value = actual * factor
 
-        if rule.parameter == "energy_kj":
-            from recipe.services.nutrition_units import kj_to_kcal
-            eval_value = kj_to_kcal(eval_value)
-
         status = rule.evaluate(eval_value)
 
         if status != "green":
@@ -346,7 +338,7 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     values = get_recipe_nutritional_values(recipe)
 
     # Macronutrient cache fields
-    recipe.cached_energy_kj = values.get("energy_kj")
+    recipe.cached_energy_kcal = values.get("energy_kcal")
     recipe.cached_protein_g = values.get("protein_g")
     recipe.cached_fat_g = values.get("fat_g")
     recipe.cached_carbohydrate_g = values.get("carbohydrate_g")
@@ -389,15 +381,15 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
             price = ingredient.price_per_kg * Decimal(str(weight_g)) / Decimal("1000")
             total_price += price
 
-    energy_per_100g = values.get("energy_kj")
-    recipe.cached_energy_total_kj = float(energy_per_100g) * (total_weight_g / 100.0) if energy_per_100g and total_weight_g else None
+    energy_per_100g = values.get("energy_kcal")
+    recipe.cached_energy_total_kcal = float(energy_per_100g) * (total_weight_g / 100.0) if energy_per_100g and total_weight_g else None
     recipe.cached_weight_g = total_weight_g
     recipe.cached_price_total = total_price if has_prices else None
     recipe.cached_at = timezone.now()
 
     update_fields = [
-        "cached_energy_kj",
-        "cached_energy_total_kj",
+        "cached_energy_kcal",
+        "cached_energy_total_kcal",
         "cached_weight_g",
         "cached_protein_g",
         "cached_fat_g",
@@ -414,3 +406,35 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
         update_fields.append(f"cached_{field}")
 
     recipe.save(update_fields=update_fields)
+
+
+def sync_recipe_allergen_tags(recipe: "Recipe") -> int:
+    """Sync the recipe's nutritional_tags (dangerous/allergen only) with ingredients."""
+    from supply.models.reference import NutritionalTag
+    from recipe.models import RecipeItem
+
+    # Get non-dangerous tags currently set on the recipe to preserve them
+    non_dangerous_tags = list(recipe.nutritional_tags.filter(is_dangerous=False))
+
+    # Find the distinct ingredient IDs associated with the recipe
+    ingredient_ids = list(
+        RecipeItem.objects.filter(recipe=recipe)
+        .values_list("portion__ingredient_id", flat=True)
+        .distinct()
+    )
+
+    if ingredient_ids:
+        dangerous_tags = list(
+            NutritionalTag.objects.filter(
+                is_dangerous=True,
+                ingredients__id__in=ingredient_ids
+            ).distinct()
+        )
+    else:
+        dangerous_tags = []
+
+    # Combine non-dangerous and dangerous tags
+    all_tags = non_dangerous_tags + dangerous_tags
+    recipe.nutritional_tags.set(all_tags)
+
+    return len(dangerous_tags)

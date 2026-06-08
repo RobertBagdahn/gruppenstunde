@@ -53,7 +53,7 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   recipe_type: z.string(),
   servings: z.number().nullable(),
   // Cached nutritional values (denormalized, per-100g)
-  cached_energy_kj: z.number().nullable().optional(),
+  cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
   cached_fat_g: z.number().nullable().optional(),
   cached_carbohydrate_g: z.number().nullable().optional(),
@@ -84,7 +84,7 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   recipe_type: z.string(),
   servings: z.number().nullable(),
   // Cached nutritional values (denormalized, per-100g)
-  cached_energy_kj: z.number().nullable().optional(),
+  cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
   cached_fat_g: z.number().nullable().optional(),
   cached_carbohydrate_g: z.number().nullable().optional(),
@@ -270,7 +270,6 @@ export const RecipeItemNutritionSchema = z.object({
   portion_name: z.string(),
   weight_g: z.number(),
   price_eur: z.number().nullable(),
-  energy_kj: z.number(),
   energy_kcal: z.number(),
   protein_g: z.number(),
   fat_g: z.number(),
@@ -290,7 +289,6 @@ export type RecipeItemNutrition = z.infer<typeof RecipeItemNutritionSchema>;
 export const RecipeNutritionBreakdownSchema = z.object({
   total_weight_g: z.number(),
   total_price_eur: z.number().nullable(),
-  total_energy_kj: z.number(),
   total_energy_kcal: z.number(),
   total_protein_g: z.number(),
   total_fat_g: z.number(),

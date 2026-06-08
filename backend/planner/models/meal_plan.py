@@ -15,7 +15,6 @@ class MealTypeChoices(models.TextChoices):
     LUNCH = "lunch", _("Mittagessen")
     DINNER = "dinner", _("Abendessen")
     SNACK = "snack", _("Snack")
-    DRINKS = "drinks", _("Getränke")
 
 
 # Default day_part_factor per meal type
@@ -24,7 +23,6 @@ MEAL_TYPE_DAY_FACTORS: dict[str, float] = {
     MealTypeChoices.LUNCH: 0.35,
     MealTypeChoices.DINNER: 0.30,
     MealTypeChoices.SNACK: 0.10,
-    MealTypeChoices.DRINKS: 0.00,
 }
 
 # Default meals auto-created for each day
@@ -33,7 +31,6 @@ DEFAULT_MEAL_TYPES = [
     MealTypeChoices.LUNCH,
     MealTypeChoices.DINNER,
     MealTypeChoices.SNACK,
-    MealTypeChoices.DRINKS,
 ]
 
 # Default start/end times per meal type (hour, minute)
@@ -42,7 +39,6 @@ MEAL_TYPE_DEFAULT_TIMES: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
     MealTypeChoices.LUNCH: ((12, 0), (13, 0)),
     MealTypeChoices.DINNER: ((18, 0), (19, 0)),
     MealTypeChoices.SNACK: ((15, 0), (15, 30)),
-    MealTypeChoices.DRINKS: ((16, 0), (16, 30)),
 }
 
 
@@ -53,7 +49,16 @@ def default_day_part_factors() -> dict[str, float]:
         "lunch": 0.35,
         "dinner": 0.30,
         "snack": 0.10,
-        "drinks": 0.00,
+    }
+
+
+def default_meal_default_times() -> dict[str, list[str]]:
+    """Default start/end times per meal type as HH:MM strings."""
+    return {
+        "breakfast": ["08:00", "09:00"],
+        "lunch": ["12:00", "13:00"],
+        "dinner": ["18:00", "19:00"],
+        "snack": ["15:00", "15:30"],
     }
 
 
@@ -119,6 +124,17 @@ class MealPlan(models.Model):
         verbose_name=_("Tagesanteile"),
         help_text=_("Gewichtung der Mahlzeittypen für diesen Plan"),
     )
+    meal_default_times = models.JSONField(
+        default=default_meal_default_times,
+        verbose_name=_("Standard-Uhrzeiten"),
+        help_text=_("Standard Start-/Endzeiten pro Mahlzeittyp (Format: {'breakfast': ['08:00', '09:00']})"),
+    )
+    nutritional_tags = models.ManyToManyField(
+        "supply.NutritionalTag",
+        blank=True,
+        related_name="meal_plans",
+        verbose_name=_("Ernährungseinschränkungen"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -136,15 +152,7 @@ class MealPlan(models.Model):
         return self.name
 
     def save(self, *args, **kwargs) -> None:
-        is_new = self.pk is None
-        old_day_part_factors = None
-        if not is_new:
-            try:
-                old_day_part_factors = MealPlan.objects.get(pk=self.pk).day_part_factors
-            except MealPlan.DoesNotExist:
-                pass
-
-        if is_new and self.owner_id is None and self.created_by_id is not None:
+        if self.pk is None and self.owner_id is None and self.created_by_id is not None:
             self.owner = self.created_by
 
         if not self.slug:
@@ -158,12 +166,6 @@ class MealPlan(models.Model):
                 counter += 1
             self.slug = slug
         super().save(*args, **kwargs)
-
-        if not is_new and old_day_part_factors != self.day_part_factors:
-            for meal_type, new_val in (self.day_part_factors or {}).items():
-                old_val = (old_day_part_factors or {}).get(meal_type)
-                if old_val is not None and old_val != new_val:
-                    self.meals.filter(meal_type=meal_type, day_part_factor=old_val).update(day_part_factor=new_val)
 
     @property
     def scaling_factor(self) -> float:
@@ -272,10 +274,10 @@ class Meal(models.Model):
         verbose_name=_("Externe Mahlzeit"),
         help_text=_("Wenn True, wird diese Mahlzeit als extern (z.B. Restaurant) behandelt"),
     )
-    external_energy_kj = models.FloatField(
+    external_energy_kcal = models.FloatField(
         null=True,
         blank=True,
-        verbose_name=_("Externe Energie (kJ)"),
+        verbose_name=_("Externe Energie (kcal)"),
         help_text=_("Manuell eingegebener Energiewert für externe Mahlzeiten"),
     )
     external_cost_per_person = models.FloatField(
@@ -293,6 +295,13 @@ class Meal(models.Model):
         default=False,
         verbose_name=_("Notiz sichtbar"),
         help_text=_("Wenn True, erscheint die Notiz im PDF/Ausdruck"),
+    )
+    display_name = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name=_("Anzeigename"),
+        help_text=_("Benutzerdefinierter Name (z.B. 'Kaffee', 'Saft')"),
     )
     is_reference = models.BooleanField(
         default=False,
@@ -341,8 +350,8 @@ class Meal(models.Model):
             if self.is_synced:
                 raise ValidationError(_("Ein RefMeal kann nicht synchronisiert sein."))
         else:
-            # Regular meal: validate date uniqueness
-            if self.start_datetime and self.meal_plan_id:
+            # Regular meal: validate date uniqueness (snack can have multiple per day)
+            if self.meal_type != MealTypeChoices.SNACK and self.start_datetime and self.meal_plan_id:
                 date = self.start_datetime.date()
                 qs = Meal.objects.filter(
                     meal_plan=self.meal_plan,

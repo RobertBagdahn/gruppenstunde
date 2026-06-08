@@ -46,7 +46,7 @@ export const DgeReferencePointSchema = z.object({
   age_min: z.number(),
   age_max: z.number(),
   gender: z.string(),
-  energy_kj: z.number(),
+  energy_kcal: z.number(),
   protein_g: z.number(),
   fat_g: z.number(),
   carbohydrate_g: z.number(),
@@ -66,7 +66,7 @@ export const DgeReferenceSchema = z.object({
   age_max: z.number(),
   gender: z.string(),
   // Macronutrients
-  energy_kj: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
   carbohydrate_g: z.number().nullable(),

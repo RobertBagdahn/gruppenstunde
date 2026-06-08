@@ -4,6 +4,12 @@
  */
 import { z } from 'zod';
 
+export const NutritionalTagSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
+
 // ==========================================================================
 // MealItem Override
 // ==========================================================================
@@ -33,7 +39,7 @@ export const MealItemSchema = z.object({
   measuring_unit_name: z.string(),
   display_name: z.string().nullable(),
   factor: z.number(),
-  energy_kj: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
   cost_eur: z.number().nullable(),
   overrides: z.array(MealItemOverrideSchema),
 });
@@ -49,6 +55,7 @@ export const MealSchema = z.object({
   end_datetime: z.string().nullable(),
   meal_type: z.string(),
   day_part_factor: z.number(),
+  display_name: z.string(),
   override_portions: z.number().nullable(),
   note: z.string(),
   note_is_published: z.boolean(),
@@ -58,7 +65,7 @@ export const MealSchema = z.object({
   is_external: z.boolean(),
   external_energy_kcal: z.number().nullable(),
   external_cost_per_person: z.number().nullable(),
-  total_energy_kj: z.number(),
+  total_energy_kcal: z.number(),
   total_cost_eur: z.number(),
   items: z.array(MealItemSchema),
 });
@@ -88,6 +95,9 @@ export const MealPlanSchema = z.object({
   updated_at: z.string(),
   meals_count: z.number(),
   day_part_factors: z.record(z.string(), z.number()),
+  meal_default_times: z.record(z.string(), z.tuple([z.string(), z.string()])),
+  nutritional_tag_ids: z.array(z.number()).default([]),
+  nutritional_tag_names: z.array(z.string()).default([]),
 });
 export type MealPlan = z.infer<typeof MealPlanSchema>;
 
@@ -114,8 +124,11 @@ export const MealPlanDetailSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   day_part_factors: z.record(z.string(), z.number()),
+  meal_default_times: z.record(z.string(), z.tuple([z.string(), z.string()])),
   meals: z.array(MealSchema),
   can_edit: z.boolean(),
+  nutritional_tag_ids: z.array(z.number()).default([]),
+  nutritional_tags: z.array(NutritionalTagSchema).default([]),
 });
 export type MealPlanDetail = z.infer<typeof MealPlanDetailSchema>;
 
@@ -125,7 +138,7 @@ export type MealPlanDetail = z.infer<typeof MealPlanDetailSchema>;
 
 export const NutritionSummarySchema = z.object({
   // Total values (entire MealPlan)
-  energy_kj: z.number(),
+  energy_kcal: z.number(),
   protein_g: z.number(),
   fat_g: z.number(),
   carbohydrate_g: z.number(),
@@ -134,7 +147,7 @@ export const NutritionSummarySchema = z.object({
   salt_g: z.number(),
 
   // Per Normportion values (total / norm_portions)
-  per_portion_energy_kj: z.number(),
+  per_portion_energy_kcal: z.number(),
   per_portion_protein_g: z.number(),
   per_portion_fat_g: z.number(),
   per_portion_carbohydrate_g: z.number(),
@@ -179,12 +192,6 @@ export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;
 // Recipe Search Result (with preview fields)
 // ==========================================================================
 
-export const NutritionalTagSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-});
-export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
-
 export const RecipeSearchResultSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -192,7 +199,7 @@ export const RecipeSearchResultSchema = z.object({
   recipe_type: z.string(),
   image: z.string().nullable().optional(),
   servings: z.number().nullable().optional(),
-  cached_energy_kj: z.number().nullable().optional(),
+  cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
   cached_fat_g: z.number().nullable().optional(),
   cached_carbohydrate_g: z.number().nullable().optional(),
@@ -202,6 +209,8 @@ export const RecipeSearchResultSchema = z.object({
   usage_count: z.number().optional(),
   description: z.string().nullable().optional(),
   ingredients_preview: z.array(z.string()).optional(),
+  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  price_per_serving: z.number().nullable().optional(),
 });
 export type RecipeSearchResult = z.infer<typeof RecipeSearchResultSchema>;
 
@@ -215,6 +224,8 @@ export const RecipePopularItemSchema = z.object({
   recipe_type: z.string(),
   image: z.string().nullable(),
   usage_count: z.number(),
+  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  price_per_serving: z.number().nullable().optional(),
 });
 export type RecipePopularItem = z.infer<typeof RecipePopularItemSchema>;
 
@@ -233,11 +244,36 @@ export const RecipeSuggestionSchema = z.object({
   title: z.string(),
   usage_count: z.number(),
   image_thumbnail: z.string().nullable(),
+  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  price_per_serving: z.number().nullable().optional(),
+  recipe_type: z.string().optional(),
 });
 export type RecipeSuggestion = z.infer<typeof RecipeSuggestionSchema>;
 
 export const RecipeSuggestionsResponseSchema = z.array(RecipeSuggestionSchema);
 export type RecipeSuggestionsResponse = z.infer<typeof RecipeSuggestionsResponseSchema>;
+
+// ==========================================================================
+// Recently Used Recipes
+// ==========================================================================
+
+export const RecipeRecentlyUsedSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  recipe_type: z.string(),
+  image: z.string().nullable(),
+  usage_count: z.number().optional(),
+  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  price_per_serving: z.number().nullable().optional(),
+  nutritional_tags: z.array(NutritionalTagSchema).optional(),
+});
+export type RecipeRecentlyUsed = z.infer<typeof RecipeRecentlyUsedSchema>;
+
+export const RecentlyUsedResponseSchema = z.object({
+  recipes: z.array(RecipeRecentlyUsedSchema),
+});
+export type RecentlyUsedResponse = z.infer<typeof RecentlyUsedResponseSchema>;
 
 export const IngredientPortionSchema = z.object({
   id: z.number(),
@@ -261,6 +297,7 @@ export type IngredientSearchResult = z.infer<typeof IngredientSearchResultSchema
 export const UnifiedSearchResponseSchema = z.object({
   recipes: z.array(RecipeSearchResultSchema),
   ingredients: z.array(IngredientSearchResultSchema),
+  fallback_applied: z.boolean().optional(),
 });
 export type UnifiedSearchResponse = z.infer<typeof UnifiedSearchResponseSchema>;
 
@@ -268,14 +305,13 @@ export type UnifiedSearchResponse = z.infer<typeof UnifiedSearchResponseSchema>;
 // Meal Type Labels (German)
 // ==========================================================================
 
-export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'] as const;
+export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
 export const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
   lunch: 'Mittagessen',
   dinner: 'Abendessen',
   snack: 'Snack',
-  drinks: 'Getränke',
 };
 
 export const MEAL_TYPE_ICONS: Record<string, string> = {
@@ -283,7 +319,6 @@ export const MEAL_TYPE_ICONS: Record<string, string> = {
   lunch: 'restaurant',
   dinner: 'dinner_dining',
   snack: 'cookie',
-  drinks: 'local_bar',
 };
 
 export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border: string }> = {
@@ -291,7 +326,6 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
   lunch: { text: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-300' },
   dinner: { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-300' },
   snack: { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-300' },
-  drinks: { text: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-300' },
 };
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';
@@ -315,6 +349,83 @@ export function getCoverageStatus(
   if (percent < 50 || percent > 150) status = 'critical';
   else if (percent < 80 || percent > 120) status = 'warning';
   return { percent, status };
+}
+
+// Default start/end times per meal type (minutes since midnight)
+// Sync with backend planner/models/meal_plan.py MEAL_TYPE_DEFAULT_TIMES
+export const MEAL_TYPE_DEFAULT_TIMES: Record<string, [number, number]> = {
+  breakfast: [8 * 60, 9 * 60],
+  lunch: [12 * 60, 13 * 60],
+  dinner: [18 * 60, 19 * 60],
+  snack: [15 * 60, 15 * 60 + 30],
+};
+
+export function minutesToHHMM(minutes: number): string {
+  const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+  const m = (minutes % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function parseTimeToMinutes(datetimeStr: string): number {
+  const d = new Date(datetimeStr);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/** Sum of day_part_factors for meals on a day, capped at 1.0. */
+export function getDayCoverage(meals: Meal[]): number {
+  const covered = meals.reduce((sum, m) => sum + m.day_part_factor, 0);
+  return Math.min(covered, 1.0);
+}
+
+/** Effective coverage with a floor of 0.35 for KPI comparisons. */
+export function getEffectiveCoverage(coverage: number): number {
+  return Math.max(coverage, 0.35);
+}
+
+export function getCoverageBadge(coverage: number): { label: string; status: 'green' | 'yellow' | 'red'; effectiveCoverage: number } {
+  const effectiveCoverage = getEffectiveCoverage(coverage);
+  const pct = Math.round(coverage * 100);
+  if (coverage >= 0.8) return { label: 'Vollständig', status: 'green', effectiveCoverage };
+  if (coverage >= 0.35) return { label: `Teilweise ${pct} %`, status: 'yellow', effectiveCoverage };
+  return { label: `Lückenhaft ${pct} %`, status: 'red', effectiveCoverage };
+}
+
+/** Read meal_default_times from plan data with fallback to hardcoded defaults. */
+export function getMealDefaultTimes(
+  mealDefaultTimes?: Record<string, [string, string]> | null,
+): Record<string, [number, number]> {
+  if (mealDefaultTimes) {
+    const result: Record<string, [number, number]> = {};
+    for (const [key, [start, end]] of Object.entries(mealDefaultTimes)) {
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      result[key] = [sh * 60 + sm, eh * 60 + em];
+    }
+    return result;
+  }
+  return { ...MEAL_TYPE_DEFAULT_TIMES };
+}
+
+/** Determine which meal types are naturally absent on boundary days (first/last). */
+export function getSkippedMealTypes(
+  date: string,
+  startDatetime?: string | null,
+  endDatetime?: string | null,
+): string[] {
+  if (!startDatetime || !endDatetime) return [];
+  const isFirst = date === startDatetime.slice(0, 10);
+  const isLast = date === endDatetime.slice(0, 10);
+  if (!isFirst && !isLast) return [];
+
+  const startMinutes = isFirst ? parseTimeToMinutes(startDatetime) : 0;
+  const endMinutes = isLast ? parseTimeToMinutes(endDatetime) : 24 * 60;
+  const skipped: string[] = [];
+
+  for (const [mealType, [mtStart, mtEnd]] of Object.entries(MEAL_TYPE_DEFAULT_TIMES)) {
+    if (isFirst && mtStart < startMinutes) skipped.push(mealType);
+    if (isLast && mtEnd > endMinutes) skipped.push(mealType);
+  }
+  return skipped;
 }
 
 // ==========================================================================
@@ -439,6 +550,54 @@ export const CopyItemsFromPlanInSchema = z.object({
   note: z.string().optional(),
 });
 export type CopyItemsFromPlanIn = z.infer<typeof CopyItemsFromPlanInSchema>;
+
+// ==========================================================================
+// MealPlan Filter Options
+// ==========================================================================
+
+export const MEALPLAN_ORIGIN_OPTIONS = [
+  { value: 'all', label: 'Alle', icon: 'public' },
+  { value: 'verified', label: 'Inspi-verifiziert', icon: 'verified' },
+  { value: 'community', label: 'Community', icon: 'groups' },
+  { value: 'mine', label: 'Meine Pläne', icon: 'person' },
+] as const;
+
+export const MEALPLAN_SORT_OPTIONS = [
+  { value: 'date_newest', label: 'Neuestes Datum' },
+  { value: 'date_oldest', label: 'Ältestes Datum' },
+  { value: 'name_asc', label: 'Name A-Z' },
+  { value: 'name_desc', label: 'Name Z-A' },
+] as const;
+
+// ==========================================================================
+// Allergen Scanner
+// ==========================================================================
+
+export const NutritionalTagViolationSchema = z.object({
+  meal_id: z.number(),
+  meal_type: z.string(),
+  date: z.string(),
+  recipe_id: z.number(),
+  recipe_title: z.string(),
+  recipe_slug: z.string(),
+  nutritional_tag: NutritionalTagSchema,
+  source: z.string().default('recipe_tag'),
+});
+export type NutritionalTagViolation = z.infer<typeof NutritionalTagViolationSchema>;
+
+export const NutritionalTagScanSummarySchema = z.object({
+  total_violations: z.number(),
+  affected_meals: z.number(),
+  unique_tags: z.number(),
+});
+export type NutritionalTagScanSummary = z.infer<typeof NutritionalTagScanSummarySchema>;
+
+export const NutritionalTagScanResponseSchema = z.object({
+  nutritional_tags: z.array(NutritionalTagSchema),
+  violations: z.array(NutritionalTagViolationSchema),
+  summary: NutritionalTagScanSummarySchema,
+});
+export type NutritionalTagScanResponse = z.infer<typeof NutritionalTagScanResponseSchema>;
 
 // ==========================================================================
 // Backward compatibility re-exports

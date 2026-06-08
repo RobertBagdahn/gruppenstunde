@@ -7,6 +7,7 @@ from ninja import NinjaAPI
 from core.api import auth_router
 from content.admin_api import router as admin_router
 from content.api import router as content_router
+from content.api.data_quality import admin_router as dq_admin_router, public_router as dq_public_router
 from recipe.api import router as recipe_router, folder_router as recipe_folder_router
 from recipe.api.dashboard import router as dashboard_router
 from recipe.api.rules import router as rules_router
@@ -46,6 +47,8 @@ api = NinjaAPI(
 
 api.add_router("/auth/", auth_router)
 api.add_router("/admin/", admin_router)
+api.add_router("/admin/data-quality/", dq_admin_router)
+api.add_router("/data-quality/", dq_public_router)
 api.add_router("/planner/", planner_router)
 api.add_router("/meal-plans/", meal_plan_router)
 api.add_router("/meal-plans/", ref_meal_router)

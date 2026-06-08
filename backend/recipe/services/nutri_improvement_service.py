@@ -19,7 +19,7 @@ _NUTRI_LABELS = {1: "A", 2: "B", 3: "C", 4: "D", 5: "E"}
 
 # Negative parameters: reducing the value improves the score
 _NEGATIVE_PARAMS: list[dict[str, str]] = [
-    {"key": "energy_kj", "label": "Energie", "direction": "reduce"},
+    {"key": "energy_kcal", "label": "Energie", "direction": "reduce"},
     {"key": "sugar_g", "label": "Zucker", "direction": "reduce"},
     {"key": "fat_sat_g", "label": "Gesättigte Fettsäuren", "direction": "reduce"},
     {"key": "sodium_mg", "label": "Salz/Natrium", "direction": "reduce"},
@@ -115,10 +115,6 @@ def calculate_nutri_improvements(recipe: "Recipe") -> list[dict]:
 
         current_val = candidate["current_value"]
         target_val = candidate["target_value"]
-        if candidate["parameter"] == "energy_kj":
-            from recipe.services.nutrition_units import kj_to_kcal
-            current_val = kj_to_kcal(current_val)
-            target_val = kj_to_kcal(target_val)
 
         results.append(
             {
@@ -180,9 +176,6 @@ def _find_contributing_ingredients(recipe: "Recipe", parameter: str) -> list[dic
         # Convert salt_g contribution to sodium_mg
         if parameter == "sodium_mg":
             contribution = contribution * 400.0
-        elif parameter == "energy_kj":
-            from recipe.services.nutrition_units import kj_to_kcal
-            contribution = kj_to_kcal(contribution)
 
         total_contribution += contribution
 

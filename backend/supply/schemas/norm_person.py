@@ -43,7 +43,7 @@ class DgeReferencePointOut(Schema):
     age_min: int
     age_max: int
     gender: str
-    energy_kj: float
+    energy_kcal: float
     protein_g: float
     fat_g: float
     carbohydrate_g: float

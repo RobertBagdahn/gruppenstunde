@@ -76,7 +76,7 @@ def ingredient(db, retail_section):
         slug="weizenmehl",
         status="approved",
         retail_section=retail_section,
-        energy_kj=1418,
+        energy_kcal=339,
         protein_g=10.3,
         fat_g=1.0,
         fat_sat_g=0.2,
@@ -238,7 +238,7 @@ class TestIngredientDetail:
         assert resp.status_code == 200
         data = resp.json()
         assert data["name"] == "Weizenmehl"
-        assert data["energy_kj"] == 1418.0
+        assert data["energy_kcal"] == 339.0
 
     def test_404_for_nonexistent(self, api_client):
         resp = api_client.get("/api/ingredients/nonexistent-slug/")
@@ -261,7 +261,7 @@ class TestIngredientCreate:
             data=json.dumps(
                 {
                     "name": "Zucker",
-                    "energy_kj": 1680,
+                    "energy_kcal": 402,
                     "protein_g": 0,
                     "fat_g": 0,
                     "carbohydrate_g": 100,
@@ -368,6 +368,32 @@ class TestIngredientAliases:
         )
         assert resp.status_code == 200
         assert resp.json()["name"] == "Weizenmehl 405"
+
+    def test_create_alias_trimmed_and_duplicates(self, auth_client, ingredient):
+        # Trimmed test
+        resp = auth_client.post(
+            f"/api/ingredients/{ingredient.slug}/aliases/",
+            data=json.dumps({"name": "  Weizenmehl 505  "}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.json()["name"] == "Weizenmehl 505"
+
+        # Duplicate test
+        resp = auth_client.post(
+            f"/api/ingredients/{ingredient.slug}/aliases/",
+            data=json.dumps({"name": "weizenmehl 505"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 409
+
+        # Empty name test
+        resp = auth_client.post(
+            f"/api/ingredients/{ingredient.slug}/aliases/",
+            data=json.dumps({"name": "   "}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
 
     def test_delete_alias(self, auth_client, ingredient):
         alias = IngredientAlias.objects.create(

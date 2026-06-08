@@ -142,7 +142,7 @@ export const IngredientListItemSchema = z.object({
   name: z.string(),
   slug: z.string(),
   status: z.string(),
-  energy_kj: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
   carbohydrate_g: z.number().nullable(),
@@ -167,7 +167,7 @@ export const IngredientDetailSchema = z.object({
   max_storage_temperature: z.number().nullable(),
 
   // Nutritional values per 100g
-  energy_kj: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
   fat_sat_g: z.number().nullable(),
@@ -376,7 +376,7 @@ export const PortionSuggestionSchema = z.object({
 export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
 
 export const IngredientSuggestAllSchema = z.object({
-  energy_kj: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
   fat_sat_g: z.number().nullable(),
@@ -388,7 +388,7 @@ export const IngredientSuggestAllSchema = z.object({
   fructose_g: z.number().nullable(),
   lactose_g: z.number().nullable(),
 
-  nutri_score: z.string().nullable(),
+  nutri_score: z.number().nullable(),
   nova_score: z.number().nullable(),
   child_score: z.number().nullable(),
   scout_score: z.number().nullable(),
@@ -402,5 +402,6 @@ export const IngredientSuggestAllSchema = z.object({
 
   portions: z.array(PortionSuggestionSchema).default([]),
   aliases: z.array(z.string()).default([]),
+  nutritional_tags: z.array(NutritionalTagSchema).default([]),
 });
 export type IngredientSuggestAll = z.infer<typeof IngredientSuggestAllSchema>;

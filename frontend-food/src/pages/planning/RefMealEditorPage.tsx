@@ -16,9 +16,7 @@ import { useRecipeSearch } from '@/api/mealPlans';
 import { useMealPlan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { RefMealItemIn } from '@/schemas/mealPlan';
-import { kjToKcal } from '@/utils/nutritionUnits';
 
-const ENERGY_KJ_TO_KCAL = kjToKcal(1);
 const DEFAULT_DAILY_KCAL = 2400;
 
 /** Category labels for recipe type grouping */
@@ -80,12 +78,12 @@ export default function RefMealEditorPage() {
   const totalEnergyKj = useMemo(() => {
     if (!refMeal) return 0;
     return refMeal.items.reduce((sum, item) => {
-      const energy = item.energy_kj || 0;
+      const energy = item.energy_kcal || 0;
       return sum + energy;
     }, 0);
   }, [refMeal]);
 
-  const totalKcal = totalEnergyKj * ENERGY_KJ_TO_KCAL;
+  const totalKcal = totalEnergyKcal;
   const energyPercent = targetKcal > 0 ? Math.round((totalKcal / targetKcal) * 100) : 0;
 
   // Handlers

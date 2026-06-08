@@ -33,7 +33,7 @@ class CleanNameSchema(BaseModel):
 class NutritionFillSchema(BaseModel):
     """AI response for filling missing nutrition data."""
 
-    energy_kj: float | None = Field(None, description="Energie in kJ pro 100g")
+    energy_kcal: float | None = Field(None, description="Energie in kcal pro 100g")
     protein_g: float | None = Field(None, description="Eiweiß in g pro 100g")
     fat_g: float | None = Field(None, description="Fett in g pro 100g")
     fat_sat_g: float | None = Field(None, description="Gesättigte Fettsäuren in g pro 100g")
@@ -114,8 +114,8 @@ def fill_missing_data_via_ai(ingredient: Ingredient) -> dict | None:
 
     missing_fields = []
     # Treat 0 as missing for nutrition fields (legacy import set everything to 0)
-    if not ingredient.energy_kj:
-        missing_fields.append("energy_kj")
+    if not ingredient.energy_kcal:
+        missing_fields.append("energy_kcal")
     if not ingredient.protein_g:
         missing_fields.append("protein_g")
     if not ingredient.fat_g:
@@ -233,7 +233,7 @@ class Command(BaseCommand):
 
         # Find ingredients with missing core data (0 counts as missing for nutrition)
         ingredients = Ingredient.objects.filter(
-            Q(energy_kj__isnull=True) | Q(energy_kj=0)
+            Q(energy_kcal__isnull=True) | Q(energy_kcal=0)
             | Q(protein_g__isnull=True) | Q(protein_g=0)
             | Q(fat_g__isnull=True) | Q(fat_g=0)
             | Q(carbohydrate_g__isnull=True) | Q(carbohydrate_g=0)

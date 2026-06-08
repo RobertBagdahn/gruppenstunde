@@ -102,7 +102,7 @@ class IngredientAdmin(admin.ModelAdmin):
             "Nährwerte pro 100g",
             {
                 "fields": (
-                    "energy_kj",
+                    "energy_kcal",
                     "protein_g",
                     "fat_g",
                     "fat_sat_g",
@@ -178,7 +178,7 @@ class PortionAdmin(admin.ModelAdmin):
 
 @admin.register(DgeReference)
 class DgeReferenceAdmin(admin.ModelAdmin):
-    list_display = ["age_min", "age_max", "gender", "energy_kj", "protein_g", "vitamin_c_mg"]
+    list_display = ["age_min", "age_max", "gender", "energy_kcal", "protein_g", "vitamin_c_mg"]
     list_filter = ["gender"]
     search_fields = ["gender"]
     list_per_page = 25
@@ -186,7 +186,7 @@ class DgeReferenceAdmin(admin.ModelAdmin):
         (None, {"fields": ("age_min", "age_max", "gender")}),
         (
             "Makronährstoffe (pro Tag)",
-            {"fields": ("energy_kj", "protein_g", "fat_g", "carbohydrate_g", "fibre_g")},
+            {"fields": ("energy_kcal", "protein_g", "fat_g", "carbohydrate_g", "fibre_g")},
         ),
         (
             "Obergrenzen (pro Tag)",

@@ -34,6 +34,13 @@ class IngredientStatusChoices(models.TextChoices):
     USER_CONTENT = "user_content", _("Benutzer erstellt")
 
 
+class StorageTypeChoices(models.TextChoices):
+    DRY = "dry", _("Trocken")
+    REFRIGERATED = "refrigerated", _("Kühlschrank")
+    FROZEN = "frozen", _("Gefroren")
+    AMBIENT = "ambient", _("Raumtemperatur")
+
+
 # ---------------------------------------------------------------------------
 # Recipe hint choices (migrated from idea/choices.py)
 # ---------------------------------------------------------------------------
@@ -50,7 +57,7 @@ class RecipeTypeChoices(models.TextChoices):
 
 
 class HintParameterChoices(models.TextChoices):
-    ENERGY_KJ = "energy_kj", _("Energie (kcal)")
+    ENERGY_KCAL = "energy_kcal", _("Energie (kcal)")
     SUGAR_G = "sugar_g", _("Zucker (g)")
     SODIUM_MG = "sodium_mg", _("Natrium (mg)")
     FIBRE_G = "fibre_g", _("Ballaststoffe (g)")

@@ -12,6 +12,7 @@ import {
   Scale,
   DollarSign,
   Lightbulb,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   useMealPlan,
@@ -27,7 +28,7 @@ import {
   useUpdateMeal,
   useScaleMealToTarget,
 } from '@/api/mealPlans';
-import { MEAL_TYPE_ORDER } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, MEAL_TYPE_DEFAULT_TIMES, minutesToHHMM } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -39,6 +40,7 @@ import NutritionView from './NutritionView';
 import ShoppingView from './ShoppingView';
 import { DayPlanView } from './DayPlanView';
 import { CopyFromPlanDialog } from './CopyFromPlanDialog';
+import AllergenScanView from './AllergenScanView';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -84,7 +86,7 @@ export default function MealPlanDetailPage() {
   const scaleMealMutation = useScaleMealToTarget(mealPlanId);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'plan' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions'>('plan');
+  const [activeTab, setActiveTab] = useState<'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'allergens'>('plan');
 
   // Delete confirmations
   const [deleteDayDate, setDeleteDayDate] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function MealPlanDetailPage() {
     updateMealItemMutation.mutate(
       { itemId, factor },
       {
-        onError: (err: any) => toast.error('Fehler', { description: err.message }),
+        onError: (err: { message: string }) => toast.error('Fehler', { description: err.message }),
       },
     );
   }, [updateMealItemMutation]);
@@ -123,7 +125,7 @@ export default function MealPlanDetailPage() {
     updateMealMutation.mutate(
       { mealId, ...data },
       {
-        onError: (err: any) => toast.error('Fehler', { description: err.message }),
+        onError: (err: { message: string }) => toast.error('Fehler', { description: err.message }),
       },
     );
   }, [updateMealMutation]);
@@ -133,7 +135,7 @@ export default function MealPlanDetailPage() {
       onSuccess: () => {
         toast.success('Mahlzeit erfolgreich auf Soll-Kcal skaliert');
       },
-      onError: (err: any) => {
+      onError: (err: { message: string }) => {
         toast.error('Fehler beim Skalieren', { description: err.message });
       },
     });
@@ -166,16 +168,10 @@ export default function MealPlanDetailPage() {
     });
   };
 
-  /** Default start/end times per meal type (HH:mm) */
-  const MEAL_TYPE_DEFAULT_TIMES: Record<string, [string, string]> = {
-    breakfast: ['08:00', '09:00'],
-    lunch: ['12:00', '13:00'],
-    dinner: ['18:00', '19:00'],
-    snack: ['15:00', '15:30'],
-  };
-
   const handleAddMealType = (date: string, mealType: string): Promise<Meal> => {
-    const [startTime, endTime] = MEAL_TYPE_DEFAULT_TIMES[mealType] ?? ['12:00', '13:00'];
+    const defaultTimes = MEAL_TYPE_DEFAULT_TIMES[mealType];
+    const startTime = defaultTimes ? minutesToHHMM(defaultTimes[0]) : '12:00';
+    const endTime = defaultTimes ? minutesToHHMM(defaultTimes[1]) : '13:00';
     return addMealMutation.mutateAsync(
       {
         start_datetime: `${date}T${startTime}:00`,
@@ -223,6 +219,7 @@ export default function MealPlanDetailPage() {
     budget_per_person_per_day?: number | null;
     start_datetime?: string | null;
     end_datetime?: string | null;
+    nutritional_tag_ids?: number[];
   }) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
@@ -240,6 +237,7 @@ export default function MealPlanDetailPage() {
     costs: DollarSign,
     shopping: ShoppingCart,
     suggestions: Lightbulb,
+    allergens: ShieldAlert,
   };
 
   return (
@@ -291,7 +289,8 @@ export default function MealPlanDetailPage() {
           { key: 'costs' as const, label: 'Kosten' },
           { key: 'shopping' as const, label: 'Einkaufsliste' },
           { key: 'suggestions' as const, label: 'Vorschläge' },
-        ].map((tab) => {
+          { key: 'allergens' as const, label: 'Allergie-Scanner' },
+        ].filter(tab => tab.key !== 'allergens' || (plan.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)).map((tab) => {
           const IconComponent = TAB_ICONS[tab.key];
           return (
             <button
@@ -333,15 +332,19 @@ export default function MealPlanDetailPage() {
           onUpdateMeal={handleUpdateMeal}
           onScaleMeal={handleScaleMeal}
           onCopyFromPlan={setCopyDialogTargetMealId}
+          nutritionalTagIds={plan.nutritional_tag_ids}
+          nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
         />
       )}
-      {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} />}
+      {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} onSelectTab={setActiveTab} />}
       {activeTab === 'table' && (
         <TableView
           meals={plan.meals}
           normPortions={plan.norm_portions}
           budgetPerPersonPerDay={plan.budget_per_person_per_day}
           canEdit={plan.can_edit}
+          startDatetime={plan.start_datetime}
+          endDatetime={plan.end_datetime}
           onAddMealType={handleAddMealType}
           onAddRecipe={handleAddRecipe}
           onAddIngredient={handleAddIngredient}
@@ -350,11 +353,21 @@ export default function MealPlanDetailPage() {
           onDeleteMeal={setDeleteMealId}
           onUpdateMeal={handleUpdateMeal}
           onScaleMeal={handleScaleMeal}
+          nutritionalTagIds={plan.nutritional_tag_ids}
+          nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
         />
       )}
-      {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} />}
+       {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} meals={plan.meals} onSelectTab={setActiveTab} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
       {activeTab === 'suggestions' && <SuggestionDashboard mealPlanId={mealPlanId} />}
+      {activeTab === 'allergens' && (
+        <AllergenScanView
+          mealPlanId={mealPlanId}
+          canEdit={plan.can_edit}
+          onOpenSettings={() => setShowSettings(true)}
+          nutritionalTagsCount={plan.nutritional_tag_ids?.length || 0}
+        />
+      )}
 
       {/* Delete Day Confirm */}
       <ConfirmDialog

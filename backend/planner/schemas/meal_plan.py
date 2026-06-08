@@ -4,6 +4,7 @@ import datetime as dt
 from decimal import Decimal
 
 from ninja import Schema
+from supply.schemas.reference import NutritionalTagOut
 
 
 class MealItemOverrideOut(Schema):
@@ -32,7 +33,7 @@ class MealItemOut(Schema):
     measuring_unit_name: str = ""
     display_name: str | None = None
     factor: float
-    energy_kj: float | None = None
+    energy_kcal: float | None = None
     cost_eur: float | None = None
     overrides: list[MealItemOverrideOut] = []
 
@@ -63,14 +64,12 @@ class MealItemOut(Schema):
         return float(obj.quantity) if obj.quantity else None
 
     @staticmethod
-    def resolve_energy_kj(obj) -> float | None:
-        if obj.meal.meal_type == "drinks":
-            return 0.0
-        if not obj.recipe or obj.recipe.cached_energy_total_kj is None:
+    def resolve_energy_kcal(obj) -> float | None:
+        if not obj.recipe or obj.recipe.cached_energy_total_kcal is None:
             return None
         servings = obj.recipe.servings or 1
         norm_portions = obj.meal.meal_plan.norm_portions or 1
-        return float(obj.recipe.cached_energy_total_kj) * obj.factor * (norm_portions / servings)
+        return float(obj.recipe.cached_energy_total_kcal) * obj.factor * (norm_portions / servings)
 
     @staticmethod
     def resolve_cost_eur(obj) -> float | None:
@@ -112,6 +111,7 @@ class MealOut(Schema):
     end_datetime: dt.datetime | None = None
     meal_type: str
     day_part_factor: float
+    display_name: str = ""
     override_portions: int | None = None
     note: str = ""
     note_is_published: bool = False
@@ -121,32 +121,28 @@ class MealOut(Schema):
     is_external: bool = False
     external_energy_kcal: float | None = None
     external_cost_per_person: float | None = None
-    total_energy_kj: float = 0.0
+    total_energy_kcal: float = 0.0
     total_cost_eur: float = 0.0
     items: list[MealItemOut] = []
 
     @staticmethod
     def resolve_external_energy_kcal(obj) -> float | None:
-        if obj.external_energy_kj is not None:
-            from recipe.services.nutrition_units import kj_to_kcal
-            return round(kj_to_kcal(obj.external_energy_kj), 1)
+        if obj.external_energy_kcal is not None:
+            return round(obj.external_energy_kcal, 1)
         return None
 
     @staticmethod
-    def resolve_total_energy_kj(obj) -> float:
-        if obj.meal_type == "drinks":
-            return 0.0
+    def resolve_total_energy_kcal(obj) -> float:
         if obj.is_external:
-            if obj.external_energy_kj is not None:
-                return obj.external_energy_kj
-            from recipe.services.nutrition_units import kcal_to_kj
-            return kcal_to_kj(2335.0 * obj.day_part_factor)
+            if obj.external_energy_kcal is not None:
+                return obj.external_energy_kcal
+            return 2335.0 * obj.day_part_factor
         total = 0.0
         for item in obj.items.all():
-            if item.recipe and item.recipe.cached_energy_total_kj is not None:
+            if item.recipe and item.recipe.cached_energy_total_kcal is not None:
                 servings = item.recipe.servings or 1
                 norm_portions = obj.meal_plan.norm_portions or 1
-                total += float(item.recipe.cached_energy_total_kj) * item.factor * (norm_portions / servings)
+                total += float(item.recipe.cached_energy_total_kcal) * item.factor * (norm_portions / servings)
         return total
 
     @staticmethod
@@ -170,10 +166,12 @@ class MealCreateIn(Schema):
     end_datetime: dt.datetime
     meal_type: str
     day_part_factor: float | None = None
+    display_name: str | None = None
 
 
 class MealUpdateIn(Schema):
     override_portions: int | None = None
+    display_name: str | None = None
     note: str | None = None
     note_is_published: bool | None = None
     day_part_factor: float | None = None
@@ -206,6 +204,9 @@ class MealPlanOut(Schema):
     updated_at: dt.datetime
     meals_count: int = 0
     day_part_factors: dict[str, float]
+    meal_default_times: dict[str, list[str]]
+    nutritional_tag_ids: list[int] = []
+    nutritional_tag_names: list[str] = []
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -223,6 +224,14 @@ class MealPlanOut(Schema):
             return obj.owner.get_full_name() or obj.owner.username
         return None
 
+    @staticmethod
+    def resolve_nutritional_tag_ids(obj) -> list[int]:
+        return [tag.id for tag in obj.nutritional_tags.all()]
+
+    @staticmethod
+    def resolve_nutritional_tag_names(obj) -> list[str]:
+        return [tag.name for tag in obj.nutritional_tags.all()]
+
 
 class MealPlanDuplicateIn(Schema):
     name: str
@@ -239,6 +248,8 @@ class MealPlanCreateIn(Schema):
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     day_part_factors: dict[str, float] | None = None
+    meal_default_times: dict[str, list[str]] | None = None
+    nutritional_tag_ids: list[int] | None = None
 
 
 class MealPlanUpdateIn(Schema):
@@ -250,7 +261,9 @@ class MealPlanUpdateIn(Schema):
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
     day_part_factors: dict[str, float] | None = None
+    meal_default_times: dict[str, list[str]] | None = None
     visibility: str | None = None
+    nutritional_tag_ids: list[int] | None = None
 
 
 class MealPlanDetailOut(Schema):
@@ -272,8 +285,11 @@ class MealPlanDetailOut(Schema):
     created_at: dt.datetime
     updated_at: dt.datetime
     day_part_factors: dict[str, float]
+    meal_default_times: dict[str, list[str]]
     meals: list[MealOut] = []
     can_edit: bool = False
+    nutritional_tag_ids: list[int] = []
+    nutritional_tags: list[NutritionalTagOut] = []
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -287,10 +303,20 @@ class MealPlanDetailOut(Schema):
             return obj.owner.get_full_name() or obj.owner.username
         return None
 
+    @staticmethod
+    def resolve_nutritional_tag_ids(obj) -> list[int]:
+        return [tag.id for tag in obj.nutritional_tags.all()]
+
+    @staticmethod
+    def resolve_nutritional_tags(obj) -> list:
+        if hasattr(obj, "_prefetched_objects_cache") and "nutritional_tags" in obj._prefetched_objects_cache:
+            return obj.nutritional_tags.all()
+        return obj.nutritional_tags.all()
+
 
 class NutritionSummaryOut(Schema):
     # Total values (entire MealPlan, all portions)
-    energy_kj: float = 0.0
+    energy_kcal: float = 0.0
     protein_g: float = 0.0
     fat_g: float = 0.0
     carbohydrate_g: float = 0.0
@@ -299,7 +325,7 @@ class NutritionSummaryOut(Schema):
     salt_g: float = 0.0
 
     # Per Normportion values (total / norm_portions)
-    per_portion_energy_kj: float = 0.0
+    per_portion_energy_kcal: float = 0.0
     per_portion_protein_g: float = 0.0
     per_portion_fat_g: float = 0.0
     per_portion_carbohydrate_g: float = 0.0
@@ -470,3 +496,33 @@ class RecipeSuggestionOut(Schema):
     title: str
     usage_count: int
     image_thumbnail: str | None = None
+    recipe_badge: str = "community"
+    price_per_serving: float | None = None
+    recipe_type: str = ""
+
+
+# --- Allergen Scanner Schemas ---
+
+
+class NutritionalTagViolationOut(Schema):
+    meal_id: int
+    meal_type: str
+    date: dt.date
+    recipe_id: int
+    recipe_title: str
+    recipe_slug: str
+    nutritional_tag: NutritionalTagOut
+    source: str = "recipe_tag"
+
+
+class NutritionalTagScanSummaryOut(Schema):
+    total_violations: int
+    affected_meals: int
+    unique_tags: int
+
+
+class NutritionalTagScanOut(Schema):
+    nutritional_tags: list[NutritionalTagOut]
+    violations: list[NutritionalTagViolationOut]
+    summary: NutritionalTagScanSummaryOut
+

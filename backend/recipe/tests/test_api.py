@@ -43,7 +43,7 @@ def ingredient(db):
         name="Mehl",
         slug="mehl",
         status="approved",
-        energy_kj=1418,
+        energy_kcal=339,
         protein_g=10.3,
         fat_g=1.0,
         fat_sat_g=0.2,

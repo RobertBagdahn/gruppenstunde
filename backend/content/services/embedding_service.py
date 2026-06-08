@@ -2,17 +2,17 @@
 Embedding service — Text embedding generation and management.
 
 Uses centralized Gemini client from core.services.gemini.
-Stores embeddings as BinaryField (will migrate to pgvector VectorField later).
+Stores embeddings as pgvector VectorField.
 Hash-check avoids unnecessary regeneration.
 """
 
 import hashlib
 import logging
-import struct
 from typing import Any
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from pgvector.django import CosineDistance, L2Distance
 
 from core.services.gemini import gemini_embed
 
@@ -27,17 +27,6 @@ def _text_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _embedding_to_bytes(embedding: list[float]) -> bytes:
-    """Pack a list of floats into a compact binary representation."""
-    return struct.pack(f"{len(embedding)}f", *embedding)
-
-
-def _bytes_to_embedding(data: bytes) -> list[float]:
-    """Unpack a binary representation into a list of floats."""
-    count = len(data) // 4  # 4 bytes per float32
-    return list(struct.unpack(f"{count}f", data))
-
-
 def build_embedding_text(content_obj) -> str:
     """
     Build the text string used for embedding generation.
@@ -50,9 +39,8 @@ def build_embedding_text(content_obj) -> str:
     if content_obj.summary:
         parts.append(content_obj.summary)
     if content_obj.description:
-        parts.append(content_obj.description[:2000])  # Limit description length
+        parts.append(content_obj.description[:2000])
 
-    # Add tag names if available
     try:
         tags = content_obj.tags.all()
         tag_names = [t.name for t in tags]
@@ -64,13 +52,37 @@ def build_embedding_text(content_obj) -> str:
     return " ".join(parts)
 
 
+def build_ingredient_embedding_text(ingredient) -> str:
+    """
+    Build the text string used for embedding generation for an Ingredient.
+
+    Combines name, description, nutritional tags, and retail section.
+    """
+    parts = [ingredient.name]
+    if ingredient.description:
+        parts.append(ingredient.description[:2000])
+
+    try:
+        tags = ingredient.nutritional_tags.all()
+        tag_names = [t.name for t in tags]
+        if tag_names:
+            parts.append("Tags: " + ", ".join(tag_names))
+    except Exception:
+        pass
+
+    if ingredient.retail_section:
+        parts.append("Abteilung: " + ingredient.retail_section.name)
+
+    return " ".join(parts)
+
+
 def create_embedding(text: str) -> list[float] | None:
     """
     Create a text embedding using Gemini text-embedding-004.
 
     Returns a list of 768 floats, or None if generation fails.
     """
-    return gemini_embed(user=None, model=EMBEDDING_MODEL, contents=text, bypass_limits=True)
+    return gemini_embed(user=None, model=EMBEDDING_MODEL, contents=text, bypass_limits=False)
 
 
 def update_content_embedding(content_obj, force: bool = False) -> bool:
@@ -84,29 +96,20 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
     if not text.strip():
         return False
 
-    text_hash = _text_hash(text)
-
-    # Check if content has changed since last embedding
-    if not force and content_obj.embedding:
-        # Store hash in a simple way — check if embedding_updated_at is recent
-        # and text hasn't changed significantly
-        existing_embedding = content_obj.embedding
-        if existing_embedding and content_obj.embedding_updated_at:
-            # We use a simple heuristic: if embedding exists and was updated
-            # after the content was last modified, skip regeneration
-            if content_obj.embedding_updated_at >= content_obj.updated_at:
-                logger.debug(
-                    "Skipping embedding update for %s #%d — already up to date",
-                    type(content_obj).__name__,
-                    content_obj.pk,
-                )
-                return False
+    if not force and content_obj.embedding and content_obj.embedding_updated_at:
+        if content_obj.embedding_updated_at >= content_obj.updated_at:
+            logger.debug(
+                "Skipping embedding update for %s #%d — already up to date",
+                type(content_obj).__name__,
+                content_obj.pk,
+            )
+            return False
 
     embedding = create_embedding(text)
     if embedding is None:
         return False
 
-    content_obj.embedding = _embedding_to_bytes(embedding)
+    content_obj.embedding = embedding
     content_obj.embedding_updated_at = timezone.now()
     content_obj.save(update_fields=["embedding", "embedding_updated_at"])
 
@@ -119,11 +122,75 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
     return True
 
 
+def update_ingredient_embedding(ingredient, force: bool = False) -> bool:
+    """
+    Update the embedding for an Ingredient.
+
+    Returns True if embedding was updated, False otherwise.
+    """
+    text = build_ingredient_embedding_text(ingredient)
+    if not text.strip():
+        return False
+
+    if not force and ingredient.embedding and ingredient.embedding_updated_at:
+        if ingredient.embedding_updated_at >= ingredient.updated_at:
+            logger.debug("Skipping embedding update for Ingredient #%d — already up to date", ingredient.pk)
+            return False
+
+    embedding = create_embedding(text)
+    if embedding is None:
+        return False
+
+    ingredient.embedding = embedding
+    ingredient.embedding_updated_at = timezone.now()
+    ingredient.save(update_fields=["embedding", "embedding_updated_at"])
+
+    logger.info("Updated embedding for Ingredient #%d (%d dims)", ingredient.pk, len(embedding))
+    return True
+
+
+def find_similar_ingredients(ingredient, threshold: float = 0.05, limit: int = 20) -> list[dict[str, Any]]:
+    """
+    Find similar ingredients using pgvector cosine distance.
+
+    Args:
+        ingredient: The source Ingredient instance
+        threshold: Maximum cosine distance (0 = identical, 2 = opposite)
+        limit: Maximum number of results
+
+    Returns list of {id, name, slug, distance} dicts.
+    """
+    from supply.models import Ingredient
+
+    if ingredient.embedding is None:
+        return []
+
+    results = (
+        Ingredient.objects.exclude(pk=ingredient.pk)
+        .exclude(embedding__isnull=True)
+        .annotate(distance=CosineDistance("embedding", ingredient.embedding))
+        .filter(distance__lt=threshold)
+        .order_by("distance")[:limit]
+    )
+
+    return [
+        {
+            "id": item.id,
+            "name": item.name,
+            "slug": item.slug,
+            "distance": round(float(item.distance), 4),
+        }
+        for item in results
+    ]
+
+
 def get_embedding_vector(content_obj) -> list[float] | None:
     """Extract the embedding vector from a content object."""
     if not content_obj.embedding:
         return None
-    return _bytes_to_embedding(content_obj.embedding)
+    if hasattr(content_obj.embedding, "tolist"):
+        return content_obj.embedding.tolist()
+    return list(content_obj.embedding)
 
 
 def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
@@ -189,18 +256,48 @@ def find_similar_content(
     return results[:limit]
 
 
+def find_similar_recipes(recipe, threshold: float = 0.05, limit: int = 20) -> list[dict[str, Any]]:
+    """
+    Find similar recipes using pgvector cosine distance.
+
+    Returns list of {id, title, slug, distance} dicts.
+    """
+    from recipe.models import Recipe
+
+    if recipe.embedding is None:
+        return []
+
+    results = (
+        Recipe.objects.exclude(pk=recipe.pk)
+        .exclude(embedding__isnull=True)
+        .annotate(distance=CosineDistance("embedding", recipe.embedding))
+        .filter(distance__lt=threshold)
+        .order_by("distance")[:limit]
+    )
+
+    return [
+        {
+            "id": item.id,
+            "title": item.title,
+            "slug": item.slug,
+            "distance": round(float(item.distance), 4),
+        }
+        for item in results
+    ]
+
+
 def batch_update_embeddings(
     content_type: str | None = None,
     force: bool = False,
     limit: int = 100,
 ) -> dict[str, int]:
     """
-    Batch update embeddings for content objects.
+    Batch update embeddings for content objects and ingredients.
 
     Args:
-        content_type: Optional content type name to filter (e.g., "groupsession")
+        content_type: 'session', 'blog', 'game', 'recipe', 'ingredient', or None for all
         force: If True, regenerate all embeddings regardless of hash
-        limit: Maximum number of items to process
+        limit: Maximum number of items to process per type
 
     Returns:
         Dict with counts: {"updated": N, "skipped": M, "failed": K}
@@ -209,12 +306,14 @@ def batch_update_embeddings(
     from game.models import Game
     from recipe.models import Recipe
     from session.models import GroupSession
+    from supply.models import Ingredient
 
     model_map = {
         "groupsession": GroupSession,
         "blog": Blog,
         "game": Game,
         "recipe": Recipe,
+        "ingredient": Ingredient,
     }
 
     models_to_process = (
@@ -224,16 +323,17 @@ def batch_update_embeddings(
     stats = {"updated": 0, "skipped": 0, "failed": 0}
 
     for model_class in models_to_process:
-        qs = model_class.objects.filter(status="approved")
-        if not force:
-            # Only process items without embeddings or with stale embeddings
-            qs = (
-                qs.filter(models_Q_embedding_stale_or_missing()) if False else qs
-            )  # Simplified: process all approved for now
+        qs = model_class.objects.all()
+
+        if model_class is Ingredient:
+            update_fn = update_ingredient_embedding
+        else:
+            qs = qs.filter(status="approved")
+            update_fn = update_content_embedding
 
         for item in qs[:limit]:
             try:
-                updated = update_content_embedding(item, force=force)
+                updated = update_fn(item, force=force)
                 if updated:
                     stats["updated"] += 1
                 else:

@@ -32,7 +32,11 @@ import NormPortionSimulatorPage from './pages/tools/NormPortionSimulatorPage';
 
 // Admin
 import AdminPage from './pages/admin/AdminPage';
+import DataQualityPage from './pages/admin/DataQualityPage';
 import StaffGuard from './components/admin/StaffGuard';
+
+// Data Quality (public)
+import DataDistributionsPage from './pages/DataDistributionsPage';
 
 // Styleguide
 import StyleguidePage from './pages/StyleguidePage';
@@ -102,6 +106,11 @@ export default function App() {
         {/* Admin */}
         <Route path="/admin" element={<StaffGuard><AdminPage /></StaffGuard>} />
         <Route path="/admin/:section" element={<StaffGuard><AdminPage /></StaffGuard>} />
+        <Route path="/admin/data-quality" element={<StaffGuard><DataQualityPage /></StaffGuard>} />
+        <Route path="/admin/data-quality/:section" element={<StaffGuard><DataQualityPage /></StaffGuard>} />
+
+        {/* Data Quality Distributions (public) */}
+        <Route path="/data-quality/distributions" element={<DataDistributionsPage />} />
       </Route>
     </Routes>
   );

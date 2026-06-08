@@ -12,20 +12,20 @@ from __future__ import annotations
 
 # Age group key: (min_age, max_age) inclusive
 # Values: {parameter: value}
-# Energy in kJ, macronutrients in g, fibre in g
+# Energy in kcal, macronutrients in g, fibre in g
 
 DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Children 1-3 ---
     (1, 3): {
         "male": {
-            "energy_kj": 5000,
+            "energy_kcal": 1195,
             "protein_g": 14,
             "fat_g": 45,
             "carbohydrate_g": 150,
             "fibre_g": 10,
         },
         "female": {
-            "energy_kj": 4600,
+            "energy_kcal": 1099,
             "protein_g": 14,
             "fat_g": 42,
             "carbohydrate_g": 138,
@@ -35,14 +35,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Children 4-6 ---
     (4, 6): {
         "male": {
-            "energy_kj": 6400,
+            "energy_kcal": 1530,
             "protein_g": 18,
             "fat_g": 55,
             "carbohydrate_g": 190,
             "fibre_g": 15,
         },
         "female": {
-            "energy_kj": 5800,
+            "energy_kcal": 1386,
             "protein_g": 17,
             "fat_g": 52,
             "carbohydrate_g": 175,
@@ -52,14 +52,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Children 7-9 ---
     (7, 9): {
         "male": {
-            "energy_kj": 7500,
+            "energy_kcal": 1793,
             "protein_g": 24,
             "fat_g": 65,
             "carbohydrate_g": 220,
             "fibre_g": 18,
         },
         "female": {
-            "energy_kj": 7100,
+            "energy_kcal": 1697,
             "protein_g": 24,
             "fat_g": 60,
             "carbohydrate_g": 210,
@@ -69,14 +69,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Children 10-12 ---
     (10, 12): {
         "male": {
-            "energy_kj": 9200,
+            "energy_kcal": 2199,
             "protein_g": 34,
             "fat_g": 78,
             "carbohydrate_g": 270,
             "fibre_g": 20,
         },
         "female": {
-            "energy_kj": 8500,
+            "energy_kcal": 2032,
             "protein_g": 35,
             "fat_g": 72,
             "carbohydrate_g": 250,
@@ -86,14 +86,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Adolescents 13-14 ---
     (13, 14): {
         "male": {
-            "energy_kj": 10600,
+            "energy_kcal": 2533,
             "protein_g": 46,
             "fat_g": 90,
             "carbohydrate_g": 310,
             "fibre_g": 23,
         },
         "female": {
-            "energy_kj": 9600,
+            "energy_kcal": 2294,
             "protein_g": 45,
             "fat_g": 82,
             "carbohydrate_g": 285,
@@ -103,14 +103,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Adolescents 15-18 ---
     (15, 18): {
         "male": {
-            "energy_kj": 12000,
+            "energy_kcal": 2868,
             "protein_g": 56,
             "fat_g": 100,
             "carbohydrate_g": 350,
             "fibre_g": 30,
         },
         "female": {
-            "energy_kj": 9800,
+            "energy_kcal": 2342,
             "protein_g": 46,
             "fat_g": 83,
             "carbohydrate_g": 290,
@@ -120,14 +120,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Adults 19-24 ---
     (19, 24): {
         "male": {
-            "energy_kj": 11500,
+            "energy_kcal": 2749,
             "protein_g": 57,
             "fat_g": 95,
             "carbohydrate_g": 340,
             "fibre_g": 30,
         },
         "female": {
-            "energy_kj": 9400,
+            "energy_kcal": 2247,
             "protein_g": 46,
             "fat_g": 80,
             "carbohydrate_g": 280,
@@ -137,14 +137,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Adults 25-50 ---
     (25, 50): {
         "male": {
-            "energy_kj": 11000,
+            "energy_kcal": 2629,
             "protein_g": 57,
             "fat_g": 90,
             "carbohydrate_g": 325,
             "fibre_g": 30,
         },
         "female": {
-            "energy_kj": 8800,
+            "energy_kcal": 2103,
             "protein_g": 46,
             "fat_g": 75,
             "carbohydrate_g": 260,
@@ -154,14 +154,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Adults 51-64 ---
     (51, 64): {
         "male": {
-            "energy_kj": 10200,
+            "energy_kcal": 2438,
             "protein_g": 57,
             "fat_g": 85,
             "carbohydrate_g": 300,
             "fibre_g": 30,
         },
         "female": {
-            "energy_kj": 8200,
+            "energy_kcal": 1960,
             "protein_g": 46,
             "fat_g": 70,
             "carbohydrate_g": 245,
@@ -171,14 +171,14 @@ DGE_REFERENCE: dict[tuple[int, int], dict[str, dict[str, float]]] = {
     # --- Seniors 65+ ---
     (65, 99): {
         "male": {
-            "energy_kj": 9000,
+            "energy_kcal": 2151,
             "protein_g": 57,
             "fat_g": 75,
             "carbohydrate_g": 265,
             "fibre_g": 30,
         },
         "female": {
-            "energy_kj": 7500,
+            "energy_kcal": 1793,
             "protein_g": 46,
             "fat_g": 63,
             "carbohydrate_g": 225,
@@ -196,7 +196,7 @@ def get_dge_reference(age: int, gender: str) -> dict[str, float] | None:
         gender: 'male' or 'female'.
 
     Returns:
-        Dict with energy_kj, protein_g, fat_g, carbohydrate_g, fibre_g
+        Dict with energy_kcal, protein_g, fat_g, carbohydrate_g, fibre_g
         or None if no matching age group found.
     """
     for (min_age, max_age), values in DGE_REFERENCE.items():

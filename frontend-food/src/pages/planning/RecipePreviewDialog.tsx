@@ -6,7 +6,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { RecipeSearchResult } from '@/schemas/mealPlan';
-import { kjToKcal } from '@/utils/nutritionUnits';
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -42,8 +41,8 @@ export default function RecipePreviewDialog({
   if (!recipe) return null;
 
   const servings = recipe.servings || 1;
-  const energyPerPortion = recipe.cached_energy_kj
-    ? Math.round(kjToKcal(recipe.cached_energy_kj / servings))
+  const energyPerPortion = recipe.cached_energy_kcal
+    ? Math.round(recipe.cached_energy_kcal / servings)
     : null;
   const proteinPerPortion = recipe.cached_protein_g
     ? Math.round((recipe.cached_protein_g / servings) * 10) / 10

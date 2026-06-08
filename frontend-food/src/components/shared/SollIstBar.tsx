@@ -8,6 +8,7 @@ interface SollIstBarProps {
   status: 'green' | 'yellow' | 'red';
   unit?: string;
   className?: string;
+  scopeLabel?: string;
 }
 
 export default function SollIstBar({
@@ -18,6 +19,7 @@ export default function SollIstBar({
   status,
   unit = '',
   className,
+  scopeLabel,
 }: SollIstBarProps) {
   // If there are no target bounds or thresholds, we cannot display a Soll-Ist comparison
   if (min_green === null && max_green === null && target_mid === null) {
@@ -77,6 +79,11 @@ export default function SollIstBar({
 
   return (
     <div className={cn("space-y-1.5 py-1 w-full", className)}>
+      {scopeLabel && (
+        <div className="text-xs text-muted-foreground font-medium mb-0.5">
+          {scopeLabel}
+        </div>
+      )}
       <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-foreground">
           Ist: <strong className={activeColor.text}>{formatVal(current)}</strong>

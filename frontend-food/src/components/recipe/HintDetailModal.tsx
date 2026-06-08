@@ -30,7 +30,7 @@ function getTopContributors(
 ): Array<{ name: string; value: number; pct: number }> {
   // Map hint parameter names to RecipeItemNutrition fields
   const paramMap: Record<string, keyof RecipeItemNutrition> = {
-    energy_kj: 'energy_kj',
+    energy_kcal: 'energy_kcal',
     energy_kcal: 'energy_kcal',
     protein_g: 'protein_g',
     fat_g: 'fat_g',
@@ -133,7 +133,7 @@ export default function HintDetailModal({
       portion_name: suggestion.unit,
       weight_g: suggestion.recommended_amount, // approximation
       price_eur: null,
-      energy_kj: 0,
+      energy_kcal: 0,
       energy_kcal: 0,
       protein_g: 0,
       fat_g: 0,

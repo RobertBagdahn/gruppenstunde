@@ -19,11 +19,13 @@ The system SHALL allow any authenticated user to create a meal plan. The creatin
 - **THEN** the system returns 403 Forbidden
 
 ### Requirement: Meal Model Felder
+
 Das Meal-Model SHALL die folgenden zusätzlichen Felder haben:
 - `is_reference` (BooleanField, default=False): Markiert ein Meal als Referenz-Template
 - `ref_meal` (FK zu Meal, nullable): Verweis auf das Referenz-Meal
 - `is_synced` (BooleanField, default=False): Ob dieses Meal aktiv mit dem RefMeal synchronisiert ist
 - `start_datetime` wird nullable (NULL bei RefMeals)
+- `display_name` (CharField, max_length=200, blank=True, default=""): Benutzerdefinierter Anzeigename (z.B. "Kaffee", "Saft")
 
 #### Scenario: RefMeal hat kein Datum
 - **WHEN** ein Meal mit `is_reference=True` erstellt wird
@@ -33,24 +35,46 @@ Das Meal-Model SHALL die folgenden zusätzlichen Felder haben:
 - **WHEN** ein Meal mit `is_reference=False` existiert
 - **THEN** MUSS `start_datetime` weiterhin gesetzt sein
 
+#### Scenario: Meal mit display_name
+- **WHEN** ein Meal mit `meal_type='snack'` und `display_name='Kaffee'` erstellt wird
+- **THEN** wird `display_name='Kaffee'` in der API persistiert und ausgeliefert
+
+#### Scenario: Meal ohne display_name
+- **WHEN** ein Meal ohne `display_name` (Default "") erstellt wird
+- **THEN** wird im Frontend der Meal-Type-Label ("Snack") als Anzeigename verwendet
+
 ### Requirement: Meal Uniqueness Constraint
+
 Pro MealPlan und meal_type SHALL maximal ein Meal mit `is_reference=True` existieren.
+Für reguläre Meals (is_reference=False) gilt:
+- `breakfast`, `lunch`, `dinner`: maximal ein Meal pro Tag und Typ
+- `snack`: KEINE Unique-Beschränkung — mehrere snack-Meals pro Tag erlaubt
 
 #### Scenario: Unique RefMeal pro Typ
 - **WHEN** bereits ein RefMeal (breakfast) für den Plan existiert
 - **THEN** wird ein zweites RefMeal (breakfast) für den gleichen Plan mit ValidationError abgelehnt
 
+#### Scenario: Mehrere Snacks pro Tag erlaubt
+- **WHEN** bereits ein snack-Meal am 2026-06-07 existiert
+- **THEN** kann ein zweites snack-Meal am gleichen Tag ohne Fehler erstellt werden
+
+#### Scenario: Doppeltes Frühstück abgelehnt
+- **WHEN** bereits ein breakfast-Meal am 2026-06-07 existiert
+- **THEN** wird ein zweites breakfast-Meal am gleichen Tag mit ValidationError abgelehnt
+
 ### Requirement: Configurable day-part factors
-The MealPlan model SHALL support configurable day-part factors (`day_part_factors` JSONField) mapping meal types to float factors, defaulting to standard defaults (breakfast=0.25, lunch=0.35, dinner=0.30, snack=0.10, dessert=0.00).
-When a MealPlan is updated with new factors, all of its associated meals whose factor matches the old factor SHALL automatically be updated to use the new factor.
+
+The MealPlan model SHALL support configurable day-part factors (`day_part_factors` JSONField) mapping meal types to float factors, defaulting to standard defaults (breakfast=0.25, lunch=0.35, dinner=0.30, snack=0.10).
+
+When a MealPlan is updated with new factors, the factors SHALL NOT automatically propagate to existing meals. Each meal maintains its own `day_part_factor` independently.
 
 #### Scenario: MealPlan has default day-part factors
 - **WHEN** a new MealPlan is created
-- **THEN** it SHALL have the default day-part factors populated: breakfast=0.25, lunch=0.35, dinner=0.30, snack=0.10, dessert=0.00
+- **THEN** it SHALL have the default day-part factors populated: breakfast=0.25, lunch=0.35, dinner=0.30, snack=0.10
 
-#### Scenario: Updating day-part factors propagates to unmodified meals
+#### Scenario: Updating day-part factors does NOT propagate
 - **WHEN** a MealPlan's breakfast day-part factor is updated from 0.25 to 0.30
-- **THEN** all associated meals of type breakfast whose current factor is 0.25 SHALL be updated to 0.30, while meals with modified factors remain unchanged
+- **THEN** existing meals of type breakfast SHALL retain their current `day_part_factor` values unchanged
 
 ### Requirement: External meals and manual calorie input
 The Meal model SHALL support being marked as external (`is_external` BooleanField, default=False) with an optional manual calorie input (`external_energy_kj` in the database, exposed as `external_energy_kcal` in API and UI) and a fixed price per person (`external_cost_per_person` FloatField, nullable).
@@ -97,15 +121,115 @@ Der MealPlan SHALL seine Skalierung ausschließlich über `norm_portions` (Perso
 - **WHEN** ein authentifizierter Nutzer POST `/api/meal-plans/` mit `norm_portions` und `reserve_factor` sendet
 - **THEN** wird der MealPlan erstellt und das Request-Schema SHALL kein `activity_factor`-Feld akzeptieren oder erwarten
 
-### Requirement: Drinks meal type
-The Meal model SHALL support a `drinks` meal type (`MealTypeChoices.DRINKS`) with a default `day_part_factor` of 0.0. The `drinks` type SHALL be included in `DEFAULT_MEAL_TYPES` so that newly created days automatically receive a drinks slot, and in `MEAL_TYPE_DEFAULT_TIMES`. Existing meal plans SHALL NOT be retroactively migrated to add drinks slots.
+### Requirement: MealPlan Default-Uhrzeiten konfigurierbar
 
-#### Scenario: New day auto-creates a drinks slot
-- **WHEN** a new day is added to a meal plan
-- **THEN** a meal of type `drinks` SHALL be created automatically with `day_part_factor=0.0`
+Der MealPlan SHALL ein `meal_default_times` JSONField speichern, das die Standard-Start- und End-Uhrzeiten pro Mahlzeit-Typ definiert. Format: `Record<string, [string, string]>` (z.B. `{"breakfast": ["08:00", "09:00"]}`).
 
-#### Scenario: Existing plans are not migrated
-- **WHEN** the change is deployed
-- **THEN** no data migration SHALL add drinks slots to days that existed before; they remain addable via the existing add-meal action
+Default-Werte:
+- breakfast: ["08:00", "09:00"]
+- lunch: ["12:00", "13:00"]
+- dinner: ["18:00", "19:00"]
+- snack: ["15:00", "15:30"]
 
+#### Scenario: Neuer Plan hat Default-Uhrzeiten
+- **WHEN** ein neuer MealPlan erstellt wird
+- **THEN** enthält `meal_default_times` die Standard-Uhrzeiten für alle 4 Mahlzeit-Typen
+
+#### Scenario: Default-Uhrzeiten überschreiben
+- **WHEN** der User `meal_default_times` im Settings-Panel auf `{"breakfast": ["09:00", "10:00"]}` setzt
+- **THEN** wird dieser Wert im API-Response zurückgegeben
+
+#### Scenario: Neue Meals verwenden Plan-Default-Uhrzeiten
+- **WHEN** ein Meal für einen Tag erstellt wird
+- **THEN** verwendet das neue Meal die `meal_default_times` des Plans für seine `start_datetime`/`end_datetime`
+
+### Requirement: DEFAULT_MEAL_TYPES auf 4 reduziert
+
+Das `DEFAULT_MEAL_TYPES`-Array SHALL nur noch `[breakfast, lunch, dinner, snack]` enthalten. Neue Tage erhalten standardmäßig ein snack-Meal statt snack + drinks.
+
+#### Scenario: Neuer Tag erzeugt nur einen Snack
+- **WHEN** ein neuer Tag zu einem Plan hinzugefügt wird
+- **THEN** wird genau ein Meal vom Typ `snack` erzeugt (statt snack + drinks)
+
+### Requirement: Kcal-Berechnung ohne Drinks-Sonderbehandlung
+
+Meals SHALL unabhängig von ihrem `meal_type` normal in der Kcal-Berechnung behandelt werden. Der bisherige Check `meal_type == 'drinks' → total_energy_kj = 0` entfällt. Getränke mit `day_part_factor=0.00` haben ein Soll-Kcal-Ziel von 0.
+
+#### Scenario: Snack-Meal mit Getränke-Items hat normale Kcal
+- **WHEN** ein snack-Meal mit `day_part_factor=0.00` und Items mit kcal-Werten existiert
+- **THEN** wird `total_energy_kj` normal aus den Items berechnet (nicht auf 0 gesetzt)
+
+### Requirement: display_name im API-Schema
+
+Das `MealOut` Pydantic-Schema SHALL ein `display_name: str` Feld enthalten. Das `MealCreateIn` und `MealUpdateIn` Schema SHALL optionale `display_name: str | None = None` Felder enthalten.
+
+#### Scenario: display_name im MealOut
+- **WHEN** ein Meal `display_name='Kaffee'` hat
+- **THEN** enthält der API-Response `display_name: 'Kaffee'`
+
+### Requirement: meal_default_times im API-Schema
+
+Das `MealPlanDetailOut` Pydantic-Schema SHALL ein `meal_default_times: dict[str, list[str]]` Feld enthalten. Das `MealPlanUpdateIn` Schema SHALL ein optionales `meal_default_times: dict[str, list[str]] | None = None` Feld enthalten.
+
+#### Scenario: meal_default_times im MealPlanDetailOut
+- **WHEN** ein MealPlan mit Default-Uhrzeiten abgerufen wird
+- **THEN** enthält der API-Response `meal_default_times: {"breakfast": ["08:00", "09:00"], ...}`
+
+### Requirement: MealPlan nutritional tags
+
+The MealPlan model SHALL have a `nutritional_tags` M2M field to `supply.NutritionalTag` (no `limit_choices_to` restriction). All NutritionalTag records (both `is_dangerous=True` and `is_dangerous=False`) SHALL be assignable.
+
+The field replaces the former `allergen_tags` field. The `limit_choices_to={"is_dangerous": True}` restriction SHALL be removed.
+
+#### Scenario: Create MealPlan with nutritional tags
+- **WHEN** an authenticated user sends POST `/api/meal-plans/` with `nutritional_tag_ids: [1, 2]` (e.g. vegan + vegetarisch)
+- **THEN** the MealPlan is created with both tags assigned
+
+#### Scenario: Update MealPlan nutritional tags
+- **WHEN** an authenticated user sends PATCH `/api/meal-plans/{id}/` with `nutritional_tag_ids: [3]` (e.g. laktosefrei)
+- **THEN** the MealPlan's nutritional tags are updated to only contain tag ID 3
+
+#### Scenario: List MealPlan includes nutritional tag IDs and names
+- **WHEN** GET `/api/meal-plans/` is called
+- **THEN** each MealPlan in the response SHALL include `nutritional_tag_ids: [...]` and `nutritional_tag_names: [...]`
+
+#### Scenario: MealPlan detail includes nutritional tags with full objects
+- **WHEN** GET `/api/meal-plans/{id}/` is called
+- **THEN** the response SHALL include `nutritional_tag_ids: [int, ...]` and `nutritional_tags: [NutritionalTagOut, ...]`
+
+### Requirement: Nutritional tag selection in MealPlan create dialog
+
+The MealPlan create dialog SHALL allow selecting nutritional tags during creation, not only after creation via settings.
+
+#### Scenario: Create dialog shows tag picker
+- **WHEN** the "Neuer Essensplan" dialog is opened
+- **THEN** a `NutritionalTagMultiSelect` component SHALL be visible allowing tag selection
+
+#### Scenario: Tags sent during creation
+- **WHEN** the user selects tags in the create dialog and clicks "Erstellen"
+- **THEN** `nutritional_tag_ids` SHALL be included in the POST body
+
+### Requirement: Settings panel uses NutritionalTagMultiSelect
+
+The MealPlan settings panel SHALL use the shared `NutritionalTagMultiSelect` component for tag selection instead of a custom button-based UI. All nutritional tags SHALL be selectable (no `is_dangerous` filter).
+
+#### Scenario: Settings panel shows all tags
+- **WHEN** the settings panel is opened
+- **THEN** all nutritional tags (dangerous and non-dangerous) SHALL be displayed in the tag picker
+
+#### Scenario: Tag changes are saved
+- **WHEN** the user modifies tag selection in settings and clicks "Speichern"
+- **THEN** the updated `nutritional_tag_ids` SHALL be sent via PATCH
+
+### Requirement: Allergen scan checks all nutritional tags
+
+The allergen scan endpoint SHALL compare ALL `nutritional_tags` of assigned recipes against the plan's `nutritional_tags`. The `is_dangerous` filter on recipe tags SHALL be removed — every matching tag SHALL be reported as a violation.
+
+#### Scenario: Non-dangerous tag match triggers violation
+- **WHEN** a MealPlan has `nutritional_tags = [vegan]` and an assigned recipe has `nutritional_tags = [vegan]`
+- **THEN** the scan SHALL report a violation for that recipe, even though `vegan` has `is_dangerous=False`
+
+#### Scenario: Scan returns all plan nutritional tags
+- **WHEN** GET `/api/meal-plans/{id}/allergen-scan/` is called
+- **THEN** the response `allergen_tags` field SHALL contain all `nutritional_tags` of the plan (not only dangerous ones)
 

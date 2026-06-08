@@ -1,49 +1,38 @@
-/**
- * RecipeBadge — Shows recipe origin badge.
- *
- * - "verified" (green) = Inspi-verified system recipe
- * - "community" (blue) = Public community recipe
- * - "personal" (yellow) = Personal/private recipe
- */
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
+const BADGE_CONFIG = {
+  verified: { color: 'bg-emerald-500', label: 'Verifiziert' },
+  community: { color: 'bg-amber-500', label: 'Community' },
+  draft: { color: 'bg-red-500', label: 'Entwurf' },
+} as const;
 
 interface RecipeBadgeProps {
-  badge: string | null | undefined;
-  className?: string;
+  badge: 'verified' | 'community' | 'draft';
+  showLabel?: boolean;
 }
 
-const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; icon: string }> = {
-  verified: {
-    label: 'Inspi-verifiziert',
-    bg: 'bg-primary/10 border border-primary/20',
-    text: 'text-primary',
-    icon: 'verified',
-  },
-  community: {
-    label: 'Community',
-    bg: 'bg-[hsl(var(--chart-3))]/10 border border-[hsl(var(--chart-3))]/20',
-    text: 'text-[hsl(var(--chart-3))]',
-    icon: 'group',
-  },
-  personal: {
-    label: 'Mein Rezept',
-    bg: 'bg-[hsl(var(--chart-2))]/10 border border-[hsl(var(--chart-2))]/20',
-    text: 'text-[hsl(var(--chart-2))]',
-    icon: 'person',
-  },
-};
-
-export default function RecipeBadge({ badge, className = '' }: RecipeBadgeProps) {
-  if (!badge) return null;
-
+export default function RecipeBadge({ badge, showLabel = false }: RecipeBadgeProps) {
   const config = BADGE_CONFIG[badge];
-  if (!config) return null;
+
+  if (showLabel) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs">
+        <span className={`w-2 h-2 rounded-full ${config.color} shrink-0`} />
+        <span className="text-muted-foreground">{config.label}</span>
+      </span>
+    );
+  }
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${config.bg} ${config.text} ${className}`}
-    >
-      <span className="material-symbols-outlined text-[12px]">{config.icon}</span>
-      {config.label}
-    </span>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className={`w-2.5 h-2.5 rounded-full ${config.color} shrink-0 cursor-default`} />
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <span className="text-xs">{config.label}</span>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

@@ -21,7 +21,7 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
     from planner.models import MealItem
 
     totals: dict[str, float] = {
-        "energy_kj": 0.0,
+        "energy_kcal": 0.0,
         "protein_g": 0.0,
         "fat_g": 0.0,
         "fat_sat_g": 0.0,
@@ -33,18 +33,14 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
         "price_total": 0.0,
         "weight_g": 0.0,
     }
-    # Micronutrient totals
     for field in CACHED_MICRONUTRIENT_FIELDS:
         totals[field] = 0.0
 
     if meal.is_external:
-        if meal.external_energy_kj is not None:
-            totals["energy_kj"] = meal.external_energy_kj
+        if meal.external_energy_kcal is not None:
+            totals["energy_kcal"] = meal.external_energy_kcal
         else:
-            from recipe.services.nutrition_units import kcal_to_kj
-            totals["energy_kj"] = kcal_to_kj(2335.0 * meal.day_part_factor)
-        if meal.meal_type == "drinks":
-            totals["energy_kj"] = 0.0
+            totals["energy_kcal"] = 2335.0 * meal.day_part_factor
         return totals
 
     items = MealItem.objects.filter(meal=meal).select_related("recipe")
@@ -53,14 +49,11 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
         if not recipe:
             continue
 
-        # Each recipe represents exactly one Normportion. Nutrient values are
-        # cached per 100g, so the Normportion total is total_weight_g / 100.
-        # price_total and weight_g are already Normportion totals.
         if recipe.cached_at:
             total_weight_g = get_recipe_total_weight_g(recipe)
             nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
 
-            totals["energy_kj"] += (recipe.cached_energy_kj or 0.0) * nutrient_scale * item.factor
+            totals["energy_kcal"] += (recipe.cached_energy_kcal or 0.0) * nutrient_scale * item.factor
             totals["protein_g"] += (recipe.cached_protein_g or 0.0) * nutrient_scale * item.factor
             totals["fat_g"] += (recipe.cached_fat_g or 0.0) * nutrient_scale * item.factor
             totals["carbohydrate_g"] += (recipe.cached_carbohydrate_g or 0.0) * nutrient_scale * item.factor
@@ -72,7 +65,6 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
             totals["sodium_mg"] += fresh_values.get("sodium_mg", 0.0) * nutrient_scale * item.factor
             totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
             totals["weight_g"] += total_weight_g * item.factor
-            # Cached micronutrients
             for field in CACHED_MICRONUTRIENT_FIELDS:
                 cached_field = f"cached_{field}"
                 totals[field] += (getattr(recipe, cached_field, None) or 0.0) * nutrient_scale * item.factor
@@ -82,23 +74,18 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
 
             nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
 
-            for key in ["energy_kj", "protein_g", "fat_g", "fat_sat_g", "carbohydrate_g", "sugar_g", "fibre_g", "salt_g", "sodium_mg"]:
+            for key in ["energy_kcal", "protein_g", "fat_g", "fat_sat_g", "carbohydrate_g", "sugar_g", "fibre_g", "salt_g", "sodium_mg"]:
                 totals[key] += values.get(key, 0.0) * nutrient_scale * item.factor
             totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
             totals["weight_g"] += total_weight_g * item.factor
-            # Micronutrients from fresh calculation
             for field in CACHED_MICRONUTRIENT_FIELDS:
                 totals[field] += values.get(field, 0.0) * nutrient_scale * item.factor
 
-    # Add nutri_class as average across recipes (weighted by factor)
     nutri_classes = []
     for item in items:
         if item.recipe.cached_nutri_class:
             nutri_classes.append(item.recipe.cached_nutri_class)
     totals["nutri_class"] = sum(nutri_classes) / len(nutri_classes) if nutri_classes else 0.0
-
-    if meal.meal_type == "drinks":
-        totals["energy_kj"] = 0.0
 
     return totals
 
@@ -113,7 +100,7 @@ def _aggregate_day_values(meal_plan: "MealPlan", date: dt.date) -> dict[str, flo
     )
 
     totals: dict[str, float] = {
-        "energy_kj": 0.0,
+        "energy_kcal": 0.0,
         "protein_g": 0.0,
         "fat_g": 0.0,
         "fat_sat_g": 0.0,
@@ -150,7 +137,7 @@ def _aggregate_meal_plan_values(meal_plan: "MealPlan") -> dict[str, float]:
     meals = Meal.objects.filter(meal_plan=meal_plan)
 
     totals: dict[str, float] = {
-        "energy_kj": 0.0,
+        "energy_kcal": 0.0,
         "protein_g": 0.0,
         "fat_g": 0.0,
         "fat_sat_g": 0.0,
@@ -182,14 +169,11 @@ def _aggregate_meal_plan_values(meal_plan: "MealPlan") -> dict[str, float]:
 
 def _evaluate_rules(scope: str, values: dict[str, float]) -> list[dict]:
     """Evaluate all active Rules for a given scope against values."""
-    from recipe.services.nutrition_units import kj_to_kcal
     rules = Rule.objects.filter(is_active=True, scope=scope).order_by("sort_order")
 
     evaluations = []
     for rule in rules:
         current_value = values.get(rule.parameter, 0.0)
-        if rule.parameter == "energy_kj":
-            current_value = kj_to_kcal(current_value)
         status = rule.evaluate(current_value)
         min_green = rule.min_green
         max_green = rule.max_green

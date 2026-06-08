@@ -4,7 +4,7 @@
  * Shows suggested values grouped by category, allows selecting individual
  * fields, and applies selected suggestions.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -68,6 +68,20 @@ export function AiSuggestDialog({
       return f.currentValue !== f.suggestedValue;
     });
   }, [fields]);
+
+  // Reset selected state when dialog opens or closed, or when relevant fields list changes
+  const relevantKeysStr = useMemo(() => {
+    return relevantFields.map((f) => f.key).join(',');
+  }, [relevantFields]);
+
+  useEffect(() => {
+    if (open) {
+      const keys = relevantKeysStr ? relevantKeysStr.split(',') : [];
+      setSelected(new Set(keys.filter(Boolean)));
+    } else {
+      setSelected(new Set());
+    }
+  }, [open, relevantKeysStr]);
 
   // Group fields
   const groups = useMemo(() => {

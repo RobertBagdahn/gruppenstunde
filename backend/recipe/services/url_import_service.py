@@ -90,7 +90,7 @@ class GeminiNewIngredient(BaseModel):
 
     name: str = Field(description="Canonical German name")
     aliases: list[str] = Field(default_factory=list, description="Alternative names")
-    energy_kj: float = Field(0, description="Energy per 100g in kJ")
+    energy_kcal: float = Field(0, description="Energy per 100g in kcal")
     protein_g: float = Field(0, description="Protein per 100g")
     fat_g: float = Field(0, description="Fat per 100g")
     fat_sat_g: float | None = Field(None, description="Saturated fat per 100g")
@@ -575,7 +575,7 @@ def _create_new_ingredients(
         ingredient = Ingredient.objects.create(
             name=data.name,
             status=IngredientStatusChoices.DRAFT,
-            energy_kj=data.energy_kj,
+            energy_kcal=data.energy_kcal,
             protein_g=data.protein_g,
             fat_g=data.fat_g,
             fat_sat_g=data.fat_sat_g,

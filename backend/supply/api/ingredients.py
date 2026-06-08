@@ -3,6 +3,7 @@
 import logging
 import math
 
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from ninja import Router
@@ -118,7 +119,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
         ingredient.nutritional_tags.set(payload.nutritional_tag_ids)
 
     # Calculate nutri-score if nutritional data is present
-    if ingredient.energy_kj is not None:
+    if ingredient.energy_kcal is not None:
         try:
             from supply.services.nutri_service import update_ingredient_nutri_score
 
@@ -142,7 +143,7 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat bearbeiten")
 
     nutritional_fields = {
-        "energy_kj",
+        "energy_kcal",
         "protein_g",
         "fat_g",
         "fat_sat_g",
@@ -305,32 +306,52 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
 
+    name = payload.name.strip()
+    if not name:
+        raise HttpError(400, "Alias-Name darf nicht leer sein.")
+
     # Reject duplicate alias names (case-insensitive)
     if IngredientAlias.objects.filter(
-        ingredient=ingredient, name__iexact=payload.name
+        ingredient=ingredient, name__iexact=name
     ).exists():
-        raise HttpError(409, f"Alias '{payload.name}' existiert bereits für diese Zutat.")
+        raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
 
     # Also reject if alias matches the ingredient name itself
-    if ingredient.name.lower() == payload.name.lower():
+    if ingredient.name.lower() == name.lower():
         raise HttpError(409, "Alias darf nicht identisch mit dem Zutatennamen sein.")
 
-    # Auto-assign next rank if the requested rank already exists
     rank = payload.rank
-    existing_ranks = set(
-        IngredientAlias.objects.filter(ingredient=ingredient).values_list("rank", flat=True)
-    )
-    if rank in existing_ranks:
-        rank = max(existing_ranks) + 1 if existing_ranks else 1
 
-    alias = IngredientAlias(
-        ingredient=ingredient,
-        name=payload.name,
-        rank=rank,
-        created_by=request.user,
-    )
-    alias.save()
-    return alias
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        try:
+            with transaction.atomic():
+                existing_ranks = set(
+                    IngredientAlias.objects.filter(ingredient=ingredient)
+                    .select_for_update()
+                    .values_list("rank", flat=True)
+                )
+                if rank is None or rank in existing_ranks:
+                    rank = max(existing_ranks) + 1 if existing_ranks else 1
+
+                alias = IngredientAlias(
+                    ingredient=ingredient,
+                    name=name,
+                    rank=rank,
+                    created_by=request.user,
+                )
+                alias.save()
+                return alias
+        except IntegrityError:
+            # Check if name became duplicate during concurrent requests
+            if IngredientAlias.objects.filter(
+                ingredient=ingredient, name__iexact=name
+            ).exists():
+                raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
+
+            if attempt == max_attempts - 1:
+                raise HttpError(500, "Konnte Alias nicht erstellen – bitte erneut versuchen.")
+            rank = None
 
 
 @ingredient_router.delete("/{slug}/aliases/{alias_id}/")

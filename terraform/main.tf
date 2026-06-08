@@ -137,9 +137,14 @@ resource "google_sql_database_instance" "db" {
     disk_size         = 10
     disk_autoresize   = false
 
+    disk_type = "SD_HDD"
     backup_configuration {
-      enabled                        = true
-      point_in_time_recovery_enabled = false
+      enabled = false
+    }
+
+    database_flags {
+      name  = "cloudsql.enable_pgvector"
+      value = "on"
     }
 
     ip_configuration {

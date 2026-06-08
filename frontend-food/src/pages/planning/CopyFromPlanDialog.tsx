@@ -16,7 +16,6 @@ import {
 import type { Meal } from '@/schemas/mealPlan';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { kjToKcal } from '@/utils/nutritionUnits';
 
 interface CopyFromPlanDialogProps {
   open: boolean;
@@ -55,7 +54,7 @@ function daysBetween(start: string, end: string): number {
 
 function mealKcalSum(meal: Meal, normPortions: number): number {
   return Math.round(
-    meal.items.reduce((sum, item) => sum + kjToKcal((item.energy_kj ?? 0) / normPortions), 0),
+    meal.items.reduce((sum, item) => sum + (item.energy_kcal ?? 0) / normPortions, 0),
   );
 }
 
@@ -357,7 +356,7 @@ export function CopyFromPlanDialog({
                                 </span>
                                 <span className="flex-shrink-0">
                                   {item.factor !== 1.0 && <>×{item.factor.toFixed(1).replace('.', ',')} · </>}
-                                  {item.energy_kj != null && <>{Math.round(kjToKcal(item.energy_kj / (sourcePlanDetail?.norm_portions ?? 1)))} kcal</>}
+                                  {item.energy_kcal != null && <>{Math.round(item.energy_kcal / (sourcePlanDetail?.norm_portions ?? 1))} kcal</>}
                                 </span>
                               </div>
                             ))}

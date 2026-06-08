@@ -101,7 +101,7 @@ class DgeReference(models.Model):
     )
 
     # Macronutrients per day
-    energy_kj = models.FloatField(null=True, blank=True, verbose_name=_("Energie (kJ)"))
+    energy_kcal = models.FloatField(null=True, blank=True, verbose_name=_("Energie (kcal)"))
     protein_g = models.FloatField(null=True, blank=True, verbose_name=_("Eiweiß (g)"))
     fat_g = models.FloatField(null=True, blank=True, verbose_name=_("Fett (g)"))
     carbohydrate_g = models.FloatField(null=True, blank=True, verbose_name=_("Kohlenhydrate (g)"))

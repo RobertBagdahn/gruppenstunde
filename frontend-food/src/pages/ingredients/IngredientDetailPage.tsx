@@ -20,7 +20,8 @@ import type { Portion } from '@/schemas/supply';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
-import { kjToKcal } from '@/utils/nutritionUnits';
+
+const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 // ---------------------------------------------------------------------------
 // NutriScoreBadge
@@ -398,6 +399,7 @@ export default function IngredientDetailPage() {
     const scalarUpdates: Record<string, unknown> = {};
     const portionsToCreate: Array<{ name: string; weight_g: number }> = [];
     const aliasesToCreate: string[] = [];
+    const tagsToAssign: number[] = [];
 
     for (const key of selectedKeys) {
       if (key.startsWith('portion_')) {
@@ -406,12 +408,27 @@ export default function IngredientDetailPage() {
       } else if (key.startsWith('alias_')) {
         const idx = parseInt(key.replace('alias_', ''), 10);
         if (data.aliases?.[idx]) aliasesToCreate.push(data.aliases[idx]);
+      } else if (key.startsWith('tag_')) {
+        const tagId = parseInt(key.replace('tag_', ''), 10);
+        tagsToAssign.push(tagId);
+      } else if (key === 'name_suggestion') {
+        const value = (data as Record<string, unknown>)[key];
+        if (value && typeof value === 'string') {
+          scalarUpdates['name'] = value;
+        }
       } else {
         const value = (data as Record<string, unknown>)[key];
         if (value !== null && value !== undefined) {
           scalarUpdates[key] = value;
         }
       }
+    }
+
+    if (tagsToAssign.length > 0) {
+      const existingTagIds = (ingredient.nutritional_tags || []).map((t) => t.id);
+      scalarUpdates['nutritional_tag_ids'] = Array.from(
+        new Set([...existingTagIds, ...tagsToAssign])
+      );
     }
 
     const promises: Promise<unknown>[] = [];
@@ -560,6 +577,12 @@ export default function IngredientDetailPage() {
           )}
           <div className="flex flex-wrap items-center gap-2">
             <NutriScoreBadge nutriClass={ingredient.nutri_class} />
+            {ingredient.camp_suitable && (
+              <span className="flex items-center gap-1 text-xs text-foreground bg-amber-100 px-2 py-1 rounded">
+                <span className="material-symbols-outlined text-sm">camping</span>
+                Camp-geeignet
+              </span>
+            )}
             {ingredient.retail_section_name && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                 <span className="material-symbols-outlined text-sm">store</span>
@@ -677,7 +700,7 @@ export default function IngredientDetailPage() {
             Nährwerte pro 100g
           </h2>
           <div>
-            <NutritionRow label="Energie" value={ingredient.energy_kj != null ? Math.round(kjToKcal(ingredient.energy_kj)) : null} unit="kcal" />
+            <NutritionRow label="Energie" value={ingredient.energy_kcal != null ? Math.round(ingredient.energy_kcal) : null} unit="kcal" />
             <NutritionRow label="Protein" value={ingredient.protein_g} unit="g" />
             <NutritionRow label="Fett" value={ingredient.fat_g} unit="g" />
             <NutritionRow label="  davon gesättigte Fettsäuren" value={ingredient.fat_sat_g} unit="g" />
@@ -774,6 +797,61 @@ export default function IngredientDetailPage() {
               <NutritionRow label="Max. Lagertemperatur" value={ingredient.max_storage_temperature} unit="°C" />
             </div>
           </div>
+
+          {/* Scout / Camp Fields */}
+          {(ingredient.storage_type != null || ingredient.cooking_factor != null || ingredient.preparation_time_min != null || ingredient.season_start != null) && (
+            <div className="border border-border rounded-xl p-4 bg-card shadow-soft">
+              <h2 className="text-sm font-display font-bold text-foreground mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-lg">backpack</span>
+                Lager & Pfadfinder
+              </h2>
+              <div>
+                {ingredient.storage_type != null && (
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-sm text-muted-foreground">Lagerungsart</span>
+                    <span className="text-sm font-medium">
+                      {{ dry: 'Trocken', refrigerated: 'Kühlschrank', frozen: 'Gefroren', ambient: 'Raumtemperatur' }[ingredient.storage_type] ?? ingredient.storage_type}
+                    </span>
+                  </div>
+                )}
+                {ingredient.cooking_factor != null && (
+                  <div className="flex justify-between py-1.5 border-b border-border/30">
+                    <span className="text-sm text-muted-foreground">Kochfaktor</span>
+                    <span className="text-sm font-medium">
+                      aus 100g roh &rarr; {Math.round(ingredient.cooking_factor * 100)}g gekocht
+                    </span>
+                  </div>
+                )}
+                {ingredient.preparation_time_min != null && (
+                  <NutritionRow label="Zubereitungsdauer" value={ingredient.preparation_time_min} unit="Min." />
+                )}
+                {ingredient.season_start != null && ingredient.season_end != null ? (
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-sm text-muted-foreground">Saison</span>
+                    <span className="text-sm font-medium">
+                      {MONTH_NAMES[ingredient.season_start - 1]}–{MONTH_NAMES[ingredient.season_end - 1]}
+                    </span>
+                  </div>
+                ) : ingredient.season_start != null ? (
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-sm text-muted-foreground">Saison ab</span>
+                    <span className="text-sm font-medium">{MONTH_NAMES[ingredient.season_start - 1]}</span>
+                  </div>
+                ) : ingredient.season_end != null ? (
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-sm text-muted-foreground">Saison bis</span>
+                    <span className="text-sm font-medium">{MONTH_NAMES[ingredient.season_end - 1]}</span>
+                  </div>
+                ) : null}
+                {ingredient.season_start == null && ingredient.season_end == null && (
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-sm text-muted-foreground">Saison</span>
+                    <span className="text-sm font-medium">ganzjährig</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* References */}
           {(ingredient.fdc_id || ingredient.nan_art_id_rewe || ingredient.ean) && (
@@ -1031,7 +1109,7 @@ export default function IngredientDetailPage() {
         onApply={(selectedKeys) => {
           handleApplyAiSuggestions(selectedKeys);
         }}
-        isApplying={updateIngredient.isPending}
+        isApplying={updateIngredient.isPending || createPortion.isPending || createAlias.isPending}
       />
     </div>
   );
@@ -1042,15 +1120,45 @@ export default function IngredientDetailPage() {
 // ---------------------------------------------------------------------------
 
 function buildIngredientSuggestionFields(
-  ingredient: { [key: string]: unknown; portions: Array<{ name: string }>; aliases: Array<{ name: string }> },
+  ingredient: {
+    [key: string]: unknown;
+    name: string;
+    portions: Array<{ name: string }>;
+    aliases: Array<{ name: string }>;
+    nutritional_tags?: Array<{ id: number; name: string }>;
+  },
   suggestions: Record<string, unknown> | undefined | null,
 ): SuggestionField[] {
   if (!suggestions) return [];
 
   const fields: SuggestionField[] = [];
 
+  // Name suggestion (full-width in dialog)
+  const nameSuggestion = suggestions.name_suggestion as string | undefined;
+  if (nameSuggestion && nameSuggestion !== ingredient.name) {
+    fields.push({
+      key: 'name_suggestion',
+      label: 'Name',
+      group: 'Name',
+      currentValue: ingredient.name,
+      suggestedValue: nameSuggestion,
+      type: 'scalar',
+    });
+  }
+
+  const scoutFieldKeys = ['storage_type', 'cooking_factor', 'camp_suitable', 'preparation_time_min', 'season_start', 'season_end'] as const;
+
+  const scoutFieldLabels: Record<string, string> = {
+    storage_type: 'Lagerungsart',
+    cooking_factor: 'Kochfaktor',
+    camp_suitable: 'Camp-geeignet',
+    preparation_time_min: 'Zubereitungsdauer (Min.)',
+    season_start: 'Saison von',
+    season_end: 'Saison bis',
+  };
+
   const nutritionFields = [
-    { key: 'energy_kj', label: 'Energie (kJ)' },
+    { key: 'energy_kcal', label: 'Energie (kJ / kcal)' },
     { key: 'protein_g', label: 'Protein (g)' },
     { key: 'fat_g', label: 'Fett (g)' },
     { key: 'fat_sat_g', label: 'davon gesättigte Fettsäuren (g)' },
@@ -1116,6 +1224,21 @@ function buildIngredientSuggestionFields(
     });
   }
 
+  // Scout fields
+  for (const key of scoutFieldKeys) {
+    const suggested = suggestions[key] as unknown;
+    if (suggested !== null && suggested !== undefined) {
+      fields.push({
+        key,
+        label: scoutFieldLabels[key],
+        group: 'Physikalische Eigenschaften',
+        currentValue: ingredient[key] as unknown,
+        suggestedValue: suggested,
+        type: 'scalar',
+      });
+    }
+  }
+
   for (const { key, label } of priceFields) {
     fields.push({
       key,
@@ -1154,6 +1277,22 @@ function buildIngredientSuggestionFields(
         group: 'Aliase',
         currentValue: null,
         suggestedValue: alias,
+        type: 'list',
+      });
+    }
+  });
+
+  // Ernährungstags
+  const suggestedTags = (suggestions.nutritional_tags as Array<{ id: number; name: string }>) || [];
+  const existingTagIds = new Set((ingredient.nutritional_tags || []).map((t) => t.id));
+  suggestedTags.forEach((tag) => {
+    if (!existingTagIds.has(tag.id)) {
+      fields.push({
+        key: `tag_${tag.id}`,
+        label: tag.name,
+        group: 'Ernährungstags',
+        currentValue: null,
+        suggestedValue: tag,
         type: 'list',
       });
     }

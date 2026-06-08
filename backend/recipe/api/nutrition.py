@@ -105,14 +105,13 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     )
 
     from recipe.services.recipe_checks import MICRONUTRIENT_FIELDS
-    from recipe.services.nutrition_units import kj_to_kcal
 
     result_items = []
     total_weight_g = 0.0
     total_price = 0.0
     has_prices = False
     totals = {
-        "energy_kj": 0.0,
+        "energy_kcal": 0.0,
         "protein_g": 0.0,
         "fat_g": 0.0,
         "fat_sat_g": 0.0,
@@ -167,7 +166,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             else:
                 item_micro[field] = None
 
-        energy_kcal = kj_to_kcal(item_nutrition["energy_kj"])
+        energy_kcal = item_nutrition["energy_kcal"]
 
         item_entry = {
             "recipe_item_id": item.id,
@@ -179,7 +178,6 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             else "Stück",
             "weight_g": round(weight_g, 1),
             "price_eur": round(item_price, 2) if item_price is not None else None,
-            "energy_kj": round(item_nutrition["energy_kj"], 1),
             "energy_kcal": round(energy_kcal, 1),
             "protein_g": round(item_nutrition["protein_g"], 1),
             "fat_g": round(item_nutrition["fat_g"], 1),
@@ -196,8 +194,6 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             item_entry[field] = round(val, 3) if val is not None else None
 
         item_data.append(item_entry)
-
-    totals["energy_kcal"] = kj_to_kcal(totals["energy_kj"])
 
     # Second pass: calculate weight percentages and contributions
     for item in item_data:
@@ -229,7 +225,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
 
         result_items.append(item)
 
-    total_energy_kcal = kj_to_kcal(totals["energy_kj"])
+    total_energy_kcal = totals["energy_kcal"]
     servings = recipe.servings or 1
 
     # Build DGE coverage if age/gender provided
@@ -246,7 +242,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         if ref:
             # All fields we can compute coverage for
             coverage_fields = [
-                "energy_kj",
+                "energy_kcal",
                 "protein_g",
                 "fat_g",
                 "fat_sat_g_max",
@@ -288,8 +284,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     return {
         "total_weight_g": round(total_weight_g, 1),
         "total_price_eur": round(total_price, 2) if has_prices else None,
-        "total_energy_kj": round(totals["energy_kj"], 1),
-        "total_energy_kcal": round(total_energy_kcal, 1),
+        "total_energy_kcal": round(totals["energy_kcal"], 1),
         "total_protein_g": round(totals["protein_g"], 1),
         "total_fat_g": round(totals["fat_g"], 1),
         "total_fat_sat_g": round(totals["fat_sat_g"], 1),

@@ -38,6 +38,18 @@ const suggestionStyles = {
   },
 };
 
+const scopeBadgeConfig: Record<string, { text: string; color: string }> = {
+  day: { text: 'Summe', color: 'bg-sky-500' },
+  event: { text: 'Ø Plan', color: 'bg-amber-500' },
+  meal_event: { text: 'Ø Plan', color: 'bg-amber-500' },
+  meal: { text: 'Mahlzeit', color: 'bg-emerald-500' },
+};
+
+function getScopeBadgeConfig(suggestion: Suggestion): { text: string; color: string } | null {
+  if (suggestion.category !== 'nutrition') return null;
+  return scopeBadgeConfig[suggestion.scope] || null;
+}
+
 export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
   const hasSollIst =
     suggestion.current_value !== null &&
@@ -46,6 +58,7 @@ export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
       suggestion.target_mid !== null);
 
   const style = suggestionStyles[suggestion.status];
+  const scopeBadge = getScopeBadgeConfig(suggestion);
 
   return (
     <Card className={`${style.card} shadow-sm rounded-xl overflow-hidden`}>
@@ -53,6 +66,12 @@ export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
         <div className="flex gap-3">
           <span className={`mt-1.5 inline-block w-2.5 h-2.5 rounded-full shrink-0 ${style.bullet}`} />
           <div className="flex-1 min-w-0">
+            {scopeBadge && (
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`w-2 h-2 rounded-full ${scopeBadge.color} shrink-0`} />
+                <span className="text-xs font-medium text-muted-foreground">{scopeBadge.text}</span>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground font-medium">
               {suggestion.scope_label}
             </p>

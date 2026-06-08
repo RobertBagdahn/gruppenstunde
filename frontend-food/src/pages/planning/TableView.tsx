@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   Coffee,
   Utensils,
@@ -10,12 +10,13 @@ import {
   AlertCircle,
   FileText,
   TrendingUp,
-  GlassWater,
   MoreVertical,
+  Clock,
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
-import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
-import { kjToKcal } from '@/utils/nutritionUnits';
+import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes } from '@/schemas/mealPlan';
+import { useAllergenScan } from '@/api/mealPlans';
+import { AllergenWarningBadge } from '@/components/shared/AllergenWarningBadge';
 import { cn } from '@/lib/utils';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
@@ -27,12 +28,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+function formatTime(datetimeStr: string | null): string {
+  if (!datetimeStr) return '';
+  const d = new Date(datetimeStr);
+  return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
 const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   breakfast: Coffee,
   lunch: Utensils,
   dinner: Utensils,
   snack: Cookie,
-  drinks: GlassWater,
 };
 
 interface TableViewProps {
@@ -40,6 +46,8 @@ interface TableViewProps {
   normPortions: number;
   budgetPerPersonPerDay?: number | null;
   canEdit?: boolean;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
   onAddMealType?: (date: string, mealType: string) => Promise<Meal>;
   onAddRecipe?: (mealId: number, recipeId: number) => void;
   onAddIngredient?: (
@@ -64,6 +72,8 @@ interface TableViewProps {
     }
   ) => void;
   onScaleMeal?: (mealId: number) => void;
+  nutritionalTagIds?: number[];
+  nutritionalTagNames?: string[];
 }
 
 export default function TableView({
@@ -71,6 +81,8 @@ export default function TableView({
   normPortions,
   budgetPerPersonPerDay,
   canEdit = false,
+  startDatetime,
+  endDatetime,
   onAddMealType,
   onAddRecipe,
   onAddIngredient,
@@ -79,7 +91,13 @@ export default function TableView({
   onDeleteMeal,
   onUpdateMeal,
   onScaleMeal,
+  nutritionalTagIds,
+  nutritionalTagNames,
 }: TableViewProps) {
+  const { id } = useParams<{ id: string }>();
+  const mealPlanId = Number(id) || 0;
+  const { data: scanData } = useAllergenScan(mealPlanId);
+
   // Dialog state for recipe details/search
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
 
@@ -100,8 +118,8 @@ export default function TableView({
     }
     const dates = [...dateSet].sort();
 
-    // Build grid: mealType -> date -> Meal
-    const grid: Record<string, Record<string, Meal | undefined>> = {};
+    // Build grid: mealType -> date -> Meal[] (snack can have multiple)
+    const grid: Record<string, Record<string, Meal[]>> = {};
     for (const type of MEAL_TYPE_ORDER) {
       grid[type] = {};
     }
@@ -111,41 +129,55 @@ export default function TableView({
       if (!grid[meal.meal_type]) {
         grid[meal.meal_type] = {};
       }
-      grid[meal.meal_type][date] = meal;
+      if (!grid[meal.meal_type][date]) {
+        grid[meal.meal_type][date] = [];
+      }
+      grid[meal.meal_type][date].push(meal);
     }
 
     return { dates, grid };
   }, [meals]);
 
+  const skippedMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const date of dates) {
+      const skipped = getSkippedMealTypes(date, startDatetime, endDatetime);
+      if (skipped.length > 0) map[date] = skipped;
+    }
+    return map;
+  }, [dates, startDatetime, endDatetime]);
+
   const dailyTotals = useMemo(() => {
-    const totals: Record<string, { kcal: number; cost: number; targetKcal: number; targetCost: number }> = {};
+    const totals: Record<string, { kcal: number; cost: number; targetKcal: number; targetCost: number; coverage: number; effectiveCoverage: number }> = {};
     for (const date of dates) {
       let kcalSum = 0;
       let costSum = 0;
       let targetKcalSum = 0;
       let targetCostSum = 0;
       for (const mealType of MEAL_TYPE_ORDER) {
-        const meal = grid[mealType]?.[date];
-        if (meal) {
-          if (mealType !== 'drinks') {
-            if (meal.is_external) {
-              kcalSum += meal.external_energy_kcal ?? 0;
-            } else {
-              kcalSum += kjToKcal(meal.total_energy_kj);
-            }
-            targetKcalSum += NORM_PERSON_DAILY_KCAL * meal.day_part_factor;
+        const meals = grid[mealType]?.[date] || [];
+        for (const meal of meals) {
+          if (meal.is_external) {
+            kcalSum += meal.external_energy_kcal ?? 0;
+          } else {
+            kcalSum += meal.total_energy_kcal;
           }
+          targetKcalSum += NORM_PERSON_DAILY_KCAL * meal.day_part_factor;
           costSum += meal.total_cost_eur;
           if (budgetPerPersonPerDay) {
             targetCostSum += budgetPerPersonPerDay * meal.day_part_factor;
           }
         }
       }
+      const mealsForDate = MEAL_TYPE_ORDER.flatMap((mt) => grid[mt]?.[date] || []);
+      const coverage = getDayCoverage(mealsForDate);
       totals[date] = {
         kcal: Math.round(kcalSum),
         cost: costSum,
         targetKcal: Math.round(targetKcalSum),
         targetCost: targetCostSum,
+        coverage,
+        effectiveCoverage: getEffectiveCoverage(coverage),
       };
     }
     return totals;
@@ -205,222 +237,309 @@ export default function TableView({
                       <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
                     </div>
                   </td>
-                  {dates.map((date) => {
-                    const meal = grid[mealType]?.[date];
-                    const portions = meal ? (meal.override_portions || normPortions) : normPortions;
-                    const isEmpty = !meal || meal.items.length === 0;
+                    {dates.map((date) => {
+                      const meals = grid[mealType]?.[date] || [];
+                      const isSkipped = meals.length === 0 && skippedMap[date]?.includes(mealType);
 
-                    return (
-                      <td
-                        key={date}
-                        className={cn(
-                          "border-b border-r border-border p-3 align-top min-h-[120px] bg-card hover:bg-muted/5 transition-colors",
-                          isEmpty && meal && "bg-destructive/5"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
-                            {portions} Port.
-                          </span>
-                          {isCreatingSlot === `${date}_${mealType}` ? (
-                            <div className="text-[10px] text-muted-foreground/60 animate-pulse">
-                              Wird erstellt...
+                      if (isSkipped) {
+                        const parsedStart = startDatetime ? new Date(startDatetime) : null;
+                        const parsedEnd = endDatetime ? new Date(endDatetime) : null;
+                        const hint = date === startDatetime?.slice(0, 10) && parsedStart
+                          ? `Planstart: ${parsedStart.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+                          : parsedEnd
+                            ? `Planende: ${parsedEnd.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+                            : '';
+                        return (
+                          <td key={date} className="border-b border-r border-border p-3 align-top min-h-[120px] bg-muted/30">
+                            <div className="flex items-center justify-center h-full min-h-[80px]">
+                              <span className="text-[10px] text-muted-foreground/40 italic">{hint}</span>
                             </div>
-                          ) : meal ? (
-                            canEdit && (
-                              <MealActionsMenu
-                                meal={meal}
-                                canEdit={canEdit}
-                                onDeleteMeal={onDeleteMeal || (() => {})}
-                                onUpdateMeal={onUpdateMeal || (() => {})}
-                                onScaleMeal={onScaleMeal || (() => {})}
-                                onAddClick={() => setSearchDialogMeal(meal)}
-                                onAddNoteClick={() => {
-                                  setEditingNoteMealId(meal.id);
-                                  setLocalNoteValue(meal.note || '');
-                                }}
-                              />
-                            )
-                          ) : (
-                            canEdit && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button
-                                    className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
-                                    title="Aktionen"
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                  <DropdownMenuItem
-                                    onClick={async () => {
-                                      setIsCreatingSlot(`${date}_${mealType}`);
-                                      try {
-                                        const newMeal = await onAddMealType?.(date, mealType);
-                                        if (newMeal) {
-                                          setSearchDialogMeal(newMeal);
-                                        }
-                                      } catch (e) {} finally {
-                                        setIsCreatingSlot(null);
-                                      }
-                                    }}
-                                  >
-                                    <BookOpen className="mr-2 h-4 w-4 text-primary" />
-                                    <span>Rezept hinzufügen...</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={async () => {
-                                      setIsCreatingSlot(`${date}_${mealType}`);
-                                      try {
-                                        const newMeal = await onAddMealType?.(date, mealType);
-                                        if (newMeal) {
-                                          setSearchDialogMeal(newMeal);
-                                        }
-                                      } catch (e) {} finally {
-                                        setIsCreatingSlot(null);
-                                      }
-                                    }}
-                                  >
-                                    <Egg className="mr-2 h-4 w-4 text-primary" />
-                                    <span>Zutat hinzufügen...</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={async () => {
-                                      setIsCreatingSlot(`${date}_${mealType}`);
-                                      try {
-                                        const newMeal = await onAddMealType?.(date, mealType);
-                                        if (newMeal) {
-                                          setEditingNoteMealId(newMeal.id);
-                                          setLocalNoteValue('');
-                                        }
-                                      } catch (e) {} finally {
-                                        setIsCreatingSlot(null);
-                                      }
-                                    }}
-                                  >
-                                    <FileText className="mr-2 h-4 w-4 text-primary" />
-                                    <span>Notiz hinzufügen / bearbeiten...</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )
+                          </td>
+                        );
+                      }
+
+                      if (meals.length === 0) {
+                        return (
+                          <td
+                            key={date}
+                            className="border-b border-r border-border p-3 align-top min-h-[120px] bg-card hover:bg-muted/5 transition-colors"
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                                {normPortions} Port.
+                              </span>
+                              {isCreatingSlot === `${date}_${mealType}` ? (
+                                <div className="text-[10px] text-muted-foreground/60 animate-pulse">
+                                  Wird erstellt...
+                                </div>
+                              ) : (
+                                canEdit && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
+                                        title="Aktionen"
+                                      >
+                                        <MoreVertical className="w-4 h-4" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56">
+                                      <DropdownMenuItem
+                                        onClick={async () => {
+                                          setIsCreatingSlot(`${date}_${mealType}`);
+                                          try {
+                                            const newMeal = await onAddMealType?.(date, mealType);
+                                            if (newMeal) {
+                                              setSearchDialogMeal(newMeal);
+                                            }
+                                          } catch (e) {} finally {
+                                            setIsCreatingSlot(null);
+                                          }
+                                        }}
+                                      >
+                                        <BookOpen className="mr-2 h-4 w-4 text-primary" />
+                                        <span>Rezept hinzufügen...</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={async () => {
+                                          setIsCreatingSlot(`${date}_${mealType}`);
+                                          try {
+                                            const newMeal = await onAddMealType?.(date, mealType);
+                                            if (newMeal) {
+                                              setSearchDialogMeal(newMeal);
+                                            }
+                                          } catch (e) {} finally {
+                                            setIsCreatingSlot(null);
+                                          }
+                                        }}
+                                      >
+                                        <Egg className="mr-2 h-4 w-4 text-primary" />
+                                        <span>Zutat hinzufügen...</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={async () => {
+                                          setIsCreatingSlot(`${date}_${mealType}`);
+                                          try {
+                                            const newMeal = await onAddMealType?.(date, mealType);
+                                            if (newMeal) {
+                                              setEditingNoteMealId(newMeal.id);
+                                              setLocalNoteValue('');
+                                            }
+                                          } catch (e) {} finally {
+                                            setIsCreatingSlot(null);
+                                          }
+                                        }}
+                                      >
+                                        <FileText className="mr-2 h-4 w-4 text-primary" />
+                                        <span>Notiz hinzufügen / bearbeiten...</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground/30 italic py-2">—</div>
+                          </td>
+                        );
+                      }
+
+                      const anyMealIsEmpty = meals.some((m) => m.items.length === 0);
+
+                      return (
+                        <td
+                          key={date}
+                          className={cn(
+                            "border-b border-r border-border p-3 align-top min-h-[120px] bg-card hover:bg-muted/5 transition-colors",
+                            anyMealIsEmpty && "bg-destructive/5"
                           )}
-                        </div>
+                        >
+                          <div className="space-y-4 divide-y divide-border/40">
+                            {meals.map((meal, mealIdx) => {
+                              const portions = meal.override_portions || normPortions;
 
-                        {/* Items list */}
-                        {meal && meal.items.length > 0 ? (
-                          <div className="space-y-1.5 mb-3">
-                            {meal.items.map((item, i) => {
-                              const name = item.recipe_title || item.ingredient_name || item.display_name || '';
-                              const kcal = item.energy_kj != null ? Math.round(kjToKcal(item.energy_kj / normPortions)) : null;
-                              const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
                               return (
-                                <div key={item.id || i} className="group flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-[11px] font-bold text-foreground truncate max-w-[150px]" title={name}>
-                                      {item.recipe_id && item.recipe_slug ? (
-                                        <Link
-                                          to={`/recipes/${item.recipe_slug}`}
-                                          className="hover:underline hover:text-primary transition-colors"
-                                        >
-                                          {name}
-                                        </Link>
-                                      ) : (
-                                        name
-                                      )}
-                                    </div>
-                                    <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
-                                      {kcal != null && <span>{kcal} kcal</span>}
-                                      {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
-                                      {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    {canEdit && !meal.is_synced ? (
-                                      <FactorInput
-                                        value={item.factor}
-                                        onChange={(f) => onUpdateItemFactor?.(item.id, f)}
-                                      />
-                                    ) : (
-                                      item.factor !== 1.0 && (
-                                        <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
-                                          &times;{item.factor.toFixed(1).replace('.', ',')}
+                                <div key={meal.id} className={cn(mealIdx > 0 && "pt-3")}>
+                                  <div className="flex items-center justify-between gap-2 mb-2">
+                                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                                      <span className="text-[10px] font-bold text-foreground truncate max-w-[120px]">
+                                        {meal.display_name || MEAL_TYPE_LABELS[mealType] || mealType}
+                                      </span>
+                                      {(meal.start_datetime || meal.end_datetime) && (
+                                        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1 py-0.5 rounded">
+                                          <Clock className="w-2.5 h-2.5 shrink-0" />
+                                          {formatTime(meal.start_datetime)}–{formatTime(meal.end_datetime)}
                                         </span>
+                                      )}
+                                      <span className="text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1 py-0.5 rounded shrink-0">
+                                        {portions} Port.
+                                      </span>
+                                    </div>
+                                    {isCreatingSlot === `${date}_${mealType}` ? (
+                                      <div className="text-[10px] text-muted-foreground/60 animate-pulse">
+                                        Wird erstellt...
+                                      </div>
+                                    ) : (
+                                      canEdit && (
+                                        <MealActionsMenu
+                                          meal={meal}
+                                          canEdit={canEdit}
+                                          onDeleteMeal={onDeleteMeal || (() => {})}
+                                          onUpdateMeal={onUpdateMeal || (() => {})}
+                                          onScaleMeal={onScaleMeal || (() => {})}
+                                          onAddClick={() => setSearchDialogMeal(meal)}
+                                          onAddNoteClick={() => {
+                                            setEditingNoteMealId(meal.id);
+                                            setLocalNoteValue(meal.note || '');
+                                          }}
+                                        />
                                       )
                                     )}
+                                  </div>
 
-                                    {canEdit && !meal.is_synced && (
-                                      <button
-                                        onClick={() => onDeleteItem?.(item.id)}
-                                        className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
-                                        title="Entfernen"
+                                  {/* Items list */}
+                                  {meal.items.length > 0 ? (
+                                    <div className="space-y-1.5 mb-2">
+                                      {meal.items.map((item, i) => {
+                                        const name = item.recipe_title || item.ingredient_name || item.display_name || '';
+                                        const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / normPortions) : null;
+                                        const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
+                                        
+                                        const itemViolations = scanData?.violations.filter(
+                                          (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
+                                        ) || [];
+                                        const itemAllergenTags = itemViolations.map((v) => v.allergen_tag);
+
+                                        return (
+                                          <div key={item.id || i} className="group flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
+                                            <div className="min-w-0 flex-1">
+                                              <div className="text-[11px] font-bold text-foreground truncate max-w-[150px] flex items-center gap-1" title={name}>
+                                                {item.recipe_id && item.recipe_slug ? (
+                                                  <Link
+                                                    to={`/recipes/${item.recipe_slug}`}
+                                                    className="hover:underline hover:text-primary transition-colors truncate"
+                                                  >
+                                                    {name}
+                                                  </Link>
+                                                ) : (
+                                                  <span className="truncate">{name}</span>
+                                                )}
+                                                <AllergenWarningBadge allergenTags={itemAllergenTags} />
+                                              </div>
+                                              <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
+                                                {kcal != null && <span>{kcal} kcal</span>}
+                                                {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
+                                                {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
+                                              </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 shrink-0">
+                                              {canEdit && !meal.is_synced ? (
+                                                <FactorInput
+                                                  value={item.factor}
+                                                  onChange={(f) => onUpdateItemFactor?.(item.id, f)}
+                                                />
+                                              ) : (
+                                                item.factor !== 1.0 && (
+                                                  <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                    &times;{item.factor.toFixed(1).replace('.', ',')}
+                                                  </span>
+                                                )
+                                              )}
+
+                                              {canEdit && !meal.is_synced && (
+                                                <button
+                                                  onClick={() => onDeleteItem?.(item.id)}
+                                                  className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                                                  title="Entfernen"
+                                                >
+                                                  <X className="w-3 h-3" />
+                                                </button>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[9px] uppercase tracking-wider mb-2">
+                                      <AlertCircle className="w-2.5 h-2.5" />
+                                      Mahlzeit leer
+                                    </div>
+                                  )}
+
+                                  {/* Note area */}
+                                  <div className="pt-1.5 border-t border-border/40 mt-1 space-y-2">
+                                    {editingNoteMealId === meal.id ? (
+                                      <input
+                                        type="text"
+                                        value={localNoteValue}
+                                        onChange={(e) => setLocalNoteValue(e.target.value)}
+                                        onBlur={() => {
+                                          onUpdateMeal?.(meal.id, { note: localNoteValue });
+                                          setEditingNoteMealId(null);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            onUpdateMeal?.(meal.id, { note: localNoteValue });
+                                            setEditingNoteMealId(null);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingNoteMealId(null);
+                                          }
+                                        }}
+                                        placeholder="Notiz..."
+                                        autoFocus
+                                        className="w-full px-2 py-1 text-[10px] border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
+                                      />
+                                    ) : meal.note ? (
+                                      <div
+                                        onClick={() => {
+                                          if (canEdit) {
+                                            setEditingNoteMealId(meal.id);
+                                            setLocalNoteValue(meal.note);
+                                          }
+                                        }}
+                                        className={cn(
+                                          "text-[10px] text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
+                                          canEdit && "cursor-pointer"
+                                        )}
+                                        title={meal.note}
                                       >
-                                        <X className="w-3 h-3" />
-                                      </button>
-                                    )}
+                                        <FileText className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                                        <span className="truncate">{meal.note}</span>
+                                      </div>
+                                    ) : null}
                                   </div>
                                 </div>
                               );
                             })}
                           </div>
-                        ) : meal ? (
-                          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[9px] uppercase tracking-wider mb-2">
-                            <AlertCircle className="w-2.5 h-2.5" />
-                            Mahlzeit leer
-                          </div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground/30 italic py-2">—</div>
-                        )}
 
-                        {/* Note area */}
-                        {meal && (
-                          <div className="pt-2 border-t border-border/40 mt-auto space-y-2">
-                            {editingNoteMealId === meal.id ? (
-                              <input
-                                type="text"
-                                value={localNoteValue}
-                                onChange={(e) => setLocalNoteValue(e.target.value)}
-                                onBlur={() => {
-                                  onUpdateMeal?.(meal.id, { note: localNoteValue });
-                                  setEditingNoteMealId(null);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    onUpdateMeal?.(meal.id, { note: localNoteValue });
-                                    setEditingNoteMealId(null);
-                                  } else if (e.key === 'Escape') {
-                                    setEditingNoteMealId(null);
+                          {/* Add button for extra snacks */}
+                          {mealType === 'snack' && canEdit && (
+                            <div className="mt-3 pt-2 border-t border-dashed border-border/60 text-center">
+                              <button
+                                onClick={async () => {
+                                  setIsCreatingSlot(`${date}_${mealType}_add`);
+                                  try {
+                                    const newMeal = await onAddMealType?.(date, mealType);
+                                    if (newMeal) {
+                                      setSearchDialogMeal(newMeal);
+                                    }
+                                  } catch (e) {
+                                  } finally {
+                                    setIsCreatingSlot(null);
                                   }
                                 }}
-                                placeholder="Notiz..."
-                                autoFocus
-                                className="w-full px-2 py-1 text-[10px] border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
-                              />
-                            ) : meal.note ? (
-                              <div
-                                onClick={() => {
-                                  if (canEdit) {
-                                    setEditingNoteMealId(meal.id);
-                                    setLocalNoteValue(meal.note);
-                                  }
-                                }}
-                                className={cn(
-                                  "text-[10px] text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
-                                  canEdit && "cursor-pointer"
-                                )}
-                                title={meal.note}
+                                disabled={isCreatingSlot !== null}
+                                className="text-[10px] font-semibold text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer shadow-none"
                               >
-                                <FileText className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
-                                <span className="truncate">{meal.note}</span>
-                              </div>
-                            ) : null}
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
+                                {isCreatingSlot === `${date}_${mealType}_add` ? 'Wird hinzugefügt...' : '+ Weiterer Snack'}
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
                 </tr>
               );
             })}
@@ -438,11 +557,13 @@ export default function TableView({
                 const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
                 const hasBudget = budget !== null && budget > 0;
 
+                const badge = getCoverageBadge(dailyTotal.coverage);
                 let budgetStatus: 'green' | 'yellow' | 'red' = 'green';
                 if (hasBudget) {
-                  if (costPerPerson <= budget) {
+                  const scaledBudget = budget * dailyTotal.effectiveCoverage;
+                  if (costPerPerson <= scaledBudget) {
                     budgetStatus = 'green';
-                  } else if (costPerPerson <= budget * 1.2) {
+                  } else if (costPerPerson <= scaledBudget * 1.2) {
                     budgetStatus = 'yellow';
                   } else {
                     budgetStatus = 'red';
@@ -460,6 +581,15 @@ export default function TableView({
                       </div>
                       <div className="text-[11px] font-semibold text-muted-foreground">
                         Soll {dailyTotal.targetCost.toFixed(2).replace('.', ',')} € · {costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'} ({dailyTotal.targetCost > 0 ? Math.round((costPerPerson / dailyTotal.targetCost) * 100) : 0} %)
+                      </div>
+                      {/* Coverage Badge */}
+                      <div className={cn(
+                        "inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border w-fit shadow-xs",
+                        badge.status === 'green' && "bg-primary/10 text-primary border-primary/20",
+                        badge.status === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
+                        badge.status === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
+                      )}>
+                        {badge.label}
                       </div>
                       {hasBudget && (
                         <div className={cn(
@@ -497,6 +627,8 @@ export default function TableView({
             onAddIngredient?.(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
             setSearchDialogMeal(null);
           }}
+          nutritionalTagIds={nutritionalTagIds}
+          nutritionalTagNames={nutritionalTagNames}
         />
       )}
     </div>

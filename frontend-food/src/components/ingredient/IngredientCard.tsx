@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { IngredientListItem } from '@/schemas/supply';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
-import { kjToKcal } from '@/utils/nutritionUnits';
 
 interface IngredientCardProps {
   ingredient: IngredientListItem;
@@ -44,10 +43,10 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
       )}
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        {ingredient.energy_kj !== null && (
+        {ingredient.energy_kcal !== null && (
           <span className="inline-flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
             <span className="material-symbols-outlined text-[12px]">local_fire_department</span>
-            {Math.round(kjToKcal(ingredient.energy_kj))} kcal
+            {Math.round(ingredient.energy_kcal)} kcal
           </span>
         )}
         {ingredient.protein_g !== null && (

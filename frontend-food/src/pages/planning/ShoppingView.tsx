@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store } from 'lucide-react';
-import { useShoppingList } from '@/api/mealPlans';
+import { useShoppingList, useAllergenScan } from '@/api/mealPlans';
+import type { NutritionalTagViolation } from '@/schemas/mealPlan';
 import { useCurrentUser } from '@/api/auth';
 import { useCreateFromMealPlan } from '@/api/shoppingLists';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -28,17 +29,31 @@ interface TransientShoppingItem {
   sources?: Array<{ recipe_id: number; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
 }
 
-function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
+function ShoppingItemWithSources({ item, violations }: { item: TransientShoppingItem; violations: NutritionalTagViolation[] }) {
   const [expanded, setExpanded] = useState(false);
   const [portionsExpanded, setPortionsExpanded] = useState(false);
   const hasSources = item.sources && item.sources.length > 0;
   const hasPortionOptions = item.portion_options && item.portion_options.length > 1;
 
+  const itemViolatingSources = item.sources?.filter(src =>
+    violations.some(v => v.recipe_id === src.recipe_id)
+  ) || [];
+  const isViolating = itemViolatingSources.length > 0;
+
+  const violatingAllergenNames = Array.from(new Set(
+    violations
+      .filter(v => itemViolatingSources.some(src => src.recipe_id === v.recipe_id))
+      .map(v => v.allergen_tag.name)
+  )).join(', ');
+
   return (
     <div>
       <div
-        className="flex items-center justify-between px-4 py-2 hover:bg-muted/30 transition-colors"
+        className={`flex items-center justify-between px-4 py-2 hover:bg-muted/30 transition-colors ${
+          isViolating ? 'border-l-4 border-l-destructive bg-destructive/5' : ''
+        }`}
         onClick={() => hasSources && setExpanded(!expanded)}
+        title={isViolating ? `Rezept enthält: ${violatingAllergenNames}` : undefined}
       >
         <div className="flex items-center gap-2 min-w-0">
           {hasSources && (
@@ -63,7 +78,9 @@ function ShoppingItemWithSources({ item }: { item: TransientShoppingItem }) {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                hasPortionOptions && setPortionsExpanded(!portionsExpanded);
+                if (hasPortionOptions) {
+                  setPortionsExpanded(!portionsExpanded);
+                }
               }}
               className={`inline-flex items-center gap-1 text-xs transition-colors ${
                 hasPortionOptions ? 'cursor-pointer hover:text-muted-foreground' : ''
@@ -136,6 +153,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
   const { data, error, isLoading, refetch } = useShoppingList(mealPlanId);
+  const { data: scanData } = useAllergenScan(mealPlanId);
   const createFromMealPlan = useCreateFromMealPlan();
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
@@ -200,7 +218,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
           </div>
           <div className="divide-y">
             {items.map((item, idx) => (
-              <ShoppingItemWithSources key={idx} item={item} />
+              <ShoppingItemWithSources key={idx} item={item} violations={scanData?.violations || []} />
             ))}
           </div>
         </div>

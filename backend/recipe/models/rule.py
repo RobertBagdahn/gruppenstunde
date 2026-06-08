@@ -57,7 +57,7 @@ class Rule(models.Model):
     parameter = models.CharField(
         max_length=50,
         verbose_name=_("Parameter"),
-        help_text=_("z.B. 'energy_kj', 'sugar_g', 'protein_g'"),
+        help_text=_("z.B. 'energy_kcal', 'sugar_g', 'protein_g'"),
     )
     scope = models.CharField(
         max_length=20,
@@ -100,7 +100,7 @@ class Rule(models.Model):
         blank=True,
         default="",
         verbose_name=_("Einheit"),
-        help_text=_("z.B. 'g', 'kJ', 'mg'"),
+        help_text=_("z.B. 'g', 'kcal', 'mg'"),
     )
     hint_level = models.CharField(
         max_length=10,

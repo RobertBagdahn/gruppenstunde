@@ -74,7 +74,7 @@ class IngredientListOut(Schema):
     name: str
     slug: str
     status: str
-    energy_kj: float | None
+    energy_kcal: float | None
     protein_g: float | None
     fat_g: float | None
     carbohydrate_g: float | None
@@ -82,6 +82,7 @@ class IngredientListOut(Schema):
     price_per_kg: float | None
     retail_section_id: int | None
     retail_section_name: str | None = None
+    quality_score: int | None = None
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
@@ -105,8 +106,16 @@ class IngredientDetailOut(Schema):
     durability_in_days: int | None
     max_storage_temperature: int | None
 
+    # Scout/camp fields
+    storage_type: str | None = None
+    cooking_factor: float | None = None
+    camp_suitable: bool = False
+    preparation_time_min: int | None = None
+    season_start: int | None = None
+    season_end: int | None = None
+
     # Nutritional values per 100g
-    energy_kj: float | None
+    energy_kcal: float | None
     protein_g: float | None
     fat_g: float | None
     fat_sat_g: float | None
@@ -148,6 +157,8 @@ class IngredientDetailOut(Schema):
     created_at: str = ""
     updated_at: str = ""
     created_by_id: int | None = None
+    quality_score: int | None = None
+    quality_score_updated_at: str | None = None
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
@@ -209,8 +220,16 @@ class IngredientCreateIn(Schema):
     durability_in_days: int | None = None
     max_storage_temperature: int | None = None
 
+    # Scout/camp fields
+    storage_type: str | None = None
+    cooking_factor: float | None = None
+    camp_suitable: bool = False
+    preparation_time_min: int | None = None
+    season_start: int | None = None
+    season_end: int | None = None
+
     # Nutritional values
-    energy_kj: float | None = None
+    energy_kcal: float | None = None
     protein_g: float | None = None
     fat_g: float | None = None
     fat_sat_g: float | None = None
@@ -252,7 +271,15 @@ class IngredientUpdateIn(Schema):
     durability_in_days: int | None = None
     max_storage_temperature: int | None = None
 
-    energy_kj: float | None = None
+    # Scout/camp fields
+    storage_type: str | None = None
+    cooking_factor: float | None = None
+    camp_suitable: bool | None = None
+    preparation_time_min: int | None = None
+    season_start: int | None = None
+    season_end: int | None = None
+
+    energy_kcal: float | None = None
     protein_g: float | None = None
     fat_g: float | None = None
     fat_sat_g: float | None = None
@@ -309,7 +336,7 @@ class IngredientSuggestAllOut(Schema):
     """Response schema for AI-powered ingredient suggestions."""
 
     # Nährwerte
-    energy_kj: float | None = None
+    energy_kcal: float | None = None
     protein_g: float | None = None
     fat_g: float | None = None
     fat_sat_g: float | None = None
@@ -322,12 +349,15 @@ class IngredientSuggestAllOut(Schema):
     lactose_g: float | None = None
 
     # Bewertungen
-    nutri_score: str | None = None
+    nutri_score: int | None = None
     nova_score: int | None = None
     child_score: int | None = None
     scout_score: int | None = None
     environmental_score: int | None = None
     fruit_factor: float | None = None
+
+    # Name suggestion
+    name_suggestion: str | None = None
 
     # Physik
     physical_density: float | None = None
@@ -335,12 +365,21 @@ class IngredientSuggestAllOut(Schema):
     durability_in_days: int | None = None
     max_storage_temperature: int | None = None
 
+    # Scout/camp fields
+    storage_type: str | None = None
+    cooking_factor: float | None = None
+    camp_suitable: bool | None = None
+    preparation_time_min: int | None = None
+    season_start: int | None = None
+    season_end: int | None = None
+
     # Preis
     price_per_kg: float | None = None
 
     # Portionen und Aliase
     portions: list[PortionSuggestionOut] = []
     aliases: list[str] = []
+    nutritional_tags: list[NutritionalTagOut] = []
 
 
 class IngredientAiCreateIn(Schema):

@@ -23,7 +23,7 @@ const SCOPE_OPTIONS = [
 ];
 
 const PARAMETER_OPTIONS = [
-  { value: 'energy_kj', label: 'Energie (kcal)', unit: 'kcal' },
+  { value: 'energy_kcal', label: 'Energie (kcal)', unit: 'kcal' },
   { value: 'protein_g', label: 'Eiweiß (g)', unit: 'g' },
   { value: 'fat_g', label: 'Fett (g)', unit: 'g' },
   { value: 'fat_sat_g', label: 'Gesättigte Fettsäuren (g)', unit: 'g' },
@@ -56,7 +56,7 @@ export default function RuleEditDialog({
   isPending,
 }: RuleEditDialogProps) {
   const [name, setName] = useState('');
-  const [parameter, setParameter] = useState('energy_kj');
+  const [parameter, setParameter] = useState('energy_kcal');
   const [scope, setScope] = useState('day');
   const [minYellow, setMinYellow] = useState<string>('');
   const [minGreen, setMinGreen] = useState<string>('');
@@ -82,7 +82,7 @@ export default function RuleEditDialog({
       setIsActive(rule.is_active);
     } else {
       setName('');
-      setParameter('energy_kj');
+      setParameter('energy_kcal');
       setScope('day');
       setMinYellow('');
       setMinGreen('');

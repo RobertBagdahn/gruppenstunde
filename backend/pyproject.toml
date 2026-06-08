@@ -28,6 +28,7 @@ dependencies = [
     "daphne>=4.1,<5.0",
     "qrcode>=8.2",
     "neonize>=0.3,<1.0",
+    "pgvector>=0.3,<1.0",
     "protobuf>=7.34.1",
     "pyyaml>=6.0,<7.0",
     "beautifulsoup4>=4.12,<5.0",

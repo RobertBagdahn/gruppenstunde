@@ -1,13 +1,15 @@
 """Ingredient models — Ingredient, IngredientAlias, Portion."""
 
 from django.conf import settings
+from django.contrib.postgres.search import SearchVectorField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.functions import Lower
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from pgvector.django import VectorField
 
-from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, RecipeTypeChoices
+from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, RecipeTypeChoices, StorageTypeChoices
 from .reference import NutritionalTag, RetailSection
 
 
@@ -52,7 +54,7 @@ class Ingredient(models.Model):
     )
 
     # Nutritional values per 100g
-    energy_kj = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Energie (kJ)"))
+    energy_kcal = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Energie (kcal)"))
     protein_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Eiweiß (g)"))
     fat_g = models.FloatField(default=0, blank=True, null=True, verbose_name=_("Fett (g)"))
     fat_sat_g = models.FloatField(null=True, blank=True, verbose_name=_("Gesättigte Fettsäuren (g)"))
@@ -164,6 +166,44 @@ class Ingredient(models.Model):
         verbose_name=_("Status"),
     )
 
+    # Scout/camp fields
+    storage_type = models.CharField(
+        max_length=20,
+        choices=StorageTypeChoices.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Lagerungsart"),
+    )
+    cooking_factor = models.FloatField(
+        default=1.0,
+        null=True,
+        blank=True,
+        verbose_name=_("Kochfaktor"),
+        help_text=_("Multiplikator Roh→Gekocht, z.B. 2.5 für Nudeln (aus 100g → 250g)"),
+    )
+    camp_suitable = models.BooleanField(
+        default=False,
+        verbose_name=_("Camp-geeignet"),
+        help_text=_("Fürs Zeltlager geeignet (haltbar, leicht, kein Kühlschrank)"),
+    )
+    preparation_time_min = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Zubereitungsdauer (Minuten)"),
+    )
+    season_start = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(12)],
+        verbose_name=_("Saisonbeginn (Monat 1-12)"),
+    )
+    season_end = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(12)],
+        verbose_name=_("Saisonende (Monat 1-12)"),
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -181,6 +221,20 @@ class Ingredient(models.Model):
         blank=True,
         related_name="ingredients_updated",
     )
+
+    # Search & AI
+    search_vector = SearchVectorField(null=True, blank=True)
+    embedding = VectorField(dimensions=768, null=True, blank=True)
+    embedding_updated_at = models.DateTimeField(null=True, blank=True)
+
+    # Data quality
+    quality_score = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name=_("Datenqualität (0-100)"),
+    )
+    quality_score_updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = _("Zutat")

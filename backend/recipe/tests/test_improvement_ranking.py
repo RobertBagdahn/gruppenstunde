@@ -27,7 +27,7 @@ def sugar_ingredient(db):
         name="Zucker",
         slug="zucker",
         status="approved",
-        energy_kj=1700.0,
+        energy_kcal=406,
         protein_g=0.0,
         fat_g=0.0,
         fat_sat_g=0.0,
@@ -44,7 +44,7 @@ def salt_ingredient(db):
         name="Salz",
         slug="salz",
         status="approved",
-        energy_kj=0.0,
+        energy_kcal=0,
         protein_g=0.0,
         fat_g=0.0,
         fat_sat_g=0.0,
@@ -61,7 +61,7 @@ def flour_ingredient(db):
         name="Mehl",
         slug="mehl",
         status="approved",
-        energy_kj=1418.0,
+        energy_kcal=339,
         protein_g=10.3,
         fat_g=1.0,
         fat_sat_g=0.2,
@@ -109,7 +109,7 @@ def portion_flour(flour_ingredient, measuring_unit):
 def poor_recipe(portion_sugar, portion_salt, portion_flour):
     """Recipe with high sugar and salt — Nutri-Score D/E."""
     recipe = make_recipe(
-        cached_energy_kj=1500.0,
+        cached_energy_kcal=359,
         cached_sugar_g=50.0,
         cached_fat_g=5.0,
         cached_salt_g=3.0,
@@ -133,7 +133,7 @@ class TestImprovementRanking:
     def test_all_good_when_nutri_a_and_no_hints(self):
         """Nutri-Score A + zero matched hints → all_good=True, items empty."""
         recipe = make_recipe(
-            cached_energy_kj=200.0,
+            cached_energy_kcal=48,
             cached_protein_g=15.0,
             cached_fat_g=2.0,
             cached_sugar_g=1.0,

@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Link2 } from 'lucide-react';
 import { MealSlot } from './MealSlot';
-import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getCoverageBadge } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
-import { kjToKcal } from '@/utils/nutritionUnits';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
 
@@ -29,6 +28,8 @@ export function DayPlanView({
   onUpdateMeal,
   onScaleMeal,
   onCopyFromPlan,
+  nutritionalTagIds,
+  nutritionalTagNames,
 }: {
   mealPlanId: number;
   dayGroups: { date: string; meals: Meal[] }[];
@@ -57,6 +58,8 @@ export function DayPlanView({
   }) => void;
   onScaleMeal: (mealId: number) => void;
   onCopyFromPlan: (mealId: number) => void;
+  nutritionalTagIds?: number[];
+  nutritionalTagNames?: string[];
 }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -106,8 +109,8 @@ export function DayPlanView({
         />
       ) : (
         dayGroups.map((group) => {
-          const dayActualKcal = Math.round(group.meals.filter((m) => m.meal_type !== 'drinks').reduce((sum, m) => sum + kjToKcal(m.total_energy_kj / normPortions), 0));
-          const dayTargetKcal = Math.round(group.meals.filter((m) => m.meal_type !== 'drinks').reduce((sum, m) => sum + NORM_PERSON_DAILY_KCAL * m.day_part_factor, 0));
+          const dayActualKcal = Math.round(group.meals.reduce((sum, m) => sum + m.total_energy_kcal / normPortions, 0));
+          const dayTargetKcal = Math.round(group.meals.reduce((sum, m) => sum + NORM_PERSON_DAILY_KCAL * m.day_part_factor, 0));
           const dayActualCost = group.meals.reduce((sum, m) => sum + m.total_cost_eur / normPortions, 0);
           const dayTargetCost = budgetPerPersonPerDay ? group.meals.reduce((sum, m) => sum + budgetPerPersonPerDay * m.day_part_factor, 0) : 0;
 
@@ -116,7 +119,23 @@ export function DayPlanView({
               {/* Day Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-muted/50 border-b gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
-                  <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
+                    {(() => {
+                      const coverage = getDayCoverage(group.meals);
+                      const badge = getCoverageBadge(coverage);
+                      const colorClasses = {
+                        green: 'bg-primary/10 text-primary border-primary/20',
+                        yellow: 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20',
+                        red: 'bg-destructive/10 text-destructive border-destructive/20',
+                      };
+                      return (
+                        <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border ${colorClasses[badge.status]}`}>
+                          {badge.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1 bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
                       <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
@@ -158,6 +177,8 @@ export function DayPlanView({
                     onUpdateMeal={onUpdateMeal}
                     onScaleMeal={onScaleMeal}
                     onCopyFromPlan={onCopyFromPlan}
+                    nutritionalTagIds={nutritionalTagIds}
+                    nutritionalTagNames={nutritionalTagNames}
                   />
                 ))}
               </div>
@@ -167,7 +188,7 @@ export function DayPlanView({
                 <div className="px-4 py-2 border-t bg-muted/30">
                   <div className="flex flex-wrap gap-1">
                     {MEAL_TYPE_ORDER
-                      .filter((mt) => !group.meals.some((m) => m.meal_type === mt))
+                      .filter((mt) => mt !== 'snack' && !group.meals.some((m) => m.meal_type === mt))
                       .map((mt) => (
                         <button
                           key={mt}
@@ -181,6 +202,17 @@ export function DayPlanView({
                           {MEAL_TYPE_LABELS[mt] || mt}
                         </button>
                       ))}
+                    {/* Snack can be added multiple times per day */}
+                    <button
+                      onClick={async () => {
+                        const newMeal = await onAddMealType(group.date, 'snack');
+                        if (newMeal) setSearchDialogMeal(newMeal);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm text-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-primary" />
+                      {MEAL_TYPE_LABELS.snack}
+                    </button>
                   </div>
                 </div>
               )}
@@ -217,6 +249,8 @@ export function DayPlanView({
             onAddIngredient(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
             setSearchDialogMeal(null);
           }}
+          nutritionalTagIds={nutritionalTagIds}
+          nutritionalTagNames={nutritionalTagNames}
         />
       )}
     </div>

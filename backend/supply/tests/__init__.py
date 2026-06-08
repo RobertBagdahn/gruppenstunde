@@ -28,7 +28,7 @@ def make_ingredient(**kwargs) -> Ingredient:
     defaults = {
         "name": "Weizenmehl",
         "status": "approved",
-        "energy_kj": 1418.0,
+        "energy_kcal": 339.0,
         "protein_g": 10.3,
         "fat_g": 1.0,
         "fat_sat_g": 0.2,

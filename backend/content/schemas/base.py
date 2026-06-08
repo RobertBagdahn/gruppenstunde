@@ -93,6 +93,7 @@ class ContentListOut(Schema):
     tags: list[TagOut]
     can_edit: bool = False
     can_delete: bool = False
+    quality_score: int | None = None
 
     @staticmethod
     def resolve_image_url(obj) -> str | None:
@@ -142,6 +143,8 @@ class ContentDetailOut(Schema):
     user_emotion: str | None = None
     can_edit: bool = False
     can_delete: bool = False
+    quality_score: int | None = None
+    quality_score_updated_at: str | None = None
 
     @staticmethod
     def resolve_image_url(obj) -> str | None:

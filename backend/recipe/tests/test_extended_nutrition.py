@@ -77,7 +77,7 @@ class TestDgeReferenceModel:
             age_min=10,
             age_max=13,
             gender=DgeGenderChoices.MALE,
-            energy_kj=10000.0,
+            energy_kcal=2390,
             protein_g=48.0,
             fat_g=75.0,
             carbohydrate_g=275.0,
@@ -95,40 +95,40 @@ class TestDgeReferenceModel:
             age_min=14,
             age_max=18,
             gender=DgeGenderChoices.FEMALE,
-            energy_kj=9500.0,
+            energy_kcal=2271,
         )
         assert "14-18" in str(ref)
         assert "DGE" in str(ref)
 
     def test_dge_reference_unique_together(self):
-        DgeReference.objects.create(age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kj=10000.0)
+        DgeReference.objects.create(age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kcal=2390)
         with pytest.raises(Exception):
-            DgeReference.objects.create(age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kj=9000.0)
+            DgeReference.objects.create(age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kcal=2151)
 
     def test_dge_reference_vitamin_c_nullable(self):
         ref = DgeReference.objects.create(
             age_min=19,
             age_max=25,
             gender=DgeGenderChoices.FEMALE,
-            energy_kj=9200.0,
+            energy_kcal=2199,
         )
         assert ref.vitamin_c_mg is None
 
     def test_dge_reference_lookup_by_age_and_gender(self):
         DgeReference.objects.create(
-            age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kj=10000.0, vitamin_c_mg=90.0
+            age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kcal=2390, vitamin_c_mg=90.0
         )
         DgeReference.objects.create(
-            age_min=10, age_max=13, gender=DgeGenderChoices.FEMALE, energy_kj=9500.0, vitamin_c_mg=90.0
+            age_min=10, age_max=13, gender=DgeGenderChoices.FEMALE, energy_kcal=2271, vitamin_c_mg=90.0
         )
         DgeReference.objects.create(
-            age_min=14, age_max=18, gender=DgeGenderChoices.MALE, energy_kj=12000.0, vitamin_c_mg=105.0
+            age_min=14, age_max=18, gender=DgeGenderChoices.MALE, energy_kcal=2868, vitamin_c_mg=105.0
         )
 
         # Lookup for a 12-year-old male
         ref = DgeReference.objects.filter(age_min__lte=12, age_max__gte=12, gender="male").first()
         assert ref is not None
-        assert ref.energy_kj == 10000.0
+        assert ref.energy_kcal == 2390.0
         assert ref.vitamin_c_mg == 90.0
 
 
@@ -227,7 +227,7 @@ class TestRuleVitaminMineralMatching:
         ing = make_ingredient(
             name="Reis",
             vitamin_c_mg=0.0,
-            energy_kj=1506.0,
+            energy_kcal=360,
             protein_g=6.7,
             fat_g=0.6,
             carbohydrate_g=78.0,
@@ -245,7 +245,7 @@ class TestRuleVitaminMineralMatching:
         ing = make_ingredient(
             name="Paprika",
             vitamin_c_mg=140.0,
-            energy_kj=84.0,
+            energy_kcal=20,
             protein_g=1.0,
             fat_g=0.3,
             carbohydrate_g=4.2,
@@ -326,7 +326,7 @@ class TestNutritionBreakdownAPI:
         recipe = make_recipe(servings=2)
         ing = make_ingredient(
             name="Brokkoli",
-            energy_kj=143.0,
+            energy_kcal=34,
             protein_g=3.7,
             fat_g=0.4,
             fat_sat_g=0.1,
@@ -388,7 +388,7 @@ class TestNutritionBreakdownAPI:
             age_min=10,
             age_max=13,
             gender="male",
-            energy_kj=10000.0,
+            energy_kcal=2390,
             protein_g=48.0,
             fat_g=75.0,
             carbohydrate_g=275.0,
@@ -451,7 +451,7 @@ class TestCockpitVitaminMineralRules:
         ing = make_ingredient(
             name="Paprika",
             vitamin_c_mg=140.0,
-            energy_kj=84.0,
+            energy_kcal=20,
             protein_g=1.0,
             fat_g=0.3,
             carbohydrate_g=4.2,
@@ -553,7 +553,7 @@ class TestRuleImprovementText:
         ing = make_ingredient(
             name="Nudeln",
             vitamin_c_mg=0.0,
-            energy_kj=1500.0,
+            energy_kcal=359,
             protein_g=12.0,
             fat_g=1.5,
             carbohydrate_g=70.0,
@@ -583,7 +583,7 @@ class TestRuleImprovementText:
         recipe = make_recipe()
         ing = make_ingredient(
             name="Marmelade",
-            energy_kj=1100.0,
+            energy_kcal=263,
             protein_g=0.3,
             fat_g=0.1,
             carbohydrate_g=60.0,

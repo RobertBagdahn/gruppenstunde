@@ -415,7 +415,7 @@ class Command(BaseCommand):
                 physical_viscosity=fields.get("physical_viscosity", "solid"),
                 status="verified",
                 # Nutritional data from metainfo
-                energy_kj=self._safe_float(meta.get("energy_kj")) or 0,
+                energy_kcal=self._safe_float(meta.get("energy_kcal")) or 0,
                 protein_g=self._safe_float(meta.get("protein_g")) or 0,
                 fat_g=self._safe_float(meta.get("fat_g")) or 0,
                 fat_sat_g=self._safe_float(meta.get("fat_sat_g")),

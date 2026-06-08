@@ -1,23 +1,44 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Wallet, AlertCircle, Info, Utensils, Lightbulb } from 'lucide-react';
-import { useMealPlanCosts } from '@/api/mealPlans';
-import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import { useMealPlanCosts, useAllergenScan } from '@/api/mealPlans';
+import { MEAL_TYPE_LABELS, getDayCoverage, getEffectiveCoverage, getCoverageBadge } from '@/schemas/mealPlan';
+import type { Meal } from '@/schemas/mealPlan';
 import SollIstBar from '@/components/shared/SollIstBar';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 
 interface CostDashboardProps {
   mealPlanId: number;
   budgetPerPersonPerDay?: number | null;
+  meals?: Meal[];
+  onSelectTab?: (tab: 'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'allergens') => void;
 }
 
 function formatEur(value: number): string {
   return value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 }
 
-export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: CostDashboardProps) {
+export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals, onSelectTab }: CostDashboardProps) {
   const { data, isLoading, error } = useMealPlanCosts(mealPlanId);
+  const { data: scanData } = useAllergenScan(mealPlanId);
   const [showPerPortion, setShowPerPortion] = useState(true);
+
+  // Compute day coverage from meals if available
+  const dayCoverageMap = useMemo(() => {
+    if (!meals) return {};
+    const groups: Record<string, Meal[]> = {};
+    for (const meal of meals) {
+      if (!meal.start_datetime) continue;
+      const date = meal.start_datetime.slice(0, 10);
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(meal);
+    }
+    const map: Record<string, number> = {};
+    for (const [date, dayMeals] of Object.entries(groups)) {
+      map[date] = getDayCoverage(dayMeals);
+    }
+    return map;
+  }, [meals]);
 
   if (isLoading) {
     return (
@@ -45,19 +66,58 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
   const numDays = data.days.length || 1;
   const costPerPersonPerDay = data.cost_per_person / numDays;
 
+  // Average coverage across all days
+  const avgDayCoverage = meals && meals.length > 0
+    ? (() => {
+        const groups: Record<string, Meal[]> = {};
+        for (const meal of meals) {
+          if (!meal.start_datetime) continue;
+          const date = meal.start_datetime.slice(0, 10);
+          if (!groups[date]) groups[date] = [];
+          groups[date].push(meal);
+        }
+        const dates = Object.keys(groups);
+        if (dates.length === 0) return 1;
+        const totalCov = dates.reduce((sum, d) => sum + getDayCoverage(groups[d]), 0);
+        return totalCov / dates.length;
+      })()
+    : 1;
+  const effAvgCoverage = getEffectiveCoverage(avgDayCoverage);
+
   const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
   const hasBudget = budget !== null && budget > 0;
 
+  const scaledBudget = hasBudget ? budget * effAvgCoverage : null;
+
   const budgetStatus = hasBudget
-    ? costPerPersonPerDay <= budget
+    ? costPerPersonPerDay <= scaledBudget!
       ? 'green'
-      : costPerPersonPerDay <= budget * 1.2
+      : costPerPersonPerDay <= scaledBudget! * 1.2
         ? 'yellow'
         : 'red'
     : 'green';
 
   return (
     <div className="space-y-6 font-sans">
+      {scanData && scanData.violations.length > 0 && (
+        <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-sm flex items-center justify-between gap-4 shadow-soft">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">⚠️</span>
+            <p className="font-semibold text-destructive truncate">
+              Dieser Essensplan enthält Allergene: {Array.from(new Set(scanData.violations.map(v => v.allergen_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
+            </p>
+          </div>
+          {onSelectTab && (
+            <button
+              onClick={() => onSelectTab('allergens')}
+              className="text-xs font-bold underline shrink-0 text-destructive hover:text-destructive/80 transition-colors"
+            >
+              Zum Scanner
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex justify-end">
         <button
           type="button"
@@ -88,11 +148,16 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
             Budget-Auslastung (pro Person/Tag)
           </h3>
           <div className="max-w-xl">
+            {avgDayCoverage < 1 && (
+              <div className="text-[10px] text-muted-foreground italic mb-2">
+                Skaliert auf {Math.round(effAvgCoverage * 100)} % Tagesabdeckung (Ø {Math.round(avgDayCoverage * 100)} %)
+              </div>
+            )}
             <SollIstBar
               current={costPerPersonPerDay}
               min_green={null}
-              max_green={budget}
-              target_mid={budget}
+              max_green={scaledBudget}
+              target_mid={scaledBudget}
               status={budgetStatus}
               unit="€"
             />
@@ -169,13 +234,27 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay }: Cos
                 month: '2-digit',
                 year: 'numeric'
               });
+              const dayCoverage = dayCoverageMap[day.date] ?? 1;
+              const badge = getCoverageBadge(dayCoverage);
+              const badgeColors = {
+                green: 'bg-primary/10 text-primary border-primary/20',
+                yellow: 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20',
+                red: 'bg-destructive/10 text-destructive border-destructive/20',
+              };
               return (
                 <DataCardRow key={day.date} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 md:p-5">
                   {/* Tag Info */}
                   <div className="flex flex-col min-w-[120px]">
-                    <span className="font-display font-bold text-base text-foreground">
-                      {weekday}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-bold text-base text-foreground">
+                        {weekday}
+                      </span>
+                      {dayCoverage < 1 && (
+                        <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded border ${badgeColors[badge.status]}`}>
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs font-medium text-muted-foreground">
                       {dateLabel}
                     </span>

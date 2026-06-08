@@ -8,6 +8,7 @@ from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from pgvector.django import VectorField
 
 from ..choices import (
     ContentStatus,
@@ -146,9 +147,7 @@ class Content(SoftDeleteModel):
 
     # --- Search & AI ---
     search_vector = SearchVectorField(null=True, blank=True)
-    # Embedding stored as binary for now.
-    # Will be migrated to pgvector VectorField(dimensions=768) in Slice 8.
-    embedding = models.BinaryField(null=True, blank=True)
+    embedding = VectorField(dimensions=768, null=True, blank=True)
     embedding_updated_at = models.DateTimeField(null=True, blank=True)
 
     # --- Analytics ---

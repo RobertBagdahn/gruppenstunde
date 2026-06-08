@@ -40,16 +40,16 @@ class TestIsHighFiber:
 
 class TestIsHighProtein:
     def test_exactly_at_threshold(self):
-        # 20% of energy from protein: if energy = 1000 kJ, protein = 200 kJ / 17 ≈ 11.76g
-        energy_kj = 1000.0
-        protein_g = (PROTEIN_ENERGY_PCT / 100.0) * energy_kj / 17.0
-        assert is_high_protein(protein_g, energy_kj) is True
+        # 20% of energy from protein: if energy = 1000 kcal, protein = 200 kcal / 4 ≈ 50g
+        energy_kcal = 1000.0
+        protein_g = (PROTEIN_ENERGY_PCT / 100.0) * energy_kcal / 4.0
+        assert is_high_protein(protein_g, energy_kcal) is True
 
     def test_above_threshold(self):
-        assert is_high_protein(15.0, 1000.0) is True  # 15*17/1000*100 = 25.5%
+        assert is_high_protein(50.0, 1000.0) is True  # 50*4/1000*100 = 20%
 
     def test_below_threshold(self):
-        assert is_high_protein(10.0, 1000.0) is False  # 10*17/1000*100 = 17%
+        assert is_high_protein(40.0, 1000.0) is False  # 40*4/1000*100 = 16%
 
     def test_zero_energy(self):
         assert is_high_protein(10.0, 0.0) is False
@@ -115,7 +115,7 @@ class TestComputePositiveTraitsIntegration:
     def _make_recipe_with_nutrition(self, **nutrition_kwargs):
         """Helper: create recipe with one ingredient having given per-100g values."""
         defaults = {
-            "energy_kj": 800.0,
+            "energy_kcal": 191,
             "protein_g": 5.0,
             "fat_g": 3.0,
             "fat_sat_g": 1.0,
@@ -135,11 +135,11 @@ class TestComputePositiveTraitsIntegration:
         """Recipe meeting all thresholds returns all trait keys."""
         # high fiber (>=6), high protein (>=20% energy), low salt (<=0.3),
         # low sat fat (<=1.5), low sugar (<=5)
-        # For high_protein: need protein_g * 17 / energy_kj >= 0.20
-        # With energy_kj=500, need protein_g >= 500*0.20/17 ≈ 5.88
+        # For high_protein: need protein_g * 4 / energy_kcal >= 0.20
+        # With energy_kcal=120, need protein_g >= 120*0.20/4 = 6.0
         recipe = self._make_recipe_with_nutrition(
-            energy_kj=500.0,
-            protein_g=6.0,    # 6*17/500 = 20.4%
+            energy_kcal=120,
+            protein_g=6.0,    # 6*4/120 = 20.0% — exactly at threshold
             fat_g=2.0,
             fat_sat_g=1.0,
             carbohydrate_g=15.0,
@@ -166,8 +166,8 @@ class TestComputePositiveTraitsIntegration:
     def test_no_traits_met(self):
         """Recipe violating all thresholds returns empty or only 'balanced'."""
         recipe = self._make_recipe_with_nutrition(
-            energy_kj=2000.0,
-            protein_g=3.0,    # 3*17/2000 = 2.55% — not high protein
+            energy_kcal=478,
+            protein_g=3.0,    # 3*4/478 = 2.5% — not high protein
             fat_g=20.0,
             fat_sat_g=10.0,   # not low sat fat
             carbohydrate_g=50.0,

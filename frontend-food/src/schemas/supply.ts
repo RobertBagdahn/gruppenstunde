@@ -158,7 +158,7 @@ export const IngredientListItemSchema = z.object({
   name: z.string(),
   slug: z.string(),
   status: z.string(),
-  energy_kj: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
   carbohydrate_g: z.number().nullable(),
@@ -182,8 +182,16 @@ export const IngredientDetailSchema = z.object({
   durability_in_days: z.number().nullable(),
   max_storage_temperature: z.number().nullable(),
 
+  // Scout/camp fields
+  storage_type: z.string().nullable().optional(),
+  cooking_factor: z.number().nullable().optional(),
+  camp_suitable: z.boolean().default(false),
+  preparation_time_min: z.number().nullable().optional(),
+  season_start: z.number().nullable().optional(),
+  season_end: z.number().nullable().optional(),
+
   // Nutritional values per 100g
-  energy_kj: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
   fat_sat_g: z.number().nullable(),
@@ -348,7 +356,9 @@ export const PortionSuggestionSchema = z.object({
 export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
 
 export const IngredientSuggestAllSchema = z.object({
-  energy_kj: z.number().nullable(),
+  name_suggestion: z.string().nullable(),
+
+  energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),
   fat_sat_g: z.number().nullable(),
@@ -360,7 +370,7 @@ export const IngredientSuggestAllSchema = z.object({
   fructose_g: z.number().nullable(),
   lactose_g: z.number().nullable(),
 
-  nutri_score: z.string().nullable(),
+  nutri_score: z.number().nullable(),
   nova_score: z.number().nullable(),
   child_score: z.number().nullable(),
   scout_score: z.number().nullable(),
@@ -372,10 +382,18 @@ export const IngredientSuggestAllSchema = z.object({
   durability_in_days: z.number().nullable(),
   max_storage_temperature: z.number().nullable(),
 
+  storage_type: z.string().nullable(),
+  cooking_factor: z.number().nullable(),
+  camp_suitable: z.boolean().nullable(),
+  preparation_time_min: z.number().nullable(),
+  season_start: z.number().nullable(),
+  season_end: z.number().nullable(),
+
   price_per_kg: z.number().nullable(),
 
   portions: z.array(PortionSuggestionSchema).default([]),
   aliases: z.array(z.string()).default([]),
+  nutritional_tags: z.array(NutritionalTagSchema).default([]),
 });
 export type IngredientSuggestAll = z.infer<typeof IngredientSuggestAllSchema>;
 

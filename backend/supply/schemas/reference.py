@@ -77,7 +77,7 @@ class DgeReferenceOut(Schema):
     age_max: int
     gender: str
     # Macronutrients
-    energy_kj: float | None
+    energy_kcal: float | None
     protein_g: float | None
     fat_g: float | None
     carbohydrate_g: float | None

@@ -16,7 +16,7 @@ class TestRecipeRulesService:
         # Ingredient 1: Brokkoli
         ing = make_ingredient(
             name="Brokkoli",
-            energy_kj=100.0,
+            energy_kcal=24,
             protein_g=4.0,
             fat_g=0.0,
             fat_sat_g=0.0,
@@ -178,14 +178,14 @@ class TestRecipeRulesService:
         recipe = self._setup_recipe()
         make_recipe_hint(
             name="Etwas mehr Energie",
-            parameter="energy_kj",
+            parameter="energy_kcal",
             min_green=454.1,
             unit="kcal",
             sort_order=1,
         )
         make_recipe_hint(
             name="Etwas mehr Energie",
-            parameter="energy_kj",
+            parameter="energy_kcal",
             min_green=454.1,
             unit="kcal",
             sort_order=2,

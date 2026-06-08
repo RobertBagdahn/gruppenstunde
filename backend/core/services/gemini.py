@@ -19,9 +19,13 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
-GLOBAL_LIMIT = 100
-WINDOW_SECONDS = 900  # 15 minutes
+GLOBAL_LIMIT = 200
+WINDOW_SECONDS = 300  # 5 minutes
 CACHE_KEY = "gemini_global_calls"
+
+EMBEDDING_LIMIT = 1000
+EMBEDDING_WINDOW_SECONDS = 300  # 5 minutes
+EMBEDDING_CACHE_KEY = "gemini_embedding_calls"
 
 # ---------------------------------------------------------------------------
 # Custom exceptions (re-exported for backward compat)
@@ -130,7 +134,7 @@ def _check_auth(user: AbstractBaseUser | None, *, bypass_limits: bool) -> None:
 
 
 def _check_global_limit(*, bypass_limits: bool) -> None:
-    """Enforce global rate limit. Fail-open if cache is unavailable."""
+    """Enforce global rate limit (text/image calls). Fail-open if cache is unavailable."""
     if bypass_limits:
         return
     try:
@@ -141,8 +145,22 @@ def _check_global_limit(*, bypass_limits: bool) -> None:
     except GeminiRateLimitError:
         raise
     except Exception:
-        # Cache unavailable — fail open, Google's 429 is the backstop
         logger.warning("Gemini rate limit cache unavailable, proceeding without limit")
+
+
+def _check_embedding_limit(*, bypass_limits: bool) -> None:
+    """Enforce embedding-specific rate limit (separate from text/image)."""
+    if bypass_limits:
+        return
+    try:
+        count = cache.get(EMBEDDING_CACHE_KEY, 0)
+        if count >= EMBEDDING_LIMIT:
+            raise GeminiRateLimitError()
+        cache.set(EMBEDDING_CACHE_KEY, count + 1, timeout=EMBEDDING_WINDOW_SECONDS)
+    except GeminiRateLimitError:
+        raise
+    except Exception:
+        logger.warning("Gemini embedding rate limit cache unavailable, proceeding without limit")
 
 
 # ---------------------------------------------------------------------------
@@ -270,12 +288,11 @@ def gemini_embed(
     bypass_limits: bool = False,
 ):
     """
-    Create a text embedding. Rate limited but uses text client.
+    Create a text embedding. Separate rate limit from text/image.
 
     Returns list of floats or None if unavailable.
     """
-    _check_auth(user, bypass_limits=bypass_limits)
-    _check_global_limit(bypass_limits=bypass_limits)
+    _check_embedding_limit(bypass_limits=bypass_limits)
 
     client = _get_client()
     if not client:

@@ -47,7 +47,7 @@ def ingredient_with_portion(db):
         name="Kartoffeln",
         slug="kartoffeln",
         status="approved",
-        energy_kj=300.0,
+        energy_kcal=72,
         protein_g=2.0,
         fat_g=0.1,
         carbohydrate_g=15.0,
@@ -69,7 +69,7 @@ def ingredient_with_portion(db):
 def recipe_with_items(ingredient_with_portion):
     ing, portion, unit = ingredient_with_portion
     recipe = make_recipe(
-        cached_energy_kj=300.0,
+        cached_energy_kcal=72,
         cached_protein_g=2.0,
         cached_fat_g=0.1,
         cached_sugar_g=0.8,

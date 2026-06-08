@@ -39,7 +39,7 @@ The system SHALL match extracted ingredients against existing database entries u
 
 ### Requirement: New Ingredient Data Completeness
 When creating a new Ingredient via URL import, the system SHALL populate the following fields using Gemini + Google Search Grounding:
-- Nutritional values per 100g: energy_kj, protein_g, fat_g, fat_sat_g, carbohydrate_g, sugar_g, fibre_g, salt_g
+- Nutritional values per 100g: energy_kcal, protein_g, fat_g, fat_sat_g, carbohydrate_g, sugar_g, fibre_g, salt_g
 - Scores: child_score, scout_score, environmental_score, nova_score, nutri_score, nutri_class
 - Physical properties: physical_density, physical_viscosity
 - Aliases (IngredientAlias records)
@@ -47,7 +47,7 @@ When creating a new Ingredient via URL import, the system SHALL populate the fol
 
 #### Scenario: All nutritional fields populated
 - **WHEN** a new ingredient is created from URL import
-- **THEN** all mandatory nutritional fields (energy_kj, protein_g, fat_g, carbohydrate_g, sugar_g, fibre_g, salt_g) SHALL be non-null
+- **THEN** all mandatory nutritional fields (energy_kcal, protein_g, fat_g, carbohydrate_g, sugar_g, fibre_g, salt_g) SHALL be non-null
 
 #### Scenario: Scores calculated
 - **WHEN** a new ingredient is created from URL import

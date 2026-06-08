@@ -50,6 +50,7 @@ class MealPlanAdmin(admin.ModelAdmin):
     list_display = ["name", "created_by", "norm_portions", "event", "created_at"]
     list_filter = ["created_at"]
     search_fields = ["name"]
+    filter_horizontal = ["nutritional_tags"]
     inlines = [MealInline]
     list_per_page = 25
 

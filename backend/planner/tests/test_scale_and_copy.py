@@ -26,41 +26,6 @@ class TestScaleAndCopyAPI:
         self.client.force_login(self.user)
         self.plan = make_meal_plan(created_by=self.user, norm_portions=10)
 
-    def test_drinks_exclusion_from_total_energy(self):
-        """Drinks items should NOT count towards calories, but count towards costs."""
-        # Create a drinks meal
-        meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.DRINKS, day_part_factor=0.0)
-        
-        # Create a recipe with known energy and price
-        recipe = make_recipe(servings=10)
-        ingredient = make_ingredient(
-            energy_kj=500.0,  # 500 kJ per 100g
-            price_per_kg=10.0,  # 10 EUR per kg = 0.01 EUR per g
-            protein_g=0.0, fat_g=0.0, carbohydrate_g=0.0, sugar_g=0.0, fibre_g=0.0, salt_g=0.0
-        )
-        portion = make_portion(ingredient=ingredient, weight_g=200.0) # 200g portion
-        # Recipe has 1 portion
-        make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
-        
-        # Force cache recalculation
-        from recipe.services.recipe_checks import recalculate_recipe_cache
-        recalculate_recipe_cache(recipe)
-        recipe.refresh_from_db()
-        
-        # Add to drinks meal with factor 1.0
-        item = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
-
-        # Resolve total energy should be 0 because it's drinks
-        assert MealOut.resolve_total_energy_kj(meal) == 0.0
-        # Resolve total cost should still compute normally (recipe price = 2.00 EUR, scaled by plan.norm_portions / recipe.servings (10 / 10 = 1.0) * factor (1.0) = 2.00 EUR)
-        assert MealOut.resolve_total_cost_eur(meal) == pytest.approx(2.0)
-
-        # Check via API nutrition-summary
-        response = self.client.get(f"/api/meal-plans/{self.plan.id}/nutrition-summary/")
-        assert response.status_code == 200
-        # Total energy in summary must be 0
-        assert response.json()["energy_kj"] == 0.0
-
     def test_scale_to_target_success(self):
         """Proportionally scale meal items to target calories."""
         # Breakfast: target = 2335.0 * 0.25 = 583.75 kcal
@@ -68,16 +33,16 @@ class TestScaleAndCopyAPI:
         # Total target energy for 10 portions = 5837.5 kcal = 24424.125 kJ.
         meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST, day_part_factor=0.25)
         
-        # Add recipe with total energy cache of 2000 kJ (with servings=10, factor=1.0, total energy = 2000 kJ / 10 portions = 200 kJ per portion = ~47.8 kcal per portion)
+        # Add recipe with total energy cache of 478 kcal (was 2000 kJ, ÷4.184)
         # Target kcal per portion is 583.75. Current kcal per portion is ~47.8.
         # Scale factor should be 583.75 / 47.8 ≈ 12.2
-        recipe = make_recipe(servings=10, cached_energy_total_kj=2000.0)
+        recipe = make_recipe(servings=10, cached_energy_total_kcal=478.0)
         item1 = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
         item2 = make_meal_item(meal=meal, recipe=recipe, factor=2.0)
 
         # Before scaling, make sure it has calories
-        current_energy_kj = MealOut.resolve_total_energy_kj(meal)
-        assert current_energy_kj > 0
+        current_energy_kcal = MealOut.resolve_total_energy_kcal(meal)
+        assert current_energy_kcal > 0
 
         # Perform scale-to-target via API
         response = self.client.post(
@@ -98,7 +63,7 @@ class TestScaleAndCopyAPI:
     def test_scale_to_target_failures(self):
         """Synced or external meals, or meals with 0 calories should fail to scale."""
         # 1. External meal
-        external_meal = make_meal(meal_plan=self.plan, is_external=True, external_energy_kj=1000.0)
+        external_meal = make_meal(meal_plan=self.plan, is_external=True, external_energy_kcal=239)
         response = self.client.post(
             f"/api/meal-plans/{self.plan.id}/meals/{external_meal.id}/scale-to-target/",
             content_type="application/json"

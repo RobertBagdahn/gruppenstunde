@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 
 interface SettingsPanelProps {
   plan: {
@@ -11,6 +12,8 @@ interface SettingsPanelProps {
     start_datetime: string | null;
     end_datetime: string | null;
     day_part_factors?: Record<string, number>;
+    meal_default_times?: Record<string, [string, string]>;
+    nutritional_tag_ids?: number[];
   };
   onSave: (data: {
     name?: string;
@@ -21,6 +24,8 @@ interface SettingsPanelProps {
     start_datetime?: string | null;
     end_datetime?: string | null;
     day_part_factors?: Record<string, number>;
+    meal_default_times?: Record<string, [string, string]>;
+    nutritional_tag_ids?: number[];
   }) => void;
   isPending: boolean;
 }
@@ -37,13 +42,29 @@ export default function SettingsPanel({
   const [budget, setBudget] = useState(plan.budget_per_person_per_day ?? '');
   const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
   const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
+  const [nutritionalTagIds, setNutritionalTagIds] = useState<number[]>(plan.nutritional_tag_ids || []);
+
+  const toggleTag = (tagId: number) => {
+    setNutritionalTagIds(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const defaultTimes: Record<string, [string, string]> = {
+    breakfast: ['08:00', '09:00'],
+    lunch: ['12:00', '13:00'],
+    dinner: ['18:00', '19:00'],
+    snack: ['15:00', '15:30'],
+  };
+  const [mealTimes, setMealTimes] = useState<Record<string, [string, string]>>(
+    plan.meal_default_times || defaultTimes
+  );
 
   const defaultFactors = {
     breakfast: 0.20,
     lunch: 0.35,
     dinner: 0.35,
     snack: 0.10,
-    drinks: 0.00,
   };
   const [factors, setFactors] = useState<Record<string, number>>(plan.day_part_factors || defaultFactors);
 
@@ -154,6 +175,38 @@ export default function SettingsPanel({
         </p>
       </div>
 
+      <div className="border-t border-border pt-5">
+        <h4 className="font-display font-bold text-sm text-foreground mb-3">Standard-Uhrzeiten pro Mahlzeit</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Object.entries(mealTimes).map(([key, [start, end]]) => (
+            <div key={key}>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
+                {MEAL_TYPE_LABELS[key] || key}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="time"
+                  value={start}
+                  onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [e.target.value, prev[key][1]] }))}
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                />
+                <input
+                  type="time"
+                  value={end}
+                  onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [prev[key][0], e.target.value] }))}
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-5">
+        <h4 className="font-display font-bold text-sm text-foreground mb-3">Ernährung & Allergene</h4>
+        <NutritionalTagMultiSelect selectedTagIds={nutritionalTagIds} onToggle={toggleTag} />
+      </div>
+
       <div className="flex justify-end pt-2">
         <button
           onClick={() => onSave({
@@ -165,6 +218,8 @@ export default function SettingsPanel({
             start_datetime: startDatetime ? startDatetime + ':00' : null,
             end_datetime: endDatetime ? endDatetime + ':00' : null,
             day_part_factors: factors,
+            meal_default_times: mealTimes,
+            nutritional_tag_ids: nutritionalTagIds,
           })}
           disabled={isPending}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"

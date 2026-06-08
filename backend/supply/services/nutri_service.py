@@ -92,7 +92,7 @@ def calculate_nutri_score(ingredient: "Ingredient") -> tuple[int, int]:
         fruit_t = SOLID_FRUIT_THRESHOLDS
 
     # Negative points (0-10 each, max 40)
-    neg_energy = _lookup_points(ingredient.energy_kj, energy_t)
+    neg_energy = _lookup_points(ingredient.energy_kcal, energy_t)
     neg_sugar = _lookup_points(ingredient.sugar_g, sugar_t)
     neg_fat_sat = _lookup_points(ingredient.fat_sat_g, fat_sat_t)
     neg_sodium = _lookup_points(ingredient.sodium_mg, sodium_t)
@@ -161,7 +161,7 @@ def get_nutri_score_details(ingredient: "Ingredient") -> dict:
         protein_t = SOLID_PROTEIN_THRESHOLDS
         fruit_t = SOLID_FRUIT_THRESHOLDS
 
-    neg_energy = _lookup_points(ingredient.energy_kj, energy_t)
+    neg_energy = _lookup_points(ingredient.energy_kcal, energy_t)
     neg_sugar = _lookup_points(ingredient.sugar_g, sugar_t)
     neg_fat_sat = _lookup_points(ingredient.fat_sat_g, fat_sat_t)
     neg_sodium = _lookup_points(ingredient.sodium_mg, sodium_t)

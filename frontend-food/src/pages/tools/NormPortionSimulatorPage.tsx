@@ -22,7 +22,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DgeReferencePoint } from '@/schemas/normPerson';
 import { cn } from '@/lib/utils';
-import { kjToKcal } from '@/utils/nutritionUnits';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -268,7 +267,7 @@ function IstVsSollComparison({
 
   // Use backend-calculated per-portion values directly
   const perPerson = {
-    energy_kj: nutrition.per_portion_energy_kj,
+    energy_kcal: nutrition.per_portion_energy_kcal,
     protein_g: nutrition.per_portion_protein_g,
     fat_g: nutrition.per_portion_fat_g,
     carbohydrate_g: nutrition.per_portion_carbohydrate_g,
@@ -283,7 +282,7 @@ function IstVsSollComparison({
   if (relevantDge.length === 0) return null;
 
   const avgDge = {
-    energy_kj: (relevantDge.reduce((s, p) => s + p.energy_kj, 0) / relevantDge.length) * palScale,
+    energy_kcal: (relevantDge.reduce((s, p) => s + p.energy_kcal, 0) / relevantDge.length) * palScale,
     protein_g: relevantDge.reduce((s, p) => s + p.protein_g, 0) / relevantDge.length,
     fat_g: relevantDge.reduce((s, p) => s + p.fat_g, 0) / relevantDge.length,
     carbohydrate_g: relevantDge.reduce((s, p) => s + p.carbohydrate_g, 0) / relevantDge.length,
@@ -293,8 +292,8 @@ function IstVsSollComparison({
   const comparisonData = [
     {
       name: 'Energie (kcal)',
-      ist: Math.round(kjToKcal(perPerson.energy_kj)),
-      soll: Math.round(kjToKcal(avgDge.energy_kj)),
+      ist: Math.round(perPerson.energy_kcal),
+      soll: Math.round(avgDge.energy_kcal),
     },
     {
       name: 'Protein (g)',

@@ -17,6 +17,8 @@ from .search import SearchLog
 from .interactions import ContentComment, ContentEmotion, ContentView
 from .links import ContentLink, EmbeddingFeedback
 from .approval import ApprovalLog, FeaturedContent
+from .audit import ChangeAuditLog
+from .data_quality import DuplicateDismissal
 
 __all__ = [
     # Core
@@ -41,4 +43,8 @@ __all__ = [
     # Approval
     "ApprovalLog",
     "FeaturedContent",
+    # Audit
+    "ChangeAuditLog",
+    # Data Quality
+    "DuplicateDismissal",
 ]

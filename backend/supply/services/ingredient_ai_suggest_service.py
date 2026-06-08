@@ -35,15 +35,18 @@ GEMINI_MODEL_WITH_SEARCH = "gemini-3.1-flash-lite-preview"
 class PortionSuggestion(BaseModel):
     """A suggested portion for an ingredient."""
 
-    name: str = Field(description="Name der Portion, z.B. '1 Esslöffel', '1 Tasse', '1 Scheibe'")
+    name: str = Field(description="Name der Portion, z.B. '1 Packung (500g)'")
     weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
 
 
 class IngredientSuggestAllSchema(BaseModel):
     """Complete suggestion schema for all ingredient fields."""
 
+    # Name suggestion
+    name_suggestion: str | None = Field(None, description="Spezifischerer Name, falls aktuell generisch. Keine Marken.")
+
     # Nährwerte pro 100g
-    energy_kj: float | None = Field(None, description="Energie in kJ pro 100g")
+    energy_kcal: float | None = Field(None, description="Energie in kcal pro 100g")
     protein_g: float | None = Field(None, description="Eiweiß in g pro 100g")
     fat_g: float | None = Field(None, description="Fett in g pro 100g")
     fat_sat_g: float | None = Field(None, description="Gesättigte Fettsäuren in g pro 100g")
@@ -56,7 +59,7 @@ class IngredientSuggestAllSchema(BaseModel):
     lactose_g: float | None = Field(None, description="Laktose in g pro 100g")
 
     # Bewertungen
-    nutri_score: str | None = Field(None, description="Nutri-Score Klasse (A, B, C, D oder E)")
+    nutri_score: int | None = Field(None, description="Nutri-Score Punkte (-15 bis 40, NICHT der Buchstabe)")
     nova_score: int | None = Field(None, description="NOVA-Verarbeitungsgrad (1-4)")
     child_score: int | None = Field(None, description="Kinderfreundlichkeit (1-10)")
     scout_score: int | None = Field(None, description="Pfadfindereignung (1-10)")
@@ -69,14 +72,25 @@ class IngredientSuggestAllSchema(BaseModel):
     durability_in_days: int | None = Field(None, description="Haltbarkeit in Tagen")
     max_storage_temperature: int | None = Field(None, description="Maximale Lagertemperatur in °C")
 
+    # Scout/camp fields
+    storage_type: str | None = Field(None, description="Lagerungsart: dry/refrigerated/frozen/ambient")
+    cooking_factor: float | None = Field(None, description="Multiplikator Roh→Gekocht. Z.B. 2.5 für Nudeln")
+    camp_suitable: bool | None = Field(None, description="Fürs Zeltlager geeignet (haltbar, kein Kühlschrank)")
+    preparation_time_min: int | None = Field(None, description="Zubereitungsdauer in Minuten (Koch-/Backzeit)")
+    season_start: int | None = Field(None, description="Saisonbeginn (Monat 1-12). null = ganzjährig.")
+    season_end: int | None = Field(None, description="Saisonende (Monat 1-12). null = ganzjährig.")
+
     # Preis
-    price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen")
+    price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg")
 
     # Portionen
-    portions: list[PortionSuggestion] | None = Field(None, description="Typische Portionsgrößen")
+    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen")
 
     # Aliase
-    aliases: list[str] | None = Field(None, description="Alternative Bezeichnungen für die Zutat")
+    aliases: list[str] = Field(default_factory=list, description="Mind. 3 spezifische Aliase")
+
+    # Ernährungstags
+    nutritional_tags: list[str] = Field(default_factory=list, description="Ernährungstags wie 'vegan', 'laktosefrei'")
 
 
 class IngredientAiCreateSchema(BaseModel):
@@ -86,7 +100,7 @@ class IngredientAiCreateSchema(BaseModel):
     description: str = Field(description="Kurzbeschreibung (1-2 Sätze)")
 
     # Nährwerte pro 100g
-    energy_kj: float = Field(description="Energie in kJ pro 100g")
+    energy_kcal: float = Field(description="Energie in kcal pro 100g")
     protein_g: float = Field(description="Eiweiß in g pro 100g")
     fat_g: float = Field(description="Fett in g pro 100g")
     fat_sat_g: float = Field(description="Gesättigte Fettsäuren in g pro 100g")
@@ -120,6 +134,9 @@ class IngredientAiCreateSchema(BaseModel):
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Alternative Bezeichnungen")
 
+    # Ernährungstags
+    nutritional_tags: list[str] = Field(default_factory=list, description="Zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei')")
+
 
 # ---------------------------------------------------------------------------
 # Service functions
@@ -137,9 +154,28 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
         f"Recherchiere die vollständigen Nährwerte, Bewertungen und physikalischen Eigenschaften "
         f"für das Lebensmittel '{ingredient.name}'. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen.\n\n"
-        f"Gib außerdem typische Portionsgrößen (z.B. '1 Esslöffel', '1 Tasse', '1 Scheibe') "
-        f"mit dem jeweiligen Gewicht in Gramm an.\n\n"
-        f"Gib auch alternative Bezeichnungen/Aliase für die Zutat an.\n\n"
+        f"Schlage einen präziseren Namen vor, falls aktuell zu generisch. "
+        f"Keine Marken, keine Mengenangaben. Z.B. 'Kuhmilch 3,5% Fett' statt 'Milch'.\n\n"
+        f"Gib außerdem typische Portionsgrößen mit dem jeweiligen Gewicht in Gramm an. "
+        f"Wichtige Kategorien:\n"
+        f"- Packungsgrößen (z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)')\n"
+        f"- Stück (z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)')\n"
+        f"- Haushaltsmaße (z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)')\n"
+        f"- Scheiben/Stücke (z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)')\n\n"
+        f"Gib mindestens 3 alternative Bezeichnungen/Aliase für die Zutat an. "
+        f"Die Aliase sollen spezifischer sein als der Zutatenname. "
+        f"Format: 'Basisname (Spezifischer Name)'. "
+        f"Z.B. für 'Nudeln': 'Nudeln (Fusilli)', 'Nudeln (Makkaroni)', 'Nudeln (Spaghetti)'. "
+        f"Nicht nur generische Begriffe wie 'Pasta'.\n\n"
+        f"Recherchiere zutreffende Ernährungstags für das Lebensmittel "
+        f"(z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', "
+        f"'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig').\n\n"
+        f"Gib auch die Lagereigenschaften an:\n"
+        f"- storage_type: 'dry' (Trocken), 'refrigerated', 'frozen', 'ambient' (Raumtemperatur)\n"
+        f"- cooking_factor: Multiplikator Roh→Gekocht. Z.B. 2.5 für Nudeln (100g→250g). 1.0 wenn kein Aufquellen.\n"
+        f"- camp_suitable: Ob die Zutat fürs Zeltlager geeignet ist (haltbar, kein Kühlschrank)\n"
+        f"- preparation_time_min: Zubereitungsdauer in Minuten (Kochzeit, Backzeit). 0 wenn roh genießbar.\n"
+        f"- season_start/end: Saison in Monaten (1-12), z.B. 4-6 für Spargel. null = ganzjährig.\n\n"
         f"Schätze den typischen Preis in EUR pro kg (price_per_kg) basierend auf "
         f"durchschnittlichen Supermarktpreisen in Deutschland.\n\n"
         f"Wenn du einen Wert nicht sicher bestimmen kannst, setze ihn auf null."
@@ -162,7 +198,30 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
         raise GeminiUnavailableError("KI nicht verfügbar")
 
     result = IngredientSuggestAllSchema.model_validate_json(response.text)
-    return result.model_dump()
+    data = result.model_dump()
+
+    # Resolve nutritional tags names/opposites to database objects
+    from supply.models import NutritionalTag
+    tags_resolved = []
+    if result.nutritional_tags:
+        for t_name in result.nutritional_tags:
+            name_stripped = t_name.strip()
+            if not name_stripped:
+                continue
+            tag = NutritionalTag.objects.filter(name__iexact=name_stripped).first()
+            if not tag:
+                tag = NutritionalTag.objects.filter(name_opposite__iexact=name_stripped).first()
+            if tag:
+                tags_resolved.append({
+                    "id": tag.id,
+                    "name": tag.name,
+                    "name_opposite": tag.name_opposite,
+                    "description": tag.description,
+                    "rank": tag.rank,
+                    "is_dangerous": tag.is_dangerous,
+                })
+    data["nutritional_tags"] = tags_resolved
+    return data
 
 
 def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass_limits: bool = False) -> "Ingredient":
@@ -178,9 +237,14 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
     prompt = (
         f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
         f"Gib vollständige Nährwerte pro 100g, Bewertungen, physikalische Eigenschaften, "
-        f"typische Portionsgrößen, alternative Bezeichnungen und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
+        f"typische Portionsgrößen, alternative Bezeichnungen, zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', 'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig') und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen. "
-        f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren."
+        f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren.\n\n"
+        f"Bei den Portionsgrößen beachte folgende Kategorien:\n"
+        f"- Packungsgrößen (z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)')\n"
+        f"- Stück (z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)')\n"
+        f"- Haushaltsmaße (z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)')\n"
+        f"- Scheiben/Stücke (z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)')"
     )
 
     config = types.GenerateContentConfig(
@@ -218,7 +282,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         slug=slug,
         description=data.description,
         status="user_content",
-        energy_kj=data.energy_kj,
+        energy_kcal=data.energy_kcal,
         protein_g=data.protein_g,
         fat_g=data.fat_g,
         fat_sat_g=data.fat_sat_g,
@@ -259,5 +323,25 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
             name=alias_name,
             rank=i + 1,
         )
+
+    # Set nutritional tags
+    if data.nutritional_tags:
+        from supply.models import NutritionalTag
+        tag_ids = []
+        for t_name in data.nutritional_tags:
+            name_stripped = t_name.strip()
+            if not name_stripped:
+                continue
+            tag = NutritionalTag.objects.filter(name__iexact=name_stripped).first()
+            if not tag:
+                tag = NutritionalTag.objects.filter(name_opposite__iexact=name_stripped).first()
+            if tag:
+                tag_ids.append(tag.id)
+        if tag_ids:
+            ingredient.nutritional_tags.set(tag_ids)
+
+    # Calculate and save Nutri-Score points and class
+    from supply.services.nutri_service import update_ingredient_nutri_score
+    update_ingredient_nutri_score(ingredient)
 
     return ingredient

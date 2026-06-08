@@ -4,7 +4,7 @@
  * Shows suggested values grouped by category, allows selecting individual
  * fields, and applies selected suggestions.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -71,6 +71,20 @@ export function AiSuggestDialog({
     });
   }, [fields]);
 
+  // Reset selected state when dialog opens or closed, or when relevant fields list changes
+  const relevantKeysStr = useMemo(() => {
+    return relevantFields.map((f) => f.key).join(',');
+  }, [relevantFields]);
+
+  useEffect(() => {
+    if (open) {
+      const keys = relevantKeysStr ? relevantKeysStr.split(',') : [];
+      setSelected(new Set(keys.filter(Boolean)));
+    } else {
+      setSelected(new Set());
+    }
+  }, [open, relevantKeysStr]);
+
   // Group fields
   const groups = useMemo(() => {
     const map = new Map<string, SuggestionField[]>();
@@ -111,7 +125,7 @@ export function AiSuggestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <span className="material-symbols-outlined text-primary">auto_awesome</span>
@@ -140,9 +154,12 @@ export function AiSuggestDialog({
             Keine neuen Vorschläge gefunden.
           </p>
         ) : (
-          <div className="space-y-4 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
             {Array.from(groups.entries()).map(([groupName, groupFields]) => (
-              <div key={groupName}>
+              <div
+                key={groupName}
+                className={groupName === 'Name' ? 'md:col-span-2 lg:col-span-3' : ''}
+              >
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">
                   {groupName}
                 </h4>
@@ -210,7 +227,9 @@ export function AiSuggestDialog({
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return '\u2014';
   if (value === 0) return '0';
-  if (typeof value === 'number') return String(value);
+  if (typeof value === 'number') {
+    return String(value);
+  }
   return String(value);
 }
 

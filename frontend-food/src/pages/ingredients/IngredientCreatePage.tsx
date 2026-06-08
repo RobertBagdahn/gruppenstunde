@@ -88,6 +88,14 @@ export default function IngredientCreatePage() {
   const [durabilityInDays, setDurabilityInDays] = useState('');
   const [maxStorageTemperature, setMaxStorageTemperature] = useState('');
 
+  // Scout / Camp fields
+  const [storageType, setStorageType] = useState('');
+  const [cookingFactor, setCookingFactor] = useState('');
+  const [campSuitable, setCampSuitable] = useState(false);
+  const [preparationTimeMin, setPreparationTimeMin] = useState('');
+  const [seasonStart, setSeasonStart] = useState('');
+  const [seasonEnd, setSeasonEnd] = useState('');
+
   // Scores
   const [childScore, setChildScore] = useState('');
   const [scoutScore, setScoutScore] = useState('');
@@ -129,7 +137,7 @@ export default function IngredientCreatePage() {
       status,
       retail_section_id: retailSectionId ? Number(retailSectionId) : null,
 
-      energy_kj: toNum(energyKj),
+      energy_kcal: toNum(energyKj),
       protein_g: toNum(proteinG),
       fat_g: toNum(fatG),
       fat_sat_g: toNum(fatSatG),
@@ -145,6 +153,13 @@ export default function IngredientCreatePage() {
       physical_viscosity: physicalViscosity.trim(),
       durability_in_days: toNum(durabilityInDays),
       max_storage_temperature: toNum(maxStorageTemperature),
+
+      storage_type: storageType || null,
+      cooking_factor: toNum(cookingFactor),
+      camp_suitable: campSuitable,
+      preparation_time_min: toNum(preparationTimeMin),
+      season_start: toNum(seasonStart),
+      season_end: toNum(seasonEnd),
 
       child_score: toNum(childScore),
       scout_score: toNum(scoutScore),
@@ -295,6 +310,67 @@ export default function IngredientCreatePage() {
             </Field>
             <Field label="Max. Lagertemp. (°C)">
               <input type="number" value={maxStorageTemperature} onChange={(e) => setMaxStorageTemperature(e.target.value)} className={inputClass} />
+            </Field>
+          </div>
+        </FormSection>
+
+        {/* Lager & Pfadfinder */}
+        <FormSection title="Lager & Pfadfinder" icon="backpack">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <Field label="Lagerungsart">
+              <select value={storageType} onChange={(e) => setStorageType(e.target.value)} className={inputClass}>
+                <option value="">Keine Angabe</option>
+                <option value="dry">Trocken</option>
+                <option value="refrigerated">Kühlschrank</option>
+                <option value="frozen">Gefroren</option>
+                <option value="ambient">Raumtemperatur</option>
+              </select>
+            </Field>
+            <Field label="Kochfaktor">
+              <input type="number" step="0.1" min="1" value={cookingFactor} onChange={(e) => setCookingFactor(e.target.value)} placeholder="z.B. 2.5" className={inputClass} />
+            </Field>
+            <Field label="Camp-geeignet">
+              <label className="flex items-center gap-2 pt-2 cursor-pointer">
+                <input type="checkbox" checked={campSuitable} onChange={(e) => setCampSuitable(e.target.checked)} className="h-4 w-4" />
+                <span className="text-sm text-muted-foreground">Ja, fürs Zeltlager geeignet</span>
+              </label>
+            </Field>
+            <Field label="Zubereitungsdauer (Min.)">
+              <input type="number" min="0" value={preparationTimeMin} onChange={(e) => setPreparationTimeMin(e.target.value)} className={inputClass} />
+            </Field>
+            <Field label="Saison von (Monat)">
+              <select value={seasonStart} onChange={(e) => setSeasonStart(e.target.value)} className={inputClass}>
+                <option value="">Ganzjährig</option>
+                <option value="1">Januar</option>
+                <option value="2">Februar</option>
+                <option value="3">März</option>
+                <option value="4">April</option>
+                <option value="5">Mai</option>
+                <option value="6">Juni</option>
+                <option value="7">Juli</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Dezember</option>
+              </select>
+            </Field>
+            <Field label="Saison bis (Monat)">
+              <select value={seasonEnd} onChange={(e) => setSeasonEnd(e.target.value)} className={inputClass}>
+                <option value="">Ganzjährig</option>
+                <option value="1">Januar</option>
+                <option value="2">Februar</option>
+                <option value="3">März</option>
+                <option value="4">April</option>
+                <option value="5">Mai</option>
+                <option value="6">Juni</option>
+                <option value="7">Juli</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Dezember</option>
+              </select>
             </Field>
           </div>
         </FormSection>
