@@ -27,8 +27,9 @@ export default function PortionBottomSheet({
         </SheetHeader>
         <div className="py-4">
           <PortionScaler
-            defaultPortions={portions}
+            value={portions}
             onChange={onPortionsChange}
+            defaultValue={portions}
           />
         </div>
       </SheetContent>

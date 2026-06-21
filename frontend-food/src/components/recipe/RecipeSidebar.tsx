@@ -24,7 +24,10 @@ export default function RecipeSidebar({
 }: RecipeSidebarProps) {
   const navigate = useNavigate();
   const handleShare = async () => {
-    const url = window.location.href;
+    // Get current URL safely
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    if (!url) return;
+    
     if (navigator.share) {
       try {
         await navigator.share({ title: recipe.title, url });

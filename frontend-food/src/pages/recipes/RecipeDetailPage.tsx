@@ -24,7 +24,6 @@ import {
   useSetRecipeImageFromUrl,
 } from '@/api/recipes';
 import {
-  RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS as _DIFF,
   RECIPE_EXECUTION_TIME_OPTIONS,
 } from '@/schemas/recipe';
@@ -48,7 +47,7 @@ import {
 } from '@/components/ui/dialog';
 import Breadcrumb from '@/components/Breadcrumb';
 import RecipeRulesBox from '@/components/recipe/RecipeRulesBox';
-import RecipeBadge from '@/components/recipe/RecipeBadge';
+
 import RecipeMetaCard from '@/components/recipe/RecipeMetaCard';
 import RecipeSidebar from '@/components/recipe/RecipeSidebar';
 import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
@@ -311,7 +310,6 @@ export default function RecipeDetailPage() {
   }
 
 
-  const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
   const timeLabel =
     RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
     recipe.execution_time;
@@ -463,7 +461,6 @@ export default function RecipeDetailPage() {
           canEdit={recipe.can_edit}
           title={recipe.title}
           summary={recipe.summary}
-          fallbackImage="/images/inspi_cook.png"
           uploadMutation={uploadImage}
           deleteMutation={deleteImage}
           setFromUrlMutation={setImageFromUrl}

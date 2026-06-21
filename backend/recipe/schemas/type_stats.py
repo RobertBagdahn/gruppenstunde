@@ -40,3 +40,7 @@ class RecipeTypeStatsOut(Schema):
 
 class RecipeTypeStatsRequest(Schema):
     recipe_type: str
+
+
+# Backward compatibility alias for frontend schema sync
+BucketSchema = BucketOut

@@ -19,7 +19,7 @@ export default function NutritionBigTable({ recipe, portions }: NutritionBigTabl
     { key: 'fiber', label: 'Ballaststoffe', value: recipe.cached_fibre_g, unit: 'g', dge: 30 },
   ];
 
-  const weight = recipe.cached_weight_g || 100;
+  const weight = (recipe as any).cached_weight_g || 100;
 
   return (
     <div className="rounded-lg border divide-y">

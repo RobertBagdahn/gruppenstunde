@@ -106,3 +106,42 @@ Das Food Frontend ist eine eigenständige Anwendung, getrennt vom Haupt-Frontend
 
 **⚠️ Strikte Trennung**: Im Haupt-Frontend (`frontend/`) darf **kein** Food-bezogener Code existieren — keine Pages, Components, API-Hooks, Schemas, Stores, Utils, Routen oder Navigationslinks für Rezepte, Zutaten, Essenspläne, Einkaufslisten oder Ernährungsfeatures. Diese Regel gilt auch für Cross-Cutting-Concerns: Wenn ein Event einen Essensplan hat, wird die Verknüpfung im Food-Frontend dargestellt, nicht im Haupt-Frontend.
 
+
+## ⚠️ WICHTIG: Python Environment Management
+
+**NIEMALS micromamba oder globale Python-Umgebung verwenden!**
+
+Immer die Projekt-spezifische `uv`-Umgebung nutzen:
+
+```bash
+# ✅ RICHTIG: uv run für alle Python-Befehle
+uv run python manage.py migrate
+uv run pytest recipe/tests/ -xvs
+uv run python -m pytest ...
+
+# ❌ FALSCH: Globale Python-Umgebung oder micromamba
+python manage.py migrate          # DON'T!
+micromamba run python ...         # DON'T!
+source ~/.bashrc && python ...    # DON'T!
+```
+
+**Gründe:**
+- `uv`-Umgebung nutzt Python 3.13+ mit allen erforderlichen Dependencies
+- micromamba (Python 3.9) ist veraltet und nicht kompatibel
+- Globale Umgebungen können zu Konflikten führen
+- `uv` isoliert und reproduciert Abhängigkeiten korrekt
+
+**Für Tests immer nutzen:**
+```bash
+cd backend
+uv run python manage.py test recipe.tests.test_api
+# oder
+uv run pytest recipe/tests/test_api.py -xvs
+```
+
+**Für Django shell:**
+```bash
+cd backend
+uv run python manage.py shell
+```
+

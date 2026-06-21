@@ -52,10 +52,18 @@ from .nutrition import (
     RecipeRulesOut,
     SuggestedIngredientOut,
 )
+from .type_stats import (
+    BucketOut,
+    BucketSchema,
+    RecipeTypeStatsOut,
+    RecipeTypeStatsRequest,
+)
 
 __all__ = [
     "AiIngredientApplyIn",
     "AiIngredientSuggestionOut",
+    "BucketOut",
+    "BucketSchema",
     "ContributionOut",
     "DashboardInsightsOut",
     "EstimateQuantitiesOut",
@@ -86,6 +94,8 @@ __all__ = [
     "RecipeSimilarOut",
     "RecipeSuggestionOut",
     "RecipeSuggestAllOut",
+    "RecipeTypeStatsOut",
+    "RecipeTypeStatsRequest",
     "RecipeUpdateIn",
     "RuleIn",
     "RuleOut",

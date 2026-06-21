@@ -27,7 +27,6 @@ interface TitleImageEditorProps {
   canEdit: boolean;
   title: string;
   summary?: string;
-  fallbackImage: string;
   uploadMutation: UseMutationResult<{ image_url: string }, Error, File>;
   deleteMutation: UseMutationResult<{ image_url: null }, Error, void>;
   setFromUrlMutation: UseMutationResult<{ image_url: string }, Error, string>;
@@ -41,7 +40,6 @@ export default function TitleImageEditor({
   canEdit,
   title,
   summary,
-  fallbackImage,
   uploadMutation,
   deleteMutation,
   setFromUrlMutation,

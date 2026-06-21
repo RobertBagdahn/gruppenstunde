@@ -102,12 +102,10 @@ def draft_recipe(db):
 
 
 @pytest.fixture
-def recipe_with_items(db, approved_recipe, portion, ingredient, measuring_unit):
+def recipe_with_items(db, approved_recipe, portion):
     RecipeItem.objects.create(
         recipe=approved_recipe,
         portion=portion,
-        ingredient=ingredient,
-        measuring_unit=measuring_unit,
         quantity=500.0,
         sort_order=0,
         note="fein gemahlen",
