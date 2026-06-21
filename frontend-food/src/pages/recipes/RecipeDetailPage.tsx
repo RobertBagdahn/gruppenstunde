@@ -405,41 +405,39 @@ export default function RecipeDetailPage() {
       />
 
       {/* Recipe Type Badge + Recipe Badge */}
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        {typeOpt && (
-          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-[hsl(var(--chart-2))] uppercase tracking-wide bg-[hsl(var(--chart-2))]/10 rounded-full px-3 py-1 border border-[hsl(var(--chart-2))]/20">
-            <span className="material-symbols-outlined text-[16px]">{typeOpt.icon}</span>
-            {typeOpt.label}
+      {/* Title + Summary */}
+      <div className="mb-4">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{recipe.title}</h1>
+        {/* Compact Summary */}
+        {recipe.summary && (
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {recipe.summary}
           </p>
         )}
-            <RecipeBadge badge={(recipe.recipe_badge as 'draft' | 'verified' | 'community') ?? 'community'} />
       </div>
 
-      {/* Title + Edit + Delete */}
-      <div className="flex items-start justify-between gap-4">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">{recipe.title}</h1>
-        <div className="flex items-center gap-2 shrink-0">
-          {recipe.can_edit && (
-            <Link
-              to={`/recipes/${recipe.slug}/edit`}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
-              title="Rezept bearbeiten"
-            >
-              <span className="material-symbols-outlined text-[18px]">edit</span>
-              <span className="hidden sm:inline">Bearbeiten</span>
-            </Link>
-          )}
-          {recipe.can_delete && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
-              title="Rezept löschen"
-            >
-              <span className="material-symbols-outlined text-[18px]">delete</span>
-              <span className="hidden sm:inline">Löschen</span>
-            </button>
-          )}
-        </div>
+      {/* Edit + Delete Buttons */}
+      <div className="flex items-center justify-end gap-2">
+        {recipe.can_edit && (
+          <Link
+            to={`/recipes/${recipe.slug}/edit`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
+            title="Rezept bearbeiten"
+          >
+            <span className="material-symbols-outlined text-[18px]">edit</span>
+            <span className="hidden sm:inline">Bearbeiten</span>
+          </Link>
+        )}
+        {recipe.can_delete && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
+            title="Rezept löschen"
+          >
+            <span className="material-symbols-outlined text-[18px]">delete</span>
+            <span className="hidden sm:inline">Löschen</span>
+          </button>
+        )}
       </div>
 
       {/* Source URL */}
@@ -973,7 +971,7 @@ export default function RecipeDetailPage() {
           <AnalysisSection
             icon="description"
             title="Zubereitung"
-            defaultOpen={true}
+            defaultOpen={false}
             accentColor="text-primary"
             preview={
               <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">

@@ -84,18 +84,25 @@ export default function TitleImageEditor({
   const isUploading = uploadMutation.isPending || setFromUrlMutation.isPending;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden mb-8 shadow-lg max-w-lg mx-auto aspect-square">
-      {/* Image */}
-      <img
-        src={imageUrl || fallbackImage}
-        alt={title}
-        className={cn(
-          'w-full h-full',
-          imageUrl ? 'object-cover' : 'object-contain p-6 bg-muted/30',
-          isUploading && 'opacity-50',
-        )}
-        loading="lazy"
-      />
+    <div className="relative rounded-2xl overflow-hidden mb-8 shadow-lg max-w-lg mx-auto aspect-square bg-muted/10">
+      {/* Image or Icon Placeholder */}
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={title}
+          className={cn(
+            'w-full h-full object-cover',
+            isUploading && 'opacity-50',
+          )}
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <span className="material-symbols-outlined text-6xl text-muted-foreground/30">
+            restaurant
+          </span>
+        </div>
+      )}
 
       {/* Loading overlay */}
       {isUploading && (

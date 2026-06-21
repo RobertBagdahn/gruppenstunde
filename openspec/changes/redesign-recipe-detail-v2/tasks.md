@@ -46,13 +46,13 @@
 
 ## 6. Layout-Redesign
 
-- [ ] 6.1 `RecipeSidebar.tsx`: reichhaltige Metadaten-Karte (Typ-Badge oben, Kosten, Nutri-Score, Status, Autor-Link, Kategorie-Link, Zeiten, Schwierigkeit, Altersgruppe, Aufrufe/Likes, Datenqualität, Daten) + Aktions-Block (Kochen, Einkaufsliste, Portionen, Drucken, Teilen, Clonen)
-- [ ] 6.2 `RecipeDetailPage.tsx`: Header = Titel + kompakte kleine Summary + Bearbeiten/Löschen rechts; Typ-Badge aus Header entfernen
-- [ ] 6.3 Bild-Placeholder: kleiner dezenter Icon-Placeholder statt großem Fallback bei fehlendem Bild
-- [ ] 6.4 Zubereitung-Sektion `defaultOpen=false`
-- [ ] 6.5 Sektions-Reihenfolge gemäß Spec umordnen; `ContentAuthorSection` entfernen
-- [ ] 6.6 Zwei-spaltige Portion-Anzeige (pro Portion / gesamt × n) in Zutaten + Nährwerten (mobil gestapelt)
-- [ ] 6.7 Hartcodierte Farben → semantische Token (PortionScaler, NutritionTab, HealthTab, PriceTab, WeightTab, RecipeBadge, RecipeMetaCard, RecipeSidebar, InlineIngredientEditor u.a.); Abgleich mit `/styleguide`
+- [x] 6.1 `RecipeSidebar.tsx`: reichhaltige Metadaten-Karte (Typ-Badge oben, Kosten, Nutri-Score, Status, Autor-Link, Kategorie-Link, Zeiten, Schwierigkeit, Altersgruppe, Aufrufe/Likes, Datenqualität, Daten) + Aktions-Block (Kochen, Einkaufsliste, Portionen, Drucken, Teilen, Clonen)
+- [x] 6.2 `RecipeDetailPage.tsx`: Header = Titel + kompakte kleine Summary + Bearbeiten/Löschen rechts; Typ-Badge aus Header entfernen
+- [x] 6.3 Bild-Placeholder: kleiner dezenter Icon-Placeholder statt großem Fallback bei fehlendem Bild
+- [x] 6.4 Zubereitung-Sektion `defaultOpen=false`
+- [x] 6.5 Sektions-Reihenfolge gemäß Spec umordnen; `ContentAuthorSection` entfernen
+- [x] 6.6 Zwei-spaltige Portion-Anzeige (pro Portion / gesamt × n) in Zutaten + Nährwerten (mobil gestapelt)
+- [x] 6.7 Hartcodierte Farben → semantische Token (PortionScaler, NutritionTab, HealthTab, PriceTab, WeightTab, RecipeBadge, RecipeMetaCard, RecipeSidebar, InlineIngredientEditor u.a.); Abgleich mit `/styleguide`
 
 ## 7. Analyse-Histogramme
 

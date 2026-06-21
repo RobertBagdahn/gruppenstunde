@@ -42,10 +42,11 @@ export default function RecipeSidebar({
       {/* Recipe Meta Card (Unified & Compact) */}
       <RecipeMetaCard recipe={recipe} portions={portions} totalPriceEur={totalPriceEur} />
 
-      {/* Portion Scaler (compact) */}
+      {/* Portion Scaler (compact, controlled) */}
       <PortionScaler
-        defaultPortions={portions}
+        value={portions}
         onChange={onPortionsChange}
+        defaultValue={portions}
         compact
       />
 
