@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Link2 } from 'lucide-react';
 import { MealSlot } from './MealSlot';
-import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getCoverageBadge } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getCoverageBadge, effectivePortions } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import EmptyState from '@/components/shared/EmptyState';
 import RecipeSearchDialog from './RecipeSearchDialog';
@@ -55,6 +55,8 @@ export function DayPlanView({
     is_external?: boolean | null;
     external_energy_kcal?: number | null;
     external_cost_per_person?: number | null;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
   }) => void;
   onScaleMeal: (mealId: number) => void;
   onCopyFromPlan: (mealId: number) => void;
@@ -109,9 +111,9 @@ export function DayPlanView({
         />
       ) : (
         dayGroups.map((group) => {
-          const dayActualKcal = Math.round(group.meals.reduce((sum, m) => sum + m.total_energy_kcal / normPortions, 0));
+          const dayActualKcal = Math.round(group.meals.reduce((sum, m) => sum + m.total_energy_kcal / effectivePortions(m, normPortions), 0));
           const dayTargetKcal = Math.round(group.meals.reduce((sum, m) => sum + NORM_PERSON_DAILY_KCAL * m.day_part_factor, 0));
-          const dayActualCost = group.meals.reduce((sum, m) => sum + m.total_cost_eur / normPortions, 0);
+          const dayActualCost = group.meals.reduce((sum, m) => sum + m.total_cost_eur / effectivePortions(m, normPortions), 0);
           const dayTargetCost = budgetPerPersonPerDay ? group.meals.reduce((sum, m) => sum + budgetPerPersonPerDay * m.day_part_factor, 0) : 0;
 
           return (
@@ -128,6 +130,7 @@ export function DayPlanView({
                         green: 'bg-primary/10 text-primary border-primary/20',
                         yellow: 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20',
                         red: 'bg-destructive/10 text-destructive border-destructive/20',
+                        overplanned: 'bg-destructive/10 text-destructive border-destructive/20',
                       };
                       return (
                         <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border ${colorClasses[badge.status]}`}>
@@ -169,6 +172,7 @@ export function DayPlanView({
                     canEdit={canEdit}
                     normPortions={normPortions}
                     budgetPerPersonPerDay={budgetPerPersonPerDay}
+                    siblingMeals={group.meals}
                     onDeleteMeal={onDeleteMeal}
                     onAddRecipe={onAddRecipe}
                     onAddIngredient={onAddIngredient}

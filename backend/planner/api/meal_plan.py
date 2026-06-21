@@ -581,6 +581,18 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
     if "external_cost_per_person" in payload.dict(exclude_unset=True):
         meal.external_cost_per_person = payload.external_cost_per_person
 
+    payload_fields = payload.dict(exclude_unset=True)
+    if "start_datetime" in payload_fields and payload.start_datetime is not None:
+        meal.start_datetime = payload.start_datetime
+    if "end_datetime" in payload_fields and payload.end_datetime is not None:
+        meal.end_datetime = payload.end_datetime
+    if (
+        meal.start_datetime is not None
+        and meal.end_datetime is not None
+        and meal.end_datetime <= meal.start_datetime
+    ):
+        raise HttpError(400, "Die Endzeit muss nach der Startzeit liegen.")
+
     meal.save()
     return meal
 
@@ -599,7 +611,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     if meal.is_external:
         raise HttpError(400, "Externe Mahlzeiten können nicht skaliert werden.")
 
-    portions = meal.override_portions or meal_plan.norm_portions or 1
+    portions = meal.effective_portions
 
     current_energy_kcal = MealOut.resolve_total_energy_kcal(meal)
     current_kcal = current_energy_kcal / portions
@@ -735,17 +747,19 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
         meal_items_qs = meal_items_qs.filter(meal__start_datetime__date=date)
     meal_items = meal_items_qs.select_related("recipe", "meal")
 
-    totals = {
-        "energy_kcal": 0.0,
-        "protein_g": 0.0,
-        "fat_g": 0.0,
-        "carbohydrate_g": 0.0,
-        "sugar_g": 0.0,
-        "fibre_g": 0.0,
-        "salt_g": 0.0,
-    }
-
-    norm_portions = meal_plan.norm_portions or 1
+    fields = (
+        "energy_kcal",
+        "protein_g",
+        "fat_g",
+        "carbohydrate_g",
+        "sugar_g",
+        "fibre_g",
+        "salt_g",
+    )
+    totals = {field: 0.0 for field in fields}
+    # Per-person values are aggregated per meal (total / effective_portions) and
+    # then summed, so meals with differing effective_portions are handled correctly.
+    per_portion_totals = {field: 0.0 for field in fields}
 
     for mi in meal_items:
         if not mi.recipe:
@@ -757,6 +771,7 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
         ).select_related("portion__ingredient")
 
         recipe_servings = mi.recipe.portions or 1
+        effective_portions = mi.meal.effective_portions
 
         for ri in recipe_items:
             if not ri.portion or not ri.portion.ingredient:
@@ -765,16 +780,17 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
             ing = ri.portion.ingredient
             # RecipeItem quantity is in the portion unit; portion.weight_g converts to grams
             weight_g = ri.quantity * ri.portion.weight_g if ri.portion.weight_g else 0
-            # Scale factor: per 100g, then by item factor, scaled to norm_portions
-            scale = (weight_g / 100.0) * mi.factor * (norm_portions / recipe_servings)
+            # Scale factor: per 100g, then by item factor, scaled to effective_portions
+            scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings)
 
-            for field in totals:
+            for field in fields:
                 ing_val = getattr(ing, field, None)
                 if ing_val is not None:
-                    totals[field] += float(ing_val) * scale
+                    contribution = float(ing_val) * scale
+                    totals[field] += contribution
+                    per_portion_totals[field] += contribution / effective_portions
 
-    # Calculate per-portion values
-    per_portion = {f"per_portion_{field}": totals[field] / norm_portions for field in totals}
+    per_portion = {f"per_portion_{field}": per_portion_totals[field] for field in fields}
 
     return NutritionSummaryOut(
         **totals,
@@ -810,8 +826,12 @@ def cost_summary(request, meal_plan_id: int):
     total_ingredients = 0
     priced_ingredients = 0
 
-    # Aggregate costs per day and meal
-    day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "meals": []})
+    # Aggregate costs per day and meal. ``per_person`` sums the per-meal
+    # cost_per_person values so meals with differing effective_portions
+    # (e.g. day guests) aggregate correctly.
+    day_costs: dict[str, dict] = defaultdict(
+        lambda: {"total": Decimal("0"), "per_person": Decimal("0"), "meals": []}
+    )
 
     # Aggregate costs per recipe
     recipe_costs: dict[int, dict] = {}
@@ -820,7 +840,7 @@ def cost_summary(request, meal_plan_id: int):
         if not meal.start_datetime:
             continue
         meal_date = meal.start_datetime.date()
-        effective_portions = meal.override_portions or norm_portions
+        effective_portions = meal.effective_portions
         meal_cost = Decimal("0")
 
         for item in meal.items.all():
@@ -902,6 +922,7 @@ def cost_summary(request, meal_plan_id: int):
         )
 
         day_costs[str(meal_date)]["total"] += meal_cost
+        day_costs[str(meal_date)]["per_person"] += cost_per_person
         day_costs[str(meal_date)]["meals"].append({
             "meal_id": meal.id,
             "meal_type": meal.meal_type,
@@ -912,18 +933,18 @@ def cost_summary(request, meal_plan_id: int):
 
     # Build response
     total_cost = sum(d["total"] for d in day_costs.values())
-    cost_per_person = total_cost / norm_portions if norm_portions > 0 else Decimal("0")
+    # Sum per-meal cost_per_person values (handles differing effective_portions)
+    cost_per_person = sum(d["per_person"] for d in day_costs.values())
     reserve_factor = meal_plan.reserve_factor or 1.0
     total_cost_with_reserve = total_cost * Decimal(str(reserve_factor))
 
     days = []
     for date_str in sorted(day_costs.keys()):
         d = day_costs[date_str]
-        day_cost_per_person = d["total"] / norm_portions if norm_portions > 0 else Decimal("0")
         days.append({
             "date": date_str,
             "total_cost": d["total"],
-            "cost_per_person": day_cost_per_person,
+            "cost_per_person": d["per_person"],
             "meals": d["meals"],
         })
 

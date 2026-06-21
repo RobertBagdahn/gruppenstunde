@@ -129,9 +129,9 @@ export default function NutritionView({
   }, [dayGroups]);
 
   const avgCoverage = uniqueDates.length > 0
-    ? uniqueDates.reduce((sum, d) => sum + (dayCoverageMap[d] ?? 1), 0) / uniqueDates.length
+    ? uniqueDates.reduce((sum, d) => sum + dayCoverageMap[d], 0) / uniqueDates.length
     : 1;
-  const selectedCoverage = selectedDate ? (dayCoverageMap[selectedDate] ?? 1) : avgCoverage;
+  const selectedCoverage = selectedDate ? dayCoverageMap[selectedDate] : avgCoverage;
   const effCoverage = getEffectiveCoverage(selectedCoverage);
 
   const formatDate = (dateStr: string) => {
@@ -282,7 +282,7 @@ export default function NutritionView({
                       )}
                     >
                       <span>{formatDate(date)}</span>
-                      {dayCoverage < 1 && (
+                      {dayCoverage !== 1 && (
                         <span className={cn(
                           "text-[9px] font-bold px-1 rounded",
                           selectedDate === date ? "text-primary-foreground/80" : "text-muted-foreground/60"

@@ -240,6 +240,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
                 green: 'bg-primary/10 text-primary border-primary/20',
                 yellow: 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20',
                 red: 'bg-destructive/10 text-destructive border-destructive/20',
+                overplanned: 'bg-destructive/10 text-destructive border-destructive/20',
               };
               return (
                 <DataCardRow key={day.date} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 md:p-5">
@@ -249,7 +250,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
                       <span className="font-display font-bold text-base text-foreground">
                         {weekday}
                       </span>
-                      {dayCoverage < 1 && (
+                      {dayCoverage !== 1 && (
                         <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded border ${badgeColors[badge.status]}`}>
                           {badge.label}
                         </span>

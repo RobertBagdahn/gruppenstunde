@@ -374,25 +374,53 @@ export function minutesToHHMM(minutes: number): string {
   return `${h}:${m}`;
 }
 
+/**
+ * Format a meal datetime as HH:MM in the fixed plan timezone (Europe/Berlin).
+ * Lager times are location-fixed and must not shift with the viewer's browser timezone.
+ */
+export function formatMealTime(datetimeStr: string | null | undefined): string {
+  if (!datetimeStr) return '';
+  const d = new Date(datetimeStr);
+  return d.toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Berlin',
+  });
+}
+
+/** Effective portions for a meal: override_portions when set, else the plan's norm_portions. */
+export function effectivePortions(
+  meal: Pick<Meal, 'override_portions'>,
+  normPortions: number,
+): number {
+  return meal.override_portions || normPortions || 1;
+}
+
 function parseTimeToMinutes(datetimeStr: string): number {
   const d = new Date(datetimeStr);
   return d.getHours() * 60 + d.getMinutes();
 }
 
-/** Sum of day_part_factors for meals on a day, capped at 1.0. */
+/**
+ * Sum of day_part_factors for meals on a day.
+ * NOT capped: values > 1.0 represent overplanning and must stay visible.
+ */
 export function getDayCoverage(meals: Meal[]): number {
-  const covered = meals.reduce((sum, m) => sum + m.day_part_factor, 0);
-  return Math.min(covered, 1.0);
+  return meals.reduce((sum, m) => sum + m.day_part_factor, 0);
 }
 
-/** Effective coverage with a floor of 0.35 for KPI comparisons. */
+/**
+ * Effective coverage for KPI/rule scaling: floor 0.35, capped at 1.0.
+ * Overplanning (>100%) must NOT scale the nutrition target bands upward.
+ */
 export function getEffectiveCoverage(coverage: number): number {
-  return Math.max(coverage, 0.35);
+  return Math.min(Math.max(coverage, 0.35), 1.0);
 }
 
-export function getCoverageBadge(coverage: number): { label: string; status: 'green' | 'yellow' | 'red'; effectiveCoverage: number } {
+export function getCoverageBadge(coverage: number): { label: string; status: 'green' | 'yellow' | 'red' | 'overplanned'; effectiveCoverage: number } {
   const effectiveCoverage = getEffectiveCoverage(coverage);
   const pct = Math.round(coverage * 100);
+  if (coverage > 1.0) return { label: `Überplant ${pct} %`, status: 'overplanned', effectiveCoverage };
   if (coverage >= 0.8) return { label: 'Vollständig', status: 'green', effectiveCoverage };
   if (coverage >= 0.35) return { label: `Teilweise ${pct} %`, status: 'yellow', effectiveCoverage };
   return { label: `Lückenhaft ${pct} %`, status: 'red', effectiveCoverage };
@@ -550,6 +578,8 @@ export const MealUpdateInSchema = z.object({
   is_external: z.boolean().nullable().optional(),
   external_energy_kcal: z.number().nullable().optional(),
   external_cost_per_person: z.number().nullable().optional(),
+  start_datetime: z.string().nullable().optional(),
+  end_datetime: z.string().nullable().optional(),
 });
 export type MealUpdateIn = z.infer<typeof MealUpdateInSchema>;
 

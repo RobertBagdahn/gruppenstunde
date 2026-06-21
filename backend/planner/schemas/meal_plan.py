@@ -68,16 +68,16 @@ class MealItemOut(Schema):
         if not obj.recipe or obj.recipe.cached_energy_total_kcal is None:
             return None
         servings = obj.recipe.portions or 1
-        norm_portions = obj.meal.meal_plan.norm_portions or 1
-        return float(obj.recipe.cached_energy_total_kcal) * obj.factor * (norm_portions / servings)
+        effective_portions = obj.meal.effective_portions
+        return float(obj.recipe.cached_energy_total_kcal) * obj.factor * (effective_portions / servings)
 
     @staticmethod
     def resolve_cost_eur(obj) -> float | None:
         if not obj.recipe or obj.recipe.cached_price_total is None:
             return None
         servings = obj.recipe.portions or 1
-        norm_portions = obj.meal.meal_plan.norm_portions or 1
-        return float(obj.recipe.cached_price_total) * obj.factor * (norm_portions / servings)
+        effective_portions = obj.meal.effective_portions
+        return float(obj.recipe.cached_price_total) * obj.factor * (effective_portions / servings)
 
     @staticmethod
     def resolve_overrides(obj) -> list:
@@ -133,31 +133,30 @@ class MealOut(Schema):
 
     @staticmethod
     def resolve_total_energy_kcal(obj) -> float:
+        effective_portions = obj.effective_portions
         if obj.is_external:
             if obj.external_energy_kcal is not None:
-                return obj.external_energy_kcal
-            return 2335.0 * obj.day_part_factor
+                return obj.external_energy_kcal * effective_portions
+            return 2335.0 * obj.day_part_factor * effective_portions
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_energy_total_kcal is not None:
                 servings = item.recipe.portions or 1
-                norm_portions = obj.meal_plan.norm_portions or 1
-                total += float(item.recipe.cached_energy_total_kcal) * item.factor * (norm_portions / servings)
+                total += float(item.recipe.cached_energy_total_kcal) * item.factor * (effective_portions / servings)
         return total
 
     @staticmethod
     def resolve_total_cost_eur(obj) -> float:
+        effective_portions = obj.effective_portions
         if obj.is_external:
             if obj.external_cost_per_person is not None:
-                portions = obj.override_portions or obj.meal_plan.norm_portions or 0
-                return float(obj.external_cost_per_person) * portions
+                return float(obj.external_cost_per_person) * effective_portions
             return 0.0
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_price_total is not None:
                 servings = item.recipe.portions or 1
-                norm_portions = obj.meal_plan.norm_portions or 1
-                total += float(item.recipe.cached_price_total) * item.factor * (norm_portions / servings)
+                total += float(item.recipe.cached_price_total) * item.factor * (effective_portions / servings)
         return total
 
 
@@ -178,6 +177,8 @@ class MealUpdateIn(Schema):
     is_external: bool | None = None
     external_energy_kcal: float | None = None
     external_cost_per_person: float | None = None
+    start_datetime: dt.datetime | None = None
+    end_datetime: dt.datetime | None = None
 
 
 class MealDayBulkCreateIn(Schema):

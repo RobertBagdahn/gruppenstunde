@@ -341,6 +341,16 @@ class Meal(models.Model):
         date_str = self.start_datetime.strftime("%Y-%m-%d") if self.start_datetime else "?"
         return f"{date_str} – {self.get_meal_type_display()}"
 
+    @property
+    def effective_portions(self) -> int:
+        """Number of people this meal is cooked for.
+
+        Uses the meal's ``override_portions`` (e.g. day guests) when set,
+        otherwise the plan's ``norm_portions``. This is the single portion
+        concept all per-meal energy/cost calculations must use.
+        """
+        return self.override_portions or self.meal_plan.norm_portions or 1
+
     def clean(self) -> None:
         """Validate meal constraints."""
         # RefMeal validation

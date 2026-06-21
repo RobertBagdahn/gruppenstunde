@@ -60,6 +60,37 @@ class TestScaleAndCopyAPI:
         assert item1.factor == pytest.approx(round(item1.factor, 1))
         assert item2.factor == pytest.approx(round(item2.factor, 1))
 
+    def test_scale_to_target_with_override_portions(self):
+        """Scaling must measure against effective_portions, not norm_portions.
+
+        With override_portions != norm_portions the scaled meal must land at
+        ~100% of its Soll, not off by the (override/norm) factor.
+        """
+        meal = make_meal(
+            meal_plan=self.plan,
+            meal_type=MealTypeChoices.BREAKFAST,
+            day_part_factor=0.25,
+            override_portions=20,  # plan norm_portions = 10
+            start_datetime=timezone.make_aware(dt.datetime.combine(dt.date.today(), dt.time(8, 0))),
+            end_datetime=timezone.make_aware(dt.datetime.combine(dt.date.today(), dt.time(9, 0))),
+        )
+        # Recipe with 478 kcal total over 10 servings.
+        recipe = make_recipe(portions=10, cached_energy_total_kcal=478.0)
+        item = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
+
+        response = self.client.post(
+            f"/api/meal-plans/{self.plan.id}/meals/{meal.id}/scale-to-target/",
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+        meal.refresh_from_db()
+        # After scaling, per-person Ist should match the Soll (2335 * 0.25 = 583.75).
+        per_person = MealOut.resolve_total_energy_kcal(meal) / meal.effective_portions
+        target = 2335.0 * 0.25
+        # Within rounding of one decimal on the factor.
+        assert per_person == pytest.approx(target, rel=0.1)
+
     def test_scale_to_target_failures(self):
         """Synced or external meals, or meals with 0 calories should fail to scale."""
         # 1. External meal

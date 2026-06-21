@@ -1,32 +1,4 @@
-# meal-energy-display Specification
-
-## Purpose
-Provide realistic, consistent energy (kcal) values for recipes, meal items, and meals, and a correct Soll/Ist coverage display that honors each meal's effective portions.
-
-## Requirements
-### Requirement: Recipe gesamt-energie Cache
-
-`Recipe` SHALL ein denormalisiertes Feld `cached_energy_total_kcal` (Float, nullable)
-führen, das die Gesamtenergie des Rezepts in kcal über alle `servings` enthält.
-Der Wert MUST aus den aggregierten pro-100g-Nährwerten und dem Gesamtgewicht des
-Rezepts (`Σ RecipeItem.quantity * portion.weight_g`) berechnet werden:
-`cached_energy_total_kcal = energy_kcal_per_100g * (total_weight_g / 100)`.
-Der Wert MUST gemeinsam mit den übrigen Cache-Feldern in
-`recalculate_recipe_cache` befüllt und über dieselben Signale invalidiert werden.
-
-#### Scenario: Cache-Berechnung mit gewichteten Zutaten
-- **WHEN** `recalculate_recipe_cache` für ein Rezept mit Zutaten und gesetzten
-  `portion.weight_g` und Zutaten-Energiewerten läuft
-- **THEN** `cached_energy_total_kcal` entspricht der Summe der Zutaten-Energien
-  (Zutatenenergie pro 100g × tatsächliches Gewicht / 100)
-
-#### Scenario: Rezept ohne preis- oder gewichtsfähige Zutaten
-- **WHEN** ein Rezept keine Zutaten mit `weight_g` oder Energiewerten hat
-- **THEN** `cached_energy_total_kcal` ist `None` oder `0`, ohne Fehler
-
-#### Scenario: Cache wird bei Zutatenänderung invalidiert
-- **WHEN** ein `RecipeItem` des Rezepts hinzugefügt, geändert oder gelöscht wird
-- **THEN** `cached_energy_total_kcal` wird durch das bestehende Signal neu berechnet
+## MODIFIED Requirements
 
 ### Requirement: Realistische Energie im Meal-Item Output
 

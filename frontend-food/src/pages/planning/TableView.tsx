@@ -14,7 +14,7 @@ import {
   Clock,
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
-import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes, effectivePortions, formatMealTime } from '@/schemas/mealPlan';
 import { useAllergenScan } from '@/api/mealPlans';
 import { AllergenWarningBadge } from '@/components/shared/AllergenWarningBadge';
 import { cn } from '@/lib/utils';
@@ -27,12 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-function formatTime(datetimeStr: string | null): string {
-  if (!datetimeStr) return '';
-  const d = new Date(datetimeStr);
-  return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-}
 
 const MEAL_TYPE_LUCIDE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   breakfast: Coffee,
@@ -69,6 +63,8 @@ interface TableViewProps {
       is_external?: boolean | null;
       external_energy_kcal?: number | null;
       external_cost_per_person?: number | null;
+      start_datetime?: string | null;
+      end_datetime?: string | null;
     }
   ) => void;
   onScaleMeal?: (mealId: number) => void;
@@ -148,22 +144,20 @@ export default function TableView({
   }, [dates, startDatetime, endDatetime]);
 
   const dailyTotals = useMemo(() => {
-    const totals: Record<string, { kcal: number; cost: number; targetKcal: number; targetCost: number; coverage: number; effectiveCoverage: number }> = {};
+    const totals: Record<string, { kcalPerPerson: number; costPerPerson: number; targetKcal: number; targetCost: number; coverage: number; effectiveCoverage: number }> = {};
     for (const date of dates) {
-      let kcalSum = 0;
-      let costSum = 0;
+      // Per-person values aggregate per meal (total / effective_portions), then sum.
+      let kcalPerPersonSum = 0;
+      let costPerPersonSum = 0;
       let targetKcalSum = 0;
       let targetCostSum = 0;
       for (const mealType of MEAL_TYPE_ORDER) {
         const meals = grid[mealType]?.[date] || [];
         for (const meal of meals) {
-          if (meal.is_external) {
-            kcalSum += meal.external_energy_kcal ?? 0;
-          } else {
-            kcalSum += meal.total_energy_kcal;
-          }
+          const effPortions = effectivePortions(meal, normPortions);
+          kcalPerPersonSum += meal.total_energy_kcal / effPortions;
+          costPerPersonSum += meal.total_cost_eur / effPortions;
           targetKcalSum += NORM_PERSON_DAILY_KCAL * meal.day_part_factor;
-          costSum += meal.total_cost_eur;
           if (budgetPerPersonPerDay) {
             targetCostSum += budgetPerPersonPerDay * meal.day_part_factor;
           }
@@ -172,8 +166,8 @@ export default function TableView({
       const mealsForDate = MEAL_TYPE_ORDER.flatMap((mt) => grid[mt]?.[date] || []);
       const coverage = getDayCoverage(mealsForDate);
       totals[date] = {
-        kcal: Math.round(kcalSum),
-        cost: costSum,
+        kcalPerPerson: Math.round(kcalPerPersonSum),
+        costPerPerson: costPerPersonSum,
         targetKcal: Math.round(targetKcalSum),
         targetCost: targetCostSum,
         coverage,
@@ -181,7 +175,7 @@ export default function TableView({
       };
     }
     return totals;
-  }, [dates, grid, budgetPerPersonPerDay]);
+  }, [dates, grid, budgetPerPersonPerDay, normPortions]);
 
   if (dates.length === 0) {
     return (
@@ -367,7 +361,7 @@ export default function TableView({
                                       {(meal.start_datetime || meal.end_datetime) && (
                                         <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1 py-0.5 rounded">
                                           <Clock className="w-2.5 h-2.5 shrink-0" />
-                                          {formatTime(meal.start_datetime)}–{formatTime(meal.end_datetime)}
+                                          {formatMealTime(meal.start_datetime)}–{formatMealTime(meal.end_datetime)}
                                         </span>
                                       )}
                                       <span className="text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1 py-0.5 rounded shrink-0">
@@ -383,6 +377,7 @@ export default function TableView({
                                         <MealActionsMenu
                                           meal={meal}
                                           canEdit={canEdit}
+                                          siblingMeals={MEAL_TYPE_ORDER.flatMap((mt) => grid[mt]?.[date] || [])}
                                           onDeleteMeal={onDeleteMeal || (() => {})}
                                           onUpdateMeal={onUpdateMeal || (() => {})}
                                           onScaleMeal={onScaleMeal || (() => {})}
@@ -401,8 +396,9 @@ export default function TableView({
                                     <div className="space-y-1.5 mb-2">
                                       {meal.items.map((item, i) => {
                                         const name = item.recipe_title || item.ingredient_name || item.display_name || '';
-                                        const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / normPortions) : null;
-                                        const cost = item.cost_eur != null ? item.cost_eur / normPortions : null;
+                                        const itemEffPortions = effectivePortions(meal, normPortions);
+                                        const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / itemEffPortions) : null;
+                                        const cost = item.cost_eur != null ? item.cost_eur / itemEffPortions : null;
                                         
                                         const itemViolations = scanData?.violations.filter(
                                           (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
@@ -550,10 +546,9 @@ export default function TableView({
                 Tagesbilanz
               </td>
               {dates.map((date) => {
-                const dailyTotal = dailyTotals[date] || { kcal: 0, cost: 0, targetKcal: 0, targetCost: 0 };
-                const cost = dailyTotal.cost;
-                const costPerPerson = normPortions > 0 ? cost / normPortions : 0;
-                const kcalPerPerson = normPortions > 0 ? Math.round(dailyTotal.kcal / normPortions) : 0;
+                const dailyTotal = dailyTotals[date] || { kcalPerPerson: 0, costPerPerson: 0, targetKcal: 0, targetCost: 0, coverage: 0, effectiveCoverage: 0.35 };
+                const costPerPerson = dailyTotal.costPerPerson;
+                const kcalPerPerson = dailyTotal.kcalPerPerson;
                 const budget = budgetPerPersonPerDay ? Number(budgetPerPersonPerDay) : null;
                 const hasBudget = budget !== null && budget > 0;
 
@@ -587,7 +582,7 @@ export default function TableView({
                         "inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border w-fit shadow-xs",
                         badge.status === 'green' && "bg-primary/10 text-primary border-primary/20",
                         badge.status === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
-                        badge.status === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
+                        (badge.status === 'red' || badge.status === 'overplanned') && "bg-destructive/10 text-destructive border-destructive/20"
                       )}>
                         {badge.label}
                       </div>

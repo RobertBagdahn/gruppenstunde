@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
@@ -28,7 +28,7 @@ import {
   useUpdateMeal,
   useScaleMealToTarget,
 } from '@/api/mealPlans';
-import { MEAL_TYPE_ORDER, MEAL_TYPE_DEFAULT_TIMES, minutesToHHMM } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, minutesToHHMM, getMealDefaultTimes } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -105,6 +105,14 @@ export default function MealPlanDetailPage() {
     return groupMealsByDate(plan.meals);
   }, [plan]);
 
+  // Reset to the default tab if the active tab is no longer available
+  // (e.g. the allergens tab when all nutritional tags were removed).
+  useEffect(() => {
+    if (activeTab === 'allergens' && !(plan?.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)) {
+      setActiveTab('plan');
+    }
+  }, [activeTab, plan?.nutritional_tag_ids]);
+
   const handleUpdateItemFactor = useCallback((itemId: number, factor: number) => {
     updateMealItemMutation.mutate(
       { itemId, factor },
@@ -121,6 +129,8 @@ export default function MealPlanDetailPage() {
     is_external?: boolean | null;
     external_energy_kcal?: number | null;
     external_cost_per_person?: number | null;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
   }) => {
     updateMealMutation.mutate(
       { mealId, ...data },
@@ -169,7 +179,8 @@ export default function MealPlanDetailPage() {
   };
 
   const handleAddMealType = (date: string, mealType: string): Promise<Meal> => {
-    const defaultTimes = MEAL_TYPE_DEFAULT_TIMES[mealType];
+    // Prefer plan-specific default times, fall back to hardcoded defaults.
+    const defaultTimes = getMealDefaultTimes(plan?.meal_default_times)[mealType];
     const startTime = defaultTimes ? minutesToHHMM(defaultTimes[0]) : '12:00';
     const endTime = defaultTimes ? minutesToHHMM(defaultTimes[1]) : '13:00';
     return addMealMutation.mutateAsync(
@@ -252,9 +263,9 @@ export default function MealPlanDetailPage() {
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
               {plan.norm_portions} Portionen
             </span>
-            <span className="inline-flex items-center gap-1" title="Reservefaktor für Einkaufsmengen">
+            <span className="inline-flex items-center gap-1" title="Reservefaktor – betrifft nur die Einkaufsmengen, nicht die kcal-Bilanz">
               <ShoppingCart className="w-3.5 h-3.5 text-muted-foreground" />
-              Reserve: +{Math.round((plan.reserve_factor - 1) * 100)}%
+              Einkauf +{Math.round((plan.reserve_factor - 1) * 100)}% Reserve
             </span>
             {plan.event_name && (
               <span className="inline-flex items-center gap-1">

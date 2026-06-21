@@ -1,9 +1,5 @@
-# meal-scale-to-target Specification
+## MODIFIED Requirements
 
-## Purpose
-Provide a meal action that proportionally scales all items of a meal so its Ist calories approach its Soll calories, measured against the meal's effective portions.
-
-## Requirements
 ### Requirement: Scale meal items to target calories
 A meal action SHALL scale all items of a meal proportionally so that the meal's Ist calories approach its Soll calories (`NORM_PERSON_DAILY_KCAL × day_part_factor`). Each item's factor SHALL be multiplied by `target_kcal / current_kcal` and rounded to one decimal place. The operation SHALL be exposed as a backend endpoint and applied atomically. The current per-person calories MUST be computed using `effective_portions` (`override_portions or norm_portions`) consistently with how `total_energy_kcal` is computed, so that the scaling factor is correct regardless of `override_portions`.
 

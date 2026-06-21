@@ -108,9 +108,18 @@ class TestMealEnergySerialization:
         plan = make_meal_plan(norm_portions=10)
         meal = make_meal(meal_plan=plan, is_external=True, external_energy_kcal=500.0)
 
+        # external_energy_kcal is per person; total_energy_kcal is the GESAMT value
+        # over effective_portions, symmetric to total_cost_eur.
         assert MealOut.resolve_external_energy_kcal(meal) == pytest.approx(500.0)
-        assert MealOut.resolve_total_energy_kcal(meal) == pytest.approx(500.0)
+        assert MealOut.resolve_total_energy_kcal(meal) == pytest.approx(5000.0)
         assert MealOut.resolve_total_cost_eur(meal) == 0.0
+
+    def test_external_meal_energy_uses_override_portions(self):
+        plan = make_meal_plan(norm_portions=10)
+        meal = make_meal(
+            meal_plan=plan, is_external=True, external_energy_kcal=500.0, override_portions=20
+        )
+        assert MealOut.resolve_total_energy_kcal(meal) == pytest.approx(10000.0)
 
     def test_meal_plan_day_part_factor_propagation(self):
         plan = make_meal_plan()

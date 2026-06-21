@@ -9,6 +9,7 @@ import {
   FileText,
   Search,
   Shuffle,
+  Clock,
 } from 'lucide-react';
 import { useRecipeSuggestions, useRandomRecipeSuggestion, useAllergenScan } from '@/api/mealPlans';
 import { AllergenWarningBadge } from '@/components/shared/AllergenWarningBadge';
@@ -19,6 +20,8 @@ import {
   MEAL_TYPE_COLORS,
   getCoverageStatus,
   NORM_PERSON_DAILY_KCAL,
+  effectivePortions,
+  formatMealTime,
 } from '@/schemas/mealPlan';
 import type { Meal, RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipeSearchDialog from './RecipeSearchDialog';
@@ -31,6 +34,7 @@ export function MealSlot({
   canEdit,
   normPortions,
   budgetPerPersonPerDay,
+  siblingMeals,
   onDeleteMeal,
   onAddRecipe,
   onAddIngredient,
@@ -46,6 +50,7 @@ export function MealSlot({
   canEdit: boolean;
   normPortions: number;
   budgetPerPersonPerDay?: number | null;
+  siblingMeals?: Meal[];
   onDeleteMeal: (id: number) => void;
   onAddRecipe: (mealId: number, recipeId: number) => void;
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
@@ -58,6 +63,8 @@ export function MealSlot({
     is_external?: boolean | null;
     external_energy_kcal?: number | null;
     external_cost_per_person?: number | null;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
   }) => void;
   onScaleMeal: (mealId: number) => void;
   onCopyFromPlan: (mealId: number) => void;
@@ -141,14 +148,17 @@ export function MealSlot({
 
   const mealColors = MEAL_TYPE_COLORS[meal.meal_type] || MEAL_TYPE_COLORS.snack;
   const isEmpty = meal.items.length === 0;
-  const coverage = getCoverageStatus(meal.total_energy_kcal / normPortions, meal.day_part_factor);
+  const effPortions = effectivePortions(meal, normPortions);
+  const coverage = getCoverageStatus(meal.total_energy_kcal / effPortions, meal.day_part_factor);
   const coverageColorClass = coverage.status === 'good' ? 'text-primary font-semibold' : coverage.status === 'warning' ? 'text-chart-4 font-semibold' : 'text-destructive font-bold';
 
   const mealTargetKcal = Math.round(NORM_PERSON_DAILY_KCAL * meal.day_part_factor);
-  const mealActualKcal = Math.round(meal.total_energy_kcal / normPortions);
-  const actualDailyPercent = Math.round((mealActualKcal / NORM_PERSON_DAILY_KCAL) * 100);
+  const mealActualKcal = Math.round(meal.total_energy_kcal / effPortions);
+  // Soll-Erfüllungsgrad der Mahlzeit (Ist gegen Mahlzeit-Soll), getrennt vom Tagesanteil.
+  const fulfillmentPercent = coverage.percent;
   const mealTargetCost = budgetPerPersonPerDay ? budgetPerPersonPerDay * meal.day_part_factor : 0;
-  const mealActualCost = meal.total_cost_eur / normPortions;
+  const mealActualCost = meal.total_cost_eur / effPortions;
+  const mealTime = formatMealTime(meal.start_datetime);
 
   const showEditUI = canEdit && !meal.is_synced && !meal.is_external;
 
@@ -174,7 +184,7 @@ export function MealSlot({
               </span>
               {(!isEmpty || meal.is_external) && meal.total_energy_kcal > 0 && (
                 <span className={`text-sm font-medium ${coverageColorClass}`}>
-                  │ Ist: {actualDailyPercent}%
+                  │ Ist: {fulfillmentPercent}% erfüllt
                 </span>
               )}
             </>
@@ -199,6 +209,7 @@ export function MealSlot({
               <MealActionsMenu
                 meal={meal}
                 canEdit={canEdit}
+                siblingMeals={siblingMeals}
                 onDeleteMeal={onDeleteMeal}
                 onUpdateMeal={onUpdateMeal}
                 onScaleMeal={onScaleMeal}
@@ -208,6 +219,17 @@ export function MealSlot({
           )}
         </div>
       </div>
+
+      {/* Meal Time */}
+      {mealTime && (
+        <div className="pl-7 text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+          <Clock className="w-3.5 h-3.5" />
+          <span>
+            {mealTime}
+            {formatMealTime(meal.end_datetime) && `–${formatMealTime(meal.end_datetime)}`}
+          </span>
+        </div>
+      )}
 
       {/* Meal Note */}
       {meal.note && (
@@ -323,10 +345,10 @@ export function MealSlot({
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 {item.energy_kcal != null && (
-                  <span>{Math.round(item.energy_kcal / normPortions)} kcal</span>
+                  <span>{Math.round(item.energy_kcal / effPortions)} kcal</span>
                 )}
                 {item.cost_eur != null && (
-                  <span>{(item.cost_eur / normPortions).toFixed(2)} €</span>
+                  <span>{(item.cost_eur / effPortions).toFixed(2)} €</span>
                 )}
                 {canEdit && !meal.is_synced ? (
                   <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor(item.id, f)} />
