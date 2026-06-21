@@ -7,6 +7,11 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("content", "0004_changeauditlog_duplicatedismissal"),
+        ("supply", "0030_ingredient_embedding_ingredient_embedding_updated_at_and_more"),
+        ("recipe", "0025_recipe_cached_energy_total_kj"),
+        ("blog", "0003_alter_blog_embedding"),
+        ("session", "0003_groupsession_is_deleted_alter_groupsession_status"),
+        ("game", "0003_alter_game_embedding"),
     ]
 
     operations = [

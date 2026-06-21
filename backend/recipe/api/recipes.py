@@ -296,7 +296,7 @@ def ai_create(request, payload: RecipeAiCreateIn):
 def get_recipe(request, recipe_id: int):
     """Get recipe detail by ID."""
     recipe = get_object_or_404(
-        Recipe.objects.select_related("owner", "forked_from").prefetch_related(
+        _get_visible_recipes_qs(request).prefetch_related(
             "scout_levels",
             "tags__parent",
             "nutritional_tags",
@@ -325,7 +325,7 @@ def get_recipe(request, recipe_id: int):
 def get_recipe_by_slug(request, slug: str):
     """Get recipe detail by slug (SEO-friendly)."""
     recipe = get_object_or_404(
-        Recipe.objects.select_related("owner", "forked_from").prefetch_related(
+        _get_visible_recipes_qs(request).prefetch_related(
             "scout_levels",
             "tags__parent",
             "nutritional_tags",
@@ -525,8 +525,8 @@ def _update_like_score(recipe: Recipe, emotion_counts: dict[str, int]):
     score += emotion_counts.get("in_love", 0)
     score += emotion_counts.get("happy", 0)
     score -= emotion_counts.get("disappointed", 0)
-    recipe.like_score = score
-    recipe.save(update_fields=["like_score"])
+    # Use update() instead of save() to avoid triggering signals
+    Recipe.objects.filter(pk=recipe.pk).update(like_score=score)
 
 
 # ==========================================================================

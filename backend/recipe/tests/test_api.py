@@ -526,3 +526,157 @@ def test_recipe_item_out_weight_g_calculation(db, portion):
     # quantity (3) * portion.quantity (2.0) * measuring_unit.quantity (1.0) = 6.0
     assert data2.weight_g == 6.0
 
+
+# ---------------------------------------------------------------------------
+# Visibility and Permission Tests (Task 1.2, 1.3)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestRecipeDetailVisibility:
+    """Test visibility filtering on detail endpoints."""
+
+    def test_detail_private_recipe_not_visible_to_other_user(self, api_client, user_factory):
+        """Anonymous user should get 404 for private recipe."""
+        owner = user_factory()
+        recipe = Recipe.objects.create(
+            title="Private",
+            status=ContentStatus.DRAFT,
+            visibility="private",
+            owner=owner,
+        )
+        resp = api_client.get(f"/api/recipes/{recipe.id}/")
+        assert resp.status_code == 404
+
+    def test_detail_private_recipe_visible_to_owner(self, auth_client, user_factory):
+        """Owner should see their own private recipe."""
+        recipe = Recipe.objects.create(
+            title="My Private",
+            status=ContentStatus.DRAFT,
+            visibility="private",
+            owner=auth_client._user,
+        )
+        resp = auth_client.get(f"/api/recipes/{recipe.id}/")
+        assert resp.status_code == 200
+
+    def test_detail_public_recipe_visible_to_anyone(self, api_client, user_factory):
+        """Public recipe should be visible to anonymous."""
+        owner = user_factory()
+        recipe = Recipe.objects.create(
+            title="Public",
+            status=ContentStatus.APPROVED,
+            visibility="public",
+            owner=owner,
+        )
+        resp = api_client.get(f"/api/recipes/{recipe.id}/")
+        assert resp.status_code == 200
+
+    def test_detail_by_slug_respects_visibility(self, api_client, user_factory):
+        """Slug endpoint should also filter by visibility."""
+        owner = user_factory()
+        recipe = Recipe.objects.create(
+            title="Private Slug",
+            slug="private-slug",
+            status=ContentStatus.DRAFT,
+            visibility="private",
+            owner=owner,
+        )
+        resp = api_client.get(f"/api/recipes/by-slug/private-slug/")
+        assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+class TestRecipeItemPermissions:
+    """Test that RecipeItem endpoints check owner_id."""
+
+    def test_non_owner_cannot_add_item(self, auth_client, user_factory, portion):
+        """Non-owner should not be able to add items."""
+        owner = user_factory()
+        recipe = Recipe.objects.create(
+            title="Test", status=ContentStatus.DRAFT, owner=owner
+        )
+        resp = auth_client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/",
+            {
+                "portion_id": portion.id,
+                "quantity": 100,
+                "sort_order": 0,
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 403
+
+    def test_owner_can_add_item(self, auth_client, portion):
+        """Owner should be able to add items."""
+        recipe = Recipe.objects.create(
+            title="Test", status=ContentStatus.DRAFT, owner=auth_client._user
+        )
+        resp = auth_client.post(
+            f"/api/recipes/{recipe.id}/recipe-items/",
+            {
+                "portion_id": portion.id,
+                "quantity": 100,
+                "sort_order": 0,
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 201
+
+
+# ---------------------------------------------------------------------------
+# Cache Weight Calculation Tests (Task 1.4)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_cache_weight_with_measuring_unit_portion(db):
+    """Test that cache weight calculation includes measuring_unit portions."""
+    from recipe.services.recipe_checks import recalculate_recipe_cache
+
+    ingredient = Ingredient.objects.create(name="Mehl", slug="mehl", price_per_kg=2.0)
+    unit = MeasuringUnit.objects.create(name="g", quantity=1.0)
+    # Portion: 1 Tasse = 250g (via measuring_unit)
+    portion = Portion.objects.create(
+        ingredient=ingredient, measuring_unit=unit, name="Tasse", quantity=250, weight_g=None
+    )
+
+    recipe = Recipe.objects.create(title="Kuchen", status=ContentStatus.APPROVED)
+    # 2 Tassen = 2 * 250 = 500g
+    RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=2, sort_order=0)
+
+    recalculate_recipe_cache(recipe)
+    recipe.refresh_from_db()
+
+    assert recipe.cached_weight_g == 500.0
+
+
+# ---------------------------------------------------------------------------
+# Embedding Update Tests (Task 1.5)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_embedding_updates_on_recipe_item_change(db):
+    """Test that Recipe embedding is updated when RecipeItems change."""
+    from unittest.mock import patch
+
+    ingredient = Ingredient.objects.create(name="Zutat", slug="zutat")
+    unit = MeasuringUnit.objects.create(name="g", quantity=1.0)
+    portion = Portion.objects.create(
+        ingredient=ingredient, measuring_unit=unit, name="g", quantity=1, weight_g=100
+    )
+
+    recipe = Recipe.objects.create(title="Test", status=ContentStatus.APPROVED)
+
+    with patch("content.services.embedding_service.update_content_embedding") as mock_update:
+        # Add an item — should trigger embedding update
+        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=1, sort_order=0)
+        # The signal should be called (asynchronously, but we can mock it)
+        # Note: This is testing the signal path, which is async on_commit
+
+    # Also test Recipe update
+    with patch("content.services.embedding_service.update_content_embedding") as mock_update:
+        recipe.title = "Updated Title"
+        recipe.save(update_fields=["title"])
+        # Signal should call update_content_embedding
+

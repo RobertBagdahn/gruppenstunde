@@ -2232,7 +2232,7 @@ class Command(BaseCommand):
                 "name": "Etwas weniger Energie",
                 "description": "Der Energiegehalt ist etwas hoch (über 717 kcal/100g).",
                 "improvement_text": "Ersetze fettreiche Zutaten wie Butter oder Sahne durch leichtere Alternativen wie Joghurt oder Gemüsebrühe.",
-                "parameter": HintParameterChoices.ENERGY_KJ,
+                "parameter": HintParameterChoices.ENERGY_KCAL,
                 "value": 717.0,
                 "min_max": HintMinMaxChoices.MAX,
                 "hint_level": HintLevelChoices.WARN,
@@ -2242,7 +2242,7 @@ class Command(BaseCommand):
                 "name": "Viel weniger Energie",
                 "description": "Der Energiegehalt ist sehr hoch (über 956 kcal/100g).",
                 "improvement_text": "Reduziere energiedichte Zutaten stark. Verwende mehr Gemüse und Vollkornprodukte statt Weißmehl und Zucker.",
-                "parameter": HintParameterChoices.ENERGY_KJ,
+                "parameter": HintParameterChoices.ENERGY_KCAL,
                 "value": 956.0,
                 "min_max": HintMinMaxChoices.MAX,
                 "hint_level": HintLevelChoices.ERROR,
@@ -2252,7 +2252,7 @@ class Command(BaseCommand):
                 "name": "Etwas mehr Energie",
                 "description": "Der Energiegehalt ist etwas niedrig (unter 454 kcal/100g).",
                 "improvement_text": "Füge energiereichere Zutaten hinzu: Nüsse, Haferflocken, Hülsenfrüchte oder Vollkornprodukte.",
-                "parameter": HintParameterChoices.ENERGY_KJ,
+                "parameter": HintParameterChoices.ENERGY_KCAL,
                 "value": 454.0,
                 "min_max": HintMinMaxChoices.MIN,
                 "hint_level": HintLevelChoices.WARN,
@@ -2262,7 +2262,7 @@ class Command(BaseCommand):
                 "name": "Viel mehr Energie",
                 "description": "Der Energiegehalt ist sehr niedrig (unter 359 kcal/100g).",
                 "improvement_text": "Das Rezept liefert kaum Energie. Ergänze sättigende Zutaten wie Kartoffeln, Reis, Nudeln oder Hülsenfrüchte.",
-                "parameter": HintParameterChoices.ENERGY_KJ,
+                "parameter": HintParameterChoices.ENERGY_KCAL,
                 "value": 359.0,
                 "min_max": HintMinMaxChoices.MIN,
                 "hint_level": HintLevelChoices.ERROR,
@@ -2653,7 +2653,7 @@ class Command(BaseCommand):
                 "name": "Frühstück: Zu wenig Energie",
                 "description": "Dieses Frühstück liefert wenig Energie für den Tag.",
                 "improvement_text": "Ein Frühstück sollte ca. 25% des Tagesbedarfs liefern. Ergänze Haferflocken, Vollkornbrot oder Nüsse.",
-                "parameter": HintParameterChoices.ENERGY_KJ,
+                "parameter": HintParameterChoices.ENERGY_KCAL,
                 "value": 287.0,
                 "min_max": HintMinMaxChoices.MIN,
                 "hint_level": HintLevelChoices.WARN,
@@ -2755,7 +2755,7 @@ class Command(BaseCommand):
                 "age_min": 1,
                 "age_max": 3,
                 "gender": "male",
-                "energy_kcal": 1219.0
+                "energy_kcal": 1219.0,
                 "protein_g": 14,
                 "fat_g": 45,
                 "carbohydrate_g": 150,
@@ -2794,7 +2794,7 @@ class Command(BaseCommand):
                 "age_min": 4,
                 "age_max": 6,
                 "gender": "male",
-                "energy_kcal": 1530.0
+                "energy_kcal": 1530.0,
                 "protein_g": 18,
                 "fat_g": 55,
                 "carbohydrate_g": 200,
@@ -2833,7 +2833,7 @@ class Command(BaseCommand):
                 "age_min": 7,
                 "age_max": 9,
                 "gender": "male",
-                "energy_kcal": 1816.0
+                "energy_kcal": 1816.0,
                 "protein_g": 24,
                 "fat_g": 65,
                 "carbohydrate_g": 240,
@@ -2872,7 +2872,7 @@ class Command(BaseCommand):
                 "age_min": 10,
                 "age_max": 12,
                 "gender": "male",
-                "energy_kcal": 2199.0
+                "energy_kcal": 2199.0,
                 "protein_g": 34,
                 "fat_g": 78,
                 "carbohydrate_g": 290,
@@ -2911,7 +2911,7 @@ class Command(BaseCommand):
                 "age_min": 13,
                 "age_max": 14,
                 "gender": "male",
-                "energy_kcal": 2533.0
+                "energy_kcal": 2533.0,
                 "protein_g": 46,
                 "fat_g": 90,
                 "carbohydrate_g": 330,
@@ -2950,7 +2950,7 @@ class Command(BaseCommand):
                 "age_min": 15,
                 "age_max": 18,
                 "gender": "male",
-                "energy_kcal": 2820.0
+                "energy_kcal": 2820.0,
                 "protein_g": 60,
                 "fat_g": 100,
                 "carbohydrate_g": 370,
@@ -2989,7 +2989,7 @@ class Command(BaseCommand):
                 "age_min": 19,
                 "age_max": 24,
                 "gender": "male",
-                "energy_kcal": 2510.0
+                "energy_kcal": 2510.0,
                 "protein_g": 57,
                 "fat_g": 90,
                 "carbohydrate_g": 330,
@@ -3028,7 +3028,7 @@ class Command(BaseCommand):
                 "age_min": 25,
                 "age_max": 50,
                 "gender": "male",
-                "energy_kcal": 2390.0
+                "energy_kcal": 2390.0,
                 "protein_g": 57,
                 "fat_g": 85,
                 "carbohydrate_g": 310,
@@ -3067,7 +3067,7 @@ class Command(BaseCommand):
                 "age_min": 51,
                 "age_max": 64,
                 "gender": "male",
-                "energy_kcal": 2199.0
+                "energy_kcal": 2199.0,
                 "protein_g": 57,
                 "fat_g": 78,
                 "carbohydrate_g": 290,
@@ -3106,7 +3106,7 @@ class Command(BaseCommand):
                 "age_min": 65,
                 "age_max": 99,
                 "gender": "male",
-                "energy_kcal": 2032.0
+                "energy_kcal": 2032.0,
                 "protein_g": 57,
                 "fat_g": 72,
                 "carbohydrate_g": 270,
@@ -3146,7 +3146,7 @@ class Command(BaseCommand):
                 "age_min": 1,
                 "age_max": 3,
                 "gender": "female",
-                "energy_kcal": 1147.0
+                "energy_kcal": 1147.0,
                 "protein_g": 14,
                 "fat_g": 42,
                 "carbohydrate_g": 140,
@@ -3185,7 +3185,7 @@ class Command(BaseCommand):
                 "age_min": 4,
                 "age_max": 6,
                 "gender": "female",
-                "energy_kcal": 1386.0
+                "energy_kcal": 1386.0,
                 "protein_g": 18,
                 "fat_g": 50,
                 "carbohydrate_g": 180,
@@ -3224,7 +3224,7 @@ class Command(BaseCommand):
                 "age_min": 7,
                 "age_max": 9,
                 "gender": "female",
-                "energy_kcal": 1697.0
+                "energy_kcal": 1697.0,
                 "protein_g": 24,
                 "fat_g": 60,
                 "carbohydrate_g": 220,
@@ -3263,7 +3263,7 @@ class Command(BaseCommand):
                 "age_min": 10,
                 "age_max": 12,
                 "gender": "female",
-                "energy_kcal": 1960.0
+                "energy_kcal": 1960.0,
                 "protein_g": 34,
                 "fat_g": 70,
                 "carbohydrate_g": 260,
@@ -3302,7 +3302,7 @@ class Command(BaseCommand):
                 "age_min": 13,
                 "age_max": 14,
                 "gender": "female",
-                "energy_kcal": 2199.0
+                "energy_kcal": 2199.0,
                 "protein_g": 46,
                 "fat_g": 78,
                 "carbohydrate_g": 290,
@@ -3341,7 +3341,7 @@ class Command(BaseCommand):
                 "age_min": 15,
                 "age_max": 18,
                 "gender": "female",
-                "energy_kcal": 2247.0
+                "energy_kcal": 2247.0,
                 "protein_g": 48,
                 "fat_g": 80,
                 "carbohydrate_g": 295,
@@ -3380,7 +3380,7 @@ class Command(BaseCommand):
                 "age_min": 19,
                 "age_max": 24,
                 "gender": "female",
-                "energy_kcal": 2008.0
+                "energy_kcal": 2008.0,
                 "protein_g": 48,
                 "fat_g": 72,
                 "carbohydrate_g": 265,
@@ -3419,7 +3419,7 @@ class Command(BaseCommand):
                 "age_min": 25,
                 "age_max": 50,
                 "gender": "female",
-                "energy_kcal": 1912.0
+                "energy_kcal": 1912.0,
                 "protein_g": 47,
                 "fat_g": 68,
                 "carbohydrate_g": 250,
@@ -3458,7 +3458,7 @@ class Command(BaseCommand):
                 "age_min": 51,
                 "age_max": 64,
                 "gender": "female",
-                "energy_kcal": 1793.0
+                "energy_kcal": 1793.0,
                 "protein_g": 47,
                 "fat_g": 64,
                 "carbohydrate_g": 235,
@@ -3497,7 +3497,7 @@ class Command(BaseCommand):
                 "age_min": 65,
                 "age_max": 99,
                 "gender": "female",
-                "energy_kcal": 1625.0
+                "energy_kcal": 1625.0,
                 "protein_g": 47,
                 "fat_g": 58,
                 "carbohydrate_g": 215,
@@ -4269,7 +4269,7 @@ class Command(BaseCommand):
             {
                 "name": "Stammesweekend Herbst",
                 "description": "Typisches Stammesweekend im Herbst mit 20 Personen",
-                "norm_portions": 20,
+                "portions": 20,
                 "reserve_factor": 1.1,
                 "budget_per_person_per_day": Decimal("4.50"),
                 "day_offset": 100,  # offset from today for unique dates
@@ -4286,7 +4286,7 @@ class Command(BaseCommand):
             {
                 "name": "Sippenübernachtung",
                 "description": "Kleine Sippenübernachtung mit 8 Teilnehmern",
-                "norm_portions": 8,
+                "portions": 8,
                 "reserve_factor": 1.05,
                 "budget_per_person_per_day": Decimal("3.50"),
                 "day_offset": 110,
@@ -4303,7 +4303,7 @@ class Command(BaseCommand):
             {
                 "name": "Leitungsrunde Planung",
                 "description": "Planungswochenende der Stammesleitung",
-                "norm_portions": 12,
+                "portions": 12,
                 "reserve_factor": 1.1,
                 "budget_per_person_per_day": Decimal("5.00"),
                 "day_offset": 120,
@@ -4320,7 +4320,7 @@ class Command(BaseCommand):
             {
                 "name": "Rover-Wochenende",
                 "description": "Rover-Stufe Aktionswochenende",
-                "norm_portions": 15,
+                "portions": 15,
                 "reserve_factor": 1.15,
                 "budget_per_person_per_day": Decimal("4.00"),
                 "day_offset": 130,
@@ -4337,7 +4337,7 @@ class Command(BaseCommand):
             {
                 "name": "Wölflinge Hütte",
                 "description": "Wölflinge-Hüttenwochenende",
-                "norm_portions": 10,
+                "portions": 10,
                 "reserve_factor": 1.1,
                 "budget_per_person_per_day": Decimal("3.80"),
                 "day_offset": 140,
@@ -4354,7 +4354,7 @@ class Command(BaseCommand):
             {
                 "name": "Hajk-Vorbereitung",
                 "description": "Vorbereitungswochenende für den großen Hajk",
-                "norm_portions": 18,
+                "portions": 18,
                 "reserve_factor": 1.2,
                 "budget_per_person_per_day": Decimal("4.20"),
                 "day_offset": 150,
@@ -4371,7 +4371,7 @@ class Command(BaseCommand):
             {
                 "name": "Eltern-Kind-Wochenende",
                 "description": "Familienwochenende mit Eltern und Kindern",
-                "norm_portions": 30,
+                "portions": 30,
                 "reserve_factor": 1.15,
                 "budget_per_person_per_day": Decimal("5.50"),
                 "day_offset": 160,
@@ -4388,7 +4388,7 @@ class Command(BaseCommand):
             {
                 "name": "Stufenwechsel-Feier",
                 "description": "Wochenende zum Stufenwechsel mit Feier",
-                "norm_portions": 25,
+                "portions": 25,
                 "reserve_factor": 1.1,
                 "budget_per_person_per_day": Decimal("4.80"),
                 "day_offset": 170,
@@ -4405,7 +4405,7 @@ class Command(BaseCommand):
             {
                 "name": "Herbst-Stammeslager kurz",
                 "description": "Kurzes Stammeslager über ein Herbstwochenende",
-                "norm_portions": 35,
+                "portions": 35,
                 "reserve_factor": 1.15,
                 "budget_per_person_per_day": Decimal("3.80"),
                 "day_offset": 180,
@@ -4422,7 +4422,7 @@ class Command(BaseCommand):
             {
                 "name": "Winterhütte Sippenfahrt",
                 "description": "Winterliche Sippenfahrt in eine Selbstversorgerhütte",
-                "norm_portions": 12,
+                "portions": 12,
                 "reserve_factor": 1.1,
                 "budget_per_person_per_day": Decimal("4.00"),
                 "day_offset": 190,
@@ -4478,7 +4478,7 @@ class Command(BaseCommand):
                 name=plan_name,
                 description=wp_data["description"],
                 created_by=self._pick_user(users, plan_idx),
-                norm_portions=wp_data["norm_portions"],
+                portions=wp_data["portions"],
                 reserve_factor=wp_data["reserve_factor"],
                 budget_per_person_per_day=wp_data["budget_per_person_per_day"],
                 start_datetime=start_dt,
@@ -4510,7 +4510,7 @@ class Command(BaseCommand):
                             factor=1.0,
                         )
 
-            self.stdout.write(f"  + Weekend MealPlan: {plan_name} ({wp_data['norm_portions']} Pers.)")
+            self.stdout.write(f"  + Weekend MealPlan: {plan_name} ({wp_data['portions']} Pers.)")
 
         self.stdout.write(self.style.SUCCESS(f"  Planners total: {Planner.objects.count()}"))
 

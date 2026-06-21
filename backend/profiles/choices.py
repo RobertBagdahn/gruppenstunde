@@ -12,3 +12,9 @@ class GenderChoices(models.TextChoices):
 class MembershipRoleChoices(models.TextChoices):
     MEMBER = "member", _("Mitglied")
     ADMIN = "admin", _("Admin")
+
+
+class UserRoleChoices(models.TextChoices):
+    USER = "user", _("Benutzer")
+    STAFF = "staff", _("Mitarbeiter")
+    ADMIN = "admin", _("Administrator")

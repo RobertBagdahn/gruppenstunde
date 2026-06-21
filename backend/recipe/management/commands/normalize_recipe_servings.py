@@ -47,7 +47,7 @@ def _classify_recipe(recipe: Recipe) -> str:
 
 
 class Command(BaseCommand):
-        help = "Normalize all recipes to portions=1 using weight-based heuristic."
+    help = "Normalize all recipes to portions=1 using weight-based heuristic."
 
     def add_arguments(self, parser):
         parser.add_argument(

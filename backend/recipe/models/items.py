@@ -40,7 +40,7 @@ class RecipeItem(models.Model):
         ordering = ["sort_order"]
         constraints = [
             models.CheckConstraint(
-                check=Q(quantity__gte=0),
+                check=Q(quantity__gt=0),
                 name="recipe_item_quantity_positive",
             ),
         ]

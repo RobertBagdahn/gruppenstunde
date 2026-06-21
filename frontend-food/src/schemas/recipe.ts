@@ -107,6 +107,7 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   source_url: z.string().optional().default(''),
   recipe_badge: z.string().nullable().optional(), // "verified" | "community" | "personal"
   is_owner: z.boolean().default(false),
+  usage_in_meal_plans_count: z.number().default(0),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   recipe_items: z.array(RecipeItemSchema).default([]),
   next_best_recipes: z.array(RecipeSimilarSchema).default([]),
@@ -370,6 +371,14 @@ export type RecipeRules = z.infer<typeof RecipeRulesSchema>;
 
 // --- Recipe Type Stats (Kategorie-Benchmarking) ---
 
+// Bucket for histogram display
+export const BucketSchema = z.object({
+  min: z.number(),
+  max: z.number(),
+  count: z.number(),
+});
+export type Bucket = z.infer<typeof BucketSchema>;
+
 export const RecipeTypeStatsSchema = z.object({
   recipe_type: z.string(),
   count: z.number(),
@@ -389,6 +398,9 @@ export const RecipeTypeStatsSchema = z.object({
   weight_avg: z.number().nullable(),
   weight_median: z.number().nullable(),
   nutri_score_dist: z.record(z.string(), z.number()).default({}),
+  price_buckets: z.array(BucketSchema).default([]),
+  energy_buckets: z.array(BucketSchema).default([]),
+  protein_buckets: z.array(BucketSchema).default([]),
   updated_at: z.string(),
 });
 export type RecipeTypeStats = z.infer<typeof RecipeTypeStatsSchema>;

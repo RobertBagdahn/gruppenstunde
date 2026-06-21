@@ -18,22 +18,8 @@ class Migration(migrations.Migration):
             model_name="mealplan",
             name="planner_mea_owner_i_f27fa3_idx",
         ),
-        migrations.RemoveField(
-            model_name="mealplan",
-            name="visibility",
-        ),
-        migrations.AddField(
-            model_name="mealplan",
-            name="status",
-            field=models.CharField(
-                choices=[("draft", "Entwurf"), ("verified", "Verifiziert")],
-                default="draft",
-                max_length=20,
-                verbose_name="Status",
-            ),
-        ),
         migrations.AddIndex(
             model_name="mealplan",
-            index=models.Index(fields=["created_by", "status"], name="planner_mea_created_40af1a_idx"),
+            index=models.Index(fields=["created_by", "visibility"], name="planner_mea_created_40af1a_idx"),
         ),
     ]

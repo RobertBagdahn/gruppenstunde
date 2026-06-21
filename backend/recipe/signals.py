@@ -52,8 +52,8 @@ def _recalculate_for_recipe_ids(recipe_ids):
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=RecipeItem)
-@receiver(post_delete, sender=RecipeItem)
+@receiver(post_save, sender=RecipeItem, dispatch_uid="recipe_item_cache_recalc_save")
+@receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe_item_cache_recalc_delete")
 def recalculate_recipe_cache_on_item_change(sender, instance, **kwargs):
     """Recalculate recipe cache when a RecipeItem is created, updated, or deleted."""
     from recipe.services.recipe_checks import recalculate_recipe_cache
@@ -125,7 +125,7 @@ def sync_recipe_allergens_on_item_change(sender, instance, **kwargs):
     sync_recipe_allergen_tags(recipe)
 
 
-@receiver(post_save, sender=Recipe)
+@receiver(post_save, sender=Recipe, dispatch_uid="recipe_allergen_sync")
 def sync_recipe_allergens_on_recipe_change(sender, instance, **kwargs):
     """Sync recipe allergen tags when a Recipe is saved."""
     if hasattr(instance, "_syncing_allergens"):
@@ -143,7 +143,7 @@ def sync_recipe_allergens_on_recipe_change(sender, instance, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=Recipe)
+@receiver(post_save, sender=Recipe, dispatch_uid="recipe_quality_score_update")
 def update_recipe_quality_score(sender, instance: Recipe, created: bool, **kwargs):
     """After save, update the recipe quality score."""
     if hasattr(instance, "_updating_score"):
@@ -180,7 +180,7 @@ _recipe_tracked_fields = {
 }
 
 
-@receiver(pre_save, sender=Recipe)
+@receiver(pre_save, sender=Recipe, dispatch_uid="recipe_capture_old_values")
 def capture_recipe_old_values(sender, instance: Recipe, **kwargs):
     """Store old values before save for audit logging."""
     if instance.pk is None:
@@ -196,7 +196,7 @@ def capture_recipe_old_values(sender, instance: Recipe, **kwargs):
         instance._old_values = {}
 
 
-@receiver(post_save, sender=Recipe)
+@receiver(post_save, sender=Recipe, dispatch_uid="recipe_log_changes")
 def log_recipe_changes(sender, instance: Recipe, created: bool, **kwargs):
     """Log field-level changes to ChangeAuditLog."""
     if created:
@@ -227,18 +227,20 @@ def timezone_now():
 # ---------------------------------------------------------------------------
 
 
-def _recipe_embedding_fields_changed(instance, created: bool) -> bool:
+def _recipe_embedding_fields_changed(instance, created: bool, update_fields=None) -> bool:
     """Check if fields relevant to embedding have changed."""
     if created:
         return True
-    if instance.tracker and hasattr(instance.tracker, "changed"):
+    # If update_fields is specified, check if any embedding-relevant field is in it
+    if update_fields is not None:
         relevant = {"title", "summary", "description"}
-        return bool(relevant & set(instance.tracker.changed()))
+        return bool(relevant & set(update_fields))
+    # If update_fields is None (full save), assume fields may have changed
     return True
 
 
-@receiver(post_save, sender=Recipe)
-def update_recipe_embedding(sender, instance: Recipe, created: bool, **kwargs):
+@receiver(post_save, sender=Recipe, dispatch_uid="recipe_embedding_update")
+def update_recipe_embedding(sender, instance: Recipe, created: bool, update_fields=None, **kwargs):
     """After save, asynchronously update the recipe embedding."""
     if hasattr(instance, "_updating_embedding"):
         return
@@ -246,7 +248,7 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, **kwargs):
     def _do_update():
         try:
             instance._updating_embedding = True
-            if _recipe_embedding_fields_changed(instance, created):
+            if _recipe_embedding_fields_changed(instance, created, update_fields):
                 from content.services.embedding_service import update_content_embedding
 
                 update_content_embedding(instance)
@@ -263,8 +265,8 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, **kwargs):
     transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())
 
 
-@receiver(post_save, sender=RecipeItem)
-@receiver(post_delete, sender=RecipeItem)
+@receiver(post_save, sender=RecipeItem, dispatch_uid="recipe_item_embedding_update_save")
+@receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe_item_embedding_update_delete")
 def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
     """When a RecipeItem changes, invalidate the recipe embedding."""
     try:
@@ -285,5 +287,29 @@ def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
             )
 
     from django.db import transaction
+
+    transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())
+
+
+# ---------------------------------------------------------------------------
+# RecipeTypeStats signals
+# ---------------------------------------------------------------------------
+
+
+@receiver(post_save, sender=Recipe, dispatch_uid="recipe_type_stats_update_save")
+@receiver(post_delete, sender=Recipe, dispatch_uid="recipe_type_stats_update_delete")
+def update_type_stats_on_recipe_change(sender, instance: Recipe, **kwargs):
+    """Recalculate type stats when a Recipe is saved or deleted."""
+    def _do_update():
+        from recipe.services.type_stats_service import recalculate_type_stats
+
+        try:
+            recalculate_type_stats(instance.recipe_type)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Failed to update type stats for recipe_type=%s", instance.recipe_type
+            )
 
     transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())

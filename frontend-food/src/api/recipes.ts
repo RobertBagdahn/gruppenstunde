@@ -134,6 +134,11 @@ export function invalidateRecipeData(queryClient: QueryClient, recipeId: number)
   queryClient.invalidateQueries({ queryKey: ['recipe-nutri-score', recipeId] });
   queryClient.invalidateQueries({ queryKey: ['recipe-nutrition-breakdown', recipeId] });
   queryClient.invalidateQueries({ queryKey: ['recipe-nutri-improvements', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-improvements', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-rules', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-comments', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-similar', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-type-stats'] });
   queryClient.invalidateQueries({ queryKey: ['recipes'] });
   queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
 }

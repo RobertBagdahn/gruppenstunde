@@ -6,6 +6,13 @@ from typing import Optional
 from ninja import Schema
 
 
+class BucketOut(Schema):
+    """Histogram bucket with min, max, and count."""
+    min: float
+    max: float
+    count: int
+
+
 class RecipeTypeStatsOut(Schema):
     recipe_type: str
     count: int
@@ -25,6 +32,9 @@ class RecipeTypeStatsOut(Schema):
     weight_avg: Optional[float] = None
     weight_median: Optional[float] = None
     nutri_score_dist: dict = {}
+    price_buckets: list[BucketOut] = []
+    energy_buckets: list[BucketOut] = []
+    protein_buckets: list[BucketOut] = []
     updated_at: datetime
 
 

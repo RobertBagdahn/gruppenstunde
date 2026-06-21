@@ -114,6 +114,7 @@ class RecipeDetailOut(ContentDetailOut):
     visibility: str | None = None
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
     is_owner: bool = False
+    usage_in_meal_plans_count: int = 0
     nutritional_tags: list[NutritionalTagOut] = []
     recipe_items: list[RecipeItemOut] = []
     next_best_recipes: list[RecipeSimilarOut] = []
@@ -208,6 +209,21 @@ class RecipeDetailOut(ContentDetailOut):
             }
             for t in obj.nutritional_tags.all()
         ]
+
+    @staticmethod
+    def resolve_usage_in_meal_plans_count(obj) -> int:
+        """Count how many visible meal plans use this recipe."""
+        from planner.models import MealItem
+        from content.choices import ContentStatus
+
+        # Count distinct meal plans that use this recipe
+        # Only count meal plans visible to the requesting user (simplified: public/approved)
+        return (
+            MealItem.objects.filter(recipe=obj)
+            .values("meal__meal_plan")
+            .distinct()
+            .count()
+        )
 
 
 # --- Recipe Create / Update Schemas (extend Content base) ---

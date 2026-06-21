@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from ..choices import GenderChoices
+from ..choices import GenderChoices, UserRoleChoices
 
 
 class UserProfile(models.Model):
@@ -74,6 +74,12 @@ class UserProfile(models.Model):
         blank=True,
         verbose_name=_("Slug"),
         help_text=_("Human-readable Identifier für die Profil-URL"),
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=UserRoleChoices.choices,
+        default=UserRoleChoices.USER,
+        verbose_name=_("Rolle"),
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -9,6 +9,49 @@ from django.db.models import Q
 from content.choices import ContentStatus
 
 
+def _create_buckets(values: list[float], num_buckets: int = 12) -> list[dict]:
+    """Create histogram buckets from a list of values.
+    
+    Args:
+        values: List of numeric values to bucket
+        num_buckets: Number of buckets (default 12)
+    
+    Returns:
+        List of bucket dicts with keys: min, max, count
+    """
+    if not values:
+        return []
+    
+    min_val = min(values)
+    max_val = max(values)
+    
+    # Handle case where all values are the same
+    if min_val == max_val:
+        return [{"min": float(min_val), "max": float(max_val), "count": len(values)}]
+    
+    # Create bucket boundaries
+    bucket_width = (max_val - min_val) / num_buckets
+    buckets = []
+    
+    for i in range(num_buckets):
+        bucket_min = min_val + (i * bucket_width)
+        bucket_max = min_val + ((i + 1) * bucket_width)
+        # Last bucket includes the max value
+        if i == num_buckets - 1:
+            bucket_max = max_val
+        
+        # Count values in this bucket
+        count = sum(1 for v in values if bucket_min <= v <= bucket_max)
+        
+        buckets.append({
+            "min": float(bucket_min),
+            "max": float(bucket_max),
+            "count": count,
+        })
+    
+    return buckets
+
+
 def recalculate_type_stats(recipe_type: str) -> dict | None:
     """Aggregate published recipes of the given type and store in RecipeTypeStats.
 
@@ -17,9 +60,7 @@ def recalculate_type_stats(recipe_type: str) -> dict | None:
     from recipe.models import Recipe, RecipeTypeStats
 
     recipes = Recipe.objects.filter(
-        Q(recipe_type=recipe_type) & Q(status=ContentStatus.VERIFIED)
-    ).exclude(
-        Q(portions__isnull=True) | Q(portions=0)
+        Q(recipe_type=recipe_type) & Q(status=ContentStatus.APPROVED)
     )
 
     count = recipes.count()
@@ -91,6 +132,11 @@ def recalculate_type_stats(recipe_type: str) -> dict | None:
         if label:
             nutri_score_dist[label] += 1
 
+    # Generate histogram buckets
+    price_buckets = _create_buckets(prices, num_buckets=12) if prices else []
+    energy_buckets = _create_buckets(energies, num_buckets=12) if energies else []
+    protein_buckets = _create_buckets(proteins, num_buckets=12) if proteins else []
+
     stats_data = {
         "recipe_type": recipe_type,
         "count": count,
@@ -110,6 +156,9 @@ def recalculate_type_stats(recipe_type: str) -> dict | None:
         "weight_avg": weight_avg,
         "weight_median": weight_median,
         "nutri_score_dist": nutri_score_dist,
+        "price_buckets": price_buckets,
+        "energy_buckets": energy_buckets,
+        "protein_buckets": protein_buckets,
     }
 
     if any(v is not None for v in stats_data.values()):

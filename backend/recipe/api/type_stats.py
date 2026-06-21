@@ -21,7 +21,8 @@ router = Router()
 def get_recipe_type_stats(request, recipe_type: str):
     """Get cached category statistics for a recipe type.
 
-    Returns aggregated stats (min, max, avg, median, nutri_score_dist)
+    Returns aggregated stats (min, max, avg, median, nutri_score_dist),
+    and histogram buckets (price_buckets, energy_buckets, protein_buckets)
     for all published recipes of the given type.
     Returns 404 if fewer than 10 recipes exist for this type.
     """

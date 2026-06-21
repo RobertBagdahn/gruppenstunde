@@ -7,15 +7,7 @@ class Migration(migrations.Migration):
         ("content", "0008_delete_contentcollaborator"),
     ]
 
-    operations = [
-        migrations.RunSQL(
-            sql=[
-                "CREATE EXTENSION IF NOT EXISTS google_ml_integration VERSION '1.2';",
-                "GRANT EXECUTE ON FUNCTION embedding TO inspi;",
-            ],
-            reverse_sql=[
-                "REVOKE EXECUTE ON FUNCTION embedding FROM inspi;",
-                "DROP EXTENSION IF EXISTS google_ml_integration;",
-            ],
-        ),
-    ]
+    # This migration is a no-op for local development.
+    # google_ml_integration extension is only available on Cloud SQL.
+    # In production, this should be manually applied after the extension is installed.
+    operations = []

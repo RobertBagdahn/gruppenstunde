@@ -3,11 +3,12 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/comp
 const BADGE_CONFIG = {
   verified: { color: 'bg-emerald-500', label: 'Verifiziert' },
   community: { color: 'bg-amber-500', label: 'Community' },
+  personal: { color: 'bg-blue-500', label: 'Persönlich' },
   draft: { color: 'bg-red-500', label: 'Entwurf' },
 } as const;
 
 interface RecipeBadgeProps {
-  badge: 'verified' | 'community' | 'draft';
+  badge: 'verified' | 'community' | 'personal' | 'draft';
   showLabel?: boolean;
 }
 

@@ -30,6 +30,8 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
         return True
     if recipe.created_by_id == request.user.id:
         return True
+    if recipe.owner_id and recipe.owner_id == request.user.id:
+        return True
     if recipe.authors.filter(id=request.user.id).exists():
         return True
     return False

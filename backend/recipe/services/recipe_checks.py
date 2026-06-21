@@ -366,17 +366,25 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     recipe.cached_nutri_class = ns_class
 
     # Calculate total price
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "portion__measuring_unit")
     total_price = Decimal("0.00")
     total_weight_g = 0.0
     has_prices = False
     for item in items:
-        ingredient = item.portion.ingredient if item.portion else None
+        if not (item.portion and item.portion.ingredient):
+            continue
+        ingredient = item.portion.ingredient
         weight_g = 0.0
-        if item.portion and item.portion.weight_g:
+        # Handle weight-based portions
+        if item.portion.weight_g:
             weight_g = item.quantity * item.portion.weight_g
             total_weight_g += float(weight_g)
-        if ingredient and ingredient.price_per_kg:
+        # Handle measuring_unit-based portions
+        elif item.portion.measuring_unit:
+            weight_g = item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
+            total_weight_g += float(weight_g)
+        
+        if ingredient.price_per_kg and weight_g:
             has_prices = True
             price = ingredient.price_per_kg * Decimal(str(weight_g)) / Decimal("1000")
             total_price += price

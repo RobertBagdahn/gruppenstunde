@@ -110,3 +110,54 @@ class TestRecipeTypeStatsAPI:
         client = Client()
         response = client.get("/api/recipes/type-stats/breakfast/")
         assert response.status_code == 404
+
+    def test_get_stats_includes_buckets(self):
+        """Test that API response includes histogram buckets."""
+        for _ in range(10):
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.VERIFIED, portions=4)
+
+        client = Client()
+        response = client.get("/api/recipes/type-stats/warm_meal/")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "price_buckets" in data
+        assert "energy_buckets" in data
+        assert "protein_buckets" in data
+        # Each bucket should have min, max, count
+        if data["price_buckets"]:
+            bucket = data["price_buckets"][0]
+            assert "min" in bucket
+            assert "max" in bucket
+            assert "count" in bucket
+
+
+@pytest.mark.django_db
+class TestRecipeTypeStatsBuckets:
+    def test_buckets_generated_correctly(self):
+        """Test that bucket generation works correctly."""
+        from recipe.services.type_stats_service import _create_buckets
+
+        values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        buckets = _create_buckets(values, num_buckets=5)
+
+        assert len(buckets) == 5
+        assert all("min" in b and "max" in b and "count" in b for b in buckets)
+        assert sum(b["count"] for b in buckets) == len(values)
+
+    def test_buckets_handle_empty_list(self):
+        """Test that empty list returns empty buckets."""
+        from recipe.services.type_stats_service import _create_buckets
+
+        buckets = _create_buckets([], num_buckets=5)
+        assert buckets == []
+
+    def test_buckets_handle_single_value(self):
+        """Test that single value creates one bucket."""
+        from recipe.services.type_stats_service import _create_buckets
+
+        buckets = _create_buckets([42.0], num_buckets=5)
+        assert len(buckets) == 1
+        assert buckets[0]["min"] == 42.0
+        assert buckets[0]["max"] == 42.0
+        assert buckets[0]["count"] == 1
