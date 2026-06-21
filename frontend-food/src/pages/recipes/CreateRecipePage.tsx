@@ -14,7 +14,6 @@ import type { AiRefurbish } from '@/schemas/content';
 import {
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
-  COSTS_RATING_OPTIONS,
   PREPARATION_TIME_OPTIONS,
 } from '@/schemas/content';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -95,7 +94,6 @@ export default function CreateRecipePage() {
     summary: '',
     description: '',
     difficulty: '',
-    costsRating: '',
     executionTime: '',
     preparationTime: '',
     selectedTagIds: [],
@@ -114,7 +112,6 @@ export default function CreateRecipePage() {
           summary: data.recipe_draft.summary || '',
           description: data.recipe_draft.steps.join('\n\n'),
           difficulty: data.recipe_draft.difficulty || '',
-          costsRating: data.recipe_draft.costs_rating || '',
           executionTime: data.recipe_draft.execution_time_choice || '',
           preparationTime: data.recipe_draft.preparation_time_choice || '',
           selectedTagIds: data.recipe_draft.tag_ids || [],
@@ -215,7 +212,7 @@ export default function CreateRecipePage() {
           unit: ing.unit,
           ingredient_id: ing.ingredient_id ?? null,
           ingredient_slug: ing.ingredient_slug ?? null,
-          portion_id: null,
+          portion_id: ing.portion_id ?? null,
           is_new_ingredient: false,
         })),
       );
@@ -255,7 +252,6 @@ export default function CreateRecipePage() {
         summary: formData.summary,
         description: formData.description,
         difficulty: formData.difficulty || undefined,
-        costs_rating: formData.costsRating || undefined,
         execution_time: formData.executionTime || undefined,
         preparation_time: formData.preparationTime || undefined,
         recipe_type: recipeType || undefined,
@@ -556,7 +552,7 @@ export default function CreateRecipePage() {
             )}
 
             {/* KPI Grid 2×2 */}
-            {(fd.difficulty || fd.executionTime || fd.costsRating || fd.preparationTime) && (
+            {(fd.difficulty || fd.executionTime || fd.preparationTime) && (
               <div className="grid grid-cols-2 gap-3">
                 {fd.difficulty && (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
@@ -573,15 +569,6 @@ export default function CreateRecipePage() {
                     <div>
                       <p className="text-xs text-muted-foreground">Kochzeit</p>
                       <p className="text-sm font-medium">{getLabel(EXECUTION_TIME_OPTIONS, fd.executionTime)}</p>
-                    </div>
-                  </div>
-                )}
-                {fd.costsRating && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                    <span className="material-symbols-outlined text-[20px] text-muted-foreground">payments</span>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Kosten</p>
-                      <p className="text-sm font-medium">{getLabel(COSTS_RATING_OPTIONS, fd.costsRating)}</p>
                     </div>
                   </div>
                 )}

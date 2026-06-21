@@ -54,7 +54,6 @@ class AiRefurbishOut(Schema):
     suggested_tag_ids: list[int]
     suggested_tag_names: list[str]
     suggested_tags: list[SuggestedTagOut] = []
-    costs_rating: str
     execution_time: str
     preparation_time: str
     difficulty: str
@@ -107,6 +106,8 @@ class AiIngredientSuggestionOut(Schema):
     ingredient_id: int | None = None
     ingredient_slug: str | None = None
     matched_name: str | None = None
+    portion_id: int | None = None
+    portion_name: str | None = None
 
 
 class AiSuggestSuppliesOut(Schema):

@@ -54,7 +54,6 @@ class RecipeTypeChoices(models.TextChoices):
     RECIPE_PART = "recipe_part", _("Rezeptteil")
     DRINK = "drink", _("Getränk")
     SNACK = "snack", _("Snack")
-    INGREDIENT = "ingredient", _("Zutat")
 
 
 class HintParameterChoices(models.TextChoices):

@@ -458,10 +458,11 @@ export interface RecipeSuggestionsParams {
   limit?: number;
   nutritionalTagIds?: number[];
   excludeNutritionalTagIds?: number[];
+  recipeTypes?: string[];
 }
 
 export function useRecipeSuggestions(params: RecipeSuggestionsParams) {
-  const { mealType, q, limit = 10, excludeNutritionalTagIds } = params;
+  const { mealType, q, limit = 10, excludeNutritionalTagIds, recipeTypes } = params;
 
   const searchParams = new URLSearchParams();
   if (mealType) searchParams.set('meal_type', mealType);
@@ -469,9 +470,11 @@ export function useRecipeSuggestions(params: RecipeSuggestionsParams) {
   searchParams.set('limit', String(limit));
   if (excludeNutritionalTagIds?.length)
     searchParams.set('exclude_nutritional_tag_ids', excludeNutritionalTagIds.join(','));
+  if (recipeTypes?.length)
+    searchParams.set('recipe_types', recipeTypes.join(','));
 
   return useQuery<RecipeSuggestionsResponse>({
-    queryKey: ['recipe-suggestions', mealType, q, limit, excludeNutritionalTagIds],
+    queryKey: ['recipe-suggestions', mealType, q, limit, excludeNutritionalTagIds, recipeTypes],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,

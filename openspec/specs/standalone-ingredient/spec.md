@@ -10,7 +10,7 @@ The system SHALL allow marking an Ingredient as standalone food via `is_standalo
 - **THEN** it SHALL NOT appear in meal plan search results
 
 ### Requirement: Ingredient standalone type
-The system SHALL store a `standalone_type` field on Ingredient using the same choices as `RecipeTypeChoices` (snack, drink, breakfast, warm_meal, cold_meal, dessert, side_dish, simple_meal).
+The system SHALL store a `standalone_type` field on Ingredient using the same choices as `RecipeTypeChoices` (breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack, ingredient).
 
 #### Scenario: Standalone type filtering
 - **WHEN** a user filters by recipe_type in the search

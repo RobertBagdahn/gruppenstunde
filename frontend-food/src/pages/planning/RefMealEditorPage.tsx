@@ -22,7 +22,13 @@ const DEFAULT_DAILY_KCAL = 2400;
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
   breakfast: 'Frühstück',
+  warm_meal: 'Warme Mahlzeit',
+  cold_meal: 'Kalte Mahlzeit',
+  dessert: 'Nachtisch',
+  recipe_part: 'Rezeptteil',
   drink: 'Getränke',
+  snack: 'Snack',
+  ingredient: 'Zutat',
 };
 
 export default function RefMealEditorPage() {

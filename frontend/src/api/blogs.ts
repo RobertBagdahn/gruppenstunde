@@ -94,7 +94,6 @@ export interface BlogCreatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;
@@ -135,7 +134,6 @@ export interface BlogUpdatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;

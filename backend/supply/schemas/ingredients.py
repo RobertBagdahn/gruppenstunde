@@ -149,6 +149,13 @@ class IngredientDetailOut(Schema):
     nan_art_id_rewe: int | None
     ean: str
 
+    # Standalone food
+    is_standalone_food: bool = False
+    standalone_type: str | None = None
+
+    # Reference
+    ingredient_ref_id: int | None = None
+
     # Relations
     retail_section_id: int | None
     retail_section_name: str | None = None
@@ -258,6 +265,12 @@ class IngredientCreateIn(Schema):
     nan_art_id_rewe: int | None = None
     ean: str = ""
 
+    # Standalone food
+    is_standalone_food: bool = False
+    standalone_type: str | None = None
+    ingredient_ref_id: int | None = None
+    price_per_kg: float | None = None
+
     # Relations
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] = []
@@ -310,6 +323,9 @@ class IngredientUpdateIn(Schema):
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] | None = None
     status: str | None = None
+    is_standalone_food: bool | None = None
+    standalone_type: str | None = None
+    ingredient_ref_id: int | None = None
 
 
 class PaginatedIngredientOut(Schema):

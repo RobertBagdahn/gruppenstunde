@@ -102,7 +102,8 @@ function buildFilterParams(filters: Partial<RecipeFilter>): string {
   if (filters.q) params.set('q', filters.q);
   if (filters.recipe_type) params.set('recipe_type', filters.recipe_type);
   if (filters.difficulty) params.set('difficulty', filters.difficulty);
-  if (filters.costs_rating) params.set('costs_rating', filters.costs_rating);
+  if (filters.costs_min !== undefined) params.set('costs_min', String(filters.costs_min));
+  if (filters.costs_max !== undefined) params.set('costs_max', String(filters.costs_max));
   if (filters.execution_time) params.set('execution_time', filters.execution_time);
   if (filters.origin) params.set('origin', filters.origin);
   if (filters.sort) params.set('sort', filters.sort);
@@ -194,7 +195,6 @@ export interface RecipeCreatePayload {
   description?: string;
   recipe_type?: string;
   portions?: number;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;
@@ -230,7 +230,6 @@ export interface RecipeUpdatePayload {
   description?: string;
   recipe_type?: string;
   portions?: number;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;

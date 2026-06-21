@@ -129,7 +129,7 @@ class Command(BaseCommand):
     def _seed_content(self, users: list):
         self.stdout.write("Seeding content (sessions, blogs, games, materials, ingredients)...")
 
-        from content.choices import ContentStatus, CostsRatingChoices, DifficultyChoices, ExecutionTimeChoices
+        from content.choices import ContentStatus, DifficultyChoices, ExecutionTimeChoices
         from content.models import ContentComment, ContentEmotion, FeaturedContent, Tag
         from session.models import GroupSession
         from blog.models import Blog
@@ -145,7 +145,6 @@ class Command(BaseCommand):
                 "description": "## Vorbereitung\n\nVerstecke vorab Hinweise an markanten Stellen im Wald.\n\n## Ablauf\n\n1. Teams bilden (3-5 Personen)\n2. Erste Hinweiskarte verteilen\n3. Teams folgen den Hinweisen\n4. Am Ziel wartet eine kleine Belohnung\n\n## Tipps\n\n- GPS-Koordinaten für ältere Gruppen verwenden\n- Schwierigkeitsgrad an die Altersgruppe anpassen",
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
-                "costs_rating": CostsRatingChoices.LESS_1,
                 "status": ContentStatus.APPROVED,
                 "session_type": "exploration",
                 "location_type": "outdoor",
@@ -156,7 +155,6 @@ class Command(BaseCommand):
                 "description": "## Knoten\n\n1. **Kreuzknoten** – zum Verbinden gleicher Seile\n2. **Palstek** – feste Schlaufe\n3. **Mastwurf** – Seil am Mast befestigen\n4. **Zimmermannsknoten** – Balken sichern\n\n## Methodik\n\nJeder Teilnehmer bekommt ein Seilstück und übt jeden Knoten mindestens 5 Mal.",
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
-                "costs_rating": CostsRatingChoices.FREE,
                 "status": ContentStatus.APPROVED,
                 "session_type": "scout_skills",
                 "location_type": "both",
@@ -167,7 +165,6 @@ class Command(BaseCommand):
                 "description": "## Planung\n\n- Route vorab abgehen (Sicherheit!)\n- Wetter prüfen (klarer Himmel nötig)\n- Taschenlampen und Stirnlampen einpacken\n\n## Programm\n\n1. Kurze Einführung zu Sternbildern\n2. Wanderung mit Stille-Phase\n3. Beobachtungsstation mit Fernglas\n4. Abschlussrunde am Lagerfeuer",
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.MORE_90,
-                "costs_rating": CostsRatingChoices.FREE,
                 "status": ContentStatus.APPROVED,
                 "session_type": "nature_study",
                 "location_type": "outdoor",
@@ -178,7 +175,6 @@ class Command(BaseCommand):
                 "description": "## Methoden\n\n### Feuerbohren\nEin Stück weiches Holz und ein härterer Stab...\n\n### Feuerstein\nMit Feuerstein und Feuerstahl...\n\n### Lupe\nBei Sonnenschein kann eine Lupe oder ein Brillenglas...",
                 "difficulty": DifficultyChoices.HARD,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
-                "costs_rating": CostsRatingChoices.LESS_1,
                 "status": ContentStatus.APPROVED,
                 "session_type": "scout_skills",
                 "location_type": "outdoor",
@@ -189,7 +185,6 @@ class Command(BaseCommand):
                 "description": "## Inhalte\n\n- Karte lesen (Legende, Maßstab, Höhenlinien)\n- Kompass einnorden\n- Marschzahl bestimmen\n- Peilen und Rückwärtseinschneiden",
                 "difficulty": DifficultyChoices.HARD,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
-                "costs_rating": CostsRatingChoices.BETWEEN_1_2,
                 "status": ContentStatus.DRAFT,
                 "session_type": "navigation",
                 "location_type": "outdoor",
@@ -249,7 +244,6 @@ class Command(BaseCommand):
                 "rules": "1. Zwei gleich große Teams bilden\n2. Jedes Team versteckt eine Flagge in seiner Hälfte\n3. Ziel: gegnerische Flagge in eigene Basis bringen\n4. In gegnerischer Hälfte kann man gefangen werden\n5. Gefangene kommen ins Gefängnis (können befreit werden)",
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.MORE_90,
-                "costs_rating": CostsRatingChoices.FREE,
                 "status": ContentStatus.APPROVED,
                 "game_type": "field_game",
                 "play_area": "field",
@@ -264,7 +258,6 @@ class Command(BaseCommand):
                 "rules": "Nachtphase: Werwölfe wählen ein Opfer. Tagphase: Diskussion und Abstimmung wer ein Werwolf ist.",
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
-                "costs_rating": CostsRatingChoices.FREE,
                 "status": ContentStatus.APPROVED,
                 "game_type": "group_game",
                 "play_area": "indoor",
@@ -279,7 +272,6 @@ class Command(BaseCommand):
                 "rules": "Schmuggler tragen 'Schmuggelware'. Werden sie von Zöllnern angetippt, müssen sie ihre Ware abgeben.",
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
-                "costs_rating": CostsRatingChoices.FREE,
                 "status": ContentStatus.APPROVED,
                 "game_type": "night_game",
                 "play_area": "forest",

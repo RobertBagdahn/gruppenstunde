@@ -30,7 +30,7 @@ Nur Regeln mit `is_active=True` MUST berücksichtigt werden.
 
 #### Scenario: Nicht anwendbarer Rezepttyp
 
-- **WHEN** ein Client `GET /api/recipes/{recipe_id}/rules/` für ein Rezept mit `recipe_type="breakfast"`, `"snack"`, `"dessert"`, `"drink"`, `"side_dish"` oder `"simple_meal"` aufruft
+- **WHEN** ein Client `GET /api/recipes/{recipe_id}/rules/` für ein Rezept mit `recipe_type="breakfast"`, `"snack"`, `"dessert"`, `"drink"`, `"recipe_part"` oder `"ingredient"` aufruft
 - **THEN** liefert das System Status 200 mit `items=[]`, `green_count=0`, `yellow_count=0` und `red_count=0`
 - **THEN** signalisiert die Antwort, dass Rezeptregeln für diesen Rezepttyp nicht sinnvoll sind und die Regeln im Planer auf die Mahlzeit angewandt werden
 
@@ -99,7 +99,7 @@ Für andere Rezepttypen MUST die Rezept-Detailseite statt der Regelbox einen Hin
 
 #### Scenario: Hinweis bei nicht anwendbarem Rezepttyp
 
-- **WHEN** die Rezept-Detailseite ein Rezept mit `recipe_type="breakfast"`, `"snack"`, `"dessert"`, `"drink"`, `"side_dish"` oder `"simple_meal"` anzeigt
+- **WHEN** die Rezept-Detailseite ein Rezept mit `recipe_type="breakfast"`, `"snack"`, `"dessert"`, `"drink"`, `"recipe_part"` oder `"ingredient"` anzeigt
 - **THEN** zeigt das Frontend einen deutschen Hinweis, dass Rezeptregeln für diesen Typ nicht sinnvoll sind
 - **THEN** erklärt der Hinweis, dass die Regeln im Planer auf die Mahlzeit angewandt werden
 

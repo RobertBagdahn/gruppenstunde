@@ -18,13 +18,6 @@ class DifficultyChoices(models.TextChoices):
     HARD = "hard", _("Schwer")
 
 
-class CostsRatingChoices(models.TextChoices):
-    FREE = "free", _("0 €")
-    LESS_1 = "less_1", _("< 1 €")
-    BETWEEN_1_2 = "1_2", _("1 – 2 €")
-    MORE_2 = "more_2", _("> 2 €")
-
-
 class ExecutionTimeChoices(models.TextChoices):
     LESS_30 = "less_30", _("< 30 Minuten")
     BETWEEN_30_60 = "30_60", _("30 – 60 Minuten")

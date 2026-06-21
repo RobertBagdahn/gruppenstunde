@@ -6,7 +6,6 @@ from django.utils.translation import gettext_lazy as _
 # Re-export content choices for backward compatibility
 from content.choices import (
     ContentStatus,
-    CostsRatingChoices,
     DifficultyChoices,
     ExecutionTimeChoices,
     PreparationTimeChoices,
@@ -32,7 +31,6 @@ __all__ = [
     "RecipeStatusChoices",
     "RecipeTypeChoices",
     "DifficultyChoices",
-    "CostsRatingChoices",
     "PreparationTimeChoices",
     "ExecutionTimeChoices",
     "RecipeObjectiveChoices",

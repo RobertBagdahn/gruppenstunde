@@ -32,7 +32,6 @@ export function filtersToSearchParams(filters: Partial<SearchFilter>): URLSearch
     params.set('content_types', filters.content_types.join(','));
   }
   if (filters.difficulty) params.set('difficulty', filters.difficulty);
-  if (filters.costs_rating) params.set('costs_rating', filters.costs_rating);
   if (filters.execution_time) params.set('execution_time', filters.execution_time);
   if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));
@@ -54,8 +53,6 @@ function searchParamsToFilters(params: URLSearchParams): Partial<SearchFilter> {
   if (contentTypes) filters.content_types = contentTypes.split(',');
   const difficulty = params.get('difficulty');
   if (difficulty) filters.difficulty = difficulty;
-  const costsRating = params.get('costs_rating');
-  if (costsRating) filters.costs_rating = costsRating;
   const executionTime = params.get('execution_time');
   if (executionTime) filters.execution_time = executionTime;
   const sort = params.get('sort');

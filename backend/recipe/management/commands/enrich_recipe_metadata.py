@@ -1,7 +1,7 @@
 """
 Enrich Cooklang-imported recipes with AI-estimated metadata.
 
-Uses Gemini to estimate: difficulty, execution_time, preparation_time, costs_rating
+Uses Gemini to estimate: difficulty, execution_time, preparation_time
 based on the recipe title, description, and ingredients.
 
 Usage:
@@ -23,14 +23,12 @@ SYSTEM_PROMPT = """Du bist ein Koch-Experte. Schätze für jedes Rezept die folg
 - difficulty: "easy", "medium" oder "hard"
 - execution_time: "less_30", "30_60", "60_90" oder "more_90" (Kochzeit in Minuten)
 - preparation_time: "none", "less_15", "15_30", "30_60" oder "more_60" (Vorbereitungszeit)
-- costs_rating: "free", "less_1", "1_2" oder "more_2" (Kosten pro Person in EUR)
-
-Antworte NUR mit einem JSON-Array. Jedes Element hat "id" (die Recipe-ID) und die 4 Felder.
+Antworte NUR mit einem JSON-Array. Jedes Element hat "id" (die Recipe-ID) und die 3 Felder.
 Keine Erklärungen, kein Markdown-Block."""
 
 
 class Command(BaseCommand):
-    help = "Enrich Cooklang-imported recipes with AI-estimated metadata (difficulty, time, cost)."
+    help = "Enrich Cooklang-imported recipes with AI-estimated metadata (difficulty, time)."
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Show what would be updated without saving.")
@@ -66,7 +64,7 @@ class Command(BaseCommand):
                     continue
 
                 changed = False
-                for field in ("difficulty", "execution_time", "preparation_time", "costs_rating"):
+                for field in ("difficulty", "execution_time", "preparation_time"):
                     value = result.get(field)
                     if value and value != getattr(recipe, field):
                         setattr(recipe, field, value)
@@ -74,12 +72,12 @@ class Command(BaseCommand):
 
                 if changed:
                     if not dry_run:
-                        recipe.save(update_fields=["difficulty", "execution_time", "preparation_time", "costs_rating"])
+                        recipe.save(update_fields=["difficulty", "execution_time", "preparation_time"])
                     updated_count += 1
                     self.stdout.write(
                         f"  {'[DRY] ' if dry_run else ''}Updated: {recipe.title} → "
                         f"diff={recipe.difficulty}, exec={recipe.execution_time}, "
-                        f"prep={recipe.preparation_time}, cost={recipe.costs_rating}"
+                        f"prep={recipe.preparation_time}"
                     )
 
             # Rate limit pause between batches

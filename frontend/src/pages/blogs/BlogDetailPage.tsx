@@ -22,7 +22,6 @@ import { useCurrentUser } from '@/api/auth';
 import {
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
-  COSTS_RATING_OPTIONS,
 } from '@/schemas/content';
 import { BLOG_TYPE_OPTIONS } from '@/schemas/blog';
 import ContentStatusBadge from '@/components/content/ContentStatusBadge';
@@ -236,9 +235,7 @@ export default function BlogDetailPage() {
   const timeLabel =
     EXECUTION_TIME_OPTIONS.find((t) => t.value === blog.execution_time)?.label ??
     blog.execution_time;
-  const costsLabel =
-    COSTS_RATING_OPTIONS.find((c) => c.value === blog.costs_rating)?.label ??
-    blog.costs_rating;
+  const costsLabel = null;
   const blogTypeLabel =
     BLOG_TYPE_OPTIONS.find((t) => t.value === blog.blog_type)?.label ??
     blog.blog_type;

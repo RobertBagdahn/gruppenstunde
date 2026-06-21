@@ -25,13 +25,10 @@ logger = logging.getLogger(__name__)
 GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
 
 # Valid choice values for validation
-VALID_RECIPE_TYPES = {"breakfast", "warm_meal", "cold_meal", "dessert", "side_dish", "drink", "simple_meal"}
+VALID_RECIPE_TYPES = {"breakfast", "warm_meal", "cold_meal", "dessert", "recipe_part", "drink", "snack"}
 VALID_DIFFICULTIES = {"easy", "medium", "hard"}
 VALID_EXECUTION_TIMES = {"less_30", "30_60", "60_90", "more_90"}
 VALID_PREPARATION_TIMES = {"none", "less_15", "15_30", "30_60", "more_60"}
-VALID_COSTS_RATINGS = {"free", "less_1", "1_2", "more_2"}
-
-
 def _validate_choice(value: str, valid_set: set[str], default: str) -> str:
     """Return value if valid, otherwise default."""
     return value if value in valid_set else default
@@ -119,11 +116,10 @@ class GeminiRecipeExtraction(BaseModel):
     servings: int = Field(4, description="Number of servings")
     preparation_time: int | None = Field(None, description="Prep time in minutes")
     execution_time: int | None = Field(None, description="Cook/execution time in minutes")
-    recipe_type: str = Field("", description="One of: breakfast, warm_meal, cold_meal, dessert, side_dish, drink, simple_meal")
+    recipe_type: str = Field("", description="One of: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack")
     difficulty: str = Field("easy", description="One of: easy, medium, hard")
     execution_time_choice: str = Field("less_30", description="One of: less_30, 30_60, 60_90, more_90")
     preparation_time_choice: str = Field("none", description="One of: none, less_15, 15_30, 30_60, more_60")
-    costs_rating: str = Field("less_1", description="Cost per portion: free, less_1, 1_2, more_2")
     scout_level_ids: list[int] = Field(default_factory=list, description="IDs of suitable scout levels")
     tag_ids: list[int] = Field(default_factory=list, description="IDs of matching tags")
     steps: list[str] = Field(default_factory=list, description="Cooking steps")
@@ -190,7 +186,6 @@ class UrlImportResult:
         difficulty: str,
         execution_time_choice: str,
         preparation_time_choice: str,
-        costs_rating: str,
         scout_level_ids: list[int],
         tag_ids: list[int],
         steps: list[str],
@@ -208,7 +203,6 @@ class UrlImportResult:
         self.difficulty = difficulty
         self.execution_time_choice = execution_time_choice
         self.preparation_time_choice = preparation_time_choice
-        self.costs_rating = costs_rating
         self.scout_level_ids = scout_level_ids
         self.tag_ids = tag_ids
         self.steps = steps
@@ -269,7 +263,6 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
         difficulty=_validate_choice(gemini_result.difficulty, VALID_DIFFICULTIES, "easy"),
         execution_time_choice=_validate_choice(execution_time_choice, VALID_EXECUTION_TIMES, "less_30"),
         preparation_time_choice=_validate_choice(preparation_time_choice, VALID_PREPARATION_TIMES, "none"),
-        costs_rating=_validate_choice(gemini_result.costs_rating, VALID_COSTS_RATINGS, "less_1"),
         scout_level_ids=gemini_result.scout_level_ids,
         tag_ids=gemini_result.tag_ids,
         steps=gemini_result.steps or parsed.steps,
@@ -492,11 +485,10 @@ AUFGABEN:
 1. Extrahiere/validiere die Rezept-Metadaten (title, description, summary, servings, preparation_time, execution_time, steps)
 2. Schätze folgende Felder:
    - summary: Kurzbeschreibung in 1-2 Sätzen
-    - recipe_type: MUSS einer dieser Werte sein: breakfast, warm_meal, cold_meal, dessert, side_dish, drink, simple_meal
+    - recipe_type: MUSS einer dieser Werte sein: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack
    - difficulty: MUSS sein: easy, medium, hard
    - execution_time_choice: MUSS sein: less_30, 30_60, 60_90, more_90 (basierend auf Gesamtkochzeit)
    - preparation_time_choice: MUSS sein: none, less_15, 15_30, 30_60, more_60 (basierend auf Vorbereitungszeit)
-   - costs_rating: Kosten pro Portion, MUSS sein: free, less_1, 1_2, more_2
    - scout_level_ids: Passende Altersgruppen aus obiger Liste
    - tag_ids: Passende Tags aus obiger Liste
 3. Für jede Zutat:

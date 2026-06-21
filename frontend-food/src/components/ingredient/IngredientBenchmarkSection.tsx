@@ -152,13 +152,14 @@ function IngredientHistogram({
           {refLabel && (
             <ReferenceLine
               x={refLabel}
-              stroke="hsl(var(--primary))"
-              strokeDasharray="4 4"
-              strokeWidth={2}
+              stroke="hsl(var(--chart-2))"
+              strokeDasharray="5 3"
+              strokeWidth={2.5}
               label={{
                 value: 'Diese Zutat',
-                fontSize: 9,
-                fill: 'hsl(var(--primary))',
+                fontSize: 10,
+                fill: 'hsl(var(--chart-2))',
+                fontWeight: 600,
                 position: 'top',
               }}
             />
@@ -375,7 +376,7 @@ export function IngredientBenchmarkSection({ values }: IngredientBenchmarkSectio
       <p className="text-sm text-muted-foreground mb-4">
         Wie schneidet diese Zutat im Vergleich zu anderen ab?
         {values.retail_section_name && (
-          <> Die grüne Linie zeigt den Platz in <strong>{values.retail_section_name}</strong> und global.</>
+          <> Die gelbe Linie zeigt den Platz in <strong>{values.retail_section_name}</strong> und global.</>
         )}
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

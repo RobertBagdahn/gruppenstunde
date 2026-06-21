@@ -7,7 +7,6 @@ import { ArrowLeft, Save } from 'lucide-react';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
-  RECIPE_COSTS_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
@@ -25,7 +24,6 @@ export default function EditRecipePage() {
   const [description, setDescription] = useState('');
   // Portions always normalized to 1 in backend (not user-editable)
   const [difficulty, setDifficulty] = useState('');
-  const [costsRating, setCostsRating] = useState('');
   const [executionTime, setExecutionTime] = useState('');
   const [preparationTime, setPreparationTime] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -44,7 +42,6 @@ export default function EditRecipePage() {
       setDescription(recipe.description);
       // Portions always 1 in backend
       setDifficulty(recipe.difficulty);
-      setCostsRating(recipe.costs_rating);
       setExecutionTime(recipe.execution_time);
       setPreparationTime(recipe.preparation_time);
       setSelectedTagIds(recipe.tags.map((t) => t.id));
@@ -81,7 +78,6 @@ export default function EditRecipePage() {
         description: description.trim(),
         // portions always 1 (normalized backend storage)
         difficulty: difficulty || undefined,
-        costs_rating: costsRating || undefined,
         execution_time: executionTime || undefined,
         preparation_time: preparationTime || undefined,
         tag_ids: selectedTagIds,
@@ -240,21 +236,6 @@ export default function EditRecipePage() {
               >
                 <option value="">–</option>
                 {RECIPE_DIFFICULTY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Kosten</label>
-              <select
-                value={costsRating}
-                onChange={(e) => setCostsRating(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-              >
-                <option value="">–</option>
-                {RECIPE_COSTS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>

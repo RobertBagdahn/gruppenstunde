@@ -42,6 +42,17 @@ export default function RecipeHistogram({
     name: `${Number(b.min.toFixed(1))}-${Number(b.max.toFixed(1))} ${unit}`,
   }));
 
+  // Find the bucket label that contains the current recipe value
+  let refLabel: string | undefined;
+  if (recipeValue != null) {
+    const match = buckets.find(
+      (b) => recipeValue >= b.min && (b.max == null || recipeValue < b.max),
+    );
+    if (match) {
+      refLabel = `${Number(match.min.toFixed(1))}-${Number(match.max.toFixed(1))} ${unit}`;
+    }
+  }
+
   return (
     <div className={className}>
       <div className="mb-3">
@@ -67,12 +78,20 @@ export default function RecipeHistogram({
             contentStyle={{ fontSize: 12 }}
           />
           <Bar dataKey="count" fill="hsl(var(--chart-1))" />
-          <ReferenceLine
-            x={`${Number(recipeValue.toFixed(1))}`}
-            stroke="hsl(var(--primary))"
-            strokeDasharray="5 5"
-            label={{ value: 'Dieses Rezept', fontSize: 10, fill: 'hsl(var(--primary))' }}
-          />
+          {refLabel && (
+            <ReferenceLine
+              x={refLabel}
+              stroke="hsl(var(--chart-2))"
+              strokeDasharray="5 3"
+              strokeWidth={2.5}
+              label={{
+                value: 'Dieses Rezept',
+                fontSize: 10,
+                fill: 'hsl(var(--chart-2))',
+                fontWeight: 600,
+              }}
+            />
+          )}
         </BarChart>
       </ResponsiveContainer>
     </div>

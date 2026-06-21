@@ -50,8 +50,6 @@ function filtersFromParams(params: URLSearchParams): Partial<GroupSessionFilter>
   if (locationType) filters.location_type = locationType;
   const difficulty = params.get('difficulty');
   if (difficulty) filters.difficulty = difficulty;
-  const costsRating = params.get('costs_rating');
-  if (costsRating) filters.costs_rating = costsRating;
   const sort = params.get('sort');
   if (sort) filters.sort = sort;
   const page = params.get('page');
@@ -65,7 +63,6 @@ function filtersToParams(filters: Partial<GroupSessionFilter>): URLSearchParams 
   if (filters.session_type) params.set('session_type', filters.session_type);
   if (filters.location_type) params.set('location_type', filters.location_type);
   if (filters.difficulty) params.set('difficulty', filters.difficulty);
-  if (filters.costs_rating) params.set('costs_rating', filters.costs_rating);
   if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));
   return params;

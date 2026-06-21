@@ -23,7 +23,7 @@ class Recipe(Content):
     Recipe-specific fields: recipe_type, portions, nutritional_tags.
     Personal recipe fields: owner, forked_from, visibility.
     All other fields (title, slug, summary, description, difficulty,
-    costs_rating, execution_time, preparation_time, status, image,
+    execution_time, preparation_time, status, image,
     like_score, view_count, search_vector, embedding, tags, scout_levels,
     authors, created_at, updated_at, created_by, updated_by, deleted_at)
     come from the Content abstract base.

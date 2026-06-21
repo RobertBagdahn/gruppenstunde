@@ -12,7 +12,6 @@ import type { AvailableConversionBatchItem } from '@/schemas/supply';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import { formatQuantity } from '@/lib/unitConversion';
 import { calculateNaturalPortions } from '@/lib/portionDisplay';
-import { cn } from '@/lib/utils';
 import UnitSwitcher from '@/components/recipe/UnitSwitcher';
 
 interface IngredientListProps {
@@ -178,9 +177,19 @@ export default function IngredientList({
                     conversions={itemConversions}
                     weightG={weightG}
                   />
-                  <span className="font-medium text-foreground text-base">
-                    {item.ingredient_name || item.note || 'Zutat'}
-                  </span>
+                  {item.ingredient_slug ? (
+                    <Link
+                      to={`/ingredients/${item.ingredient_slug}`}
+                      className="font-medium text-foreground text-base hover:text-primary hover:underline transition-colors"
+                      title={`${item.ingredient_name} – Details anzeigen`}
+                    >
+                      {item.ingredient_name || item.note || 'Zutat'}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground text-base">
+                      {item.ingredient_name || item.note || 'Zutat'}
+                    </span>
+                  )}
                   {showWeightWarning && (
                     <span className="inline-flex items-center gap-1 text-amber-600 text-sm font-medium shrink-0">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
@@ -262,26 +271,6 @@ export default function IngredientList({
               </div>
             </div>
           );
-
-          if (item.ingredient_slug) {
-            return (
-              <li key={item.id}>
-                <Link
-                  to={`/ingredients/${item.ingredient_slug}`}
-                  className={cn(
-                    'flex items-start gap-3 px-4 py-3',
-                    'hover:bg-muted/50 transition-colors group',
-                  )}
-                  title={`${item.ingredient_name} – Details anzeigen`}
-                >
-                  {ingredientContent}
-                  <span className="material-symbols-outlined text-[18px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0">
-                    chevron_right
-                  </span>
-                </Link>
-              </li>
-            );
-          }
 
           return (
             <li key={item.id} className="flex items-start gap-3 px-4 py-3">

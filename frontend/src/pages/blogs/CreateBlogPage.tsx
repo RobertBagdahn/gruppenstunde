@@ -25,7 +25,6 @@ export default function CreateBlogPage() {
         summary: formData.summary,
         description: formData.description,
         difficulty: formData.difficulty || undefined,
-        costs_rating: formData.costsRating || undefined,
         execution_time: formData.executionTime || undefined,
         blog_type: blogType || undefined,
         show_table_of_contents: showToc,

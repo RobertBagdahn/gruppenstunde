@@ -22,7 +22,6 @@ import { useCurrentUser } from '@/api/auth';
 import {
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
-  COSTS_RATING_OPTIONS,
 } from '@/schemas/content';
 import { GAME_TYPE_OPTIONS, PLAY_AREA_OPTIONS } from '@/schemas/game';
 import ContentStatusBadge from '@/components/content/ContentStatusBadge';
@@ -132,9 +131,7 @@ export default function GameDetailPage() {
   const timeLabel =
     EXECUTION_TIME_OPTIONS.find((t) => t.value === game.execution_time)?.label ??
     game.execution_time;
-  const costsLabel =
-    COSTS_RATING_OPTIONS.find((c) => c.value === game.costs_rating)?.label ??
-    game.costs_rating;
+  const costsLabel = null;
   const gameTypeLabel =
     GAME_TYPE_OPTIONS.find((g) => g.value === game.game_type)?.label ??
     game.game_type;

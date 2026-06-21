@@ -81,7 +81,6 @@ class ContentListOut(Schema):
     title: str
     slug: str
     summary: str
-    costs_rating: str
     execution_time: str
     difficulty: str
     status: str
@@ -126,7 +125,6 @@ class ContentDetailOut(Schema):
     summary: str
     summary_long: str
     description: str
-    costs_rating: str
     execution_time: str
     preparation_time: str
     difficulty: str
@@ -194,7 +192,6 @@ class ContentCreateIn(Schema):
     summary: str = ""
     summary_long: str = ""
     description: str = ""
-    costs_rating: str = "free"
     execution_time: str = "less_30"
     preparation_time: str = "none"
     difficulty: str = "easy"
@@ -209,7 +206,6 @@ class ContentUpdateIn(Schema):
     summary: str | None = None
     summary_long: str | None = None
     description: str | None = None
-    costs_rating: str | None = None
     execution_time: str | None = None
     preparation_time: str | None = None
     difficulty: str | None = None

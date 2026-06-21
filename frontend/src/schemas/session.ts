@@ -73,7 +73,6 @@ export interface GroupSessionFilter {
   scout_level_ids?: number[];
   tag_slugs?: string[];
   difficulty?: string;
-  costs_rating?: string;
   sort?: string;
   page?: number;
   page_size?: number;

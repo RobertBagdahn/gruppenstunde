@@ -38,7 +38,6 @@ export const RecipeDraftSchema = z.object({
   difficulty: z.string().optional().default('easy'),
   execution_time_choice: z.string().optional().default('less_30'),
   preparation_time_choice: z.string().optional().default('none'),
-  costs_rating: z.string().optional().default('less_1'),
   scout_level_ids: z.array(z.number()).optional().default([]),
   tag_ids: z.array(z.number()).optional().default([]),
   steps: z.array(z.string()),

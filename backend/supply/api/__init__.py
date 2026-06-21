@@ -7,10 +7,12 @@ from .retail_sections import retail_section_router  # noqa: F401 — retail sect
 from .norm_person import norm_person_router  # noqa: F401 — norm-person calculation router
 from .dge_references import dge_reference_router  # noqa: F401 — DGE reference values router
 from .unit_conversions import unit_conversion_router  # noqa: F401 — unit conversion router
+from .ingredient_statistics import ingredient_statistics_router  # noqa: F401 — ingredient statistics router
 
 __all__ = [
     "dge_reference_router",
     "ingredient_router",
+    "ingredient_statistics_router",
     "norm_person_router",
     "nutritional_tag_router",
     "retail_section_router",

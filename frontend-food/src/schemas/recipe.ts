@@ -143,7 +143,8 @@ export const RecipeFilterSchema = z.object({
   scout_level_ids: z.array(z.number()).optional(),
   tag_slugs: z.array(z.string()).optional(),
   difficulty: z.string().optional(),
-  costs_rating: z.string().optional(),
+  costs_min: z.number().optional(),
+  costs_max: z.number().optional(),
   execution_time: z.string().optional(),
   origin: z.string().optional(), // "all" | "verified" | "community" | "mine"
   sort: z.string().default('newest'),
@@ -171,21 +172,16 @@ export const RECIPE_TYPE_OPTIONS = [
   { value: 'warm_meal', label: 'Warme Mahlzeit', icon: 'lunch_dining' },
   { value: 'cold_meal', label: 'Kalte Mahlzeit', icon: 'takeout_dining' },
   { value: 'dessert', label: 'Nachtisch', icon: 'cake' },
-  { value: 'side_dish', label: 'Beilage', icon: 'rice_bowl' },
+  { value: 'recipe_part', label: 'Rezeptteil', icon: 'dining' },
   { value: 'drink', label: 'Getränk', icon: 'local_cafe' },
+  { value: 'snack', label: 'Snack', icon: 'cookie' },
+  { value: 'ingredient', label: 'Zutat', icon: 'grocery' },
 ] as const;
 
 export const RECIPE_DIFFICULTY_OPTIONS = [
   { value: 'easy', label: 'Einfach' },
   { value: 'medium', label: 'Mittel' },
   { value: 'hard', label: 'Schwer' },
-] as const;
-
-export const RECIPE_COSTS_OPTIONS = [
-  { value: 'free', label: '0 EUR' },
-  { value: 'less_1', label: '< 1 EUR' },
-  { value: '1_2', label: '1 – 2 EUR' },
-  { value: 'more_2', label: '> 2 EUR' },
 ] as const;
 
 export const RECIPE_EXECUTION_TIME_OPTIONS = [

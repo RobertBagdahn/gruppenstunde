@@ -175,7 +175,7 @@ def update_recipe_quality_score(sender, instance: Recipe, created: bool, **kwarg
 
 _recipe_tracked_fields = {
     "title", "summary", "summary_long", "description", "recipe_type", "portions",
-    "costs_rating", "execution_time", "preparation_time", "difficulty", "status",
+    "execution_time", "preparation_time", "difficulty", "status",
     "visibility", "folder_id", "source_url",
 }
 

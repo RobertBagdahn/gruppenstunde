@@ -2,7 +2,7 @@
 
 import datetime as dt
 
-from django.db.models import Q, Prefetch
+from django.db.models import Case, Prefetch, Q, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Router
@@ -1030,7 +1030,7 @@ MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
     "breakfast": ["breakfast"],
     "lunch": ["warm_meal", "cold_meal"],
     "dinner": ["warm_meal", "cold_meal"],
-    "snack": ["snack", "ingredient"],
+    "snack": ["snack"],
     "drinks": ["drink"],
 }
 
@@ -1047,6 +1047,7 @@ def recipe_suggestions(
     nutritional_tag_ids: str | None = None,
     require_nutritional_tags: bool = True,
     random: bool = False,
+    recipe_types: str | None = None,
 ):
     """Return recipe suggestions sorted by usage frequency, then price."""
     from django.db.models import Count, Q
@@ -1075,18 +1076,24 @@ def recipe_suggestions(
     if q and len(q) >= 1:
         text_filter = Q(recipe__title__icontains=q)
 
-    # meal_type-specific results
-    type_filter = Q()
-    if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
-        type_filter = Q(meal__meal_type=meal_type)
+    # recipe_type-specific results: explicit list > meal_type mapping
+    resolved_recipe_types: list[str] = []
+    if recipe_types:
+        resolved_recipe_types = [t.strip() for t in recipe_types.split(",") if t.strip()]
+    elif meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
+        resolved_recipe_types = MEAL_TYPE_TO_RECIPE_TYPES[meal_type]
 
-    # Primary: recipes matching meal_type, sorted by usage count
+    recipe_type_filter = Q()
+    if resolved_recipe_types:
+        recipe_type_filter = Q(recipe__recipe_type__in=resolved_recipe_types)
+
+    # Primary: recipes matching recipe_type, sorted by usage count
     results = []
     seen_ids: set[int] = set()
 
-    if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
+    if resolved_recipe_types:
         type_qs = (
-            MealItem.objects.filter(base_filter & type_filter & text_filter)
+            MealItem.objects.filter(base_filter & recipe_type_filter & text_filter)
             .values("recipe_id")
             .annotate(count=Count("id"))
             .order_by("-count")[:limit]
@@ -1110,7 +1117,7 @@ def recipe_suggestions(
                     results.append((r, counts_map[rid], badge, price_per_serving, price))
                     seen_ids.add(r.id)
 
-    # Fallback: fill up with global usage (excluding already seen)
+    # Fallback: fill up with global usage (excluding already seen, still filtered by recipe_type)
     remaining = limit - len(results)
     if remaining > 0:
         exclude_filter = Q()
@@ -1118,7 +1125,7 @@ def recipe_suggestions(
             exclude_filter = ~Q(recipe_id__in=seen_ids)
 
         global_qs = (
-            MealItem.objects.filter(base_filter & text_filter & exclude_filter)
+            MealItem.objects.filter(base_filter & recipe_type_filter & text_filter & exclude_filter)
             .values("recipe_id")
             .annotate(count=Count("id"))
             .order_by("-count")[:remaining]
@@ -1140,11 +1147,34 @@ def recipe_suggestions(
                         else None
                     )
                     results.append((r, counts_map[rid], badge, price_per_serving, price))
+                    seen_ids.add(r.id)
 
     # Sort: usage_count DESC, price ASC NULLS LAST
-    results.sort(key=lambda x: (x[1], -(x[4] or 1e9)), reverse=True)
-    # Fix: actually we want DESC on count, ASC on price with nulls last
     results.sort(key=lambda x: (-x[1], x[4] if x[4] is not None else 1e9))
+
+    # Own recipes (even with 0 usage): always include, ranked first
+    if request.user.is_authenticated:
+        own_filter = Q(owner=request.user)
+        if resolved_recipe_types:
+            own_filter &= Q(recipe_type__in=resolved_recipe_types)
+        if q and len(q) >= 1:
+            own_filter &= Q(title__icontains=q)
+        if seen_ids:
+            own_filter &= ~Q(id__in=seen_ids)
+        own_qs = Recipe.objects.filter(own_filter).order_by("-usage_count", "cached_price_total")[:limit]
+        own_entries = []
+        for r in own_qs:
+            price = float(r.cached_price_total) if r.cached_price_total else None
+            badge = _resolve_recipe_badge(r, request.user)
+            price_per_serving = (
+                round(float(r.cached_price_total) / r.portions, 2)
+                if r.cached_price_total and r.portions and r.portions > 0
+                else None
+            )
+            own_entries.append((r, 0, badge, price_per_serving, price))
+            seen_ids.add(r.id)
+        if own_entries:
+            results = own_entries + results[:limit - len(own_entries)]
 
     if random and results:
         top_n = results[:min(20, len(results))]
@@ -1374,20 +1404,21 @@ def search_recipes(
     else:
         type_filter = []
 
+    qs = qs.annotate(is_own=Case(When(owner=request.user, then=1), default=0))
+
     if type_filter:
-        # Primary query: filtered by recipe types
         primary_qs = qs.filter(recipe_type__in=type_filter)
-        primary_recipes = list(primary_qs.order_by("-usage_count", "cached_price_total")[:limit])
+        primary_recipes = list(primary_qs.order_by("-is_own", "-usage_count", "cached_price_total")[:limit])
         if len(primary_recipes) < limit:
             fallback_applied = True
             seen_ids = {r.id for r in primary_recipes}
             remaining = limit - len(primary_recipes)
-            fallback_qs = qs.exclude(id__in=seen_ids).order_by("-usage_count", "cached_price_total")[:remaining]
+            fallback_qs = qs.exclude(id__in=seen_ids).order_by("-is_own", "-usage_count", "cached_price_total")[:remaining]
             recipes_qs = primary_recipes + list(fallback_qs)
         else:
             recipes_qs = primary_recipes
     else:
-        recipes_qs = list(qs.order_by("-usage_count", "cached_price_total")[:limit])
+        recipes_qs = list(qs.order_by("-is_own", "-usage_count", "cached_price_total")[:limit])
 
     if nutritional_tag_ids:
         tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]

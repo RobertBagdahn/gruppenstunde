@@ -45,7 +45,6 @@ export const ContentListItemSchema = z.object({
   title: z.string(),
   slug: z.string(),
   summary: z.string(),
-  costs_rating: z.string(),
   execution_time: z.string(),
   difficulty: z.string(),
   status: z.string(),
@@ -69,7 +68,6 @@ export const ContentDetailSchema = z.object({
   summary: z.string(),
   summary_long: z.string(),
   description: z.string(),
-  costs_rating: z.string(),
   execution_time: z.string(),
   preparation_time: z.string(),
   difficulty: z.string(),
@@ -155,15 +153,6 @@ export const DIFFICULTY_OPTIONS = [
   { value: 'hard', label: 'Schwer' },
 ] as const;
 
-// --- Costs ---
-
-export const COSTS_RATING_OPTIONS = [
-  { value: 'free', label: '0 €' },
-  { value: 'less_1', label: '< 1 €' },
-  { value: '1_2', label: '1 – 2 €' },
-  { value: 'more_2', label: '> 2 €' },
-] as const;
-
 // --- Execution Time ---
 
 export const EXECUTION_TIME_OPTIONS = [
@@ -232,7 +221,6 @@ export const AiRefurbishSchema = z.object({
     parent_id: z.number().nullable(),
     parent_name: z.string().nullable().optional(),
   }))).optional().default([]),
-  costs_rating: z.string(),
   execution_time: z.string(),
   preparation_time: z.string(),
   difficulty: z.string(),
@@ -255,6 +243,8 @@ export const AiRefurbishSchema = z.object({
     ingredient_id: z.number().nullable().optional().default(null),
     ingredient_slug: z.string().nullable().optional().default(null),
     matched_name: z.string().nullable().optional().default(null),
+    portion_id: z.number().nullable().optional().default(null),
+    portion_name: z.string().nullable().optional().default(null),
   })).optional().default([]),
 });
 export type AiRefurbish = z.output<typeof AiRefurbishSchema>;
@@ -283,7 +273,6 @@ export const ContentFilterSchema = z.object({
   scout_level_ids: z.array(z.number()).optional(),
   tag_slugs: z.array(z.string()).optional(),
   difficulty: z.string().optional(),
-  costs_rating: z.string().optional(),
   execution_time: z.string().optional(),
   sort: z.string().default('newest'),
   page: z.number().default(1),

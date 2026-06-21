@@ -35,7 +35,7 @@ FOLDER_TO_TYPE = {
     "01 Hauptmahlzeiten": "warm_meal",
     "02 Low Calorie - High Protein": "warm_meal",
     "03 Vegan": "warm_meal",
-    "04 Brot Aufstriche_ Dips_ Soßen": "side_dish",
+    "04 Brot Aufstriche_ Dips_ Soßen": "recipe_part",
     "05 Salate": "cold_meal",
     "06 Nachtisch_ Süßes": "dessert",
     "07 Getränke": "drink",

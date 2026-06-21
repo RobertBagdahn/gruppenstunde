@@ -21,7 +21,6 @@ import { useCurrentUser } from '@/api/auth';
 import {
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
-  COSTS_RATING_OPTIONS,
 } from '@/schemas/content';
 import { SESSION_TYPE_OPTIONS, LOCATION_TYPE_OPTIONS } from '@/schemas/session';
 import ContentStatusBadge from '@/components/content/ContentStatusBadge';
@@ -124,9 +123,7 @@ export default function SessionDetailPage() {
   const timeLabel =
     EXECUTION_TIME_OPTIONS.find((t) => t.value === session.execution_time)?.label ??
     session.execution_time;
-  const costsLabel =
-    COSTS_RATING_OPTIONS.find((c) => c.value === session.costs_rating)?.label ??
-    session.costs_rating;
+  const costsLabel = null;
   const sessionTypeLabel =
     SESSION_TYPE_OPTIONS.find((s) => s.value === session.session_type)?.label ??
     session.session_type;

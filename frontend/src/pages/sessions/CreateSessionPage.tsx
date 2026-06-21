@@ -52,7 +52,6 @@ export default function CreateSessionPage() {
         summary: formData.summary,
         description: formData.description,
         difficulty: formData.difficulty || undefined,
-        costs_rating: formData.costsRating || undefined,
         execution_time: formData.executionTime || undefined,
         preparation_time: formData.preparationTime || undefined,
         session_type: sessionType || undefined,

@@ -12,9 +12,10 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   warm_meal: 'Warme Mahlzeit',
   cold_meal: 'Kalte Mahlzeit',
   dessert: 'Nachtisch',
-  side_dish: 'Beilage',
+  recipe_part: 'Rezeptteil',
   drink: 'Getränk',
-  simple_meal: 'Einfache Mahlzeit',
+  snack: 'Snack',
+  ingredient: 'Zutat',
 };
 
 const NUTRI_SCORE_LABELS: Record<number, { letter: string; color: string }> = {

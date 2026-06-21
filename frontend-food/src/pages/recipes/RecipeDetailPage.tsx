@@ -54,6 +54,7 @@ import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
 import RecipeUsageInMealPlans from '@/components/recipe/RecipeUsageInMealPlans';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
+import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
@@ -136,6 +137,7 @@ export default function RecipeDetailPage() {
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
   const [portionSheetOpen, setPortionSheetOpen] = useState(false);
   const [isInlineEditMode, setIsInlineEditMode] = useState(false);
+  const [scaleDialogOpen, setScaleDialogOpen] = useState(false);
 
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [cloneTitle, setCloneTitle] = useState('');
@@ -174,6 +176,7 @@ export default function RecipeDetailPage() {
   const initializeModifications = useRecipeModificationStore((s) => s.initialize);
   const resetModifications = useRecipeModificationStore((s) => s.reset);
   const scaleToNormPortion = useRecipeModificationStore((s) => s.scaleToNormPortion);
+  const scaleByFactor = useRecipeModificationStore((s) => s.scaleByFactor);
 
   // Initialize modification store when nutrition breakdown data loads
   useEffect(() => {
@@ -600,8 +603,26 @@ export default function RecipeDetailPage() {
               </button>
             )}
           </div>
+
+          <div className="border-t border-amber-200 pt-3">
+            <button
+              type="button"
+              onClick={() => setScaleDialogOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">scale</span>
+              Zutaten skalieren
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Scale Ingredients Dialog */}
+      <ScaleIngredientsDialog
+        open={scaleDialogOpen}
+        onOpenChange={setScaleDialogOpen}
+        onScale={(factor) => scaleByFactor(factor)}
+      />
 
       {/* Portion Normalization Hint (10.4) */}
       {nb && (isDirty ? modifiedPortions : recipe.portions) && (isDirty ? modifiedPortions : recipe.portions)! > 0 && (() => {
@@ -609,7 +630,7 @@ export default function RecipeDetailPage() {
         const dailyEnergyKcal = 2868;
         const mealFractions: Record<string, number> = {
           breakfast: 0.25, warm_meal: 0.35, cold_meal: 0.25,
-          dessert: 0.10, side_dish: 0.10, drink: 0.05,
+          dessert: 0.10, recipe_part: 0.10, drink: 0.05, snack: 0.10, ingredient: 0.05,
         };
         const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
         const expectedEnergyKcal = dailyEnergyKcal * fraction;
@@ -1126,12 +1147,10 @@ export default function RecipeDetailPage() {
       />
 
       {/* Mobile Action Bar */}
-      {currentUser && (
-        <RecipeMobileActionBar
-          onOpenShoppingList={handleOpenShoppingList}
-          onOpenPortions={() => setPortionSheetOpen(true)}
-        />
-      )}
+      <RecipeMobileActionBar
+        onOpenShoppingList={handleOpenShoppingList}
+        onOpenPortions={() => setPortionSheetOpen(true)}
+      />
 
       {/* Portion Bottom Sheet (Mobile) */}
       <PortionBottomSheet

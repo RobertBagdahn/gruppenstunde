@@ -8,7 +8,6 @@ import {
   useDismissDuplicate,
 } from '@/api/dataQuality';
 import type { DuplicatePair, MergePreview } from '@/schemas/dataQuality';
-import Pagination from '@/components/shared/Pagination';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -34,11 +33,8 @@ function similarityColor(similarity: number): string {
 }
 
 export default function DuplicateDetectionList({ type }: DuplicateDetectionListProps) {
-  const [page, setPage] = useState(1);
-  const [threshold, setThreshold] = useState(95);
-
-  const ingredientsQuery = useIngredientDuplicates({ page, page_size: 20, threshold: threshold / 100 });
-  const recipesQuery = useRecipeDuplicates({ page, page_size: 20, threshold: threshold / 100 });
+  const ingredientsQuery = useIngredientDuplicates();
+  const recipesQuery = useRecipeDuplicates();
   const query = type === 'ingredient' ? ingredientsQuery : recipesQuery;
   const { data, isLoading, error } = query;
 
@@ -83,22 +79,6 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
 
   return (
     <div className="space-y-4">
-      {/* Threshold Slider */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-          Ähnlichkeit: ≥ {(threshold / 100).toFixed(2)}
-        </label>
-        <input
-          type="range"
-          min={80}
-          max={99}
-          value={threshold}
-          onChange={(e) => { setThreshold(Number(e.target.value)); setPage(1); }}
-          className="w-full max-w-[200px] h-2 rounded-full bg-muted appearance-none cursor-pointer accent-primary"
-        />
-        <span className="text-xs text-muted-foreground w-8 text-right">{threshold}%</span>
-      </div>
-
       {/* Loading / Error */}
       {isLoading && (
         <div className="flex justify-center py-12">
@@ -169,16 +149,11 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
             ))}
           </div>
 
-          <Pagination
-            currentPage={data.page}
-            totalPages={data.total_pages}
-            onPageChange={setPage}
-          />
         </>
       )}
 
       {!isLoading && !error && data && data.items.length === 0 && (
-        <div className="text-muted-foreground py-4">Keine {entityLabel}-Duplikate mit dieser Schwelle gefunden</div>
+        <div className="text-muted-foreground py-4">Keine {entityLabel}-Duplikate gefunden</div>
       )}
 
       {/* Merge Preview Dialog */}

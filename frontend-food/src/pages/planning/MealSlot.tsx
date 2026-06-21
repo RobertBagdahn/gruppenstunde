@@ -14,6 +14,7 @@ import {
 import { useRecipeSuggestions, useRandomRecipeSuggestion, useAllergenScan } from '@/api/mealPlans';
 import { AllergenWarningBadge } from '@/components/shared/AllergenWarningBadge';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
+import CategoryPills, { RECIPE_TYPE_LABELS } from '@/components/recipe/CategoryPills';
 import {
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ICONS,
@@ -24,7 +25,7 @@ import {
   formatMealTime,
 } from '@/schemas/mealPlan';
 import type { Meal, RecipeSearchResult } from '@/schemas/mealPlan';
-import RecipeSearchDialog from './RecipeSearchDialog';
+import RecipeSearchDialog, { MEAL_TYPE_DEFAULT_RECIPE_TYPES } from './RecipeSearchDialog';
 import RecipePreviewDialog from './RecipePreviewDialog';
 import { FactorInput } from './FactorInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
@@ -81,14 +82,25 @@ export function MealSlot({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [randomPreviewRecipe, setRandomPreviewRecipe] = useState<RecipeSearchResult | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+
+  const openSearch = () => {
+    const defaults = new Set(MEAL_TYPE_DEFAULT_RECIPE_TYPES[meal.meal_type] ?? []);
+    setSelectedTypes(defaults);
+    setIsSearching(true);
+    setSearchQuery('');
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 200);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const recipeTypesArray = selectedTypes.size > 0 ? Array.from(selectedTypes) : undefined;
+
   const { data: suggestions } = useRecipeSuggestions({
-    mealType: meal.meal_type,
+    mealType: recipeTypesArray ? undefined : meal.meal_type,
+    recipeTypes: recipeTypesArray,
     q: debouncedQuery || undefined,
     excludeNutritionalTagIds: nutritionalTagIds?.length ? nutritionalTagIds : undefined,
   });
@@ -196,10 +208,7 @@ export function MealSlot({
             <>
               {!meal.is_synced && !meal.is_external && (
                 <button
-                  onClick={() => {
-                    setIsSearching(true);
-                    setSearchQuery('');
-                  }}
+                  onClick={openSearch}
                   className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
                   title="Rezept hinzufügen"
                 >
@@ -393,8 +402,13 @@ export function MealSlot({
               <Sliders className="w-4 h-4" />
             </button>
           </div>
+          <CategoryPills
+            selected={selectedTypes}
+            onChange={setSelectedTypes}
+            showAll={false}
+          />
           {suggestions && suggestions.length > 0 && (
-            <div className="rounded-lg border bg-card max-h-40 overflow-y-auto divide-y">
+            <div className="rounded-lg border bg-card max-h-48 overflow-y-auto divide-y">
               {suggestions.map((r, idx) => {
                 const price = r.price_per_serving != null
                   ? `${r.price_per_serving.toFixed(2).replace('.', ',')} €`
@@ -403,17 +417,33 @@ export function MealSlot({
                   <button
                     key={r.id}
                     onClick={() => handleSelect(r.id)}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center justify-between ${
+                    className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-start gap-2.5 ${
                       idx === highlightedIndex ? 'bg-muted' : 'hover:bg-muted'
                     }`}
                   >
-                    <span className="flex items-center gap-1.5 truncate">
-                      <RecipeBadge badge={(r.recipe_badge as 'verified' | 'community' | 'draft') ?? 'community'} />
-                      <span className="truncate">{r.title}</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                      {price} · {r.usage_count}×
-                    </span>
+                    {r.image_thumbnail && (
+                      <img
+                        src={r.image_thumbnail}
+                        alt=""
+                        className="w-9 h-9 rounded object-cover shrink-0 mt-0.5"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <RecipeBadge badge={(r.recipe_badge as 'verified' | 'community' | 'draft') ?? 'community'} />
+                        <span className="truncate font-medium">{r.title}</span>
+                        {r.recipe_type && (
+                          <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+                            {RECIPE_TYPE_LABELS[r.recipe_type] ?? r.recipe_type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <span>{price}</span>
+                        <span>{r.usage_count}× verwendet</span>
+                      </div>
+                    </div>
                   </button>
                 );
               })}

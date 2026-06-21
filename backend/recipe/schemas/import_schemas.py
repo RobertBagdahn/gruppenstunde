@@ -57,7 +57,6 @@ class RecipeDraftOut(BaseModel):
     difficulty: str = "easy"
     execution_time_choice: str = "less_30"
     preparation_time_choice: str = "none"
-    costs_rating: str = "less_1"
     scout_level_ids: list[int] = []
     tag_ids: list[int] = []
     steps: list[str] = []

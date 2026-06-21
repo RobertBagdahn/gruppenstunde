@@ -49,7 +49,6 @@ class GroupSessionFilterIn(Schema):
     scout_level_ids: str | None = None
     tag_slugs: str | None = None
     difficulty: str | None = None
-    costs_rating: str | None = None
     execution_time: str | None = None
     sort: str = "newest"
     page: int = 1
@@ -86,8 +85,6 @@ def list_sessions(request, filters: Query[GroupSessionFilterIn]):
         qs = qs.filter(tags__id__in=expanded_ids)
     if filters.difficulty:
         qs = qs.filter(difficulty=filters.difficulty)
-    if filters.costs_rating:
-        qs = qs.filter(costs_rating=filters.costs_rating)
     if filters.execution_time:
         qs = qs.filter(execution_time=filters.execution_time)
 
@@ -178,7 +175,6 @@ def create_session(request, payload: GroupSessionCreateIn):
         summary=payload.summary,
         summary_long=payload.summary_long,
         description=payload.description,
-        costs_rating=payload.costs_rating,
         execution_time=payload.execution_time,
         preparation_time=payload.preparation_time,
         difficulty=payload.difficulty,
@@ -221,7 +217,6 @@ def update_session(request, session_id: int, payload: GroupSessionUpdateIn):
         "summary",
         "summary_long",
         "description",
-        "costs_rating",
         "execution_time",
         "preparation_time",
         "difficulty",

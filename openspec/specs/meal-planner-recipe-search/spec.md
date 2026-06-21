@@ -50,7 +50,7 @@ Every recipe in search, suggestion, and popular results SHALL display a recipe_b
 When a category-specific search yields fewer results than the requested limit, the system SHALL automatically expand to all recipe_types, filling remaining slots. The response SHALL include fallback_applied: true.
 
 #### Scenario: Category has enough results
-- **WHEN** searching for breakfast recipes and ≥limit results exist in breakfast+simple_meal+dessert
+- **WHEN** searching for breakfast recipes and ≥limit results exist in breakfast+dessert
 - **THEN** only category-specific results are returned with fallback_applied: false
 
 #### Scenario: Category has zero results
@@ -103,11 +103,11 @@ The dessert recipe_type SHALL be included in the MEAL_TYPE_TO_RECIPE_TYPES mappi
 
 #### Scenario: Mapping includes dessert for breakfast
 - **WHEN** meal_type is "breakfast"
-- **THEN** recipe_types searched include breakfast, simple_meal, AND dessert
+- **THEN** recipe_types searched include breakfast AND dessert
 
 #### Scenario: Mapping includes dessert for lunch
 - **WHEN** meal_type is "lunch"
-- **THEN** recipe_types searched include warm_meal, cold_meal, side_dish, AND dessert
+- **THEN** recipe_types searched include warm_meal, cold_meal, AND dessert
 
 ### Requirement: Category pills instead of dropdown
 The recipe_type filter in the RecipeSearchDialog SHALL use horizontally scrollable pills instead of a Select dropdown. The default selection SHALL be pre-set based on the meal's meal_type. "Alle" SHALL be the last option and SHALL clear the filter.

@@ -3,7 +3,6 @@ import { useTags, useScoutLevels } from '@/api/tags';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
-  RECIPE_COSTS_OPTIONS,
   RECIPE_EXECUTION_TIME_OPTIONS,
   RECIPE_ORIGIN_OPTIONS,
   type RecipeFilter,
@@ -43,7 +42,8 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     selectedScoutIds.length > 0 ||
     filters.recipe_type ||
     filters.difficulty ||
-    filters.costs_rating ||
+    filters.costs_min !== undefined ||
+    filters.costs_max !== undefined ||
     filters.execution_time ||
     (filters.origin && filters.origin !== 'all');
 
@@ -52,7 +52,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
     selectedScoutIds.length +
     (filters.recipe_type ? 1 : 0) +
     (filters.difficulty ? 1 : 0) +
-    (filters.costs_rating ? 1 : 0) +
+    (filters.costs_min !== undefined || filters.costs_max !== undefined ? 1 : 0) +
     (filters.execution_time ? 1 : 0) +
     (filters.origin && filters.origin !== 'all' ? 1 : 0);
 
@@ -236,20 +236,34 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
         <div className="bg-card rounded-xl border-l-4 border-l-[hsl(var(--chart-4))] border p-4 shadow-sm">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-3">
             <span className="material-symbols-outlined text-[hsl(var(--chart-4))] text-[18px]">payments</span>
-            <span className="text-[hsl(var(--chart-4))]">Kosten</span>
+            <span className="text-[hsl(var(--chart-4))]">Kosten (€)</span>
           </h3>
-          {RECIPE_COSTS_OPTIONS.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Min</label>
               <input
-                type="radio"
-                name="costs"
-                checked={filters.costs_rating === opt.value}
-                onChange={() => onFilterChange('costs_rating', filters.costs_rating === opt.value ? undefined : opt.value)}
-                className="border-muted-foreground accent-primary"
+                type="number"
+                min={0}
+                step={0.5}
+                value={filters.costs_min ?? ''}
+                onChange={(e) => onFilterChange('costs_min', e.target.value ? parseFloat(e.target.value) : undefined)}
+                placeholder="z.B. 0"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
-              {opt.label}
-            </label>
-          ))}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Max</label>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={filters.costs_max ?? ''}
+                onChange={(e) => onFilterChange('costs_max', e.target.value ? parseFloat(e.target.value) : undefined)}
+                placeholder="z.B. 5"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Duration */}

@@ -128,7 +128,6 @@ class RefurbishOutput(BaseModel):
     summary: str = Field(min_length=80, max_length=500)
     summary_long: str = Field(min_length=200, max_length=2000)
     description: str = Field(min_length=100, max_length=8000)
-    costs_rating: str = Field(description="One of: free, less_1, 1_2, more_2")
     execution_time: str = Field(description="One of: less_30, 30_60, 60_90, more_90")
     preparation_time: str = Field(description="One of: none, less_15, 15_30, 30_60, more_60")
     difficulty: str = Field(description="One of: easy, medium, hard")
@@ -280,7 +279,6 @@ class ContentAIService:
             "- summary_long: Ausführliche Zusammenfassung (200-1000 Zeichen).\n"
             f"- description: Detaillierte Anleitung als Markdown (kein HTML). "
             f"{ct_config['description_hint']} (100-8000 Zeichen)\n"
-            "- costs_rating: Eines von 'free', 'less_1', '1_2', 'more_2'\n"
             "- execution_time: Eines von 'less_30', '30_60', '60_90', 'more_90'\n"
             "- preparation_time: Eines von 'none', 'less_15', '15_30', '30_60', 'more_60'\n"
             "- difficulty: Eines von 'easy', 'medium', 'hard'\n"
@@ -367,7 +365,6 @@ class ContentAIService:
             "suggested_tag_ids": tags["tag_ids"],
             "suggested_tag_names": tags["tag_names"],
             "suggested_tags": suggested_tags,
-            "costs_rating": structured.costs_rating,
             "execution_time": structured.execution_time,
             "preparation_time": structured.preparation_time,
             "difficulty": structured.difficulty,
@@ -397,7 +394,6 @@ class ContentAIService:
             "suggested_tag_ids": [],
             "suggested_tag_names": [],
             "suggested_tags": [],
-            "costs_rating": "free",
             "execution_time": "less_30",
             "preparation_time": "none",
             "difficulty": "easy",

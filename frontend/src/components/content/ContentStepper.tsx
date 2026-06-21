@@ -21,7 +21,6 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 import {
   DIFFICULTY_OPTIONS,
   EXECUTION_TIME_OPTIONS,
-  COSTS_RATING_OPTIONS,
 } from '@/schemas/content';
 import { toast } from 'sonner';
 
@@ -34,7 +33,6 @@ export interface ContentFormData {
   summary: string;
   description: string;
   difficulty: string;
-  costsRating: string;
   executionTime: string;
   preparationTime: string;
   selectedTagIds: number[];
@@ -126,7 +124,6 @@ export default function ContentStepper({
     summary: '',
     description: '',
     difficulty: '',
-    costsRating: '',
     executionTime: '',
     preparationTime: '',
     selectedTagIds: [],
@@ -170,7 +167,6 @@ export default function ContentStepper({
             summary: data.summary,
             description: data.description,
             difficulty: data.difficulty,
-            costsRating: data.costs_rating,
             executionTime: data.execution_time,
             preparationTime: data.preparation_time,
             selectedTagIds: data.suggested_tag_ids,
@@ -537,22 +533,6 @@ export default function ContentStepper({
               </div>
 
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">Kosten</label>
-                <select
-                  value={formData.costsRating}
-                  onChange={(e) => setFormData({ costsRating: e.target.value })}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">— Wählen —</option>
-                  {COSTS_RATING_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
                 <label className="block text-xs text-muted-foreground mb-1">Durchführungszeit</label>
                 <select
                   value={formData.executionTime}
@@ -707,13 +687,7 @@ export default function ContentStepper({
                     {getOptionLabel(DIFFICULTY_OPTIONS, formData.difficulty)}
                   </span>
                 )}
-                {formData.costsRating && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
-                    <span className="material-symbols-outlined text-[14px]">payments</span>
-                    {getOptionLabel(COSTS_RATING_OPTIONS, formData.costsRating)}
-                  </span>
-                )}
-                {formData.executionTime && (
+                    {formData.executionTime && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
                     <span className="material-symbols-outlined text-[14px]">schedule</span>
                     {getOptionLabel(EXECUTION_TIME_OPTIONS, formData.executionTime)}

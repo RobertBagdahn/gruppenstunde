@@ -7,9 +7,10 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
   warm_meal: 'Warme Mahlzeit',
   cold_meal: 'Kalte Mahlzeit',
   dessert: 'Nachtisch',
-  side_dish: 'Beilage',
+  recipe_part: 'Rezeptteil',
   drink: 'Getränk',
-  simple_meal: 'Einfache Mahlzeit',
+  snack: 'Snack',
+  ingredient: 'Zutat',
 };
 
 const RECIPE_TYPE_COLORS: Record<string, string> = {
@@ -17,9 +18,10 @@ const RECIPE_TYPE_COLORS: Record<string, string> = {
   warm_meal: 'bg-orange-100 text-orange-800',
   cold_meal: 'bg-blue-100 text-blue-800',
   dessert: 'bg-pink-100 text-pink-800',
-  side_dish: 'bg-lime-100 text-lime-800',
+  recipe_part: 'bg-purple-100 text-purple-800',
   drink: 'bg-cyan-100 text-cyan-800',
-  simple_meal: 'bg-muted text-muted-foreground',
+  snack: 'bg-yellow-100 text-yellow-800',
+  ingredient: 'bg-teal-100 text-teal-800',
 };
 
 interface RecipeSearchCardProps {

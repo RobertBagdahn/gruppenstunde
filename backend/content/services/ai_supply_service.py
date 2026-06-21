@@ -246,12 +246,37 @@ def match_ingredients_to_database(suggestions: list[dict[str, Any]]) -> list[dic
             except Exception:
                 match = None
 
+        portion_id = None
+        portion_name = None
+        if match:
+            portions_qs = match.portions.filter(deleted_at__isnull=True).select_related("measuring_unit")
+
+            selected = None
+            suggested_unit = suggestion.get("unit", "").strip().lower()
+            if suggested_unit:
+                for p in portions_qs:
+                    if p.measuring_unit and p.measuring_unit.name.lower() == suggested_unit:
+                        selected = p
+                        break
+
+            if not selected:
+                selected = portions_qs.filter(is_default=True).first()
+
+            if not selected:
+                selected = portions_qs.order_by("priority", "-rank").first()
+
+            if selected:
+                portion_id = selected.id
+                portion_name = str(selected)
+
         enriched.append(
             {
                 **suggestion,
                 "ingredient_id": match.id if match else None,
                 "ingredient_slug": match.slug if match else None,
                 "matched_name": match.name if match else None,
+                "portion_id": portion_id,
+                "portion_name": portion_name,
             }
         )
 

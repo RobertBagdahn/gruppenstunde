@@ -97,12 +97,11 @@ def generate_instagram_slides(session) -> list[str]:
     draw3 = ImageDraw.Draw(img3)
 
     # Collect meta info
-    from content.choices import CostsRatingChoices, DifficultyChoices, ExecutionTimeChoices
+    from content.choices import DifficultyChoices, ExecutionTimeChoices
 
     meta_lines = [
         f"⏱ Dauer: {ExecutionTimeChoices(session.execution_time).label}",
         f"📊 Schwierigkeit: {DifficultyChoices(session.difficulty).label}",
-        f"💰 Kosten: {CostsRatingChoices(session.costs_rating).label}",
     ]
 
     # Scout levels

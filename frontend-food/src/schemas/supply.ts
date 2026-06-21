@@ -240,6 +240,11 @@ export const IngredientDetailSchema = z.object({
   chromium_ug: z.number().nullable().optional(),
   fluoride_mg: z.number().nullable().optional(),
 
+  // Standalone food
+  is_standalone_food: z.boolean().default(false),
+  standalone_type: z.string().nullable().optional(),
+  ingredient_ref_id: z.number().nullable().optional(),
+
   // Calculated
   nutri_score: z.number().nullable(),
   nutri_class: z.number().nullable(),

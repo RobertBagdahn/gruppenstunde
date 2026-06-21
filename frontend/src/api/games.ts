@@ -95,7 +95,6 @@ export interface GameCreatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;
@@ -140,7 +139,6 @@ export interface GameUpdatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;

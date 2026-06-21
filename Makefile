@@ -1,4 +1,4 @@
-.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-frontend-food build-backend push-frontend push-frontend-food push-backend deploy-frontend deploy-frontend-food deploy-backend migrate-cloud
+.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-frontend-food build-backend push-frontend push-frontend-food push-backend deploy-frontend deploy-frontend-food deploy-backend migrate-cloud kill-port
 
 # ============================================================
 # Inspi – Makefile for local development
@@ -95,19 +95,34 @@ reset-db: ## Reset database completely (WARNING: destroys all data)
 # Development Servers
 # -----------------------------------------------
 
+kill-port: ## Kill process on given port (usage: make kill-port PORT=8000)
+	@lsof -ti tcp:$(PORT) 2>/dev/null | xargs -r kill -9 && echo "  ✓ Killed process on port $(PORT)" || echo "  ✓ Port $(PORT) is free"
+
 dev: ## Start both backend and frontend concurrently
+	@echo "Checking ports..."
+	@$(MAKE) kill-port PORT=8000
+	@$(MAKE) kill-port PORT=5173
 	@trap 'kill 0' EXIT; \
 	$(MAKE) backend & \
 	$(MAKE) frontend & \
 	wait
 
 backend: ## Start Django dev server
+	@$(MAKE) kill-port PORT=8000
 	$(MANAGE) runserver
 
 frontend: ## Start Vite dev server
+	@$(MAKE) kill-port PORT=5173
 	cd frontend && npm run dev
 
+frontend-food: ## Start Food Vite dev server (port 5174)
+	@$(MAKE) kill-port PORT=5174
+	cd frontend-food && npm run dev
+
 food: ## Start Food app with backend (port 5174 + 8000)
+	@echo "Checking ports..."
+	@$(MAKE) kill-port PORT=8000
+	@$(MAKE) kill-port PORT=5174
 	@trap 'kill 0' EXIT; \
 	$(MAKE) backend & \
 	cd frontend-food && npm run dev & \

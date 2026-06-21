@@ -10,19 +10,20 @@ from planner.tests import make_meal, make_meal_plan
 
 
 @pytest.mark.django_db
-class TestDessertMapping:
-    """Test that dessert is included in MEAL_TYPE_TO_RECIPE_TYPES."""
-
-    def test_dessert_in_all_meal_types(self):
-        for meal_type in ["breakfast", "lunch", "dinner", "snack"]:
-            assert "dessert" in MEAL_TYPE_TO_RECIPE_TYPES[meal_type], \
-                f"dessert missing from {meal_type}"
+class TestMealTypeToRecipeTypes:
+    """Test MEAL_TYPE_TO_RECIPE_TYPES mapping."""
 
     def test_breakfast_includes_correct_types(self):
-        assert set(MEAL_TYPE_TO_RECIPE_TYPES["breakfast"]) == {"breakfast", "simple_meal", "dessert"}
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["breakfast"]) == {"breakfast"}
 
     def test_lunch_includes_correct_types(self):
-        assert set(MEAL_TYPE_TO_RECIPE_TYPES["lunch"]) == {"warm_meal", "cold_meal", "side_dish", "dessert"}
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["lunch"]) == {"warm_meal", "cold_meal"}
+
+    def test_dinner_includes_correct_types(self):
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["dinner"]) == {"warm_meal", "cold_meal"}
+
+    def test_snack_includes_correct_types(self):
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["snack"]) == {"snack"}
 
 
 @pytest.mark.django_db
@@ -96,7 +97,7 @@ class TestDietaryAndFilter:
     """Test nutritional_tag AND filtering and draft inclusion."""
 
     def test_map_has_correct_number_of_types(self):
-        assert len(MEAL_TYPE_TO_RECIPE_TYPES) == 4
+        assert len(MEAL_TYPE_TO_RECIPE_TYPES) == 5
         assert "breakfast" in MEAL_TYPE_TO_RECIPE_TYPES
         assert "snack" in MEAL_TYPE_TO_RECIPE_TYPES
 

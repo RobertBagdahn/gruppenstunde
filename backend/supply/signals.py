@@ -36,15 +36,39 @@ def create_dummy_recipe_for_standalone_food(sender, instance: Ingredient, create
     def _create_recipe():
         from recipe.models import Recipe, RecipeItem
         from django.utils.text import slugify
+        import logging
         import uuid
+
+        logger = logging.getLogger(__name__)
+
+        # Standard-Portion für das RecipeItem ermitteln
+        default_portion = instance.portions.filter(is_default=True).first()
+        if not default_portion:
+            default_portion = instance.portions.first()
 
         # Prüfen ob schon ein Dummy-Rezept für diese Zutat existiert
         existing = Recipe.objects.filter(
-            recipe_type="ingredient",
             title=instance.name,
             owner=getattr(instance, "_changed_by", None),
         ).first()
         if existing:
+            has_ingredient = RecipeItem.objects.filter(
+                recipe=existing,
+                portion__ingredient=instance,
+            ).exists()
+            if not has_ingredient and default_portion:
+                try:
+                    RecipeItem.objects.create(
+                        recipe=existing,
+                        portion=default_portion,
+                        quantity=1,
+                        sort_order=existing.recipe_items.count(),
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to add RecipeItem to existing recipe #%d for ingredient #%d",
+                        existing.pk, instance.pk,
+                    )
             return
 
         # Slug sicherstellen
@@ -56,30 +80,31 @@ def create_dummy_recipe_for_standalone_food(sender, instance: Ingredient, create
             counter += 1
 
         owner = getattr(instance, "_changed_by", None)
+        recipe_type = instance.standalone_type or "snack"
 
         recipe = Recipe.objects.create(
             title=instance.name,
             slug=slug,
-            recipe_type="ingredient",
+            recipe_type=recipe_type,
             portions=1,
             owner=owner,
             status="approved",
             visibility="public" if owner is None else "private",
         )
 
-        # Standard-Portion als RecipeItem hinzufügen
-        default_portion = instance.portions.filter(is_default=True).first()
-        if not default_portion:
-            default_portion = instance.portions.first()
-
         if default_portion:
-            RecipeItem.objects.create(
-                recipe=recipe,
-                portion=default_portion,
-                ingredient=instance,
-                quantity=1,
-                sort_order=0,
-            )
+            try:
+                RecipeItem.objects.create(
+                    recipe=recipe,
+                    portion=default_portion,
+                    quantity=1,
+                    sort_order=0,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to create RecipeItem for recipe #%d (ingredient #%d)",
+                    recipe.pk, instance.pk,
+                )
 
     transaction.on_commit(_create_recipe)
 

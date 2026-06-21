@@ -35,8 +35,10 @@ function searchParamsToFilters(params: URLSearchParams): Partial<RecipeFilter> {
   if (recipeType) filters.recipe_type = recipeType;
   const difficulty = params.get('difficulty');
   if (difficulty) filters.difficulty = difficulty;
-  const costsRating = params.get('costs_rating');
-  if (costsRating) filters.costs_rating = costsRating;
+  const costsMin = params.get('costs_min');
+  if (costsMin) filters.costs_min = parseFloat(costsMin);
+  const costsMax = params.get('costs_max');
+  if (costsMax) filters.costs_max = parseFloat(costsMax);
   const executionTime = params.get('execution_time');
   if (executionTime) filters.execution_time = executionTime;
   const sort = params.get('sort');
@@ -58,7 +60,8 @@ function filtersToSearchParams(filters: Partial<RecipeFilter>): URLSearchParams 
   if (filters.q) params.set('q', filters.q);
   if (filters.recipe_type) params.set('recipe_type', filters.recipe_type);
   if (filters.difficulty) params.set('difficulty', filters.difficulty);
-  if (filters.costs_rating) params.set('costs_rating', filters.costs_rating);
+  if (filters.costs_min !== undefined) params.set('costs_min', String(filters.costs_min));
+  if (filters.costs_max !== undefined) params.set('costs_max', String(filters.costs_max));
   if (filters.execution_time) params.set('execution_time', filters.execution_time);
   if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));

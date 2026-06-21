@@ -727,7 +727,7 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     def _import_activities(self) -> None:
-        from content.choices import ContentStatus, CostsRatingChoices, DifficultyChoices, ExecutionTimeChoices
+        from content.choices import ContentStatus, DifficultyChoices, ExecutionTimeChoices
         from game.models import Game
         from session.models import GroupSession
 
@@ -747,11 +747,7 @@ class Command(BaseCommand):
             2: ExecutionTimeChoices.BETWEEN_30_60,
             3: ExecutionTimeChoices.BETWEEN_60_90,
         }
-        costs_map = {
-            0: CostsRatingChoices.FREE,
-            1: CostsRatingChoices.LESS_1,
-            2: CostsRatingChoices.BETWEEN_1_2,
-        }
+            costs_map = {}
 
         # Location → Game play_area / GroupSession location_type
         location_to_play_area = {
@@ -793,8 +789,6 @@ class Command(BaseCommand):
             summary = html_to_markdown(fields.get("summary", ""))
             difficulty_raw = self._safe_int(fields.get("difficulty")) or 0
             exec_time_raw = self._safe_int(fields.get("execution_time")) or 0
-            costs_raw = self._safe_int(fields.get("costs_rating")) or 0
-
             status = ContentStatus.APPROVED if fields.get("status") == "2" else ContentStatus.DRAFT
 
             slug = slugify(title, allow_unicode=True)[:280]
@@ -826,7 +820,6 @@ class Command(BaseCommand):
                     description=description,
                     difficulty=difficulty_map.get(difficulty_raw, DifficultyChoices.EASY),
                     execution_time=execution_time_map.get(exec_time_raw, ExecutionTimeChoices.LESS_30),
-                    costs_rating=costs_map.get(costs_raw, CostsRatingChoices.FREE),
                     status=status,
                     game_type="group_game",
                     play_area=play_area,
@@ -862,7 +855,6 @@ class Command(BaseCommand):
                     description=description,
                     difficulty=difficulty_map.get(difficulty_raw, DifficultyChoices.EASY),
                     execution_time=execution_time_map.get(exec_time_raw, ExecutionTimeChoices.LESS_30),
-                    costs_rating=costs_map.get(costs_raw, CostsRatingChoices.FREE),
                     status=status,
                     session_type=session_type,
                     location_type=location_type,

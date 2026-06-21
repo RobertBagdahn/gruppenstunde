@@ -12,7 +12,6 @@ import {
   useDeletePortion,
   useCreateAlias,
   useDeleteAlias,
-  useRetailSections,
   useAiSuggestIngredientAll,
   useMeasuringUnits,
   useRecipesByIngredient,
@@ -25,6 +24,12 @@ import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSug
 import { IngredientBenchmarkSection } from '@/components/ingredient/IngredientBenchmarkSection';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+const STATUS_OPTIONS = [
+  { value: 'draft', label: 'Entwurf' },
+  { value: 'verified', label: 'Verifiziert' },
+  { value: 'user_content', label: 'Benutzer erstellt' },
+];
 
 // ---------------------------------------------------------------------------
 // NutriScoreBadge
@@ -454,10 +459,7 @@ export default function IngredientDetailPage() {
   const updatePortion = useUpdatePortion(slug || '');
   const createAlias = useCreateAlias(slug || '');
   const deleteAlias = useDeleteAlias(slug || '');
-  const { data: retailSections } = useRetailSections();
-
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showEditFields, setShowEditFields] = useState(false);
   const [deleteAliasId, setDeleteAliasId] = useState<number | null>(null);
 
   // Portion add
@@ -470,9 +472,6 @@ export default function IngredientDetailPage() {
   // Alias add
   const [showAddAlias, setShowAddAlias] = useState(false);
   const [newAliasName, setNewAliasName] = useState('');
-
-  // Edit fields
-  const [editRetailSection, setEditRetailSection] = useState<string>('');
 
   // AI Suggest
   const [showAiSuggest, setShowAiSuggest] = useState(false);
@@ -644,19 +643,6 @@ export default function IngredientDetailPage() {
     );
   };
 
-  const handleUpdateRetailSection = () => {
-    updateIngredient.mutate(
-      { retail_section_id: editRetailSection ? Number(editRetailSection) : null },
-      {
-        onSuccess: () => {
-          toast.success('Abteilung aktualisiert');
-          setShowEditFields(false);
-        },
-        onError: (err) => toast.error('Fehler', { description: err.message }),
-      },
-    );
-  };
-
   const formatPrice = (price: number | null) => {
     if (price === null) return '\u2014';
     return `${price.toFixed(2).replace('.', ',')} EUR`;
@@ -682,9 +668,13 @@ export default function IngredientDetailPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground truncate">{ingredient.name}</h1>
-            {ingredient.status === 'draft' && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[hsl(var(--chart-4))]/10 border border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))] font-medium shrink-0">
-                Entwurf
+            {ingredient.status !== 'verified' && (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 border ${
+                ingredient.status === 'draft'
+                  ? 'bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]'
+                  : 'bg-[hsl(var(--chart-5))]/10 border-[hsl(var(--chart-5))]/20 text-[hsl(var(--chart-5))]'
+              }`}>
+                {STATUS_OPTIONS.find((s) => s.value === ingredient.status)?.label ?? ingredient.status}
               </span>
             )}
           </div>
@@ -711,6 +701,15 @@ export default function IngredientDetailPage() {
                 {formatPrice(ingredient.price_per_kg)}/kg
               </span>
             )}
+            {ingredient.is_standalone_food && (
+              <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded font-medium">
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                Roh verzehrbar
+                {ingredient.standalone_type && (
+                  <span className="ml-0.5 text-muted-foreground">({ingredient.standalone_type})</span>
+                )}
+              </span>
+            )}
           </div>
         </div>
 
@@ -733,10 +732,7 @@ export default function IngredientDetailPage() {
             {canEdit && (
               <>
                 <button
-                  onClick={() => {
-                    setEditRetailSection(String(ingredient.retail_section_id || ''));
-                    setShowEditFields(!showEditFields);
-                  }}
+                  onClick={() => navigate(`/ingredients/${ingredient.slug}/edit`)}
                   className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
                   title="Bearbeiten"
                 >
@@ -754,45 +750,6 @@ export default function IngredientDetailPage() {
           </div>
         )}
       </div>
-
-      {/* Edit Panel */}
-      {showEditFields && (
-        <div className="border border-border rounded-xl p-4 mb-6 bg-card shadow-soft">
-          <h3 className="text-sm font-display font-bold text-foreground mb-3">Zutat bearbeiten</h3>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Supermarkt-Abteilung</label>
-              <select
-                value={editRetailSection}
-                onChange={(e) => setEditRetailSection(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border text-sm bg-background"
-              >
-                <option value="">Keine Abteilung</option>
-                {retailSections?.map((rs) => (
-                  <option key={rs.id} value={rs.id}>
-                    {rs.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end gap-2">
-              <button
-                onClick={handleUpdateRetailSection}
-                disabled={updateIngredient.isPending}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
-              >
-                Speichern
-              </button>
-              <button
-                onClick={() => setShowEditFields(false)}
-                className="px-4 py-2 border rounded-md text-sm hover:bg-muted"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Nutritional Tags */}
       {ingredient.nutritional_tags.length > 0 && (

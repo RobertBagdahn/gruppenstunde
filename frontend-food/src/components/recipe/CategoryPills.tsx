@@ -6,7 +6,6 @@ export const RECIPE_TYPES = [
   { value: 'recipe_part', label: 'Rezeptteil' },
   { value: 'drink', label: 'Getränke' },
   { value: 'snack', label: 'Snack' },
-  { value: 'ingredient', label: 'Zutat' },
 ] as const;
 
 export type RecipeTypeValue = typeof RECIPE_TYPES[number]['value'];
@@ -18,9 +17,10 @@ export const RECIPE_TYPE_LABELS: Record<string, string> = Object.fromEntries(
 interface CategoryPillsProps {
   selected: Set<string>;
   onChange: (value: Set<string>) => void;
+  showAll?: boolean;
 }
 
-export default function CategoryPills({ selected, onChange }: CategoryPillsProps) {
+export default function CategoryPills({ selected, onChange, showAll = true }: CategoryPillsProps) {
   const toggle = (value: string) => {
     const next = new Set(selected);
     if (next.has(value)) {
@@ -35,16 +35,18 @@ export default function CategoryPills({ selected, onChange }: CategoryPillsProps
 
   return (
     <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-      <button
-        onClick={() => onChange(new Set())}
-        className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
-          allSelected
-            ? 'bg-primary text-primary-foreground border-primary'
-            : 'bg-card text-muted-foreground border-border hover:bg-muted'
-        }`}
-      >
-        Alle
-      </button>
+      {showAll && (
+        <button
+          onClick={() => onChange(new Set())}
+          className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+            allSelected
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-card text-muted-foreground border-border hover:bg-muted'
+          }`}
+        >
+          Alle
+        </button>
+      )}
       {RECIPE_TYPES.map(({ value, label }) => {
         const active = selected.has(value);
         return (

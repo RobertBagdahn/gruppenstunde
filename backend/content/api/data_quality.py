@@ -47,7 +47,6 @@ from content.schemas.data_quality import (
     RecipeMetadataCheckOut,
 )
 from content.services.audit_service import get_audit_log_queryset
-from content.services.embedding_service import find_similar_ingredients, find_similar_recipes
 from supply.models import Ingredient
 
 logger = logging.getLogger(__name__)
@@ -215,84 +214,111 @@ def price_apply(request, body: PriceApplyRequestIn):
 
 
 @admin_router.get("/ingredients/duplicates/", response=PaginatedDuplicatePairOut)
-def ingredient_duplicates(
-    request,
-    page: int = 1,
-    page_size: int = 20,
-    threshold: float = 0.05,
-):
+def ingredient_duplicates(request):
     _require_staff(request)
-    threshold = max(0.001, min(0.5, threshold))
 
-    ingredients = Ingredient.objects.exclude(embedding__isnull=True).only("id", "name", "slug", "embedding")
-    pairs = []
-    seen = set()
+    from django.db import connection
+
     dismissed = set(
         DuplicateDismissal.objects.filter(
             source_content_type=ContentType.objects.get_for_model(Ingredient),
         ).values_list("source_object_id", "target_object_id")
     )
 
-    for ing in ingredients:
-        similar = find_similar_ingredients(ing, threshold=threshold, limit=10)
-        for sim in similar:
-            pair_key = tuple(sorted([ing.id, sim["id"]]))
-            if pair_key in seen:
-                continue
-            if (ing.id, sim["id"]) in dismissed or (sim["id"], ing.id) in dismissed:
-                continue
-            seen.add(pair_key)
-            pairs.append({
-                "ingredient_a": {"id": ing.id, "name": ing.name, "slug": ing.slug},
-                "ingredient_b": {"id": sim["id"], "name": sim["name"], "slug": sim["slug"]},
-                "similarity": round(1.0 - sim["distance"], 4),
-            })
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            WITH candidates AS (
+                SELECT id, name, slug, embedding
+                FROM supply_ingredient
+                WHERE embedding IS NOT NULL
+                ORDER BY id DESC
+                LIMIT 100
+            )
+            SELECT a.id, a.name, a.slug,
+                   b.id, b.name, b.slug,
+                   1 - b.dist AS sim
+            FROM candidates a
+            CROSS JOIN LATERAL (
+                SELECT sub.id, sub.name, sub.slug,
+                       a.embedding <=> sub.embedding AS dist
+                FROM supply_ingredient sub
+                WHERE sub.id != a.id
+                  AND sub.embedding IS NOT NULL
+                ORDER BY dist
+                LIMIT 10
+            ) b
+            ORDER BY sim DESC
+            LIMIT 5
+            """
+        )
+        rows = cursor.fetchall()
 
-    pairs.sort(key=lambda p: p["similarity"], reverse=True)
-    total = len(pairs)
-    total_pages = max(1, math.ceil(total / page_size))
-    start = (page - 1) * page_size
-    page_items = pairs[start:start + page_size]
+    seen = set()
+    pairs = []
+    for id_a, name_a, slug_a, id_b, name_b, slug_b, sim in rows:
+        pair_key = (id_a, id_b) if id_a < id_b else (id_b, id_a)
+        if pair_key in seen or pair_key in dismissed:
+            continue
+        seen.add(pair_key)
+        pairs.append({
+            "ingredient_a": {"id": id_a, "name": name_a, "slug": slug_a},
+            "ingredient_b": {"id": id_b, "name": name_b, "slug": slug_b},
+            "similarity": round(sim, 4),
+        })
 
-    return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+    return {"items": pairs, "total": len(pairs), "page": 1, "page_size": 5, "total_pages": 1}
 
 
 @admin_router.get("/recipes/duplicates/", response=PaginatedDuplicatePairOut)
-def recipe_duplicates(
-    request,
-    page: int = 1,
-    page_size: int = 20,
-    threshold: float = 0.05,
-):
+def recipe_duplicates(request):
     _require_staff(request)
-    threshold = max(0.001, min(0.5, threshold))
 
-    from recipe.models import Recipe
+    from django.db import connection
 
-    recipes = Recipe.objects.exclude(embedding__isnull=True).only("id", "title", "slug", "embedding")
-    pairs = []
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            WITH candidates AS (
+                SELECT id, title, slug, embedding
+                FROM recipe_recipe
+                WHERE embedding IS NOT NULL
+                ORDER BY id DESC
+                LIMIT 100
+            )
+            SELECT a.id, a.title, a.slug,
+                   b.id, b.title, b.slug,
+                   1 - b.dist AS sim
+            FROM candidates a
+            CROSS JOIN LATERAL (
+                SELECT sub.id, sub.title, sub.slug,
+                       a.embedding <=> sub.embedding AS dist
+                FROM recipe_recipe sub
+                WHERE sub.id != a.id
+                  AND sub.embedding IS NOT NULL
+                ORDER BY dist
+                LIMIT 10
+            ) b
+            ORDER BY sim DESC
+            LIMIT 5
+            """
+        )
+        rows = cursor.fetchall()
+
     seen = set()
+    pairs = []
+    for id_a, title_a, slug_a, id_b, title_b, slug_b, sim in rows:
+        pair_key = (id_a, id_b) if id_a < id_b else (id_b, id_a)
+        if pair_key in seen:
+            continue
+        seen.add(pair_key)
+        pairs.append({
+            "ingredient_a": {"id": id_a, "name": title_a, "slug": slug_a},
+            "ingredient_b": {"id": id_b, "name": title_b, "slug": slug_b},
+            "similarity": round(sim, 4),
+        })
 
-    for recipe in recipes:
-        similar = find_similar_recipes(recipe, threshold=threshold, limit=10)
-        for sim in similar:
-            pair_key = tuple(sorted([recipe.id, sim["id"]]))
-            if pair_key in seen:
-                continue
-            seen.add(pair_key)
-            pairs.append({
-                "ingredient_a": {"id": recipe.id, "name": recipe.title, "slug": recipe.slug},
-                "ingredient_b": {"id": sim["id"], "name": sim["title"], "slug": sim["slug"]},
-                "similarity": round(1.0 - sim["distance"], 4),
-            })
-
-    pairs.sort(key=lambda p: p["similarity"], reverse=True)
-    total = len(pairs)
-    total_pages = max(1, math.ceil(total / page_size))
-    start = (page - 1) * page_size
-    page_items = pairs[start:start + page_size]
-
-    return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+    return {"items": pairs, "total": len(pairs), "page": 1, "page_size": 5, "total_pages": 1}
 
 
 @admin_router.post("/ingredients/duplicates/dismiss/")
@@ -323,8 +349,11 @@ def undismiss_duplicate(request, body: DismissRequestIn):
 @admin_router.get("/ingredients/merge/preview/", response=MergePreviewOut)
 def merge_preview(request, source_id: int, target_id: int):
     _require_staff(request)
-    source = Ingredient.objects.get(id=source_id)
-    target = Ingredient.objects.get(id=target_id)
+    try:
+        source = Ingredient.objects.get(id=source_id)
+        target = Ingredient.objects.get(id=target_id)
+    except Ingredient.DoesNotExist:
+        raise HttpError(404, "Zutat nicht gefunden")
 
     from recipe.models import RecipeItem
     affected = RecipeItem.objects.filter(portion__ingredient=source).count()
@@ -350,8 +379,11 @@ def merge_ingredients(request, body: MergeRequestIn):
     if body.source_id == body.target_id:
         raise HttpError(400, "Quell- und Ziel-Zutat dürfen nicht identisch sein")
 
-    source = Ingredient.objects.get(id=body.source_id)
-    target = Ingredient.objects.get(id=body.target_id)
+    try:
+        source = Ingredient.objects.get(id=body.source_id)
+        target = Ingredient.objects.get(id=body.target_id)
+    except Ingredient.DoesNotExist:
+        raise HttpError(404, "Zutat nicht gefunden")
 
     # Add source name as alias to target
     from supply.models import IngredientAlias

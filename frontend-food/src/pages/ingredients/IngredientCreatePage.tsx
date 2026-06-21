@@ -103,6 +103,16 @@ export default function IngredientCreatePage() {
   const [novaScore, setNovaScore] = useState('');
   const [fruitFactor, setFruitFactor] = useState('');
 
+  // Standalone food
+  const [isStandaloneFood, setIsStandaloneFood] = useState(false);
+  const [standaloneType, setStandaloneType] = useState('');
+
+  // Price
+  const [pricePerKg, setPricePerKg] = useState('');
+
+  // Vitamin C
+  const [vitaminCMg, setVitaminCMg] = useState('');
+
   // References
   const [fdcId, setFdcId] = useState('');
   const [nanArtIdRewe, setNanArtIdRewe] = useState('');
@@ -166,6 +176,11 @@ export default function IngredientCreatePage() {
       environmental_score: toNum(environmentalScore),
       nova_score: toNum(novaScore),
       fruit_factor: toNum(fruitFactor),
+
+      is_standalone_food: isStandaloneFood,
+      standalone_type: standaloneType || null,
+      price_per_kg: toNum(pricePerKg),
+      vitamin_c_mg: toNum(vitaminCMg),
 
       fdc_id: toNum(fdcId),
       nan_art_id_rewe: toNum(nanArtIdRewe),
@@ -254,7 +269,33 @@ export default function IngredientCreatePage() {
                 ))}
               </select>
             </Field>
+            <Field label="Preis pro kg (EUR)">
+              <input type="number" step="0.01" min="0" value={pricePerKg} onChange={(e) => setPricePerKg(e.target.value)} className={inputClass} />
+            </Field>
+            <Field label="Roh verzehrbar">
+              <label className="flex items-center gap-2 pt-2 cursor-pointer">
+                <input type="checkbox" checked={isStandaloneFood} onChange={(e) => setIsStandaloneFood(e.target.checked)} className="h-4 w-4" />
+                <span className="text-sm text-muted-foreground">Kann roh/direkt gegessen werden</span>
+              </label>
+            </Field>
           </div>
+          {isStandaloneFood && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Mahlzeittyp bei Rohverzehr">
+                <select value={standaloneType} onChange={(e) => setStandaloneType(e.target.value)} className={inputClass}>
+                  <option value="">Bitte wählen</option>
+                  <option value="breakfast">Frühstück</option>
+                  <option value="warm_meal">Warme Mahlzeit</option>
+                  <option value="cold_meal">Kalte Mahlzeit</option>
+                  <option value="dessert">Nachtisch</option>
+                  <option value="recipe_part">Rezeptteil</option>
+                  <option value="drink">Getränk</option>
+                  <option value="snack">Snack</option>
+                  <option value="ingredient">Zutat</option>
+                </select>
+              </Field>
+            </div>
+          )}
         </FormSection>
 
         {/* Nährwerte */}
@@ -292,6 +333,9 @@ export default function IngredientCreatePage() {
             </Field>
             <Field label="Lactose (g)">
               <input type="number" step="0.01" value={lactoseG} onChange={(e) => setLactoseG(e.target.value)} className={inputClass} />
+            </Field>
+            <Field label="Vitamin C (mg)">
+              <input type="number" step="0.1" value={vitaminCMg} onChange={(e) => setVitaminCMg(e.target.value)} className={inputClass} />
             </Field>
           </div>
         </FormSection>

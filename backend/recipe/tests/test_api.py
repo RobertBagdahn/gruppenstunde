@@ -96,7 +96,7 @@ def draft_recipe(db):
     return Recipe.objects.create(
         title="Entwurf-Rezept",
         summary="Noch nicht fertig",
-        recipe_type="simple_meal",
+        recipe_type="snack",
         status=ContentStatus.DRAFT,
     )
 
@@ -245,7 +245,7 @@ class TestCreateRecipe:
                 {
                     "title": "Kartoffelsalat",
                     "summary": "Klassischer Kartoffelsalat",
-                    "recipe_type": "side_dish",
+                    "recipe_type": "recipe_part",
                     "portions": 6,
                     "difficulty": "easy",
                 }
@@ -256,7 +256,7 @@ class TestCreateRecipe:
         data = resp.json()
         assert data["title"] == "Kartoffelsalat"
         assert data["status"] == "draft"
-        assert data["recipe_type"] == "side_dish"
+        assert data["recipe_type"] == "recipe_part"
         assert data["portions"] == 1  # Always stored per-1-portion
         assert data["visibility"] == "private"
         assert data["recipe_badge"] == "personal"

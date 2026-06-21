@@ -146,3 +146,41 @@ Test-Konventionen:
 - Dateien: `<app>/tests/test_<feature>.py`
 - Klassen: `@pytest.mark.django_db class Test<Feature>:`
 - DB: SQLite in Tests (kein PostgreSQL-FTS — FTS-abhängige Tests mit `recipe_type`-Filter umgehen oder skippen)
+
+## Migrationen — Lebenswichtige Regeln
+
+### ❌ NIEMALS bestehende Migrationen in-place ändern
+
+Migrationen, die bereits auf **irgendeiner** Umgebung (lokal, staging, prod) ausgeführt wurden, dürfen **niemals** nachträglich editiert werden (`0001_initial.py`, `0007_meal_enhancements.py`, etc.).
+
+**Warum:** Die `django_migrations`-Tabelle speichert nur, *dass* eine Migration ausgeführt wurde, nicht *welchen Code* sie damals hatte. Wird die Datei nachträglich geändert (Feld umbenannt, Tabelle anders angelegt), entsteht ein permanenter Drift zwischen Datenbank und Modell — der nur durch manuelle SQL-Migrationen repariert werden kann.
+
+✅ **Stattdessen:** Für jede Schema-Änderung eine **neue Migration** erstellen:
+```bash
+uv run python manage.py makemigrations
+```
+
+### ✅ Nach jedem Model-Change prüfen
+
+```bash
+uv run python manage.py makemigrations --check  # sollte 0 sein
+uv run python manage.py showmigrations          # keine [ ] Einträge
+```
+
+### ⚠️ Vor dem Deploy auf Produktion
+
+Bei bestehenden Datenbanken (nicht frisch via `migrate` angelegt):
+
+1. `uv run python manage.py makemigrations --check` — muss "No changes detected" melden
+2. `uv run python manage.py showmigrations` — alle Einträge müssen `[X]` sein
+3. Vollständigen DB-Check machen:
+   ```python
+   # Fehlt eine DB-Tabelle für ein Model?
+   # Starte Django shell und prüfe:
+   from django.db import connection
+   for model in apps.get_models():
+       with connection.cursor() as cursor:
+           cursor.execute("SELECT to_regclass(%s)", [model._meta.db_table])
+           if cursor.fetchone()[0] is None:
+               print("FEHLT:", model._meta.db_table)
+   ```

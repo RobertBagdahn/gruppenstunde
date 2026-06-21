@@ -20,7 +20,7 @@ import CategoryPills, { RECIPE_TYPE_LABELS } from '@/components/recipe/CategoryP
 import RecipeSearchCard from '@/components/recipe/RecipeSearchCard';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
-const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
+export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
   breakfast: ['breakfast'],
   lunch: ['warm_meal', 'cold_meal'],
   dinner: ['warm_meal', 'cold_meal'],

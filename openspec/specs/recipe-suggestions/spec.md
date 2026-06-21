@@ -52,7 +52,7 @@ Das System MUSS einen API-Endpunkt bereitstellen der Rezept-Vorschläge nach Hä
 Wenn kategoriespezifische Vorschläge weniger als `limit` Ergebnisse liefern, MUSS der Endpoint mit Ergebnissen aus allen recipe_types auffüllen (ohne Duplikate). Der Response MUSS `fallback_applied: true` enthalten.
 
 #### Scenario: Keine Frühstücks-Vorschläge
-- **WHEN** keine Rezepte vom Typ breakfast+simple_meal+dessert existieren
+- **WHEN** keine Rezepte vom Typ breakfast+dessert existieren
 - **THEN** werden Rezepte aus allen recipe_types zurückgegeben mit fallback_applied: true
 
 ### Requirement: Harter Diät-Filter für Vorschläge

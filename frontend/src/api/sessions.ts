@@ -37,7 +37,6 @@ function buildFilterParams(filters: Partial<GroupSessionFilter>): string {
   if (filters.session_type) params.set('session_type', filters.session_type);
   if (filters.location_type) params.set('location_type', filters.location_type);
   if (filters.difficulty) params.set('difficulty', filters.difficulty);
-  if (filters.costs_rating) params.set('costs_rating', filters.costs_rating);
   if (filters.sort) params.set('sort', filters.sort);
   if (filters.page) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
@@ -96,7 +95,6 @@ export interface SessionCreatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;
@@ -139,7 +137,6 @@ export interface SessionUpdatePayload {
   summary?: string;
   summary_long?: string;
   description?: string;
-  costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;

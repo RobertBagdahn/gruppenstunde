@@ -129,8 +129,10 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
     if filters.difficulty:
         qs = qs.filter(difficulty=filters.difficulty)
 
-    if filters.costs_rating:
-        qs = qs.filter(costs_rating=filters.costs_rating)
+    if filters.costs_min is not None:
+        qs = qs.filter(cached_price_total__gte=filters.costs_min)
+    if filters.costs_max is not None:
+        qs = qs.filter(cached_price_total__lte=filters.costs_max)
 
     if filters.execution_time:
         qs = qs.filter(execution_time=filters.execution_time)
@@ -245,7 +247,6 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
             "difficulty": result.difficulty,
             "execution_time_choice": result.execution_time_choice,
             "preparation_time_choice": result.preparation_time_choice,
-            "costs_rating": result.costs_rating,
             "scout_level_ids": result.scout_level_ids,
             "tag_ids": result.tag_ids,
             "steps": result.steps,
@@ -375,7 +376,6 @@ def create_recipe(request, payload: RecipeCreateIn):
         description=payload.description,
         recipe_type=payload.recipe_type,
         portions=1,  # Always store per-1-portion
-        costs_rating=payload.costs_rating,
         execution_time=payload.execution_time,
         preparation_time=payload.preparation_time,
         difficulty=payload.difficulty,
@@ -634,7 +634,6 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
         description=original.description,
         recipe_type=original.recipe_type,
         portions=original.portions,
-        costs_rating=original.costs_rating,
         execution_time=original.execution_time,
         preparation_time=original.preparation_time,
         difficulty=original.difficulty,

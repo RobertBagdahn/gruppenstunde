@@ -129,29 +129,21 @@ export function usePriceApply() {
 // Duplicate Detection
 // ============================================================================
 
-export function useIngredientDuplicates(params: { page?: number; page_size?: number; threshold?: number } = {}) {
-  const searchParams = new URLSearchParams();
-  if (params.page) searchParams.set('page', String(params.page));
-  if (params.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params.threshold !== undefined) searchParams.set('threshold', String(params.threshold));
+export function useIngredientDuplicates() {
   return useQuery({
-    queryKey: ['ingredient-duplicates', params] as const,
+    queryKey: ['ingredient-duplicates'],
     queryFn: async () => {
-      const data = await fetchJson(`${ADMIN_DQ}/ingredients/duplicates/?${searchParams}`);
+      const data = await fetchJson(`${ADMIN_DQ}/ingredients/duplicates/`);
       return PaginatedDuplicatePairSchema.parse(data);
     },
   });
 }
 
-export function useRecipeDuplicates(params: { page?: number; page_size?: number; threshold?: number } = {}) {
-  const searchParams = new URLSearchParams();
-  if (params.page) searchParams.set('page', String(params.page));
-  if (params.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params.threshold !== undefined) searchParams.set('threshold', String(params.threshold));
+export function useRecipeDuplicates() {
   return useQuery({
-    queryKey: ['recipe-duplicates', params] as const,
+    queryKey: ['recipe-duplicates'],
     queryFn: async () => {
-      const data = await fetchJson(`${ADMIN_DQ}/recipes/duplicates/?${searchParams}`);
+      const data = await fetchJson(`${ADMIN_DQ}/recipes/duplicates/`);
       return PaginatedDuplicatePairSchema.parse(data);
     },
   });

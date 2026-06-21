@@ -12,7 +12,6 @@ from pgvector.django import VectorField
 
 from ..choices import (
     ContentStatus,
-    CostsRatingChoices,
     DifficultyChoices,
     ExecutionTimeChoices,
     PreparationTimeChoices,
@@ -114,11 +113,6 @@ class Content(SoftDeleteModel):
     description = models.TextField(blank=True, default="")
 
     # --- Ratings & Filters ---
-    costs_rating = models.CharField(
-        max_length=20,
-        choices=CostsRatingChoices.choices,
-        default=CostsRatingChoices.FREE,
-    )
     execution_time = models.CharField(
         max_length=20,
         choices=ExecutionTimeChoices.choices,

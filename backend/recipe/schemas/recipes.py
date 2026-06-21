@@ -266,7 +266,8 @@ class RecipeFilterIn(Schema):
     scout_level_ids: list[int] | None = None
     tag_slugs: list[str] | None = None
     difficulty: str | None = None
-    costs_rating: str | None = None
+    costs_min: float | None = None
+    costs_max: float | None = None
     execution_time: str | None = None
     origin: str | None = None  # "all" | "verified" | "community" | "mine"
     sort: str = "newest"
