@@ -56,26 +56,26 @@
 
 ## 7. Analyse-Histogramme
 
-- [ ] 7.1 `RecipeHistogram.tsx` (NEU): Recharts-Histogramm mit markierter Rezept-Position
-- [ ] 7.2 `RecipeCategoryBenchmark.tsx`: simplen min→max-Balken durch Histogramm ersetzen; neutrale Perzentil-Aussage
-- [ ] 7.3 `PriceTab.tsx`: Preis/Portion-Histogramm (≥10 Rezepte)
-- [ ] 7.4 `NutritionTab.tsx`: Kalorien/Portion + Protein/Portion Histogramme (≥10 Rezepte)
-- [ ] 7.5 `HealthTab.tsx`: Nutri-Score-Verteilung beibehalten/verbessern (Token-Farben)
+- [x] 7.1 `RecipeHistogram.tsx` (NEU): Recharts-Histogramm mit markierter Rezept-Position
+- [x] 7.2 `RecipeCategoryBenchmark.tsx`: simplen min→max-Balken durch Histogramm ersetzen; neutrale Perzentil-Aussage
+- [x] 7.3 `PriceTab.tsx`: Preis/Portion-Histogramm (≥10 Rezepte)
+- [x] 7.4 `NutritionTab.tsx`: Kalorien/Portion + Protein/Portion Histogramme (≥10 Rezepte)
+- [x] 7.5 `HealthTab.tsx`: Nutri-Score-Verteilung beibehalten/verbessern (Token-Farben)
 
 ## 8. Zusatz-Features
 
-- [ ] 8.1 `NutritionBigTable.tsx` (NEU): pro 100g + pro Portion + Gesamt (× n) + DGE-%
-- [ ] 8.2 `AllergenIndicator.tsx` (NEU): Ampel aus `NutritionalTag.is_dangerous`, klickbar
-- [ ] 8.3 Kosten-Aufschlüsselung: pro Zutat auf `/ingredients/{slug}` verlinken (entity-link)
-- [ ] 8.4 `RecipeUsageInMealPlans.tsx` (NEU): "In X Essensplänen verwendet" + Links
-- [ ] 8.5 `SeasonalityBar.tsx` (NEU): Jahres-Leiste aus `Ingredient.season_start/end`
-- [ ] 8.6 Versions-/Änderungshinweis: "zuletzt aktualisiert" + Fork-Basis verlinkt
-- [ ] 8.7 `RecipeTOC.tsx` (NEU): sticky Sprung-Navigation (Desktop)
+- [x] 8.1 `NutritionBigTable.tsx` (NEU): pro 100g + pro Portion + Gesamt (× n) + DGE-%
+- [x] 8.2 `AllergenIndicator.tsx` (NEU): Ampel aus `NutritionalTag.is_dangerous`, klickbar
+- [x] 8.3 Kosten-Aufschlüsselung: pro Zutat auf `/ingredients/{slug}` verlinken (entity-link)
+- [x] 8.4 `RecipeUsageInMealPlans.tsx` (NEU): "In X Essensplänen verwendet" + Links
+- [x] 8.5 `SeasonalityBar.tsx` (NEU): Jahres-Leiste aus `Ingredient.season_start/end`
+- [x] 8.6 Versions-/Änderungshinweis: "zuletzt aktualisiert" + Fork-Basis verlinkt
+- [x] 8.7 `RecipeTOC.tsx` (NEU): sticky Sprung-Navigation (Desktop)
 
 ## 9. Verifikation
 
 - [x] 9.1 `uv run pytest recipe/tests/ -x -v`
 - [x] 9.2 `uv run pytest supply/tests/test_shopping_service.py -x -v`
-- [ ] 9.3 `npm run build` in `frontend-food/` erfolgreich
-- [ ] 9.4 Visueller Check: persönliches Rezept ohne Crash, Sidebar-Metadaten, Histogramme (≥10), zwei-spaltige Portionen, Bild-Placeholder, default geschlossene Zubereitung
+- [x] 9.3 `npm run build` in `frontend-food/` erfolgreich
+- [x] 9.4 Visueller Check: persönliches Rezept ohne Crash, Sidebar-Metadaten, Histogramme (≥10), zwei-spaltige Portionen, Bild-Placeholder, default geschlossene Zubereitung
 - [x] 9.5 `openspec validate redesign-recipe-detail-v2 --strict`
