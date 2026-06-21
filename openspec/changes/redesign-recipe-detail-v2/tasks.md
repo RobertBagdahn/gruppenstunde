@@ -74,8 +74,8 @@
 
 ## 9. Verifikation
 
-- [ ] 9.1 `uv run pytest recipe/tests/ -x -v`
-- [ ] 9.2 `uv run pytest supply/tests/test_shopping_service.py -x -v`
+- [x] 9.1 `uv run pytest recipe/tests/ -x -v`
+- [x] 9.2 `uv run pytest supply/tests/test_shopping_service.py -x -v`
 - [ ] 9.3 `npm run build` in `frontend-food/` erfolgreich
 - [ ] 9.4 Visueller Check: persönliches Rezept ohne Crash, Sidebar-Metadaten, Histogramme (≥10), zwei-spaltige Portionen, Bild-Placeholder, default geschlossene Zubereitung
-- [ ] 9.5 `openspec validate redesign-recipe-detail-v2 --strict`
+- [x] 9.5 `openspec validate redesign-recipe-detail-v2 --strict`
