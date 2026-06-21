@@ -111,6 +111,7 @@ class RecipeDetailOut(ContentDetailOut):
     # Personal recipe fields
     owner_name: str | None = None
     forked_from_title: str | None = None
+    forked_from_slug: str | None = None
     visibility: str | None = None
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
     is_owner: bool = False
@@ -133,6 +134,12 @@ class RecipeDetailOut(ContentDetailOut):
     def resolve_forked_from_title(obj) -> str | None:
         if obj.forked_from_id:
             return obj.forked_from.title if obj.forked_from else None
+        return None
+
+    @staticmethod
+    def resolve_forked_from_slug(obj) -> str | None:
+        if obj.forked_from_id:
+            return obj.forked_from.slug if obj.forked_from else None
         return None
 
     @staticmethod

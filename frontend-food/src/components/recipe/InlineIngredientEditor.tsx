@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, SlidersHorizontal } from 'lucide-react';
 import {
   useUpdateRecipe,
   useUpdateRecipeItem,
@@ -14,6 +14,7 @@ import {
   useEstimateQuantities,
 } from '@/api/recipes';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
+import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 
@@ -25,10 +26,12 @@ interface EditableItem {
   ingredient_id: number | null;
   ingredient_name: string;
   quantity: number;
+  /** Raw input string while the user is typing — allows empty/partial input */
+  quantityInput: string;
   measuring_unit_name: string | null;
   note: string;
   sort_order: number;
-  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean }[];
+  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; priority?: number | null }[];
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -75,12 +78,14 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
     // Quantity as multiplier on the base portion
     const quantityForBasePortion = normalizedQty / basePortionWeightG;
 
+    const qty = Math.round(quantityForBasePortion * 100) / 100;
     return {
       id: item.id,
       portion_id: basePortionId,
       ingredient_id: item.ingredient_id ?? null,
       ingredient_name: item.ingredient_name,
-      quantity: Math.round(quantityForBasePortion * 100) / 100,
+      quantity: qty,
+      quantityInput: String(qty),
       measuring_unit_name: basePortion?.measuring_unit_name ?? 'g',
       note: item.note,
       sort_order: item.sort_order,
@@ -90,6 +95,7 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
         weight_g: p.weight_g,
         measuring_unit_name: p.measuring_unit_name,
         is_default: p.is_default,
+        priority: p.priority,
       })),
       isDirty: s > 1 || basePortionId !== item.portion_id,
     };
@@ -117,6 +123,7 @@ export default function InlineIngredientEditor({
   const [isAiSuggesting, setIsAiSuggesting] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AiIngredientSuggestion[] | null>(null);
   const [selectedAiSuggestions, setSelectedAiSuggestions] = useState<Set<number>>(new Set());
+  const [detailSearchOpen, setDetailSearchOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -128,9 +135,32 @@ export default function InlineIngredientEditor({
 
   // --- Handlers ---
 
-  const handleQuantityChange = useCallback((id: number, quantity: number) => {
+  // Handles raw string input — allows empty/partial values while typing.
+  // The numeric quantity is only updated when the input is a valid number.
+  const handleQuantityInputChange = useCallback((id: number, raw: string) => {
+    // Allow empty string, digits, dot and comma as decimal separator
+    const sanitized = raw.replace(',', '.');
+    const parsed = parseFloat(sanitized);
+    const isValid = sanitized !== '' && !isNaN(parsed) && parsed >= 0;
     setEditItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity, isDirty: true } : item)),
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, quantityInput: raw, quantity: isValid ? parsed : item.quantity, isDirty: true }
+          : item,
+      ),
+    );
+  }, []);
+
+  // Commits the input on blur — resets to current numeric value if input is empty/invalid
+  const handleQuantityBlur = useCallback((id: number) => {
+    setEditItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const sanitized = item.quantityInput.replace(',', '.');
+        const parsed = parseFloat(sanitized);
+        const valid = sanitized !== '' && !isNaN(parsed) && parsed >= 0;
+        return { ...item, quantityInput: String(valid ? parsed : item.quantity) };
+      }),
     );
   }, []);
 
@@ -159,6 +189,7 @@ export default function InlineIngredientEditor({
           portion_id: portionId,
           measuring_unit_name: newPortion.measuring_unit_name ?? newPortion.name,
           quantity: newQuantity,
+          quantityInput: String(newQuantity),
           isDirty: true,
         };
       }),
@@ -182,13 +213,18 @@ export default function InlineIngredientEditor({
         return;
       }
 
-      // Fetch default portion for this ingredient
+      // Fetch portions for this ingredient and select smart default
       try {
         const res = await fetch(`/api/ingredients/${ingredient.slug}/portions/`, { credentials: 'include' });
         const portions = await res.json();
-        const defaultPortion = portions.find((p: { is_default: boolean }) => p.is_default) || portions[0];
 
-        if (!defaultPortion) {
+        // Smart default: highest-priority portion with weight_g > 0 (4.1, 4.3)
+        const bestPortion = [...portions]
+          .filter((p: { weight_g: number | null }) => (p.weight_g ?? 0) > 0)
+          .sort((a: { priority?: number | null }, b: { priority?: number | null }) => (b.priority ?? 0) - (a.priority ?? 0))[0]
+          ?? portions[0];
+
+        if (!bestPortion) {
           toast.error('Keine Portion für diese Zutat gefunden');
           return;
         }
@@ -197,11 +233,74 @@ export default function InlineIngredientEditor({
           ...prev,
           {
             id: -Date.now(),
-            portion_id: defaultPortion.id,
+            portion_id: bestPortion.id,
             ingredient_id: ingredient.id,
             ingredient_name: ingredient.name,
-            quantity: 0,
-            measuring_unit_name: defaultPortion.measuring_unit_name || 'g',
+            quantity: 1, // (4.2) start with 1, not 0
+            quantityInput: '1',
+            measuring_unit_name: bestPortion.measuring_unit_name || bestPortion.name || 'g', // (4.3)
+            note: '',
+            sort_order: maxSort + 1,
+            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; priority?: number | null }) => ({
+              id: p.id,
+              name: p.name,
+              weight_g: p.weight_g,
+              measuring_unit_name: p.measuring_unit_name,
+              is_default: p.is_default,
+              priority: p.priority,
+            })),
+            isNew: true,
+            isDirty: true,
+          },
+        ]);
+      } catch {
+        toast.error('Fehler beim Laden der Portion');
+      }
+    },
+    [editItems],
+  );
+
+  // Handles ingredient selection from the detail search dialog.
+  // Unlike handleAddIngredient (which sets quantity=0), this adds the item with the
+  // user-selected quantity from the IngredientQuantityDialog already filled in.
+  const handleAddFromDialog = useCallback(
+    async (
+      ingredientId: number,
+      ingredientName: string,
+      ingredientSlug: string,
+      portionId: number | null,
+      _measuringUnitId: number | null,
+      quantity: number,
+    ) => {
+      const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
+
+      try {
+        const res = await fetch(`/api/ingredients/${ingredientSlug}/portions/`, { credentials: 'include' });
+        const portions = await res.json();
+
+        let selectedPortion = portionId
+          ? portions.find((p: { id: number }) => p.id === portionId) ?? null
+          : null;
+
+        if (!selectedPortion) {
+          selectedPortion = portions.find((p: { is_default: boolean }) => p.is_default) ?? portions[0] ?? null;
+        }
+
+        if (!selectedPortion) {
+          toast.error('Keine Portion für diese Zutat gefunden');
+          return;
+        }
+
+        setEditItems((prev) => [
+          ...prev,
+          {
+            id: -Date.now(),
+            portion_id: selectedPortion!.id,
+            ingredient_id: ingredientId,
+            ingredient_name: ingredientName,
+            quantity,
+            quantityInput: String(quantity),
+            measuring_unit_name: selectedPortion!.measuring_unit_name || 'g',
             note: '',
             sort_order: maxSort + 1,
             ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean }) => ({
@@ -242,7 +341,7 @@ export default function InlineIngredientEditor({
         if (!selectedEstimates.has(item.id)) return item;
         const estimate = estimateResult.find((e) => e.item_id === item.id);
         if (estimate) {
-          return { ...item, quantity: estimate.quantity_per_portion, isDirty: true };
+          return { ...item, quantity: estimate.quantity_per_portion, quantityInput: String(estimate.quantity_per_portion), isDirty: true };
         }
         return item;
       }),
@@ -421,11 +520,11 @@ export default function InlineIngredientEditor({
             className="flex items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
           >
             <input
-              type="number"
-              min={0}
-              step={0.1}
-              value={item.quantity}
-              onChange={(e) => handleQuantityChange(item.id, parseFloat(e.target.value) || 0)}
+              type="text"
+              inputMode="decimal"
+              value={item.quantityInput}
+              onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+              onBlur={() => handleQuantityBlur(item.id)}
               className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
             />
             {item.ingredient_portions.length > 1 ? (
@@ -477,21 +576,38 @@ export default function InlineIngredientEditor({
       </div>
 
       {/* Add Ingredient */}
-      <div className="pt-2 border-t">
-        <IngredientAutocomplete
-          value={inputValue}
-          onChange={setInputValue}
-          onSelect={(ingredient) => {
-            handleAddIngredient(ingredient);
-            setInputValue('');
-          }}
-          onCreateNew={(name) => {
-            handleAddIngredient({ id: -Date.now(), name, slug: '' });
-            setInputValue('');
-          }}
-          placeholder="Zutat hinzufügen..."
-        />
+      <div className="pt-2 border-t flex items-center gap-2">
+        <div className="flex-1">
+          <IngredientAutocomplete
+            value={inputValue}
+            onChange={setInputValue}
+            onSelect={(ingredient) => {
+              handleAddIngredient(ingredient);
+              setInputValue('');
+            }}
+            onCreateNew={(name) => {
+              handleAddIngredient({ id: -Date.now(), name, slug: '' });
+              setInputValue('');
+            }}
+            placeholder="Zutat hinzufügen..."
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setDetailSearchOpen(true)}
+          className="p-2 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
+          title="Detailsuche"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+        </button>
       </div>
+
+      {/* Ingredient Detail Search Dialog */}
+      <IngredientDetailSearchDialog
+        open={detailSearchOpen}
+        onOpenChange={setDetailSearchOpen}
+        onSelect={handleAddFromDialog}
+      />
 
       {/* AI Estimate Preview Dialog */}
       {showEstimate && estimateResult && (

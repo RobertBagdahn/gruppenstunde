@@ -1006,10 +1006,11 @@ def _resolve_recipe_badge(recipe, user):
 
 # Map meal_type to recipe_type values
 MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
-    "breakfast": ["breakfast", "simple_meal", "dessert"],
-    "lunch": ["warm_meal", "cold_meal", "side_dish", "dessert"],
-    "dinner": ["warm_meal", "cold_meal", "side_dish", "dessert"],
-    "snack": ["simple_meal", "dessert"],
+    "breakfast": ["breakfast"],
+    "lunch": ["warm_meal", "cold_meal"],
+    "dinner": ["warm_meal", "cold_meal"],
+    "snack": ["snack", "ingredient"],
+    "drinks": ["drink"],
 }
 
 
@@ -1305,12 +1306,17 @@ def search_recipes(
     request,
     q: str = "",
     meal_type: str | None = None,
-    recipe_type: str | None = None,
+    recipe_types: str | None = None,
+    recipe_badge: str | None = None,
     nutritional_tag_ids: str | None = None,
     exclude_nutritional_tag_ids: str | None = None,
     limit: int = 8,
 ):
-    """Search for recipes and standalone ingredients to add to meals."""
+    """Search for recipes and standalone ingredients to add to meals.
+
+    recipe_types: kommaseparierte Liste von recipe_type Werten, z.B. 'warm_meal,cold_meal'.
+                  Überschreibt das automatische meal_type-Mapping.
+    """
     _require_auth(request)
 
     limit = min(limit, 50)
@@ -1320,6 +1326,12 @@ def search_recipes(
     qs = Recipe.objects.filter(
         Q(status="approved") | Q(owner=request.user)
     )
+
+    # Badge filter: 'verified' = owner is None, 'community' = public approved with owner
+    if recipe_badge == "verified":
+        qs = qs.filter(owner__isnull=True)
+    elif recipe_badge == "community":
+        qs = qs.filter(owner__isnull=False, status="approved")
 
     if q and len(q) >= 2:
         from django.contrib.postgres.search import SearchQuery, SearchRank
@@ -1333,9 +1345,9 @@ def search_recipes(
         else:
             qs = qs.filter(title__icontains=q)
 
-    # Determine recipe_type filter: explicit > meal_type mapping > all
-    if recipe_type:
-        type_filter = [recipe_type]
+    # Determine recipe_type filter: explicit list > meal_type mapping > all
+    if recipe_types:
+        type_filter = [t.strip() for t in recipe_types.split(",") if t.strip()]
     elif meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
         type_filter = MEAL_TYPE_TO_RECIPE_TYPES[meal_type]
     else:
@@ -1430,8 +1442,8 @@ def search_recipes(
     if q and len(q) >= 2:
         ing_qs = ing_qs.filter(name__icontains=q)
 
-    if recipe_type:
-        ing_qs = ing_qs.filter(standalone_type=recipe_type)
+    if type_filter:
+        ing_qs = ing_qs.filter(standalone_type__in=type_filter)
 
     if nutritional_tag_ids:
         tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]

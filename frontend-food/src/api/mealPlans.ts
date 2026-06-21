@@ -418,31 +418,33 @@ export function useMealPlanCosts(mealPlanId: number) {
 export interface RecipeSearchParams {
   q: string;
   meal_type?: string;
-  recipe_type?: string;
+  recipe_types?: string[];
+  recipe_badge?: 'verified' | 'community' | null;
   nutritional_tag_ids?: number[];
   exclude_nutritional_tag_ids?: number[];
   limit?: number;
 }
 
 export function useRecipeSearch(params: RecipeSearchParams) {
-  const { q, meal_type, recipe_type, exclude_nutritional_tag_ids, limit } = params;
+  const { q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, limit } = params;
 
   const searchParams = new URLSearchParams();
   if (q) searchParams.set('q', q);
   if (meal_type) searchParams.set('meal_type', meal_type);
-  if (recipe_type) searchParams.set('recipe_type', recipe_type);
+  if (recipe_types?.length) searchParams.set('recipe_types', recipe_types.join(','));
+  if (recipe_badge) searchParams.set('recipe_badge', recipe_badge);
   if (exclude_nutritional_tag_ids?.length)
     searchParams.set('exclude_nutritional_tag_ids', exclude_nutritional_tag_ids.join(','));
   if (limit) searchParams.set('limit', String(limit));
 
   return useQuery<UnifiedSearchResponse>({
-    queryKey: ['recipe-search', q, meal_type, recipe_type, exclude_nutritional_tag_ids, limit],
+    queryKey: ['recipe-search', q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, limit],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/search/?${searchParams.toString()}`,
         UnifiedSearchResponseSchema,
       ),
-    enabled: q.length >= 2 || !!recipe_type || !!exclude_nutritional_tag_ids?.length || !!meal_type,
+    enabled: q.length >= 2 || !!recipe_types?.length || !!recipe_badge || !!exclude_nutritional_tag_ids?.length || !!meal_type,
   });
 }
 

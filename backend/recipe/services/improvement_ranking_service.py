@@ -23,6 +23,18 @@ if TYPE_CHECKING:
 
 TOP_N = 5
 ALL_GOOD_MESSAGE = "Dieses Rezept ist in allen bewerteten Dimensionen im grünen Bereich."
+NOT_APPLICABLE_MESSAGE = (
+    "Für diesen Rezepttyp werden Nährwert-Regeln im Essensplaner "
+    "auf die gesamte Mahlzeit angewandt — nicht auf das Einzelrezept."
+)
+NO_NUTRITION_DATA_MESSAGE = (
+    "Keine Nährwertdaten für die Zutaten hinterlegt – sobald "
+    "Nährwerte erfasst sind, erscheinen hier Vorschläge."
+)
+NOTHING_ACTIONABLE_MESSAGE = (
+    "Keine konkreten Verbesserungen gefunden – das Rezept liegt "
+    "in allen bewerteten Dimensionen im Rahmen."
+)
 
 # Nutri-Score class boundaries (per-100g thresholds for a one-class improvement).
 # Used only as a fallback when no Rule defines a threshold for a parameter.
@@ -42,8 +54,8 @@ _NUTRI_FALLBACK_THRESHOLDS: dict[str, float] = {
 def compute_improvement_ranking(recipe: "Recipe") -> dict:
     """Compute ranked Top-N improvement list for a recipe.
 
-    Returns a dict with ``items``, ``all_good`` and ``message`` keys. ``items``
-    is a list of up to ``TOP_N`` entries ordered by ``impact_score`` desc.
+    Returns a dict with ``items``, ``all_good``, ``is_applicable`` and ``message`` keys.
+    ``items`` is a list of up to ``TOP_N`` entries ordered by ``impact_score`` desc.
     Each entry has:
 
     * ``parameter`` — dedup key (e.g. ``sugar_g``)
@@ -68,7 +80,7 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
     all_good = is_nutri_a and len(hint_matches) == 0
 
     if all_good:
-        return {"items": [], "all_good": True, "message": ALL_GOOD_MESSAGE}
+        return {"items": [], "all_good": True, "is_applicable": True, "message": ALL_GOOD_MESSAGE}
 
     # Build intermediate per-parameter buckets keyed by parameter
     buckets: dict[str, dict] = {}
@@ -160,7 +172,50 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
     items.sort(key=lambda b: b["impact_score"], reverse=True)
     items = items[:TOP_N]
 
-    return {"items": items, "all_good": False, "message": ""}
+    if not items:
+        is_applicable, message = _classify_empty_reason(
+            recipe, nutri_candidates, hint_matches
+        )
+        return {"items": [], "all_good": False, "is_applicable": is_applicable, "message": message}
+
+    return {"items": items, "all_good": False, "is_applicable": True, "message": ""}
+
+
+def _classify_empty_reason(
+    recipe: "Recipe",
+    nutri_candidates: list,
+    hint_matches: list,
+) -> tuple[bool, str]:
+    """Classify why the improvement list is empty.
+
+    Returns ``(is_applicable, message)`` tuple distinguishing three cases:
+    1. Recipe type not applicable (all cached nutrition ≤ 0, no rules)
+    2. Missing nutrition data (values ≤ 0 but type is evaluable)
+    3. Nothing actionable (data present but no candidates with impact)
+    """
+    has_no_nutri_candidates = len(nutri_candidates) == 0
+    has_no_hints = len(hint_matches) == 0
+
+    all_cached_zero = all(
+        getattr(recipe, field, None) is None or getattr(recipe, field, 0) <= 0
+        for field in [
+            "cached_energy_kcal",
+            "cached_protein_g",
+            "cached_fat_g",
+            "cached_carbohydrate_g",
+            "cached_sugar_g",
+            "cached_fibre_g",
+            "cached_salt_g",
+        ]
+    )
+
+    if has_no_nutri_candidates and has_no_hints and all_cached_zero:
+        return False, NOT_APPLICABLE_MESSAGE
+
+    if has_no_nutri_candidates and all_cached_zero:
+        return True, NO_NUTRITION_DATA_MESSAGE
+
+    return True, NOTHING_ACTIONABLE_MESSAGE
 
 
 def _score_nutri_candidate(candidate: dict) -> float:

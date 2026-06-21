@@ -17,6 +17,7 @@ import {
   PaginatedIngredientSchema,
   PortionSchema,
   IngredientAliasSchema,
+  DistributionOutSchema,
 } from '@/schemas/supply';
 import { PaginatedRecipesSchema } from '@/schemas/recipe';
 
@@ -96,6 +97,32 @@ export interface IngredientFilters {
   status?: string;
   origin?: string;
   sort?: string;
+}
+
+export interface IngredientSearchFilters {
+  name?: string;
+  retail_section?: number;
+  nutritional_tag?: number;
+  ordering?: 'price_asc' | 'price_desc' | 'nutri_class_asc' | 'energy_kcal_asc';
+  page?: number;
+  page_size?: number;
+}
+
+export function useIngredientSearch(filters: IngredientSearchFilters = {}) {
+  const params = new URLSearchParams();
+  if (filters.name) params.set('name', filters.name);
+  if (filters.retail_section) params.set('retail_section', String(filters.retail_section));
+  if (filters.nutritional_tag) params.set('nutritional_tag', String(filters.nutritional_tag));
+  if (filters.ordering) params.set('ordering', filters.ordering);
+  if (filters.page && filters.page > 1) params.set('page', String(filters.page));
+  if (filters.page_size) params.set('page_size', String(filters.page_size));
+
+  const qs = params.toString();
+  return useQuery({
+    queryKey: ['ingredient-search', filters] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_BASE}/?${qs}`, PaginatedIngredientSchema),
+    staleTime: 30_000,
+  });
 }
 
 export function useIngredients(filters: IngredientFilters = {}) {
@@ -393,20 +420,31 @@ export function useSimilarIngredients(slug: string) {
 }
 
 // ===========================================================================
-// Statistics Stub Hooks (API endpoints not yet implemented)
+// Statistics Hooks
 // ===========================================================================
+
+const INGREDIENT_STATISTICS_BASE = `${API_BASE_URL}/api/ingredient-statistics`;
+
+export function useIngredientDistributions(
+  field: string,
+  options?: { retailSectionId?: number | null; enabled?: boolean },
+) {
+  const params = new URLSearchParams({ field });
+  if (options?.retailSectionId) {
+    params.set('retail_section_id', String(options.retailSectionId));
+  }
+  return useQuery({
+    queryKey: ['ingredient-distributions', field, options?.retailSectionId ?? null] as const,
+    queryFn: () =>
+      fetchJson(`${INGREDIENT_STATISTICS_BASE}/distributions/?${params}`, DistributionOutSchema),
+    enabled: options?.enabled !== false,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 export function useIngredientRankings(_field: string) {
   return useQuery({
     queryKey: ['ingredient-rankings', _field] as const,
-    queryFn: () => Promise.resolve([]),
-    enabled: false,
-  });
-}
-
-export function useIngredientDistributions(_field: string) {
-  return useQuery({
-    queryKey: ['ingredient-distributions', _field] as const,
     queryFn: () => Promise.resolve([]),
     enabled: false,
   });

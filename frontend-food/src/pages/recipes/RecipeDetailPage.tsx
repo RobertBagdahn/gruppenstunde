@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Sparkles, Smile, GitFork, UtensilsCrossed } from 'lucide-react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { EntityLink } from '@/components/shared/EntityLink';
@@ -50,6 +51,7 @@ import RecipeRulesBox from '@/components/recipe/RecipeRulesBox';
 import RecipeMetaCard from '@/components/recipe/RecipeMetaCard';
 import RecipeSidebar from '@/components/recipe/RecipeSidebar';
 import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
+import RecipeUsageInMealPlans from '@/components/recipe/RecipeUsageInMealPlans';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
@@ -452,6 +454,26 @@ export default function RecipeDetailPage() {
         </div>
       )}
 
+      {/* Fork hint */}
+      {recipe.forked_from_title && (
+        <div className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <GitFork className="w-3.5 h-3.5 shrink-0" />
+          {recipe.forked_from_slug ? (
+            <>
+              Basiert auf{' '}
+              <Link
+                to={`/recipes/${recipe.forked_from_slug}`}
+                className="underline underline-offset-2 hover:text-primary transition-colors"
+              >
+                {recipe.forked_from_title}
+              </Link>
+            </>
+          ) : (
+            <>Basiert auf {recipe.forked_from_title}</>
+          )}
+        </div>
+      )}
+
       {/* Hero Image */}
       <div className="mt-6">
         <TitleImageEditor
@@ -659,14 +681,14 @@ export default function RecipeDetailPage() {
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-              <span className="material-symbols-outlined text-[22px]">egg_alt</span>
+              <UtensilsCrossed className="w-5 h-5" />
             </span>
             <div className="min-w-0">
               <h2 className="flex items-center gap-2 text-xl font-semibold leading-tight">
                 Zutaten
                 {(recipe.recipe_items?.length ?? 0) > 0 && (
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                    {recipe.recipe_items?.length}
+                    {recipe.recipe_items?.length} Zutaten
                   </span>
                 )}
               </h2>
@@ -1035,25 +1057,11 @@ export default function RecipeDetailPage() {
       {/* Rezeptregeln */}
       <RecipeRulesBox recipeId={recipeId} />
 
-      {/* Emotions — using generic ContentEmotions component */}
-      <section className="mt-8 bg-card rounded-xl border p-6">
-        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
-          <span className="material-symbols-outlined text-accent">mood</span>
-          Wie findest du dieses Rezept?
-        </h2>
-        <ContentEmotions
-          emotionCounts={recipe.emotion_counts ?? {}}
-          userEmotion={recipe.user_emotion ?? null}
-          onToggle={(emotionType) => createEmotion.mutate({ emotion_type: emotionType })}
-          isPending={createEmotion.isPending}
-        />
-      </section>
-
       {/* Similar Recipes */}
       {(recipe.next_best_recipes?.length ?? 0) > 0 && (
         <section className="mt-8">
           <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
-            <span className="material-symbols-outlined text-primary">auto_awesome</span>
+            <Sparkles className="w-5 h-5 text-primary" />
             Ähnliche Rezepte
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1072,9 +1080,28 @@ export default function RecipeDetailPage() {
         </section>
       )}
 
+      {/* Usage in meal plans */}
+      {(recipe.usage_in_meal_plans_count ?? 0) > 0 && (
+        <RecipeUsageInMealPlans count={recipe.usage_in_meal_plans_count} />
+      )}
+
       <ContentLinkSection contentType="recipe" objectId={recipeId} />
 
-      {/* Comments — using generic ContentComments component */}
+      {/* Emotions */}
+      <section className="mt-8 bg-card rounded-xl border p-6">
+        <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
+          <Smile className="w-5 h-5 text-accent" />
+          Wie findest du dieses Rezept?
+        </h2>
+        <ContentEmotions
+          emotionCounts={recipe.emotion_counts ?? {}}
+          userEmotion={recipe.user_emotion ?? null}
+          onToggle={(emotionType) => createEmotion.mutate({ emotion_type: emotionType })}
+          isPending={createEmotion.isPending}
+        />
+      </section>
+
+      {/* Comments */}
       <section className="mt-8 bg-card rounded-xl border p-6">
         <ContentComments
           comments={comments ?? []}

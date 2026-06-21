@@ -1,5 +1,6 @@
 import { PriceRow } from '@/components/recipe/RecipeDetailHelpers';
 import { RecipeCategoryBenchmark } from '@/components/recipe/RecipeCategoryBenchmark';
+import RecipeHistogram from '@/components/recipe/RecipeHistogram';
 import { useRecipeTypeStats } from '@/api/recipes';
 import type { RecipeNutritionBreakdown } from '@/schemas/recipe';
 
@@ -64,11 +65,19 @@ export function PriceTab({
       )}
 
       {typeStats && typeStats.count >= 10 && displayedPricePerPortion !== null && (
-        <RecipeCategoryBenchmark
-          stats={typeStats}
-          currentValue={displayedPricePerPortion}
-          metric="price"
-        />
+        <>
+          <RecipeHistogram
+            buckets={typeStats.price_buckets}
+            recipeValue={displayedPricePerPortion}
+            label="Preisverteilung (€ pro Portion)"
+            unit="€"
+          />
+          <RecipeCategoryBenchmark
+            stats={typeStats}
+            currentValue={displayedPricePerPortion}
+            metric="price"
+          />
+        </>
       )}
     </div>
   );

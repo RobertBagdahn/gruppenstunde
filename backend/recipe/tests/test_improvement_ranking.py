@@ -5,7 +5,10 @@ import pytest
 from recipe.choices import HintLevelChoices, HintMinMaxChoices, HintParameterChoices
 from recipe.services.improvement_ranking_service import (
     ALL_GOOD_MESSAGE,
+    NOTHING_ACTIONABLE_MESSAGE,
+    NOT_APPLICABLE_MESSAGE,
     TOP_N,
+    _classify_empty_reason,
     compute_improvement_ranking,
 )
 from recipe.tests import make_recipe, make_recipe_hint, make_recipe_item
@@ -144,12 +147,15 @@ class TestImprovementRanking:
         result = compute_improvement_ranking(recipe)
         assert result["all_good"] is True
         assert result["items"] == []
+        assert result["is_applicable"] is True
         assert result["message"] == ALL_GOOD_MESSAGE
 
     def test_nutri_score_only_source(self, poor_recipe):
         """Poor recipe without any RecipeHints → items all have source=nutri_score."""
         result = compute_improvement_ranking(poor_recipe)
         assert result["all_good"] is False
+        assert result["is_applicable"] is True
+        assert result["message"] == ""
         assert len(result["items"]) >= 1
         for item in result["items"]:
             assert item["source"] == "nutri_score"
@@ -240,3 +246,34 @@ class TestImprovementRanking:
         result = compute_improvement_ranking(poor_recipe)
         scores = [i["impact_score"] for i in result["items"]]
         assert scores == sorted(scores, reverse=True)
+
+    # =======================================================================
+    # Empty-state classification tests
+    # =======================================================================
+
+    def test_drink_recipe_with_zero_nutrition_is_not_applicable(self):
+        """Drink-type recipe with all-zero nutrition → is_applicable=False."""
+        recipe = make_recipe(
+            recipe_type="drink",
+            cached_energy_kcal=0,
+            cached_sugar_g=0.0,
+            cached_fat_g=0.0,
+            cached_salt_g=0.0,
+            cached_fibre_g=0.0,
+            cached_protein_g=0.0,
+            cached_carbohydrate_g=0.0,
+            cached_nutri_class=2,
+        )
+        result = compute_improvement_ranking(recipe)
+        assert result["all_good"] is False
+        assert result["items"] == []
+        assert result["is_applicable"] is False
+        assert result["message"] == NOT_APPLICABLE_MESSAGE
+
+    def test_missing_nutrition_data_classification(self):
+        """_classify_empty_reason with candidates but all-zero → missing data."""
+        is_applicable, message = _classify_empty_reason(
+            None, ["candidate"], []
+        )
+        assert is_applicable is True
+        assert message == NOTHING_ACTIONABLE_MESSAGE

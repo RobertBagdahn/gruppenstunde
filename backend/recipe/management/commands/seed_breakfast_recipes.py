@@ -166,23 +166,24 @@ class Command(BaseCommand):
                         name__icontains=portion_name,
                     ).first()
 
+                if not portion:
+                    # No named portion found — create a fallback gram-based portion
+                    gram_unit = MeasuringUnit.objects.filter(name="g").first()
+                    portion, _ = Portion.objects.get_or_create(
+                        ingredient=ingredient,
+                        name=f"{weight_g}g",
+                        defaults={
+                            "quantity": weight_g,
+                            "weight_g": weight_g,
+                            "measuring_unit": gram_unit,
+                        },
+                    )
+
                 if portion:
                     RecipeItem.objects.create(
                         recipe=recipe,
                         portion=portion,
-                        ingredient=ingredient,
                         quantity=quantity,
-                        sort_order=sort_order,
-                    )
-                else:
-                    # Create with weight_g as quantity reference
-                    # Find or use default measuring unit (gram)
-                    gram_unit = MeasuringUnit.objects.filter(name__in=["g", "Gramm", "ml", "Milliliter"]).first()
-                    RecipeItem.objects.create(
-                        recipe=recipe,
-                        ingredient=ingredient,
-                        quantity=quantity,
-                        measuring_unit=gram_unit,
                         sort_order=sort_order,
                     )
 

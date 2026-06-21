@@ -566,8 +566,16 @@ export function useEstimateQuantities(recipeId: number) {
 export function useRecipeTypeStats(recipeType: string) {
   return useQuery({
     queryKey: ['recipe-type-stats', recipeType] as const,
-    queryFn: () =>
-      fetchJson(`${API_BASE}/type-stats/${encodeURIComponent(recipeType)}/`, RecipeTypeStatsSchema),
+    queryFn: async () => {
+      const url = `${API_BASE}/type-stats/${encodeURIComponent(recipeType)}/`;
+      const res = await fetch(url, { credentials: 'include' });
+      // 404 = zu wenige Rezepte dieses Typs — kein Fehler, einfach kein Benchmarking
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+      const data = await res.json();
+      return RecipeTypeStatsSchema.parse(data);
+    },
     enabled: recipeType.length > 0,
+    retry: false,
   });
 }

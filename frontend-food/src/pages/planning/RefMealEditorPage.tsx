@@ -68,7 +68,7 @@ export default function RefMealEditorPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: searchResults } = useRecipeSearch({
     q: searchQuery,
-    recipe_type: currentMealType === 'breakfast' ? 'breakfast' : undefined,
+    recipe_types: currentMealType === 'breakfast' ? ['breakfast'] : undefined,
   });
 
   // Energy calculation

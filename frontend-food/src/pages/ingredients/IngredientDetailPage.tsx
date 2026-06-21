@@ -22,6 +22,7 @@ import type { Portion } from '@/schemas/supply';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
+import { IngredientBenchmarkSection } from '@/components/ingredient/IngredientBenchmarkSection';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -512,7 +513,7 @@ export default function IngredientDetailPage() {
 
     const data = aiSuggest.data;
     const scalarUpdates: Record<string, unknown> = {};
-    const portionsToCreate: Array<{ name: string; weight_g: number }> = [];
+    const portionsToCreate: Array<{ name: string; weight_g: number; priority?: number }> = [];
     const aliasesToCreate: string[] = [];
     const tagsToAssign: number[] = [];
 
@@ -563,7 +564,7 @@ export default function IngredientDetailPage() {
         promises.push(
           new Promise((resolve, reject) =>
             createPortion.mutate(
-              { name: p.name, quantity: 1, weight_g: p.weight_g },
+              { name: p.name, quantity: 1, weight_g: p.weight_g, priority: p.priority ?? 0 },
               { onSuccess: resolve, onError: reject }
             )
           )
@@ -1170,6 +1171,20 @@ export default function IngredientDetailPage() {
       {/* Recipes with this ingredient */}
       <RecipesSection slug={ingredient.slug} ingredientName={ingredient.name} />
 
+      {/* Statistischer Vergleich */}
+      <IngredientBenchmarkSection
+        values={{
+          price_per_kg: ingredient.price_per_kg,
+          energy_kcal: ingredient.energy_kcal,
+          protein_g: ingredient.protein_g,
+          carbohydrate_g: ingredient.carbohydrate_g,
+          sugar_g: ingredient.sugar_g,
+          fat_g: ingredient.fat_g,
+          retail_section_id: ingredient.retail_section_id,
+          retail_section_name: ingredient.retail_section_name,
+        }}
+      />
+
       {/* Meta */}
       <div className="border-t pt-4 text-xs text-muted-foreground flex flex-wrap gap-4">
         <span>Erstellt: {new Date(ingredient.created_at).toLocaleDateString('de-DE')}</span>
@@ -1368,10 +1383,11 @@ function buildIngredientSuggestionFields(
     });
   }
 
-  // Portions
-  const suggestedPortions = (suggestions.portions as Array<{ name: string; weight_g: number }>) || [];
+  // Portions — sort by priority descending so highest-priority portions appear first
+  const suggestedPortions = (suggestions.portions as Array<{ name: string; weight_g: number; priority?: number }>) || [];
+  const sortedPortions = [...suggestedPortions].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   const existingNames = new Set(ingredient.portions.map((p) => p.name.toLowerCase()));
-  suggestedPortions.forEach((p, i) => {
+  sortedPortions.forEach((p, i) => {
     if (!existingNames.has(p.name.toLowerCase())) {
       fields.push({
         key: `portion_${i}`,
@@ -1380,6 +1396,7 @@ function buildIngredientSuggestionFields(
         currentValue: null,
         suggestedValue: p,
         type: 'list',
+        priority: p.priority ?? 0,
       });
     }
   });

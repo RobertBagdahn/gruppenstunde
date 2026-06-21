@@ -113,6 +113,7 @@ class ImprovementListOut(Schema):
 
     items: list[ImprovementOut]
     all_good: bool
+    is_applicable: bool = True
     message: str = ""
 
 

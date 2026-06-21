@@ -103,6 +103,7 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),
+  forked_from_slug: z.string().nullable().optional(),
   visibility: z.string().nullable().optional(),
   source_url: z.string().optional().default(''),
   recipe_badge: z.string().nullable().optional(), // "verified" | "community" | "personal"
@@ -252,6 +253,7 @@ export type Improvement = z.infer<typeof ImprovementSchema>;
 export const ImprovementListSchema = z.object({
   items: z.array(ImprovementSchema),
   all_good: z.boolean(),
+  is_applicable: z.boolean().default(true),
   message: z.string().default(''),
 });
 export type ImprovementList = z.infer<typeof ImprovementListSchema>;

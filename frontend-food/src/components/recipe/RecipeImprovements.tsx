@@ -6,6 +6,7 @@
  * recommendation text and a details button.
  */
 import { useState } from 'react';
+import { Info, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRecipeImprovements } from '@/api/recipes';
 import type { Improvement, RecipeItemNutrition } from '@/schemas/recipe';
@@ -29,7 +30,7 @@ function formatValue(value: number, unit: string): string {
 }
 
 export default function RecipeImprovements({ recipeId, breakdownItems, totalWeightG, portions }: RecipeImprovementsProps) {
-  const { data, isLoading, error } = useRecipeImprovements(recipeId);
+  const { data, isLoading, error, refetch } = useRecipeImprovements(recipeId);
   const [selected, setSelected] = useState<Improvement | null>(null);
 
   // Convert per-100g values from backend to per-serving for display consistency
@@ -46,7 +47,27 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
     );
   }
 
-  if (error || !data) return null;
+  if (error || !data) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-start gap-3">
+        <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-muted-foreground">
+            Verbesserungsvorschläge konnten nicht geladen werden.
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 h-7 px-2 text-xs"
+            onClick={() => refetch()}
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Erneut versuchen
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (data.all_good) {
     return (
@@ -60,6 +81,17 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
             Keine Verbesserungsvorschläge – alle Nährwerte liegen im grünen Bereich.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (!data.is_applicable || data.items.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-start gap-3">
+        <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {data.message || 'Keine Verbesserungsvorschläge verfügbar.'}
+        </p>
       </div>
     );
   }

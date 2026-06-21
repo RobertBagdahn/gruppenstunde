@@ -51,9 +51,10 @@ class RecipeTypeChoices(models.TextChoices):
     WARM_MEAL = "warm_meal", _("Warme Mahlzeit")
     COLD_MEAL = "cold_meal", _("Kalte Mahlzeit")
     DESSERT = "dessert", _("Nachtisch")
-    SIDE_DISH = "side_dish", _("Beilage")
+    RECIPE_PART = "recipe_part", _("Rezeptteil")
     DRINK = "drink", _("Getränk")
-    SIMPLE_MEAL = "simple_meal", _("Einfache Mahlzeit")
+    SNACK = "snack", _("Snack")
+    INGREDIENT = "ingredient", _("Zutat")
 
 
 class HintParameterChoices(models.TextChoices):

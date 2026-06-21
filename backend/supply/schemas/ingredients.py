@@ -1,5 +1,7 @@
 """Pydantic schemas for Ingredient, Portion, Alias."""
 
+from datetime import datetime
+
 from ninja import Schema
 
 from .reference import NutritionalTagOut
@@ -158,7 +160,7 @@ class IngredientDetailOut(Schema):
     updated_at: str = ""
     created_by_id: int | None = None
     quality_score: int | None = None
-    quality_score_updated_at: str | None = None
+    quality_score_updated_at: datetime | None = None
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:

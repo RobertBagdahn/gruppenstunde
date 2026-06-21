@@ -1,5 +1,5 @@
 import { useState, useDeferredValue, useEffect } from 'react';
-import { Search, Star, TrendingUp, BookOpen, Egg, Plus } from 'lucide-react';
+import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,23 +13,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRecipeSearch, usePopularRecipes } from '@/api/mealPlans';
+import { useRecipeSearch } from '@/api/mealPlans';
 import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipePreviewDialog from './RecipePreviewDialog';
-import CategoryPills from '@/components/recipe/CategoryPills';
+import CategoryPills, { RECIPE_TYPE_LABELS } from '@/components/recipe/CategoryPills';
 import RecipeSearchCard from '@/components/recipe/RecipeSearchCard';
-import RecipeBadge from '@/components/recipe/RecipeBadge';
-import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 
-const RECIPE_TYPE_LABELS: Record<string, string> = {
-  breakfast: 'Frühstück',
-  warm_meal: 'Warme Mahlzeit',
-  cold_meal: 'Kalte Mahlzeit',
-  dessert: 'Nachtisch',
-  side_dish: 'Beilage',
-  drink: 'Getränk',
-  simple_meal: 'Einfache Mahlzeit',
+// Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
+const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
+  breakfast: ['breakfast'],
+  lunch: ['warm_meal', 'cold_meal'],
+  dinner: ['warm_meal', 'cold_meal'],
+  snack: ['snack', 'ingredient'],
+  drinks: ['drink'],
 };
+
+type BadgeFilter = 'all' | 'verified' | 'community';
+
+interface BadgePillProps {
+  value: BadgeFilter;
+  selected: BadgeFilter;
+  onChange: (v: BadgeFilter) => void;
+  icon: React.ReactNode;
+  label: string;
+}
+
+function BadgePill({ value, selected, onChange, icon, label }: BadgePillProps) {
+  return (
+    <button
+      onClick={() => onChange(selected === value ? 'all' : value)}
+      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+        selected === value
+          ? 'bg-primary text-primary-foreground border-primary'
+          : 'bg-card text-muted-foreground border-border hover:bg-muted'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 interface RecipeSearchDialogProps {
   mealType: string;
@@ -50,32 +73,37 @@ export default function RecipeSearchDialog({
   nutritionalTagIds,
   nutritionalTagNames,
 }: RecipeSearchDialogProps) {
+  const defaultTypes = MEAL_TYPE_DEFAULT_RECIPE_TYPES[mealType] ?? [];
+
   const [query, setQuery] = useState('');
-  const [recipeType, setRecipeType] = useState<string | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set(defaultTypes));
+  const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>('all');
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
   const [excludeDietaryTags, setExcludeDietaryTags] = useState(true);
 
   const deferredQuery = useDeferredValue(query);
 
+  const recipeTypesArray = selectedTypes.size > 0 ? Array.from(selectedTypes) : undefined;
+
   const { data: results } = useRecipeSearch({
     q: deferredQuery,
-    meal_type: mealType,
-    recipe_type: recipeType || undefined,
+    meal_type: recipeTypesArray ? undefined : mealType, // meal_type nur als Fallback wenn kein expliziter Filter
+    recipe_types: recipeTypesArray,
+    recipe_badge: badgeFilter !== 'all' ? badgeFilter : null,
     exclude_nutritional_tag_ids: excludeDietaryTags && nutritionalTagIds?.length ? nutritionalTagIds : undefined,
     limit: 20,
   });
 
-  const { data: popularData } = usePopularRecipes({ mealType });
-
   useEffect(() => {
     if (open) {
       setQuery('');
-      setRecipeType(null);
+      setSelectedTypes(new Set(defaultTypes));
+      setBadgeFilter('all');
       setIngredientDialog(null);
       setPreviewRecipe(null);
     }
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelect = (recipe: RecipeSearchResult) => {
     setPreviewRecipe(recipe);
@@ -107,20 +135,26 @@ export default function RecipeSearchDialog({
   const recipes = results?.recipes ?? [];
   const ingredients = results?.ingredients ?? [];
   const fallbackApplied = results?.fallback_applied ?? false;
-  const hasActiveFilter = !!recipeType || deferredQuery.length >= 2;
+
+  const mealTypeLabel = mealType === 'breakfast' ? 'Frühstück'
+    : mealType === 'lunch' ? 'Mittagessen'
+    : mealType === 'dinner' ? 'Abendessen'
+    : mealType === 'snack' ? 'Snack'
+    : mealType === 'drinks' ? 'Getränke'
+    : 'Mahlzeit';
 
   return (
     <>
       <Dialog open={open && !ingredientDialog} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-4">
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-display">
               <Search className="w-5 h-5 text-primary" />
-              Rezept-Detailsuche
+              Rezept für {mealTypeLabel} wählen
             </DialogTitle>
           </DialogHeader>
 
-          {/* Search input */}
+          {/* Suchfeld */}
           <div className="relative">
             <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -133,10 +167,41 @@ export default function RecipeSearchDialog({
             />
           </div>
 
-          {/* Category Pills */}
-          <CategoryPills selected={recipeType} onChange={setRecipeType} />
+          {/* Filter-Zeile */}
+          <div className="space-y-2">
+            {/* Typ-Multi-Chips */}
+            <CategoryPills selected={selectedTypes} onChange={setSelectedTypes} />
 
-          {/* Dietary filter checkbox */}
+            {/* Badge-Filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground shrink-0">Quelle:</span>
+              <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+                <BadgePill
+                  value="all"
+                  selected={badgeFilter}
+                  onChange={setBadgeFilter}
+                  icon={<LayoutGrid className="w-3 h-3" />}
+                  label="Alle"
+                />
+                <BadgePill
+                  value="verified"
+                  selected={badgeFilter}
+                  onChange={setBadgeFilter}
+                  icon={<ShieldCheck className="w-3 h-3" />}
+                  label="Verifiziert"
+                />
+                <BadgePill
+                  value="community"
+                  selected={badgeFilter}
+                  onChange={setBadgeFilter}
+                  icon={<Users className="w-3 h-3" />}
+                  label="Community"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Ernährungs-Ausschluss */}
           {nutritionalTagIds && nutritionalTagIds.length > 0 && (
             <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-muted-foreground select-none bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border/50 w-fit">
               <input
@@ -149,77 +214,14 @@ export default function RecipeSearchDialog({
             </label>
           )}
 
-          {/* Fallback hint */}
+          {/* Fallback-Hinweis */}
           {fallbackApplied && (
             <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 px-3 py-1.5 rounded-md">
               Keine Rezepte in dieser Kategorie gefunden — zeige alle Typen
             </p>
           )}
 
-          {/* Recently Used */}
-          {!hasActiveFilter && <RecentlyUsedSection />}
-
-          {/* Popular Recipes (shown when no active search) */}
-          {!hasActiveFilter && popularData && (
-            <div className="rounded-lg border p-3 space-y-3">
-              {popularData.personal.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-primary" />
-                    Deine Top-Rezepte
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {popularData.personal.map((r) => {
-                      const price = r.price_per_serving != null
-                        ? `${r.price_per_serving.toFixed(2).replace('.', ',')} €`
-                        : '—';
-                      return (
-                        <button
-                          key={`pop-p-${r.id}`}
-                          onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
-                          className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
-                        >
-                          <RecipeBadge badge={r.recipe_badge ?? 'community'} />
-                          <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                          {r.title}
-                          <span className="text-xs text-muted-foreground">({r.usage_count}×, {price})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {popularData.community.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                    Community-Hits
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {popularData.community.map((r) => {
-                      const price = r.price_per_serving != null
-                        ? `${r.price_per_serving.toFixed(2).replace('.', ',')} €`
-                        : '—';
-                      return (
-                        <button
-                          key={`pop-c-${r.id}`}
-                          onClick={() => handleSelect({ ...r, slug: '', image: r.image ?? undefined } as RecipeSearchResult)}
-                          className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
-                        >
-                          <RecipeBadge badge={r.recipe_badge ?? 'community'} />
-                          <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                          {r.title}
-                          <span className="text-xs text-muted-foreground">({r.usage_count}×, {price})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Results */}
+          {/* Ergebnisliste */}
           <div className="flex-1 overflow-y-auto rounded-lg border divide-y min-h-0">
             {recipes.length > 0 && (
               <>
@@ -262,26 +264,22 @@ export default function RecipeSearchDialog({
             {recipes.length === 0 && ingredients.length === 0 && (
               <div className="p-4 text-center space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  {hasActiveFilter
-                    ? 'Keine Ergebnisse gefunden'
-                    : 'Suchbegriff oder Filter wählen'}
+                  Keine Ergebnisse gefunden
                 </p>
-                {hasActiveFilter && (
-                  <a
-                    href="/recipes/new"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Neues Rezept erstellen
-                  </a>
-                )}
+                <a
+                  href="/recipes/new"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Plus className="w-3 h-3" />
+                  Neues Rezept erstellen
+                </a>
               </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Ingredient Quantity Dialog */}
+      {/* Zutaten-Mengen-Dialog */}
       {ingredientDialog && (
         <IngredientQuantityDialog
           ingredient={ingredientDialog}
@@ -291,7 +289,7 @@ export default function RecipeSearchDialog({
         />
       )}
 
-      {/* Recipe Preview Dialog */}
+      {/* Rezept-Vorschau-Dialog */}
       <RecipePreviewDialog
         recipe={previewRecipe}
         open={!!previewRecipe}

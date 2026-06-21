@@ -1,16 +1,20 @@
 ## MODIFIED Requirements
 
 ### Requirement: Rezept-Detailseite zeigt vollständige Analyse (MODIFIED)
-Die Rezept-Detailseite SHALL unter `/recipes/:slug` das Rezept in neuer Sektions-Reihenfolge anzeigen: Bild (optional) → Summary → Zutaten → Zubereitung (default geöffnet) → Themen/Allergene → Analyse-Tabs → Rezeptregeln → Ähnliche → Emotionen → Comments. Die Meta-Informationen SHALL als kompakte Inline-Header-Zeile unter dem Titel dargestellt werden. Die Desktop-Sidebar SHALL nur noch PortionScaler + Aktionen enthalten (kein RecipeMetaCard mehr).
+Die Rezept-Detailseite SHALL unter `/recipes/:slug` das Rezept in folgender Sektions-Reihenfolge anzeigen: Titel + kompakte Summary → Source-URL → Bild/Placeholder → Zutaten → Zubereitung (default geschlossen) → Themen/Allergene → Analyse-Tabs (mit Histogrammen) → Rezeptregeln → Ähnliche → Emotionen → Comments. Die Beschreibung SHALL ausschließlich einmal als kompakte Summary unter dem Titel dargestellt werden; eine separate `summary_long`-Box SHALL NICHT mehr gerendert werden. Der Autor SHALL ausschließlich in der Seitenleiste dargestellt werden; eine separate Autor-Sektion im Hauptfeed SHALL NICHT mehr gerendert werden. Die Metadaten SHALL in der reichhaltigen Seitenleiste dargestellt werden (kein Inline-Header, kein RecipeMetaCard als separates Element). Jedes persönliche Rezept SHALL ohne Laufzeitfehler dargestellt werden (Badge-Variante `personal` unterstützt).
 
 #### Scenario: Nutzer öffnet Rezept-Detailseite
 - **WHEN** ein Nutzer `/recipes/:slug` aufruft
-- **THEN** werden in Reihenfolge angezeigt: Badges + Titel + Meta-Header → Bild (optional) → Summary → Zutaten → Zubereitung → Themen/Allergene → Analyse-Tabs → Rezeptregeln → Ähnliche → ContentLinks → Emotionen → Comments
-- **THEN** die Zubereitung ist default aufgeklappt
+- **THEN** werden die Sektionen in der definierten Reihenfolge angezeigt
+- **THEN** die Zubereitung ist default eingeklappt
+
+#### Scenario: Persönliches Rezept ohne Crash
+- **WHEN** ein Nutzer ein Rezept mit `recipe_badge="personal"` öffnet
+- **THEN** wird die Seite ohne Laufzeitfehler gerendert und der passende Badge angezeigt
 
 #### Scenario: NutriScore-Anzeige
 - **WHEN** das Rezept einen cached_nutri_class-Wert hat
-- **THEN** wird der NutriScore als farbiger Badge im Analyse-Tab "Gesundheit" angezeigt
+- **THEN** wird der NutriScore als farbiger Badge angezeigt
 
 #### Scenario: Preis-Anzeige
 - **WHEN** das Rezept einen cached_price_total-Wert hat
@@ -18,43 +22,50 @@ Die Rezept-Detailseite SHALL unter `/recipes/:slug` das Rezept in neuer Sektions
 
 #### Scenario: Portionen skalieren
 - **WHEN** der Nutzer die Portionszahl ändert
-- **THEN** werden Zutatenliste und Preise entsprechend umgerechnet
+- **THEN** werden Zutatenliste und Preise entsprechend umgerechnet (pro Portion und gesamt)
 
 #### Scenario: Mobile Layout
 - **WHEN** die Viewport-Breite < 768px ist
 - **THEN** wird das Layout gestapelt dargestellt mit konsolidierter Action-Bar am unteren Rand
-- **THEN** die Action-Bar enthält alle Aktionen (Einkaufsliste, Portionen, Kochen, Bearbeiten, Löschen, Clonen, Drucken, Teilen) im Overflow-Menü
 
-### Requirement: Ingredient list position on detail page (MODIFIED)
-The recipe detail page SHALL display the ingredients section as the first content section directly below the image/summary area, immediately followed by the preparation steps section. The analysis sections SHALL be grouped behind a tab-based analysis section after tags.
+## ADDED Requirements
 
-#### Scenario: User views recipe detail page
-- **WHEN** a user opens a recipe detail page
-- **THEN** the ingredients section is displayed directly below the summary
-- **THEN** the preparation steps section is displayed directly below the ingredients
-- **THEN** analysis tabs appear after nutritional tags (Themen/Allergene)
+### Requirement: Analyse-Histogramme mit Perzentil-Position
+Die Analyse-Tabs SHALL für Preis pro Portion (Preis-Tab), Kalorien pro Portion und Protein pro Portion (Inhaltsstoffe-Tab) je ein Histogramm der Verteilung über alle veröffentlichten Rezepte desselben `recipe_type` anzeigen. Das Histogramm SHALL die Position des aktuellen Rezepts markieren und eine neutrale Perzentil-Aussage (z.B. "günstiger als 83% der Getränke") ohne gut/schlecht-Wertung liefern. Das Histogramm SHALL nur angezeigt werden, wenn mindestens 10 andere veröffentlichte Rezepte desselben Typs existieren.
 
-### Requirement: Single portion scaler location (MODIFIED)
-The portion scaler control SHALL exist only in the desktop sidebar and the mobile bottom sheet. The "Skalieren" button (previously in the ingredients header) SHALL be removed — its function is merged into the PortionScaler via a factor quick-select (0.5×, 1.5×, 2×).
+#### Scenario: Histogramm mit ausreichend Daten
+- **WHEN** ein Nutzer einen Analyse-Tab öffnet und mindestens 10 Rezepte desselben Typs existieren
+- **THEN** wird ein Histogramm mit der markierten Position des aktuellen Rezepts und einer neutralen Perzentil-Aussage angezeigt
 
-#### Scenario: Desktop view
-- **WHEN** a user views the recipe on desktop (lg breakpoint)
-- **THEN** the portion scaler is visible in the sticky sidebar
-- **THEN** no portion scaler or scale button is shown inside the ingredient list
+#### Scenario: Zu wenige Rezepte
+- **WHEN** weniger als 10 Rezepte desselben Typs existieren
+- **THEN** wird kein Histogramm gerendert
 
-### Requirement: Rezept-Listenpage mit Pagination
+#### Scenario: Neutrale Bewertung bei Kalorien
+- **WHEN** das Kalorien-Histogramm angezeigt wird
+- **THEN** erfolgt nur eine neutrale Perzentil-Aussage (mehr/weniger als X%), keine gut/schlecht-Wertung
 
-Die Rezept-Übersicht unter `/recipes` zeigt alle veröffentlichten Rezepte paginiert an.
+### Requirement: Korrekte Cache-Invalidierung nach Mutationen
+Nach Rezept-Mutationen (Item-Update, Fork, Sichtbarkeit, Emotion) SHALL das Frontend die tatsächlich verwendeten Query-Keys invalidieren: recipe-improvements, recipe-rules, recipe-comments, recipe-similar und recipe-type-stats.
 
-#### Scenario: Rezeptliste laden
-- **WHEN** ein Nutzer `/recipes` aufruft
-- **THEN** werden Rezepte als Cards mit Bild, Titel, NutriScore-Badge und Preis angezeigt, paginiert mit "Mehr laden"-Button
+#### Scenario: Daten nach Mutation aktuell
+- **WHEN** ein Nutzer Zutaten ändert und speichert
+- **THEN** zeigen Regeln-Box, Verbesserungsvorschläge, Kommentare und ähnliche Rezepte ohne manuelles Neuladen aktuelle Daten
 
-#### Scenario: Rezept aus Liste öffnen
-- **WHEN** ein Nutzer eine Rezeptkarte anklickt
-- **THEN** wird das Rezept in einem neuen Tab geöffnet (EntityLinkContext "list")
+### Requirement: Dezenter Bild-Placeholder ohne störenden Gradient
+Bei fehlendem Titelbild SHALL ein kleiner, dezenter Placeholder (kompaktes Seitenverhältnis, gestrichelter Rahmen, helles Icon) angezeigt werden. Der dunkle Gradient-Overlay SHALL ausschließlich bei vorhandenem echten Bild gerendert werden, nicht beim leeren Placeholder.
 
-### REMOVED Requirements
+#### Scenario: Rezept ohne Bild
+- **WHEN** ein Rezept kein Titelbild hat
+- **THEN** wird ein kleiner, dezenter Placeholder ohne dunklen Gradient-Overlay angezeigt
 
-#### Requirement: Bild abschnittsbasiert anzeigen (REMOVED)
-**Reason**: Ersetzt durch `recipe-detail-reorganized` Requirement "Bild abschnittsbasiert anzeigen"
+#### Scenario: Rezept mit Bild
+- **WHEN** ein Rezept ein Titelbild hat
+- **THEN** wird das Bild mit Gradient-Overlay (für Lesbarkeit von Overlay-Inhalten) angezeigt
+
+### Requirement: Verständliche Erklärung bei nicht anwendbaren Rezeptregeln
+Wenn Rezeptregeln für einen Rezepttyp nicht anwendbar sind (alle Typen außer warme/kalte Mahlzeit), SHALL das System eine erklärende Nachricht liefern, die den konkreten Rezepttyp benennt und begründet, warum eine isolierte Bewertung nicht aussagekräftig ist (Regeln bewerten vollständige Mahlzeiten; dieser Typ ist nur ein Baustein) und dass die Nährwerte erst im Essensplaner einfließen.
+
+#### Scenario: Getränk-Rezept ohne anwendbare Regeln
+- **WHEN** ein Nutzer ein Rezept vom Typ "Getränk" öffnet
+- **THEN** wird eine Erklärung angezeigt, die den Typ "Getränk" namentlich nennt und begründet, warum keine isolierte Nährwert-Bewertung erfolgt

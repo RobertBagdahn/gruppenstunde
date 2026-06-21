@@ -1,3 +1,4 @@
+import { UtensilsCrossed, User, Clock, Timer, BarChart2, Users, Eye, Heart, Calendar } from 'lucide-react';
 import type { RecipeDetail } from '@/schemas/recipe';
 import {
   RECIPE_TYPE_OPTIONS,
@@ -63,55 +64,15 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, classN
     : '— €';
 
   const metaItems = [
-    {
-      label: 'Kategorie',
-      value: typeOpt?.label ?? 'Unbekannt',
-      icon: typeOpt?.icon ?? 'restaurant',
-    },
-    {
-      label: 'Autor',
-      value: authorLabel ?? 'Anonym',
-      icon: 'person',
-    },
-    {
-      label: 'Kochzeit',
-      value: timeLabel,
-      icon: 'schedule',
-    },
-    {
-      label: 'Vorbereitung',
-      value: prepTimeLabel,
-      icon: 'pending_actions',
-    },
-    {
-      label: 'Schwierigkeit',
-      value: difficultyLabel,
-      icon: 'signal_cellular_alt',
-    },
-    {
-      label: 'Altersgruppe',
-      value: scoutLevelsLabel,
-      icon: 'groups',
-    },
-    {
-      label: 'Aufrufe',
-      value: recipe.view_count.toString(),
-      icon: 'visibility',
-    },
-    {
-      label: 'Likes',
-      value: recipe.like_score.toString(),
-      icon: 'favorite',
-    },
-    ...(createdAtLabel
-      ? [
-          {
-            label: 'Erstellt am',
-            value: createdAtLabel,
-            icon: 'calendar_today',
-          },
-        ]
-      : []),
+    { label: 'Kategorie', value: typeOpt?.label ?? 'Unbekannt', Icon: UtensilsCrossed },
+    { label: 'Autor', value: authorLabel ?? 'Anonym', Icon: User },
+    { label: 'Kochzeit', value: timeLabel, Icon: Clock },
+    { label: 'Vorbereitung', value: prepTimeLabel, Icon: Timer },
+    { label: 'Schwierigkeit', value: difficultyLabel, Icon: BarChart2 },
+    { label: 'Altersgruppe', value: scoutLevelsLabel, Icon: Users },
+    { label: 'Aufrufe', value: recipe.view_count.toString(), Icon: Eye },
+    { label: 'Likes', value: recipe.like_score.toString(), Icon: Heart },
+    ...(createdAtLabel ? [{ label: 'Erstellt am', value: createdAtLabel, Icon: Calendar }] : []),
   ];
 
   return (
@@ -136,9 +97,7 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, classN
       <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
         {metaItems.map((item, idx) => (
           <div key={idx} className="flex items-start gap-2 min-w-0">
-            <span className="material-symbols-outlined text-muted-foreground/70 shrink-0 mt-0.5 text-[18px]">
-              {item.icon}
-            </span>
+            <item.Icon className="w-4 h-4 text-muted-foreground/70 shrink-0 mt-0.5" />
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider leading-none mb-1">
                 {item.label}

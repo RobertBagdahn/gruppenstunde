@@ -1,3 +1,4 @@
+import { UtensilsCrossed, Printer, ShoppingCart, Share2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import PortionScaler from './PortionScaler';
@@ -65,7 +66,7 @@ export default function RecipeSidebar({
           }}
           className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">skillet</span>
+          <UtensilsCrossed className="w-4 h-4" />
           Kochen starten
         </button>
         <button
@@ -73,7 +74,7 @@ export default function RecipeSidebar({
           onClick={() => window.print()}
           className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">print</span>
+          <Printer className="w-4 h-4" />
           Drucken
         </button>
         <button
@@ -81,7 +82,7 @@ export default function RecipeSidebar({
           onClick={onOpenShoppingList}
           className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
+          <ShoppingCart className="w-4 h-4" />
           Einkaufsliste
         </button>
         <button
@@ -89,7 +90,7 @@ export default function RecipeSidebar({
           onClick={handleShare}
           className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">share</span>
+          <Share2 className="w-4 h-4" />
           Teilen
         </button>
         <button
@@ -97,7 +98,7 @@ export default function RecipeSidebar({
           onClick={onClone}
           className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border-2 border-dashed border-primary/30 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 transition-colors"
         >
-          <span className="material-symbols-outlined text-[18px]">content_copy</span>
+          <Copy className="w-4 h-4" />
           Rezept clonen
         </button>
       </div>

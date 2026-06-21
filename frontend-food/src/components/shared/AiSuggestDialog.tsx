@@ -26,6 +26,8 @@ export interface SuggestionField {
   currentValue: unknown;
   suggestedValue: unknown;
   type: 'scalar' | 'list';
+  /** Optional priority (0–100). Used for list-type fields like portions to show a priority badge. */
+  priority?: number;
 }
 
 interface AiSuggestDialogProps {
@@ -176,7 +178,19 @@ export function AiSuggestDialog({
                         className="h-4 w-4 rounded border-border"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">{field.label}</div>
+                        <div className="text-sm font-medium flex items-center gap-2">
+                          {field.label}
+                          {field.type === 'list' && field.priority !== undefined && field.priority >= 100 && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary">
+                              Rezeptportion
+                            </span>
+                          )}
+                          {field.type === 'list' && field.priority !== undefined && field.priority >= 50 && field.priority < 100 && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground">
+                              Packung / Stück
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground flex gap-2">
                           {field.type === 'list' ? (
                             <span>{formatListValue(field.suggestedValue)}</span>

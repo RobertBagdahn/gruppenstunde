@@ -37,6 +37,15 @@ class PortionSuggestion(BaseModel):
 
     name: str = Field(description="Name der Portion, z.B. '1 Packung (500g)'")
     weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
+    priority: int = Field(
+        default=0,
+        description=(
+            "Priorität: 100 = typische Rezeptportion pro Person, "
+            "50 = gängige Packungsgröße/Stück, "
+            "10 = Haushaltsmaß (EL, TL, Tasse). "
+            "Höhere Zahl = wichtiger."
+        ),
+    )
 
 
 class IngredientSuggestAllSchema(BaseModel):
@@ -157,11 +166,14 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
         f"Schlage einen präziseren Namen vor, falls aktuell zu generisch. "
         f"Keine Marken, keine Mengenangaben. Z.B. 'Kuhmilch 3,5% Fett' statt 'Milch'.\n\n"
         f"Gib außerdem typische Portionsgrößen mit dem jeweiligen Gewicht in Gramm an. "
-        f"Wichtige Kategorien:\n"
-        f"- Packungsgrößen (z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)')\n"
-        f"- Stück (z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)')\n"
-        f"- Haushaltsmaße (z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)')\n"
-        f"- Scheiben/Stücke (z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)')\n\n"
+        f"Wichtige Kategorien (absteigend nach Priorität):\n"
+        f"- Rezeptportion pro Person (priority=100): Wie viel von dieser Zutat kommt typischerweise pro Person in ein Standardrezept? "
+        f"Z.B. '1 Portion Nudeln (80g)', '1 Portion Hähnchenbrust (150g)', '1 Portion Butter (10g)'. "
+        f"Dies ist die wichtigste Portion – immer angeben!\n"
+        f"- Packungsgrößen (priority=50): z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)'\n"
+        f"- Stück (priority=50): z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)'\n"
+        f"- Haushaltsmaße (priority=10): z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)'\n"
+        f"- Scheiben/Stücke (priority=10): z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)'\n\n"
         f"Gib mindestens 3 alternative Bezeichnungen/Aliase für die Zutat an. "
         f"Die Aliase sollen spezifischer sein als der Zutatenname. "
         f"Format: 'Basisname (Spezifischer Name)'. "
@@ -240,11 +252,13 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         f"typische Portionsgrößen, alternative Bezeichnungen, zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', 'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig') und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen. "
         f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren.\n\n"
-        f"Bei den Portionsgrößen beachte folgende Kategorien:\n"
-        f"- Packungsgrößen (z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)')\n"
-        f"- Stück (z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)')\n"
-        f"- Haushaltsmaße (z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)')\n"
-        f"- Scheiben/Stücke (z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)')"
+        f"Bei den Portionsgrößen beachte folgende Kategorien (absteigend nach Priorität):\n"
+        f"- Rezeptportion pro Person (priority=100): Wie viel kommt typischerweise pro Person in ein Standardrezept? "
+        f"Z.B. '1 Portion Nudeln (80g)', '1 Portion Hähnchenbrust (150g)'. Immer angeben!\n"
+        f"- Packungsgrößen (priority=50): z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)'\n"
+        f"- Stück (priority=50): z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)'\n"
+        f"- Haushaltsmaße (priority=10): z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)'\n"
+        f"- Scheiben/Stücke (priority=10): z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)'"
     )
 
     config = types.GenerateContentConfig(

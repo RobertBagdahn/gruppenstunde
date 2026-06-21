@@ -5,6 +5,7 @@
  * Supports three actions: file upload, AI image generation, and image removal.
  */
 import { useRef, useState } from 'react';
+import { Upload, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { type UseMutationResult } from '@tanstack/react-query';
 import { useGenerateImage } from '@/api/ai';
@@ -81,69 +82,87 @@ export default function TitleImageEditor({
 
   const isUploading = uploadMutation.isPending || setFromUrlMutation.isPending;
 
-  return (
-    <div
-      className={cn(
-        'relative rounded-2xl overflow-hidden bg-muted/10',
-        imageUrl
-          ? 'mb-8 shadow-lg max-w-lg mx-auto aspect-square'
-          : 'mb-6 max-w-xs mx-auto aspect-[4/3] border border-dashed border-border',
-      )}
-    >
-      {/* Image or Icon Placeholder */}
-      {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt={title}
-          className={cn(
-            'w-full h-full object-cover',
-            isUploading && 'opacity-50',
-          )}
-          loading="lazy"
+  // Kein Bild: entweder Upload-Buttons (can_edit) oder gar nichts
+  if (!imageUrl) {
+    return (
+      <>
+        {canEdit && (
+          <div className="mt-4 mb-6 flex gap-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-border bg-muted/30 hover:bg-muted/60 text-sm font-medium text-muted-foreground hover:text-foreground transition disabled:opacity-50"
+            >
+              {isUploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              Bild hochladen
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAiModal(true)}
+              disabled={isUploading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-sm font-medium text-primary transition disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4" />
+              KI-Bild generieren
+            </button>
+          </div>
+        )}
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFileSelect}
         />
-      ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-          <span className="material-symbols-outlined text-3xl text-muted-foreground/40">
-            restaurant
-          </span>
-          {canEdit && (
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  fileInputRef.current?.click();
-                }}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition"
-                title="Bild hochladen"
-              >
-                <span className="material-symbols-outlined text-[18px]">edit</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAiModal(true)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition"
-                title="Mit KI generieren"
-              >
-                <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+
+        {/* AI Generation Modal */}
+        <AiImageModal
+          open={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          contentType={contentType}
+          title={title}
+          summary={summary}
+          onSelect={(url) => {
+            setFromUrlMutation.mutate(url, {
+              onSuccess: () => {
+                toast.success('KI-Bild wurde gesetzt');
+                setShowAiModal(false);
+              },
+              onError: () => toast.error('KI-Bild konnte nicht gesetzt werden'),
+            });
+          }}
+          isSettingImage={setFromUrlMutation.isPending}
+        />
+      </>
+    );
+  }
+
+  // Bild vorhanden: vollständiger Hero-Container mit Edit-Overlay
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-muted/10 mb-8 shadow-lg max-w-lg mx-auto aspect-square">
+      <img
+        src={imageUrl}
+        alt={title}
+        className={cn('w-full h-full object-cover', isUploading && 'opacity-50')}
+        loading="lazy"
+      />
 
       {/* Loading overlay */}
       {isUploading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-          <span className="material-symbols-outlined text-4xl text-white animate-spin">
-            progress_activity
-          </span>
+          <Loader2 className="w-10 h-10 text-white animate-spin" />
         </div>
       )}
 
-      {/* Gradient overlay — only when a real image is present (for overlay text legibility) */}
-      {imageUrl && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-      )}
+      {/* Gradient overlay for text legibility */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
       {/* Child content (badges, title, etc.) */}
       {children}
@@ -157,53 +176,34 @@ export default function TitleImageEditor({
             className="flex items-center justify-center w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm transition"
             aria-label="Titelbild bearbeiten"
           >
-            <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+            <Upload className="w-4 h-4" />
           </button>
 
           {/* Dropdown menu */}
           {showMenu && (
             <>
-              {/* Click-away backdrop */}
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setShowMenu(false)}
-              />
+              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
               <div className="absolute right-0 top-12 z-20 min-w-[200px] rounded-xl border bg-card shadow-lg py-1">
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted transition"
-                  onClick={() => {
-                    fileInputRef.current?.click();
-                    setShowMenu(false);
-                  }}
+                  onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }}
                 >
-                  <span className="material-symbols-outlined text-[18px]">upload</span>
+                  <Upload className="w-4 h-4" />
                   Bild hochladen
                 </button>
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted transition"
-                  onClick={() => {
-                    setShowAiModal(true);
-                    setShowMenu(false);
-                  }}
+                  onClick={() => { setShowAiModal(true); setShowMenu(false); }}
                 >
-                  <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                  <Sparkles className="w-4 h-4" />
                   Bild mit KI generieren
                 </button>
                 <button
                   type="button"
-                  className={cn(
-                    'flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left transition',
-                    imageUrl
-                      ? 'hover:bg-muted text-destructive'
-                      : 'opacity-40 cursor-not-allowed',
-                  )}
-                  disabled={!imageUrl}
-                  onClick={() => {
-                    setShowDeleteConfirm(true);
-                    setShowMenu(false);
-                  }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted text-destructive transition"
+                  onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
                 >
                   <span className="material-symbols-outlined text-[18px]">delete</span>
                   Bild entfernen
@@ -248,7 +248,7 @@ export default function TitleImageEditor({
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
         title="Titelbild entfernen?"
-        description="Das Titelbild wird entfernt. Der Platzhalter wird stattdessen angezeigt."
+        description="Das Titelbild wird entfernt."
         confirmLabel="Entfernen"
         loading={deleteMutation.isPending}
       />

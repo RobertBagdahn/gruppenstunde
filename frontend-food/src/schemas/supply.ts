@@ -166,6 +166,7 @@ export const IngredientListItemSchema = z.object({
   price_per_kg: z.number().nullable(),
   retail_section_id: z.number().nullable(),
   retail_section_name: z.string().nullable(),
+  quality_score: z.number().int().nullable().optional(),
 });
 export type IngredientListItem = z.infer<typeof IngredientListItemSchema>;
 
@@ -259,6 +260,8 @@ export const IngredientDetailSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   created_by_id: z.number().nullable(),
+  quality_score: z.number().int().nullable().optional(),
+  quality_score_updated_at: z.string().nullable().optional(),
 });
 export type IngredientDetail = z.infer<typeof IngredientDetailSchema>;
 
@@ -360,6 +363,7 @@ export type PaginatedMaterialNames = z.infer<typeof PaginatedMaterialNamesSchema
 export const PortionSuggestionSchema = z.object({
   name: z.string(),
   weight_g: z.number(),
+  priority: z.number().int().default(0),
 });
 export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
 
@@ -489,17 +493,27 @@ export const RankingItemSchema = z.object({
 });
 export type RankingItem = z.infer<typeof RankingItemSchema>;
 
+export const DistributionBucketSchema = z.object({
+  min: z.number(),
+  max: z.number().nullable(),
+  count: z.number(),
+  percentage: z.number(),
+  label: z.string(),
+});
+export type DistributionBucket = z.infer<typeof DistributionBucketSchema>;
+
+export const DistributionStatsSchema = z.object({
+  mean: z.number().nullable(),
+  median: z.number().nullable(),
+  p5: z.number().nullable(),
+  p95: z.number().nullable(),
+  count: z.number(),
+});
+export type DistributionStats = z.infer<typeof DistributionStatsSchema>;
+
 export const DistributionOutSchema = z.object({
-  buckets: z.array(z.object({
-    min: z.number(),
-    max: z.number(),
-    count: z.number(),
-    percentage: z.number(),
-  })),
-  mean: z.number(),
-  median: z.number(),
-  p5: z.number(),
-  p95: z.number(),
+  buckets: z.array(DistributionBucketSchema),
+  stats: DistributionStatsSchema,
 });
 export type DistributionOut = z.infer<typeof DistributionOutSchema>;
 

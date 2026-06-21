@@ -18,6 +18,73 @@ def calculate_portion_weight_g(sender, instance: Portion, **kwargs):
 
 
 @receiver(post_save, sender=Ingredient)
+def create_dummy_recipe_for_standalone_food(sender, instance: Ingredient, created: bool, **kwargs):
+    """
+    Erstellt automatisch ein Dummy-Rezept wenn is_standalone_food=True gesetzt wird.
+    Das Rezept hat recipe_type='ingredient', den Zutaten-Namen als Titel und
+    eine Standard-Portion als RecipeItem.
+    """
+    if not instance.is_standalone_food:
+        return
+
+    # Nur auslösen wenn neu erstellt oder is_standalone_food gerade aktiviert wurde
+    old_values = getattr(instance, "_old_values", {})
+    was_standalone = old_values.get("is_standalone_food", False)
+    if not created and was_standalone:
+        return  # Flag war bereits gesetzt, kein neues Rezept anlegen
+
+    def _create_recipe():
+        from recipe.models import Recipe, RecipeItem
+        from django.utils.text import slugify
+        import uuid
+
+        # Prüfen ob schon ein Dummy-Rezept für diese Zutat existiert
+        existing = Recipe.objects.filter(
+            recipe_type="ingredient",
+            title=instance.name,
+            owner=getattr(instance, "_changed_by", None),
+        ).first()
+        if existing:
+            return
+
+        # Slug sicherstellen
+        base_slug = slugify(instance.name) or f"ingredient-{instance.pk}"
+        slug = base_slug
+        counter = 1
+        while Recipe.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        owner = getattr(instance, "_changed_by", None)
+
+        recipe = Recipe.objects.create(
+            title=instance.name,
+            slug=slug,
+            recipe_type="ingredient",
+            portions=1,
+            owner=owner,
+            status="approved",
+            visibility="public" if owner is None else "private",
+        )
+
+        # Standard-Portion als RecipeItem hinzufügen
+        default_portion = instance.portions.filter(is_default=True).first()
+        if not default_portion:
+            default_portion = instance.portions.first()
+
+        if default_portion:
+            RecipeItem.objects.create(
+                recipe=recipe,
+                portion=default_portion,
+                ingredient=instance,
+                quantity=1,
+                sort_order=0,
+            )
+
+    transaction.on_commit(_create_recipe)
+
+
+@receiver(post_save, sender=Ingredient)
 def create_base_portion_for_ingredient(sender, instance: Ingredient, created: bool, **kwargs):
     """Ensure every Ingredient has a default base portion (1g or 1ml)."""
     if not created:

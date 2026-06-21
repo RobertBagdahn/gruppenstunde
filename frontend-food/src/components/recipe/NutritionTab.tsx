@@ -6,6 +6,7 @@ import {
   NutrientCard,
 } from '@/components/recipe/RecipeDetailHelpers';
 import { RecipeCategoryBenchmark } from '@/components/recipe/RecipeCategoryBenchmark';
+import RecipeHistogram from '@/components/recipe/RecipeHistogram';
 import { useRecipeTypeStats } from '@/api/recipes';
 import { formatWeight } from '@/utils/formatWeight';
 import type { RecipeNutritionBreakdown } from '@/schemas/recipe';
@@ -162,11 +163,28 @@ export function NutritionTab({ nb, effectivePortions, recipeType }: Props) {
       />
 
       {typeStats && typeStats.count >= 10 && (
-        <RecipeCategoryBenchmark
-          stats={typeStats}
-          currentValue={nb.per_serving_energy_kcal ?? 0}
-          metric="energy"
-        />
+        <>
+          <RecipeHistogram
+            buckets={typeStats.energy_buckets}
+            recipeValue={nb.per_serving_energy_kcal ?? 0}
+            label="Kalorienverteilung (kcal pro Portion)"
+            unit="kcal"
+          />
+          {typeStats.protein_buckets.length > 0 && (
+            <RecipeHistogram
+              buckets={typeStats.protein_buckets}
+              recipeValue={nb.per_serving_protein_g ?? 0}
+              label="Proteinverteilung (g pro Portion)"
+              unit="g"
+              className="mt-4"
+            />
+          )}
+          <RecipeCategoryBenchmark
+            stats={typeStats}
+            currentValue={nb.per_serving_energy_kcal ?? 0}
+            metric="energy"
+          />
+        </>
       )}
     </div>
   );

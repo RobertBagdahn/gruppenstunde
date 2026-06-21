@@ -5,6 +5,7 @@
  * Used on RecipeDetailPage and other recipe views.
  */
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { AvailableConversionBatchItem } from '@/schemas/supply';
@@ -74,6 +75,9 @@ export default function IngredientList({
 
   const sortedItems = [...items].sort((a, b) => b.weight_g - a.weight_g);
 
+  // Total recipe weight for proportional warning calculation (2.1)
+  const totalWeightG = items.reduce((s, i) => s + i.weight_g * portionsMultiplier, 0);
+
   const toggleExpanded = (itemId: number) => {
     setExpandedItems((prev) => {
       const next = new Set(prev);
@@ -105,9 +109,10 @@ export default function IngredientList({
             ? calculateNaturalPortions(weightG, displayPortions)
             : [];
 
-          // Highest-priority non-default natural portion (e.g. "Wrap", "Stück", "EL", "TL")
+          // Highest-priority non-gram portion (e.g. "Wrap", "Stück", "EL", "TL").
+          // is_default is allowed — priority DESC is the sole ranking criterion.
           const highPrioPortion = displayPortions
-            ?.filter((p) => !p.is_default && (p.weight_g ?? 0) > 1)
+            .filter((p) => (p.weight_g ?? 0) > 0)
             .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
           const highPrioAmount = highPrioPortion?.weight_g
             ? weightG / highPrioPortion.weight_g
@@ -126,6 +131,27 @@ export default function IngredientList({
             || highPrioUnitName === 'ml' || highPrioUnitName === 'l';
           const gramDisplay = highPrioDisplay && !isGramUnit ? formatted.display : null;
 
+          // Fallback for ingredients without a non-gram portion:
+          // show the highest-priority non-gram portion as secondary info line.
+          // Gram-based portions are excluded — they'd just repeat the main display.
+          const allPortionsSorted = (item.ingredient_portions ?? [])
+            .filter((p) => (p.weight_g ?? 0) > 0)
+            .filter((p) => !isGramPortion(p.name, p.measuring_unit_name))
+            .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+          const hasNonGramPrimary = highPrioDisplay !== null;
+          const fallbackPortion = !hasNonGramPrimary
+            ? allPortionsSorted[0]
+            : null;
+          const fallbackAmount = fallbackPortion?.weight_g
+            ? weightG / fallbackPortion.weight_g
+            : null;
+          const fallbackUnitName = fallbackPortion?.name
+            ? (UNIT_SHORT[fallbackPortion.name] ?? fallbackPortion.name)
+            : null;
+          const fallbackDisplay = fallbackAmount && fallbackAmount >= 0.5 && fallbackUnitName
+            ? formatPortionAmount(fallbackAmount, fallbackUnitName)
+            : null;
+
           // Price calculation: price_per_kg × weightG / 1000
           const pricePerKg = item.ingredient_price_per_kg;
           const priceEur = pricePerKg != null ? (pricePerKg * weightG) / 1000 : null;
@@ -140,6 +166,9 @@ export default function IngredientList({
               )?.conversions ?? []
             : [];
 
+          // Mengen-Ampel: warn if ingredient makes up > 70% of total weight (2.2, 2.3)
+          const showWeightWarning = totalWeightG > 0 && weightG / totalWeightG > 0.7;
+
           const ingredientContent = (
             <div className="flex flex-1 min-w-0 items-center gap-3">
               <div className="flex-1 min-w-0">
@@ -152,6 +181,12 @@ export default function IngredientList({
                   <span className="font-medium text-foreground text-base">
                     {item.ingredient_name || item.note || 'Zutat'}
                   </span>
+                  {showWeightWarning && (
+                    <span className="inline-flex items-center gap-1 text-amber-600 text-sm font-medium shrink-0">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      <span>Dominiert das Rezept</span>
+                    </span>
+                  )}
                   {item.note && (
                     <span className="text-sm text-muted-foreground italic">
                       ({item.note})
@@ -160,11 +195,14 @@ export default function IngredientList({
                 </div>
 
                 {/* Secondary: highest-priority portion + gram weight */}
-                {(highPrioDisplay || gramDisplay) && (
+                {(highPrioDisplay || gramDisplay || fallbackDisplay) && (
                   <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
                     {highPrioDisplay && <span>{highPrioDisplay}</span>}
-                    {highPrioDisplay && gramDisplay && <span className="text-muted-foreground/40">·</span>}
+                    {highPrioDisplay && gramDisplay && (
+                      <span className="font-medium text-muted-foreground/60 text-xs">×</span>
+                    )}
                     {gramDisplay && <span>{gramDisplay}</span>}
+                    {fallbackDisplay && <span>{fallbackDisplay}</span>}
                   </div>
                 )}
 

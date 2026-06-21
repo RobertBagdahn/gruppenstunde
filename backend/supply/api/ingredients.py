@@ -53,8 +53,12 @@ def list_ingredients(
     name: str = "",
     retail_section: int | None = None,
     status: str = "",
+    ordering: str = "",
+    nutritional_tag: int | None = None,
 ):
-    """List ingredients with pagination and filters."""
+    """List ingredients with pagination, filters, and ordering."""
+    from django.db.models import F
+
     qs = Ingredient.objects.select_related("retail_section").all()
 
     if name:
@@ -65,6 +69,18 @@ def list_ingredients(
 
     if status:
         qs = qs.filter(status=status)
+
+    if nutritional_tag:
+        qs = qs.filter(nutritional_tags__id=nutritional_tag)
+
+    ordering_map = {
+        "price_asc": F("price_per_kg").asc(nulls_last=True),
+        "price_desc": F("price_per_kg").desc(nulls_last=True),
+        "nutri_class_asc": F("nutri_class").asc(nulls_last=True),
+        "energy_kcal_asc": F("energy_kcal").asc(nulls_last=True),
+    }
+    if ordering in ordering_map:
+        qs = qs.order_by(ordering_map[ordering])
 
     total = qs.count()
     total_pages = max(1, math.ceil(total / page_size))

@@ -240,7 +240,7 @@ class Meal(models.Model):
         on_delete=models.CASCADE,
         related_name="meals",
         verbose_name=_("Essensplan"),
-        db_column="meal_event_id",
+        db_column="meal_plan_id",
     )
     start_datetime = models.DateTimeField(
         null=True,
