@@ -141,7 +141,7 @@ export default function InlineIngredientEditor({
     // Allow empty string, digits, dot and comma as decimal separator
     const sanitized = raw.replace(',', '.');
     const parsed = parseFloat(sanitized);
-    const isValid = sanitized !== '' && !isNaN(parsed) && parsed >= 0;
+    const isValid = sanitized !== '' && !isNaN(parsed) && parsed > 0;
     setEditItems((prev) =>
       prev.map((item) =>
         item.id === id
@@ -158,7 +158,7 @@ export default function InlineIngredientEditor({
         if (item.id !== id) return item;
         const sanitized = item.quantityInput.replace(',', '.');
         const parsed = parseFloat(sanitized);
-        const valid = sanitized !== '' && !isNaN(parsed) && parsed >= 0;
+        const valid = sanitized !== '' && !isNaN(parsed) && parsed > 0;
         return { ...item, quantityInput: String(valid ? parsed : item.quantity) };
       }),
     );
@@ -454,8 +454,9 @@ export default function InlineIngredientEditor({
       await Promise.all(promises);
       toast.success('Änderungen gespeichert');
       onSaved();
-    } catch {
-      toast.error('Fehler beim Speichern');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unbekannter Fehler';
+      toast.error('Fehler beim Speichern', { description: message });
     } finally {
       setIsSaving(false);
     }

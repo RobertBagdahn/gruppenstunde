@@ -255,7 +255,9 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, update_fiel
         except Exception:
             import logging
 
-            logging.getLogger(__name__).warning("Failed to update embedding for Recipe #%d", instance.pk)
+            logging.getLogger(__name__).warning(
+                "Failed to update embedding for Recipe #%d", instance.pk, exc_info=True
+            )
         finally:
             if hasattr(instance, "_updating_embedding"):
                 delattr(instance, "_updating_embedding")

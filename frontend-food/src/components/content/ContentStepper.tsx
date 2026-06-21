@@ -13,7 +13,8 @@
  *  - `onSave()` callback with the assembled payload
  *  - `typeLabel` / `typeIcon` for display
  */
-import { useRef, useState, type ReactNode } from 'react';
+import { Fragment, useRef, useState, type ReactNode } from 'react';
+import { Pencil, Sparkles, Eye, Check } from 'lucide-react';
 import { useRefurbish, useImproveText, useSuggestTags } from '@/api/ai';
 import { useTags, useScoutLevels } from '@/api/tags';
 import MarkdownEditor from '@/components/MarkdownEditor';
@@ -80,9 +81,9 @@ export interface ContentStepperProps {
 
 // Stepper step definitions
 const STEPS = [
-  { label: 'Beschreiben', icon: 'edit_note' },
-  { label: 'Bearbeiten', icon: 'auto_awesome' },
-  { label: 'Vorschau & Speichern', icon: 'visibility' },
+  { label: 'Beschreiben', icon: Pencil },
+  { label: 'Bearbeiten', icon: Sparkles },
+  { label: 'Vorschau & Speichern', icon: Eye },
 ] as const;
 
 const PREPARATION_TIME_OPTIONS = [
@@ -272,27 +273,55 @@ export default function ContentStepper({
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-8">
-        {STEPS.map((s, i) => (
-          <button
-            key={s.label}
-            type="button"
-            onClick={() => {
-              if (i < step) setStep(i);
-            }}
-            disabled={i > step}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-              i === step
-                ? 'bg-primary text-primary-foreground'
-                : i < step
-                  ? 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20'
-                  : 'bg-muted text-muted-foreground cursor-default'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">{s.icon}</span>
-            <span className="hidden sm:inline">{s.label}</span>
-          </button>
-        ))}
+      <div className="flex items-center justify-center mb-8">
+        {STEPS.map((s, i) => {
+          const isCompleted = i < step;
+          const isActive = i === step;
+          const IconComponent = s.icon;
+
+          return (
+            <Fragment key={s.label}>
+              <button
+                type="button"
+                onClick={() => { if (isCompleted) setStep(i); }}
+                disabled={!isCompleted}
+                className={`flex flex-col items-center gap-1.5 shrink-0 ${
+                  isCompleted ? 'cursor-pointer' : 'cursor-default'
+                }`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                    isCompleted
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : isActive
+                        ? 'bg-primary border-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]'
+                        : 'bg-card border-muted-foreground/25 text-muted-foreground'
+                  }`}
+                >
+                  {isCompleted ? (
+                    <Check className="w-5 h-5" strokeWidth={3} />
+                  ) : (
+                    <IconComponent className="w-5 h-5" />
+                  )}
+                </div>
+                <span
+                  className={`text-xs font-semibold whitespace-nowrap transition-colors duration-300 ${
+                    isCompleted || isActive ? 'text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </button>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`h-0.5 flex-1 mx-3 rounded-full transition-colors duration-500 ${
+                    i < step ? 'bg-primary' : 'bg-muted'
+                  }`}
+                />
+              )}
+            </Fragment>
+          );
+        })}
       </div>
 
       {/* Honeypot (bot protection) */}

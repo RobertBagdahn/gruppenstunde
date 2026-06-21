@@ -169,8 +169,8 @@ def build_recipe_embedding_text(recipe) -> str:
     meta = []
     if recipe.recipe_type:
         meta.append(f"Typ: {recipe.recipe_type}")
-    if recipe.servings:
-        meta.append(f"{recipe.servings} Portionen")
+    if recipe.portions:
+        meta.append(f"{recipe.portions} Portionen")
     if recipe.difficulty:
         meta.append(f"Schwierigkeit: {recipe.difficulty}")
     if recipe.execution_time:

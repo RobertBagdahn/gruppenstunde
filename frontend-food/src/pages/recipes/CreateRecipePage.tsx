@@ -1,15 +1,14 @@
 /**
  * CreateRecipePage — Recipe creation using the shared ContentStepper.
- * Adds recipe-specific fields: recipe_type, servings, AI-suggested ingredients.
- * Includes URL import option.
+ * Ingredients from URL import are saved automatically.
+ * For manual creation, ingredients are added on the detail page.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import ContentStepper, { type ContentFormData } from '@/components/content/ContentStepper';
 import { useCreateRecipe } from '@/api/recipes';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
-import { IngredientAutocomplete } from '@/components/recipe/IngredientAutocomplete';
 import type { AiRefurbish } from '@/schemas/content';
 import {
   DIFFICULTY_OPTIONS,
@@ -19,70 +18,32 @@ import {
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { useRecipeImportUrl } from '@/api/recipeImport';
-import { useIngredient } from '@/api/supplies';
-
-interface IngredientEntry {
-  name: string;
-  quantity: string;
-  unit: string;
-  ingredient_id: number | null;
-  ingredient_slug: string | null;
-  portion_id: number | null;
-  is_new_ingredient?: boolean;
-}
-
-/** Pending import data waiting for portion normalization confirmation. */
-interface PendingImport {
-  detectedServings: number;
-  ingredients: IngredientEntry[];
-  formData: ContentFormData;
-  recipeType: string;
-}
 
 export default function CreateRecipePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const createRecipe = useCreateRecipe();
   const importUrl = useRecipeImportUrl();
 
-  // Pre-fill ingredient from URL param ?ingredient={slug}
-  const ingredientSlug = searchParams.get('ingredient');
-  const { data: prefilledIngredient } = useIngredient(ingredientSlug || '');
-  const prefilledRef = useRef(false);
-
-  useEffect(() => {
-    if (prefilledRef.current || !prefilledIngredient || !ingredientSlug) return;
-    if (prefilledIngredient.portions.length === 0) return;
-
-    const defaultPortion =
-      prefilledIngredient.portions.find((p) => p.is_default) ?? prefilledIngredient.portions[0];
-
-    setIngredients([
-      {
-        name: prefilledIngredient.name,
-        quantity: '1',
-        unit: defaultPortion.measuring_unit_name ?? 'Stück',
-        ingredient_id: prefilledIngredient.id,
-        ingredient_slug: prefilledIngredient.slug,
-        portion_id: defaultPortion.id,
-      },
-    ]);
-    prefilledRef.current = true;
-  }, [prefilledIngredient, ingredientSlug]);
-
   // Recipe-specific state
   const [recipeType, setRecipeType] = useState('warm_meal');
-  const [, setServings] = useState(1);
-  const [ingredients, setIngredients] = useState<IngredientEntry[]>([]);
-  const [newIngredientSearch, setNewIngredientSearch] = useState('');
 
   // URL import state
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [importUrlValue, setImportUrlValue] = useState('');
+  const [importedRecipeItems, setImportedRecipeItems] = useState<Array<{
+    portion_id: number;
+    quantity: number;
+    sort_order: number;
+    note: string;
+  }>>([]);
 
-  // Portion normalization state
-  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
-  const [normalizeServings, setNormalizeServings] = useState(1);
+  // AI refurbish state
+  const [aiRecipeItems, setAiRecipeItems] = useState<Array<{
+    portion_id: number;
+    quantity: number;
+    sort_order: number;
+    note: string;
+  }>>([]);
 
   // Tags and scout levels for preview
   const { data: tags } = useTags();
@@ -107,7 +68,8 @@ export default function CreateRecipePage() {
     if (!importUrlValue.trim()) return;
     importUrl.mutate(importUrlValue.trim(), {
       onSuccess: (data) => {
-        const importedFormData: ContentFormData = {
+        setShowUrlInput(false);
+        setFormData({
           title: data.recipe_draft.title,
           summary: data.recipe_draft.summary || '',
           description: data.recipe_draft.steps.join('\n\n'),
@@ -116,37 +78,26 @@ export default function CreateRecipePage() {
           preparationTime: data.recipe_draft.preparation_time_choice || '',
           selectedTagIds: data.recipe_draft.tag_ids || [],
           selectedScoutIds: data.recipe_draft.scout_level_ids || [],
-        };
-        const importedIngredients = data.recipe_items.map((item) => ({
-          name: item.ingredient_name,
-          quantity: String(item.quantity),
-          unit: item.measuring_unit_name,
-          ingredient_id: item.ingredient_id,
-          ingredient_slug: null,
-          portion_id: item.portion_id,
-          is_new_ingredient: item.is_new_ingredient,
-        }));
-        const detectedServings = data.recipe_draft.servings ?? 1;
-        const importedRecipeType = data.recipe_draft.recipe_type || 'warm_meal';
+        });
+        setRecipeType(data.recipe_draft.recipe_type || 'warm_meal');
+        setInitialStep(1);
+        setImportedKey((k) => k + 1);
 
-        setShowUrlInput(false);
-
-        if (detectedServings > 1) {
-          // Show normalization dialog
-          setPendingImport({
-            detectedServings,
-            ingredients: importedIngredients,
-            formData: importedFormData,
-            recipeType: importedRecipeType,
-          });
-          setNormalizeServings(detectedServings);
-        } else {
-          // servings=1 → apply directly
-          applyImport(importedFormData, importedIngredients, importedRecipeType);
-        }
+        const servings = data.recipe_draft.servings ?? 1;
+        const validItems = data.recipe_items
+          .filter((item) => item.portion_id != null)
+          .map((item, idx) => ({
+            portion_id: item.portion_id!,
+            quantity: servings > 1
+              ? Math.round((item.quantity / servings) * 100) / 100
+              : item.quantity,
+            sort_order: idx + 1,
+            note: item.note,
+          }));
+        setImportedRecipeItems(validItems);
 
         toast.success('Rezept importiert!', {
-          description: `${data.recipe_items.length} Zutaten zugeordnet${data.created_ingredients.length > 0 ? `, ${data.created_ingredients.length} neu angelegt` : ''}`,
+          description: `${validItems.length} Zutaten erkannt${data.created_ingredients.length > 0 ? `, ${data.created_ingredients.length} neu angelegt` : ''}. Sie werden mit dem Rezept gespeichert.`,
         });
       },
       onError: (err: Error) => {
@@ -155,97 +106,25 @@ export default function CreateRecipePage() {
     });
   }
 
-  /** Apply import data to form, normalizing quantities to 1 portion. */
-  const applyImport = useCallback((
-    importedFormData: ContentFormData,
-    importedIngredients: IngredientEntry[],
-    importedRecipeType: string,
-    divideBy = 1,
-  ) => {
-    setFormData(importedFormData);
-    setRecipeType(importedRecipeType);
-    setServings(1);
-    setIngredients(
-      divideBy > 1
-        ? importedIngredients.map((ing) => ({
-            ...ing,
-            quantity: String(
-              Math.round((parseFloat(ing.quantity) / divideBy) * 100) / 100,
-            ),
-          }))
-        : importedIngredients,
-    );
-    setInitialStep(1);
-    setImportedKey((k) => k + 1);
-  }, []);
-
-  /** User confirmed normalization in the dialog. */
-  function handleNormalizeConfirm() {
-    if (!pendingImport) return;
-    applyImport(
-      pendingImport.formData,
-      pendingImport.ingredients,
-      pendingImport.recipeType,
-      normalizeServings,
-    );
-    setPendingImport(null);
-  }
-
-  /** User skipped normalization (keep original quantities). */
-  function handleNormalizeSkip() {
-    if (!pendingImport) return;
-    applyImport(
-      pendingImport.formData,
-      pendingImport.ingredients,
-      pendingImport.recipeType,
-      1,
-    );
-    setPendingImport(null);
-  }
-
   function handleRefurbishComplete(data: AiRefurbish) {
-    if (data.suggested_ingredients?.length) {
-      setIngredients(
-        data.suggested_ingredients.map((ing) => ({
-          name: ing.matched_name || ing.name,
-          quantity: ing.quantity,
-          unit: ing.unit,
-          ingredient_id: ing.ingredient_id ?? null,
-          ingredient_slug: ing.ingredient_slug ?? null,
-          portion_id: ing.portion_id ?? null,
-          is_new_ingredient: false,
-        })),
-      );
-    }
-  }
-
-  function removeIngredient(index: number) {
-    setIngredients((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function updateIngredient(index: number, field: keyof IngredientEntry, value: string) {
-    setIngredients((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
-    );
-  }
-
-  function addIngredient(selected: { id: number; name: string; slug: string }) {
-    setIngredients((prev) => [
-      ...prev,
-      {
-        name: selected.name,
-        quantity: '1',
-        unit: 'Stück',
-        ingredient_id: selected.id,
-        ingredient_slug: selected.slug,
-        portion_id: null,
-        is_new_ingredient: false,
-      },
-    ]);
-    setNewIngredientSearch('');
+    const items = data.suggested_ingredients
+      ?.filter((ing) => ing.portion_id != null)
+      .map((ing, i) => ({
+        portion_id: ing.portion_id!,
+        quantity: parseFloat(ing.quantity) || 1,
+        sort_order: i + 1,
+        note: '',
+      })) ?? [];
+    setAiRecipeItems(items);
   }
 
   async function handleSave(formData: ContentFormData) {
+    const recipeItems = importedRecipeItems.length > 0
+      ? importedRecipeItems
+      : aiRecipeItems.length > 0
+        ? aiRecipeItems
+        : undefined;
+
     try {
       const result = await createRecipe.mutateAsync({
         title: formData.title,
@@ -258,18 +137,15 @@ export default function CreateRecipePage() {
         portions: 1,
         tag_ids: formData.selectedTagIds,
         scout_level_ids: formData.selectedScoutIds,
-        recipe_items: ingredients
-          .filter((ing) => ing.portion_id !== null)
-          .map((ing, i) => ({
-            portion_id: ing.portion_id!,
-            quantity: parseFloat(ing.quantity) || 1,
-            sort_order: i,
-            note: '',
-          })),
+        recipe_items: recipeItems,
       });
 
       toast.success('Rezept erstellt!');
-      navigate(`/recipes/${result.slug}`);
+      if (recipeItems) {
+        navigate(`/recipes/${result.slug}`);
+      } else {
+        navigate(`/recipes/${result.slug}?edit=ingredients`);
+      }
     } catch (err) {
       toast.error('Fehler beim Erstellen', {
         description: err instanceof Error ? err.message : 'Unbekannter Fehler',
@@ -325,76 +201,6 @@ export default function CreateRecipePage() {
         </div>
       )}
 
-      {/* Portion normalization dialog */}
-      {pendingImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card rounded-xl border p-6 w-full max-w-lg space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-amber-500 text-[24px]">tune</span>
-              <h3 className="text-lg font-semibold">Portionsmenge prüfen</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Das importierte Rezept ist für <strong>{pendingImport.detectedServings} Portionen</strong>.
-              Die Mengen werden automatisch auf <strong>1 Portion</strong> umgerechnet.
-            </p>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-muted-foreground">
-                Für wie viele Portionen ist das Original-Rezept?
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={999}
-                value={normalizeServings}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  if (!isNaN(v) && v >= 1) setNormalizeServings(v);
-                }}
-                className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-
-            {/* Preview of normalization */}
-            <div className="max-h-48 overflow-y-auto rounded-lg border bg-muted/30 p-3 space-y-1">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Vorschau (pro 1 Portion):</p>
-              {pendingImport.ingredients.slice(0, 8).map((ing, idx) => {
-                const original = parseFloat(ing.quantity);
-                const normalized = Math.round((original / normalizeServings) * 100) / 100;
-                return (
-                  <div key={idx} className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground line-through w-16 text-right">{original} {ing.unit}</span>
-                    <span className="material-symbols-outlined text-[14px] text-muted-foreground">arrow_forward</span>
-                    <span className="font-medium w-16">{normalized} {ing.unit}</span>
-                    <span className="text-muted-foreground truncate">{ing.name}</span>
-                  </div>
-                );
-              })}
-              {pendingImport.ingredients.length > 8 && (
-                <p className="text-xs text-muted-foreground">... und {pendingImport.ingredients.length - 8} weitere</p>
-              )}
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleNormalizeConfirm}
-                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[16px]">check</span>
-                Auf 1 Portion umrechnen
-              </button>
-              <button
-                type="button"
-                onClick={handleNormalizeSkip}
-                className="px-4 py-2 rounded-lg border text-sm"
-              >
-                Mengen beibehalten
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     <ContentStepper
       key={importedKey}
       typeLabel="Rezept"
@@ -463,62 +269,18 @@ export default function CreateRecipePage() {
 
           </div>
 
-          {/* Ingredients section */}
-          <div className="bg-card rounded-xl border p-6 space-y-4">
-            <h3 className="text-sm font-medium">Zutaten</h3>
-
-            {ingredients.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                Noch keine Zutaten. Nutze die KI-Beschreibung oder füge manuell hinzu.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {ingredients.map((ing, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 rounded-lg border p-2"
-                  >
-                    <input
-                      type="text"
-                      value={ing.quantity}
-                      onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
-                      className="w-16 rounded border border-input bg-background px-2 py-1 text-sm text-center"
-                    />
-                    <input
-                      type="text"
-                      value={ing.unit}
-                      onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
-                      className="w-16 rounded border border-input bg-background px-2 py-1 text-sm text-center"
-                    />
-                    <span className="flex-1 text-sm truncate">
-                      {ing.name}
-                      {ing.is_new_ingredient && (
-                        <span className="ml-1 inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">Neu</span>
-                      )}
-                      {ing.ingredient_id === null && (
-                        <span className="ml-1 text-xs text-amber-600">(nicht zugeordnet)</span>
-                      )}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeIngredient(index)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">close</span>
-                    </button>
-                  </div>
-                ))}
+          {/* Ingredients warning */}
+          <div className="mb-6 rounded-xl border border-amber-300/60 bg-amber-50 p-4">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-amber-600 text-[22px] mt-0.5 shrink-0">info</span>
+              <div>
+                <p className="text-sm font-medium text-amber-800">Zutaten erst nach dem Erstellen hinzufügen</p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Konzentriere dich hier auf Titel, Beschreibung und Zubereitung. Nach dem Speichern
+                  öffnet sich der Zutaten-Editor mit Portion-Auswahl, KI-Vorschlägen, Mengenschätzung
+                  und Preis-Infos.
+                </p>
               </div>
-            )}
-
-            {/* Add ingredient */}
-            <div className="pt-2">
-              <IngredientAutocomplete
-                value={newIngredientSearch}
-                onChange={setNewIngredientSearch}
-                onSelect={addIngredient}
-                placeholder="Zutat hinzufügen..."
-              />
             </div>
           </div>
 
@@ -581,27 +343,6 @@ export default function CreateRecipePage() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Ingredients as vertical list */}
-            {ingredients.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px]">grocery</span>
-                  Zutaten ({ingredients.length})
-                </h4>
-                <ul className="space-y-1.5">
-                  {ingredients.filter((i) => i.ingredient_id !== null).map((ing, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-sm py-1 px-2 rounded-md hover:bg-muted/30">
-                      <span className="text-muted-foreground w-16 text-right font-medium">{ing.quantity} {ing.unit}</span>
-                      <span>{ing.name}</span>
-                      {ing.is_new_ingredient && (
-                        <span className="inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">Neu</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
               </div>
             )}
 

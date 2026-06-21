@@ -37,7 +37,13 @@ async function fetchJson<T extends z.ZodTypeAny>(
 ): Promise<z.output<T>> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(
+      errBody.detail
+      || (Array.isArray(errBody)
+        ? errBody.map((e: { msg: string }) => e.msg).join(', ')
+        : `API error: ${res.status}`)
+    );
   }
   const data = await res.json();
   return schema.parse(data);
@@ -58,7 +64,13 @@ async function postJson<T extends z.ZodTypeAny>(
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(
+      errBody.detail
+      || (Array.isArray(errBody)
+        ? errBody.map((e: { msg: string }) => e.msg).join(', ')
+        : `API error: ${res.status}`)
+    );
   }
   const data = await res.json();
   return schema.parse(data);

@@ -126,10 +126,7 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
     """
     from google.genai import types
 
-    from django.db.models import Q
-
     from recipe.models import Recipe, RecipeItem
-    from supply.models import Ingredient, IngredientAlias, MeasuringUnit
 
     prompt_parts = [f"Recherchiere das Rezept '{title}'."]
     if description:
@@ -169,13 +166,15 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
         slug = f"{base_slug}-{counter}"
         counter += 1
 
+    execution_time = _duration_to_execution_time_choice(data.duration_minutes)
+
     # Create recipe
     recipe = Recipe.objects.create(
         title=data.title,
         slug=slug,
         description=data.description,
         difficulty=data.difficulty,
-        duration=data.duration_minutes,
+        execution_time=execution_time,
         portions=data.portions,
         recipe_type=data.recipe_type,
         status="draft",
@@ -183,16 +182,16 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
         created_by=user if user and user.is_authenticated else None,
     )
 
-    # Create recipe items — match or create ingredients
+    # Create recipe items — match or create ingredients, then resolve portions
     for i, item in enumerate(data.items):
         ingredient = _match_or_create_ingredient(item.ingredient_name, user)
         measuring_unit = _match_measuring_unit(item.unit)
+        portion = _resolve_or_create_portion(ingredient, measuring_unit, item.unit)
 
         RecipeItem.objects.create(
             recipe=recipe,
-            ingredient=ingredient,
+            portion=portion,
             quantity=item.quantity,
-            measuring_unit=measuring_unit,
             sort_order=i + 1,
         )
 
@@ -236,7 +235,55 @@ def _match_measuring_unit(unit_str: str):
     if not unit_str:
         return None
 
-    mu = MeasuringUnit.objects.filter(
-        Q(name__iexact=unit_str) | Q(abbreviation__iexact=unit_str)
-    ).first()
+    mu = MeasuringUnit.objects.filter(name__iexact=unit_str).first()
     return mu
+
+
+def _duration_to_execution_time_choice(minutes: int) -> str:
+    if minutes < 30:
+        return "less_30"
+    if minutes < 60:
+        return "30_60"
+    if minutes < 90:
+        return "60_90"
+    return "more_90"
+
+
+def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
+    """Find or create a Portion for the given ingredient + measuring_unit combo."""
+    from supply.models import Portion
+
+    if measuring_unit:
+        portion = Portion.objects.filter(
+            ingredient=ingredient,
+            measuring_unit=measuring_unit,
+        ).first()
+        if portion:
+            return portion
+
+        portion = Portion.objects.create(
+            ingredient=ingredient,
+            measuring_unit=measuring_unit,
+            name=unit_str or measuring_unit.name,
+            quantity=1.0,
+        )
+        return portion
+
+    # No measuring_unit matched → create a generic portion
+    portion = Portion.objects.filter(ingredient=ingredient).first()
+    if portion:
+        return portion
+
+    from supply.models import MeasuringUnit
+
+    fallback_unit = MeasuringUnit.objects.filter(name__iexact="Stück").first()
+    if not fallback_unit:
+        fallback_unit = MeasuringUnit.objects.create(name="Stück")
+
+    portion = Portion.objects.create(
+        ingredient=ingredient,
+        measuring_unit=fallback_unit,
+        name="Stück",
+        quantity=1.0,
+    )
+    return portion

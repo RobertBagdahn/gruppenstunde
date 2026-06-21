@@ -136,7 +136,9 @@ export default function RecipeDetailPage() {
   const [exportPortions, setExportPortions] = useState(1);
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
   const [portionSheetOpen, setPortionSheetOpen] = useState(false);
-  const [isInlineEditMode, setIsInlineEditMode] = useState(false);
+  const [isInlineEditMode, setIsInlineEditMode] = useState(
+    searchParams.get('edit') === 'ingredients',
+  );
   const [scaleDialogOpen, setScaleDialogOpen] = useState(false);
 
   const [showCloneDialog, setShowCloneDialog] = useState(false);
@@ -742,10 +744,18 @@ export default function RecipeDetailPage() {
             recipeId={recipe.id}
             items={recipe.recipe_items ?? []}
             portions={recipe.portions}
-            onClose={() => setIsInlineEditMode(false)}
+            onClose={() => {
+              setIsInlineEditMode(false);
+              const next = new URLSearchParams(searchParams);
+              next.delete('edit');
+              setSearchParams(next, { replace: true });
+            }}
             onSaved={() => {
               setIsInlineEditMode(false);
               refetch();
+              const next = new URLSearchParams(searchParams);
+              next.delete('edit');
+              setSearchParams(next, { replace: true });
             }}
           />
         ) : (
