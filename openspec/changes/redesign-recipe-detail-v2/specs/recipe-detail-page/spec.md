@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Rezept-Detailseite zeigt vollständige Analyse (MODIFIED)
-Die Rezept-Detailseite SHALL unter `/recipes/:slug` das Rezept in folgender Sektions-Reihenfolge anzeigen: Titel + kompakte Summary → Source-URL → Bild/Placeholder → Zutaten → Zubereitung (default geschlossen) → Themen/Allergene → Analyse-Tabs (mit Histogrammen) → Rezeptregeln → Ähnliche → Emotionen → Comments. Die Metadaten SHALL in der reichhaltigen Seitenleiste dargestellt werden (kein Inline-Header, kein RecipeMetaCard als separates Element). Jedes persönliche Rezept SHALL ohne Laufzeitfehler dargestellt werden (Badge-Variante `personal` unterstützt).
+Die Rezept-Detailseite SHALL unter `/recipes/:slug` das Rezept in folgender Sektions-Reihenfolge anzeigen: Titel + kompakte Summary → Source-URL → Bild/Placeholder → Zutaten → Zubereitung (default geschlossen) → Themen/Allergene → Analyse-Tabs (mit Histogrammen) → Rezeptregeln → Ähnliche → Emotionen → Comments. Die Beschreibung SHALL ausschließlich einmal als kompakte Summary unter dem Titel dargestellt werden; eine separate `summary_long`-Box SHALL NICHT mehr gerendert werden. Der Autor SHALL ausschließlich in der Seitenleiste dargestellt werden; eine separate Autor-Sektion im Hauptfeed SHALL NICHT mehr gerendert werden. Die Metadaten SHALL in der reichhaltigen Seitenleiste dargestellt werden (kein Inline-Header, kein RecipeMetaCard als separates Element). Jedes persönliche Rezept SHALL ohne Laufzeitfehler dargestellt werden (Badge-Variante `personal` unterstützt).
 
 #### Scenario: Nutzer öffnet Rezept-Detailseite
 - **WHEN** ein Nutzer `/recipes/:slug` aufruft
@@ -51,3 +51,21 @@ Nach Rezept-Mutationen (Item-Update, Fork, Sichtbarkeit, Emotion) SHALL das Fron
 #### Scenario: Daten nach Mutation aktuell
 - **WHEN** ein Nutzer Zutaten ändert und speichert
 - **THEN** zeigen Regeln-Box, Verbesserungsvorschläge, Kommentare und ähnliche Rezepte ohne manuelles Neuladen aktuelle Daten
+
+### Requirement: Dezenter Bild-Placeholder ohne störenden Gradient
+Bei fehlendem Titelbild SHALL ein kleiner, dezenter Placeholder (kompaktes Seitenverhältnis, gestrichelter Rahmen, helles Icon) angezeigt werden. Der dunkle Gradient-Overlay SHALL ausschließlich bei vorhandenem echten Bild gerendert werden, nicht beim leeren Placeholder.
+
+#### Scenario: Rezept ohne Bild
+- **WHEN** ein Rezept kein Titelbild hat
+- **THEN** wird ein kleiner, dezenter Placeholder ohne dunklen Gradient-Overlay angezeigt
+
+#### Scenario: Rezept mit Bild
+- **WHEN** ein Rezept ein Titelbild hat
+- **THEN** wird das Bild mit Gradient-Overlay (für Lesbarkeit von Overlay-Inhalten) angezeigt
+
+### Requirement: Verständliche Erklärung bei nicht anwendbaren Rezeptregeln
+Wenn Rezeptregeln für einen Rezepttyp nicht anwendbar sind (alle Typen außer warme/kalte Mahlzeit), SHALL das System eine erklärende Nachricht liefern, die den konkreten Rezepttyp benennt und begründet, warum eine isolierte Bewertung nicht aussagekräftig ist (Regeln bewerten vollständige Mahlzeiten; dieser Typ ist nur ein Baustein) und dass die Nährwerte erst im Essensplaner einfließen.
+
+#### Scenario: Getränk-Rezept ohne anwendbare Regeln
+- **WHEN** ein Nutzer ein Rezept vom Typ "Getränk" öffnet
+- **THEN** wird eine Erklärung angezeigt, die den Typ "Getränk" namentlich nennt und begründet, warum keine isolierte Nährwert-Bewertung erfolgt

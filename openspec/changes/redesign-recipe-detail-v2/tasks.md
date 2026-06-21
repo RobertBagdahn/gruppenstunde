@@ -53,6 +53,9 @@
 - [x] 6.5 Sektions-Reihenfolge gemäß Spec umordnen; `ContentAuthorSection` entfernen
 - [x] 6.6 Zwei-spaltige Portion-Anzeige (pro Portion / gesamt × n) in Zutaten + Nährwerten (mobil gestapelt)
 - [x] 6.7 Hartcodierte Farben → semantische Token (PortionScaler, NutritionTab, HealthTab, PriceTab, WeightTab, RecipeBadge, RecipeMetaCard, RecipeSidebar, InlineIngredientEditor u.a.); Abgleich mit `/styleguide`
+- [x] 6.8 `TitleImageEditor.tsx`: kleinerer/dezenter Placeholder (4:3, max-w-xs, gestrichelter Rahmen); Gradient nur bei echtem Bild rendern
+- [x] 6.9 `summary_long`-Box aus `RecipeDetailPage.tsx` entfernen (Beschreibung nur einmal als Summary im Header)
+- [x] 6.10 Erklärung bei nicht anwendbaren Rezeptregeln verbessern: konkreten Rezepttyp benennen + Begründung (Backend `recipe_checks.py` + Frontend `RecipeRulesBox.tsx`)
 
 ## 7. Analyse-Histogramme
 

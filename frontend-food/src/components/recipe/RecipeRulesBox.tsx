@@ -32,9 +32,9 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
         <div className="flex items-start gap-3">
           <span className="material-symbols-outlined text-[20px] text-indigo-500 mt-0.5">info</span>
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-foreground">Keine Rezeptregeln sinnvoll</h2>
+            <h2 className="text-sm font-semibold text-foreground">Keine Nährwert-Bewertung für diesen Rezepttyp</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {data.message || 'Für diesen Rezepttyp sind Rezeptregeln nicht sinnvoll. Die Regeln werden im Planer auf die Mahlzeit angewandt.'}
+              {data.message || 'Rezeptregeln bewerten, ob eine vollständige Mahlzeit ausgewogen ist. Dieser Rezepttyp ist jedoch keine eigenständige Mahlzeit, sondern nur ein Baustein – die Nährwerte werden erst im Essensplaner auf die gesamte Mahlzeit angewandt.'}
             </p>
           </div>
         </div>

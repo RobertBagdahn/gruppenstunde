@@ -155,13 +155,21 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
     Returns a dict with green/yellow/red counts and a list of all evaluated rules.
     """
     if recipe.recipe_type not in [RecipeTypeChoices.WARM_MEAL, RecipeTypeChoices.COLD_MEAL]:
+        type_label = RecipeTypeChoices(recipe.recipe_type).label if recipe.recipe_type else "Dieser Rezepttyp"
         return {
             "green_count": 0,
             "yellow_count": 0,
             "red_count": 0,
             "items": [],
             "is_applicable": False,
-            "message": "Für diesen Rezepttyp sind Rezeptregeln nicht sinnvoll. Die Regeln werden im Planer auf die Mahlzeit angewandt.",
+            "message": (
+                f"Rezeptregeln prüfen, ob eine vollständige Mahlzeit ausgewogen ist – "
+                f"etwa ob sie genug Energie, Eiweiß und Ballaststoffe liefert. "
+                f"Ein Rezept vom Typ „{type_label}“ ist aber keine eigenständige Mahlzeit, "
+                f"sondern nur ein Baustein. Eine isolierte Bewertung wäre deshalb nicht "
+                f"aussagekräftig. Die Nährwerte fließen stattdessen erst im Essensplaner "
+                f"in die Bewertung der gesamten Mahlzeit ein."
+            ),
         }
 
     values, total_weight_g = get_recipe_values_with_computed(recipe)

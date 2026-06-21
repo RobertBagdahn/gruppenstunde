@@ -31,7 +31,6 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ContentComments from '@/components/content/ContentComments';
 import ContentEmotions from '@/components/content/ContentEmotions';
-import ContentAuthorSection from '@/components/content/ContentAuthorSection';
 import InlineEditor from '@/components/content/InlineEditor';
 import TitleImageEditor from '@/components/content/TitleImageEditor';
 import IngredientList from '@/components/supply/IngredientList';
@@ -632,23 +631,7 @@ export default function RecipeDetailPage() {
         className="mt-6 lg:hidden"
       />
 
-      {/* Summary */}
-      {recipe.summary && (
-        <InlineEditor
-          mode="textarea"
-          label="Zusammenfassung"
-          value={recipe.summary}
-          canEdit={recipe.can_edit ?? false}
-          aiField="summary"
-          onSave={(val) => updateRecipe.mutateAsync({ summary: val })}
-          isSaving={updateRecipe.isPending}
-          className="mt-6"
-        >
-          <div className="bg-card rounded-xl border p-5">
-            <MarkdownRenderer content={recipe.summary} className="text-lg font-semibold italic" />
-          </div>
-        </InlineEditor>
-      )}
+
 
       {/* Topic Tags */}
       {topicTags.length > 0 && (
@@ -823,13 +806,6 @@ export default function RecipeDetailPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Long Summary */}
-      {recipe.summary_long && (
-        <div className="mt-6 bg-card rounded-xl border p-6">
-          <MarkdownRenderer content={recipe.summary_long} />
         </div>
       )}
 
@@ -1097,13 +1073,6 @@ export default function RecipeDetailPage() {
       )}
 
       <ContentLinkSection contentType="recipe" objectId={recipeId} />
-
-      {/* Author Section */}
-      <ContentAuthorSection
-        authors={recipe.authors ?? []}
-        createdAt={recipe.created_at}
-        className="mt-8"
-      />
 
       {/* Comments — using generic ContentComments component */}
       <section className="mt-8 bg-card rounded-xl border p-6">

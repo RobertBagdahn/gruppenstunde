@@ -47,6 +47,14 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, classN
     ? recipe.authors.map((a) => a.display_name || a.scout_name).join(', ')
     : null;
 
+  const createdAtLabel = recipe.created_at
+    ? new Date(recipe.created_at).toLocaleDateString('de-DE', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+
   const price = totalPriceEur ?? (recipe.cached_price_total
     ? recipe.cached_price_total * (portions / (recipe.portions ?? 1))
     : null);
@@ -95,6 +103,15 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, classN
       value: recipe.like_score.toString(),
       icon: 'favorite',
     },
+    ...(createdAtLabel
+      ? [
+          {
+            label: 'Erstellt am',
+            value: createdAtLabel,
+            icon: 'calendar_today',
+          },
+        ]
+      : []),
   ];
 
   return (

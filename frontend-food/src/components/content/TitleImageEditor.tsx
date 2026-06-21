@@ -82,7 +82,14 @@ export default function TitleImageEditor({
   const isUploading = uploadMutation.isPending || setFromUrlMutation.isPending;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden mb-8 shadow-lg max-w-lg mx-auto aspect-square bg-muted/10">
+    <div
+      className={cn(
+        'relative rounded-2xl overflow-hidden bg-muted/10',
+        imageUrl
+          ? 'mb-8 shadow-lg max-w-lg mx-auto aspect-square'
+          : 'mb-6 max-w-xs mx-auto aspect-[4/3] border border-dashed border-border',
+      )}
+    >
       {/* Image or Icon Placeholder */}
       {imageUrl ? (
         <img
@@ -95,10 +102,32 @@ export default function TitleImageEditor({
           loading="lazy"
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <span className="material-symbols-outlined text-6xl text-muted-foreground/30">
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+          <span className="material-symbols-outlined text-3xl text-muted-foreground/40">
             restaurant
           </span>
+          {canEdit && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  fileInputRef.current?.click();
+                }}
+                className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition"
+                title="Bild hochladen"
+              >
+                <span className="material-symbols-outlined text-[18px]">edit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAiModal(true)}
+                className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition"
+                title="Mit KI generieren"
+              >
+                <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -111,8 +140,10 @@ export default function TitleImageEditor({
         </div>
       )}
 
-      {/* Gradient overlay (always visible) */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      {/* Gradient overlay — only when a real image is present (for overlay text legibility) */}
+      {imageUrl && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      )}
 
       {/* Child content (badges, title, etc.) */}
       {children}
