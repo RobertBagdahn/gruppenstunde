@@ -325,10 +325,11 @@ export default function RecipeDetailPage() {
     setShowShoppingExport(true);
   };
 
-  const basePortions = recipe.portions && recipe.portions > 0 ? recipe.portions : 1;
+  // Backend always stores portions=1 (normalized)
+  const basePortions = 1;
   const displayedPortions = isDirty ? (modifiedPortions ?? basePortions) : portionsMultiplier;
   const displayedPriceTotal = nb?.total_price_eur != null
-    ? nb.total_price_eur * (isDirty ? 1 : portionsMultiplier / basePortions)
+    ? nb.total_price_eur * (isDirty ? 1 : portionsMultiplier)
     : null;
   const displayedPricePerPortion = displayedPriceTotal != null && displayedPortions > 0
     ? displayedPriceTotal / displayedPortions
@@ -496,19 +497,26 @@ export default function RecipeDetailPage() {
                 type="button"
                 disabled={forkAndSaveRecipe.isPending}
                 onClick={() => {
-                  const itemsPayload = modifiedItems.map((mod) => {
-                    const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
-                    return {
-                      portion_id: orig?.portion_id ?? null,
-                      ingredient_id: mod.ingredient_id,
-                      quantity: mod.quantity,
-                      measuring_unit_id: orig?.measuring_unit_id ?? null,
-                      sort_order: orig?.sort_order ?? 0,
-                      note: orig?.note ?? '',
-                    };
-                  });
+                  const portions = modifiedPortions ?? 1;
+                  const itemsPayload = modifiedItems
+                    .map((mod) => {
+                      const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
+                      // Filter: skip items without valid portion_id
+                      if (!orig?.portion_id) {
+                        return null;
+                      }
+                      return {
+                        portion_id: orig.portion_id,
+                        ingredient_id: mod.ingredient_id,
+                        quantity: mod.quantity / portions, // Normalize to 1-portion
+                        measuring_unit_id: orig.measuring_unit_id ?? null,
+                        sort_order: orig.sort_order ?? 0,
+                        note: orig.note ?? '',
+                      };
+                    })
+                    .filter((item) => item !== null);
                   forkAndSaveRecipe.mutate(
-                    { portions: modifiedPortions, recipe_items: itemsPayload },
+                    { portions: 1, recipe_items: itemsPayload },
                     {
                       onSuccess: (savedRecipe) => {
                         resetModifications();
@@ -532,24 +540,32 @@ export default function RecipeDetailPage() {
             {recipe.can_edit && (
               <button
                 type="button"
-                disabled={updateRecipe.isPending}
-                onClick={() => {
-                  const itemsPayload = modifiedItems.map((mod) => {
-                    const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
-                    return {
-                      portion_id: orig?.portion_id ?? null,
-                      ingredient_id: mod.ingredient_id,
-                      quantity: mod.quantity,
-                      measuring_unit_id: orig?.measuring_unit_id ?? null,
-                      sort_order: orig?.sort_order ?? 0,
-                      note: orig?.note ?? '',
-                    };
-                  });
-                  updateRecipe.mutate(
-                    {
-                      portions: modifiedPortions ?? undefined,
-                      recipe_items: itemsPayload,
-                    },
+                 disabled={updateRecipe.isPending}
+                 onClick={() => {
+                   const portions = modifiedPortions ?? 1;
+                   const itemsPayload = modifiedItems
+                     .map((mod) => {
+                       const orig = recipe.recipe_items?.find((ri) => ri.id === mod.recipe_item_id);
+                       // Filter: skip items without valid portion_id
+                       if (!orig?.portion_id) {
+                         return null;
+                       }
+                       return {
+                         portion_id: orig.portion_id,
+                         ingredient_id: mod.ingredient_id,
+                         quantity: mod.quantity / portions, // Normalize to 1-portion
+                         measuring_unit_id: orig.measuring_unit_id ?? null,
+                         sort_order: orig.sort_order ?? 0,
+                         note: orig.note ?? '',
+                       };
+                     })
+                     .filter((item) => item !== null);
+                   updateRecipe.mutate(
+                     {
+                       // Always save as portions=1 (normalized)
+                       portions: 1,
+                       recipe_items: itemsPayload,
+                     },
                     {
                       onSuccess: () => {
                         resetModifications();
@@ -719,8 +735,8 @@ export default function RecipeDetailPage() {
                   return mod ? { ...item, quantity: mod.quantity } : item;
                 })
               : (recipe.recipe_items ?? [])}
-            portions={isDirty ? (modifiedPortions ?? recipe.portions) : recipe.portions}
-            portionsMultiplier={isDirty ? 1 : (portionsMultiplier / (recipe.portions ?? 1))}
+            portions={isDirty ? (modifiedPortions ?? 1) : 1}
+            portionsMultiplier={isDirty ? 1 : portionsMultiplier}
             availableConversions={availableConversions?.items}
           />
         )}

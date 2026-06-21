@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import PortionScaler from './PortionScaler';
 import RecipeMetaCard from './RecipeMetaCard';
 import type { RecipeDetail } from '@/schemas/recipe';
@@ -21,6 +22,7 @@ export default function RecipeSidebar({
   onOpenShoppingList,
   onClone,
 }: RecipeSidebarProps) {
+  const navigate = useNavigate();
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
@@ -52,10 +54,10 @@ export default function RecipeSidebar({
         <button
           type="button"
           onClick={() => {
-            const url = new URL(window.location.href);
-            url.searchParams.set('mode', 'cooking');
-            url.searchParams.set('step', '0');
-            window.location.href = url.toString();
+            navigate(
+              { search: `?mode=cooking&step=0` },
+              { replace: true },
+            );
           }}
           className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
         >

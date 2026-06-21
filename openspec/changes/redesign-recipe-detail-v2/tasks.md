@@ -36,13 +36,13 @@
 ## 5. Frontend-Bugfixes
 
 - [ ] 5.1 `RecipeBadge.tsx`: `BADGE_CONFIG.personal` ergänzen + Union-Type erweitern; `RecipeDetailPage.tsx:414` Cast anpassen
-- [ ] 5.2 `RecipeDetailPage.tsx`: Modifikations-Save — Items ohne `portion_id` filtern; `portions`-Feld aus Payloads entfernen (fork + update)
-- [ ] 5.3 `EditRecipePage.tsx`: irreführendes Portions-Feld entfernen bzw. nur Anzeige; kein `portions` im Payload
-- [ ] 5.4 `RecipeDetailPage.tsx:303`: Kochmodus erhält Multiplikator `portions / (recipe.portions ?? 1)` statt absoluten Zähler
-- [ ] 5.5 `PortionScaler.tsx`: vollständig kontrolliert (`value`/`onChange`), kein interner `useState`-Init
-- [ ] 5.6 `RecipeSidebar.tsx` + `RecipeMobileActionBar.tsx`: Kochmodus via `navigate`/`setSearchParams` statt `window.location.href`
-- [ ] 5.7 Toten Code entfernen: `ScaleIngredientsDialog.tsx`, `store.scaleByFactor`, `scaleQuantity`
-- [ ] 5.8 Store/Helpers: `servings`→`portions` Benennung vereinheitlichen; doppelte `effectivePortions`-Berechnung entfernen
+- [x] 5.2 `RecipeDetailPage.tsx`: Modifikations-Save — Items ohne `portion_id` filtern; `portions`-Feld aus Payloads entfernen (fork + update)
+- [x] 5.3 `EditRecipePage.tsx`: irreführendes Portions-Feld entfernen bzw. nur Anzeige; kein `portions` im Payload
+- [x] 5.4 `RecipeDetailPage.tsx:303`: Kochmodus erhält Multiplikator `portions / (recipe.portions ?? 1)` statt absoluten Zähler
+- [x] 5.5 `PortionScaler.tsx`: vollständig kontrolliert (`value`/`onChange`), kein interner `useState`-Init
+- [x] 5.6 `RecipeSidebar.tsx` + `RecipeMobileActionBar.tsx`: Kochmodus via `navigate`/`setSearchParams` statt `window.location.href`
+- [x] 5.7 Toten Code entfernen: `ScaleIngredientsDialog.tsx`, `store.scaleByFactor`, `scaleQuantity`
+- [x] 5.8 Store/Helpers: `servings`→`portions` Benennung vereinheitlichen; doppelte `effectivePortions`-Berechnung entfernen
 
 ## 6. Layout-Redesign
 

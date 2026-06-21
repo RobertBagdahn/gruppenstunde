@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface RecipeMobileActionBarProps {
@@ -10,6 +11,7 @@ export default function RecipeMobileActionBar({
   onOpenShoppingList,
   onOpenPortions,
 }: RecipeMobileActionBarProps) {
+  const navigate = useNavigate();
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -47,10 +49,10 @@ export default function RecipeMobileActionBar({
   }, [menuOpen]);
 
   const handleStartCooking = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('mode', 'cooking');
-    url.searchParams.set('step', '0');
-    window.location.href = url.toString();
+    navigate(
+      { search: `?mode=cooking&step=0` },
+      { replace: true },
+    );
   };
 
   const handleShare = async () => {

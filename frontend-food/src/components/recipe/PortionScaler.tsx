@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface PortionScalerProps {
-  /** Initial portion count (default: 1) */
-  defaultPortions?: number;
+  /** Current portion count (controlled) */
+  value: number;
   /** Min value (default: 1) */
   min?: number;
   /** Max value (default: 100) */
@@ -14,32 +14,32 @@ interface PortionScalerProps {
   compact?: boolean;
   /** Show factor quick-select buttons (0.5×, 1.5×, 2×) */
   showFactors?: boolean;
+  /** Default value for factor buttons (used for scaling) */
+  defaultValue?: number;
   /** Additional CSS classes */
   className?: string;
 }
 
 export default function PortionScaler({
-  defaultPortions = 1,
+  value,
   min = 1,
   max = 100,
   onChange,
   compact = false,
   showFactors = false,
+  defaultValue = 1,
   className,
 }: PortionScalerProps) {
-  const [portions, setPortions] = useState(defaultPortions);
-
   const updatePortions = useCallback(
-    (value: number) => {
-      const clamped = Math.max(min, Math.min(max, value));
-      setPortions(clamped);
+    (v: number) => {
+      const clamped = Math.max(min, Math.min(max, v));
       onChange(clamped);
     },
     [min, max, onChange],
   );
 
-  const decrement = () => updatePortions(portions - 1);
-  const increment = () => updatePortions(portions + 1);
+  const decrement = () => updatePortions(value - 1);
+  const increment = () => updatePortions(value + 1);
 
   return (
     <div
@@ -60,7 +60,7 @@ export default function PortionScaler({
         <button
           type="button"
           onClick={decrement}
-          disabled={portions <= min}
+          disabled={value <= min}
           className={cn(
             'flex items-center justify-center rounded-full',
             'border border-amber-300 bg-white text-amber-700',
@@ -75,7 +75,7 @@ export default function PortionScaler({
 
         <input
           type="number"
-          value={portions}
+          value={value}
           onChange={(e) => {
             const val = parseInt(e.target.value, 10);
             if (!isNaN(val)) updatePortions(val);
@@ -95,7 +95,7 @@ export default function PortionScaler({
         <button
           type="button"
           onClick={increment}
-          disabled={portions >= max}
+          disabled={value >= max}
           className={cn(
             'flex items-center justify-center rounded-full',
             'border border-amber-300 bg-white text-amber-700',
@@ -115,7 +115,7 @@ export default function PortionScaler({
             <button
               key={factor}
               type="button"
-              onClick={() => updatePortions(Math.round(defaultPortions * factor))}
+              onClick={() => updatePortions(Math.round(defaultValue * factor))}
               className="flex-1 text-xs font-medium py-1 rounded-lg border border-amber-200 bg-white text-amber-700 hover:bg-amber-100 transition-colors"
             >
               {factor.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}×
