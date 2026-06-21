@@ -213,7 +213,7 @@ The system SHALL provide an `EmbeddingFeedback` model for tracking quality issue
 ## ADDED Requirements
 
 ### Requirement: Embedding Generation Pipeline
-The system SHALL generate 768-dimensional text embeddings for all content items using Gemini text-embedding-001. Embeddings SHALL be generated from a concatenation of title, summary, description, and tag names. Embeddings SHALL be stored as pgvector VectorField(768) in each content table.
+The system SHALL generate 768-dimensional text embeddings for all content items using `text-embedding-004`. Embeddings SHALL be generated from a concatenation of title, summary, description, and tag names. For Recipe content, the embedding text SHALL additionally include human-readable serialization of all associated Ingredients (via RecipeItems → Portions → Ingredients) including their nutritional values, scores, and tags. Embeddings SHALL be stored as pgvector VectorField(768) in each content table.
 
 #### Scenario: Embedding generated on content creation
 - **WHEN** a new content item is created with status 'approved' or 'submitted'
@@ -224,6 +224,12 @@ The system SHALL generate 768-dimensional text embeddings for all content items 
 - **WHEN** a content item's title, summary, description, or tags are modified
 - **THEN** the embedding SHALL be regenerated
 - **THEN** old ContentLinks with link_type='embedding' SHALL be refreshed
+
+#### Scenario: Recipe embedding includes ingredient data
+- **WHEN** a Recipe embedding is generated
+- **THEN** the embedding text SHALL include the names and nutritional profiles of all its Ingredients
+- **THEN** each Ingredient SHALL be represented with up to 150 characters of structured nutritional text
+- **THEN** the total embedding text SHALL stay within the 2048-token input limit
 
 #### Scenario: Embedding not generated for drafts
 - **WHEN** a content item is in 'draft' status

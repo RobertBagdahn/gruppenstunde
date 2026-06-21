@@ -1,4 +1,4 @@
-import { BookOpen, Users } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -40,21 +40,20 @@ export default function RecipePreviewDialog({
 }: RecipePreviewDialogProps) {
   if (!recipe) return null;
 
-  const servings = recipe.servings || 1;
-  const energyPerPortion = recipe.cached_energy_kcal
-    ? Math.round(recipe.cached_energy_kcal / servings)
+  const energyPer100g = recipe.cached_energy_kcal
+    ? Math.round(recipe.cached_energy_kcal)
     : null;
-  const proteinPerPortion = recipe.cached_protein_g
-    ? Math.round((recipe.cached_protein_g / servings) * 10) / 10
+  const proteinPer100g = recipe.cached_protein_g
+    ? Math.round(recipe.cached_protein_g * 10) / 10
     : null;
-  const fatPerPortion = recipe.cached_fat_g
-    ? Math.round((recipe.cached_fat_g / servings) * 10) / 10
+  const fatPer100g = recipe.cached_fat_g
+    ? Math.round(recipe.cached_fat_g * 10) / 10
     : null;
-  const carbsPerPortion = recipe.cached_carbohydrate_g
-    ? Math.round((recipe.cached_carbohydrate_g / servings) * 10) / 10
+  const carbsPer100g = recipe.cached_carbohydrate_g
+    ? Math.round(recipe.cached_carbohydrate_g * 10) / 10
     : null;
-  const pricePerPortion = recipe.cached_price_total
-    ? (recipe.cached_price_total / servings).toFixed(2)
+  const pricePerServing = recipe.price_per_serving
+    ? recipe.price_per_serving.toFixed(2)
     : null;
   const nutriScore = recipe.cached_nutri_class
     ? NUTRI_SCORE_LABELS[recipe.cached_nutri_class]
@@ -86,38 +85,32 @@ export default function RecipePreviewDialog({
             <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
               {RECIPE_TYPE_LABELS[recipe.recipe_type] ?? recipe.recipe_type}
             </span>
-            {recipe.servings && (
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                {recipe.servings} Portionen
-              </span>
-            )}
           </div>
 
-          {/* Nutrition Grid */}
-          {(energyPerPortion || proteinPerPortion || fatPerPortion || carbsPerPortion) && (
+          {/* Nutrition Grid (per 100g) */}
+          {(energyPer100g || proteinPer100g || fatPer100g || carbsPer100g) && (
             <div className="grid grid-cols-4 gap-2 text-center">
-              {energyPerPortion != null && (
+              {energyPer100g != null && (
                 <div className="rounded-lg bg-muted/50 p-2">
-                  <div className="text-sm font-semibold">{energyPerPortion}</div>
-                  <div className="text-xs text-muted-foreground">kcal</div>
+                  <div className="text-sm font-semibold">{energyPer100g}</div>
+                  <div className="text-xs text-muted-foreground">kcal/100g</div>
                 </div>
               )}
-              {proteinPerPortion != null && (
+              {proteinPer100g != null && (
                 <div className="rounded-lg bg-muted/50 p-2">
-                  <div className="text-sm font-semibold">{proteinPerPortion}g</div>
+                  <div className="text-sm font-semibold">{proteinPer100g}g</div>
                   <div className="text-xs text-muted-foreground">Eiweiß</div>
                 </div>
               )}
-              {fatPerPortion != null && (
+              {fatPer100g != null && (
                 <div className="rounded-lg bg-muted/50 p-2">
-                  <div className="text-sm font-semibold">{fatPerPortion}g</div>
+                  <div className="text-sm font-semibold">{fatPer100g}g</div>
                   <div className="text-xs text-muted-foreground">Fett</div>
                 </div>
               )}
-              {carbsPerPortion != null && (
+              {carbsPer100g != null && (
                 <div className="rounded-lg bg-muted/50 p-2">
-                  <div className="text-sm font-semibold">{carbsPerPortion}g</div>
+                  <div className="text-sm font-semibold">{carbsPer100g}g</div>
                   <div className="text-xs text-muted-foreground">KH</div>
                 </div>
               )}
@@ -126,9 +119,9 @@ export default function RecipePreviewDialog({
 
           {/* Price + Nutri-Score */}
           <div className="flex items-center gap-3">
-            {pricePerPortion && (
+            {pricePerServing && (
               <span className="text-sm text-muted-foreground">
-                ~{pricePerPortion}€ / Portion
+                ~{pricePerServing}€ / Portion
               </span>
             )}
             {nutriScore && (

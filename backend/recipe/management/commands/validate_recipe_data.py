@@ -74,7 +74,7 @@ class Command(BaseCommand):
 
             for item in items:
                 weight = float(item.quantity) * float(item.portion.weight_g)
-                per_person = weight / max(recipe.servings, 1)
+                per_person = weight / max(recipe.portions, 1)
                 total_weight += weight
 
                 if per_person > threshold:
@@ -82,7 +82,7 @@ class Command(BaseCommand):
                         (item.portion.ingredient.name, per_person)
                     )
 
-            per_person_total = total_weight / max(recipe.servings, 1)
+            per_person_total = total_weight / max(recipe.portions, 1)
             if problematic_items or per_person_total > threshold:
                 results.append((recipe, total_weight, problematic_items))
 
@@ -91,9 +91,9 @@ class Command(BaseCommand):
     def _report_recipe(
         self, recipe: Recipe, total_weight: float, items: list[tuple[str, float]]
     ) -> None:
-        per_person = total_weight / max(recipe.servings, 1)
+        per_person = total_weight / max(recipe.portions, 1)
         self.stdout.write(f"\n  Recipe: {recipe.title} (ID={recipe.id})")
-        self.stdout.write(f"  Servings: {recipe.servings}")
+        self.stdout.write(f"  Portions: {recipe.portions}")
         self.stdout.write(f"  Total weight: {total_weight:.0f}g")
         self.stdout.write(f"  Per person: {per_person:.0f}g")
 
@@ -103,18 +103,18 @@ class Command(BaseCommand):
                 self.stdout.write(f"    - {name}: {weight_pp:.0f}g per person")
 
     def _fix_recipe(self, recipe: Recipe, total_weight: float) -> None:
-        # Estimate servings: assume 500-800g per person, use 650g as midpoint
-        estimated_servings = max(1, round(total_weight / 650.0))
-        old_servings = recipe.servings
+        # Estimate portions: assume 500-800g per person, use 650g as midpoint
+        estimated_portions = max(1, round(total_weight / 650.0))
+        old_portions = recipe.portions
 
-        if estimated_servings != old_servings:
-            recipe.servings = estimated_servings
-            recipe.save(update_fields=["servings"])
+        if estimated_portions != old_portions:
+            recipe.portions = estimated_portions
+            recipe.save(update_fields=["portions"])
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"  FIXED: servings {old_servings} → {estimated_servings} "
-                    f"(~{total_weight / estimated_servings:.0f}g per person)"
+                    f"  FIXED: portions {old_portions} → {estimated_portions} "
+                    f"(~{total_weight / estimated_portions:.0f}g per person)"
                 )
             )
         else:
-            self.stdout.write(f"  No fix needed (servings already reasonable)")
+            self.stdout.write(f"  No fix needed (portions already reasonable)")

@@ -200,7 +200,7 @@ def test_fix_portion_data_integrity_migration(ingredient, measuring_unit):
     
     # Link a recipe item to the duplicate portion to test FK update
     from recipe.models import Recipe, RecipeItem
-    recipe = Recipe.objects.create(title="Kuchen", servings=4)
+    recipe = Recipe.objects.create(title="Kuchen", portions=4)
     item = RecipeItem.objects.create(
         recipe=recipe,
         portion=p_dup2,

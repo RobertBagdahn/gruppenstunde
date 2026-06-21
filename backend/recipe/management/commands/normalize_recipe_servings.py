@@ -1,9 +1,9 @@
-"""Management command: normalize all recipes to servings=1.
+"""Management command: normalize all recipes to portions=1.
 
-Classifies recipes with servings>1 into three categories using a weight
+Classifies recipes with portions>1 into three categories using a weight
 heuristic and normalizes them accordingly:
-  - already_normalized: quantities look per-1-person → only set servings=1
-  - total_quantities: quantities are totals → divide by servings, set servings=1
+  - already_normalized: quantities look per-1-person → only set portions=1
+  - total_quantities: quantities are totals → divide by portions, set portions=1
   - broken_data: per-person weights > 500g → flag for manual review
 """
 
@@ -33,7 +33,7 @@ def _classify_recipe(recipe: Recipe) -> str:
         pw = item.portion.weight_g if item.portion else 0
         total_g = item.quantity * (pw or 1)
         weights_total.append(total_g)
-        weights_per_person.append(total_g / recipe.servings)
+        weights_per_person.append(total_g / recipe.portions)
 
     max_total = max(weights_total)
     avg_pp = sum(weights_per_person) / len(weights_per_person)
@@ -47,7 +47,7 @@ def _classify_recipe(recipe: Recipe) -> str:
 
 
 class Command(BaseCommand):
-    help = "Normalize all recipes to servings=1 using weight-based heuristic."
+        help = "Normalize all recipes to portions=1 using weight-based heuristic."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -60,11 +60,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run: bool = options["dry_run"]
 
-        recipes = Recipe.objects.filter(servings__gt=1).prefetch_related(
+        recipes = Recipe.objects.filter(portions__gt=1).prefetch_related(
             "recipe_items__portion"
         )
         total = recipes.count()
-        self.stdout.write(f"Found {total} recipes with servings > 1\n")
+        self.stdout.write(f"Found {total} recipes with portions > 1\n")
 
         if total == 0:
             self.stdout.write(self.style.SUCCESS("Nothing to do."))
@@ -75,24 +75,24 @@ class Command(BaseCommand):
         for recipe in recipes:
             category = _classify_recipe(recipe)
             stats[category] += 1
-            servings = recipe.servings
+            portions = recipe.portions
 
             self.stdout.write(
                 f"\n{'[DRY-RUN] ' if dry_run else ''}"
-                f"{recipe.title} (id={recipe.id}, servings={servings}) → {category}"
+                f"{recipe.title} (id={recipe.id}, portions={portions}) → {category}"
             )
 
             if category == "already_normalized":
-                self.stdout.write(f"  → Set servings=1 (quantities unchanged)")
+                self.stdout.write(f"  → Set portions=1 (quantities unchanged)")
                 if not dry_run:
-                    recipe.servings = 1
-                    recipe.save(update_fields=["servings"])
+                    recipe.portions = 1
+                    recipe.save(update_fields=["portions"])
 
             elif category == "total_quantities":
                 items = recipe.recipe_items.all()
                 for item in items:
                     old_qty = item.quantity
-                    new_qty = round(old_qty / servings, 4)
+                    new_qty = round(old_qty / portions, 4)
                     self.stdout.write(
                         f"  {item.id}: qty {old_qty:.4f} → {new_qty:.4f}"
                     )
@@ -100,10 +100,10 @@ class Command(BaseCommand):
                         item.quantity = new_qty
                         item.save(update_fields=["quantity"])
 
-                self.stdout.write(f"  → Set servings=1")
+                self.stdout.write(f"  → Set portions=1")
                 if not dry_run:
-                    recipe.servings = 1
-                    recipe.save(update_fields=["servings"])
+                    recipe.portions = 1
+                    recipe.save(update_fields=["portions"])
                     recalculate_recipe_cache(recipe)
 
             elif category == "broken_data":
@@ -116,7 +116,7 @@ class Command(BaseCommand):
                 items = recipe.recipe_items.all()
                 for item in items:
                     old_qty = item.quantity
-                    new_qty = round(old_qty / servings, 4)
+                    new_qty = round(old_qty / portions, 4)
                     self.stdout.write(
                         f"  {item.id}: qty {old_qty:.4f} → {new_qty:.4f}"
                     )
@@ -125,8 +125,8 @@ class Command(BaseCommand):
                         item.save(update_fields=["quantity"])
 
                 if not dry_run:
-                    recipe.servings = 1
-                    recipe.save(update_fields=["servings"])
+                    recipe.portions = 1
+                    recipe.save(update_fields=["portions"])
                     recalculate_recipe_cache(recipe)
 
         self.stdout.write(

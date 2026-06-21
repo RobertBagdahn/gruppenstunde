@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ChefHat, Clock, Plus } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
 import {
   useIngredient,
@@ -14,6 +15,7 @@ import {
   useRetailSections,
   useAiSuggestIngredientAll,
   useMeasuringUnits,
+  useRecipesByIngredient,
 } from '@/api/supplies';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import type { Portion } from '@/schemas/supply';
@@ -319,6 +321,119 @@ function PortionCard({
         confirmLabel="Löschen"
         loading={deletePortion.isPending}
       />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RecipesSection — shows recipes that use this ingredient
+// ---------------------------------------------------------------------------
+const DIFFICULTY_LABELS: Record<string, string> = {
+  easy: 'Einfach',
+  medium: 'Mittel',
+  hard: 'Schwer',
+};
+
+const EXECUTION_TIME_LABELS: Record<string, string> = {
+  less_30: '< 30 Min',
+  '30_60': '30 – 60 Min',
+  '60_90': '60 – 90 Min',
+  more_90: '> 90 Min',
+};
+
+function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName: string }) {
+  const navigate = useNavigate();
+  const { data, isLoading, error } = useRecipesByIngredient(slug);
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
+          <ChefHat className="text-primary" size={20} />
+          Rezepte mit dieser Zutat
+        </h2>
+      </div>
+
+      {/* Loading */}
+      {isLoading && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse rounded-xl border bg-card overflow-hidden">
+              <div className="aspect-[16/9] bg-muted" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !isLoading && (
+        <p className="text-sm text-destructive">
+          Rezepte konnten nicht geladen werden.
+        </p>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && !error && data && data.items.length === 0 && (
+        <div className="border border-border rounded-xl p-6 bg-card text-center space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Noch kein Rezept mit dieser Zutat.
+          </p>
+          <button
+            onClick={() => navigate(`/recipes/new?ingredient=${slug}`)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition"
+          >
+            <Plus size={16} />
+            Rezept mit {ingredientName} erstellen
+          </button>
+        </div>
+      )}
+
+      {/* Recipe grid */}
+      {!isLoading && !error && data && data.items.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {data.items.map((recipe) => (
+            <Link
+              key={recipe.id}
+              to={`/recipes/${recipe.slug}`}
+              className="group block rounded-xl border bg-card overflow-hidden shadow-soft hover:shadow-md hover:border-primary/30 transition-all"
+            >
+              {recipe.image_url ? (
+                <div className="aspect-[16/9] overflow-hidden">
+                  <img
+                    src={recipe.image_url}
+                    alt={recipe.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="aspect-[16/9] bg-muted flex items-center justify-center">
+                  <ChefHat className="text-muted-foreground/40" size={32} />
+                </div>
+              )}
+              <div className="p-3 space-y-1.5">
+                <h3 className="text-sm font-semibold leading-tight line-clamp-2">
+                  {recipe.title}
+                </h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <ChefHat size={12} />
+                    {DIFFICULTY_LABELS[recipe.difficulty] ?? recipe.difficulty ?? '\u2014'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={12} />
+                    {EXECUTION_TIME_LABELS[recipe.execution_time] ?? recipe.execution_time ?? '\u2014'}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1051,6 +1166,9 @@ export default function IngredientDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Recipes with this ingredient */}
+      <RecipesSection slug={ingredient.slug} ingredientName={ingredient.name} />
 
       {/* Meta */}
       <div className="border-t pt-4 text-xs text-muted-foreground flex flex-wrap gap-4">

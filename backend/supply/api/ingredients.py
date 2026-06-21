@@ -9,23 +9,27 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from recipe.models import Recipe
 from supply.models import (
     Ingredient,
     IngredientAlias,
     MeasuringUnit,
     Portion,
 )
+from recipe.schemas import PaginatedRecipeOut
 from supply.schemas import (
     AliasCreateIn,
     IngredientAiCreateIn,
     IngredientAliasOut,
     IngredientCreateIn,
     IngredientDetailOut,
+    IngredientSimilarOut,
     IngredientSuggestAllOut,
     IngredientUpdateIn,
     PaginatedIngredientOut,
     PortionCreateIn,
     PortionOut,
+    PortionSuggestionOut,
     PortionUpdateIn,
 )
 
@@ -392,3 +396,56 @@ def ai_create(request, payload: IngredientAiCreateIn):
 
     ingredient = ai_create_ingredient(payload.name, user=request.user)
     return ingredient
+
+
+@ingredient_router.get("/{slug}/recipes/", response=PaginatedRecipeOut)
+def list_recipes_by_ingredient(request, slug: str, page: int = 1, page_size: int = 20):
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    base_qs = (
+        Recipe.objects.filter(
+            recipe_items__portion__ingredient=ingredient,
+            status="approved",
+        )
+        .distinct()
+        .select_related("owner", "forked_from")
+        .prefetch_related("scout_levels", "tags__parent", "authors")
+    )
+
+    if not request.user.is_authenticated or not request.user.is_staff:
+        from django.db.models import Q
+
+        system_q = Q(owner__isnull=True, status="approved")
+        community_q = Q(owner__isnull=False, visibility="public", status="approved")
+
+        if request.user.is_authenticated:
+            own_q = Q(owner=request.user)
+            created_q = Q(created_by=request.user)
+            visibility_q = system_q | community_q | own_q | created_q
+        else:
+            visibility_q = system_q | community_q
+
+        base_qs = base_qs.filter(visibility_q)
+
+    total = base_qs.count()
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    offset = (page - 1) * page_size
+
+    recipes = list(base_qs[offset : offset + page_size])
+
+    return {
+        "items": recipes,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+@ingredient_router.get("/{slug}/similar/", response=list[IngredientSimilarOut])
+def get_similar_ingredients(request, slug: str):
+    """Get similar ingredients using vector embedding similarity."""
+    from content.services.embedding_service import find_similar_ingredients
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+    return find_similar_ingredients(ingredient, limit=6)

@@ -722,7 +722,7 @@ class Command(BaseCommand):
                 owner=None,
                 status="approved",
                 visibility=None,
-                servings=1,
+                portions=1,
             )
             recipe.save()
             self.pk_map.add("recipe", pk, recipe.pk)

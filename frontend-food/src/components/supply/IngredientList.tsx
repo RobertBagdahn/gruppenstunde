@@ -16,8 +16,8 @@ import UnitSwitcher from '@/components/recipe/UnitSwitcher';
 
 interface IngredientListProps {
   items: RecipeItem[];
-  servings: number | null;
-  servingsMultiplier: number;
+  portions: number | null;
+  portionsMultiplier: number;
   /** Available unit conversions per ingredient (from batch API) */
   availableConversions?: AvailableConversionBatchItem[];
   className?: string;
@@ -57,8 +57,8 @@ function formatPortionAmount(amount: number, portionName: string): string {
 
 export default function IngredientList({
   items,
-  servings: _servings,
-  servingsMultiplier,
+  portions: _portions,
+  portionsMultiplier,
   availableConversions,
   className = '',
 }: IngredientListProps) {
@@ -92,7 +92,7 @@ export default function IngredientList({
       <ul className="divide-y divide-border rounded-xl border bg-card overflow-hidden">
         {sortedItems.map((item) => {
           // Calculate weight in grams from pre-calculated backend weight
-          const weightG = item.weight_g * servingsMultiplier;
+          const weightG = item.weight_g * portionsMultiplier;
 
           // Always show grams/ml as primary display
           const formatted = formatQuantity(weightG, item.ingredient_viscosity, item.ingredient_density);

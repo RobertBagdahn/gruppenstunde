@@ -16,7 +16,6 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   session: 'Gruppenstunde',
   blog: 'Wissensbeitrag',
   game: 'Spiel',
-  recipe: 'Rezept',
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {

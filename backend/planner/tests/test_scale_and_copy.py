@@ -36,7 +36,7 @@ class TestScaleAndCopyAPI:
         # Add recipe with total energy cache of 478 kcal (was 2000 kJ, ÷4.184)
         # Target kcal per portion is 583.75. Current kcal per portion is ~47.8.
         # Scale factor should be 583.75 / 47.8 ≈ 12.2
-        recipe = make_recipe(servings=10, cached_energy_total_kcal=478.0)
+        recipe = make_recipe(portions=10, cached_energy_total_kcal=478.0)
         item1 = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
         item2 = make_meal_item(meal=meal, recipe=recipe, factor=2.0)
 

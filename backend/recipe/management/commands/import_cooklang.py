@@ -393,7 +393,7 @@ class Command(BaseCommand):
                 title=parsed["title"],
                 summary=f"Importiert aus Cooklang ({folder})",
                 description=parsed["description"],
-                servings=servings,
+                portions=servings,
                 recipe_type=recipe_type,
                 status=ContentStatus.APPROVED,
                 owner=None,

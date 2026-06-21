@@ -297,6 +297,14 @@ export const NUTRI_SCORE_COLORS: Record<number, { bg: string; text: string; labe
   5: { bg: 'bg-red-500', text: 'text-white', label: 'E' },
 };
 
+export const NUTRI_SCORE_COLORS_BY_LETTER: Record<string, { bg: string; text: string }> = {
+  A: { bg: 'bg-green-600', text: 'text-white' },
+  B: { bg: 'bg-lime-500', text: 'text-white' },
+  C: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
+  D: { bg: 'bg-orange-500', text: 'text-white' },
+  E: { bg: 'bg-red-600', text: 'text-white' },
+};
+
 // --- Legacy Material Content schemas (used by api/materials.ts) ---
 
 export const MaterialContentSchema = z.object({
@@ -397,6 +405,16 @@ export const IngredientSuggestAllSchema = z.object({
 });
 export type IngredientSuggestAll = z.infer<typeof IngredientSuggestAllSchema>;
 
+// --- Ingredient Similar ---
+
+export const IngredientSimilarSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  distance: z.number(),
+});
+export type IngredientSimilar = z.infer<typeof IngredientSimilarSchema>;
+
 // --- Unit Conversion ---
 
 export const UnitConversionSchema = z.object({
@@ -456,3 +474,55 @@ export const AvailableConversionBatchSchema = z.object({
   items: z.array(AvailableConversionBatchItemSchema),
 });
 export type AvailableConversionBatch = z.infer<typeof AvailableConversionBatchSchema>;
+
+// ==========================================================================
+// Statistics stub types (for Ingredient Statistics tabs)
+// ==========================================================================
+
+export const RankingItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  value: z.number(),
+  nutri_class: z.number().nullable(),
+  retail_section_name: z.string().nullable(),
+});
+export type RankingItem = z.infer<typeof RankingItemSchema>;
+
+export const DistributionOutSchema = z.object({
+  buckets: z.array(z.object({
+    min: z.number(),
+    max: z.number(),
+    count: z.number(),
+    percentage: z.number(),
+  })),
+  mean: z.number(),
+  median: z.number(),
+  p5: z.number(),
+  p95: z.number(),
+});
+export type DistributionOut = z.infer<typeof DistributionOutSchema>;
+
+export const ScatterOutSchema = z.object({
+  points: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    slug: z.string(),
+    x: z.number(),
+    y: z.number(),
+    nutri_class: z.number().nullable(),
+    retail_section_name: z.string().nullable(),
+  })),
+});
+export type ScatterOut = z.infer<typeof ScatterOutSchema>;
+
+export const OutliersOutSchema = z.object({
+  fields: z.record(z.string(), z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    slug: z.string(),
+    value: z.number(),
+    severity: z.enum(['moderate', 'extreme']),
+  }))),
+});
+export type OutliersOut = z.infer<typeof OutliersOutSchema>;

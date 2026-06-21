@@ -9,15 +9,15 @@ import PortionScaler from './PortionScaler';
 interface PortionBottomSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  servings: number;
-  onServingsChange: (servings: number) => void;
+  portions: number;
+  onPortionsChange: (portions: number) => void;
 }
 
 export default function PortionBottomSheet({
   open,
   onOpenChange,
-  servings,
-  onServingsChange,
+  portions,
+  onPortionsChange,
 }: PortionBottomSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -27,8 +27,8 @@ export default function PortionBottomSheet({
         </SheetHeader>
         <div className="py-4">
           <PortionScaler
-            defaultServings={servings}
-            onChange={onServingsChange}
+            defaultPortions={portions}
+            onChange={onPortionsChange}
           />
         </div>
       </SheetContent>

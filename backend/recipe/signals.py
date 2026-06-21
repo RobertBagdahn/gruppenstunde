@@ -14,6 +14,9 @@ on next read (requires updating all consumers that assume cached_* is always
 current, e.g. list views, cockpit).
 """
 
+import threading
+
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
@@ -171,7 +174,7 @@ def update_recipe_quality_score(sender, instance: Recipe, created: bool, **kwarg
 # ---------------------------------------------------------------------------
 
 _recipe_tracked_fields = {
-    "title", "summary", "summary_long", "description", "recipe_type", "servings",
+    "title", "summary", "summary_long", "description", "recipe_type", "portions",
     "costs_rating", "execution_time", "preparation_time", "difficulty", "status",
     "visibility", "folder_id", "source_url",
 }
@@ -217,3 +220,70 @@ def log_recipe_changes(sender, instance: Recipe, created: bool, **kwargs):
 def timezone_now():
     from django.utils import timezone
     return timezone.now()
+
+
+# ---------------------------------------------------------------------------
+# Recipe embedding signals
+# ---------------------------------------------------------------------------
+
+
+def _recipe_embedding_fields_changed(instance, created: bool) -> bool:
+    """Check if fields relevant to embedding have changed."""
+    if created:
+        return True
+    if instance.tracker and hasattr(instance.tracker, "changed"):
+        relevant = {"title", "summary", "description"}
+        return bool(relevant & set(instance.tracker.changed()))
+    return True
+
+
+@receiver(post_save, sender=Recipe)
+def update_recipe_embedding(sender, instance: Recipe, created: bool, **kwargs):
+    """After save, asynchronously update the recipe embedding."""
+    if hasattr(instance, "_updating_embedding"):
+        return
+
+    def _do_update():
+        try:
+            instance._updating_embedding = True
+            if _recipe_embedding_fields_changed(instance, created):
+                from content.services.embedding_service import update_content_embedding
+
+                update_content_embedding(instance)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).warning("Failed to update embedding for Recipe #%d", instance.pk)
+        finally:
+            if hasattr(instance, "_updating_embedding"):
+                delattr(instance, "_updating_embedding")
+
+    from django.db import transaction
+
+    transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())
+
+
+@receiver(post_save, sender=RecipeItem)
+@receiver(post_delete, sender=RecipeItem)
+def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
+    """When a RecipeItem changes, invalidate the recipe embedding."""
+    try:
+        recipe = instance.recipe
+    except Exception:
+        return
+
+    def _do_update():
+        from content.services.embedding_service import update_content_embedding
+
+        try:
+            update_content_embedding(recipe)
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Failed to update embedding for Recipe #%d (RecipeItem change)", recipe.pk
+            )
+
+    from django.db import transaction
+
+    transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())

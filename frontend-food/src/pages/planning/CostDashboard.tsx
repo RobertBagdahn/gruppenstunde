@@ -104,7 +104,7 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base shrink-0">⚠️</span>
             <p className="font-semibold text-destructive truncate">
-              Dieser Essensplan enthält Allergene: {Array.from(new Set(scanData.violations.map(v => v.allergen_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
+              Dieser Essensplan enthält Allergene: {Array.from(new Set(scanData.violations.map(v => v.nutritional_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
             </p>
           </div>
           {onSelectTab && (

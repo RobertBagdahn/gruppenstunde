@@ -8,7 +8,6 @@ from content.base_schemas import (
     ContentCreateIn,
     ContentDetailOut,
     ContentListOut,
-    ContentSimilarOut,
     ContentUpdateIn,
 )
 from .items import RecipeItemCreateIn, RecipeItemOut
@@ -33,7 +32,7 @@ class RecipeListOut(ContentListOut):
     """Schema for recipe list (compact)."""
 
     recipe_type: str
-    servings: int | None
+    portions: int | None
     cached_energy_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
@@ -80,10 +79,13 @@ class RecipeListOut(ContentListOut):
 # --- Similar Recipes ---
 
 
-class RecipeSimilarOut(ContentSimilarOut):
-    """Compact schema for similar recipes."""
+class RecipeSimilarOut(Schema):
+    """Compact schema for similar recipes (embedding-based)."""
 
-    pass
+    id: int
+    title: str
+    slug: str
+    distance: float
 
 
 # --- Recipe Detail Schema (extends ContentDetailOut) ---
@@ -93,7 +95,7 @@ class RecipeDetailOut(ContentDetailOut):
     """Schema for single recipe detail."""
 
     recipe_type: str
-    servings: int | None
+    portions: int | None
     cached_energy_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
@@ -215,7 +217,7 @@ class RecipeCreateIn(ContentCreateIn):
     """Schema for creating a recipe."""
 
     recipe_type: str = ""
-    servings: int = 1
+    portions: int = 1
     nutritional_tag_ids: list[int] = []
     recipe_items: list[RecipeItemCreateIn] = []
     # Bot protection fields
@@ -227,7 +229,7 @@ class RecipeUpdateIn(ContentUpdateIn):
     """Schema for updating a recipe."""
 
     recipe_type: str | None = None
-    servings: int | None = None
+    portions: int | None = None
     nutritional_tag_ids: list[int] | None = None
     recipe_items: list[RecipeItemCreateIn] | None = None
 
@@ -272,6 +274,16 @@ class PaginatedRecipeOut(Schema):
     total_pages: int
 
 
+class PaginatedRecipeSimilarOut(Schema):
+    """Paginated list of similar recipes for ingredient detail page."""
+
+    items: list[RecipeSimilarOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 # --- AI Suggest schemas ---
 
 
@@ -281,7 +293,7 @@ class RecipeSuggestAllOut(Schema):
     description: str | None = None
     difficulty: str | None = None
     duration_minutes: int | None = None
-    servings: int | None = None
+    portions: int | None = None
     recipe_type: str | None = None
     scout_levels: list[str] = []
     tags: list[str] = []

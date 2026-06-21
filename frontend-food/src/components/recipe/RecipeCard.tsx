@@ -73,7 +73,7 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
         {/* Nutri-Score & Recipe badge */}
         <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
           {recipe.recipe_badge && recipe.recipe_badge !== 'verified' && (
-            <RecipeBadge badge={recipe.recipe_badge} />
+            <RecipeBadge badge={(recipe.recipe_badge as 'draft' | 'verified' | 'community') ?? 'community'} />
           )}
           {nutriColors && (
             <div className={`flex items-center justify-center w-6 h-6 rounded-full ${nutriColors.bg} ${nutriColors.text} text-[10px] font-extrabold shadow-md`}>

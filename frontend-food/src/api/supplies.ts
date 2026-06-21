@@ -10,13 +10,15 @@ import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
+  IngredientDetailSchema,
+  IngredientSimilarSchema,
   NutritionalTagSchema,
   RetailSectionSchema,
-  IngredientDetailSchema,
   PaginatedIngredientSchema,
   PortionSchema,
   IngredientAliasSchema,
 } from '@/schemas/supply';
+import { PaginatedRecipesSchema } from '@/schemas/recipe';
 
 const INGREDIENT_BASE = `${API_BASE_URL}/api/ingredients`;
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
@@ -337,6 +339,27 @@ export function useAvailableConversions(
 }
 
 // ===========================================================================
+// Ingredient Recipes (recipes that use this ingredient)
+// ===========================================================================
+
+export function useRecipesByIngredient(
+  slug: string,
+  filters: { page?: number; page_size?: number } = {},
+) {
+  const params = new URLSearchParams();
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.page_size) params.set('page_size', String(filters.page_size));
+  const qs = params.toString();
+
+  return useQuery({
+    queryKey: ['ingredient-recipes', slug, filters.page] as const,
+    queryFn: () =>
+      fetchJson(`${INGREDIENT_BASE}/${slug}/recipes/?${qs}`, PaginatedRecipesSchema),
+    enabled: !!slug,
+  });
+}
+
+// ===========================================================================
 // AI Suggest
 // ===========================================================================
 
@@ -354,5 +377,69 @@ export function useAiSuggestIngredientAll(slug: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
     },
+  });
+}
+
+// ===========================================================================
+// Similar Ingredients
+// ===========================================================================
+
+export function useSimilarIngredients(slug: string) {
+  return useQuery({
+    queryKey: ['ingredient-similar', slug] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/similar/`, z.array(IngredientSimilarSchema)),
+    enabled: slug.length > 0,
+  });
+}
+
+// ===========================================================================
+// Statistics Stub Hooks (API endpoints not yet implemented)
+// ===========================================================================
+
+export function useIngredientRankings(_field: string) {
+  return useQuery({
+    queryKey: ['ingredient-rankings', _field] as const,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
+  });
+}
+
+export function useIngredientDistributions(_field: string) {
+  return useQuery({
+    queryKey: ['ingredient-distributions', _field] as const,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
+  });
+}
+
+export function useIngredientScatter(_xField: string, _yField: string) {
+  return useQuery({
+    queryKey: ['ingredient-scatter', _xField, _yField] as const,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
+  });
+}
+
+export function useIngredientOutliers() {
+  return useQuery({
+    queryKey: ['ingredient-outliers'] as const,
+    queryFn: () => Promise.resolve([]),
+    enabled: false,
+  });
+}
+
+export function useIngredientTagLists(_tag: string) {
+  return useQuery({
+    queryKey: ['ingredient-tag-lists', _tag] as const,
+    queryFn: () => Promise.resolve({ items: [], total_count: 0 }),
+    enabled: false,
+  });
+}
+
+export function useIngredientScores(_scoreType: string) {
+  return useQuery({
+    queryKey: ['ingredient-scores', _scoreType] as const,
+    queryFn: () => Promise.resolve({}),
+    enabled: false,
   });
 }

@@ -112,7 +112,7 @@ def _json_ld_to_recipe(data: dict, url: str) -> ImportedRecipe:
         yield_val = yield_val[0] if yield_val else ""
     servings_match = re.search(r"\d+", str(yield_val))
     if servings_match:
-        recipe.servings = int(servings_match.group())
+        recipe.portions = int(servings_match.group())
 
     # Image
     image = data.get("image", "")

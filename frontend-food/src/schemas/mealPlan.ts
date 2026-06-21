@@ -95,7 +95,7 @@ export const MealPlanSchema = z.object({
   updated_at: z.string(),
   meals_count: z.number(),
   day_part_factors: z.record(z.string(), z.number()),
-  meal_default_times: z.record(z.string(), z.tuple([z.string(), z.string()])),
+  meal_default_times: z.record(z.string(), z.array(z.string())),
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tag_names: z.array(z.string()).default([]),
 });
@@ -124,7 +124,7 @@ export const MealPlanDetailSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   day_part_factors: z.record(z.string(), z.number()),
-  meal_default_times: z.record(z.string(), z.tuple([z.string(), z.string()])),
+  meal_default_times: z.record(z.string(), z.array(z.string())),
   meals: z.array(MealSchema),
   can_edit: z.boolean(),
   nutritional_tag_ids: z.array(z.number()).default([]),
@@ -174,7 +174,14 @@ export const ShoppingItemSourceSchema = z.object({
   quantity_g: z.number().default(0),
 });
 
+export const PortionOptionSchema = z.object({
+  name: z.string(),
+  display: z.string(),
+  is_default: z.boolean(),
+});
+
 export const ShoppingListItemSchema = z.object({
+  ingredient_id: z.number().nullable(),
   ingredient_name: z.string(),
   ingredient_slug: z.string().default(''),
   total_quantity_g: z.number(),
@@ -184,6 +191,7 @@ export const ShoppingListItemSchema = z.object({
   display_quantity: z.string().default(''),
   display_text: z.string().default(''),
   natural_portions: z.string().default(''),
+  portion_options: z.array(PortionOptionSchema).default([]),
   sources: z.array(ShoppingItemSourceSchema).default([]),
 });
 export type ShoppingListItem = z.infer<typeof ShoppingListItemSchema>;
@@ -392,13 +400,14 @@ export function getCoverageBadge(coverage: number): { label: string; status: 'gr
 
 /** Read meal_default_times from plan data with fallback to hardcoded defaults. */
 export function getMealDefaultTimes(
-  mealDefaultTimes?: Record<string, [string, string]> | null,
+  mealDefaultTimes?: Record<string, string[]> | null,
 ): Record<string, [number, number]> {
   if (mealDefaultTimes) {
     const result: Record<string, [number, number]> = {};
-    for (const [key, [start, end]] of Object.entries(mealDefaultTimes)) {
-      const [sh, sm] = start.split(':').map(Number);
-      const [eh, em] = end.split(':').map(Number);
+    for (const [key, times] of Object.entries(mealDefaultTimes)) {
+      if (times.length < 2) continue;
+      const [sh, sm] = times[0].split(':').map(Number);
+      const [eh, em] = times[1].split(':').map(Number);
       result[key] = [sh * 60 + sm, eh * 60 + em];
     }
     return result;
@@ -598,6 +607,40 @@ export const NutritionalTagScanResponseSchema = z.object({
   summary: NutritionalTagScanSummarySchema,
 });
 export type NutritionalTagScanResponse = z.infer<typeof NutritionalTagScanResponseSchema>;
+
+// ==========================================================================
+// MealPlan Card Helpers
+// ==========================================================================
+
+export function getPlanBadge(plan: { owner_id: number | null; visibility: string }, userId?: number): 'verified' | 'community' | 'personal' {
+  if (plan.owner_id === null) return 'verified';
+  if (plan.visibility === 'public') return 'community';
+  if (userId && plan.owner_id === userId) return 'personal';
+  return 'community';
+}
+
+export function formatDateRange(startDatetime?: string | null, endDatetime?: string | null): string | null {
+  if (!startDatetime && !endDatetime) return null;
+  const start = startDatetime ? new Date(startDatetime) : null;
+  const end = endDatetime ? new Date(endDatetime) : null;
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (start && end) {
+    if (start.toDateString() === end.toDateString()) return fmt(start);
+    return `${fmt(start)} – ${fmt(end)}`;
+  }
+  if (start) return `ab ${fmt(start)}`;
+  if (end) return `bis ${fmt(end)}`;
+  return null;
+}
+
+export function getDaysCount(startDatetime?: string | null, endDatetime?: string | null): number {
+  if (!startDatetime || !endDatetime) return 0;
+  const start = new Date(startDatetime);
+  const end = new Date(endDatetime);
+  const diff = end.getTime() - start.getTime();
+  return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
+}
 
 // ==========================================================================
 // Backward compatibility re-exports

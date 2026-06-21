@@ -359,7 +359,7 @@ def _search_recipes(
             {
                 "recipe_type": obj.recipe_type,
                 "difficulty": obj.difficulty,
-                "servings": obj.servings,
+                "portions": obj.portions,
             },
         )
         for obj in qs

@@ -7,9 +7,7 @@ import {
   useDeletePerson,
   useGenderChoices,
 } from '@/api/events';
-import { useNutritionalTags } from '@/api/supplies';
 import type { Person, Choice } from '@/schemas/event';
-import type { NutritionalTag } from '@/schemas/supply';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
@@ -37,12 +35,10 @@ function choiceLabel(choices: Choice[] | undefined, value: string): string {
 function PersonForm({
   person,
   genderChoices,
-  nutritionalTags,
   onCancel,
 }: {
   person?: Person;
   genderChoices?: Choice[];
-  nutritionalTags?: NutritionalTag[];
   onCancel: () => void;
 }) {
   const createPerson = useCreatePerson();
@@ -54,9 +50,6 @@ function PersonForm({
   const [email, setEmail] = useState(person?.email ?? '');
   const [birthday, setBirthday] = useState(person?.birthday ?? '');
   const [gender, setGender] = useState(person?.gender ?? 'no_answer');
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>(
-    person?.nutritional_tags?.map((t) => t.id) ?? []
-  );
   const [phoneNumber, setPhoneNumber] = useState(person?.phone_number ?? '');
   const [address, setAddress] = useState(person?.address ?? '');
   const [zipCode, setZipCode] = useState(person?.zip_code ?? '');
@@ -75,7 +68,6 @@ function PersonForm({
       phone_number: phoneNumber.trim() || null,
       birthday: birthday || null,
       gender,
-      nutritional_tag_ids: selectedTagIds,
       address: address.trim(),
       zip_code: zipCode.trim(),
       ...(isEdit ? {} : { is_owner: isOwner }),
@@ -182,34 +174,6 @@ function PersonForm({
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Ernährung</label>
-          <div className="space-y-1">
-            {nutritionalTags?.map((tag) => (
-              <label key={tag.id} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedTagIds.includes(tag.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedTagIds([...selectedTagIds, tag.id]);
-                    } else {
-                      setSelectedTagIds(selectedTagIds.filter((id) => id !== tag.id));
-                    }
-                  }}
-                  className="rounded"
-                />
-                {tag.name}
-                {tag.name_opposite && (
-                  <span className="text-xs text-muted-foreground">({tag.name_opposite})</span>
-                )}
-              </label>
-            ))}
-            {!nutritionalTags?.length && (
-              <p className="text-xs text-muted-foreground">Keine Ernährungstags verfügbar</p>
-            )}
-          </div>
-        </div>
-        <div>
           <label className="text-xs font-medium text-muted-foreground mb-1 block">Adresse</label>
           <input
             type="text"
@@ -273,12 +237,10 @@ function PersonForm({
 function PersonCard({
   person,
   genderChoices,
-  nutritionalTags: _nutritionalTags,
   onEdit,
 }: {
   person: Person;
   genderChoices?: Choice[];
-  nutritionalTags?: NutritionalTag[];
   onEdit: () => void;
 }) {
   const deletePerson = useDeletePerson();
@@ -432,7 +394,6 @@ export default function PersonsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const { data: persons, isLoading: personsLoading } = usePersons();
   const { data: genderChoices } = useGenderChoices();
-  const { data: nutritionalTags } = useNutritionalTags();
   const navigate = useNavigate();
 
   const [showForm, setShowForm] = useState(false);
@@ -493,7 +454,6 @@ export default function PersonsPage() {
         <PersonForm
           person={editingPerson ?? undefined}
           genderChoices={genderChoices}
-          nutritionalTags={nutritionalTags}
           onCancel={() => { setShowForm(false); setEditingPerson(null); }}
         />
       )}
@@ -508,7 +468,6 @@ export default function PersonsPage() {
           <PersonCard
             person={ownerPerson}
             genderChoices={genderChoices}
-            nutritionalTags={nutritionalTags}
             onEdit={() => { setEditingPerson(ownerPerson); setShowForm(false); }}
           />
         </section>
@@ -542,13 +501,12 @@ export default function PersonsPage() {
             />
           )}
           {otherPersons.map((person) => (
-            <PersonCard
-              key={person.id}
-              person={person}
-              genderChoices={genderChoices}
-              nutritionalTags={nutritionalTags}
-              onEdit={() => { setEditingPerson(person); setShowForm(false); }}
-            />
+              <PersonCard
+                key={person.id}
+                person={person}
+                genderChoices={genderChoices}
+                onEdit={() => { setEditingPerson(person); setShowForm(false); }}
+              />
           ))}
         </div>
       </section>

@@ -28,9 +28,9 @@ interface RecipeModificationState {
   /** Whether any modifications have been made */
   isDirty: boolean;
   /** Original servings count */
-  originalServings: number | null;
+  originalPortions: number | null;
   /** Modified servings count */
-  modifiedServings: number | null;
+  modifiedPortions: number | null;
 
   // --- Actions ---
 
@@ -61,8 +61,8 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
   modifiedItems: [],
   modifications: [],
   isDirty: false,
-  originalServings: null,
-  modifiedServings: null,
+  originalPortions: null,
+  modifiedPortions: null,
 
   initialize: (items, servings) =>
     set({
@@ -70,8 +70,8 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
       modifiedItems: [...items],
       modifications: [],
       isDirty: false,
-      originalServings: servings,
-      modifiedServings: servings,
+      originalPortions: servings,
+      modifiedPortions: servings,
     }),
 
   addItem: (item) =>
@@ -123,7 +123,6 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
           weight_g: newWeightG,
           quantity: i.quantity * scaleFactor,
           energy_kcal: i.energy_kcal * scaleFactor,
-          energy_kcal: i.energy_kcal * scaleFactor,
           protein_g: i.protein_g * scaleFactor,
           fat_g: i.fat_g * scaleFactor,
           fat_sat_g: i.fat_sat_g * scaleFactor,
@@ -156,7 +155,6 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
         weight_g: i.weight_g * factor,
         quantity: i.quantity * factor,
         energy_kcal: i.energy_kcal * factor,
-        energy_kcal: i.energy_kcal * factor,
         protein_g: i.protein_g * factor,
         fat_g: i.fat_g * factor,
         fat_sat_g: i.fat_sat_g * factor,
@@ -171,7 +169,7 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
 
       return {
         modifiedItems: scaledItems,
-        modifiedServings: newServings,
+        modifiedPortions: newServings,
         modifications: [
           ...state.modifications,
           {
@@ -190,7 +188,6 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
         ...i,
         weight_g: i.weight_g * factor,
         quantity: i.quantity * factor,
-        energy_kcal: i.energy_kcal * factor,
         energy_kcal: i.energy_kcal * factor,
         protein_g: i.protein_g * factor,
         fat_g: i.fat_g * factor,
@@ -222,7 +219,7 @@ export const useRecipeModificationStore = create<RecipeModificationState>((set, 
       modifiedItems: [...state.originalItems],
       modifications: [],
       isDirty: false,
-      modifiedServings: state.originalServings,
+      modifiedPortions: state.originalPortions,
     });
   },
 }));

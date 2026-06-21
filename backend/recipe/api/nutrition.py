@@ -226,7 +226,7 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         result_items.append(item)
 
     total_energy_kcal = totals["energy_kcal"]
-    servings = recipe.servings or 1
+    portions = recipe.portions or 1
 
     # Build DGE coverage if age/gender provided
     dge_coverage: dict[str, float | None] = {}
@@ -295,11 +295,11 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         # Micronutrient totals
         "total_vitamin_c_mg": _micro_total("vitamin_c_mg"),
         # Per-serving values
-        "per_serving_energy_kcal": round(total_energy_kcal / servings, 1),
-        "per_serving_protein_g": round(totals["protein_g"] / servings, 1),
-        "per_serving_fat_g": round(totals["fat_g"] / servings, 1),
-        "per_serving_carbohydrate_g": round(totals["carbohydrate_g"] / servings, 1),
-        "per_serving_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0) / servings, 3) or None,
+        "per_serving_energy_kcal": round(total_energy_kcal / portions, 1),
+        "per_serving_protein_g": round(totals["protein_g"] / portions, 1),
+        "per_serving_fat_g": round(totals["fat_g"] / portions, 1),
+        "per_serving_carbohydrate_g": round(totals["carbohydrate_g"] / portions, 1),
+        "per_serving_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0) / portions, 3) or None,
         # DGE coverage
         "dge_coverage": dge_coverage,
         "dge_reference": dge_reference,

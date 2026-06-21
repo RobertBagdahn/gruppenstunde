@@ -43,7 +43,7 @@ function ShoppingItemWithSources({ item, violations }: { item: TransientShopping
   const violatingAllergenNames = Array.from(new Set(
     violations
       .filter(v => itemViolatingSources.some(src => src.recipe_id === v.recipe_id))
-      .map(v => v.allergen_tag.name)
+      .map(v => v.nutritional_tag.name)
   )).join(', ');
 
   return (

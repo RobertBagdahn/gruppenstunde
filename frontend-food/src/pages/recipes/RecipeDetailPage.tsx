@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { EntityLink } from '@/components/shared/EntityLink';
@@ -25,10 +25,9 @@ import {
 } from '@/api/recipes';
 import {
   RECIPE_TYPE_OPTIONS,
-  RECIPE_DIFFICULTY_OPTIONS,
+  RECIPE_DIFFICULTY_OPTIONS as _DIFF,
   RECIPE_EXECUTION_TIME_OPTIONS,
 } from '@/schemas/recipe';
-import type { RecipeItemNutrition } from '@/schemas/recipe';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ContentComments from '@/components/content/ContentComments';
@@ -48,7 +47,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import Breadcrumb from '@/components/Breadcrumb';
-import RecipeImprovements from '@/components/recipe/RecipeImprovements';
 import RecipeRulesBox from '@/components/recipe/RecipeRulesBox';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
 import RecipeMetaCard from '@/components/recipe/RecipeMetaCard';
@@ -56,24 +54,14 @@ import RecipeSidebar from '@/components/recipe/RecipeSidebar';
 import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
-import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
-// import { PositiveTraitsBadges } from '@/components/recipe/PositiveTraitsBadges';
-import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import { toast } from 'sonner';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
-import { formatWeight } from '@/utils/formatWeight';
-
-const LazyNutritionPieChart = lazy(() => import('@/components/charts/NutritionPieChart'));
-
-// Nutri-Score colors
-const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
-  A: { bg: 'bg-green-600', text: 'text-white' },
-  B: { bg: 'bg-lime-500', text: 'text-white' },
-  C: { bg: 'bg-yellow-400', text: 'text-yellow-900' },
-  D: { bg: 'bg-orange-500', text: 'text-white' },
-  E: { bg: 'bg-red-600', text: 'text-white' },
-};
+import { RecipeAnalysisTabs } from '@/components/recipe/RecipeAnalysisTabs';
+import { PriceTab } from '@/components/recipe/PriceTab';
+import { NutritionTab } from '@/components/recipe/NutritionTab';
+import { HealthTab } from '@/components/recipe/HealthTab';
+import { WeightTab } from '@/components/recipe/WeightTab';
 
 // --- Collapsible Section Component ---
 function AnalysisSection({
@@ -116,181 +104,7 @@ function AnalysisSection({
   );
 }
 
-// --- Macro Bar Component ---
-function MacroBar({
-  label,
-  value,
-  max,
-  color,
-  unit = 'g',
-  dgeRef,
-  dgeCoverage,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-  unit?: string;
-  dgeRef?: number | null;
-  dgeCoverage?: number | null;
-}) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs">
-        <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground">
-          {value.toFixed(1)} {unit}
-          {dgeRef != null && dgeRef > 0 && (
-            <span className="ml-2 text-[10px] text-muted-foreground">
-              Referenz: {dgeRef.toFixed(1)} {unit}
-            </span>
-          )}
-          {dgeCoverage != null && (
-            <span className={`ml-1.5 text-[10px] font-semibold ${
-              dgeCoverage >= 80 ? 'text-green-600' : dgeCoverage >= 40 ? 'text-amber-600' : 'text-red-600'
-            }`}>
-              {dgeCoverage.toFixed(0)}%
-            </span>
-          )}
-        </span>
-      </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${color}`}
-          style={{ width: `${pct}%` }}
-         />
-      </div>
-    </div>
-  );
-}
 
-// --- Collapsible Micronutrient Section (Vitamins / Minerals) ---
-function MicronutrientSection({
-  title,
-  icon,
-  accentColor,
-  nutrients,
-  dgeCoverage,
-  servings,
-}: {
-  title: string;
-  icon: string;
-  accentColor: string;
-  nutrients: Array<{
-    label: string;
-    value: number | null | undefined;
-    unit: string;
-    dgeKey: string;
-  }>;
-  dgeCoverage: Record<string, number | null>;
-  servings: number;
-}) {
-  const [open, setOpen] = useState(false);
-  const hasAnyValue = nutrients.some((n) => n.value != null && n.value > 0);
-  if (!hasAnyValue) return null;
-
-  return (
-    <div className="border rounded-lg overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
-      >
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          <span className={`material-symbols-outlined text-base ${accentColor}`}>{icon}</span>
-          {title}
-        </span>
-        <span
-          className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          expand_more
-        </span>
-      </button>
-      {open && (
-        <div className="px-3 pb-3 space-y-2">
-          {nutrients.map((n) => {
-            if (n.value == null || n.value <= 0) return null;
-            const perServing = n.value / servings;
-            const coverage = dgeCoverage[n.dgeKey] ?? null;
-            return (
-              <div key={n.dgeKey} className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="font-medium">{n.label}</span>
-                  <span className="text-muted-foreground">
-                    {perServing < 0.1 ? perServing.toFixed(3) : perServing.toFixed(1)} {n.unit}/Portion
-                    {coverage != null && (
-                      <span className={`ml-2 font-semibold ${coverage >= 80 ? 'text-green-600' : coverage >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                        {coverage.toFixed(0)}% DGE
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {coverage != null && (
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        coverage >= 80 ? 'bg-green-500' : coverage >= 40 ? 'bg-amber-400' : 'bg-red-400'
-                      }`}
-                      style={{ width: `${Math.min(coverage, 100)}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Collapsible accordion showing per-parameter contribution panels. */
-function CollapsibleContributions({ items }: { items: RecipeItemNutrition[] }) {
-  const [openParam, setOpenParam] = useState<string | null>(null);
-
-  const parameters = ['energy', 'protein', 'fat', 'sat_fat', 'carbs', 'sugar', 'salt', 'fiber'] as const;
-  const units: Record<string, string> = {
-    energy: 'kcal', protein: 'g', fat: 'g', sat_fat: 'g',
-    carbs: 'g', sugar: 'g', salt: 'g', fiber: 'g',
-  };
-
-  if (items.length === 0) return null;
-
-  return (
-    <div>
-      <h3 className="text-sm font-semibold mb-3">Zutaten-Beiträge pro Nährwert</h3>
-      <div className="border rounded-lg divide-y">
-        {parameters.map((param) => {
-          const isOpen = openParam === param;
-          return (
-            <div key={param}>
-              <button
-                onClick={() => setOpenParam(isOpen ? null : param)}
-                className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
-              >
-                <span className="text-sm font-medium">{PARAMETER_LABELS[param] ?? param}</span>
-                <span
-                  className={`material-symbols-outlined text-muted-foreground text-base transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                >
-                  expand_more
-                </span>
-              </button>
-              {isOpen && (
-                <div className="px-3 pb-3">
-                  <NutritionContributionPanel
-                    parameter={param}
-                    items={items}
-                    unit={units[param]}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export default function RecipeDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -315,14 +129,14 @@ export default function RecipeDetailPage() {
   const deleteImage = useDeleteRecipeImage(recipeId);
   const setImageFromUrl = useSetRecipeImageFromUrl(recipeId);
 
-  const [servingsMultiplier, setServingsMultiplier] = useState(1);
+  const [portionsMultiplier, setPortionsMultiplier] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showShoppingExport, setShowShoppingExport] = useState(false);
-  const [exportServings, setExportServings] = useState(1);
+  const [exportPortions, setExportPortions] = useState(1);
   const [showVisibilityConfirm, setShowVisibilityConfirm] = useState<string | null>(null);
   const [portionSheetOpen, setPortionSheetOpen] = useState(false);
   const [isInlineEditMode, setIsInlineEditMode] = useState(false);
-  const [showScaleDialog, setShowScaleDialog] = useState(false);
+
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [cloneTitle, setCloneTitle] = useState('');
 
@@ -356,16 +170,15 @@ export default function RecipeDetailPage() {
   // Recipe modification store
   const isDirty = useRecipeModificationStore((s) => s.isDirty);
   const modifiedItems = useRecipeModificationStore((s) => s.modifiedItems);
-  const modifiedServings = useRecipeModificationStore((s) => s.modifiedServings);
+  const modifiedPortions = useRecipeModificationStore((s) => s.modifiedPortions);
   const initializeModifications = useRecipeModificationStore((s) => s.initialize);
   const resetModifications = useRecipeModificationStore((s) => s.reset);
   const scaleToNormPortion = useRecipeModificationStore((s) => s.scaleToNormPortion);
-  const scaleByFactor = useRecipeModificationStore((s) => s.scaleByFactor);
 
   // Initialize modification store when nutrition breakdown data loads
   useEffect(() => {
     if (nutritionBreakdown && recipe && !isDirty) {
-      initializeModifications(nutritionBreakdown.items, recipe.servings);
+      initializeModifications(nutritionBreakdown.items, recipe.portions);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nutritionBreakdown, recipe, initializeModifications]);
@@ -400,7 +213,6 @@ export default function RecipeDetailPage() {
     const totalWeightG = items.reduce((s, i) => s + i.weight_g, 0);
     const totalPriceItems = items.filter((i) => i.price_eur !== null);
     const totalPriceEur = totalPriceItems.length > 0 ? totalPriceItems.reduce((s, i) => s + (i.price_eur ?? 0), 0) : null;
-    const totalEnergyKj = items.reduce((s, i) => s + i.energy_kcal, 0);
     const totalEnergyKcal = items.reduce((s, i) => s + i.energy_kcal, 0);
     const totalProteinG = items.reduce((s, i) => s + i.protein_g, 0);
     const totalFatG = items.reduce((s, i) => s + i.fat_g, 0);
@@ -409,7 +221,7 @@ export default function RecipeDetailPage() {
     const totalSugarG = items.reduce((s, i) => s + i.sugar_g, 0);
     const totalFibreG = items.reduce((s, i) => s + i.fibre_g, 0);
     const totalSaltG = items.reduce((s, i) => s + i.salt_g, 0);
-    const servings = modifiedServings ?? 1;
+    const portions = modifiedPortions ?? 1;
 
     // Recompute weight_pct
     const itemsWithPct = items.map((i) => ({
@@ -420,7 +232,6 @@ export default function RecipeDetailPage() {
     return {
       total_weight_g: totalWeightG,
       total_price_eur: totalPriceEur,
-      total_energy_kcal: totalEnergyKj,
       total_energy_kcal: totalEnergyKcal,
       total_protein_g: totalProteinG,
       total_fat_g: totalFatG,
@@ -431,16 +242,17 @@ export default function RecipeDetailPage() {
       total_salt_g: totalSaltG,
       // Micronutrient totals (from modified items)
       total_vitamin_c_mg: items.reduce((s, i) => s + (i.vitamin_c_mg ?? 0), 0) || null,
-      per_serving_energy_kcal: totalEnergyKcal / servings,
-      per_serving_protein_g: totalProteinG / servings,
-      per_serving_fat_g: totalFatG / servings,
-      per_serving_carbohydrate_g: totalCarbohydrateG / servings,
+      per_serving_energy_kcal: totalEnergyKcal / portions,
+      per_serving_protein_g: totalProteinG / portions,
+      per_serving_fat_g: totalFatG / portions,
+      per_serving_carbohydrate_g: totalCarbohydrateG / portions,
+      positive_traits: nutritionBreakdown.positive_traits ?? [],
       dge_coverage: nutritionBreakdown.dge_coverage ?? {},
       dge_reference: nutritionBreakdown.dge_reference ?? {},
       items: itemsWithPct,
     };
-  }, [nutritionBreakdown, isDirty, modifiedItems, modifiedServings]);
-  const effectiveServings = (isDirty ? modifiedServings : recipe?.servings) ?? 1;
+  }, [nutritionBreakdown, isDirty, modifiedItems, modifiedPortions]);
+  const effectivePortions = (isDirty ? modifiedPortions : recipe?.portions) ?? 1;
   const topIngredientsByWeight = nb
     ? [...nb.items].sort((a, b) => b.weight_g - a.weight_g)
     : [];
@@ -492,8 +304,8 @@ export default function RecipeDetailPage() {
     return (
       <RecipeCookingMode
         recipe={recipe}
-        servingsMultiplier={servingsMultiplier}
-        onServingsChange={setServingsMultiplier}
+        portionsMultiplier={portionsMultiplier}
+        onPortionsChange={setPortionsMultiplier}
       />
     );
   }
@@ -509,17 +321,17 @@ export default function RecipeDetailPage() {
 
   // Reusable handler to open the shopping list export dialog
   const handleOpenShoppingList = () => {
-    setExportServings(servingsMultiplier);
+    setExportPortions(portionsMultiplier);
     setShowShoppingExport(true);
   };
 
-  const baseServings = recipe.servings && recipe.servings > 0 ? recipe.servings : 1;
-  const displayedServings = isDirty ? (modifiedServings ?? baseServings) : servingsMultiplier;
+  const basePortions = recipe.portions && recipe.portions > 0 ? recipe.portions : 1;
+  const displayedPortions = isDirty ? (modifiedPortions ?? basePortions) : portionsMultiplier;
   const displayedPriceTotal = nb?.total_price_eur != null
-    ? nb.total_price_eur * (isDirty ? 1 : servingsMultiplier / baseServings)
+    ? nb.total_price_eur * (isDirty ? 1 : portionsMultiplier / basePortions)
     : null;
-  const displayedPricePerPortion = displayedPriceTotal != null && displayedServings > 0
-    ? displayedPriceTotal / displayedServings
+  const displayedPricePerPortion = displayedPriceTotal != null && displayedPortions > 0
+    ? displayedPriceTotal / displayedPortions
     : null;
 
   return (
@@ -599,7 +411,7 @@ export default function RecipeDetailPage() {
             {typeOpt.label}
           </p>
         )}
-        <RecipeBadge badge={recipe.recipe_badge} />
+            <RecipeBadge badge={(recipe.recipe_badge as 'draft' | 'verified' | 'community') ?? 'community'} />
       </div>
 
       {/* Title + Edit + Delete */}
@@ -696,7 +508,7 @@ export default function RecipeDetailPage() {
                     };
                   });
                   forkAndSaveRecipe.mutate(
-                    { servings: modifiedServings, recipe_items: itemsPayload },
+                    { portions: modifiedPortions, recipe_items: itemsPayload },
                     {
                       onSuccess: (savedRecipe) => {
                         resetModifications();
@@ -735,7 +547,7 @@ export default function RecipeDetailPage() {
                   });
                   updateRecipe.mutate(
                     {
-                      servings: modifiedServings ?? undefined,
+                      portions: modifiedPortions ?? undefined,
                       recipe_items: itemsPayload,
                     },
                     {
@@ -760,7 +572,7 @@ export default function RecipeDetailPage() {
       )}
 
       {/* Portion Normalization Hint (10.4) */}
-      {nb && (isDirty ? modifiedServings : recipe.servings) && (isDirty ? modifiedServings : recipe.servings)! > 0 && (() => {
+      {nb && (isDirty ? modifiedPortions : recipe.portions) && (isDirty ? modifiedPortions : recipe.portions)! > 0 && (() => {
         // DGE reference: 15yo male, PAL 1.5 = 2868 kcal daily (approx. 12000 kJ)
         const dailyEnergyKcal = 2868;
         const mealFractions: Record<string, number> = {
@@ -769,8 +581,8 @@ export default function RecipeDetailPage() {
         };
         const fraction = mealFractions[recipe.recipe_type] ?? 0.30;
         const expectedEnergyKcal = dailyEnergyKcal * fraction;
-        const effectiveServings = (isDirty ? modifiedServings : recipe.servings) ?? 1;
-        const perServingEnergyKcal = nb.total_energy_kcal / effectiveServings;
+        const effectivePortions = (isDirty ? modifiedPortions : recipe.portions) ?? 1;
+        const perServingEnergyKcal = nb.total_energy_kcal / effectivePortions;
         const ratio = perServingEnergyKcal / expectedEnergyKcal;
 
         if (ratio > 1.5) {
@@ -804,7 +616,7 @@ export default function RecipeDetailPage() {
       {/* Recipe Meta Card (Unified & Compact) — mobile only, desktop uses sidebar */}
       <RecipeMetaCard
         recipe={recipe}
-        servings={servingsMultiplier}
+        portions={portionsMultiplier}
         totalPriceEur={displayedPriceTotal}
         className="mt-6 lg:hidden"
       />
@@ -866,22 +678,13 @@ export default function RecipeDetailPage() {
               </h2>
               {!isInlineEditMode && (
                 <p className="text-sm text-muted-foreground leading-tight">
-                  {servingsMultiplier === 1 ? 'pro Portion' : `für ${servingsMultiplier} Portionen`}
+                  {portionsMultiplier === 1 ? 'pro Portion' : `für ${portionsMultiplier} Portionen`}
                 </p>
               )}
             </div>
           </div>
           {!isInlineEditMode && (
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowScaleDialog(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
-                title="Alle Zutaten skalieren"
-              >
-                <span className="material-symbols-outlined text-[16px]">scale</span>
-                Skalieren
-              </button>
               {recipe.can_edit && (
                 <button
                   type="button"
@@ -901,7 +704,7 @@ export default function RecipeDetailPage() {
           <InlineIngredientEditor
             recipeId={recipe.id}
             items={recipe.recipe_items ?? []}
-            servings={recipe.servings}
+            portions={recipe.portions}
             onClose={() => setIsInlineEditMode(false)}
             onSaved={() => {
               setIsInlineEditMode(false);
@@ -916,8 +719,8 @@ export default function RecipeDetailPage() {
                   return mod ? { ...item, quantity: mod.quantity } : item;
                 })
               : (recipe.recipe_items ?? [])}
-            servings={isDirty ? (modifiedServings ?? recipe.servings) : recipe.servings}
-            servingsMultiplier={isDirty ? 1 : (servingsMultiplier / (recipe.servings ?? 1))}
+            portions={isDirty ? (modifiedPortions ?? recipe.portions) : recipe.portions}
+            portionsMultiplier={isDirty ? 1 : (portionsMultiplier / (recipe.portions ?? 1))}
             availableConversions={availableConversions?.items}
           />
         )}
@@ -957,7 +760,7 @@ export default function RecipeDetailPage() {
             <div className="flex items-center gap-3 mb-6">
               <button
                 type="button"
-                onClick={() => setExportServings(Math.max(1, exportServings - 1))}
+                onClick={() => setExportPortions(Math.max(1, exportPortions - 1))}
                 className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">remove</span>
@@ -966,13 +769,13 @@ export default function RecipeDetailPage() {
                 type="number"
                 min={1}
                 max={999}
-                value={exportServings}
-                onChange={(e) => setExportServings(Math.max(1, parseInt(e.target.value) || 1))}
+                value={exportPortions}
+                onChange={(e) => setExportPortions(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-20 text-center text-lg font-semibold border rounded-lg py-2 bg-background"
               />
               <button
                 type="button"
-                onClick={() => setExportServings(exportServings + 1)}
+                onClick={() => setExportPortions(exportPortions + 1)}
                 className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-muted transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">add</span>
@@ -984,7 +787,7 @@ export default function RecipeDetailPage() {
                 disabled={createFromRecipe.isPending}
                 onClick={() => {
                   createFromRecipe.mutate(
-                    { recipeId: recipe.id, servings: exportServings },
+                    { recipeId: recipe.id, portions: exportPortions },
                     {
                       onSuccess: (created) => {
                         toast.success('Einkaufsliste erstellt');
@@ -1139,434 +942,7 @@ export default function RecipeDetailPage() {
         loading={updateVisibility.isPending}
       />
 
-      {/* ============================================================ */}
-      {/* ANALYSIS SECTIONS (collapsible) */}
-      {/* ============================================================ */}
-
-      {/* --- Preis-Analyse --- */}
-      {nb && displayedPriceTotal !== null && displayedPriceTotal > 0 && (
-        <AnalysisSection
-          icon="euro"
-          title="Preis-Analyse"
-          accentColor="text-yellow-600"
-          preview={
-            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground">
-              <span className="text-foreground font-semibold">{(displayedPricePerPortion ?? 0).toFixed(2)} €</span> / Port.
-            </div>
-          }
-        >
-          <div className="space-y-6">
-            {/* Price overview */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                <p className="text-2xl font-extrabold text-yellow-700">
-                  {displayedPriceTotal.toFixed(2)} EUR
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Gesamtpreis</p>
-              </div>
-              {displayedPricePerPortion !== null && (
-                <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-                  <p className="text-2xl font-extrabold text-emerald-700">
-                    {displayedPricePerPortion.toFixed(2)} EUR
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">pro Portion</p>
-                </div>
-              )}
-              <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <p className="text-2xl font-extrabold text-blue-700">
-                  {nb.items.filter((i) => i.price_eur !== null).length} / {nb.items.length}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Zutaten mit Preis</p>
-              </div>
-            </div>
-
-            {/* Price breakdown table */}
-            {topIngredientsByPrice.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Kosten nach Zutat</h3>
-                <div className="space-y-2">
-                  {topIngredientsByPrice.map((item) => (
-                    <PriceRow
-                      key={item.recipe_item_id}
-                      item={item}
-                      totalPrice={nb.total_price_eur ?? 1}
-                      ingredientSlugById={ingredientSlugById}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </AnalysisSection>
-      )}
-
-      {/* --- Inhaltsstoffanalyse (Nutritional Breakdown) --- */}
-      {nb && nb.total_weight_g > 0 && (
-        <AnalysisSection
-          icon="science"
-          title="Inhaltsstoffanalyse"
-          accentColor="text-violet-600"
-          preview={
-            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">
-              <span className="text-foreground font-semibold">{Math.round(nb.per_serving_energy_kcal ?? 0)} kcal</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="hidden sm:inline">{Math.round(nb.per_serving_protein_g ?? 0)}g P</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="hidden sm:inline">{Math.round(nb.per_serving_fat_g ?? 0)}g F</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="hidden sm:inline">{Math.round(nb.per_serving_carbohydrate_g ?? 0)}g KH</span>
-            </div>
-          }
-        >
-          <div className="space-y-6">
-            {/* Macro overview per serving */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3">
-                Nährwerte pro Portion{' '}
-                <span className="font-normal text-muted-foreground">
-                  ({formatWeight(nb.total_weight_g / effectiveServings)})
-                </span>
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <NutrientCard
-                  label="Kalorien"
-                  value={nb.per_serving_energy_kcal ?? 0}
-                  unit="kcal"
-                  icon="local_fire_department"
-                  color="text-orange-600"
-                  bgColor="bg-orange-50 border-orange-200"
-                />
-                <NutrientCard
-                  label="Protein"
-                  value={nb.per_serving_protein_g ?? 0}
-                  unit="g"
-                  icon="fitness_center"
-                  color="text-red-600"
-                  bgColor="bg-red-50 border-red-200"
-                />
-                <NutrientCard
-                  label="Fett"
-                  value={nb.per_serving_fat_g ?? 0}
-                  unit="g"
-                  icon="water_drop"
-                  color="text-amber-600"
-                  bgColor="bg-amber-50 border-amber-200"
-                />
-                <NutrientCard
-                  label="Kohlenhydrate"
-                  value={nb.per_serving_carbohydrate_g ?? 0}
-                  unit="g"
-                  icon="grain"
-                  color="text-teal-600"
-                  bgColor="bg-teal-50 border-teal-200"
-                />
-              </div>
-            </div>
-
-            {/* Contribution panels per parameter (collapsible) */}
-            <CollapsibleContributions items={nb.items} />
-
-            {/* Macro pie chart */}
-            {(nb.per_serving_protein_g || nb.per_serving_fat_g || nb.per_serving_carbohydrate_g) && (
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Makronährstoff-Verteilung</h3>
-                <div className="bg-muted/30 rounded-xl p-4">
-                  <Suspense fallback={<div className="h-[260px] bg-muted rounded-xl animate-pulse" />}>
-                    <LazyNutritionPieChart
-                      proteinG={nb.per_serving_protein_g ?? 0}
-                      fatG={nb.per_serving_fat_g ?? 0}
-                      carbsG={nb.per_serving_carbohydrate_g ?? 0}
-                    />
-                  </Suspense>
-                </div>
-              </div>
-            )}
-
-            {/* Macro bars (total) with DGE reference values */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3">Gesamtnährwerte</h3>
-              {(Object.keys(nb.dge_reference).length > 0) && (
-                <p className="text-[10px] text-muted-foreground mb-2">
-                  DGE-Referenzwerte (25 Jahre, männlich)
-                </p>
-              )}
-              <div className="space-y-3 bg-muted/30 rounded-xl p-4">
-                <MacroBar
-                  label="Protein"
-                  value={nb.total_protein_g}
-                  max={Math.max(nb.total_protein_g, nb.total_fat_g, nb.total_carbohydrate_g)}
-                  color="bg-red-500"
-                  dgeRef={nb.dge_reference.protein_g}
-                  dgeCoverage={nb.dge_coverage.protein_g}
-                />
-                <MacroBar
-                  label="Fett"
-                  value={nb.total_fat_g}
-                  max={Math.max(nb.total_protein_g, nb.total_fat_g, nb.total_carbohydrate_g)}
-                  color="bg-amber-500"
-                  dgeRef={nb.dge_reference.fat_g}
-                  dgeCoverage={nb.dge_coverage.fat_g}
-                />
-                <MacroBar
-                  label="davon gesättigt"
-                  value={nb.total_fat_sat_g}
-                  max={nb.total_fat_g || 1}
-                  color="bg-amber-300"
-                  dgeRef={nb.dge_reference.fat_sat_g}
-                  dgeCoverage={nb.dge_coverage.fat_sat_g}
-                />
-                <MacroBar
-                  label="Kohlenhydrate"
-                  value={nb.total_carbohydrate_g}
-                  max={Math.max(nb.total_protein_g, nb.total_fat_g, nb.total_carbohydrate_g)}
-                  color="bg-teal-500"
-                  dgeRef={nb.dge_reference.carbohydrate_g}
-                  dgeCoverage={nb.dge_coverage.carbohydrate_g}
-                />
-                <MacroBar
-                  label="davon Zucker"
-                  value={nb.total_sugar_g}
-                  max={nb.total_carbohydrate_g || 1}
-                  color="bg-teal-300"
-                  dgeRef={nb.dge_reference.sugar_g}
-                  dgeCoverage={nb.dge_coverage.sugar_g}
-                />
-                <MacroBar
-                  label="Ballaststoffe"
-                  value={nb.total_fibre_g}
-                  max={nb.dge_reference.fibre_g ?? 30}
-                  color="bg-green-500"
-                  dgeRef={nb.dge_reference.fibre_g}
-                  dgeCoverage={nb.dge_coverage.fibre_g}
-                />
-                <MacroBar
-                  label="Salz"
-                  value={nb.total_salt_g}
-                  max={nb.dge_reference.salt_g ?? 6}
-                  color="bg-blue-500"
-                  dgeRef={nb.dge_reference.salt_g}
-                  dgeCoverage={nb.dge_coverage.salt_g}
-                />
-              </div>
-            </div>
-
-            {/* Collapsible Vitamins section */}
-            <MicronutrientSection
-              title="Vitamine"
-              icon="medication"
-              accentColor="text-amber-600"
-              nutrients={[
-                { label: 'Vitamin C', value: nb.total_vitamin_c_mg, unit: 'mg', dgeKey: 'vitamin_c_mg' },
-              ]}
-              dgeCoverage={nb.dge_coverage}
-              servings={effectiveServings}
-            />
-
-            {/* Minerals section removed — no mineral fields tracked */}
-          </div>
-        </AnalysisSection>
-      )}
-
-      {/* --- Gesundheitsanalyse --- */}
-      {nutriScore && nb && nb.total_weight_g > 0 && (
-        <AnalysisSection
-          icon="health_and_safety"
-          title="Gesundheitsanalyse"
-          accentColor="text-green-600"
-          preview={
-            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1.5">
-              Nutri-Score
-              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-extrabold ${NUTRI_SCORE_COLORS[nutriScore.nutri_label]?.bg} ${NUTRI_SCORE_COLORS[nutriScore.nutri_label]?.text}`}>
-                {nutriScore.nutri_label}
-              </span>
-            </div>
-          }
-        >
-          <div className="space-y-6">
-            {/* Nutri-Score detail */}
-            <div className="flex flex-col sm:flex-row gap-6">
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex gap-1">
-                  {['A', 'B', 'C', 'D', 'E'].map((grade) => {
-                    const isActive = nutriScore.nutri_label === grade;
-                    const colors = NUTRI_SCORE_COLORS[grade];
-                    return (
-                      <div
-                        key={grade}
-                        className={`flex items-center justify-center font-bold rounded-lg transition-all ${
-                          isActive
-                            ? `${colors.bg} ${colors.text} w-14 h-14 text-2xl shadow-lg scale-110`
-                            : `${colors.bg}/20 text-muted-foreground w-10 h-10 text-sm opacity-30`
-                        }`}
-                      >
-                        {grade}
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Gesamtpunkte: {nutriScore.total_points}
-                </p>
-              </div>
-              <div className="flex-1 space-y-3">
-                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-red-700">Negative Punkte</span>
-                    <span className="text-lg font-bold text-red-700">
-                      {nutriScore.negative_points}
-                    </span>
-                  </div>
-                  <p className="text-xs text-red-600 mt-1">
-                    Energie, Zucker, gesättigte Fettsäuren, Natrium
-                  </p>
-                </div>
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-green-700">Positive Punkte</span>
-                    <span className="text-lg font-bold text-green-700">
-                      {nutriScore.positive_points}
-                    </span>
-                  </div>
-                  <p className="text-xs text-green-600 mt-1">
-                    Ballaststoffe, Protein, Obst/Gemüse-Anteil
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Positive health trait badges */}
-            {/* <PositiveTraitsBadges traits={nb.positive_traits ?? []} /> */}
-
-            {/* Health indicators */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3">Gesundheitsindikatoren</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <HealthIndicator
-                  label="Zucker"
-                  value={nb.total_sugar_g / effectiveServings}
-                  max={25}
-                  unit="g"
-                  goodBelow={10}
-                  warnBelow={20}
-                />
-                <HealthIndicator
-                  label="Ges. Fett"
-                  value={nb.total_fat_sat_g / effectiveServings}
-                  max={20}
-                  unit="g"
-                  goodBelow={6}
-                  warnBelow={13}
-                />
-                <HealthIndicator
-                  label="Salz"
-                  value={nb.total_salt_g / effectiveServings}
-                  max={6}
-                  unit="g"
-                  goodBelow={1.5}
-                  warnBelow={3}
-                />
-                <HealthIndicator
-                  label="Ballaststoffe"
-                  value={nb.total_fibre_g / effectiveServings}
-                  max={10}
-                  unit="g"
-                  goodBelow={999}
-                  warnBelow={999}
-                  inverted
-                />
-                <HealthIndicator
-                  label="Protein"
-                  value={(nb.per_serving_protein_g ?? 0)}
-                  max={50}
-                  unit="g"
-                  goodBelow={999}
-                  warnBelow={999}
-                  inverted
-                />
-                <HealthIndicator
-                  label="Kalorien"
-                  value={(nb.per_serving_energy_kcal ?? 0)}
-                  max={800}
-                  unit="kcal"
-                  goodBelow={400}
-                  warnBelow={600}
-                />
-              </div>
-            </div>
-
-            {/* Unified Improvements (Nutri-Score + RecipeHints, top 5) */}
-            <div>
-              <h3 className="text-sm font-semibold mb-3">Verbesserungsvorschläge</h3>
-              <RecipeImprovements recipeId={recipeId} breakdownItems={nb?.items ?? []} totalWeightG={nb.total_weight_g} servings={effectiveServings} />
-            </div>
-          </div>
-        </AnalysisSection>
-      )}
-
-      {/* --- Rezeptregeln --- */}
-      <RecipeRulesBox recipeId={recipeId} />
-
-      {/* --- Gewichtsanalyse --- */}
-      {nb && nb.total_weight_g > 0 && topIngredientsByWeight.length > 0 && (
-        <AnalysisSection
-          icon="scale"
-          title="Gewichtsanalyse"
-          accentColor="text-indigo-600"
-          preview={
-            <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground">
-              <span className="text-foreground font-semibold">{formatWeight(nb.total_weight_g / effectiveServings)}</span> / Port.
-            </div>
-          }
-        >
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-              <span className="material-symbols-outlined text-2xl text-indigo-600">scale</span>
-              <div>
-                <p className="text-lg font-bold text-indigo-700">
-                  {formatWeight(nb.total_weight_g)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Gesamtgewicht ({formatWeight(nb.total_weight_g / effectiveServings)})
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {topIngredientsByWeight.map((item) => (
-                <div key={item.recipe_item_id} className="flex items-center gap-3">
-                  {item.ingredient_id && ingredientSlugById.get(item.ingredient_id) ? (
-                    <EntityLink
-                      type="ingredient"
-                      slug={ingredientSlugById.get(item.ingredient_id)!}
-                      name={item.ingredient_name}
-                      variant="muted"
-                      className="text-sm font-medium w-32 truncate"
-                    />
-                  ) : (
-                    <span className="text-sm font-medium w-32 truncate">
-                      {item.ingredient_name}
-                    </span>
-                  )}
-                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-indigo-400 rounded-full"
-                      style={{ width: `${item.weight_pct}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-muted-foreground w-20 text-right">
-                    {formatWeight(item.weight_g)} ({item.weight_pct.toFixed(0)}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </AnalysisSection>
-      )}
-
-      {/* Recipe Hints + Nutri-Improvements are now rendered inside the
-          Nährwert-Analyse section via <RecipeImprovements />. */}
-
-      {/* Description (Zubereitung) — collapsed by default */}
+      {/* Description (Zubereitung) — default open, direkt nach Zutaten */}
       {recipe.description && (
         <InlineEditor
           mode="markdown"
@@ -1581,7 +957,7 @@ export default function RecipeDetailPage() {
           <AnalysisSection
             icon="description"
             title="Zubereitung"
-            defaultOpen={false}
+            defaultOpen={true}
             accentColor="text-primary"
             preview={
               <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">
@@ -1601,6 +977,76 @@ export default function RecipeDetailPage() {
           </AnalysisSection>
         </InlineEditor>
       )}
+
+      {/* Analyse-Tabs + Rezeptregeln */}
+      {nb && nb.total_weight_g > 0 && (
+        <RecipeAnalysisTabs
+          tabs={[
+            ...(nb && displayedPriceTotal !== null && displayedPriceTotal > 0
+              ? [{
+                  id: 'price',
+                  label: 'Preis',
+                  content: (
+                    <PriceTab
+                      nb={nb}
+                      displayedPriceTotal={displayedPriceTotal}
+                      displayedPricePerPortion={displayedPricePerPortion}
+                      topIngredientsByPrice={topIngredientsByPrice}
+                      ingredientSlugById={ingredientSlugById}
+                      recipeType={recipe.recipe_type}
+                    />
+                  ),
+                }]
+              : []),
+            ...(nb && nb.total_weight_g > 0
+              ? [{
+                  id: 'nutrition',
+                  label: 'Inhaltsstoffe',
+                  content: (
+                    <NutritionTab
+                      nb={nb}
+                      effectivePortions={effectivePortions}
+                      recipeType={recipe.recipe_type}
+                    />
+                  ),
+                }]
+              : []),
+            ...(nutriScore && nb && nb.total_weight_g > 0
+              ? [{
+                  id: 'health',
+                  label: 'Gesundheit',
+                  content: (
+                    <HealthTab
+                      nutriScore={nutriScore}
+                      nb={nb}
+                      effectivePortions={effectivePortions}
+                      recipeId={recipeId}
+                      recipeType={recipe.recipe_type}
+                    />
+                  ),
+                }]
+              : []),
+            ...(nb && nb.total_weight_g > 0 && topIngredientsByWeight.length > 0
+              ? [{
+                  id: 'weight',
+                  label: 'Gewicht',
+                  content: (
+                    <WeightTab
+                      nb={nb}
+                      effectivePortions={effectivePortions}
+                      topIngredientsByWeight={topIngredientsByWeight}
+                      ingredientSlugById={ingredientSlugById}
+                      recipeType={recipe.recipe_type}
+                    />
+                  ),
+                }]
+              : []),
+          ]}
+        />
+      )}
+
+      {/* Rezeptregeln */}
+      <RecipeRulesBox recipeId={recipeId} />
 
       {/* Emotions — using generic ContentEmotions component */}
       <section className="mt-8 bg-card rounded-xl border p-6">
@@ -1628,38 +1074,11 @@ export default function RecipeDetailPage() {
               <Link
                 key={similar.id}
                 to={`/recipes/${similar.slug}`}
-                className="group block rounded-xl bg-card border overflow-hidden hover:border-rose-500/40 hover:shadow-md transition-all"
+                className="group block rounded-xl bg-card border p-4 hover:border-primary/40 hover:shadow-md transition-all"
               >
-                <div className="aspect-square overflow-hidden">
-                  <img
-                    src={similar.image_url || '/images/inspi_cook.png'}
-                    alt={similar.title}
-                    loading="lazy"
-                    className={`w-full h-full group-hover:scale-105 transition-transform duration-300 ${similar.image_url ? 'object-cover' : 'object-contain p-4 bg-muted/30'}`}
-                  />
-                </div>
-                <div className="p-3">
-                  <h3 className="font-semibold text-sm group-hover:text-rose-600 transition-colors line-clamp-2">
-                    {similar.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                    {similar.summary}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">timer</span>
-                      {RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === similar.execution_time)
-                        ?.label ?? similar.execution_time}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">
-                        signal_cellular_alt
-                      </span>
-                      {RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === similar.difficulty)
-                        ?.label ?? similar.difficulty}
-                    </span>
-                  </div>
-                </div>
+                <h3 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2">
+                  {similar.title}
+                </h3>
               </Link>
             ))}
           </div>
@@ -1689,9 +1108,9 @@ export default function RecipeDetailPage() {
       <RecipeSidebar
         recipe={recipe}
         recipeId={recipeId}
-        servings={servingsMultiplier}
+        portions={portionsMultiplier}
         totalPriceEur={displayedPriceTotal}
-        onServingsChange={setServingsMultiplier}
+        onPortionsChange={setPortionsMultiplier}
         onOpenShoppingList={handleOpenShoppingList}
         onClone={() => {
           setCloneTitle(`${recipe.title} (Kopie)`);
@@ -1711,149 +1130,14 @@ export default function RecipeDetailPage() {
       <PortionBottomSheet
         open={portionSheetOpen}
         onOpenChange={setPortionSheetOpen}
-        servings={servingsMultiplier}
-        onServingsChange={setServingsMultiplier}
+        portions={portionsMultiplier}
+        onPortionsChange={setPortionsMultiplier}
       />
 
-      {/* Scale Ingredients Dialog */}
-      <ScaleIngredientsDialog
-        open={showScaleDialog}
-        onOpenChange={setShowScaleDialog}
-        onScale={(factor) => {
-          scaleByFactor(factor);
-          toast.success(
-            `Zutaten skaliert (Faktor: ${factor.toLocaleString('de-DE', { maximumFractionDigits: 2 })})`,
-          );
-        }}
-      />
+
     </article>
     </EntityLinkContext.Provider>
   );
 }
 
-// --- Helper Components ---
 
-function NutrientCard({
-  label,
-  value,
-  unit,
-  icon,
-  color,
-  bgColor,
-}: {
-  label: string;
-  value: number;
-  unit: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-}) {
-  return (
-    <div className={`text-center p-4 rounded-xl border ${bgColor}`}>
-      <span className={`material-symbols-outlined text-2xl ${color}`}>{icon}</span>
-      <p className="text-xl font-extrabold mt-1">
-        {value.toFixed(unit === 'kcal' ? 0 : 1)}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        {label} ({unit})
-      </p>
-    </div>
-  );
-}
-
-function HealthIndicator({
-  label,
-  value,
-  max,
-  unit,
-  goodBelow,
-  warnBelow,
-  inverted = false,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  unit: string;
-  goodBelow: number;
-  warnBelow: number;
-  inverted?: boolean;
-}) {
-  let status: 'good' | 'warn' | 'bad';
-  if (inverted) {
-    // Higher is better (fiber, protein)
-    status = value >= goodBelow ? 'good' : value >= warnBelow ? 'warn' : 'good';
-  } else {
-    status = value <= goodBelow ? 'good' : value <= warnBelow ? 'warn' : 'bad';
-  }
-
-  const statusColors = {
-    good: 'bg-green-50 border-green-200 text-green-700',
-    warn: 'bg-amber-50 border-amber-200 text-amber-700',
-    bad: 'bg-red-50 border-red-200 text-red-700',
-  };
-
-  const statusIcons = {
-    good: 'check_circle',
-    warn: 'warning',
-    bad: 'error',
-  };
-
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  const dgePct = max > 0 ? Math.round((value / max) * 100) : 0;
-
-  return (
-    <div className={`p-3 rounded-xl border ${statusColors[status]}`}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium">{label}</span>
-        <span className="material-symbols-outlined text-[16px]">{statusIcons[status]}</span>
-      </div>
-      <p className="text-lg font-bold">
-        {value.toFixed(1)} {unit}
-      </p>
-      <p className="text-[10px] opacity-75">{dgePct}% der DGE-Referenz</p>
-      <div className="h-1.5 bg-white/50 rounded-full mt-1 overflow-hidden">
-        <div
-          className={`h-full rounded-full ${status === 'good' ? 'bg-green-500' : status === 'warn' ? 'bg-amber-500' : 'bg-red-500'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function PriceRow({
-  item,
-  totalPrice,
-  ingredientSlugById,
-}: {
-  item: RecipeItemNutrition;
-  totalPrice: number;
-  ingredientSlugById: Map<number, string>;
-}) {
-  const pricePct = totalPrice > 0 && item.price_eur ? (item.price_eur / totalPrice) * 100 : 0;
-
-  return (
-    <div className="flex items-center gap-3">
-      {item.ingredient_id && ingredientSlugById.get(item.ingredient_id) ? (
-        <EntityLink
-          type="ingredient"
-          slug={ingredientSlugById.get(item.ingredient_id)!}
-          name={item.ingredient_name}
-          variant="muted"
-          className="text-sm font-medium w-32 truncate"
-        />
-      ) : (
-        <span className="text-sm font-medium w-32 truncate">{item.ingredient_name}</span>
-      )}
-      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-        <div
-          className="h-full bg-yellow-400 rounded-full"
-          style={{ width: `${pricePct}%` }}
-        />
-      </div>
-      <span className="text-xs font-semibold text-yellow-700 w-16 text-right">
-        {item.price_eur?.toFixed(2)} EUR
-      </span>
-    </div>
-  );
-}

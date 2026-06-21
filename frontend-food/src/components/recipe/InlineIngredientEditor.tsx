@@ -46,7 +46,7 @@ interface AiIngredientSuggestion {
 interface InlineIngredientEditorProps {
   recipeId: number;
   items: RecipeItem[];
-  servings: number | null;
+  portions: number | null;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -56,8 +56,8 @@ interface InlineIngredientEditorProps {
 /** Normalize items to per-1-serving quantities in grams.
  *  Converts portion-based quantities to grams for editing,
  *  and switches to the base (is_default) portion. */
-function normalizeItems(items: RecipeItem[], servings: number | null): EditableItem[] {
-  const s = servings ?? 1;
+function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
+  const s = portions ?? 1;
   return items.map((item) => {
     // Find the weight_g of the current portion
     const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
@@ -101,12 +101,12 @@ function normalizeItems(items: RecipeItem[], servings: number | null): EditableI
 export default function InlineIngredientEditor({
   recipeId,
   items,
-  servings,
+  portions,
   onClose,
   onSaved,
 }: InlineIngredientEditorProps) {
   const [editItems, setEditItems] = useState<EditableItem[]>(() =>
-    normalizeItems(items, servings),
+    normalizeItems(items, portions),
   );
   const [showEstimate, setShowEstimate] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
@@ -316,8 +316,8 @@ export default function InlineIngredientEditor({
       const promises: Promise<unknown>[] = [];
 
       // Always set servings to 1 (quantities are per-serving)
-      if ((servings ?? 1) !== 1) {
-        promises.push(updateRecipe.mutateAsync({ servings: 1 }));
+      if ((portions ?? 1) !== 1) {
+        promises.push(updateRecipe.mutateAsync({ portions: 1 }));
       }
 
       // Delete removed items
@@ -360,7 +360,7 @@ export default function InlineIngredientEditor({
     } finally {
       setIsSaving(false);
     }
-  }, [editItems, servings, updateRecipe, deleteItem, createItem, updateItem, onSaved]);
+  }, [editItems, portions, updateRecipe, deleteItem, createItem, updateItem, onSaved]);
 
   // --- Render ---
 

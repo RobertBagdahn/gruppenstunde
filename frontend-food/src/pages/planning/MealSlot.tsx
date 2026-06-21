@@ -83,14 +83,12 @@ export function MealSlot({
   const { data: suggestions } = useRecipeSuggestions({
     mealType: meal.meal_type,
     q: debouncedQuery || undefined,
-    nutritionalTagIds: nutritionalTagIds?.length ? nutritionalTagIds : undefined,
-    requireNutritionalTags: nutritionalTagIds?.length ? true : undefined,
+    excludeNutritionalTagIds: nutritionalTagIds?.length ? nutritionalTagIds : undefined,
   });
 
   const randomQuery = useRandomRecipeSuggestion({
     mealType: meal.meal_type,
-    nutritionalTagIds: nutritionalTagIds?.length ? nutritionalTagIds : undefined,
-    requireNutritionalTags: nutritionalTagIds?.length ? true : undefined,
+    excludeNutritionalTagIds: nutritionalTagIds?.length ? nutritionalTagIds : undefined,
   });
 
   useEffect(() => {
@@ -301,7 +299,7 @@ export function MealSlot({
         const itemViolations = scanData?.violations.filter(
           (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
         ) || [];
-        const itemAllergenTags = itemViolations.map((v) => v.allergen_tag);
+        const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
 
         return (
           <div key={item.id} className={`flex items-start gap-2 pl-7 py-1.5 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>

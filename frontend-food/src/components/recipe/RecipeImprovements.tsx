@@ -15,7 +15,7 @@ interface RecipeImprovementsProps {
   recipeId: number;
   breakdownItems: RecipeItemNutrition[];
   totalWeightG: number;
-  servings: number;
+  portions: number;
 }
 
 const DIRECTION_META: Record<string, { label: string; icon: string; color: string }> = {
@@ -28,13 +28,13 @@ function formatValue(value: number, unit: string): string {
   return `${rounded} ${unit}`.trim();
 }
 
-export default function RecipeImprovements({ recipeId, breakdownItems, totalWeightG, servings }: RecipeImprovementsProps) {
+export default function RecipeImprovements({ recipeId, breakdownItems, totalWeightG, portions }: RecipeImprovementsProps) {
   const { data, isLoading, error } = useRecipeImprovements(recipeId);
   const [selected, setSelected] = useState<Improvement | null>(null);
 
   // Convert per-100g values from backend to per-serving for display consistency
-  const perServingFactor = totalWeightG > 0 && servings > 0
-    ? (totalWeightG / 100) / servings
+  const perServingFactor = totalWeightG > 0 && portions > 0
+    ? (totalWeightG / 100) / portions
     : 1;
 
   if (isLoading) {

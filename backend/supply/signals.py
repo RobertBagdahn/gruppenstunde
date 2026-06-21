@@ -96,9 +96,18 @@ def _embedding_fields_changed(instance, created: bool) -> bool:
     """Check if fields relevant to embedding have changed."""
     if created:
         return True
-    # Check if name, description changed (most impactful for embeddings)
     if instance.tracker and hasattr(instance.tracker, "changed"):
-        relevant = {"name", "description", "retail_section_id"}
+        relevant = {
+            "name", "description", "retail_section_id",
+            "short_description", "uses", "source",
+            "season_start", "season_end",
+            "energy_kcal", "protein_g", "fat_g", "carbohydrate_g",
+            "sugar_g", "fibre_g", "salt_g", "fat_sat_g",
+            "vitamin_c_mg", "child_score", "scout_score", "environment_score",
+            "child_fave", "scout_fave", "is_vegetarian", "is_vegan",
+            "is_gluten_free", "is_lactose_free", "price_per_kg",
+            "regional_months", "aliases",
+        }
         return bool(relevant & set(instance.tracker.changed()))
     return True  # Conservative: update if we can't determine
 

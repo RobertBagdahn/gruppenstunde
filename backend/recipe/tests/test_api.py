@@ -81,7 +81,7 @@ def approved_recipe(db, tag, scout_level, nutritional_tag):
         summary="Einfache Pfannkuchen",
         description="## Zubereitung\n1. Mehl verrühren\n2. Backen",
         recipe_type="warm_meal",
-        servings=4,
+        portions=4,
         difficulty="easy",
         status=ContentStatus.APPROVED,
     )
@@ -134,10 +134,10 @@ class TestListRecipes:
         data = resp.json()
         assert data["items"][0]["recipe_type"] == "warm_meal"
 
-    def test_list_includes_servings(self, api_client, approved_recipe):
+    def test_list_includes_portions(self, api_client, approved_recipe):
         resp = api_client.get("/api/recipes/")
         data = resp.json()
-        assert data["items"][0]["servings"] == 4
+        assert data["items"][0]["portions"] == 4
 
     def test_list_filter_by_recipe_type(self, api_client, approved_recipe):
         resp = api_client.get("/api/recipes/?recipe_type=warm_meal")
@@ -181,7 +181,7 @@ class TestRecipeDetail:
         data = resp.json()
         assert data["title"] == "Pfannkuchen"
         assert data["recipe_type"] == "warm_meal"
-        assert data["servings"] == 4
+        assert data["portions"] == 4
         assert data["status"] == "approved"
 
     def test_get_by_slug(self, api_client, approved_recipe):
@@ -248,7 +248,7 @@ class TestCreateRecipe:
                     "title": "Kartoffelsalat",
                     "summary": "Klassischer Kartoffelsalat",
                     "recipe_type": "side_dish",
-                    "servings": 6,
+                    "portions": 6,
                     "difficulty": "easy",
                 }
             ),
@@ -259,7 +259,7 @@ class TestCreateRecipe:
         assert data["title"] == "Kartoffelsalat"
         assert data["status"] == "draft"
         assert data["recipe_type"] == "side_dish"
-        assert data["servings"] == 1  # Always stored per-1-portion
+        assert data["portions"] == 1  # Always stored per-1-portion
         assert data["visibility"] == "private"
         assert data["recipe_badge"] == "personal"
 

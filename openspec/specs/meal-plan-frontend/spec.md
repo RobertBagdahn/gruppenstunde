@@ -4,11 +4,24 @@
 Defines requirements for the meal planning frontend.
 ## Requirements
 ### Requirement: Meal plan list page
-The system SHALL display a list of meal plans at `/meal-plans/app` showing all plans the user owns or collaborates on. Each list item SHALL show name, creation date, number of days/meals, and event name if linked.
+
+The system SHALL display a list of meal plans at `/meal-plans/app` showing all plans the user owns or collaborates on. Each list item SHALL show name, date range, meal count, visibility badge (verified/community/personal), and portion count using `norm_portions`.
 
 #### Scenario: User views their meal plans
 - **WHEN** an authenticated user navigates to `/meal-plans/app`
-- **THEN** the system shows a list of meal plans (own + collaborator) with name, date, and meal count
+- **THEN** the system shows a list of meal plans with name, date, meal count, and visibility badge
+
+#### Scenario: MealPlan card shows visibility badge
+- **WHEN** a MealPlan with `owner_id === null` is displayed
+- **THEN** the card SHALL show "Inspi-verifiziert" badge
+
+#### Scenario: MealPlan card shows public community plan
+- **WHEN** a MealPlan with `visibility === "public"` and `owner_id !== null` is displayed
+- **THEN** the card SHALL show "Community" badge
+
+#### Scenario: MealPlan card shows personal plan
+- **WHEN** a MealPlan with `visibility === "private"` and `owner_id === userId` is displayed
+- **THEN** the card SHALL show "Mein Plan" badge
 
 #### Scenario: User creates a new meal plan
 - **WHEN** the user clicks the create button
@@ -49,7 +62,8 @@ The system SHALL compute the next weekend dates (Friday–Sunday) using smart lo
 - **THEN** the end field is pre-filled to Sunday at 14:00 of the same weekend
 
 ### Requirement: Meal plan detail page
-The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day-based layout showing meals grouped by date, each meal showing its assigned recipes/ingredients. The detail view MUST include a nutrition tab that supports filtering nutrition data by either the entire plan (default) or a specific day using a horizontal day-by-day (Bar7-style) selector and a leading "Gesamt" button. All nutritional metrics in this view SHALL be visualized using relative `SollIstBar` indicators displaying current value against calculated limits where rules are configured.
+
+The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day-based layout showing meals grouped by date. The detail view MUST include tabs: Tagesplan, Tabelle, Nährwerte, Kosten, Einkaufsliste, Vorschläge, and optionally Allergie-Scanner (only when `nutritional_tag_ids.length > 0`).
 
 #### Scenario: User views meal plan detail
 - **WHEN** an authenticated user with access navigates to `/meal-plans/:id`
@@ -58,6 +72,14 @@ The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day
 #### Scenario: User without access
 - **WHEN** a user without access navigates to `/meal-plans/:id`
 - **THEN** the system shows a 404 error
+
+#### Scenario: Allergen scan tab visible only with tags
+- **WHEN** a MealPlan has `nutritional_tag_ids.length > 0`
+- **THEN** the "Allergie-Scanner" tab SHALL be visible
+
+#### Scenario: Allergen scan tab hidden without tags
+- **WHEN** a MealPlan has `nutritional_tag_ids.length === 0`
+- **THEN** the "Allergie-Scanner" tab SHALL NOT be visible
 
 #### Scenario: User filters nutrition by day
 - **WHEN** the user selects a specific day from the horizontal day selector in the nutrition tab
@@ -189,6 +211,18 @@ Ein leerer MealSlot MUSS einen "Rezept vorschlagen"-Button zeigen, der ein zufä
 #### Scenario: Keine passenden Rezepte
 - **WHEN** keine Rezepte die aktuellen Filter (Diät, Kategorie) erfüllen
 - **THEN** der Button zeigt "Keine passenden Rezepte" und ist deaktiviert
+
+### Requirement: Recipe selection excludes plan tags
+
+The inline recipe search and RecipeSearchDialog SHALL exclude recipes that match the MealPlan's nutritional tags (exclusion semantics). The dietary filter checkbox SHALL be removed or relabeled to reflect exclusion semantics.
+
+#### Scenario: Recipe search excludes plan tags
+- **WHEN** the user searches recipes for a MealPlan with nutritional tags [Erdnuss, Milch]
+- **THEN** recipes containing those tags SHALL NOT appear in results
+
+#### Scenario: Random recipe suggestion excludes plan tags
+- **WHEN** the user clicks "Rezept vorschlagen"
+- **THEN** the random suggestion SHALL NOT contain any of the plan's nutritional tags
 
 ### Requirement: Verbesserte Inline-Suchergebnisse
 Die Inline-Such-Ergebnisliste im MealSlot MUSS für jeden Vorschlag anzeigen: Ampel-Farbpunkt (recipe_badge), Preis pro Portion, und Verwendungshäufigkeit.

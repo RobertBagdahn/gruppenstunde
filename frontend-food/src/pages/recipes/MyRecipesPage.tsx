@@ -119,7 +119,7 @@ export default function MyRecipesPage() {
               <div key={recipe.id} className="relative">
                 <RecipeCard recipe={recipe} />
                 <div className="absolute top-2 left-2 z-10">
-                  <RecipeBadge badge={recipe.recipe_badge} />
+                  <RecipeBadge badge={(recipe.recipe_badge as 'draft' | 'verified' | 'community') ?? 'community'} />
                 </div>
               </div>
             ))}

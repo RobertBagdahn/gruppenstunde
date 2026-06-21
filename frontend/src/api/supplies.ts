@@ -1,11 +1,9 @@
 /**
- * TanStack Query hooks for the Supply API (Material + Ingredient).
+ * TanStack Query hooks for the Supply API (Material only).
  * MUST stay in sync with backend/supply/api.py
  *
  * Material hooks: /api/supplies/materials/
- * Ingredient hooks: /api/ingredients/ (slug-based)
  * MeasuringUnit hooks: /api/supplies/measuring-units/
- * NutritionalTag hooks: /api/supplies/nutritional-tags/
  * RetailSection hooks: /api/retail-sections/
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,16 +14,10 @@ import {
   MaterialListItemSchema,
   PaginatedMaterialsSchema,
   MeasuringUnitSchema,
-  NutritionalTagSchema,
   RetailSectionSchema,
-  IngredientDetailSchema,
-  PaginatedIngredientSchema,
-  PortionSchema,
-  IngredientAliasSchema,
 } from '@/schemas/supply';
 
 const SUPPLY_BASE = `${API_BASE_URL}/api/supplies`;
-const INGREDIENT_BASE = `${API_BASE_URL}/api/ingredients`;
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
 
 function getCsrfToken(): string {
@@ -76,17 +68,6 @@ async function patchJsonRaw<T>(url: string, body: unknown, schema: z.ZodSchema<T
   }
   const data = await res.json();
   return schema.parse(data);
-}
-
-async function deleteJsonRaw(url: string): Promise<void> {
-  const res = await fetch(url, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: { 'X-CSRFToken': getCsrfToken() },
-  });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
 }
 
 // ==========================================================================
@@ -178,147 +159,7 @@ export function useUpdateMaterial(materialId: number) {
 }
 
 // ==========================================================================
-// Ingredient Query Hooks (slug-based, /api/ingredients/)
-// ==========================================================================
-
-export interface IngredientFilters {
-  page?: number;
-  page_size?: number;
-  name?: string;
-  retail_section?: number;
-  status?: string;
-}
-
-export function useIngredients(filters: IngredientFilters = {}) {
-  const params = new URLSearchParams();
-  if (filters.page) params.set('page', String(filters.page));
-  if (filters.page_size) params.set('page_size', String(filters.page_size));
-  if (filters.name) params.set('name', filters.name);
-  if (filters.retail_section) params.set('retail_section', String(filters.retail_section));
-  if (filters.status) params.set('status', filters.status);
-
-  const qs = params.toString();
-  return useQuery({
-    queryKey: ['ingredients', filters] as const,
-    queryFn: () => fetchJson(`${INGREDIENT_BASE}/?${qs}`, PaginatedIngredientSchema),
-  });
-}
-
-export function useIngredient(slug: string) {
-  return useQuery({
-    queryKey: ['ingredient', slug] as const,
-    queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/`, IngredientDetailSchema),
-    enabled: !!slug,
-  });
-}
-
-export function useCreateIngredient() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      postJsonRaw(`${INGREDIENT_BASE}/`, data, IngredientDetailSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-    },
-  });
-}
-
-export function useUpdateIngredient(slug: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      patchJsonRaw(`${INGREDIENT_BASE}/${slug}/`, data, IngredientDetailSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
-    },
-  });
-}
-
-export function useDeleteIngredient() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (slug: string) => deleteJsonRaw(`${INGREDIENT_BASE}/${slug}/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-    },
-  });
-}
-
-// ==========================================================================
-// Portion Hooks
-// ==========================================================================
-
-export function usePortions(slug: string) {
-  return useQuery({
-    queryKey: ['ingredient-portions', slug] as const,
-    queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/portions/`, z.array(PortionSchema)),
-    enabled: !!slug,
-  });
-}
-
-export function useCreatePortion(slug: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { name: string; quantity?: number; measuring_unit_id?: number; rank?: number; priority?: number; is_default?: boolean }) =>
-      postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/`, data, PortionSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
-      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
-    },
-  });
-}
-
-export function useUpdatePortion(slug: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ portionId, data }: { portionId: number; data: Record<string, unknown> }) =>
-      patchJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/${portionId}/`, data, PortionSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
-      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
-    },
-  });
-}
-
-export function useDeletePortion(slug: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (portionId: number) => deleteJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/${portionId}/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
-      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
-    },
-  });
-}
-
-// ==========================================================================
-// Alias Hooks
-// ==========================================================================
-
-export function useCreateAlias(slug: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: { name: string; rank?: number }) =>
-      postJsonRaw(`${INGREDIENT_BASE}/${slug}/aliases/`, data, IngredientAliasSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
-    },
-  });
-}
-
-export function useDeleteAlias(slug: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (aliasId: number) => deleteJsonRaw(`${INGREDIENT_BASE}/${slug}/aliases/${aliasId}/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
-    },
-  });
-}
-
-// ==========================================================================
-// MeasuringUnit Hooks (from /api/supplies/measuring-units/)
+// MeasuringUnit Hooks
 // ==========================================================================
 
 export function useMeasuringUnits() {
@@ -330,19 +171,7 @@ export function useMeasuringUnits() {
 }
 
 // ==========================================================================
-// NutritionalTag Hooks (from /api/supplies/nutritional-tags/)
-// ==========================================================================
-
-export function useNutritionalTags() {
-  return useQuery({
-    queryKey: ['nutritional-tags'] as const,
-    queryFn: () => fetchJson(`${SUPPLY_BASE}/nutritional-tags/`, z.array(NutritionalTagSchema)),
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-// ==========================================================================
-// RetailSection Hooks (from /api/retail-sections/)
+// RetailSection Hooks
 // ==========================================================================
 
 export function useRetailSections() {
@@ -350,95 +179,5 @@ export function useRetailSections() {
     queryKey: ['retail-sections'] as const,
     queryFn: () => fetchJson(`${RETAIL_SECTION_BASE}/`, z.array(RetailSectionSchema)),
     staleTime: 10 * 60 * 1000,
-  });
-}
-
-// ==========================================================================
-// UNIT CONVERSIONS
-// ==========================================================================
-
-const UNIT_CONVERSION_BASE = `${API_BASE_URL}/api/unit-conversions`;
-
-export function useUnitConversions(params?: {
-  from_unit?: number;
-  to_unit?: number;
-  ingredient?: number;
-}) {
-  const searchParams = new URLSearchParams();
-  if (params?.from_unit) searchParams.set('from_unit', String(params.from_unit));
-  if (params?.to_unit) searchParams.set('to_unit', String(params.to_unit));
-  if (params?.ingredient) searchParams.set('ingredient', String(params.ingredient));
-
-  const qs = searchParams.toString();
-  const url = `${UNIT_CONVERSION_BASE}/${qs ? `?${qs}` : ''}`;
-
-  return useQuery({
-    queryKey: ['unit-conversions', params] as const,
-    queryFn: async () => {
-      const { UnitConversionSchema } = await import('@/schemas/supply');
-      return fetchJson(url, z.array(UnitConversionSchema));
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useConvertUnit() {
-  return useMutation({
-    mutationFn: async (params: {
-      from_unit: number;
-      to_unit: number;
-      quantity: number;
-      ingredient?: number;
-    }) => {
-      const searchParams = new URLSearchParams({
-        from_unit: String(params.from_unit),
-        to_unit: String(params.to_unit),
-        quantity: String(params.quantity),
-      });
-      if (params.ingredient) searchParams.set('ingredient', String(params.ingredient));
-
-      const { UnitConversionResultSchema } = await import('@/schemas/supply');
-      return fetchJson(
-        `${UNIT_CONVERSION_BASE}/convert/?${searchParams.toString()}`,
-        UnitConversionResultSchema
-      );
-    },
-  });
-}
-
-// ===========================================================================
-// AI Suggest & Create
-// ===========================================================================
-
-export function useAiSuggestIngredientAll(slug: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const { IngredientSuggestAllSchema } = await import('@/schemas/supply');
-      return postJsonRaw(
-        `${INGREDIENT_BASE}/${slug}/ai-suggest-all/`,
-        {},
-        IngredientSuggestAllSchema
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
-    },
-  });
-}
-
-export function useAiCreateIngredient() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (params: { name: string }) => {
-      return postJsonRaw(
-        `${INGREDIENT_BASE}/ai-create/`,
-        params,
-        IngredientDetailSchema
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-    },
   });
 }

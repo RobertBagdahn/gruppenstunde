@@ -144,7 +144,7 @@ class ContentDetailOut(Schema):
     can_edit: bool = False
     can_delete: bool = False
     quality_score: int | None = None
-    quality_score_updated_at: str | None = None
+    quality_score_updated_at: datetime | None = None
 
     @staticmethod
     def resolve_image_url(obj) -> str | None:

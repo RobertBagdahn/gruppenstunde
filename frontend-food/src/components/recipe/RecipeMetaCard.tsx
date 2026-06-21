@@ -17,12 +17,12 @@ const NUTRI_SCORE_COLORS: Record<string, { bg: string; text: string }> = {
 
 interface RecipeMetaCardProps {
   recipe: RecipeDetail;
-  servings: number;
+  portions: number;
   totalPriceEur?: number | null;
   className?: string;
 }
 
-export default function RecipeMetaCard({ recipe, servings, totalPriceEur, className }: RecipeMetaCardProps) {
+export default function RecipeMetaCard({ recipe, portions, totalPriceEur, className }: RecipeMetaCardProps) {
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
@@ -48,7 +48,7 @@ export default function RecipeMetaCard({ recipe, servings, totalPriceEur, classN
     : null;
 
   const price = totalPriceEur ?? (recipe.cached_price_total
-    ? recipe.cached_price_total * (servings / (recipe.servings ?? 1))
+    ? recipe.cached_price_total * (portions / (recipe.portions ?? 1))
     : null);
   const formattedPrice = price != null
     ? `${price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`

@@ -192,7 +192,7 @@ class Command(BaseCommand):
                             description="\n".join(result.steps) if result.steps else "",
                             summary=result.summary,
                             recipe_type=result.recipe_type,
-                            servings=result.servings or 4,
+                            portions=result.servings or 4,
                             costs_rating=result.costs_rating,
                             execution_time=result.execution_time or 0,
                             preparation_time=result.preparation_time or 0,

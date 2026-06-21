@@ -625,7 +625,7 @@ class Command(BaseCommand):
                 description=description,
                 status="approved",
                 recipe_type="warm_meal",  # default, most are simple meals
-                servings=1,
+                portions=1,
                 visibility="public",
             )
             recipe.save()

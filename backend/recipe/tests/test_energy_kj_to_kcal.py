@@ -11,7 +11,7 @@ from supply.tests import make_ingredient, make_portion
 class TestEnergyInKcal:
     def test_recipe_energy_cached_in_kcal(self):
         """Energy values are stored directly in kcal (no kJ conversion)."""
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(
             name="Energieriegel",
             energy_kcal=430,
@@ -32,7 +32,7 @@ class TestEnergyInKcal:
 
     def test_rule_evaluates_kcal_directly(self):
         """Rules evaluate kcal values directly (no conversion needed)."""
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(
             name="Energieriegel",
             energy_kcal=430,

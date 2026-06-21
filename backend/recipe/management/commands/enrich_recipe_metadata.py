@@ -101,7 +101,7 @@ class Command(BaseCommand):
                 "id": r.id,
                 "title": r.title,
                 "type": r.recipe_type,
-                "servings": r.servings,
+                "portions": r.portions,
                 "ingredients": ingredients[:15],  # limit to keep prompt short
                 "description_preview": (r.description or "")[:200],
             })

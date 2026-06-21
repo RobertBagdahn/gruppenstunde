@@ -1690,7 +1690,7 @@ class Command(BaseCommand):
 
         from supply.models import Ingredient, MeasuringUnit, Portion
 
-        # All recipes normalized to servings=1 (one Normportion)
+        # All recipes normalized to portions=1 (one Normportion)
         recipe_data = [
             {
                 "title": "Pfannkuchen",
@@ -1699,7 +1699,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1709,7 +1709,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1719,7 +1719,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.BREAKFAST,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1729,7 +1729,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
                 "recipe_type": RecipeTypeChoices.SIMPLE_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1739,7 +1739,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1749,7 +1749,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.BREAKFAST,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1759,7 +1759,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1769,7 +1769,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.DESSERT,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1779,7 +1779,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1789,7 +1789,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.COLD_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1799,7 +1799,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1809,7 +1809,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.COLD_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1819,7 +1819,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.BETWEEN_60_90,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1829,7 +1829,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.MEDIUM,
                 "execution_time": ExecutionTimeChoices.BETWEEN_30_60,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1839,7 +1839,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.BREAKFAST,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1849,7 +1849,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.COLD_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1859,7 +1859,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.WARM_MEAL,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1869,7 +1869,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.DRINK,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
             {
@@ -1879,7 +1879,7 @@ class Command(BaseCommand):
                 "difficulty": DifficultyChoices.EASY,
                 "execution_time": ExecutionTimeChoices.LESS_30,
                 "recipe_type": RecipeTypeChoices.DRINK,
-                "servings": 1,
+                "portions": 1,
                 "status": RecipeStatusChoices.APPROVED,
             },
         ]
@@ -2061,7 +2061,7 @@ class Command(BaseCommand):
         gram_unit = MeasuringUnit.objects.filter(name__in=["Gramm", "g"]).first()
 
         # Map recipe -> [(ingredient, quantity_g, note)]
-        # All quantities normalized to 1 Normportion (servings=1)
+        # All quantities normalized to 1 Normportion (portions=1)
         recipe_ingredients_map = {
             "Pfannkuchen": [
                 (mehl, 50.0, ""),

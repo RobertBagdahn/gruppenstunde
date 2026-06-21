@@ -25,6 +25,17 @@ Jedes Tool/Feature darf in der **primären Navigation** höchstens einmal ersche
 
 Die Arrays `toolsMenuItems`, `bottomNavItems`, `navItems` in `src/components/Layout.tsx` sind die Single Source of Truth und müssen dieser Regel folgen.
 
+## CommandPalette-Routen
+
+Die CommandPalette (`src/components/shared/CommandPalette.tsx`) definiert globale Cmd+K-Navigationslinks:
+
+| Route | Ziel |
+|-------|------|
+| `/create/session` | Neue Gruppenstunde erstellen |
+| `/session-planner/app` | Gruppenstundenplan |
+
+Alle Routen müssen mit den tatsächlichen React-Router-Pfaden übereinstimmen (`src/App.tsx`).
+
 ## Entity-Links & NewTab-Policy
 
 Alle In-App-Links zu Domain-Entitäten (Rezept, Zutat, Material, Event, Location, Session, Game, Blog, User, Group, Tag) laufen über die Komponente `<EntityLink>` aus `src/components/shared/EntityLink.tsx`.
@@ -100,24 +111,7 @@ Jede **List-Page** wird in `<EntityLinkContext.Provider value="list">` eingewick
 
 | Feature | Schema | API Hooks | Seiten |
 |---------|--------|-----------|--------|
-| Essensplan | `schemas/mealPlan.ts` | `api/mealPlans.ts` | `pages/planning/MealEvent*.tsx` |
-| Cockpit/Ampel | `schemas/cockpit.ts` | `api/cockpit.ts` | `components/cockpit/` |
-| Rezepte | `schemas/recipe.ts` | `api/recipes.ts` | `pages/recipes/` |
-| Zutaten | `schemas/supply.ts` + `ingredient.ts` | `api/supplies.ts` | `pages/supplies/` |
-| Normportion | `schemas/normPerson.ts` | `api/normPerson.ts` | `pages/tools/NormPortionSimulatorPage.tsx` |
 | Packlisten | `schemas/packingList.ts` | `api/packingLists.ts` | `pages/PackingList*.tsx`, `pages/tools/PackingListLandingPage.tsx` |
-
-### Cockpit-Komponenten (`components/cockpit/`)
-- `TrafficLightIndicator` — farbiger Punkt (grün/gelb/rot) mit Label, compact-Mode für Mobile
-- `HealthTipCard` — zeigt tip_text für gelbe/rote Regeln
-- `CockpitDashboard` — Grid aus TrafficLightIndicators mit Summary und Tips
-- `CockpitSummaryCard` — Gesamtstatus-Banner mit Anzahl grün/gelb/rot
-
-### Wichtige Hinweise
-- **MealEvent → MealPlan**: Alte `mealEvent.ts`/`mealEvents.ts` sind nur Compat-Shims die auf `mealPlan.ts`/`mealPlans.ts` weiterleiten
-- **Kein Price-Model mehr**: `useCreatePrice`/`useDeletePrice` existieren nicht mehr. Preis über `Ingredient.price_per_kg`.
-- **Recipe Cache-Felder**: `RecipeListItemSchema` hat `cached_*` Felder für schnelle Listenansichten
-- **URL-Routen**: Essensplanung unter `/meal-plans/`, Legacy-Redirect von `/meal-events/*`
 
 ## Arbeitsablauf – Frontend-Änderungen
 

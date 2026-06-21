@@ -67,7 +67,7 @@ class MealItemOut(Schema):
     def resolve_energy_kcal(obj) -> float | None:
         if not obj.recipe or obj.recipe.cached_energy_total_kcal is None:
             return None
-        servings = obj.recipe.servings or 1
+        servings = obj.recipe.portions or 1
         norm_portions = obj.meal.meal_plan.norm_portions or 1
         return float(obj.recipe.cached_energy_total_kcal) * obj.factor * (norm_portions / servings)
 
@@ -75,7 +75,7 @@ class MealItemOut(Schema):
     def resolve_cost_eur(obj) -> float | None:
         if not obj.recipe or obj.recipe.cached_price_total is None:
             return None
-        servings = obj.recipe.servings or 1
+        servings = obj.recipe.portions or 1
         norm_portions = obj.meal.meal_plan.norm_portions or 1
         return float(obj.recipe.cached_price_total) * obj.factor * (norm_portions / servings)
 
@@ -140,7 +140,7 @@ class MealOut(Schema):
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_energy_total_kcal is not None:
-                servings = item.recipe.servings or 1
+                servings = item.recipe.portions or 1
                 norm_portions = obj.meal_plan.norm_portions or 1
                 total += float(item.recipe.cached_energy_total_kcal) * item.factor * (norm_portions / servings)
         return total
@@ -155,7 +155,7 @@ class MealOut(Schema):
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_price_total is not None:
-                servings = item.recipe.servings or 1
+                servings = item.recipe.portions or 1
                 norm_portions = obj.meal_plan.norm_portions or 1
                 total += float(item.recipe.cached_price_total) * item.factor * (norm_portions / servings)
         return total

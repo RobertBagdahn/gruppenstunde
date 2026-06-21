@@ -249,14 +249,14 @@ export function useCreateFromRecipe() {
   return useMutation({
     mutationFn: ({
       recipeId,
-      servings = 1,
+      portions = 1,
     }: {
       recipeId: number;
-      servings?: number;
+      portions?: number;
     }) =>
       postJson(
         `${API_BASE}/from-recipe/${recipeId}/`,
-        { servings },
+        { portions },
         ShoppingListDetailSchema,
       ),
     onSuccess: () => {

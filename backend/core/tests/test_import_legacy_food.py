@@ -121,7 +121,7 @@ class TestImportLegacyFoodRecipeSeed:
         assert recipe.owner is None
         assert recipe.status == "approved"
         assert recipe.slug  # non-empty
-        assert recipe.servings == 1
+        assert recipe.portions == 1
 
 
 @pytest.mark.django_db

@@ -54,7 +54,7 @@ export default function RecipeSearchDialog({
   const [recipeType, setRecipeType] = useState<string | null>(null);
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
-  const [requireDietaryTags, setRequireDietaryTags] = useState(true);
+  const [excludeDietaryTags, setExcludeDietaryTags] = useState(true);
 
   const deferredQuery = useDeferredValue(query);
 
@@ -62,8 +62,7 @@ export default function RecipeSearchDialog({
     q: deferredQuery,
     meal_type: mealType,
     recipe_type: recipeType || undefined,
-    nutritional_tag_ids: requireDietaryTags && nutritionalTagIds?.length ? nutritionalTagIds : undefined,
-    require_nutritional_tags: requireDietaryTags && nutritionalTagIds?.length ? true : undefined,
+    exclude_nutritional_tag_ids: excludeDietaryTags && nutritionalTagIds?.length ? nutritionalTagIds : undefined,
     limit: 20,
   });
 
@@ -142,11 +141,11 @@ export default function RecipeSearchDialog({
             <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-muted-foreground select-none bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border/50 w-fit">
               <input
                 type="checkbox"
-                checked={requireDietaryTags}
-                onChange={(e) => setRequireDietaryTags(e.target.checked)}
+                checked={excludeDietaryTags}
+                onChange={(e) => setExcludeDietaryTags(e.target.checked)}
                 className="rounded border-muted-foreground accent-primary"
               />
-              <span>Nur {nutritionalTagNames?.join(', ') ?? nutritionalTagIds.join(', ')}</span>
+              <span>{nutritionalTagNames?.join(', ') ?? nutritionalTagIds.join(', ')} ausschließen</span>
             </label>
           )}
 

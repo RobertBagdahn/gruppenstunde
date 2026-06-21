@@ -8,7 +8,6 @@ import { z } from 'zod';
 import {
   ContentListItemSchema,
   ContentDetailSchema,
-  ContentSimilarSchema,
 } from './content';
 import { PortionSchema } from './supply';
 
@@ -51,7 +50,7 @@ export type RecipeItem = z.output<typeof RecipeItemSchema>;
 
 export const RecipeListItemSchema = ContentListItemSchema.extend({
   recipe_type: z.string(),
-  servings: z.number().nullable(),
+  portions: z.number().nullable(),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
@@ -73,16 +72,21 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
 });
 export type RecipeListItem = z.infer<typeof RecipeListItemSchema>;
 
-// --- Recipe Similar (extends ContentSimilar) ---
+// --- Recipe Similar ---
 
-export const RecipeSimilarSchema = ContentSimilarSchema;
+export const RecipeSimilarSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  distance: z.number(),
+});
 export type RecipeSimilar = z.infer<typeof RecipeSimilarSchema>;
 
 // --- Recipe Detail (extends ContentDetail) ---
 
 export const RecipeDetailSchema = ContentDetailSchema.extend({
   recipe_type: z.string(),
-  servings: z.number().nullable(),
+  portions: z.number().nullable(),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
@@ -119,6 +123,15 @@ export const PaginatedRecipesSchema = z.object({
   total_pages: z.number(),
 });
 export type PaginatedRecipes = z.infer<typeof PaginatedRecipesSchema>;
+
+export const PaginatedRecipeSimilarSchema = z.object({
+  items: z.array(RecipeSimilarSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedRecipeSimilar = z.infer<typeof PaginatedRecipeSimilarSchema>;
 
 // --- Filter ---
 
@@ -354,3 +367,28 @@ export const RecipeRulesSchema = z.object({
   message: z.string().default(''),
 });
 export type RecipeRules = z.infer<typeof RecipeRulesSchema>;
+
+// --- Recipe Type Stats (Kategorie-Benchmarking) ---
+
+export const RecipeTypeStatsSchema = z.object({
+  recipe_type: z.string(),
+  count: z.number(),
+  price_min: z.number().nullable(),
+  price_max: z.number().nullable(),
+  price_avg: z.number().nullable(),
+  price_median: z.number().nullable(),
+  energy_min: z.number().nullable(),
+  energy_max: z.number().nullable(),
+  energy_avg: z.number().nullable(),
+  energy_median: z.number().nullable(),
+  protein_avg: z.number().nullable(),
+  fat_avg: z.number().nullable(),
+  carbs_avg: z.number().nullable(),
+  weight_min: z.number().nullable(),
+  weight_max: z.number().nullable(),
+  weight_avg: z.number().nullable(),
+  weight_median: z.number().nullable(),
+  nutri_score_dist: z.record(z.string(), z.number()).default({}),
+  updated_at: z.string(),
+});
+export type RecipeTypeStats = z.infer<typeof RecipeTypeStatsSchema>;

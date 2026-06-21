@@ -3,40 +3,43 @@ import { cn } from '@/lib/utils';
 
 interface PortionScalerProps {
   /** Initial portion count (default: 1) */
-  defaultServings?: number;
+  defaultPortions?: number;
   /** Min value (default: 1) */
   min?: number;
   /** Max value (default: 100) */
   max?: number;
-  /** Callback when servings change */
-  onChange: (servings: number) => void;
+  /** Callback when portions change */
+  onChange: (portions: number) => void;
   /** Compact mode for sidebar use */
   compact?: boolean;
+  /** Show factor quick-select buttons (0.5×, 1.5×, 2×) */
+  showFactors?: boolean;
   /** Additional CSS classes */
   className?: string;
 }
 
 export default function PortionScaler({
-  defaultServings = 1,
+  defaultPortions = 1,
   min = 1,
   max = 100,
   onChange,
   compact = false,
+  showFactors = false,
   className,
 }: PortionScalerProps) {
-  const [servings, setServings] = useState(defaultServings);
+  const [portions, setPortions] = useState(defaultPortions);
 
-  const updateServings = useCallback(
+  const updatePortions = useCallback(
     (value: number) => {
       const clamped = Math.max(min, Math.min(max, value));
-      setServings(clamped);
+      setPortions(clamped);
       onChange(clamped);
     },
     [min, max, onChange],
   );
 
-  const decrement = () => updateServings(servings - 1);
-  const increment = () => updateServings(servings + 1);
+  const decrement = () => updatePortions(portions - 1);
+  const increment = () => updatePortions(portions + 1);
 
   return (
     <div
@@ -57,7 +60,7 @@ export default function PortionScaler({
         <button
           type="button"
           onClick={decrement}
-          disabled={servings <= min}
+          disabled={portions <= min}
           className={cn(
             'flex items-center justify-center rounded-full',
             'border border-amber-300 bg-white text-amber-700',
@@ -72,10 +75,10 @@ export default function PortionScaler({
 
         <input
           type="number"
-          value={servings}
+          value={portions}
           onChange={(e) => {
             const val = parseInt(e.target.value, 10);
-            if (!isNaN(val)) updateServings(val);
+            if (!isNaN(val)) updatePortions(val);
           }}
           min={min}
           max={max}
@@ -92,7 +95,7 @@ export default function PortionScaler({
         <button
           type="button"
           onClick={increment}
-          disabled={servings >= max}
+          disabled={portions >= max}
           className={cn(
             'flex items-center justify-center rounded-full',
             'border border-amber-300 bg-white text-amber-700',
@@ -105,6 +108,21 @@ export default function PortionScaler({
           <span className={cn('material-symbols-outlined', compact ? 'text-base' : 'text-lg')}>add</span>
         </button>
       </div>
+
+      {showFactors && (
+        <div className="flex items-center gap-1.5 border-t border-amber-200 pt-2 mt-2 w-full">
+          {[0.5, 1.5, 2].map((factor) => (
+            <button
+              key={factor}
+              type="button"
+              onClick={() => updatePortions(Math.round(defaultPortions * factor))}
+              className="flex-1 text-xs font-medium py-1 rounded-lg border border-amber-200 bg-white text-amber-700 hover:bg-amber-100 transition-colors"
+            >
+              {factor.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}×
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

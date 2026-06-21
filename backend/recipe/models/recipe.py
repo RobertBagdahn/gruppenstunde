@@ -20,7 +20,7 @@ class Recipe(Content):
     """
     Standalone recipe model — inherits shared fields from Content.
 
-    Recipe-specific fields: recipe_type, servings, nutritional_tags.
+    Recipe-specific fields: recipe_type, portions, nutritional_tags.
     Personal recipe fields: owner, forked_from, visibility.
     All other fields (title, slug, summary, description, difficulty,
     costs_rating, execution_time, preparation_time, status, image,
@@ -38,7 +38,7 @@ class Recipe(Content):
         verbose_name=_("Rezepttyp"),
         help_text=_("Frühstück, Warme Mahlzeit, etc."),
     )
-    servings = models.IntegerField(
+    portions = models.IntegerField(
         default=1,
         blank=True,
         null=True,

@@ -420,31 +420,29 @@ export interface RecipeSearchParams {
   meal_type?: string;
   recipe_type?: string;
   nutritional_tag_ids?: number[];
-  require_nutritional_tags?: boolean;
+  exclude_nutritional_tag_ids?: number[];
   limit?: number;
 }
 
 export function useRecipeSearch(params: RecipeSearchParams) {
-  const { q, meal_type, recipe_type, nutritional_tag_ids, require_nutritional_tags, limit } = params;
+  const { q, meal_type, recipe_type, exclude_nutritional_tag_ids, limit } = params;
 
   const searchParams = new URLSearchParams();
   if (q) searchParams.set('q', q);
   if (meal_type) searchParams.set('meal_type', meal_type);
   if (recipe_type) searchParams.set('recipe_type', recipe_type);
-  if (nutritional_tag_ids?.length)
-    searchParams.set('nutritional_tag_ids', nutritional_tag_ids.join(','));
-  if (require_nutritional_tags !== undefined)
-    searchParams.set('require_nutritional_tags', String(require_nutritional_tags));
+  if (exclude_nutritional_tag_ids?.length)
+    searchParams.set('exclude_nutritional_tag_ids', exclude_nutritional_tag_ids.join(','));
   if (limit) searchParams.set('limit', String(limit));
 
   return useQuery<UnifiedSearchResponse>({
-    queryKey: ['recipe-search', q, meal_type, recipe_type, nutritional_tag_ids, require_nutritional_tags, limit],
+    queryKey: ['recipe-search', q, meal_type, recipe_type, exclude_nutritional_tag_ids, limit],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/search/?${searchParams.toString()}`,
         UnifiedSearchResponseSchema,
       ),
-    enabled: q.length >= 2 || !!recipe_type || !!nutritional_tag_ids?.length || !!meal_type,
+    enabled: q.length >= 2 || !!recipe_type || !!exclude_nutritional_tag_ids?.length || !!meal_type,
   });
 }
 
@@ -457,23 +455,21 @@ export interface RecipeSuggestionsParams {
   q?: string;
   limit?: number;
   nutritionalTagIds?: number[];
-  requireNutritionalTags?: boolean;
+  excludeNutritionalTagIds?: number[];
 }
 
 export function useRecipeSuggestions(params: RecipeSuggestionsParams) {
-  const { mealType, q, limit = 10, nutritionalTagIds, requireNutritionalTags } = params;
+  const { mealType, q, limit = 10, excludeNutritionalTagIds } = params;
 
   const searchParams = new URLSearchParams();
   if (mealType) searchParams.set('meal_type', mealType);
   if (q) searchParams.set('q', q);
   searchParams.set('limit', String(limit));
-  if (nutritionalTagIds?.length)
-    searchParams.set('nutritional_tag_ids', nutritionalTagIds.join(','));
-  if (requireNutritionalTags !== undefined)
-    searchParams.set('require_nutritional_tags', String(requireNutritionalTags));
+  if (excludeNutritionalTagIds?.length)
+    searchParams.set('exclude_nutritional_tag_ids', excludeNutritionalTagIds.join(','));
 
   return useQuery<RecipeSuggestionsResponse>({
-    queryKey: ['recipe-suggestions', mealType, q, limit, nutritionalTagIds, requireNutritionalTags],
+    queryKey: ['recipe-suggestions', mealType, q, limit, excludeNutritionalTagIds],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,
@@ -530,21 +526,19 @@ export function useRecentlyUsedRecipes(limit = 5) {
 export function useRandomRecipeSuggestion(params: {
   mealType?: string;
   nutritionalTagIds?: number[];
-  requireNutritionalTags?: boolean;
+  excludeNutritionalTagIds?: number[];
 }) {
-  const { mealType, nutritionalTagIds, requireNutritionalTags } = params;
+  const { mealType, excludeNutritionalTagIds } = params;
 
   const searchParams = new URLSearchParams();
   if (mealType) searchParams.set('meal_type', mealType);
   searchParams.set('random', 'true');
   searchParams.set('limit', '1');
-  if (nutritionalTagIds?.length)
-    searchParams.set('nutritional_tag_ids', nutritionalTagIds.join(','));
-  if (requireNutritionalTags !== undefined)
-    searchParams.set('require_nutritional_tags', String(requireNutritionalTags));
+  if (excludeNutritionalTagIds?.length)
+    searchParams.set('exclude_nutritional_tag_ids', excludeNutritionalTagIds.join(','));
 
   return useQuery<RecipeSuggestion[]>({
-    queryKey: ['random-recipe-suggestion', mealType, nutritionalTagIds, requireNutritionalTags],
+    queryKey: ['random-recipe-suggestion', mealType, excludeNutritionalTagIds],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,

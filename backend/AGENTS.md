@@ -9,9 +9,18 @@
 - **`Meal`**: meal_plan FK, start_datetime, end_datetime, meal_type, day_part_factor. Gruppierung nach Tag via `start_datetime__date`.
 
 ### Recipe App
-- **`Recipe`** (erbt Content): recipe_type, servings, nutritional_tags M2M. Hat denormalisierte Cache-Felder: `cached_energy_kj` (pro 100g), `cached_energy_total_kj` (Gesamtenergie des Rezepts), `cached_protein_g`, `cached_fat_g`, `cached_carbohydrate_g`, `cached_sugar_g`, `cached_fibre_g`, `cached_salt_g`, `cached_nutri_class`, `cached_price_total`, `cached_at`.
+- **`Recipe`** (erbt Content): recipe_type, servings, nutritional_tags M2M. Hat denormalisierte Cache-Felder: `cached_energy_kcal` (pro 100g), `cached_energy_total_kcal` (Gesamtenergie des Rezepts), `cached_protein_g`, `cached_fat_g`, `cached_carbohydrate_g`, `cached_sugar_g`, `cached_fibre_g`, `cached_salt_g`, `cached_nutri_class`, `cached_price_total`, `cached_at`.
 - **`RecipeItem`**: recipe FK, portion FK, ingredient FK, quantity, measuring_unit FK, sort_order, note.
-- **`HealthRule`**: name, description, parameter, scope (meal_event/day/meal/recipe/ingredient), threshold_green, threshold_yellow, unit, tip_text, is_active, sort_order.
+- **`Rule`**: name, description, parameter (`energy_kcal`, `sugar_g`, etc.), scope (meal_event/day/meal/recipe), rule_type, min_green, min_yellow, max_green, max_yellow, unit, hint_level (`RuleHintLevelChoices`), tip_text, improvement_text, is_active, sort_order. Ersetzt das alte `HealthRule`- und `RecipeHint`-Modell.
+
+### Recipe Choices & Backward Compat Aliase
+
+Die aktuellen Choices-Klassen leben in `recipe/choices.py`. Folgende Aliase sind **DEPRECATED** und werden in einer zukünftigen Migration entfernt:
+
+- `HintParameterChoices` → aus `supply.choices` re-exportiert. Korrekter Enum-Wert ist `ENERGY_KCAL` (nicht `ENERGY_KJ`).
+- `HintMinMaxChoices` → aus `supply.choices` re-exportiert. Vom Rule-Modell durch `min_green`/`min_yellow`/`max_green`/`max_yellow` abgelöst.
+- `HintLevelChoices` → aus `supply.choices` re-exportiert. Das Rule-Modell verwendet `RuleHintLevelChoices` (in `recipe/models/rule.py`).
+- `RecipeStatusChoices` → Alias für `ContentStatus`. Bitte direkt `ContentStatus` verwenden.
 
 ### Supply App
 - **`Ingredient`**: 30+ Felder inkl. Nährwerte, Scores, `price_per_kg`. Kein separates Price-Model mehr.
@@ -24,7 +33,7 @@
 - API: `packing_list_router` unter `/api/packing-lists/`. Pagination (Standard-Format) für list + templates. CRUD + clone + text-export + sort + reset-checks.
 
 ### Wichtige Services
-- `recipe/services/cockpit_service.py` — evaluiert HealthRules für MealPlan/Tag/Meal
+- `recipe/services/suggestion_service.py` — evaluiert Rules für MealPlan/Tag/Meal und Rezepte
 - `recipe/services/recipe_checks.py` — enthält `recalculate_recipe_cache(recipe)`
 - `recipe/signals.py` — Cache-Invalidierung bei RecipeItem/Ingredient Änderungen
 - `supply/services/price_service.py` — nur `get_portion_price(ingredient, weight_g)` via `price_per_kg`
@@ -89,7 +98,7 @@ if not request.user.is_authenticated or not request.user.is_staff:
 ### `import_legacy_food`
 - **Bulk-Import** der vier Legacy-Food-JSON-Dateien aus `/inspi/data/food/`
 - **Keine Deduplizierung** von Content-Daten (Ingredients, Portions, Recipes, RecipeItems) — jede Legacy-Zeile wird als neue DB-Zeile angelegt
-- Stammdaten (MeasuringUnit, RetailSection, NutritionalTag, RecipeHint) bleiben idempotent via `get_or_create`
+- Stammdaten (MeasuringUnit, RetailSection, NutritionalTag, Rule) bleiben idempotent via `get_or_create`
 - `status=user_content` für Ingredients, `status=approved` + `owner=None` für Recipes
 - Signale werden während des Imports disconnected, Cache-Neuberechnung läuft gebündelt am Ende
 - Flags:

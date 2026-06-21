@@ -29,7 +29,6 @@ export const DataOverviewSchema = z.object({
   interactions: CategorySchema,
   planning: CategorySchema,
   packing_lists: CategorySchema,
-  shopping_lists: CategorySchema,
   analytics: AnalyticsDataSchema,
 });
 export type DataOverview = z.infer<typeof DataOverviewSchema>;

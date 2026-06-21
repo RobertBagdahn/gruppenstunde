@@ -10,7 +10,7 @@ from supply.tests import make_ingredient, make_portion
 @pytest.mark.django_db
 class TestRecipeEnergyTotalCache:
     def test_recalculate_recipe_cache_sets_total_energy_from_weight(self):
-        recipe = make_recipe(servings=4)
+        recipe = make_recipe(portions=4)
         ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=200.0)
         item = make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=2.0)
@@ -23,7 +23,7 @@ class TestRecipeEnergyTotalCache:
         assert recipe.cached_energy_total_kcal == pytest.approx(expected_total)
 
     def test_recipe_item_save_updates_total_energy_cache(self):
-        recipe = make_recipe(servings=4)
+        recipe = make_recipe(portions=4)
         ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=100.0)
         item = make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
@@ -38,7 +38,7 @@ class TestRecipeEnergyTotalCache:
         assert recipe.cached_energy_total_kcal == pytest.approx(240.0)
 
     def test_recipe_item_delete_clears_total_energy_cache(self):
-        recipe = make_recipe(servings=4)
+        recipe = make_recipe(portions=4)
         ingredient = make_ingredient(energy_kcal=120)
         portion = make_portion(ingredient=ingredient, weight_g=100.0)
         item = make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)

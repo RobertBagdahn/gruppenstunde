@@ -323,7 +323,7 @@ class TestNutritionBreakdownAPI:
     """Verify the GET /api/recipes/{id}/nutrition-breakdown/ endpoint."""
 
     def _setup_recipe_with_micronutrients(self) -> Recipe:
-        recipe = make_recipe(servings=2)
+        recipe = make_recipe(portions=2)
         ing = make_ingredient(
             name="Brokkoli",
             energy_kcal=34,

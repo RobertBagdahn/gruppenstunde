@@ -27,7 +27,7 @@ class TestMealPlanCostSummaryAPI:
             created_by=self.user, norm_portions=10, reserve_factor=reserve_factor
         )
         meal = make_meal(meal_plan=plan)
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(name="Kosten-Zutat", price_per_kg=Decimal("10.00"))
         portion = make_portion(ingredient=ing, weight_g=100.0, name="100g")
         make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)
@@ -96,7 +96,7 @@ class TestMealPlanCostSummaryAPI:
         meal = make_meal(meal_plan=plan)
 
         # Recipe-based item
-        recipe = make_recipe(servings=4)
+        recipe = make_recipe(portions=4)
         ing1 = make_ingredient(name="Mehl", price_per_kg=Decimal("2.00"))
         mu1 = make_measuring_unit(unit="g", quantity=1.0)
         portion1 = make_portion(

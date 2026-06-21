@@ -17,7 +17,7 @@ Das Ingredient-Modell SHALL ein `embedding` Feld vom Typ `VectorField(dimensions
 #### Scenario: Embedding wird bei Save generiert
 - **WHEN** eine Zutat erstellt oder aktualisiert wird
 - **THEN** SHALL nach dem erfolgreichen Save ein Embedding asynchron generiert werden
-- **THEN** SHALL der Embedding-Text aus Name, Beschreibung, NutritionalTags und RetailSection bestehen
+- **THEN** SHALL der Embedding-Text eine menschenlesbare Serialisierung ALLER Felder der Zutat sein (Name, Beschreibung, alle Nährwerte, alle Scores, Preis, Lagerung, Saison, Tags, RetailSection)
 - **THEN** SHALL das Embedding via `text-embedding-004` (768 Dimensionen) erstellt werden
 
 #### Scenario: Embedding-Fehler blockiert Save nicht
@@ -27,9 +27,15 @@ Das Ingredient-Modell SHALL ein `embedding` Feld vom Typ `VectorField(dimensions
 - **THEN** SHALL der Fehler geloggt werden
 
 #### Scenario: Embedding nur bei relevanten Änderungen
-- **WHEN** eine Zutat aktualisiert wird, aber Name, Beschreibung, NutritionalTags und RetailSection unverändert bleiben
+- **WHEN** eine Zutat aktualisiert wird, aber alle embedding-relevanten Felder unverändert bleiben
 - **THEN** SHALL kein neues Embedding generiert werden
 - **THEN** SHALL `embedding_updated_at` unverändert bleiben
+
+#### Scenario: Embedding-Text enthält alle Felder
+- **WHEN** der Embedding-Text für eine Zutat gebaut wird
+- **THEN** SHALL der Text folgende Informationen als menschenlesbaren deutschen Fließtext enthalten: name, description, energy_kcal, protein_g, fat_g, fat_sat_g, carbohydrate_g, sugar_g, fibre_g, salt_g, sodium_mg, fructose_g, lactose_g, vitamin_c_mg, child_score, scout_score, environmental_score, nova_score, nutri_class, price_per_kg, physical_density, physical_viscosity, durability_in_days, storage_type, cooking_factor, camp_suitable, season_start, season_end, nutritional_tags, retail_section
+- **THEN** SHALL der Text KEIN rohes JSON sein, sondern strukturierte natürliche Sprache (z.B. "Pro 100g: 52 kcal, 0.3g Eiweiß, ...")
+- **THEN** SHALL optionale Felder (NULL) im Text ausgelassen werden
 
 ### Requirement: Ingredient search vector
 Das Ingredient-Modell SHALL ein `search_vector` Feld vom Typ `SearchVectorField` für PostgreSQL-Volltextsuche haben.

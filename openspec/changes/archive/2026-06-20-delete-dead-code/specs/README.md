@@ -1,0 +1,1 @@
+No requirement changes — pure removal of dead code and legacy shims.

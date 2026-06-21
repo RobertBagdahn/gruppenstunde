@@ -68,26 +68,26 @@ class TestPricePerServing:
 
     def test_price_with_valid_data(self):
         recipe = make_recipe(title="Test")
-        recipe.servings = 5
+        recipe.portions = 5
         recipe.cached_price_total = 12.50
         recipe.save()
-        pps = round(recipe.cached_price_total / recipe.servings, 2)
+        pps = round(recipe.cached_price_total / recipe.portions, 2)
         assert pps == 2.50
 
     def test_price_null_when_no_price_total(self):
         recipe = make_recipe(title="Test")
-        recipe.servings = 5
+        recipe.portions = 5
         recipe.cached_price_total = None
         recipe.save()
-        pps = round(float(recipe.cached_price_total) / recipe.servings, 2) if recipe.cached_price_total and recipe.servings > 0 else None
+        pps = round(float(recipe.cached_price_total) / recipe.portions, 2) if recipe.cached_price_total and recipe.portions > 0 else None
         assert pps is None
 
-    def test_price_null_when_zero_servings(self):
+    def test_price_null_when_zero_portions(self):
         recipe = make_recipe(title="Test")
-        recipe.servings = 0
+        recipe.portions = 0
         recipe.cached_price_total = 10.00
         recipe.save()
-        pps = round(float(recipe.cached_price_total) / recipe.servings, 2) if recipe.cached_price_total and recipe.servings > 0 else None
+        pps = round(float(recipe.cached_price_total) / recipe.portions, 2) if recipe.cached_price_total and recipe.portions > 0 else None
         assert pps is None
 
 

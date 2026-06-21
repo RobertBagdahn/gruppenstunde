@@ -407,7 +407,7 @@ export default function TableView({
                                         const itemViolations = scanData?.violations.filter(
                                           (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
                                         ) || [];
-                                        const itemAllergenTags = itemViolations.map((v) => v.allergen_tag);
+                                        const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
 
                                         return (
                                           <div key={item.id || i} className="group flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">

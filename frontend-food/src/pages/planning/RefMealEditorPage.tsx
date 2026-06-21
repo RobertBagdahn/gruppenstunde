@@ -75,16 +75,14 @@ export default function RefMealEditorPage() {
   const dayPartFactor = refMeal?.day_part_factor || 0.25;
   const targetKcal = DEFAULT_DAILY_KCAL * dayPartFactor;
 
-  const totalEnergyKj = useMemo(() => {
+  const totalEnergyKcal = useMemo(() => {
     if (!refMeal) return 0;
     return refMeal.items.reduce((sum, item) => {
       const energy = item.energy_kcal || 0;
       return sum + energy;
     }, 0);
   }, [refMeal]);
-
-  const totalKcal = totalEnergyKcal;
-  const energyPercent = targetKcal > 0 ? Math.round((totalKcal / targetKcal) * 100) : 0;
+  const energyPercent = targetKcal > 0 ? Math.round((totalEnergyKcal / targetKcal) * 100) : 0;
 
   // Handlers
   const handleCreateRefMeal = async () => {
@@ -145,8 +143,8 @@ export default function RefMealEditorPage() {
   };
 
   const handleNormalize = () => {
-    if (totalKcal <= 0 || targetKcal <= 0) return;
-    const ratio = targetKcal / totalKcal;
+    if (totalEnergyKcal <= 0 || targetKcal <= 0) return;
+    const ratio = targetKcal / totalEnergyKcal;
     setLocalItems((prev) =>
       prev.map((item) => ({ ...item, factor: Math.round((item.factor || 1) * ratio * 100) / 100 }))
     );
@@ -290,7 +288,7 @@ export default function RefMealEditorPage() {
               <h3 className="font-semibold text-sm">Energie pro Person</h3>
               <div className="flex justify-between text-sm">
                 <span>Ist:</span>
-                <span className="font-mono">{Math.round(totalKcal)} kcal</span>
+                <span className="font-mono">{Math.round(totalEnergyKcal)} kcal</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Soll ({Math.round(dayPartFactor * 100)}% von {DEFAULT_DAILY_KCAL}):</span>

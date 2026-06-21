@@ -282,9 +282,8 @@ export default function PrivacyPage() {
     { icon: 'lightbulb', label: 'Erstellte Inhalte', data: data.content },
     { icon: 'chat', label: 'Kommentare', data: data.comments },
     { icon: 'favorite', label: 'Reaktionen / Emotionen', data: data.interactions },
-    { icon: 'calendar_month', label: 'Planung (Planer, Essenspläne)', data: data.planning },
+    { icon: 'calendar_month', label: 'Planung (Planer)', data: data.planning },
     { icon: 'backpack', label: 'Packlisten', data: data.packing_lists },
-    { icon: 'shopping_cart', label: 'Einkaufslisten', data: data.shopping_lists },
   ];
 
   return (

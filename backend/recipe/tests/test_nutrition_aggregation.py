@@ -19,7 +19,7 @@ class TestNutritionAggregationPortionScaling:
         meal = make_meal(meal_plan=meal_plan)
 
         # Each recipe = 1 Normportion. Total weight = 800g → nutrient_scale = 800/100 = 8.0
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(
             name="Protein-Source",
             protein_g=12.0,
@@ -58,7 +58,7 @@ class TestNutritionAggregationPortionScaling:
 
         # Each recipe = 1 Normportion. Total weight = 500g → nutrient_scale = 500/100 = 5.0
         # We do NOT recalculate cache, so cached_at is None (uncached fallback path)
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(
             name="Protein-Source",
             protein_g=10.0,
@@ -82,13 +82,13 @@ class TestNutritionAggregationPortionScaling:
         meal = make_meal(meal_plan=meal_plan)
 
         # Recipe A: 200g total → scale 2.0, protein 10g/100g
-        recipe_a = make_recipe(servings=1, title="Rezept A")
+        recipe_a = make_recipe(portions=1, title="Rezept A")
         ing_a = make_ingredient(name="Zutat A", protein_g=10.0)
         portion_a = make_portion(ingredient=ing_a, weight_g=200.0, name="200g A")
         make_recipe_item(recipe=recipe_a, portion=portion_a, ingredient=ing_a, quantity=1.0)
 
         # Recipe B: 100g total → scale 1.0, protein 20g/100g
-        recipe_b = make_recipe(servings=1, title="Rezept B")
+        recipe_b = make_recipe(portions=1, title="Rezept B")
         ing_b = make_ingredient(name="Zutat B", protein_g=20.0)
         portion_b = make_portion(ingredient=ing_b, weight_g=100.0, name="100g B")
         make_recipe_item(recipe=recipe_b, portion=portion_b, ingredient=ing_b, quantity=1.0)
@@ -117,7 +117,7 @@ class TestNutritionAggregationPortionScaling:
             start_datetime=timezone.make_aware(dt.datetime.combine(today, dt.time(15, 0))),
         )
 
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ingredient = make_ingredient(name="Hafer", protein_g=10.0, sugar_g=2.0, price_per_kg=2.00)
         portion = make_portion(ingredient=ingredient, weight_g=400.0, name="400g Hafer")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ingredient, quantity=1.0)
@@ -141,7 +141,7 @@ class TestNutritionAggregationPortionScaling:
 
     def test_person_factors_do_not_affect_aggregation(self):
         """norm_portions / reserve_factor must NOT change Normportion aggregates."""
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(name="Zutat", protein_g=10.0)
         portion = make_portion(ingredient=ing, weight_g=200.0, name="200g")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
@@ -169,7 +169,7 @@ class TestNutritionAggregationPortionScaling:
         day1 = dt.date.today()
         day2 = day1 + dt.timedelta(days=1)
 
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(name="Zutat", protein_g=10.0)
         portion = make_portion(ingredient=ing, weight_g=200.0, name="200g")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
@@ -227,7 +227,7 @@ class TestNutritionAggregationPortionScaling:
         day3 = day1 + dt.timedelta(days=2)
         meal_plan = make_meal_plan()
 
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(name="Zutat", protein_g=10.0)
         portion = make_portion(ingredient=ing, weight_g=200.0)
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)

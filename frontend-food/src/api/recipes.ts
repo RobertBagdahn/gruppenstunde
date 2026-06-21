@@ -12,12 +12,14 @@ import {
   PaginatedRecipesSchema,
   RecipeDetailSchema,
   RecipeItemSchema,
+  RecipeSimilarSchema,
   NutriScoreDetailSchema,
   RecipeNutritionBreakdownSchema,
   ImprovementListSchema,
   LlmSuggestionSchema,
   EstimateQuantitiesSchema,
   RecipeRulesSchema,
+  RecipeTypeStatsSchema,
   type RecipeFilter,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
@@ -165,6 +167,18 @@ export function useRecipeBySlug(slug: string) {
 }
 
 // ==========================================================================
+// Similar Recipes
+// ==========================================================================
+
+export function useSimilarRecipes(recipeId: number) {
+  return useQuery({
+    queryKey: ['recipe-similar', recipeId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/similar/`, z.array(RecipeSimilarSchema)),
+    enabled: recipeId > 0,
+  });
+}
+
+// ==========================================================================
 // Recipe Mutation Hooks
 // ==========================================================================
 
@@ -174,7 +188,7 @@ export interface RecipeCreatePayload {
   summary_long?: string;
   description?: string;
   recipe_type?: string;
-  servings?: number;
+  portions?: number;
   costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
@@ -210,7 +224,7 @@ export interface RecipeUpdatePayload {
   summary_long?: string;
   description?: string;
   recipe_type?: string;
-  servings?: number;
+  portions?: number;
   costs_rating?: string;
   execution_time?: string;
   preparation_time?: string;
@@ -494,7 +508,7 @@ export function useForkRecipe(recipeId: number) {
 export function useForkAndSaveRecipe(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { title?: string; servings?: number | null; recipe_items: RecipeUpdatePayload['recipe_items'] }) => {
+    mutationFn: async (payload: { title?: string; portions?: number | null; recipe_items: RecipeUpdatePayload['recipe_items'] }) => {
       const { title, ...updatePayload } = payload;
       const forked = await postJson(`${API_BASE}/${recipeId}/fork/`, { title }, RecipeDetailSchema);
       const updated = await patchJson(`${API_BASE}/${forked.id}/`, updatePayload, RecipeDetailSchema);
@@ -537,5 +551,18 @@ export function useUpdateVisibility(recipeId: number) {
 export function useEstimateQuantities(recipeId: number) {
   return useMutation({
     mutationFn: () => postJson(`${API_BASE}/${recipeId}/estimate-quantities/`, {}, EstimateQuantitiesSchema),
+  });
+}
+
+// ==========================================================================
+// Recipe Type Stats (Kategorie-Benchmarking)
+// ==========================================================================
+
+export function useRecipeTypeStats(recipeType: string) {
+  return useQuery({
+    queryKey: ['recipe-type-stats', recipeType] as const,
+    queryFn: () =>
+      fetchJson(`${API_BASE}/type-stats/${encodeURIComponent(recipeType)}/`, RecipeTypeStatsSchema),
+    enabled: recipeType.length > 0,
   });
 }

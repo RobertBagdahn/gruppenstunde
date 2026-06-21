@@ -53,7 +53,7 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
           </span>
           <input
             type="search"
-            placeholder="Suche nach Ideen, Rezepten, Events..."
+            placeholder="Suche nach Ideen, Aktionen, Events..."
             value={localQuery}
             onChange={(e) => {
               setLocalQuery(e.target.value);

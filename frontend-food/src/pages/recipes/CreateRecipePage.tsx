@@ -3,8 +3,8 @@
  * Adds recipe-specific fields: recipe_type, servings, AI-suggested ingredients.
  * Includes URL import option.
  */
-import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import ContentStepper, { type ContentFormData } from '@/components/content/ContentStepper';
 import { useCreateRecipe } from '@/api/recipes';
@@ -20,6 +20,7 @@ import {
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { useRecipeImportUrl } from '@/api/recipeImport';
+import { useIngredient } from '@/api/supplies';
 
 interface IngredientEntry {
   name: string;
@@ -41,12 +42,38 @@ interface PendingImport {
 
 export default function CreateRecipePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const createRecipe = useCreateRecipe();
   const importUrl = useRecipeImportUrl();
 
+  // Pre-fill ingredient from URL param ?ingredient={slug}
+  const ingredientSlug = searchParams.get('ingredient');
+  const { data: prefilledIngredient } = useIngredient(ingredientSlug || '');
+  const prefilledRef = useRef(false);
+
+  useEffect(() => {
+    if (prefilledRef.current || !prefilledIngredient || !ingredientSlug) return;
+    if (prefilledIngredient.portions.length === 0) return;
+
+    const defaultPortion =
+      prefilledIngredient.portions.find((p) => p.is_default) ?? prefilledIngredient.portions[0];
+
+    setIngredients([
+      {
+        name: prefilledIngredient.name,
+        quantity: '1',
+        unit: defaultPortion.measuring_unit_name ?? 'Stück',
+        ingredient_id: prefilledIngredient.id,
+        ingredient_slug: prefilledIngredient.slug,
+        portion_id: defaultPortion.id,
+      },
+    ]);
+    prefilledRef.current = true;
+  }, [prefilledIngredient, ingredientSlug]);
+
   // Recipe-specific state
   const [recipeType, setRecipeType] = useState('warm_meal');
-  const [servings, setServings] = useState(1);
+  const [, setServings] = useState(1);
   const [ingredients, setIngredients] = useState<IngredientEntry[]>([]);
   const [newIngredientSearch, setNewIngredientSearch] = useState('');
 
@@ -232,7 +259,7 @@ export default function CreateRecipePage() {
         execution_time: formData.executionTime || undefined,
         preparation_time: formData.preparationTime || undefined,
         recipe_type: recipeType || undefined,
-        servings: 1,
+        portions: 1,
         tag_ids: formData.selectedTagIds,
         scout_level_ids: formData.selectedScoutIds,
         recipe_items: ingredients
@@ -438,21 +465,6 @@ export default function CreateRecipePage() {
               </div>
             </div>
 
-            {/* Servings */}
-            <div className="max-w-xs">
-              <label className="block text-xs text-muted-foreground mb-1">Portionen</label>
-              <input
-                type="number"
-                min={1}
-                max={999}
-                value={servings}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  if (!isNaN(v) && v >= 1) setServings(v);
-                }}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
           </div>
 
           {/* Ingredients section */}
@@ -533,18 +545,12 @@ export default function CreateRecipePage() {
 
         return (
           <div className="space-y-6">
-            {/* Recipe type + servings */}
-            {(recipeType || servings) && (
+            {/* Recipe type */}
+            {recipeType && (
               <div className="flex flex-wrap gap-3">
-                {recipeType && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
-                    <span className="material-symbols-outlined text-[16px]">restaurant</span>
-                    {RECIPE_TYPE_OPTIONS.find((o) => o.value === recipeType)?.label ?? recipeType}
-                  </span>
-                )}
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
-                  <span className="material-symbols-outlined text-[16px]">people</span>
-                  {servings} Portionen
+                  <span className="material-symbols-outlined text-[16px]">restaurant</span>
+                  {RECIPE_TYPE_OPTIONS.find((o) => o.value === recipeType)?.label ?? recipeType}
                 </span>
               </div>
             )}

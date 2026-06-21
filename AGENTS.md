@@ -11,9 +11,9 @@ Das Projekt befindet sich in aktiver Entwicklung. **Rückwärtskompatibilität i
 ## ⚠️ WICHTIG: Content/Supply-Architektur
 
 - **`content` App** — Abstrakte Basisklasse `Content` für alle Inhaltstypen + generische Features
-- **`supply` App** — Abstrakte Basisklasse `Supply` für Materialien und Zutaten
+- **`supply` App** — Abstrakte Basisklasse `Supply` für Materialien
 - **Konkrete Content-Typen**: `session.GroupSession`, `blog.Blog`, `game.Game`, `recipe.Recipe`
-- **Konkrete Supply-Typen**: `supply.Material`, `supply.Ingredient`
+- **Konkrete Supply-Typen**: `supply.Material` (erbt von Supply), `supply.Ingredient` (standalone models.Model)
 
 Die `idea` App existiert **nicht mehr**. Beim Schreiben von Code die neuen App-Namen verwenden.
 

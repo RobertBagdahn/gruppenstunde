@@ -367,7 +367,7 @@ class RecipeQuantityEstimationService:
                 len(result.items),
             )
 
-            servings = recipe.servings or 1
+            servings = recipe.portions or 1
             return self._build_response(result, items, servings)
 
         except Exception:
@@ -440,7 +440,7 @@ class RecipeQuantityEstimationService:
             item_lines.append(f"  - id={item.id}: {name}")
 
         items_str = "\n".join(item_lines)
-        servings = recipe.servings or 1
+        servings = recipe.portions or 1
 
         return (
             "Du bist ein erfahrener Koch und Ernährungsexperte.\n"

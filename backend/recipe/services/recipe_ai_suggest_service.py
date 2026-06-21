@@ -35,7 +35,7 @@ class RecipeSuggestAllSchema(BaseModel):
     description: str | None = Field(None, description="Beschreibung des Rezepts (2-3 Sätze)")
     difficulty: str | None = Field(None, description="Schwierigkeit: 'easy', 'medium' oder 'hard'")
     duration_minutes: int | None = Field(None, description="Zubereitungszeit in Minuten")
-    servings: int | None = Field(None, description="Anzahl Portionen")
+    portions: int | None = Field(None, description="Anzahl Portionen")
     recipe_type: str | None = Field(None, description="Rezepttyp: 'main', 'dessert', 'snack', 'drink', 'breakfast', 'side', 'soup', 'salad', 'baking'")
     scout_levels: list[str] | None = Field(None, description="Pfadfinderstufen: 'woelflinge', 'jungpfadfinder', 'pfadfinder', 'rover'")
     tags: list[str] | None = Field(None, description="Passende Tags für das Rezept, z.B. 'vegetarisch', 'schnell', 'lagerküche'")
@@ -56,7 +56,7 @@ class RecipeAiCreateSchema(BaseModel):
     description: str = Field(description="Beschreibung (2-3 Sätze)")
     difficulty: str = Field(description="'easy', 'medium' oder 'hard'")
     duration_minutes: int = Field(description="Zubereitungszeit in Minuten")
-    servings: int = Field(description="Anzahl Portionen")
+    portions: int = Field(description="Anzahl Portionen")
     recipe_type: str = Field(description="'main', 'dessert', 'snack', 'drink', 'breakfast', 'side', 'soup', 'salad', 'baking'")
     items: list[RecipeItemSuggestion] = Field(description="Zutaten mit Mengen")
 
@@ -176,7 +176,7 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
         description=data.description,
         difficulty=data.difficulty,
         duration=data.duration_minutes,
-        servings=data.servings,
+        portions=data.portions,
         recipe_type=data.recipe_type,
         status="draft",
         owner=user if user and user.is_authenticated else None,

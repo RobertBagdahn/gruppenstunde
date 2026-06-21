@@ -12,7 +12,7 @@ class TestRecipeRulesService:
     """Verify evaluate_recipe_rules service logic."""
 
     def _setup_recipe(self) -> Recipe:
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         # Ingredient 1: Brokkoli
         ing = make_ingredient(
             name="Brokkoli",
@@ -218,7 +218,7 @@ class TestRecipeRulesService:
         assert nutri_item["unit"] == ""
 
     def test_evaluate_recipe_rules_with_normportion_scaling(self):
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(
             name="Brokkoli",
             protein_g=10.0,
@@ -244,7 +244,7 @@ class TestRecipeRulesService:
         assert item["value_per_serving"] == 20.0
 
     def test_price_and_weight_rules_use_normportion_values(self):
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         ing = make_ingredient(name="Reis", price_per_kg=4.00)
         portion = make_portion(ingredient=ing, quantity=800.0, weight_g=800.0, name="800g Reis")
         make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
@@ -285,7 +285,7 @@ class TestRecipeRulesAPI:
     """Verify the recipe rules API endpoint."""
 
     def test_get_recipe_rules_endpoint_success(self, auth_client: Client):
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         resp = auth_client.get(f"/api/recipes/{recipe.id}/rules/")
         assert resp.status_code == 200
         data = resp.json()

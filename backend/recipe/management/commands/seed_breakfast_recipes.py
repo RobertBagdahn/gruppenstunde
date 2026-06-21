@@ -147,7 +147,7 @@ class Command(BaseCommand):
                 title=title,
                 slug=slug,
                 recipe_type=recipe_type,
-                servings=1,
+                portions=1,
                 status=ContentStatus.APPROVED,
                 summary=f"Mini-Rezept: {title} (1 Portion)",
             )

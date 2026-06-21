@@ -429,7 +429,7 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
     from recipe.models import Recipe
 
     recipe = get_object_or_404(Recipe, id=recipe_id)
-    servings = payload.servings
+    portions = payload.portions
 
     shopping_list = ShoppingList.objects.create(
         name=f"Einkaufsliste: {recipe.title}",
@@ -454,8 +454,8 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
             continue
 
         ing = ri.portion.ingredient
-        recipe_servings = getattr(recipe, "servings", 1) or 1
-        weight_g = ri.quantity * (ri.portion.weight_g or 0) * servings / recipe_servings
+        recipe_servings = getattr(recipe, "portions", 1) or 1
+        weight_g = ri.quantity * (ri.portion.weight_g or 0) * portions / recipe_servings
 
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,

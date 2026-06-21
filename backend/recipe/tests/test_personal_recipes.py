@@ -34,7 +34,7 @@ def recipe_with_items(db):
 class TestForkRecipe:
     def test_fork_creates_copy(self, auth_client, recipe_with_items):
         """Forking creates a new recipe owned by the user with correct fields."""
-        resp = auth_client.post(f"/api/recipes/{recipe_with_items.id}/fork/")
+        resp = auth_client.post(f"/api/recipes/{recipe_with_items.id}/fork/", json.dumps({}), content_type="application/json")
         assert resp.status_code == 200
 
         data = resp.json()
@@ -56,12 +56,12 @@ class TestForkRecipe:
 
     def test_fork_requires_auth(self, api_client, recipe_with_items):
         """Anonymous user cannot fork a recipe."""
-        resp = api_client.post(f"/api/recipes/{recipe_with_items.id}/fork/")
+        resp = api_client.post(f"/api/recipes/{recipe_with_items.id}/fork/", json.dumps({}), content_type="application/json")
         assert resp.status_code == 403
 
     def test_fork_nonexistent_recipe(self, auth_client):
         """Forking a recipe with a non-existent ID returns 404."""
-        resp = auth_client.post("/api/recipes/99999/fork/")
+        resp = auth_client.post("/api/recipes/99999/fork/", json.dumps({}), content_type="application/json")
         assert resp.status_code == 404
 
 

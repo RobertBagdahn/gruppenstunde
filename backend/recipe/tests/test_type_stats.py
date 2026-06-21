@@ -1,0 +1,112 @@
+"""Tests for RecipeTypeStats: signal/service + API endpoint."""
+
+import pytest
+from django.test import Client
+
+from content.choices import ContentStatus
+from recipe.models import Recipe, RecipeTypeStats
+from recipe.tests import make_recipe
+
+
+@pytest.mark.django_db
+class TestRecipeTypeStatsService:
+    def test_signal_creates_stats_on_save(self):
+        make_recipe(recipe_type="warm_meal", status=ContentStatus.VERIFIED, portions=4)
+        for _ in range(9):
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.VERIFIED, portions=4)
+
+        stats = RecipeTypeStats.objects.filter(recipe_type="warm_meal").first()
+        assert stats is not None
+        assert stats.count >= 10
+
+    def test_signal_skips_fewer_than_10(self):
+        for _ in range(5):
+            make_recipe(recipe_type="breakfast", status=ContentStatus.VERIFIED, portions=4)
+
+        stats = RecipeTypeStats.objects.filter(recipe_type="breakfast").first()
+        assert stats is None
+
+    def test_signal_excludes_draft_recipes(self):
+        for _ in range(10):
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.VERIFIED, portions=4)
+        make_recipe(recipe_type="warm_meal", status=ContentStatus.DRAFT, portions=4)
+
+        stats = RecipeTypeStats.objects.get(recipe_type="warm_meal")
+        assert stats.count == 10
+
+    def test_signal_excludes_recipes_without_portions(self):
+        for _ in range(10):
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.VERIFIED, portions=4)
+        make_recipe(recipe_type="warm_meal", status=ContentStatus.VERIFIED, portions=None)
+
+        stats = RecipeTypeStats.objects.get(recipe_type="warm_meal")
+        assert stats.count == 10
+
+    def test_signal_recalculates_on_status_change(self, db):
+        for _ in range(9):
+            make_recipe(recipe_type="dessert", status=ContentStatus.VERIFIED, portions=4)
+        draft = make_recipe(recipe_type="dessert", status=ContentStatus.DRAFT, portions=4)
+
+        # No stats yet (<10)
+        assert RecipeTypeStats.objects.filter(recipe_type="dessert").count() == 0
+
+        # Publish the draft
+        draft.status = ContentStatus.VERIFIED
+        draft.save()
+
+        stats = RecipeTypeStats.objects.get(recipe_type="dessert")
+        assert stats.count == 10
+
+    def test_delete_recipe_recalculates(self, db):
+        recipes = []
+        for _ in range(11):
+            r = make_recipe(recipe_type="cold_meal", status=ContentStatus.VERIFIED, portions=4)
+            recipes.append(r)
+
+        stats = RecipeTypeStats.objects.get(recipe_type="cold_meal")
+        assert stats.count == 11
+
+        # Delete one recipe
+        recipes[0].delete()
+
+        stats = RecipeTypeStats.objects.get(recipe_type="cold_meal")
+        assert stats.count == 10
+
+    def test_delete_drops_below_10_removes_stats(self, db):
+        recipes = []
+        for _ in range(10):
+            r = make_recipe(recipe_type="side_dish", status=ContentStatus.VERIFIED, portions=4)
+            recipes.append(r)
+
+        assert RecipeTypeStats.objects.filter(recipe_type="side_dish").exists()
+
+        recipes[0].delete()
+
+        assert not RecipeTypeStats.objects.filter(recipe_type="side_dish").exists()
+
+
+@pytest.mark.django_db
+class TestRecipeTypeStatsAPI:
+    def test_get_stats_returns_correct_structure(self):
+        for _ in range(10):
+            make_recipe(recipe_type="warm_meal", status=ContentStatus.VERIFIED, portions=4)
+
+        client = Client()
+        response = client.get("/api/recipes/type-stats/warm_meal/")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["recipe_type"] == "warm_meal"
+        assert data["count"] >= 10
+        assert "price_avg" in data
+        assert "energy_avg" in data
+        assert "nutri_score_dist" in data
+        assert "updated_at" in data
+
+    def test_get_stats_without_10_returns_404(self):
+        for _ in range(3):
+            make_recipe(recipe_type="breakfast", status=ContentStatus.VERIFIED, portions=4)
+
+        client = Client()
+        response = client.get("/api/recipes/type-stats/breakfast/")
+        assert response.status_code == 404

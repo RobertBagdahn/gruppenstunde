@@ -283,7 +283,7 @@ class CollaboratorUpdateIn(Schema):
 class FromRecipeIn(Schema):
     """Input schema for creating a shopping list from a recipe."""
 
-    servings: int = 1
+    portions: int = 1
 
 
 class UserSimpleOut(Schema):

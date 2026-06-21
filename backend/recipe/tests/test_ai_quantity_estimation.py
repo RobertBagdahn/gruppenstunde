@@ -14,7 +14,7 @@ from supply.tests import make_ingredient, make_measuring_unit, make_portion
 @pytest.mark.django_db
 class TestRecipeQuantityEstimationService:
     def test_build_response_uses_default_editable_portion(self):
-        recipe = make_recipe(title="Frühstück", servings=1)
+        recipe = make_recipe(title="Frühstück", portions=1)
         ingredient = make_ingredient(name="Haferflocken")
         gram_unit = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
         default_portion = make_portion(

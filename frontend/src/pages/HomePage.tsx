@@ -109,7 +109,7 @@ export default function HomePage() {
             <span className="text-accent drop-shadow-sm">Pfadfinder</span>
           </h1>
           <p className="mt-3 text-base md:text-lg text-white/90 max-w-2xl mx-auto font-medium">
-            Ideen, Rezepte, Essenspläne, Aktionen, Packlisten & mehr — alles an einem Ort.
+            Ideen, Aktionen, Packlisten & mehr — alles an einem Ort.
           </p>
           <div className="mt-6 max-w-2xl mx-auto">
             <SearchBar variant="hero" />
@@ -141,7 +141,7 @@ export default function HomePage() {
             Inhalte
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Gruppenstunden, Spiele, Blog und Rezepte entdecken.
+            Gruppenstunden, Spiele und Blog entdecken.
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
@@ -186,7 +186,7 @@ export default function HomePage() {
               Planungs-Tools
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Aktionen, Gruppenstundenplan, Essensplan und Packlisten.
+              Aktionen, Gruppenstundenplan und Packlisten.
             </p>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

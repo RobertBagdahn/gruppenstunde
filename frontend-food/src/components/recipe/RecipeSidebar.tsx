@@ -6,18 +6,18 @@ import type { RecipeDetail } from '@/schemas/recipe';
 interface RecipeSidebarProps {
   recipe: RecipeDetail;
   recipeId: number;
-  servings: number;
+  portions: number;
   totalPriceEur?: number | null;
-  onServingsChange: (servings: number) => void;
+  onPortionsChange: (portions: number) => void;
   onOpenShoppingList: () => void;
   onClone: () => void;
 }
 
 export default function RecipeSidebar({
   recipe,
-  servings,
+  portions,
   totalPriceEur,
-  onServingsChange,
+  onPortionsChange,
   onOpenShoppingList,
   onClone,
 }: RecipeSidebarProps) {
@@ -38,12 +38,12 @@ export default function RecipeSidebar({
   return (
     <aside className="hidden lg:flex flex-col gap-4 w-80 sticky top-20 self-start max-h-[calc(100vh-5rem)] overflow-y-auto">
       {/* Recipe Meta Card (Unified & Compact) */}
-      <RecipeMetaCard recipe={recipe} servings={servings} totalPriceEur={totalPriceEur} />
+      <RecipeMetaCard recipe={recipe} portions={portions} totalPriceEur={totalPriceEur} />
 
       {/* Portion Scaler (compact) */}
       <PortionScaler
-        defaultServings={servings}
-        onChange={onServingsChange}
+        defaultPortions={portions}
+        onChange={onPortionsChange}
         compact
       />
 

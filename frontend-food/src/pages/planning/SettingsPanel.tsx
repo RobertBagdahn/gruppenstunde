@@ -12,10 +12,10 @@ interface SettingsPanelProps {
     start_datetime: string | null;
     end_datetime: string | null;
     day_part_factors?: Record<string, number>;
-    meal_default_times?: Record<string, [string, string]>;
+    meal_default_times?: Record<string, string[]>;
     nutritional_tag_ids?: number[];
   };
-  onSave: (data: {
+    onSave: (data: {
     name?: string;
     description?: string;
     norm_portions?: number;
@@ -24,7 +24,7 @@ interface SettingsPanelProps {
     start_datetime?: string | null;
     end_datetime?: string | null;
     day_part_factors?: Record<string, number>;
-    meal_default_times?: Record<string, [string, string]>;
+    meal_default_times?: Record<string, string[]>;
     nutritional_tag_ids?: number[];
   }) => void;
   isPending: boolean;
@@ -57,7 +57,9 @@ export default function SettingsPanel({
     snack: ['15:00', '15:30'],
   };
   const [mealTimes, setMealTimes] = useState<Record<string, [string, string]>>(
-    plan.meal_default_times || defaultTimes
+    plan.meal_default_times ? Object.fromEntries(
+      Object.entries(plan.meal_default_times).map(([k, v]) => [k, [v[0] || '12:00', v[1] || '13:00'] as [string, string]])
+    ) : defaultTimes
   );
 
   const defaultFactors = {

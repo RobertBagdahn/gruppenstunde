@@ -23,7 +23,7 @@ export default function EditRecipePage() {
   const [recipeType, setRecipeType] = useState('');
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
-  const [servings, setServings] = useState<number>(4);
+  const [portions, setPortions] = useState<number>(4);
   const [difficulty, setDifficulty] = useState('');
   const [costsRating, setCostsRating] = useState('');
   const [executionTime, setExecutionTime] = useState('');
@@ -42,7 +42,7 @@ export default function EditRecipePage() {
       setRecipeType(recipe.recipe_type);
       setSummary(recipe.summary);
       setDescription(recipe.description);
-      setServings(recipe.servings ?? 4);
+      setPortions(recipe.portions ?? 4);
       setDifficulty(recipe.difficulty);
       setCostsRating(recipe.costs_rating);
       setExecutionTime(recipe.execution_time);
@@ -79,7 +79,7 @@ export default function EditRecipePage() {
         recipe_type: recipeType,
         summary: summary.trim(),
         description: description.trim(),
-        servings,
+        portions,
         difficulty: difficulty || undefined,
         costs_rating: costsRating || undefined,
         execution_time: executionTime || undefined,
@@ -237,10 +237,10 @@ export default function EditRecipePage() {
                 type="number"
                 min={1}
                 max={999}
-                value={servings}
+                value={portions}
                 onChange={(e) => {
                   const v = parseInt(e.target.value, 10);
-                  if (!isNaN(v) && v >= 1) setServings(v);
+                  if (!isNaN(v) && v >= 1) setPortions(v);
                 }}
                 className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               />

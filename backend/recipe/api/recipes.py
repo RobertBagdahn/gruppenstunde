@@ -351,20 +351,10 @@ def get_recipe_by_slug(request, slug: str):
 
 
 def _attach_similar_recipes(recipe: Recipe):
-    """Attach similar recipes to a recipe object."""
-    tag_ids = list(recipe.tags.values_list("id", flat=True))
-    similar_qs = Recipe.objects.filter(status="approved").exclude(id=recipe.id)
-    if tag_ids:
-        similar_qs = (
-            similar_qs.filter(tags__id__in=tag_ids)
-            .annotate(shared_tags=Count("tags", filter=Q(tags__id__in=tag_ids)))
-            .order_by("-shared_tags", "-like_score")
-        )
-    else:
-        if recipe.recipe_type:
-            similar_qs = similar_qs.filter(recipe_type=recipe.recipe_type)
-        similar_qs = similar_qs.order_by("-like_score")
-    recipe.next_best_recipes = list(similar_qs.distinct()[:6])
+    """Attach similar recipes to a recipe object (embedding-based)."""
+    from content.services.embedding_service import find_similar_recipes
+
+    recipe.next_best_recipes = find_similar_recipes(recipe, limit=6)
 
 
 @router.post("/", response=RecipeDetailOut)
@@ -384,7 +374,7 @@ def create_recipe(request, payload: RecipeCreateIn):
         summary_long=payload.summary_long,
         description=payload.description,
         recipe_type=payload.recipe_type,
-        servings=1,  # Always store per-1-portion
+        portions=1,  # Always store per-1-portion
         costs_rating=payload.costs_rating,
         execution_time=payload.execution_time,
         preparation_time=payload.preparation_time,
@@ -434,7 +424,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         raise HttpError(403, "Keine Berechtigung")
 
     data = payload.dict(exclude_unset=True)
-    data.pop("servings", None)  # Always enforce servings=1
+    data.pop("portions", None)  # Always enforce portions=1
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
     nutritional_tag_ids = data.pop("nutritional_tag_ids", None)
@@ -540,30 +530,17 @@ def _update_like_score(recipe: Recipe, emotion_counts: dict[str, int]):
 
 
 # ==========================================================================
-# Similar Recipes (tag-based)
+# Similar Recipes (embedding-based)
 # ==========================================================================
 
 
 @router.get("/{recipe_id}/similar/", response=list[RecipeSimilarOut])
 def get_similar_recipes(request, recipe_id: int):
-    """Get similar recipes based on shared tags and recipe type."""
+    """Get similar recipes using vector embedding similarity."""
+    from content.services.embedding_service import find_similar_recipes
+
     recipe = get_object_or_404(Recipe, id=recipe_id)
-    tag_ids = list(recipe.tags.values_list("id", flat=True))
-
-    # Find recipes sharing the most tags
-    qs = Recipe.objects.filter(status="approved").exclude(id=recipe_id).prefetch_related("tags")
-
-    if tag_ids:
-        qs = qs.filter(tags__id__in=tag_ids).annotate(shared_tags=Count("tags", filter=Q(tags__id__in=tag_ids)))
-        # Prefer same recipe type
-        qs = qs.order_by("-shared_tags", "-like_score")
-    else:
-        # No tags: fallback to same recipe type, then popularity
-        if recipe.recipe_type:
-            qs = qs.filter(recipe_type=recipe.recipe_type)
-        qs = qs.order_by("-like_score")
-
-    return qs.distinct()[:6]
+    return find_similar_recipes(recipe, limit=6)
 
 
 @router.post("/{recipe_id}/image/")
@@ -656,7 +633,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
         summary_long=original.summary_long,
         description=original.description,
         recipe_type=original.recipe_type,
-        servings=original.servings,
+        portions=original.portions,
         costs_rating=original.costs_rating,
         execution_time=original.execution_time,
         preparation_time=original.preparation_time,

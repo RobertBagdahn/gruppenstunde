@@ -72,6 +72,8 @@ class TestRecipeCacheSignals:
         first_cached_at = recipe.cached_at
         assert first_cached_at is not None
 
+        # Delete RecipeItems first (PROTECTED FK from RecipeItem to Portion)
+        recipe.recipe_items.all().delete()
         # Delete the ingredient — triggers post_delete signal
         ingredient.delete()
 
@@ -110,6 +112,8 @@ class TestRecipeCacheSignals:
         first_cached_at = recipe.cached_at
         assert first_cached_at is not None
 
+        # Delete RecipeItems first (PROTECTED FK from RecipeItem to Portion)
+        recipe.recipe_items.all().delete()
         # Delete the portion
         portion.delete()
 

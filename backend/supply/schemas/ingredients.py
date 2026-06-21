@@ -386,3 +386,12 @@ class IngredientAiCreateIn(Schema):
     """Input for AI ingredient creation."""
 
     name: str
+
+
+class IngredientSimilarOut(Schema):
+    """Compact schema for similar ingredients."""
+
+    id: int
+    name: str
+    slug: str
+    distance: float

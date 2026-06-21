@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useUnifiedSearch } from '@/api/search';
 import { useCurrentUser } from '@/api/auth';
 import { useSearchStore } from '@/store/useSearchStore';
@@ -16,6 +16,9 @@ import {
   type UnifiedSearchResult,
   type UnifiedSearchFilter,
 } from '@/schemas/search';
+import { EntityLink } from '@/components/shared/EntityLink';
+import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
+import type { EntityType } from '@/lib/entityUrls';
 import { cn } from '@/lib/utils';
 
 /* ------------------------------------------------------------------ */
@@ -176,20 +179,6 @@ function ResultCard({ result }: { result: UnifiedSearchResult }) {
             <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
               <span className="material-symbols-outlined text-[14px]">landscape</span>
               {extra(result, 'play_area')}
-            </span>
-          )}
-
-          {/* Recipe: type + servings */}
-          {result.result_type === 'recipe' && extra(result, 'recipe_type') && (
-            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
-              <span className="material-symbols-outlined text-[14px]">restaurant</span>
-              {extra(result, 'recipe_type')}
-            </span>
-          )}
-          {result.result_type === 'recipe' && extra(result, 'servings') && (
-            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted/60 rounded-full px-2.5 py-1">
-              <span className="material-symbols-outlined text-[14px]">group</span>
-              {extra(result, 'servings')} Portionen
             </span>
           )}
 

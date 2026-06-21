@@ -373,7 +373,7 @@ class TestCreateFromRecipe:
         """Create a recipe with two ingredient items for export testing."""
         from recipe.tests import make_recipe
 
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         rs = make_retail_section(name="Obst & Gemüse")
         mu = make_measuring_unit()
         ing1 = make_ingredient(name="Mehl", retail_section=rs)
@@ -390,7 +390,7 @@ class TestCreateFromRecipe:
     def test_create_list_from_recipe(self, client_alice, recipe_with_items):
         res = client_alice.post(
             f"/api/shopping-lists/from-recipe/{recipe_with_items.id}/",
-            data=json.dumps({"servings": 2}),
+            data=json.dumps({"portions": 2}),
             content_type="application/json",
         )
         assert res.status_code == 200
@@ -410,7 +410,7 @@ class TestCreateFromRecipe:
         c = Client()
         res = c.post(
             f"/api/shopping-lists/from-recipe/{recipe_with_items.id}/",
-            data=json.dumps({"servings": 1}),
+            data=json.dumps({"portions": 1}),
             content_type="application/json",
         )
         assert res.status_code == 403
@@ -433,7 +433,7 @@ class TestCreateFromMealPlan:
         meal = make_meal(meal_plan=me)
 
         # Create recipe with items
-        recipe = make_recipe(servings=1)
+        recipe = make_recipe(portions=1)
         rs = make_retail_section(name="Milchprodukte")
         mu = make_measuring_unit()
         ing = make_ingredient(name="Joghurt", retail_section=rs)

@@ -1,0 +1,1 @@
+No requirement changes — pure removal of code that violates existing architectural rules.
