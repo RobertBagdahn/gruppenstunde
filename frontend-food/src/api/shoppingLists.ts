@@ -91,14 +91,17 @@ async function deleteJson(url: string): Promise<void> {
 
 // --- Shopping List CRUD hooks ---
 
-export function useShoppingLists(page = 1, pageSize = 20) {
+export function useShoppingLists(page = 1, pageSize = 20, q = '') {
   return useQuery({
-    queryKey: ['shopping-lists', page, pageSize] as const,
-    queryFn: () =>
-      fetchJson(
-        `${API_BASE}/?page=${page}&page_size=${pageSize}`,
-        PaginatedShoppingListsSchema,
-      ),
+    queryKey: ['shopping-lists', page, pageSize, q] as const,
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: String(pageSize),
+      });
+      if (q) params.set('q', q);
+      return fetchJson(`${API_BASE}/?${params.toString()}`, PaginatedShoppingListsSchema);
+    },
   });
 }
 

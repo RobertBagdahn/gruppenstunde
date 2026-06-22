@@ -545,3 +545,39 @@ export const OutliersOutSchema = z.object({
   }))),
 });
 export type OutliersOut = z.infer<typeof OutliersOutSchema>;
+
+// ==========================================================================
+// Ingredient URL Import — sync with backend IngredientImportUrlIn/Out
+// ==========================================================================
+
+export const IngredientImportUrlInSchema = z.object({
+  url: z.string().url(),
+});
+export type IngredientImportUrlIn = z.infer<typeof IngredientImportUrlInSchema>;
+
+export const IngredientDraftSchema = z.object({
+  name: z.string(),
+  description: z.string().nullable(),
+  status: z.string(),
+  retail_section_id: z.number().nullable(),
+});
+export type IngredientDraft = z.infer<typeof IngredientDraftSchema>;
+
+export const IngredientNutritionDraftSchema = z.object({
+  energy_kcal: z.number().nullable(),
+  protein_g: z.number().nullable(),
+  fat_g: z.number().nullable(),
+  fat_sat_g: z.number().nullable(),
+  carbohydrate_g: z.number().nullable(),
+  sugar_g: z.number().nullable(),
+  fibre_g: z.number().nullable(),
+  salt_g: z.number().nullable(),
+  sodium_mg: z.number().nullable(),
+});
+export type IngredientNutritionDraft = z.infer<typeof IngredientNutritionDraftSchema>;
+
+export const IngredientImportUrlOutSchema = z.object({
+  ingredient_draft: IngredientDraftSchema,
+  nutrition: IngredientNutritionDraftSchema.nullable(),
+});
+export type IngredientImportUrlOut = z.infer<typeof IngredientImportUrlOutSchema>;

@@ -18,41 +18,42 @@ def calculate_recipe_quality_score(recipe) -> int:
     """
     scores = []
 
-    # Ingredients (30%)
-    from recipe.models import RecipeItem
-
-    items = recipe.recipe_items.all()
-    if items.exists():
-        valid_items = 0
-        for item in items:
-            if item.portion and item.portion.ingredient:
-                ing = item.portion.ingredient
-                if ing.energy_kcal and ing.energy_kcal > 0:
-                    valid_items += 1
+    # Ingredients (30%) — materialise once, reuse for cache freshness check
+    items = list(
+        recipe.recipe_items.select_related("portion", "portion__ingredient").all()
+    )
+    if items:
+        valid_items = sum(
+            1
+            for item in items
+            if item.portion and item.portion.ingredient
+            and item.portion.ingredient.energy_kcal
+            and item.portion.ingredient.energy_kcal > 0
+        )
         ingredient_score = (valid_items / len(items)) * 100
     else:
         ingredient_score = 0.0
     scores.append(("ingredients", 0.30, ingredient_score))
 
     # Metadata (25%)
+    has_tags = recipe.tags.exists()
     meta_fields = [
         bool(recipe.summary),
         bool(recipe.description),
         bool(recipe.image),
-        recipe.tags.exists(),
+        has_tags,
     ]
     meta_filled = sum(1 for v in meta_fields if v)
     meta_score = (meta_filled / len(meta_fields)) * 100 if meta_fields else 0
     scores.append(("metadata", 0.25, meta_score))
 
-    # Cache freshness (20%)
+    # Cache freshness (20%) — reuse materialised items list
     if recipe.cached_at:
-        stale = False
-        for item in items:
-            if item.portion and item.portion.ingredient:
-                if item.portion.ingredient.updated_at > recipe.cached_at:
-                    stale = True
-                    break
+        stale = any(
+            item.portion and item.portion.ingredient
+            and item.portion.ingredient.updated_at > recipe.cached_at
+            for item in items
+        )
         cache_score = 0.0 if stale else 100.0
     else:
         cache_score = 0.0

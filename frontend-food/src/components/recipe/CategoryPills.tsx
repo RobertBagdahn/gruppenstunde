@@ -6,6 +6,7 @@ export const RECIPE_TYPES = [
   { value: 'recipe_part', label: 'Rezeptteil' },
   { value: 'drink', label: 'Getränke' },
   { value: 'snack', label: 'Snack' },
+  { value: 'ingredient', label: 'Zutat' },
 ] as const;
 
 export type RecipeTypeValue = typeof RECIPE_TYPES[number]['value'];

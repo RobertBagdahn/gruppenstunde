@@ -1,9 +1,9 @@
 """API endpoints for the Shopping app."""
 
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Router
+from ninja import Query, Router
 from ninja.errors import HttpError
 
 from content.api.helpers import paginate_queryset
@@ -26,6 +26,7 @@ from .schemas import (
     KitchenReminderOut,
     KitchenReminderSuggestIn,
     PaginatedShoppingListOut,
+    PaginatedUserOut,
     ShoppingListCollaboratorOut,
     ShoppingListCreateIn,
     ShoppingListDetailOut,
@@ -105,14 +106,22 @@ def list_shopping_lists(
     request,
     page: int = 1,
     page_size: int = 20,
+    q: str = "",
 ):
     """List all shopping lists the user owns or collaborates on."""
     _require_auth(request)
     qs = (
         ShoppingList.objects.filter(Q(owner=request.user) | Q(collaborators__user=request.user))
         .select_related("owner")
+        .annotate(
+            items_count=Count("items", distinct=True),
+            checked_count=Count("items", filter=Q(items__is_checked=True), distinct=True),
+            collaborators_count=Count("collaborators", distinct=True),
+        )
         .distinct()
     )
+    if q:
+        qs = qs.filter(name__icontains=q)
     return paginate_queryset(qs, page, page_size)
 
 
@@ -126,6 +135,40 @@ def create_shopping_list(request, payload: ShoppingListCreateIn):
         source_type=SourceType.MANUAL,
     )
     return shopping_list
+
+
+# Static route must be registered before /{shopping_list_id}/ to avoid routing conflicts
+@shopping_router.get("/users/", response=PaginatedUserOut)
+def list_users(
+    request,
+    q: str = "",
+    page: int = 1,
+    page_size: int = Query(default=20, le=50),
+):
+    """Return users for collaborator invite dropdown (paginated, searchable)."""
+    _require_auth(request)
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    qs = User.objects.order_by("username")
+    if q:
+        qs = qs.filter(username__icontains=q)
+
+    total = qs.count()
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    offset = (page - 1) * page_size
+    users = [
+        UserSimpleOut(id=u["id"], username=u["username"])
+        for u in qs.values("id", "username")[offset : offset + page_size]
+    ]
+
+    return {
+        "items": users,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 @shopping_router.get("/{shopping_list_id}/", response=ShoppingListDetailOut)
@@ -187,9 +230,9 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_access(shopping_list, request.user)
 
-    items = shopping_list.items.select_related("ingredient", "retail_section").order_by(
-        "retail_section__name", "sort_order"
-    )
+    items = shopping_list.items.select_related("ingredient", "retail_section").prefetch_related(
+        "sources"
+    ).order_by("retail_section__name", "sort_order")
 
     if view == "summarized":
         # Group by ingredient, sum quantities
@@ -198,7 +241,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
             key = item.ingredient_id or item.name
             if key not in grouped:
                 grouped[key] = {
-                "name": item.portion.ingredient.name if item.portion and item.portion.ingredient else item.name,
+                "name": item.ingredient.name if item.ingredient else item.name,
                     "total_quantity_g": 0.0,
                     "unit": item.unit or "g",
                     "retail_section": item.retail_section.name if item.retail_section else "",
@@ -221,7 +264,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
                 by_source[source] = []
             by_source[source].append({
                 "id": item.id,
-                "name": item.portion.ingredient.name if item.portion and item.portion.ingredient else item.name,
+                "name": item.ingredient.name if item.ingredient else item.name,
                 "quantity_g": float(item.quantity_g or 0),
                 "unit": item.unit or "g",
                 "is_checked": item.is_checked,
@@ -236,7 +279,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
         return {"view": "detailed", "items": [
             {
                 "id": item.id,
-                "name": item.portion.ingredient.name if item.portion and item.portion.ingredient else item.name,
+                "name": item.ingredient.name if item.ingredient else item.name,
                 "quantity_g": float(item.quantity_g or 0),
                 "unit": item.unit or "g",
                 "retail_section": item.retail_section.name if item.retail_section else "",
@@ -543,21 +586,6 @@ def create_from_meal_plan(request, meal_plan_id: int):
     # Attach can_edit for the response
     shopping_list._can_edit = True
     return shopping_list
-
-
-# ---------------------------------------------------------------------------
-# Users (for collaborator selection)
-# ---------------------------------------------------------------------------
-
-
-@shopping_router.get("/users/", response=list[UserSimpleOut])
-def list_users(request):
-    """Return all users (id + username) for collaborator invite dropdown."""
-    _require_auth(request)
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-    return list(User.objects.all().order_by("username").values("id", "username"))
 
 
 # ---------------------------------------------------------------------------

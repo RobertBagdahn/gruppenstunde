@@ -76,7 +76,7 @@ export function MacroBar({
       <div className="flex justify-between text-xs">
         <span className="font-medium">{label}</span>
         <span className="text-muted-foreground">
-          {value.toFixed(1)} {unit}
+        {unit === 'kcal' ? Math.round(value) : parseFloat(value.toFixed(1))} {unit}
           {dgeRef != null && dgeRef > 0 && (
             <span className="ml-2 text-[10px] text-muted-foreground">
               Referenz: {dgeRef.toFixed(1)} {unit}

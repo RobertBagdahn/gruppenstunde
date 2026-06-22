@@ -51,7 +51,7 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
         )}
         {ingredient.protein_g !== null && (
           <span className="inline-flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
-            {ingredient.protein_g}g Protein
+            {parseFloat(ingredient.protein_g.toFixed(1))}g Protein
           </span>
         )}
         {formatPrice(ingredient.price_per_kg) && (

@@ -68,14 +68,46 @@ def generate_shopping_list(
     """
     from planner.models import MealItem
     from recipe.models import RecipeItem
+    from supply.models import Portion
     from supply.services.price_service import get_portion_price
 
     scaling = scaling_override if scaling_override is not None else meal_plan.scaling_factor
 
-    # Collect all MealItems
-    meal_items = MealItem.objects.filter(
-        meal__meal_plan=meal_plan,
-    ).select_related("recipe", "meal", "ingredient", "ingredient__retail_section")
+    # Collect all MealItems — prefetch recipe items and direct-ingredient portions upfront
+    meal_items = list(
+        MealItem.objects.filter(
+            meal__meal_plan=meal_plan,
+        )
+        .select_related(
+            "recipe",
+            "meal",
+            "ingredient",
+            "ingredient__retail_section",
+            "measuring_unit",
+        )
+        .prefetch_related(
+            "recipe__recipe_items__portion__ingredient__retail_section",
+        )
+    )
+
+    # Batch-load portions for direct-ingredient MealItems to avoid N+1
+    direct_ingredient_pairs = [
+        (mi.ingredient_id, mi.measuring_unit_id)
+        for mi in meal_items
+        if mi.ingredient_id and mi.measuring_unit_id
+    ]
+    portion_lookup: dict[tuple[int, int], Portion] = {}
+    if direct_ingredient_pairs:
+        ing_ids = {p[0] for p in direct_ingredient_pairs}
+        unit_ids = {p[1] for p in direct_ingredient_pairs}
+        for p in Portion.objects.filter(
+            ingredient_id__in=ing_ids,
+            measuring_unit_id__in=unit_ids,
+        ).select_related("measuring_unit"):
+            portion_lookup[(p.ingredient_id, p.measuring_unit_id)] = p
+
+    # Batch-load ingredients for price estimation at the end
+    ingredient_cache: dict[int, object] = {}
 
     # Aggregate: ingredient_id -> ShoppingListItem
     aggregated: dict[int, ShoppingListItem] = {}
@@ -95,9 +127,8 @@ def generate_shopping_list(
 
         if mi.recipe:
             recipe = mi.recipe
-            recipe_items = RecipeItem.objects.filter(
-                recipe=recipe,
-            ).select_related("portion__ingredient", "portion__ingredient__retail_section")
+            # Use prefetched recipe_items (no extra query)
+            recipe_items = recipe.recipe_items.all()
 
             for ri in recipe_items:
                 if not ri.portion:
@@ -157,12 +188,13 @@ def generate_shopping_list(
 
         elif mi.ingredient:
             ing = mi.ingredient
-            # Direct ingredient case
-            from supply.models import Portion
-            portion = Portion.objects.filter(
-                ingredient=ing,
-                measuring_unit=mi.measuring_unit,
-            ).first() if mi.measuring_unit else None
+            ingredient_cache[ing.id] = ing
+            # Direct ingredient case — use batch-loaded portion lookup
+            portion = (
+                portion_lookup.get((ing.id, mi.measuring_unit_id))
+                if mi.measuring_unit_id
+                else None
+            )
 
             portion_weight = portion.weight_g if portion else None
             if not portion_weight and mi.measuring_unit:
@@ -219,17 +251,22 @@ def generate_shopping_list(
     for ing_id, item in aggregated.items():
         item.sources = list(sources_map.get(ing_id, {}).values())
 
-    # Estimate prices from Ingredient.price_per_kg
-    for ing_id, item in aggregated.items():
-        from supply.models import Ingredient
+    # Bulk-load any ingredients not yet in cache (recipe-path ingredients)
+    from supply.models import Ingredient
 
-        try:
-            ing = Ingredient.objects.get(id=ing_id)
-            price = get_portion_price(ing, item.total_quantity_g)
-            if price is not None:
-                item.estimated_price_eur = float(price)
-        except Ingredient.DoesNotExist:
-            pass
+    missing_ids = [ing_id for ing_id in aggregated if ing_id not in ingredient_cache]
+    if missing_ids:
+        for ing in Ingredient.objects.filter(id__in=missing_ids):
+            ingredient_cache[ing.id] = ing
+
+    # Estimate prices from Ingredient.price_per_kg — no DB queries here
+    for ing_id, item in aggregated.items():
+        ing = ingredient_cache.get(ing_id)
+        if ing is None:
+            continue
+        price = get_portion_price(ing, item.total_quantity_g)
+        if price is not None:
+            item.estimated_price_eur = float(price)
 
     # Round quantities to avoid floating point artifacts
     for item in aggregated.values():

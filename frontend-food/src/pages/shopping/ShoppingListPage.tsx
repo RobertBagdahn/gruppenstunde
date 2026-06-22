@@ -1,7 +1,8 @@
 /**
  * ShoppingListPage — List view of all shopping lists (own + shared).
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, User as UserIcon } from 'lucide-react';
 import {
@@ -90,20 +91,40 @@ function getTimeAgo(date: Date): string {
 
 export default function ShoppingListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: user, isLoading: userLoading } = useCurrentUser();
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useShoppingLists(page, 20);
+
+  const page = parseInt(searchParams.get('page') ?? '1', 10) || 1;
+  const q = searchParams.get('q') ?? '';
+
+  const { data, isLoading, error } = useShoppingLists(page, 20, q);
   const createList = useCreateShoppingList();
   const deleteList = useDeleteShoppingList();
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(q);
   const [sort, setSort] = useState('newest');
   const [myDataOnly, setMyDataOnly] = useState(false);
 
-  if (userLoading || isLoading) {
+  // Sync local input → URL param with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newParams = new URLSearchParams(searchParams);
+      if (searchInput) {
+        newParams.set('q', searchInput);
+      } else {
+        newParams.delete('q');
+      }
+      newParams.set('page', '1');
+      setSearchParams(newParams, { replace: true });
+    }, 300);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
+  if (userLoading || (isLoading && !data)) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="animate-pulse space-y-4">
@@ -131,16 +152,19 @@ export default function ShoppingListPage() {
   const lists = data?.items ?? [];
   const totalPages = data?.total_pages ?? 1;
 
-  // Client-side search + owner filtering
-  const filteredLists = lists.filter((l) => {
-    const matchesSearch = searchInput.trim()
-      ? l.name.toLowerCase().includes(searchInput.toLowerCase())
-      : true;
-    const matchesOwner = myDataOnly ? l.owner_id === user.id : true;
-    return matchesSearch && matchesOwner;
-  });
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <p className="text-destructive text-sm">Einkaufslisten konnten nicht geladen werden.</p>
+      </div>
+    );
+  }
 
-  // Client-side sorting
+  // Owner filter only (server handles search); sort is client-side within the page
+  const filteredLists = myDataOnly
+    ? lists.filter((l) => l.owner_id === user.id)
+    : lists;
+
   const sortedLists = [...filteredLists].sort((a, b) => {
     if (sort === 'newest') return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     if (sort === 'oldest') return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
@@ -302,7 +326,11 @@ export default function ShoppingListPage() {
       <Pagination
         currentPage={page}
         totalPages={totalPages}
-        onPageChange={setPage}
+        onPageChange={(newPage) => {
+          const newParams = new URLSearchParams(searchParams);
+          newParams.set('page', String(newPage));
+          setSearchParams(newParams, { replace: true });
+        }}
       />
     </div>
   );

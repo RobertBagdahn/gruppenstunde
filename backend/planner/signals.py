@@ -1,13 +1,14 @@
 """Signals for updating Recipe.usage_count when MealItems change."""
 
 from django.db.models import F
+from django.db.models.functions import Greatest
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from planner.models.meal_plan import MealItem
 
 
-@receiver(post_save, sender=MealItem)
+@receiver(post_save, sender=MealItem, dispatch_uid="planner.increment_usage_count_on_create")
 def increment_usage_count_on_create(sender, instance, created, **kwargs):
     """Increment recipe usage_count when a MealItem is created with a recipe."""
     if created and instance.recipe_id:
@@ -18,7 +19,7 @@ def increment_usage_count_on_create(sender, instance, created, **kwargs):
         )
 
 
-@receiver(pre_save, sender=MealItem)
+@receiver(pre_save, sender=MealItem, dispatch_uid="planner.track_previous_recipe")
 def track_previous_recipe(sender, instance, **kwargs):
     """Store previous recipe_id before save to detect changes."""
     if instance.pk:
@@ -32,7 +33,7 @@ def track_previous_recipe(sender, instance, **kwargs):
         instance._previous_recipe_id = None
 
 
-@receiver(post_save, sender=MealItem)
+@receiver(post_save, sender=MealItem, dispatch_uid="planner.update_usage_count_on_change")
 def update_usage_count_on_change(sender, instance, created, **kwargs):
     """Update usage_counts when a MealItem's recipe FK changes."""
     if created:
@@ -47,17 +48,21 @@ def update_usage_count_on_change(sender, instance, created, **kwargs):
         return
 
     if previous:
-        Recipe.objects.filter(pk=previous).update(usage_count=F("usage_count") - 1)
+        # Use GREATEST to prevent usage_count going below 0
+        Recipe.objects.filter(pk=previous).update(
+            usage_count=Greatest(F("usage_count") - 1, 0)
+        )
     if current:
         Recipe.objects.filter(pk=current).update(usage_count=F("usage_count") + 1)
 
 
-@receiver(post_delete, sender=MealItem)
+@receiver(post_delete, sender=MealItem, dispatch_uid="planner.decrement_usage_count_on_delete")
 def decrement_usage_count_on_delete(sender, instance, **kwargs):
     """Decrement recipe usage_count when a MealItem is deleted."""
     if instance.recipe_id:
         from recipe.models import Recipe
 
+        # Use GREATEST to prevent usage_count going below 0
         Recipe.objects.filter(pk=instance.recipe_id).update(
-            usage_count=F("usage_count") - 1
+            usage_count=Greatest(F("usage_count") - 1, 0)
         )

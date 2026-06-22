@@ -2,7 +2,7 @@
 
 import datetime as dt
 
-from django.db.models import Case, Prefetch, Q, When
+from django.db.models import Case, Count, Prefetch, Q, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Router
@@ -119,7 +119,11 @@ def list_meal_plans(
     """
     _require_auth(request)
 
-    qs = MealPlan.objects.select_related("event", "owner").prefetch_related("meals")
+    qs = (
+        MealPlan.objects.select_related("event", "owner")
+        .prefetch_related("nutritional_tags")
+        .annotate(meals_count_ann=Count("meals", distinct=True))
+    )
 
     if origin == "verified":
         qs = qs.filter(owner__isnull=True)
@@ -237,6 +241,8 @@ def get_meal_plan(request, meal_plan_id: int):
                 "meals__items",
                 queryset=MealItem.objects.select_related("recipe", "meal__meal_plan"),
             ),
+            "meals__items__overrides",
+            "nutritional_tags",
         ),
         id=meal_plan_id,
     )
@@ -302,19 +308,39 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
     start_dt = timezone.make_aware(payload.start_datetime) if timezone.is_naive(payload.start_datetime) else payload.start_datetime
     offset = start_dt - source.start_datetime
 
+    # Prefetch items + overrides to avoid N+1 during clone
+    source_with_data = get_object_or_404(
+        MealPlan.objects.prefetch_related(
+            "meals__items__overrides",
+            "nutritional_tags",
+        ),
+        id=meal_plan_id,
+    )
+
     with transaction.atomic():
         new_plan = MealPlan(
             name=payload.name,
-            description=source.description,
+            description=source_with_data.description,
             norm_portions=payload.norm_portions,
-            reserve_factor=source.reserve_factor,
+            reserve_factor=source_with_data.reserve_factor,
+            # Carry over metadata from source
+            visibility=source_with_data.visibility,
+            day_part_factors=source_with_data.day_part_factors,
+            meal_default_times=source_with_data.meal_default_times,
             start_datetime=start_dt,
-            end_datetime=source.end_datetime + offset if source.end_datetime else None,
+            end_datetime=source_with_data.end_datetime + offset if source_with_data.end_datetime else None,
             created_by=request.user,
         )
         new_plan.save()
 
-        for meal in source.meals.all():
+        # Copy nutritional tags
+        new_plan.nutritional_tags.set(source_with_data.nutritional_tags.all())
+
+        # Only clone regular meals (skip RefMeals which have null datetimes)
+        for meal in source_with_data.meals.filter(is_reference=False):
+            if meal.start_datetime is None or meal.end_datetime is None:
+                continue
+
             new_meal = Meal(
                 meal_plan=new_plan,
                 start_datetime=meal.start_datetime + offset,
@@ -327,7 +353,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
             new_meal.save()
 
             for item in meal.items.all():
-                MealItem.objects.create(
+                new_item = MealItem.objects.create(
                     meal=new_meal,
                     recipe=item.recipe,
                     ingredient=item.ingredient,
@@ -336,6 +362,14 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                     display_name=item.display_name,
                     factor=item.factor,
                 )
+                # Clone MealItemOverrides for each item
+                for override in item.overrides.all():
+                    MealItemOverride.objects.create(
+                        meal_item=new_item,
+                        recipe_item=override.recipe_item,
+                        quantity_override=override.quantity_override,
+                        excluded=override.excluded,
+                    )
 
     return new_plan
 
@@ -739,13 +773,17 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
-    # Collect all MealItems
+    # Collect all MealItems — prefetch recipe items to avoid N+1
     meal_items_qs = MealItem.objects.filter(
         meal__meal_plan=meal_plan,
     )
     if date:
         meal_items_qs = meal_items_qs.filter(meal__start_datetime__date=date)
-    meal_items = meal_items_qs.select_related("recipe", "meal")
+    meal_items = list(
+        meal_items_qs.select_related("recipe", "meal", "meal__meal_plan").prefetch_related(
+            "recipe__recipe_items__portion__ingredient",
+        )
+    )
 
     fields = (
         "energy_kcal",
@@ -765,10 +803,8 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
         if not mi.recipe:
             continue
 
-        # Get all RecipeItems for this recipe and aggregate their nutritional data
-        recipe_items = RecipeItem.objects.filter(
-            recipe=mi.recipe,
-        ).select_related("portion__ingredient")
+        # Use prefetched recipe_items (no extra DB query)
+        recipe_items = mi.recipe.recipe_items.all()
 
         recipe_servings = mi.recipe.portions or 1
         effective_portions = mi.meal.effective_portions
@@ -845,11 +881,9 @@ def cost_summary(request, meal_plan_id: int):
 
         for item in meal.items.all():
             if item.recipe:
-                # Recipe-based item: iterate RecipeItems
+                # Recipe-based item: use prefetched recipe_items (no extra DB query)
                 recipe_servings = item.recipe.portions or 1
-                recipe_items = item.recipe.recipe_items.select_related(
-                    "portion__ingredient"
-                )
+                recipe_items = item.recipe.recipe_items.all()
                 recipe_item_cost = Decimal("0")
                 rid = item.recipe.id
                 if rid not in recipe_costs:
@@ -1406,6 +1440,17 @@ def search_recipes(
 
     qs = qs.annotate(is_own=Case(When(owner=request.user, then=1), default=0))
 
+    # Apply nutritional tag filters as SQL before the limit slice
+    if nutritional_tag_ids:
+        tag_ids_include = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        for tag_id in tag_ids_include:
+            qs = qs.filter(nutritional_tags__id=tag_id)
+
+    if exclude_nutritional_tag_ids:
+        exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        if exclude_tag_ids:
+            qs = qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
+
     if type_filter:
         primary_qs = qs.filter(recipe_type__in=type_filter)
         primary_recipes = list(primary_qs.order_by("-is_own", "-usage_count", "cached_price_total")[:limit])
@@ -1419,16 +1464,6 @@ def search_recipes(
             recipes_qs = primary_recipes
     else:
         recipes_qs = list(qs.order_by("-is_own", "-usage_count", "cached_price_total")[:limit])
-
-    if nutritional_tag_ids:
-        tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
-        for tag_id in tag_ids:
-            recipes_qs = [r for r in recipes_qs if r.nutritional_tags.filter(id=tag_id).exists()]
-
-    if exclude_nutritional_tag_ids:
-        exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
-        if exclude_tag_ids:
-            recipes_qs = [r for r in recipes_qs if not r.nutritional_tags.filter(id__in=exclude_tag_ids).exists()]
 
     # Fetch related data
     recipe_ids = [r.id for r in recipes_qs]

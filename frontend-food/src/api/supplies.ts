@@ -407,6 +407,35 @@ export function useAiSuggestIngredientAll(slug: string) {
   });
 }
 
+export function useAiCreateIngredient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      return postJsonRaw(
+        `${INGREDIENT_BASE}/ai-create/`,
+        { name },
+        IngredientDetailSchema
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+  });
+}
+
+export function useIngredientImportUrl() {
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const { IngredientImportUrlOutSchema } = await import('@/schemas/supply');
+      return postJsonRaw(
+        `${INGREDIENT_BASE}/import-from-url/`,
+        { url },
+        IngredientImportUrlOutSchema
+      );
+    },
+  });
+}
+
 // ===========================================================================
 // Similar Ingredients
 // ===========================================================================

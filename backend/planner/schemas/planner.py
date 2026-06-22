@@ -1,6 +1,7 @@
 """Planner-related schemas (Planner, PlannerEntry, Collaborator)."""
 
 import datetime as dt
+from typing import Literal
 
 from ninja import Schema
 
@@ -63,7 +64,7 @@ class PlannerEntryIn(Schema):
     session_id: int | None = None
     date: dt.date
     notes: str = ""
-    status: str = "planned"
+    status: Literal["planned", "cancelled"] = "planned"
     sort_order: int = 0
 
 
@@ -71,7 +72,7 @@ class PlannerEntryUpdateIn(Schema):
     session_id: int | None = None
     date: dt.date | None = None
     notes: str | None = None
-    status: str | None = None
+    status: Literal["planned", "cancelled"] | None = None
     sort_order: int | None = None
 
 
@@ -107,4 +108,4 @@ class CollaboratorOut(Schema):
 
 class InviteIn(Schema):
     user_id: int
-    role: str = "viewer"
+    role: Literal["editor", "viewer"] = "viewer"

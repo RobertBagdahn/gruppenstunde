@@ -90,7 +90,7 @@ export const MealPlanSchema = z.object({
   created_by_id: z.number(),
   owner_id: z.number().nullable(),
   owner_name: z.string().nullable(),
-  visibility: z.string().default('private'),
+  visibility: z.enum(['private', 'group', 'public']).default('private'),
   created_at: z.string(),
   updated_at: z.string(),
   meals_count: z.number(),
@@ -120,7 +120,7 @@ export const MealPlanDetailSchema = z.object({
   created_by_id: z.number(),
   owner_id: z.number().nullable(),
   owner_name: z.string().nullable(),
-  visibility: z.string().default('private'),
+  visibility: z.enum(['private', 'group', 'public']).default('private'),
   created_at: z.string(),
   updated_at: z.string(),
   day_part_factors: z.record(z.string(), z.number()),
@@ -167,7 +167,7 @@ export type NutritionSummary = z.infer<typeof NutritionSummarySchema>;
 // ==========================================================================
 
 export const ShoppingItemSourceSchema = z.object({
-  recipe_id: z.number(),
+  recipe_id: z.number().nullable().optional(),
   recipe_name: z.string().default(''),
   recipe_slug: z.string().default(''),
   meal_label: z.string().default(''),
@@ -206,7 +206,7 @@ export const RecipeSearchResultSchema = z.object({
   slug: z.string(),
   recipe_type: z.string(),
   image: z.string().nullable().optional(),
-  servings: z.number().nullable().optional(),
+  portions: z.number().nullable().optional(),
   cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
   cached_fat_g: z.number().nullable().optional(),
@@ -271,6 +271,7 @@ export const RecipeRecentlyUsedSchema = z.object({
   slug: z.string(),
   recipe_type: z.string(),
   image: z.string().nullable(),
+  portions: z.number().nullable().optional(),
   usage_count: z.number().optional(),
   recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
   price_per_serving: z.number().nullable().optional(),
@@ -393,7 +394,8 @@ export function effectivePortions(
   meal: Pick<Meal, 'override_portions'>,
   normPortions: number,
 ): number {
-  return meal.override_portions || normPortions || 1;
+  if (meal.override_portions != null) return meal.override_portions;
+  return normPortions || 1;
 }
 
 function parseTimeToMinutes(datetimeStr: string): number {

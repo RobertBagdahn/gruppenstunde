@@ -74,7 +74,7 @@ export default function SollIstBar({
     if (unit === '€' || unit === 'EUR') {
       return `${val.toFixed(2)} €`;
     }
-    return `${Math.round(val)} ${unit}`;
+    return `${unit === 'kcal' ? Math.round(val) : parseFloat(val.toFixed(1))} ${unit}`;
   };
 
   return (

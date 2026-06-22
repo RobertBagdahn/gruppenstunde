@@ -119,8 +119,8 @@ function IngredientRow({
       </div>
 
       <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
-        <span>{energyKcal != null ? `${energyKcal} kcal` : '–'}</span>
-        <span>{proteinG != null ? `${proteinG}g E` : '–'}</span>
+        <span>{energyKcal != null ? `${Math.round(energyKcal)} kcal` : '–'}</span>
+        <span>{proteinG != null ? `${parseFloat(proteinG.toFixed(1))}g E` : '–'}</span>
         <span className="font-medium text-foreground">
           {pricePerKg != null
             ? `${pricePerKg.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/kg`

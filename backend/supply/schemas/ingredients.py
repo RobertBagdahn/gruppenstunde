@@ -406,6 +406,42 @@ class IngredientAiCreateIn(Schema):
     name: str
 
 
+class IngredientImportUrlIn(Schema):
+    """Input for URL-based ingredient import."""
+
+    url: str
+
+
+class IngredientDraftOut(Schema):
+    """Stammdaten extracted from a URL import."""
+
+    name: str
+    description: str | None = None
+    status: str = "draft"
+    retail_section_id: int | None = None
+
+
+class IngredientNutritionDraftOut(Schema):
+    """Optional nutritional values extracted from a URL import."""
+
+    energy_kcal: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    fat_sat_g: float | None = None
+    carbohydrate_g: float | None = None
+    sugar_g: float | None = None
+    fibre_g: float | None = None
+    salt_g: float | None = None
+    sodium_mg: float | None = None
+
+
+class IngredientImportUrlOut(Schema):
+    """Response for URL-based ingredient import."""
+
+    ingredient_draft: IngredientDraftOut
+    nutrition: IngredientNutritionDraftOut | None = None
+
+
 class IngredientSimilarOut(Schema):
     """Compact schema for similar ingredients."""
 

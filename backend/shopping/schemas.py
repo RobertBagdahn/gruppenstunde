@@ -45,6 +45,8 @@ class ShoppingItemPortionOptionOut(Schema):
     name: str
     display: str
     is_default: bool
+    weight_g: float = 0.0
+    count: float = 0.0
 
 
 class ShoppingListItemOut(Schema):
@@ -185,15 +187,16 @@ class ShoppingListOut(Schema):
 
     @staticmethod
     def resolve_items_count(obj) -> int:
-        return obj.items.count()
+        # Use annotated value from queryset when available (avoids N+1)
+        return getattr(obj, "items_count", None) or obj.items.count()
 
     @staticmethod
     def resolve_checked_count(obj) -> int:
-        return obj.items.filter(is_checked=True).count()
+        return getattr(obj, "checked_count", None) or obj.items.filter(is_checked=True).count()
 
     @staticmethod
     def resolve_collaborators_count(obj) -> int:
-        return obj.collaborators.count()
+        return getattr(obj, "collaborators_count", None) or obj.collaborators.count()
 
 
 class ShoppingListDetailOut(Schema):
@@ -291,6 +294,16 @@ class UserSimpleOut(Schema):
 
     id: int
     username: str
+
+
+class PaginatedUserOut(Schema):
+    """Paginated response for user search results."""
+
+    items: list[UserSimpleOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 
 # --- Pagination ---

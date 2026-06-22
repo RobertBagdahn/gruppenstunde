@@ -206,12 +206,9 @@ export default function InlineIngredientEditor({
     async (ingredient: { id: number; name: string; slug: string }) => {
       const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
-      // For new/unknown ingredients without a slug, add with placeholder
-      if (!ingredient.slug) {
-        // TODO: Create ingredient first, then fetch portion
-        toast.error('Bitte eine bestehende Zutat auswählen');
-        return;
-      }
+      // Ingredients without a slug have not been created yet.
+      // The UnknownIngredientDialog handles navigation to /ingredients/new.
+      if (!ingredient.slug) return;
 
       // Fetch portions for this ingredient and select smart default
       try {

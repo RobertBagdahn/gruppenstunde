@@ -42,6 +42,10 @@ export function useShoppingListWebSocket(
 
   const { onEvent } = options;
 
+  // Use a ref for handleMessage to avoid making it a dependency of `connect`.
+  // This prevents infinite reconnect loops when onEvent changes on every render.
+  const handleMessageRef = useRef<(event: ShoppingListEvent) => void>(() => {});
+
   const handleMessage = useCallback(
     (event: ShoppingListEvent) => {
       // Update TanStack Query cache based on event type
@@ -69,6 +73,9 @@ export function useShoppingListWebSocket(
     [queryClient, listId, onEvent],
   );
 
+  // Keep the ref current so the WebSocket message handler always has the latest version
+  handleMessageRef.current = handleMessage;
+
   const connect = useCallback(() => {
     if (!listId || listId <= 0) return;
 
@@ -87,7 +94,8 @@ export function useShoppingListWebSocket(
     ws.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data) as ShoppingListEvent;
-        handleMessage(data);
+        // Always call via ref — never a stale closure
+        handleMessageRef.current(data);
       } catch {
         // Ignore malformed messages
       }
@@ -100,7 +108,7 @@ export function useShoppingListWebSocket(
       // Don't reconnect if closed intentionally or access denied
       if (e.code === 4403 || e.code === 1000) return;
 
-      // Attempt to reconnect
+      // Attempt to reconnect — `connect` is stable (only depends on listId)
       if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttemptsRef.current += 1;
         reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
@@ -112,7 +120,8 @@ export function useShoppingListWebSocket(
     };
 
     wsRef.current = ws;
-  }, [listId, handleMessage]);
+  // connect only depends on listId — handleMessage is accessed via ref
+  }, [listId]);
 
   useEffect(() => {
     connect();

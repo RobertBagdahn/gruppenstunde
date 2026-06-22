@@ -542,6 +542,7 @@ export function useRandomRecipeSuggestion(params: {
   if (excludeNutritionalTagIds?.length)
     searchParams.set('exclude_nutritional_tag_ids', excludeNutritionalTagIds.join(','));
 
+  // RecipeSuggestionsResponseSchema = z.array(...), result.data may be empty array — callers must guard with length > 0
   return useQuery<RecipeSuggestion[]>({
     queryKey: ['random-recipe-suggestion', mealType, excludeNutritionalTagIds],
     queryFn: () =>
@@ -549,7 +550,7 @@ export function useRandomRecipeSuggestion(params: {
         `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,
         RecipeSuggestionsResponseSchema,
       ),
-    enabled: false, // only fetch on demand
+    enabled: false, // only fetch on demand via refetch()
   });
 }
 

@@ -458,3 +458,56 @@ class TestCreateFromMealPlan:
         assert data["source_type"] == "meal_event"
         # Should have items from the shopping service
         assert len(data["items"]) >= 0  # May be 0 if service produces nothing, >= 1 ideally
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for fixed bugs
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestShoppingListViewBugFixes:
+    """Tests for bugs fixed in fix-shopping-list-bugs change."""
+
+    def test_get_shopping_list_view_no_attribute_error(self, client_alice, shopping_list, user):
+        """get_shopping_list_view must not raise AttributeError (item.portion fixed)."""
+        # Add an item with an ingredient
+        from supply.tests import make_ingredient
+        ing = make_ingredient(name="Mehl")
+        ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            name="Mehl",
+            quantity_g=500,
+            unit="g",
+            ingredient=ing,
+        )
+        for view in ["detailed", "summarized", "by_recipe"]:
+            res = client_alice.get(
+                f"/api/shopping-lists/{shopping_list.id}/view/?view={view}",
+            )
+            assert res.status_code == 200, f"view={view} failed: {res.json()}"
+
+    def test_list_users_returns_paginated_response(self, client_alice):
+        """list_users must return paginated data to authenticated users."""
+        res = client_alice.get("/api/shopping-lists/users/")
+        assert res.status_code == 200
+        data = res.json()
+        assert "items" in data
+        assert "total" in data
+        assert "page" in data
+
+    def test_list_users_page_size_limit(self, client_alice):
+        """list_users must reject page_size > 50."""
+        res = client_alice.get("/api/shopping-lists/users/?page_size=200")
+        assert res.status_code == 422
+
+    def test_shopping_list_search_server_side(self, client_alice, user):
+        """list_shopping_lists must support server-side search via ?q=."""
+        ShoppingList.objects.create(name="Lagereinkauf", owner=user, source_type=SourceType.MANUAL)
+        ShoppingList.objects.create(name="Wocheneinkauf", owner=user, source_type=SourceType.MANUAL)
+        res = client_alice.get("/api/shopping-lists/?q=Lager")
+        assert res.status_code == 200
+        data = res.json()
+        names = [i["name"] for i in data["items"]]
+        assert "Lagereinkauf" in names
+        assert "Wocheneinkauf" not in names

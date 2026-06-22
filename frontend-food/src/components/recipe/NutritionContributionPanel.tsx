@@ -70,7 +70,7 @@ export function NutritionContributionPanel({
             />
           </div>
           <span className="text-sm tabular-nums whitespace-nowrap shrink-0">
-            {c.absolute} {unit} &middot; {c.percent}%
+            {unit === 'kcal' ? Math.round(c.absolute) : parseFloat(c.absolute.toFixed(1))} {unit} &middot; {parseFloat(c.percent.toFixed(1))}%
           </span>
         </div>
       ))}

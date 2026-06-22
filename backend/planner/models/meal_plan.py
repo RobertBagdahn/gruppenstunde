@@ -349,7 +349,9 @@ class Meal(models.Model):
         otherwise the plan's ``norm_portions``. This is the single portion
         concept all per-meal energy/cost calculations must use.
         """
-        return self.override_portions or self.meal_plan.norm_portions or 1
+        if self.override_portions is not None:
+            return self.override_portions
+        return self.meal_plan.norm_portions or 1
 
     def clean(self) -> None:
         """Validate meal constraints."""

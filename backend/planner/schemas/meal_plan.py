@@ -2,6 +2,7 @@
 
 import datetime as dt
 from decimal import Decimal
+from typing import Literal
 
 from ninja import Schema
 from supply.schemas.reference import NutritionalTagOut
@@ -81,9 +82,7 @@ class MealItemOut(Schema):
 
     @staticmethod
     def resolve_overrides(obj) -> list:
-        if hasattr(obj, "_prefetched_objects_cache") and "overrides" in obj._prefetched_objects_cache:
-            return obj.overrides.all()
-        return []
+        return list(obj.overrides.all())
 
 
 class MealItemCreateIn(Schema):
@@ -217,6 +216,10 @@ class MealPlanOut(Schema):
 
     @staticmethod
     def resolve_meals_count(obj) -> int:
+        # Use annotated value when available (list_meal_plans uses annotate)
+        ann = getattr(obj, "meals_count_ann", None)
+        if ann is not None:
+            return ann
         return obj.meals.count()
 
     @staticmethod
@@ -227,6 +230,7 @@ class MealPlanOut(Schema):
 
     @staticmethod
     def resolve_nutritional_tag_ids(obj) -> list[int]:
+        # Materialise once; both tag_ids and tag_names share the prefetch cache
         return [tag.id for tag in obj.nutritional_tags.all()]
 
     @staticmethod
@@ -263,7 +267,7 @@ class MealPlanUpdateIn(Schema):
     end_datetime: dt.datetime | None = None
     day_part_factors: dict[str, float] | None = None
     meal_default_times: dict[str, list[str]] | None = None
-    visibility: str | None = None
+    visibility: Literal["private", "group", "public"] | None = None
     nutritional_tag_ids: list[int] | None = None
 
 
@@ -398,11 +402,11 @@ class MealPlanCollaboratorOut(Schema):
 
 class MealPlanCollaboratorCreateIn(Schema):
     user_id: int
-    role: str = "viewer"
+    role: Literal["viewer", "editor", "admin"] = "viewer"
 
 
 class MealPlanCollaboratorUpdateIn(Schema):
-    role: str
+    role: Literal["viewer", "editor", "admin"]
 
 
 # ==========================================================================

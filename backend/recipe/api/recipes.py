@@ -101,6 +101,24 @@ def _get_visible_recipes_qs(request):
     return Recipe.objects.filter(visibility_q).select_related(*base_select).prefetch_related(*base_prefetch)
 
 
+def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = False) -> Recipe:
+    """Return a Recipe visible to the current user, or raise 403/404.
+
+    Used by all sub-resource endpoints (comments, emotions, images, etc.)
+    to enforce visibility consistently.
+
+    Args:
+        require_auth: If True, unauthenticated users always get 403.
+                      If False, unauthenticated users can see approved public/system recipes.
+    """
+    if require_auth:
+        _require_auth(request)
+    recipe = _get_visible_recipes_qs(request).filter(id=recipe_id).first()
+    if recipe is None:
+        raise HttpError(404, "Rezept nicht gefunden")
+    return recipe
+
+
 # ==========================================================================
 # Recipe CRUD
 # ==========================================================================
@@ -420,7 +438,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     """Update a recipe."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
 
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
@@ -488,14 +506,14 @@ def delete_recipe(request, recipe_id: int):
 @router.get("/{recipe_id}/comments/", response=list[ContentCommentOut])
 def list_recipe_comments(request, recipe_id: int):
     """List approved comments for a recipe."""
-    get_object_or_404(Recipe, id=recipe_id)
+    _get_visible_recipe_or_404(request, recipe_id, require_auth=False)
     return get_comments(Recipe, recipe_id)
 
 
 @router.post("/{recipe_id}/comments/", response=ContentCommentOut)
 def create_recipe_comment(request, recipe_id: int, payload: ContentCommentIn):
     """Create a comment on a recipe."""
-    get_object_or_404(Recipe, id=recipe_id)
+    _get_visible_recipe_or_404(request, recipe_id, require_auth=False)
     return create_comment(
         Recipe,
         recipe_id,
@@ -514,7 +532,7 @@ def create_recipe_comment(request, recipe_id: int, payload: ContentCommentIn):
 @router.post("/{recipe_id}/emotions/")
 def toggle_recipe_emotion(request, recipe_id: int, payload: ContentEmotionIn):
     """Add or toggle emotion on a recipe."""
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     counts = toggle_emotion(Recipe, recipe.id, payload.emotion_type, request)
 
     # Update like_score
@@ -543,7 +561,7 @@ def get_similar_recipes(request, recipe_id: int):
     """Get similar recipes using vector embedding similarity."""
     from content.services.embedding_service import find_similar_recipes
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id, require_auth=False)
     return find_similar_recipes(recipe, limit=6)
 
 
@@ -552,7 +570,7 @@ def upload_recipe_image(request, recipe_id: int):
     """Upload an image for a recipe."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
@@ -570,7 +588,7 @@ def delete_recipe_image(request, recipe_id: int):
     """Remove the title image from a recipe."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
@@ -584,7 +602,7 @@ def set_recipe_image_from_url(request, recipe_id: int, payload: ImageFromUrlIn):
     """Set the title image from an existing storage URL."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
@@ -637,7 +655,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
         summary_long=original.summary_long,
         description=original.description,
         recipe_type=original.recipe_type,
-        portions=original.portions,
+        portions=1,  # Always normalize to 1 portion (consistent with create_recipe)
         execution_time=original.execution_time,
         preparation_time=original.preparation_time,
         difficulty=original.difficulty,
@@ -711,7 +729,7 @@ def ai_suggest_all(request, recipe_id: int):
     """Get AI-powered suggestions for missing recipe metadata."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 

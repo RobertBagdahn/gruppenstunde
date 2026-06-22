@@ -70,8 +70,8 @@ def recalculate_recipe_cache_on_item_change(sender, instance, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=Ingredient)
-@receiver(post_delete, sender=Ingredient)
+@receiver(post_save, sender=Ingredient, dispatch_uid="recipe.invalidate_on_ingredient_save")
+@receiver(post_delete, sender=Ingredient, dispatch_uid="recipe.invalidate_on_ingredient_delete")
 def invalidate_recipes_on_ingredient_change(sender, instance, **kwargs):
     """Recalculate cache for all recipes that use this ingredient (save or delete)."""
     recipe_ids = _recipes_using_ingredient(instance)
@@ -83,8 +83,8 @@ def invalidate_recipes_on_ingredient_change(sender, instance, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=Portion)
-@receiver(post_delete, sender=Portion)
+@receiver(post_save, sender=Portion, dispatch_uid="recipe.invalidate_on_portion_save")
+@receiver(post_delete, sender=Portion, dispatch_uid="recipe.invalidate_on_portion_delete")
 def invalidate_recipes_on_portion_change(sender, instance, **kwargs):
     """Recalculate cache for all recipes that use this portion."""
     recipe_ids = set(
@@ -98,7 +98,8 @@ def invalidate_recipes_on_portion_change(sender, instance, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=MeasuringUnit)
+@receiver(post_save, sender=MeasuringUnit, dispatch_uid="recipe.invalidate_on_measuring_unit_save")
+@receiver(post_delete, sender=MeasuringUnit, dispatch_uid="recipe.invalidate_on_measuring_unit_delete")
 def invalidate_recipes_on_measuring_unit_change(sender, instance, **kwargs):
     """Recalculate cache for all recipes whose items reference this MeasuringUnit via Portion."""
     recipe_ids = set()
@@ -112,8 +113,8 @@ def invalidate_recipes_on_measuring_unit_change(sender, instance, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=RecipeItem)
-@receiver(post_delete, sender=RecipeItem)
+@receiver(post_save, sender=RecipeItem, dispatch_uid="recipe.allergen_sync_on_item_save")
+@receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe.allergen_sync_on_item_delete")
 def sync_recipe_allergens_on_item_change(sender, instance, **kwargs):
     """Sync recipe allergen tags when a RecipeItem is created, updated, or deleted."""
     from recipe.services.recipe_checks import sync_recipe_allergen_tags
@@ -245,22 +246,23 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, update_fiel
     if hasattr(instance, "_updating_embedding"):
         return
 
+    recipe_pk = instance.pk
+
     def _do_update():
         try:
-            instance._updating_embedding = True
             if _recipe_embedding_fields_changed(instance, created, update_fields):
                 from content.services.embedding_service import update_content_embedding
+                from recipe.models import Recipe as RecipeModel
 
-                update_content_embedding(instance)
+                # Re-fetch fresh data from DB — instance may be stale by on_commit time
+                fresh_recipe = RecipeModel.objects.get(pk=recipe_pk)
+                update_content_embedding(fresh_recipe)
         except Exception:
             import logging
 
             logging.getLogger(__name__).warning(
-                "Failed to update embedding for Recipe #%d", instance.pk, exc_info=True
+                "Failed to update embedding for Recipe #%d", recipe_pk, exc_info=True
             )
-        finally:
-            if hasattr(instance, "_updating_embedding"):
-                delattr(instance, "_updating_embedding")
 
     from django.db import transaction
 
@@ -276,16 +278,21 @@ def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
     except Exception:
         return
 
+    recipe_pk = recipe.pk
+
     def _do_update():
         from content.services.embedding_service import update_content_embedding
+        from recipe.models import Recipe as RecipeModel
 
         try:
-            update_content_embedding(recipe)
+            # Re-fetch from DB to avoid stale in-memory state
+            fresh_recipe = RecipeModel.objects.get(pk=recipe_pk)
+            update_content_embedding(fresh_recipe)
         except Exception:
             import logging
 
             logging.getLogger(__name__).warning(
-                "Failed to update embedding for Recipe #%d (RecipeItem change)", recipe.pk
+                "Failed to update embedding for Recipe #%d (RecipeItem change)", recipe_pk
             )
 
     from django.db import transaction

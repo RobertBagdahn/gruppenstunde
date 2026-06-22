@@ -1037,23 +1037,27 @@ export default function IngredientDetailPage() {
                 onMoveUp={async () => {
                   const prev = sorted[index - 1];
                   if (!prev) return;
-                  // Use index-based ranks to handle equal rank values
+                  // Swap the actual rank field values (not array indices)
+                  const rankA = portion.rank;
+                  const rankB = prev.rank;
                   await updatePortion.mutateAsync(
-                    { portionId: portion.id, data: { rank: index - 1 } },
+                    { portionId: portion.id, data: { rank: rankB } },
                   );
                   await updatePortion.mutateAsync(
-                    { portionId: prev.id, data: { rank: index } },
+                    { portionId: prev.id, data: { rank: rankA } },
                   );
                 }}
                 onMoveDown={async () => {
                   const next = sorted[index + 1];
                   if (!next) return;
-                  // Use index-based ranks to handle equal rank values
+                  // Swap the actual rank field values (not array indices)
+                  const rankA = portion.rank;
+                  const rankB = next.rank;
                   await updatePortion.mutateAsync(
-                    { portionId: portion.id, data: { rank: index + 1 } },
+                    { portionId: portion.id, data: { rank: rankB } },
                   );
                   await updatePortion.mutateAsync(
-                    { portionId: next.id, data: { rank: index } },
+                    { portionId: next.id, data: { rank: rankA } },
                   );
                 }}
               />

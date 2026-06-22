@@ -678,3 +678,56 @@ def test_embedding_updates_on_recipe_item_change(db):
         recipe.save(update_fields=["title"])
         # Signal should call update_content_embedding
 
+
+# ---------------------------------------------------------------------------
+# Visibility Leak Regression Tests (fix-recipe-visibility-leak change)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestRecipeSubresourceVisibility:
+    """Ensure sub-resource endpoints respect recipe visibility."""
+
+    def test_private_recipe_items_not_visible_to_anonymous(self, api_client):
+        """Anonymous user cannot list items of a private recipe."""
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        owner = User.objects.create_user("visowner", "v@v.com", "pw")
+        recipe = Recipe.objects.create(
+            title="Private Recipe",
+            slug="private-recipe-vis",
+            visibility="private",
+            status=ContentStatus.APPROVED,
+            owner=owner,
+        )
+        resp = api_client.get(f"/api/recipes/{recipe.id}/recipe-items/")
+        assert resp.status_code == 404
+
+    def test_public_recipe_items_visible_to_anonymous(self, api_client):
+        """Anonymous user can list items of an approved public recipe."""
+        recipe = Recipe.objects.create(
+            title="Public Recipe",
+            slug="public-recipe-vis",
+            visibility="public",
+            status=ContentStatus.APPROVED,
+        )
+        resp = api_client.get(f"/api/recipes/{recipe.id}/recipe-items/")
+        assert resp.status_code == 200
+
+    def test_private_recipe_comments_not_visible_to_anonymous(self, api_client):
+        """Anonymous user cannot read comments of a private recipe."""
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        owner = User.objects.create_user("comowner", "c@c.com", "pw")
+        recipe = Recipe.objects.create(
+            title="Private Comments Recipe",
+            slug="private-comments-vis",
+            visibility="private",
+            status=ContentStatus.APPROVED,
+            owner=owner,
+        )
+        resp = api_client.get(f"/api/recipes/{recipe.id}/comments/")
+        assert resp.status_code == 404
+

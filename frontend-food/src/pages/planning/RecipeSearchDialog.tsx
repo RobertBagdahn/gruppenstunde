@@ -18,13 +18,14 @@ import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } fr
 import RecipePreviewDialog from './RecipePreviewDialog';
 import CategoryPills, { RECIPE_TYPE_LABELS } from '@/components/recipe/CategoryPills';
 import RecipeSearchCard from '@/components/recipe/RecipeSearchCard';
+import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
 export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
   breakfast: ['breakfast'],
   lunch: ['warm_meal', 'cold_meal'],
   dinner: ['warm_meal', 'cold_meal'],
-  snack: ['snack', 'ingredient'],
+  snack: ['snack'],
   drinks: ['drink'],
 };
 
@@ -103,7 +104,7 @@ export default function RecipeSearchDialog({
       setIngredientDialog(null);
       setPreviewRecipe(null);
     }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, mealType]); // defaultTypes is derived from mealType
 
   const handleSelect = (recipe: RecipeSearchResult) => {
     setPreviewRecipe(recipe);
@@ -214,10 +215,13 @@ export default function RecipeSearchDialog({
             </label>
           )}
 
+          {/* Kürzlich verwendet */}
+          <RecentlyUsedSection onSelect={(recipeId) => { onSelect(recipeId); onOpenChange(false); }} />
+
           {/* Fallback-Hinweis */}
           {fallbackApplied && (
             <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 px-3 py-1.5 rounded-md">
-              Keine Rezepte in dieser Kategorie gefunden — zeige alle Typen
+              Nicht genug Rezepte für diesen Typ — zeige auch andere
             </p>
           )}
 

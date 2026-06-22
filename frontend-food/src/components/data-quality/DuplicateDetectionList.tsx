@@ -240,13 +240,13 @@ function IngredientMergePreview({ preview }: { preview: MergePreview }) {
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
             <span className="text-muted-foreground">{preview.source_name}</span>
-            <div>Energie: {preview.nutrition_comparison.source.energy_kcal ?? '–'} kcal</div>
-            <div>Protein: {preview.nutrition_comparison.source.protein_g ?? '–'} g</div>
+            <div>Energie: {preview.nutrition_comparison.source.energy_kcal != null ? `${Math.round(preview.nutrition_comparison.source.energy_kcal)}` : '–'} kcal</div>
+            <div>Protein: {preview.nutrition_comparison.source.protein_g != null ? `${parseFloat(preview.nutrition_comparison.source.protein_g.toFixed(1))}` : '–'} g</div>
           </div>
           <div>
             <span className="text-muted-foreground">{preview.target_name}</span>
-            <div>Energie: {preview.nutrition_comparison.target.energy_kcal ?? '–'} kcal</div>
-            <div>Protein: {preview.nutrition_comparison.target.protein_g ?? '–'} g</div>
+            <div>Energie: {preview.nutrition_comparison.target.energy_kcal != null ? `${Math.round(preview.nutrition_comparison.target.energy_kcal)}` : '–'} kcal</div>
+            <div>Protein: {preview.nutrition_comparison.target.protein_g != null ? `${parseFloat(preview.nutrition_comparison.target.protein_g.toFixed(1))}` : '–'} g</div>
           </div>
         </div>
       </div>

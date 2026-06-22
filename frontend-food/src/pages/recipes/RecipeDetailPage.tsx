@@ -246,13 +246,22 @@ export default function RecipeDetailPage() {
       total_fibre_g: totalFibreG,
       total_salt_g: totalSaltG,
       // Micronutrient totals (from modified items)
-      total_vitamin_c_mg: items.reduce((s, i) => s + (i.vitamin_c_mg ?? 0), 0) || null,
+      total_vitamin_c_mg: items.reduce((s, i) => s + (i.vitamin_c_mg ?? 0), 0),
       per_serving_energy_kcal: totalEnergyKcal / portions,
       per_serving_protein_g: totalProteinG / portions,
       per_serving_fat_g: totalFatG / portions,
       per_serving_carbohydrate_g: totalCarbohydrateG / portions,
       positive_traits: nutritionBreakdown.positive_traits ?? [],
-      dge_coverage: nutritionBreakdown.dge_coverage ?? {},
+      // Proportionally rescale DGE coverage when totals change
+      dge_coverage: (() => {
+        const origTotal = nutritionBreakdown.total_energy_kcal;
+        if (!origTotal || !totalEnergyKcal) return nutritionBreakdown.dge_coverage ?? {};
+        const scale = totalEnergyKcal / origTotal;
+        const orig = nutritionBreakdown.dge_coverage ?? {};
+        return Object.fromEntries(
+          Object.entries(orig).map(([k, v]) => [k, typeof v === 'number' ? v * scale : v])
+        );
+      })(),
       dge_reference: nutritionBreakdown.dge_reference ?? {},
       items: itemsWithPct,
     };

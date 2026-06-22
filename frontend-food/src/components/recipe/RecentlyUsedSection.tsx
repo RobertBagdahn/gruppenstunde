@@ -2,7 +2,11 @@ import { BookOpen } from 'lucide-react';
 import { useRecentlyUsedRecipes } from '@/api/mealPlans';
 import RecipeBadge from './RecipeBadge';
 
-export default function RecentlyUsedSection() {
+interface RecentlyUsedSectionProps {
+  onSelect: (recipeId: number) => void;
+}
+
+export default function RecentlyUsedSection({ onSelect }: RecentlyUsedSectionProps) {
   const { data } = useRecentlyUsedRecipes(5);
   const recipes = data?.recipes ?? [];
 
@@ -21,6 +25,7 @@ export default function RecentlyUsedSection() {
           return (
             <button
               key={r.id}
+              onClick={() => onSelect(r.id)}
               className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
             >
               <RecipeBadge badge={r.recipe_badge ?? 'community'} />

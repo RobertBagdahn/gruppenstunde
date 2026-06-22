@@ -93,7 +93,7 @@ export default function IngredientEditPage() {
   const [retailSectionId, setRetailSectionId] = useState('');
 
   // Nutritional values per 100g
-  const [energyKj, setEnergyKj] = useState('');
+  const [energyKcal, setEnergyKcal] = useState('');
   const [proteinG, setProteinG] = useState('');
   const [fatG, setFatG] = useState('');
   const [fatSatG, setFatSatG] = useState('');
@@ -153,7 +153,7 @@ export default function IngredientEditPage() {
     setStatus(ingredient.status);
     setRetailSectionId(String(ingredient.retail_section_id ?? ''));
 
-    setEnergyKj(String(ingredient.energy_kcal ?? ''));
+    setEnergyKcal(String(ingredient.energy_kcal ?? ''));
     setProteinG(String(ingredient.protein_g ?? ''));
     setFatG(String(ingredient.fat_g ?? ''));
     setFatSatG(String(ingredient.fat_sat_g ?? ''));
@@ -221,7 +221,7 @@ export default function IngredientEditPage() {
       status,
       retail_section_id: retailSectionId ? Number(retailSectionId) : null,
 
-      energy_kcal: toNum(energyKj),
+      energy_kcal: toNum(energyKcal),
       protein_g: toNum(proteinG),
       fat_g: toNum(fatG),
       fat_sat_g: toNum(fatSatG),
@@ -395,7 +395,7 @@ export default function IngredientEditPage() {
         <FormSection title="Nährwerte pro 100g" icon="nutrition">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <Field label="Energie (kcal)">
-              <input type="number" step="0.1" value={energyKj} onChange={(e) => setEnergyKj(e.target.value)} className={inputClass} />
+              <input type="number" step="0.1" value={energyKcal} onChange={(e) => setEnergyKcal(e.target.value)} className={inputClass} />
             </Field>
             <Field label="Protein (g)">
               <input type="number" step="0.01" value={proteinG} onChange={(e) => setProteinG(e.target.value)} className={inputClass} />
@@ -403,7 +403,7 @@ export default function IngredientEditPage() {
             <Field label="Fett (g)">
               <input type="number" step="0.01" value={fatG} onChange={(e) => setFatG(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="ges. Fettsaeuren (g)">
+            <Field label="ges. Fettsäuren (g)">
               <input type="number" step="0.01" value={fatSatG} onChange={(e) => setFatSatG(e.target.value)} className={inputClass} />
             </Field>
             <Field label="Kohlenhydrate (g)">
@@ -439,14 +439,15 @@ export default function IngredientEditPage() {
             <Field label="Dichte (g/ml)">
               <input type="number" step="0.01" value={physicalDensity} onChange={(e) => setPhysicalDensity(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Viskositaet">
+            <Field label="Viskosität">
               <select
                 value={physicalViscosity}
                 onChange={(e) => setPhysicalViscosity(e.target.value)}
                 className={inputClass}
               >
                 <option value="solid">Fest</option>
-                <option value="beverage">Fluessig</option>
+                <option value="beverage">Flüssig</option>
+                <option value="powder">Pulver/Schüttgut</option>
               </select>
             </Field>
             <Field label="Haltbarkeit (Tage)">
@@ -470,13 +471,13 @@ export default function IngredientEditPage() {
                 <option value="ambient">Raumtemperatur</option>
               </select>
             </Field>
-            <Field label="Kochfaktor">
-              <input type="number" step="0.1" min="1" value={cookingFactor} onChange={(e) => setCookingFactor(e.target.value)} placeholder="z.B. 2.5" className={inputClass} />
+            <Field label="Kochfaktor (< 1 = schrumpft, > 1 = quillt auf)">
+              <input type="number" step="0.01" min="0.01" value={cookingFactor} onChange={(e) => setCookingFactor(e.target.value)} placeholder="z.B. 0.7 (Fleisch) oder 2.5 (Nudeln)" className={inputClass} />
             </Field>
             <Field label="Camp-geeignet">
               <label className="flex items-center gap-2 pt-2 cursor-pointer">
                 <input type="checkbox" checked={campSuitable} onChange={(e) => setCampSuitable(e.target.checked)} className="h-4 w-4" />
-                <span className="text-sm text-muted-foreground">Ja, fuers Zeltlager geeignet</span>
+                <span className="text-sm text-muted-foreground">Ja, fürs Zeltlager geeignet</span>
               </label>
             </Field>
             <Field label="Zubereitungsdauer (Min.)">
@@ -484,7 +485,7 @@ export default function IngredientEditPage() {
             </Field>
             <Field label="Saison von (Monat)">
               <select value={seasonStart} onChange={(e) => setSeasonStart(e.target.value)} className={inputClass}>
-                <option value="">Ganzjaehrig</option>
+                <option value="">Ganzjährig</option>
                 <option value="1">Januar</option>
                 <option value="2">Februar</option>
                 <option value="3">März</option>
@@ -501,7 +502,7 @@ export default function IngredientEditPage() {
             </Field>
             <Field label="Saison bis (Monat)">
               <select value={seasonEnd} onChange={(e) => setSeasonEnd(e.target.value)} className={inputClass}>
-                <option value="">Ganzjaehrig</option>
+                <option value="">Ganzjährig</option>
                 <option value="1">Januar</option>
                 <option value="2">Februar</option>
                 <option value="3">März</option>
@@ -557,7 +558,7 @@ export default function IngredientEditPage() {
 
         {/* Nutritional Tags */}
         {nutritionalTags && nutritionalTags.length > 0 && (
-          <FormSection title="Allergene & Unvertraeglichkeiten" icon="warning">
+          <FormSection title="Allergene & Unverträglichkeiten" icon="warning">
             <div className="flex flex-wrap gap-2">
               {nutritionalTags.map((tag: NutritionalTag) => {
                 const selected = selectedTags.includes(tag.id);

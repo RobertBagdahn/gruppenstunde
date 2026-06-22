@@ -1,5 +1,6 @@
 """RecipeItem CRUD endpoints."""
 
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -37,10 +38,43 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
     return False
 
 
+def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = True) -> Recipe:
+    """Return a Recipe visible to the current user, or raise 403/404.
+
+    Authenticated users can see their own recipes + approved public/system ones.
+    Unauthenticated users can only see approved public/system recipes (when require_auth=False).
+    """
+    from django.db.models import Q
+
+    if require_auth:
+        _require_auth(request)
+
+    qs = Recipe.objects.filter(id=recipe_id)
+
+    if request.user.is_authenticated and request.user.is_staff:
+        recipe = qs.first()
+    elif request.user.is_authenticated:
+        user = request.user
+        visible = Q(owner__isnull=True, status="approved")  # system recipes
+        visible |= Q(status="approved", visibility="public")  # community
+        visible |= Q(owner=user)  # own recipes
+        visible |= Q(created_by=user)  # created by user
+        recipe = qs.filter(visible).first()
+    else:
+        # Anonymous — only public/system recipes
+        visible = Q(owner__isnull=True, status="approved")
+        visible |= Q(status="approved", visibility="public")
+        recipe = qs.filter(visible).first()
+
+    if recipe is None:
+        raise HttpError(404, "Rezept nicht gefunden")
+    return recipe
+
+
 @router.get("/{recipe_id}/recipe-items/", response=list[RecipeItemOut])
 def list_recipe_items(request, recipe_id: int):
     """List recipe items for a recipe."""
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id, require_auth=False)
     return RecipeItem.objects.filter(recipe=recipe).select_related(
         "portion", "portion__ingredient", "portion__measuring_unit",
     )
@@ -51,7 +85,7 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
     """Add a recipe item to a recipe."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
@@ -74,7 +108,7 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     """Update a recipe item."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
@@ -97,7 +131,7 @@ def delete_recipe_item(request, recipe_id: int, item_id: int):
     """Delete a recipe item."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
@@ -114,7 +148,7 @@ def ai_suggest_ingredients(request, recipe_id: int):
     """Use AI to suggest ingredients for a recipe."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
@@ -144,7 +178,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
     """Apply AI-suggested ingredients as RecipeItems."""
     _require_auth(request)
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 

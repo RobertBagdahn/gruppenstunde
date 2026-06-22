@@ -1,28 +1,7 @@
 import { BookOpen } from 'lucide-react';
 import type { RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipeBadge from './RecipeBadge';
-
-const RECIPE_TYPE_LABELS: Record<string, string> = {
-  breakfast: 'Frühstück',
-  warm_meal: 'Warme Mahlzeit',
-  cold_meal: 'Kalte Mahlzeit',
-  dessert: 'Nachtisch',
-  recipe_part: 'Rezeptteil',
-  drink: 'Getränk',
-  snack: 'Snack',
-  ingredient: 'Zutat',
-};
-
-const RECIPE_TYPE_COLORS: Record<string, string> = {
-  breakfast: 'bg-amber-100 text-amber-800',
-  warm_meal: 'bg-orange-100 text-orange-800',
-  cold_meal: 'bg-blue-100 text-blue-800',
-  dessert: 'bg-pink-100 text-pink-800',
-  recipe_part: 'bg-purple-100 text-purple-800',
-  drink: 'bg-cyan-100 text-cyan-800',
-  snack: 'bg-yellow-100 text-yellow-800',
-  ingredient: 'bg-teal-100 text-teal-800',
-};
+import { RECIPE_TYPE_LABELS } from './CategoryPills';
 
 interface RecipeSearchCardProps {
   recipe: RecipeSearchResult;
@@ -48,11 +27,7 @@ export default function RecipeSearchCard({ recipe, onClick }: RecipeSearchCardPr
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-medium truncate">{recipe.title}</span>
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${
-              RECIPE_TYPE_COLORS[recipe.recipe_type] ?? 'bg-muted text-muted-foreground'
-            }`}
-          >
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 bg-muted text-muted-foreground">
             {RECIPE_TYPE_LABELS[recipe.recipe_type] ?? recipe.recipe_type}
           </span>
         </div>

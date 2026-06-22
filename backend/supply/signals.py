@@ -11,13 +11,13 @@ from .choices import MeasuringUnitType, PhysicalViscosityChoices
 from .models.ingredient import Ingredient, Portion
 
 
-@receiver(pre_save, sender=Portion)
+@receiver(pre_save, sender=Portion, dispatch_uid="supply.calculate_portion_weight_g")
 def calculate_portion_weight_g(sender, instance: Portion, **kwargs):
     """Auto-calculate weight_g based on quantity, measuring_unit, and ingredient density."""
     instance.weight_g = instance.compute_weight_g(instance.weight_g)
 
 
-@receiver(post_save, sender=Ingredient)
+@receiver(post_save, sender=Ingredient, dispatch_uid="supply.create_dummy_recipe_for_standalone_food")
 def create_dummy_recipe_for_standalone_food(sender, instance: Ingredient, created: bool, **kwargs):
     """
     Erstellt automatisch ein Dummy-Rezept wenn is_standalone_food=True gesetzt wird.
@@ -109,7 +109,7 @@ def create_dummy_recipe_for_standalone_food(sender, instance: Ingredient, create
     transaction.on_commit(_create_recipe)
 
 
-@receiver(post_save, sender=Ingredient)
+@receiver(post_save, sender=Ingredient, dispatch_uid="supply.create_base_portion_for_ingredient")
 def create_base_portion_for_ingredient(sender, instance: Ingredient, created: bool, **kwargs):
     """Ensure every Ingredient has a default base portion (1g or 1ml)."""
     if not created:
@@ -150,7 +150,7 @@ def create_base_portion_for_ingredient(sender, instance: Ingredient, created: bo
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=Ingredient)
+@receiver(post_save, sender=Ingredient, dispatch_uid="supply.update_ingredient_embedding_and_score")
 def update_ingredient_embedding_and_score(sender, instance: Ingredient, created: bool, **kwargs):
     """After save, asynchronously update embedding and quality score."""
     if hasattr(instance, "_updating_embedding"):
@@ -185,23 +185,35 @@ def update_ingredient_embedding_and_score(sender, instance: Ingredient, created:
 
 
 def _embedding_fields_changed(instance, created: bool) -> bool:
-    """Check if fields relevant to embedding have changed."""
+    """Check if fields relevant to ingredient embedding have changed.
+
+    Uses _old_values (set by capture_ingredient_old_values pre_save signal)
+    to determine if any embedding-relevant field changed. Falls back to True
+    (conservative) when old values are not available.
+    """
     if created:
         return True
-    if instance.tracker and hasattr(instance.tracker, "changed"):
-        relevant = {
-            "name", "description", "retail_section_id",
-            "short_description", "uses", "source",
-            "season_start", "season_end",
-            "energy_kcal", "protein_g", "fat_g", "carbohydrate_g",
-            "sugar_g", "fibre_g", "salt_g", "fat_sat_g",
-            "vitamin_c_mg", "child_score", "scout_score", "environment_score",
-            "child_fave", "scout_fave", "is_vegetarian", "is_vegan",
-            "is_gluten_free", "is_lactose_free", "price_per_kg",
-            "regional_months", "aliases",
-        }
-        return bool(relevant & set(instance.tracker.changed()))
-    return True  # Conservative: update if we can't determine
+    old_values = getattr(instance, "_old_values", None)
+    if old_values is None:
+        # No pre-save snapshot available — assume changed (conservative)
+        return True
+
+    relevant = {
+        "name", "description", "retail_section_id",
+        "season_start", "season_end",
+        "energy_kcal", "protein_g", "fat_g", "carbohydrate_g",
+        "sugar_g", "fibre_g", "salt_g", "fat_sat_g",
+        "vitamin_c_mg", "child_score", "scout_score", "environmental_score",
+        "child_fave", "scout_fave", "is_vegetarian", "is_vegan",
+        "is_gluten_free", "is_lactose_free", "price_per_kg",
+        "season_start", "season_end", "status",
+    }
+    for field in relevant:
+        old_val = old_values.get(field)
+        new_val = getattr(instance, field, None)
+        if old_val != new_val:
+            return True
+    return False
 
 
 def timezone_now():
@@ -226,7 +238,7 @@ _ingredient_tracked_fields = {
 }
 
 
-@receiver(pre_save, sender=Ingredient)
+@receiver(pre_save, sender=Ingredient, dispatch_uid="supply.capture_ingredient_old_values")
 def capture_ingredient_old_values(sender, instance: Ingredient, **kwargs):
     """Store old values before save for audit logging."""
     if instance.pk is None:
@@ -242,7 +254,7 @@ def capture_ingredient_old_values(sender, instance: Ingredient, **kwargs):
         instance._old_values = {}
 
 
-@receiver(post_save, sender=Ingredient)
+@receiver(post_save, sender=Ingredient, dispatch_uid="supply.log_ingredient_changes")
 def log_ingredient_changes(sender, instance: Ingredient, created: bool, **kwargs):
     """Log field-level changes to ChangeAuditLog."""
     if created:

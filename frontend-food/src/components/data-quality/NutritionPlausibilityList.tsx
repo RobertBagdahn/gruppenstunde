@@ -31,12 +31,12 @@ export default function NutritionPlausibilityList({ page = 1, pageSize = 50 }: N
             <div>
               <span className="font-medium">{item.name}</span>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
-                <span>{item.energy_kcal} kcal</span>
-                <span>P {item.protein_g}g</span>
-                <span>F {item.fat_g}g</span>
-                <span>KH {item.carbohydrate_g}g</span>
+                <span>{Math.round(item.energy_kcal)} kcal</span>
+                <span>P {parseFloat(item.protein_g.toFixed(1))}g</span>
+                <span>F {parseFloat(item.fat_g.toFixed(1))}g</span>
+                <span>KH {parseFloat(item.carbohydrate_g.toFixed(1))}g</span>
                 {item.macro_sum > 100 && (
-                  <span className="text-red-600 font-medium">Summe: {item.macro_sum}%</span>
+                  <span className="text-red-600 font-medium">Summe: {parseFloat(item.macro_sum.toFixed(1))}%</span>
                 )}
               </div>
             </div>

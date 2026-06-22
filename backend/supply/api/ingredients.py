@@ -6,7 +6,7 @@ import math
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Query, Router
 from ninja.errors import HttpError
 
 from recipe.models import Recipe
@@ -23,6 +23,8 @@ from supply.schemas import (
     IngredientAliasOut,
     IngredientCreateIn,
     IngredientDetailOut,
+    IngredientImportUrlIn,
+    IngredientImportUrlOut,
     IngredientSimilarOut,
     IngredientSuggestAllOut,
     IngredientUpdateIn,
@@ -97,8 +99,9 @@ def list_ingredients(
 
 
 @ingredient_router.get("/suggest/", response=list[dict])
-def suggest_ingredients(request, q: str = "", limit: int = 5):
+def suggest_ingredients(request, q: str = "", limit: int = Query(default=5, le=50)):
     """Fuzzy-match ingredients by name using trigram similarity."""
+    require_auth(request)
     from supply.services.fuzzy_match import suggest_ingredients as do_suggest
 
     return do_suggest(query=q, limit=limit)
@@ -161,6 +164,10 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
     if not request.user.is_staff and ingredient.created_by_id != request.user.id:
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat bearbeiten")
+
+    data_preview = payload.dict(exclude_unset=True)
+    if data_preview.get("status") == "verified" and not request.user.is_staff:
+        raise HttpError(403, "Nur Admins können den Status auf 'verified' setzen")
 
     nutritional_fields = {
         "energy_kcal",
@@ -412,6 +419,24 @@ def ai_create(request, payload: IngredientAiCreateIn):
 
     ingredient = ai_create_ingredient(payload.name, user=request.user)
     return ingredient
+
+
+@ingredient_router.post("/import-from-url/", response=IngredientImportUrlOut)
+def import_from_url(request, payload: IngredientImportUrlIn):
+    """Extract ingredient data from a URL using Gemini (Produktseite, Open Food Facts, etc.)."""
+    require_auth(request)
+
+    from core.services.gemini import GeminiUnavailableError
+    from supply.services.ingredient_url_import_service import import_ingredient_from_url
+
+    try:
+        result = import_ingredient_from_url(payload.url, user=request.user)
+    except GeminiUnavailableError:
+        raise HttpError(429, "KI-Dienst vorübergehend nicht verfügbar. Bitte später erneut versuchen.")
+    except ValueError as e:
+        raise HttpError(422, str(e))
+
+    return result
 
 
 @ingredient_router.get("/{slug}/recipes/", response=PaginatedRecipeOut)

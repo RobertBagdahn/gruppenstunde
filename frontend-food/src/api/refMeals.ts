@@ -99,7 +99,7 @@ export function useCreateRefMeal(planId: number) {
       postJson(`${API_BASE}/${planId}/ref-meals/`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
     },
   });
 }
@@ -112,7 +112,7 @@ export function useUpdateRefMeal(planId: number, refMealId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
       queryClient.invalidateQueries({ queryKey: ['refMeal', planId, refMealId] });
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
     },
   });
 }
@@ -124,7 +124,7 @@ export function useDeleteRefMeal(planId: number) {
       deleteJson(`${API_BASE}/${planId}/ref-meals/${refMealId}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
     },
   });
 }
@@ -135,7 +135,7 @@ export function useSyncRefMeal(planId: number) {
     mutationFn: (refMealId: number) =>
       postJson(`${API_BASE}/${planId}/ref-meals/${refMealId}/sync`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
     },
   });
 }
@@ -146,7 +146,7 @@ export function useLinkMeal(planId: number) {
     mutationFn: ({ mealId, data }: { mealId: number; data: LinkMealIn }) =>
       postJson(`${API_BASE}/${planId}/meals/${mealId}/link`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
     },
   });
@@ -158,7 +158,7 @@ export function useUnlinkMeal(planId: number) {
     mutationFn: (mealId: number) =>
       postJson(`${API_BASE}/${planId}/meals/${mealId}/unlink`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
     },
   });
@@ -170,7 +170,7 @@ export function useLinkAllMeals(planId: number) {
     mutationFn: (mealType: string) =>
       postJson(`${API_BASE}/${planId}/meals/link-all?meal_type=${mealType}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
     },
   });
