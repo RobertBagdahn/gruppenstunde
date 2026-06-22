@@ -252,6 +252,12 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
     if parsed.prep_time_minutes is not None:
         preparation_time_choice = _minutes_to_preparation_choice(parsed.prep_time_minutes)
 
+    # Filter scout level IDs to only valid ones
+    from content.models.tags import ScoutLevel
+    valid_scout_level_ids = set(
+        ScoutLevel.objects.filter(id__in=gemini_result.scout_level_ids).values_list("id", flat=True)
+    )
+
     return UrlImportResult(
         title=gemini_result.title or parsed.title,
         description=gemini_result.description or parsed.description,
@@ -263,7 +269,7 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
         difficulty=_validate_choice(gemini_result.difficulty, VALID_DIFFICULTIES, "easy"),
         execution_time_choice=_validate_choice(execution_time_choice, VALID_EXECUTION_TIMES, "less_30"),
         preparation_time_choice=_validate_choice(preparation_time_choice, VALID_PREPARATION_TIMES, "none"),
-        scout_level_ids=gemini_result.scout_level_ids,
+        scout_level_ids=list(valid_scout_level_ids),
         tag_ids=gemini_result.tag_ids,
         steps=gemini_result.steps or parsed.steps,
         source_url=url,

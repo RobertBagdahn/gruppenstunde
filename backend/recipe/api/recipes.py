@@ -388,7 +388,9 @@ def create_recipe(request, payload: RecipeCreateIn):
 
     # Set M2M relations
     if payload.scout_level_ids:
-        recipe.scout_levels.set(payload.scout_level_ids)
+        from content.models.tags import ScoutLevel
+        valid_ids = set(ScoutLevel.objects.filter(id__in=payload.scout_level_ids).values_list("id", flat=True))
+        recipe.scout_levels.set(valid_ids)
     if payload.tag_ids:
         recipe.tags.set(payload.tag_ids)
     if payload.nutritional_tag_ids:
@@ -437,7 +439,9 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     recipe.save()
 
     if scout_level_ids is not None:
-        recipe.scout_levels.set(scout_level_ids)
+        from content.models.tags import ScoutLevel
+        valid_ids = set(ScoutLevel.objects.filter(id__in=scout_level_ids).values_list("id", flat=True))
+        recipe.scout_levels.set(valid_ids)
     if tag_ids is not None:
         recipe.tags.set(tag_ids)
     if nutritional_tag_ids is not None:

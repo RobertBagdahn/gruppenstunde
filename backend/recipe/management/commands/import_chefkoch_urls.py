@@ -205,7 +205,9 @@ class Command(BaseCommand):
 
                         # Set M2M
                         if result.scout_level_ids:
-                            recipe.scout_levels.set(result.scout_level_ids)
+                            from content.models.tags import ScoutLevel
+                            valid_ids = set(ScoutLevel.objects.filter(id__in=result.scout_level_ids).values_list("id", flat=True))
+                            recipe.scout_levels.set(valid_ids)
                         if result.tag_ids:
                             recipe.tags.set(result.tag_ids)
 

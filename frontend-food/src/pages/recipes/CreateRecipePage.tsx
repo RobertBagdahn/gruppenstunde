@@ -384,11 +384,14 @@ export default function CreateRecipePage() {
                   Pfadfinderstufen
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {fd.selectedScoutIds.map((id) => (
-                    <span key={id} className="px-2.5 py-1 rounded-full bg-accent/10 text-accent-foreground text-xs font-medium">
-                      {scoutLevels?.find((s) => s.id === id)?.name ?? `Stufe ${id}`}
-                    </span>
-                  ))}
+                  {fd.selectedScoutIds
+                    .map((id) => scoutLevels?.find((s) => s.id === id))
+                    .filter((s): s is NonNullable<typeof s> => s != null)
+                    .map((s) => (
+                      <span key={s.id} className="px-2.5 py-1 rounded-full bg-accent/10 text-accent-foreground text-xs font-medium">
+                        {s.name}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}

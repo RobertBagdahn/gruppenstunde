@@ -132,7 +132,7 @@ class RefurbishOutput(BaseModel):
     preparation_time: str = Field(description="One of: none, less_15, 15_30, 30_60, more_60")
     difficulty: str = Field(description="One of: easy, medium, hard")
     scout_level_ids: list[int] = Field(
-        description="List of scout level IDs: 1=Wölflinge (7-10), 2=Jungpfadfinder (10-13), 3=Pfadfinder (13-16), 4=Rover (16+)"
+        description="List of scout level IDs matching the Pfadfinder-Stufen from the prompt"
     )
     materials: list[MaterialSuggestion] = Field(default_factory=list, description="List of materials needed")
     image_prompt: str = Field(
@@ -270,6 +270,12 @@ class ContentAIService:
 
         ct_config = CONTENT_TYPE_PROMPTS.get(content_type, CONTENT_TYPE_PROMPTS["session"])
 
+        # Build dynamic scout level list from DB
+        from content.models.tags import ScoutLevel as ScoutLevelModel
+        scout_levels = list(ScoutLevelModel.objects.order_by("sorting", "id").values("id", "name"))
+        scout_levels_str = ", ".join(f"{sl['id']}={sl['name']}" for sl in scout_levels)
+        scout_level_ids_valid = {sl["id"] for sl in scout_levels}
+
         prompt = (
             f"Du bekommst einen unformatierten Text über {ct_config['context']}. "
             f"Erstelle daraus eine strukturierte {ct_config['label']} in deutscher Sprache.\n\n"
@@ -282,9 +288,7 @@ class ContentAIService:
             "- execution_time: Eines von 'less_30', '30_60', '60_90', 'more_90'\n"
             "- preparation_time: Eines von 'none', 'less_15', '15_30', '30_60', 'more_60'\n"
             "- difficulty: Eines von 'easy', 'medium', 'hard'\n"
-            "- scout_level_ids: Liste der passenden Pfadfinder-Stufen als IDs. "
-            "1=Wölflinge (7-10), 2=Jungpfadfinder (10-13), "
-            "3=Pfadfinder (13-16), 4=Rover (16+).\n"
+            f"- scout_level_ids: Liste der passenden Pfadfinder-Stufen als IDs. {scout_levels_str}.\n"
             "- materials: Liste der benötigten Materialien. Jedes Material hat: "
             "quantity, material_name, material_unit. "
             "Leere Liste wenn keine Materialien benötigt werden.\n"
@@ -347,8 +351,8 @@ class ContentAIService:
                 for t in tag_objs
             ]
 
-        # Validate scout level IDs (only allow 1-4)
-        valid_scout_ids = [sid for sid in structured.scout_level_ids if sid in (1, 2, 3, 4)]
+        # Validate scout level IDs against database
+        valid_scout_ids = [sid for sid in structured.scout_level_ids if sid in scout_level_ids_valid]
 
         # Truncate title/summary
         title = structured.title[:45].rstrip()

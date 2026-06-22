@@ -269,7 +269,7 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
     if not text.strip():
         return False
 
-    if not force and content_obj.embedding and content_obj.embedding_updated_at:
+    if not force and content_obj.embedding is not None and content_obj.embedding_updated_at:
         if content_obj.embedding_updated_at >= content_obj.updated_at:
             logger.debug(
                 "Skipping embedding update for %s #%d — already up to date",
@@ -304,7 +304,7 @@ def update_ingredient_embedding(ingredient, force: bool = False) -> bool:
     if not text.strip():
         return False
 
-    if not force and ingredient.embedding and ingredient.embedding_updated_at:
+    if not force and ingredient.embedding is not None and ingredient.embedding_updated_at:
         if ingredient.embedding_updated_at >= ingredient.updated_at:
             logger.debug("Skipping embedding update for Ingredient #%d — already up to date", ingredient.pk)
             return False
@@ -358,7 +358,7 @@ def find_similar_ingredients(ingredient, threshold: float = 0.05, limit: int = 2
 
 def get_embedding_vector(content_obj) -> list[float] | None:
     """Extract the embedding vector from a content object."""
-    if not content_obj.embedding:
+    if content_obj.embedding is None:
         return None
     if hasattr(content_obj.embedding, "tolist"):
         return content_obj.embedding.tolist()
