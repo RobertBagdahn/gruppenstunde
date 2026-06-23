@@ -285,8 +285,13 @@ class RecipeAiIngredientsService:
             "- Gewürze/Kräuter: 1-5g\n"
             "- Öle/Butter: 5-15g\n"
             "- Flüssigkeiten (Milch, Brühe): 100-250ml\n\n"
-            "Verwende deutsche Standard-Zutatennamen (z.B. 'Joghurt', 'Knoblauch', "
-            "'Olivenöl', nicht 'griechischer Joghurt' oder 'natives Olivenöl extra').\n"
+            "REGELN FÜR ZUTATENNAMEN:\n"
+            "- Jeder Name MUSS eine Zustandsform enthalten: frisch, TK, getrocknet, geräuchert, "
+            "aus der Dose, eingelegt, gemahlen, gerieben, geröstet\n"
+            "- Richtig: 'Zwiebel frisch', 'Erdbeere TK', 'Fusilli trocken', 'Tomaten aus der Dose'\n"
+            "- FALSCH: 'Nudeln', 'Erdbeere', 'Zwiebel' (zu generisch)\n"
+            "- VERBOTEN: Zutaten mit 'und' im Namen (nie 'Salz und Pfeffer')\n"
+            "- WEGLASSEN: Salz, Pfeffer, Wasser (Grundausstattung, nicht einkaufen)\n"
             "Gib nur die Zutaten zurück, keine Anleitung."
         )
 

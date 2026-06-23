@@ -1,6 +1,7 @@
 import { useState, useDeferredValue, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid } from 'lucide-react';
+import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf } from 'lucide-react';
+import { useNutritionalTags } from '@/api/supplies';
 import {
   Dialog,
   DialogContent,
@@ -83,6 +84,15 @@ export default function RecipeSearchDialog({
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
   const [excludeDietaryTags, setExcludeDietaryTags] = useState(true);
+  const [includeTagIds, setIncludeTagIds] = useState<number[]>([]);
+
+  const { data: allNutritionalTags = [] } = useNutritionalTags();
+
+  // Tags that make sense as quick filters (vegan, vegetarisch, laktosefrei, glutenfrei)
+  const QUICK_FILTER_NAMES = ['vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei'];
+  const quickFilterTags = allNutritionalTags.filter(
+    (t) => QUICK_FILTER_NAMES.some((name) => t.name.toLowerCase().includes(name))
+  );
 
   const deferredQuery = useDeferredValue(query);
 
@@ -94,6 +104,7 @@ export default function RecipeSearchDialog({
     recipe_types: recipeTypesArray,
     recipe_badge: badgeFilter !== 'all' ? badgeFilter : null,
     exclude_nutritional_tag_ids: excludeDietaryTags && nutritionalTagIds?.length ? nutritionalTagIds : undefined,
+    nutritional_tag_ids: includeTagIds.length > 0 ? includeTagIds : undefined,
     limit: 20,
   });
 
@@ -211,6 +222,36 @@ export default function RecipeSearchDialog({
               </div>
             </div>
           </div>
+
+          {/* Ernährungsweise-Filter (Vegan, Vegetarisch, etc.) */}
+          {quickFilterTags.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
+                <Leaf className="w-3 h-3" />
+                Ernährung:
+              </span>
+              {quickFilterTags.map((tag) => {
+                const isSelected = includeTagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => setIncludeTagIds(
+                      isSelected
+                        ? includeTagIds.filter((id) => id !== tag.id)
+                        : [...includeTagIds, tag.id]
+                    )}
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Ernährungs-Ausschluss */}
           {nutritionalTagIds && nutritionalTagIds.length > 0 && (
@@ -387,9 +428,9 @@ function IngredientQuantityDialog({
             </div>
           )}
 
-          {totalWeightG && (
+          {totalWeightG && selectedPortion?.weight_g && (
             <p className="text-xs text-muted-foreground">
-              = {Math.round(totalWeightG)}g
+              {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
             </p>
           )}
 

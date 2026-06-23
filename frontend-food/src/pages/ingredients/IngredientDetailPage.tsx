@@ -10,6 +10,7 @@ import {
   useCreatePortion,
   useUpdatePortion,
   useDeletePortion,
+  useMovePortion,
   useCreateAlias,
   useDeleteAlias,
   useAiSuggestIngredientAll,
@@ -456,7 +457,7 @@ export default function IngredientDetailPage() {
   const updateIngredient = useUpdateIngredient(slug || '');
   const deleteIngredient = useDeleteIngredient();
   const createPortion = useCreatePortion(slug || '');
-  const updatePortion = useUpdatePortion(slug || '');
+  const movePortion = useMovePortion(slug || '');
   const createAlias = useCreateAlias(slug || '');
   const deleteAlias = useDeleteAlias(slug || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1035,30 +1036,10 @@ export default function IngredientDetailPage() {
                 isFirst={index === 0}
                 isLast={index === sorted.length - 1}
                 onMoveUp={async () => {
-                  const prev = sorted[index - 1];
-                  if (!prev) return;
-                  // Swap the actual rank field values (not array indices)
-                  const rankA = portion.rank;
-                  const rankB = prev.rank;
-                  await updatePortion.mutateAsync(
-                    { portionId: portion.id, data: { rank: rankB } },
-                  );
-                  await updatePortion.mutateAsync(
-                    { portionId: prev.id, data: { rank: rankA } },
-                  );
+                  await movePortion.mutateAsync({ portionId: portion.id, direction: 'up' });
                 }}
                 onMoveDown={async () => {
-                  const next = sorted[index + 1];
-                  if (!next) return;
-                  // Swap the actual rank field values (not array indices)
-                  const rankA = portion.rank;
-                  const rankB = next.rank;
-                  await updatePortion.mutateAsync(
-                    { portionId: portion.id, data: { rank: rankB } },
-                  );
-                  await updatePortion.mutateAsync(
-                    { portionId: next.id, data: { rank: rankA } },
-                  );
+                  await movePortion.mutateAsync({ portionId: portion.id, direction: 'down' });
                 }}
               />
             ))}
@@ -1252,7 +1233,7 @@ function buildIngredientSuggestionFields(
   };
 
   const nutritionFields = [
-    { key: 'energy_kcal', label: 'Energie (kJ / kcal)' },
+    { key: 'energy_kcal', label: 'Energie (kcal)' },
     { key: 'protein_g', label: 'Protein (g)' },
     { key: 'fat_g', label: 'Fett (g)' },
     { key: 'fat_sat_g', label: 'davon gesättigte Fettsäuren (g)' },

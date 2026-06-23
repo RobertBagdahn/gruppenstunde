@@ -491,7 +491,7 @@ AUFGABEN:
 1. Extrahiere/validiere die Rezept-Metadaten (title, description, summary, servings, preparation_time, execution_time, steps)
 2. Schätze folgende Felder:
    - summary: Kurzbeschreibung in 1-2 Sätzen
-    - recipe_type: MUSS einer dieser Werte sein: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack
+   - recipe_type: MUSS einer dieser Werte sein: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack
    - difficulty: MUSS sein: easy, medium, hard
    - execution_time_choice: MUSS sein: less_30, 30_60, 60_90, more_90 (basierend auf Gesamtkochzeit)
    - preparation_time_choice: MUSS sein: none, less_15, 15_30, 30_60, more_60 (basierend auf Vorbereitungszeit)
@@ -500,7 +500,7 @@ AUFGABEN:
 3. Für jede Zutat:
    a) Prüfe ob ein Kandidat aus der DB passt (semantisch, nicht nur String-Match). Wenn ja: setze matched_ingredient_id
    b) Wenn kein Match: erstelle new_ingredient mit ALLEN Feldern (Nährwerte pro 100g, Scores, physikalische Eigenschaften)
-    c) estimated_portion_weight_g: Gewicht einer Einheit in Gramm (z.B. 1 EL = 15g, 1 TL = 5g, 1 Stück Zwiebel = 80g, 1 Stück Tomate = 120g, 1 Stück Champignon = 20g, 1 Stück Paprika = 150g, 1 Zehe Knoblauch = 4g, 1 Ei = 60g, 1 g = 1g, 1 ml = 1g, 1 Prise = 0.3g, 1 Schuss = 10g, 1 Packung/Pck. = Packungsgewicht z.B. 200g bei Feta, 400g bei Dosentomaten)
+   c) estimated_portion_weight_g: Gewicht einer Einheit in Gramm (z.B. 1 EL = 15g, 1 TL = 5g, 1 Stück Zwiebel = 80g, 1 Stück Tomate = 120g, 1 Stück Champignon = 20g, 1 Stück Paprika = 150g, 1 Zehe Knoblauch = 4g, 1 Ei = 60g, 1 g = 1g, 1 ml = 1g, 1 Prise = 0.3g, 1 Schuss = 10g, 1 Packung/Pck. = Packungsgewicht z.B. 200g bei Feta, 400g bei Dosentomaten)
 4. Nährwerte müssen realistisch und korrekt sein (recherchiere via Google wenn nötig)
 5. quantity und unit aus dem Rezept-Kontext korrekt parsen:
    - "2 rote Zwiebeln" → quantity=2, unit="Stück", note="rot"
@@ -509,6 +509,18 @@ AUFGABEN:
    - "1 Dose Tomaten (400g)" → quantity=400, unit="g"
    - "etwas Petersilie" → quantity=1, unit="EL", note="etwas"
    - Abkürzungen auflösen: Pck.=Packung, Bd.=Bund, EL=Esslöffel, TL=Teelöffel, Msp.=Messerspitze
+
+WICHTIGE REGELN FÜR ZUTATEN:
+- VERBOTEN: Zutaten mit "und" im Namen (z.B. "Salz und Pfeffer" ist VERBOTEN)
+- Jede Zutat ist genau eine Sache — niemals zwei Zutaten mit "und" verbinden
+- "Salz und Pfeffer nach Geschmack" → diese Zutat WEGLASSEN (Grundausstattung)
+- "Salz" alleine → WEGLASSEN (zu generisch, Grundausstattung)
+- "Pfeffer" alleine → WEGLASSEN (zu generisch, Grundausstattung)
+- "Wasser" alleine → WEGLASSEN (Grundausstattung)
+- Für neue Zutaten (new_ingredient.name): MUSS immer eine Zustandsform enthalten
+  Erlaubt: "Zwiebel frisch", "Erdbeere frisch", "Erdbeere TK", "Fusilli trocken", "Tomaten aus der Dose", "Hähnchenbrust frisch"
+  VERBOTEN: "Nudeln", "Erdbeere", "Zwiebel", "Tomaten" (zu generisch, keine Zustandsform)
+  Zustandsformen: frisch, tiefgefroren (TK), getrocknet, geräuchert, aus der Dose, eingelegt, gemahlen, gerieben, geröstet
 
 physical_viscosity muss sein: solid, beverage
 

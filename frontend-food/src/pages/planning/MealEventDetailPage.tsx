@@ -275,15 +275,27 @@ export default function MealPlanDetailPage() {
             )}
           </div>
         </div>
-        {plan.can_edit && (
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all self-start shadow-soft"
+        <div className="flex items-center gap-2 self-start">
+          <a
+            href={`/meal-plans/${mealPlanId}/print`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            title="Druckansicht öffnen"
           >
-            <Settings className="w-4 h-4 text-primary" />
-            Einstellungen
-          </button>
-        )}
+            <span className="material-symbols-outlined text-[18px]">print</span>
+            Drucken
+          </a>
+          {plan.can_edit && (
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            >
+              <Settings className="w-4 h-4 text-primary" />
+              Einstellungen
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Settings Panel */}

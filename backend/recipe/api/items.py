@@ -153,12 +153,30 @@ def ai_suggest_ingredients(request, recipe_id: int):
         raise HttpError(403, "Keine Berechtigung")
 
     from recipe.services.ai_ingredients_service import RecipeAiIngredientsService
+    from supply.models import IngredientAlias
 
     service = RecipeAiIngredientsService()
     results = service.get_full_suggestions(recipe, user=request.user)
 
     if results is None:
         raise HttpError(503, "KI-Vorschläge konnten nicht generiert werden")
+
+    # Collect ingredient IDs already in this recipe (via portions)
+    existing_ingredient_ids: set[int] = set(
+        recipe.items.select_related("portion__ingredient")
+        .values_list("portion__ingredient_id", flat=True)
+    )
+
+    # Also collect alias ingredient IDs for ingredients already in the recipe
+    # so that e.g. "Zwiebeln" is excluded when "Zwiebel" is already present
+    alias_ingredient_ids: set[int] = set(
+        IngredientAlias.objects.filter(
+            ingredient_id__in=existing_ingredient_ids
+        ).values_list("ingredient_id", flat=True)
+    )
+    all_excluded_ids = existing_ingredient_ids | alias_ingredient_ids
+
+    filtered = [r for r in results if r.ingredient_id not in all_excluded_ids]
 
     return [
         {
@@ -169,7 +187,7 @@ def ai_suggest_ingredients(request, recipe_id: int):
             "quantity": r.quantity,
             "is_new_ingredient": r.is_new_ingredient,
         }
-        for r in results
+        for r in filtered
     ]
 
 

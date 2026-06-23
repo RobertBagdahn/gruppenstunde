@@ -132,8 +132,13 @@ export default function RefMealEditorPage() {
   const handleSync = async () => {
     if (!refMeal) return;
     try {
-      await syncRefMeal.mutateAsync(refMeal.id);
-      toast.success('Alle verknüpften Mahlzeiten synchronisiert');
+      const result = await syncRefMeal.mutateAsync(refMeal.id);
+      const count = result?.synced_meals ?? 0;
+      if (count === 0) {
+        toast.info('Keine synchronisierten Mahlzeiten vorhanden');
+      } else {
+        toast.success(`${count} Mahlzeit${count === 1 ? '' : 'en'} wurde${count === 1 ? '' : 'n'} aktualisiert`);
+      }
     } catch {
       toast.error('Fehler beim Synchronisieren');
     }

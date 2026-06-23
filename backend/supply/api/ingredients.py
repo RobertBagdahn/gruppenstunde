@@ -332,6 +332,48 @@ def delete_portion(request, slug: str, portion_id: int):
     return {"success": True}
 
 
+@ingredient_router.post("/{slug}/portions/{portion_id}/move/", response=list[PortionOut])
+def move_portion_rank(request, slug: str, portion_id: int, direction: str):
+    """Move a portion up or down in rank order (▲/▼).
+
+    direction: 'up' or 'down'
+    Swaps rank values with the adjacent portion. Returns updated list of portions.
+    """
+    from django.db import transaction
+
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+    portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
+
+    portions = list(
+        Portion.objects.filter(ingredient=ingredient, is_deleted=False)
+        .order_by("rank", "id")
+    )
+
+    idx = next((i for i, p in enumerate(portions) if p.id == portion.id), None)
+    if idx is None:
+        raise HttpError(404, "Portion nicht gefunden")
+
+    if direction == "up" and idx > 0:
+        swap_with = portions[idx - 1]
+    elif direction == "down" and idx < len(portions) - 1:
+        swap_with = portions[idx + 1]
+    else:
+        raise HttpError(400, "Verschieben in diese Richtung nicht möglich")
+
+    with transaction.atomic():
+        portion.rank, swap_with.rank = swap_with.rank, portion.rank
+        portion.save(update_fields=["rank"])
+        swap_with.save(update_fields=["rank"])
+
+    return list(
+        Portion.objects.filter(ingredient=ingredient, is_deleted=False)
+        .order_by("rank", "id")
+        .select_related("measuring_unit")
+    )
+
+
 # ===========================================================================
 # Aliases
 # ===========================================================================
@@ -485,8 +527,14 @@ def list_recipes_by_ingredient(request, slug: str, page: int = 1, page_size: int
 
 @ingredient_router.get("/{slug}/similar/", response=list[IngredientSimilarOut])
 def get_similar_ingredients(request, slug: str):
-    """Get similar ingredients using vector embedding similarity."""
+    """Get similar ingredients using vector embedding similarity.
+
+    Uses a strict threshold (0.02) to avoid false positives like
+    Schweinebauch vs. Schweinenacken being flagged as duplicates.
+    """
     from content.services.embedding_service import find_similar_ingredients
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
-    return find_similar_ingredients(ingredient, limit=6)
+    # Strict threshold: 0.02 cosine distance = very similar names only
+    # Default was 0.05 which incorrectly matched Schweinebauch/Schweinenacken
+    return find_similar_ingredients(ingredient, threshold=0.02, limit=6)

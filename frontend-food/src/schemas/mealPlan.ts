@@ -98,6 +98,7 @@ export const MealPlanSchema = z.object({
   meal_default_times: z.record(z.string(), z.array(z.string())),
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tag_names: z.array(z.string()).default([]),
+  is_template: z.boolean().default(false),
 });
 export type MealPlan = z.infer<typeof MealPlanSchema>;
 
@@ -129,6 +130,7 @@ export const MealPlanDetailSchema = z.object({
   can_edit: z.boolean(),
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
+  is_template: z.boolean().default(false),
 });
 export type MealPlanDetail = z.infer<typeof MealPlanDetailSchema>;
 
@@ -598,9 +600,11 @@ export type CopyItemsFromPlanIn = z.infer<typeof CopyItemsFromPlanInSchema>;
 
 export const MEALPLAN_ORIGIN_OPTIONS = [
   { value: 'all', label: 'Alle', icon: 'public' },
+  { value: 'mine', label: 'Meine Pläne', icon: 'person' },
+  { value: 'shared', label: 'Geteilt mit mir', icon: 'group' },
+  { value: 'template', label: 'Referenz-Vorlagen', icon: 'star' },
   { value: 'verified', label: 'Inspi-verifiziert', icon: 'verified' },
   { value: 'community', label: 'Community', icon: 'groups' },
-  { value: 'mine', label: 'Meine Pläne', icon: 'person' },
 ] as const;
 
 export const MEALPLAN_SORT_OPTIONS = [

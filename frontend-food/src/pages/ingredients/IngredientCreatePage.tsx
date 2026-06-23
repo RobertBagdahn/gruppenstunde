@@ -70,7 +70,7 @@ export default function IngredientCreatePage() {
   const [retailSectionId, setRetailSectionId] = useState('');
 
   // Nutritional values per 100g
-  const [energyKj, setEnergyKj] = useState('');
+  const [energyKcal, setEnergyKcal] = useState('');
   const [proteinG, setProteinG] = useState('');
   const [fatG, setFatG] = useState('');
   const [fatSatG, setFatSatG] = useState('');
@@ -147,7 +147,7 @@ export default function IngredientCreatePage() {
       status,
       retail_section_id: retailSectionId ? Number(retailSectionId) : null,
 
-      energy_kcal: toNum(energyKj),
+      energy_kcal: toNum(energyKcal),
       protein_g: toNum(proteinG),
       fat_g: toNum(fatG),
       fat_sat_g: toNum(fatSatG),
@@ -301,8 +301,8 @@ export default function IngredientCreatePage() {
         {/* Nährwerte */}
         <FormSection title="Nährwerte pro 100g" icon="nutrition">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <Field label="Energie (kJ)">
-              <input type="number" step="0.1" value={energyKj} onChange={(e) => setEnergyKj(e.target.value)} className={inputClass} />
+            <Field label="Energie (kcal)">
+              <input type="number" step="0.1" value={energyKcal} onChange={(e) => setEnergyKcal(e.target.value)} className={inputClass} />
             </Field>
             <Field label="Protein (g)">
               <input type="number" step="0.01" value={proteinG} onChange={(e) => setProteinG(e.target.value)} className={inputClass} />

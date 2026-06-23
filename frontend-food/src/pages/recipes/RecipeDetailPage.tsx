@@ -429,8 +429,18 @@ export default function RecipeDetailPage() {
         )}
       </div>
 
-      {/* Edit + Delete Buttons */}
+      {/* Edit + Delete + Print Buttons */}
       <div className="flex items-center justify-end gap-2">
+        <a
+          href={`/recipes/${recipe.slug}/print`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
+          title="Druckansicht öffnen"
+        >
+          <span className="material-symbols-outlined text-[18px]">print</span>
+          <span className="hidden sm:inline">Drucken</span>
+        </a>
         {recipe.can_edit && (
           <Link
             to={`/recipes/${recipe.slug}/edit`}
@@ -753,6 +763,7 @@ export default function RecipeDetailPage() {
             recipeId={recipe.id}
             items={recipe.recipe_items ?? []}
             portions={recipe.portions}
+            displayPortions={portionsMultiplier > 1 ? portionsMultiplier : undefined}
             onClose={() => {
               setIsInlineEditMode(false);
               const next = new URLSearchParams(searchParams);

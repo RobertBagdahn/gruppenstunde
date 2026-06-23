@@ -207,6 +207,7 @@ class MealPlanOut(Schema):
     meal_default_times: dict[str, list[str]]
     nutritional_tag_ids: list[int] = []
     nutritional_tag_names: list[str] = []
+    is_template: bool = False
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -269,6 +270,7 @@ class MealPlanUpdateIn(Schema):
     meal_default_times: dict[str, list[str]] | None = None
     visibility: Literal["private", "group", "public", "draft"] | None = None
     nutritional_tag_ids: list[int] | None = None
+    is_template: bool | None = None  # Only respected when set by admins
 
 
 class MealPlanDetailOut(Schema):
@@ -295,6 +297,7 @@ class MealPlanDetailOut(Schema):
     can_edit: bool = False
     nutritional_tag_ids: list[int] = []
     nutritional_tags: list[NutritionalTagOut] = []
+    is_template: bool = False
 
     @staticmethod
     def resolve_event_name(obj) -> str:

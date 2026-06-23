@@ -60,10 +60,13 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
 
   if (min == null || max == null || avg == null) return null;
 
-  const range = max - min;
-  const positionPercent = range > 0 ? ((currentValue - min) / range) * 100 : 50;
+  // Extend range to include currentValue if it falls outside min/max
+  const effectiveMin = Math.min(min, currentValue);
+  const effectiveMax = Math.max(max, currentValue > 0 ? currentValue : max);
+  const range = effectiveMax - effectiveMin;
+  const positionPercent = range > 0 ? ((currentValue - effectiveMin) / range) * 100 : 50;
   const percentile = range > 0
-    ? Math.round(((currentValue - min) / range) * 100)
+    ? Math.round(((currentValue - effectiveMin) / range) * 100)
     : 50;
 
   const formatVal = (v: number) =>
@@ -86,12 +89,12 @@ export function RecipeCategoryBenchmark({ stats, currentValue, metric }: Props) 
       </h3>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{formatVal(min)}</span>
+        <span>{formatVal(effectiveMin)}</span>
         {median != null && (
           <span className="hidden sm:inline">Median {formatVal(median)}</span>
         )}
         <span>Ø {formatVal(avg)}</span>
-        <span>{formatVal(max)}</span>
+        <span>{formatVal(effectiveMax)}</span>
       </div>
 
       <div className="relative h-3 bg-muted rounded-full overflow-hidden">

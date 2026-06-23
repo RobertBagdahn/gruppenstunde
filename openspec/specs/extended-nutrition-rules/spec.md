@@ -21,7 +21,8 @@ The system SHALL provide at least the following RecipeHint rules for macronutrie
 |------|-----------|---------|-------|-------|-----------|------------------|
 | Mehr Eiweiß | protein_g | min | 30 | warning | health | Ergänze eiweißreiche Zutaten wie Hülsenfrüchte, Tofu, Eier oder mageres Fleisch. |
 | Viel mehr Eiweiß nötig | protein_g | min | 10 | error | health | Der Eiweißgehalt ist sehr niedrig. Füge eine Proteinquelle wie Linsen, Kichererbsen oder Quark hinzu. |
-| Zu viel Eiweiß | protein_g | max | 80 | warning | health | Der Eiweißgehalt ist hoch. Bei Hauptmahlzeiten ist das ok, bei Snacks eher ungewöhnlich. |
+
+> **Richtlinie**: Für Protein gibt es ausschließlich Minimum-Regeln. Maximum-Regeln für Protein sind nicht vorgesehen — „zu viel Protein" ist kein Pfadfinder-Problem.
 
 **Fett (fat_g):**
 | Name | Parameter | Min/Max | Value | Level | Objective | Improvement Text |
@@ -50,6 +51,8 @@ The system SHALL provide at least the following RecipeHint rules for macronutrie
 | Sehr viel Zucker | sugar_g | max | 40 | error | health | Der Zuckergehalt ist viel zu hoch. Halbiere die Zuckermenge oder verwende Alternativen wie Dattelpaste. |
 | Hoher Zuckeranteil an KH | sugar_g | max | 15 | info | health | Prüfe ob der Zucker aus natürlichen Quellen (Obst) oder zugesetztem Zucker stammt. |
 
+> **Richtlinie**: Für Zucker gibt es ausschließlich Maximum-Regeln. Minimum-Regeln für Zucker sind nicht vorgesehen (kein „zu wenig Zucker"-Problem im Pfadfinderlager-Kontext).
+
 **Salz (salt_g):**
 | Name | Parameter | Min/Max | Value | Level | Objective | Improvement Text |
 |------|-----------|---------|-------|-------|-----------|------------------|
@@ -69,6 +72,8 @@ The system SHALL provide at least the following RecipeHint rules for macronutrie
 | Mehr Ballaststoffe | fibre_g | min | 3 | info | fulfillment | Ergänze ballaststoffreiche Zutaten wie Vollkornprodukte, Hülsenfrüchte oder Gemüse. |
 | Viel mehr Ballaststoffe | fibre_g | min | 1 | warning | health | Der Ballaststoffgehalt ist sehr niedrig. Ersetze weißen Reis durch Vollkornreis oder füge Leinsamen hinzu. |
 | Zu wenig Ballaststoffe für Sättigung | fibre_g | min | 5 | warning | fulfillment | Für eine gute Sättigung sollte die Mahlzeit mehr Ballaststoffe enthalten. Verwende Vollkornprodukte. |
+
+> **Richtlinie**: Für Ballaststoffe gibt es ausschließlich Minimum-Regeln. Maximum-Regeln für Ballaststoffe sind nicht vorgesehen — „zu viele Ballaststoffe" ist kein Pfadfinder-Problem.
 
 **Nutri-Score (nutri_class):**
 | Name | Parameter | Min/Max | Value | Level | Objective | Improvement Text |
@@ -232,3 +237,28 @@ The system SHALL track only `vitamin_c_mg` as micronutrient field on Ingredient 
 #### Scenario: Cockpit evaluates only vitamin_c rules
 - **WHEN** the cockpit evaluates micronutrient HealthRules for a day
 - **THEN** only rules with parameter `vitamin_c_mg` are evaluated
+
+### Requirement: Korrekte Ampel-Richtung für Ballaststoffe, Zucker und Protein
+
+Die Seed-Regeln für Nährwert-Ampeln SHALL ausschließlich sinnvolle Richtungen für den Pfadfinderlager-Kontext implementieren: Ballaststoffe nur Minimum, Zucker nur Maximum, Protein nur Minimum. „Zu viele Ballaststoffe" ist kein Pfadfinder-Problem und DARF NICHT als Warnung erscheinen.
+
+#### Scenario: Ballaststoffe — nur Minimum-Regel
+
+- **WHEN** ein Rezept ausgewertet wird dessen Ballaststoffgehalt unter dem Mindestwert liegt
+- **THEN** zeigt die Ampel eine Warnung „Zu wenig Ballaststoffe"
+- **WHEN** ein Rezept ausgewertet wird dessen Ballaststoffgehalt über einem Maximum liegt
+- **THEN** zeigt die Ampel KEINE Warnung (kein Maximum für Ballaststoffe)
+
+#### Scenario: Zucker — nur Maximum-Regel
+
+- **WHEN** ein Rezept ausgewertet wird dessen Zuckergehalt über dem Maximalwert liegt
+- **THEN** zeigt die Ampel eine Warnung „Zu viel Zucker"
+- **WHEN** ein Rezept ausgewertet wird dessen Zuckergehalt sehr niedrig ist
+- **THEN** zeigt die Ampel KEINE Warnung (kein Minimum für Zucker)
+
+#### Scenario: Protein — nur Minimum-Regel
+
+- **WHEN** ein Rezept ausgewertet wird dessen Proteingehalt unter dem Mindestwert liegt
+- **THEN** zeigt die Ampel eine Warnung „Zu wenig Protein"
+- **WHEN** ein Rezept ausgewertet wird dessen Proteingehalt sehr hoch ist
+- **THEN** zeigt die Ampel KEINE Warnung (kein Maximum für Protein)

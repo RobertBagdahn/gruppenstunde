@@ -132,10 +132,15 @@ export function useDeleteRefMeal(planId: number) {
 export function useSyncRefMeal(planId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (refMealId: number) =>
-      postJson(`${API_BASE}/${planId}/ref-meals/${refMealId}/sync`),
+    mutationFn: async (refMealId: number) => {
+      const result = await postJson(`${API_BASE}/${planId}/ref-meals/${refMealId}/sync`);
+      return result as { synced_meals: number };
+    },
     onSuccess: () => {
+      // Invalidate all queries that show meal contents so changes appear immediately
       queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meals', planId] });
     },
   });
 }

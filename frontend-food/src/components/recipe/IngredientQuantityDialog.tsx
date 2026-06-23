@@ -94,9 +94,9 @@ export default function IngredientQuantityDialog({
             </div>
           )}
 
-          {totalWeightG && (
+          {totalWeightG && selectedPortion?.weight_g && (
             <p className="text-xs text-muted-foreground">
-              = {Math.round(totalWeightG)}g
+              {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
             </p>
           )}
 

@@ -43,3 +43,23 @@ Das System SHALL Energie-Werte direkt in kcal aus den Cache-Feldern lesen und oh
 - **WHEN** ein Tag einen aggregierten Energiewert von 2151 kcal hat und die Tagesregel `min_green=1912`, `max_green=2629` kcal lautet
 - **THEN** wird 2151 kcal direkt (ohne Konvertierung) ausgewertet und als grün eingestuft
 - **AND** der an das Frontend gelieferte `current_value` beträgt 2151 mit `unit="kcal"`
+
+### Requirement: Energie-Eingabefeld korrekt beschriftet
+
+Das Eingabeformular für Zutaten (IngredientCreatePage) SHALL das Energie-Eingabefeld eindeutig mit „Energie (kcal)" beschriften. Das bisherige Label „Energie (kJ)" war falsch und hat zu potenziell falschen gespeicherten Werten geführt.
+
+#### Scenario: Energie-Eingabefeld korrekt beschriftet
+
+- **WHEN** ein Nutzer eine neue Zutat anlegt oder bearbeitet
+- **THEN** ist das Energie-Feld mit „Energie (kcal)" beschriftet
+- **THEN** gibt es kein Feld mit der Beschriftung „Energie (kJ)"
+
+#### Scenario: Keine kJ-Anzeige mehr vorhanden
+
+- **WHEN** eine beliebige Energie-Anzeige in der App gerendert wird (Zutat, Rezept, Mahlzeit, Plan, Simulator, Export)
+- **THEN** wird die Einheit „kcal" verwendet und nirgends mehr „kJ" angezeigt
+
+#### Scenario: Energie-Regeln in kcal
+
+- **WHEN** eine Energie-Ampel-Regel angezeigt oder ausgewertet wird
+- **THEN** verwendet sie `parameter="energy_kcal"` und kcal-Schwellwerte

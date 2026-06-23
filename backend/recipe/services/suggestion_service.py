@@ -49,6 +49,7 @@ def evaluate_suggestions(meal_plan: "MealPlan") -> SuggestionDashboardOut:
     suggestions.extend(_check_budget(meal_plan))
     suggestions.extend(_evaluate_admin_rules(meal_plan))
     suggestions.extend(_check_duplicates(meal_plan))
+    suggestions.extend(_check_nutritional_tag_compliance(meal_plan))
 
     # Sort: red > yellow > green, then by priority
     status_order = {"red": 0, "yellow": 1, "green": 2}
@@ -285,6 +286,75 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                             target_mid=target_mid,
                         )
                     )
+
+    return suggestions
+
+
+def _check_nutritional_tag_compliance(meal_plan: "MealPlan") -> list[SuggestionOut]:
+    """Check that all recipes in the plan comply with the plan's nutritional tags.
+
+    E.g., if the plan is tagged 'Halal', all recipe ingredients should carry that tag.
+    Ingredients without the required tag trigger a yellow warning.
+    """
+    suggestions: list[SuggestionOut] = []
+
+    plan_tags = list(meal_plan.nutritional_tags.all())
+    if not plan_tags:
+        return suggestions
+
+    from planner.models import MealItem
+    from recipe.models import Recipe
+
+    # Collect all recipe items in this plan
+    meal_items = (
+        MealItem.objects.filter(meal__meal_plan=meal_plan, recipe__isnull=False)
+        .select_related("recipe", "meal")
+        .prefetch_related("recipe__items__ingredient__nutritional_tags")
+    )
+
+    for plan_tag in plan_tags:
+        violations: list[str] = []
+        seen_combos: set[tuple[int, int]] = set()  # (recipe_id, ingredient_id)
+
+        for meal_item in meal_items:
+            recipe = meal_item.recipe
+            if not recipe:
+                continue
+
+            for recipe_item in recipe.items.all():
+                ingredient = recipe_item.ingredient if hasattr(recipe_item, "ingredient") else None
+                if ingredient is None and hasattr(recipe_item, "portion") and recipe_item.portion:
+                    ingredient = recipe_item.portion.ingredient
+
+                if ingredient is None:
+                    continue
+
+                combo = (recipe.id, ingredient.id)
+                if combo in seen_combos:
+                    continue
+                seen_combos.add(combo)
+
+                ingredient_tag_ids = {t.id for t in ingredient.nutritional_tags.all()}
+                if plan_tag.id not in ingredient_tag_ids:
+                    violations.append(f"{recipe.title}: {ingredient.name}")
+
+        if violations:
+            violation_list = violations[:5]
+            extra = len(violations) - 5
+            message = "Mögliche Verstöße: " + ", ".join(violation_list)
+            if extra > 0:
+                message += f" … und {extra} weitere"
+            suggestions.append(
+                SuggestionOut(
+                    category="nutritional_tag",
+                    scope="event",
+                    scope_label=f"Ernährungsweise: {plan_tag.name}",
+                    status="yellow",
+                    priority=5,
+                    message=message,
+                    tip=f"Prüfe ob alle Zutaten {plan_tag.name}-konform sind und ergänze den Tag bei betroffenen Zutaten.",
+                )
+            )
 
     return suggestions
 

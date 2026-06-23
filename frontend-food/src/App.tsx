@@ -22,7 +22,11 @@ import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
 import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
 import MealPlanListPage from './pages/planning/MealEventListPage';
 import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
+import MealPlanPrintPage from './pages/planning/MealPlanPrintPage';
 import RefMealEditorPage from './pages/planning/RefMealEditorPage';
+
+// Print pages (no layout)
+import RecipePrintPage from './pages/recipes/RecipePrintPage';
 
 // Shopping list pages
 import ShoppingListPage from './pages/shopping/ShoppingListPage';
@@ -60,6 +64,10 @@ export default function App() {
       {/* Auth routes (no layout) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      {/* Print routes (no layout — standalone druckoptimierte Ansichten) */}
+      <Route path="/recipes/:slug/print" element={<RecipePrintPage />} />
+      <Route path="/meal-plans/:id/print" element={<MealPlanPrintPage />} />
 
       {/* Main layout routes */}
       <Route element={<FoodLayout />}>

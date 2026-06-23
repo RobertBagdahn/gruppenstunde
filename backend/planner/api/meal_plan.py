@@ -127,6 +127,14 @@ def list_meal_plans(
 
     if origin == "verified":
         qs = qs.filter(owner__isnull=True)
+    elif origin == "template":
+        # "Referenz-Vorlagen" tab: admin-marked templates visible to all
+        qs = qs.filter(is_template=True)
+    elif origin == "shared":
+        # "Geteilt mit mir" tab: plans shared via collaborators where user is not owner
+        qs = qs.filter(
+            collaborators__user=request.user
+        ).exclude(created_by=request.user).distinct()
     elif origin == "community":
         qs = qs.filter(owner__isnull=False, visibility=MealPlanVisibility.PUBLIC)
     elif origin == "mine":
@@ -267,7 +275,12 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
             raise HttpError(422, "Einige der angegebenen Tags wurden nicht gefunden")
         nutritional_tags_to_set = tags
 
-    for field, value in payload.dict(exclude_unset=True, exclude={"nutritional_tag_ids"}).items():
+    exclude_fields = {"nutritional_tag_ids"}
+    # is_template can only be set by admins
+    if "is_template" in payload.dict(exclude_unset=True) and not request.user.is_staff:
+        exclude_fields.add("is_template")
+
+    for field, value in payload.dict(exclude_unset=True, exclude=exclude_fields).items():
         if field in ("start_datetime", "end_datetime") and value is not None and timezone.is_naive(value):
             value = timezone.make_aware(value)
         setattr(meal_plan, field, value)

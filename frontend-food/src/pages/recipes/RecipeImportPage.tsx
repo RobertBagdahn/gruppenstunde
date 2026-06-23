@@ -121,6 +121,22 @@ export default function RecipeImportPage() {
               {importMutation.isPending ? 'Laden...' : 'Importieren'}
             </Button>
           </div>
+          {importMutation.isError && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              <span className="material-symbols-outlined text-[16px] shrink-0 mt-0.5">error</span>
+              <div>
+                <p className="font-medium">Import fehlgeschlagen</p>
+                <p className="text-muted-foreground mt-0.5">
+                  {importMutation.error instanceof Error
+                    ? importMutation.error.message
+                    : 'URL konnte nicht geladen werden'}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Bitte URL prüfen oder Rezept manuell anlegen.
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

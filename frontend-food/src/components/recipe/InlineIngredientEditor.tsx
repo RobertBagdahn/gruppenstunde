@@ -50,6 +50,10 @@ interface InlineIngredientEditorProps {
   recipeId: number;
   items: RecipeItem[];
   portions: number | null;
+  /** If provided, ingredient quantities are displayed scaled by this factor.
+   *  On save, values are divided by this factor before sending to the API.
+   *  This allows editing in familiar quantities (e.g., "for 4 people"). */
+  displayPortions?: number;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -108,12 +112,24 @@ export default function InlineIngredientEditor({
   recipeId,
   items,
   portions,
+  displayPortions = 1,
   onClose,
   onSaved,
 }: InlineIngredientEditorProps) {
-  const [editItems, setEditItems] = useState<EditableItem[]>(() =>
-    normalizeItems(items, portions),
-  );
+  const scale = displayPortions > 1 ? displayPortions : 1;
+
+  const [editItems, setEditItems] = useState<EditableItem[]>(() => {
+    const normalized = normalizeItems(items, portions);
+    // If displayPortions > 1, scale up all quantities for display
+    if (scale > 1) {
+      return normalized.map((item) => ({
+        ...item,
+        quantity: Math.round(item.quantity * scale * 100) / 100,
+        quantityInput: String(Math.round(item.quantity * scale * 100) / 100),
+      }));
+    }
+    return normalized;
+  });
   const [showEstimate, setShowEstimate] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
   const [estimateResult, setEstimateResult] = useState<EstimateQuantityItem[] | null>(null);
@@ -445,26 +461,26 @@ export default function InlineIngredientEditor({
         promises.push(deleteItem.mutateAsync(item.id));
       }
 
-      // Create new items
+      // Create new items (divide by scale to store per-1-portion value)
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
         promises.push(
           createItem.mutateAsync({
             portion_id: item.portion_id,
-            quantity: item.quantity,
+            quantity: scale > 1 ? Math.round((item.quantity / scale) * 1000) / 1000 : item.quantity,
             sort_order: item.sort_order,
             note: item.note,
           }),
         );
       }
 
-      // Update dirty existing items
+      // Update dirty existing items (divide by scale to store per-1-portion value)
       for (const item of editItems.filter((i) => i.isDirty && !i.isNew && !i.isDeleted)) {
         promises.push(
           updateItem.mutateAsync({
             itemId: item.id,
             data: {
               portion_id: item.portion_id,
-              quantity: item.quantity,
+              quantity: scale > 1 ? Math.round((item.quantity / scale) * 1000) / 1000 : item.quantity,
               note: item.note,
               sort_order: item.sort_order,
             },
@@ -489,6 +505,16 @@ export default function InlineIngredientEditor({
 
   return (
     <div className="space-y-4">
+      {/* Scale info banner */}
+      {scale > 1 && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+          <span className="material-symbols-outlined text-[16px]">info</span>
+          <span>
+            Mengen für <strong>{scale} Personen</strong> — werden beim Speichern auf 1 Portion normiert.
+            Portionszahl während Bearbeitung gesperrt.
+          </span>
+        </div>
+      )}
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <div className="flex items-center gap-2 text-sm font-medium text-amber-800">

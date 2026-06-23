@@ -137,6 +137,11 @@ class MealPlan(models.Model):
         related_name="meal_plans",
         verbose_name=_("Ernährungseinschränkungen"),
     )
+    is_template = models.BooleanField(
+        default=False,
+        verbose_name=_("Referenz-Vorlage"),
+        help_text=_("Nur Admins können setzen. Referenz-Pläne erscheinen im Tab 'Referenz-Vorlagen' für alle Nutzer."),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
