@@ -20,7 +20,7 @@ ALLOWED_HOSTS = [
 
 CSRF_TRUSTED_ORIGINS = [
     APPENGINE_URL,
-    "https://inspi-frontend-148679246533.europe-west3.run.app",
+    "https://inspi-frontend-148679246533.europe-west1.run.app",
     "https://inspi-frontend-food-148679246533.europe-west1.run.app",
     "https://essensplan.app",
     "https://www.essensplan.app",
@@ -67,7 +67,7 @@ DATABASES = {
 CORS_ALLOWED_ORIGINS = [
     "https://gruppenstunde.de",
     "https://www.gruppenstunde.de",
-    "https://inspi-frontend-148679246533.europe-west3.run.app",
+    "https://inspi-frontend-148679246533.europe-west1.run.app",
     "https://inspi-frontend-food-148679246533.europe-west1.run.app",
     "https://essensplan.app",
     "https://www.essensplan.app",
