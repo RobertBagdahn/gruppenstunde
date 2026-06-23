@@ -90,9 +90,15 @@ interface IngredientRowProps {
   retailSectionName: string | null;
   energyKcal: number | null;
   proteinG: number | null;
+  fatG: number | null;
+  carbohydrateG: number | null;
   pricePerKg: number | null;
   nutriClass: number | null;
   onClick: () => void;
+}
+
+function formatNum(v: number | null): string {
+  return v != null ? parseFloat(v.toFixed(1)) + 'g' : '–';
 }
 
 function IngredientRow({
@@ -100,6 +106,8 @@ function IngredientRow({
   retailSectionName,
   energyKcal,
   proteinG,
+  fatG,
+  carbohydrateG,
   pricePerKg,
   nutriClass,
   onClick,
@@ -118,15 +126,18 @@ function IngredientRow({
         )}
       </div>
 
-      <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+      <div className="hidden sm:flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
         <span>{energyKcal != null ? `${Math.round(energyKcal)} kcal` : '–'}</span>
-        <span>{proteinG != null ? `${parseFloat(proteinG.toFixed(1))}g E` : '–'}</span>
-        <span className="font-medium text-foreground">
-          {pricePerKg != null
-            ? `${pricePerKg.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/kg`
-            : '–'}
-        </span>
+        <span>{formatNum(proteinG)} E</span>
+        <span>{formatNum(fatG)} F</span>
+        <span>{formatNum(carbohydrateG)} KH</span>
       </div>
+
+      <span className="text-xs font-medium text-foreground shrink-0 ml-2">
+        {pricePerKg != null
+          ? `${pricePerKg.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/kg`
+          : '–'}
+      </span>
     </button>
   );
 }
@@ -363,6 +374,8 @@ export default function IngredientDetailSearchDialog({
                 retailSectionName={ingredient.retail_section_name}
                 energyKcal={ingredient.energy_kcal}
                 proteinG={ingredient.protein_g}
+                fatG={ingredient.fat_g}
+                carbohydrateG={ingredient.carbohydrate_g}
                 pricePerKg={ingredient.price_per_kg}
                 nutriClass={ingredient.nutri_class}
                 onClick={() =>

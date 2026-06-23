@@ -60,7 +60,7 @@ packing_list_router = Router(tags=["packing-lists"])
 
 def _require_auth(request):
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _require_edit_permission(packing_list: PackingList, user):

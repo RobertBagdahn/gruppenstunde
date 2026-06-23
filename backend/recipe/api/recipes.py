@@ -49,7 +49,7 @@ router = Router()
 
 def _require_auth(request):
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _can_edit_recipe(request, recipe: Recipe) -> bool:
@@ -186,7 +186,7 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
 def list_my_recipes(request, page: int = 1, page_size: int = 20, folder: int | None = None):
     """List current user's personal recipes."""
     if not request.user.is_authenticated:
-        raise HttpError(401, "Anmeldung erforderlich")
+        raise HttpError(401, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
     qs = (
         Recipe.objects.filter(owner=request.user)
@@ -319,6 +319,7 @@ def get_recipe(request, recipe_id: int):
             "scout_levels",
             "tags__parent",
             "nutritional_tags",
+            "recipe_items__portion__ingredient__retail_section",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
             "authors__profile",
@@ -348,6 +349,7 @@ def get_recipe_by_slug(request, slug: str):
             "scout_levels",
             "tags__parent",
             "nutritional_tags",
+            "recipe_items__portion__ingredient__retail_section",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
             "authors__profile",

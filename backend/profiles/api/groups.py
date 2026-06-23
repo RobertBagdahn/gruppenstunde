@@ -30,7 +30,7 @@ group_router = Router(tags=["groups"])
 
 def _require_auth(request):
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _require_group_admin(group: UserGroup, user):

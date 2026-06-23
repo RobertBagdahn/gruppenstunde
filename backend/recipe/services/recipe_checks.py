@@ -155,7 +155,7 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
     Returns a dict with green/yellow/red counts and a list of all evaluated rules.
     """
     if recipe.recipe_type not in [RecipeTypeChoices.WARM_MEAL, RecipeTypeChoices.COLD_MEAL]:
-        type_label = RecipeTypeChoices(recipe.recipe_type).label if recipe.recipe_type else "Dieser Rezepttyp"
+        type_label = dict(RecipeTypeChoices.choices).get(recipe.recipe_type, "Dieser Rezepttyp")
         return {
             "green_count": 0,
             "yellow_count": 0,

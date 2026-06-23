@@ -26,7 +26,7 @@ router = Router(tags=["planner"])
 
 def _require_auth(request):
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _can_edit_planner(planner: Planner, user) -> bool:

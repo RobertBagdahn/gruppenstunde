@@ -100,7 +100,7 @@ def list_content_links(
 def create_content_link(request, payload: ContentLinkCreateIn):
     """Create a manual content link between two content items."""
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
     try:
         src_ct = ContentType.objects.get(model=payload.source_content_type)
@@ -157,7 +157,7 @@ def reject_content_link(request, link_id: int):
 def delete_content_link(request, link_id: int):
     """Delete a content link (creator or admin)."""
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
     try:
         link = ContentLink.objects.get(pk=link_id)

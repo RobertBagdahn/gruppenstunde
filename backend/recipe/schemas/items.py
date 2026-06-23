@@ -22,6 +22,8 @@ class RecipeItemOut(Schema):
     ingredient_viscosity: str | None = None
     ingredient_price_per_kg: float | None = None
     ingredient_nutri_class: int | None = None
+    ingredient_retail_section_id: int | None = None
+    ingredient_retail_section_name: str | None = None
     weight_g: float
 
     @staticmethod
@@ -110,6 +112,18 @@ class RecipeItemOut(Schema):
     def resolve_ingredient_nutri_class(obj) -> int | None:
         if obj.portion and obj.portion.ingredient:
             return obj.portion.ingredient.nutri_class
+        return None
+
+    @staticmethod
+    def resolve_ingredient_retail_section_id(obj) -> int | None:
+        if obj.portion and obj.portion.ingredient and obj.portion.ingredient.retail_section_id:
+            return obj.portion.ingredient.retail_section_id
+        return None
+
+    @staticmethod
+    def resolve_ingredient_retail_section_name(obj) -> str | None:
+        if obj.portion and obj.portion.ingredient and obj.portion.ingredient.retail_section:
+            return obj.portion.ingredient.retail_section.name
         return None
 
     @staticmethod

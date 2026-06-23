@@ -64,7 +64,9 @@ def default_meal_default_times() -> dict[str, list[str]]:
 
 class MealPlanVisibility(models.TextChoices):
     PRIVATE = "private", _("Privat")
+    GROUP = "group", _("Gruppe")
     PUBLIC = "public", _("Öffentlich")
+    DRAFT = "draft", _("Entwurf")
 
 
 class MealPlan(models.Model):
@@ -109,7 +111,7 @@ class MealPlan(models.Model):
         choices=MealPlanVisibility.choices,
         default=MealPlanVisibility.PRIVATE,
         verbose_name=_("Sichtbarkeit"),
-        help_text=_("private = nur ich, public = für alle sichtbar"),
+        help_text=_("private = nur ich, group = meine Gruppe, public = für alle sichtbar, draft = Entwurf"),
     )
     budget_per_person_per_day = models.DecimalField(
         max_digits=8,

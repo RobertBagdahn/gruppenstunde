@@ -14,7 +14,7 @@ import RecipeImportPage from './pages/recipes/RecipeImportPage';
 
 // Ingredient pages
 import IngredientListPage from './pages/ingredients/IngredientListPage';
-import IngredientCreatePage from './pages/ingredients/IngredientCreatePage';
+import CreateIngredientPage from './pages/ingredients/CreateIngredientPage';
 import IngredientEditPage from './pages/ingredients/IngredientEditPage';
 import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
 
@@ -76,7 +76,7 @@ export default function App() {
 
         {/* Ingredients */}
         <Route path="/ingredients" element={<IngredientListPage />} />
-        <Route path="/ingredients/new" element={<IngredientCreatePage />} />
+        <Route path="/ingredients/new" element={<CreateIngredientPage />} />
         <Route path="/ingredients/:slug/edit" element={<IngredientEditPage />} />
         <Route path="/ingredients/:slug" element={<IngredientDetailPage />} />
 

@@ -1,4 +1,5 @@
 import { useState, useDeferredValue, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid } from 'lucide-react';
 import {
   Dialog,
@@ -155,17 +156,26 @@ export default function RecipeSearchDialog({
             </DialogTitle>
           </DialogHeader>
 
-          {/* Suchfeld */}
-          <div className="relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rezept oder Zutat suchen..."
-              autoFocus
-              className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
+          {/* Suchfeld + Neu-Button */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Rezept oder Zutat suchen..."
+                autoFocus
+                className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <Link
+              to="/recipes/new"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Neues Rezept
+            </Link>
           </div>
 
           {/* Filter-Zeile */}

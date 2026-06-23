@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Scale, Sparkles, SlidersHorizontal } from 'lucide-react';
 import {
   useUpdateRecipe,
   useUpdateRecipeItem,
@@ -124,6 +124,8 @@ export default function InlineIngredientEditor({
   const [aiSuggestions, setAiSuggestions] = useState<AiIngredientSuggestion[] | null>(null);
   const [selectedAiSuggestions, setSelectedAiSuggestions] = useState<Set<number>>(new Set());
   const [detailSearchOpen, setDetailSearchOpen] = useState(false);
+  const [showScaleDialog, setShowScaleDialog] = useState(false);
+  const [scaleFactorInput, setScaleFactorInput] = useState('1,0');
 
   const queryClient = useQueryClient();
 
@@ -404,6 +406,28 @@ export default function InlineIngredientEditor({
     }
   }, [aiSuggestions, selectedAiSuggestions, recipeId, queryClient, onSaved]);
 
+  // --- Scale ---
+
+  const handleScale = useCallback(() => {
+    const normalized = scaleFactorInput.trim().replace(',', '.');
+    const factor = parseFloat(normalized);
+    if (isNaN(factor) || factor <= 0) return;
+
+    setEditItems((prev) =>
+      prev.map((item) => {
+        const newQty = Math.round(item.quantity * factor * 100) / 100;
+        return {
+          ...item,
+          quantity: newQty,
+          quantityInput: String(newQty),
+          isDirty: true,
+        };
+      }),
+    );
+    setShowScaleDialog(false);
+    setScaleFactorInput('1,0');
+  }, [scaleFactorInput]);
+
   // --- Save ---
 
   const handleSave = useCallback(async () => {
@@ -490,6 +514,15 @@ export default function InlineIngredientEditor({
           >
             <span className="material-symbols-outlined text-[16px]">auto_fix_high</span>
             {estimateQuantities.isPending ? 'Schätze...' : 'Mengen schätzen'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowScaleDialog(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-100 text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-200 transition-colors"
+            title="Zutaten skalieren"
+          >
+            <Scale className="w-4 h-4" />
+            Skalieren
           </button>
           <button
             type="button"
@@ -788,6 +821,83 @@ export default function InlineIngredientEditor({
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Übernehmen ({selectedAiSuggestions.size})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scale Dialog */}
+      {showScaleDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Scale className="w-5 h-5 text-rose-500" />
+              Zutaten skalieren
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Alle Zutatenmengen werden mit dem gewählten Faktor multipliziert.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {[
+                { label: '×0,8', value: 0.8 },
+                { label: '×0,9', value: 0.9 },
+                { label: '×1,0', value: 1.0 },
+                { label: '×1,1', value: 1.1 },
+                { label: '×1,2', value: 1.2 },
+              ].map((preset) => {
+                const parsed = parseFloat(scaleFactorInput.replace(',', '.'));
+                const isSelected = !isNaN(parsed) && parsed === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() =>
+                      setScaleFactorInput(String(preset.value).replace('.', ','))
+                    }
+                    className={`px-3 py-1.5 text-sm font-medium border rounded-lg transition-colors ${
+                      isSelected
+                        ? 'border-rose-300 bg-rose-50 text-rose-700'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1.5">Faktor</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={scaleFactorInput}
+                onChange={(e) => setScaleFactorInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleScale();
+                }}
+                placeholder="z.B. 2 oder 1,5"
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScaleDialog(false);
+                  setScaleFactorInput('1,0');
+                }}
+                className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={handleScale}
+                className="px-4 py-2 text-sm font-medium bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+              >
+                Skalieren
               </button>
             </div>
           </div>

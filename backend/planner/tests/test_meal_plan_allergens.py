@@ -109,7 +109,7 @@ class TestMealPlanNutritionalTagScanner:
         client = Client()
         response = client.get(f"/api/meal-plans/{plan.id}/allergen-scan/")
         assert response.status_code == 403
-        assert response.json()["detail"] == "Anmeldung erforderlich"
+        assert response.json()["detail"] == "Sitzung nicht gefunden. Bitte erneut anmelden."
 
     def test_scanner_not_found_for_unauthorized_user(self):
         from django.contrib.auth import get_user_model

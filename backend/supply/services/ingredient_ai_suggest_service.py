@@ -37,6 +37,7 @@ class PortionSuggestion(BaseModel):
 
     name: str = Field(description="Name der Portion, z.B. '1 Packung (500g)'")
     weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
+    measuring_unit_name: str = Field(description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Tasse', 'Esslöffel', 'Stück'")
     priority: int = Field(
         default=0,
         description=(
@@ -244,7 +245,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
     """
     from google.genai import types
 
-    from supply.models import Ingredient, IngredientAlias, Portion
+    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Portion
 
     prompt = (
         f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
@@ -258,7 +259,9 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         f"- Packungsgrößen (priority=50): z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)'\n"
         f"- Stück (priority=50): z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)'\n"
         f"- Haushaltsmaße (priority=10): z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)'\n"
-        f"- Scheiben/Stücke (priority=10): z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)'"
+        f"- Scheiben/Stücke (priority=10): z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)'\n"
+        f"Für jede Portion gib measuring_unit_name an: 'Gramm' für Gewichtsangaben, 'Milliliter' für Volumen, "
+        f"'Esslöffel'/'Teelöffel'/'Tasse' für Haushaltsmaße, 'Stück' für Stückangaben."
     )
 
     config = types.GenerateContentConfig(
@@ -320,11 +323,23 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         created_by=user if user and user.is_authenticated else None,
     )
 
+    # Resolve measuring units
+    mu_cache: dict[str, MeasuringUnit] = {}
+    def _get_mu(name: str) -> MeasuringUnit:
+        if name not in mu_cache:
+            mu = MeasuringUnit.objects.filter(name__iexact=name).first()
+            if mu is None:
+                mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"unit": "g", "quantity": 1.0})
+            mu_cache[name] = mu
+        return mu_cache[name]
+
     # Create portions
     for i, portion in enumerate(data.portions):
+        mu = _get_mu(portion.measuring_unit_name)
         Portion.objects.create(
             ingredient=ingredient,
             name=portion.name,
+            measuring_unit=mu,
             quantity=1.0,
             weight_g=portion.weight_g,
             rank=i + 1,

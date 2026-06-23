@@ -4,8 +4,8 @@
  *
  * Used on RecipeDetailPage and other recipe views.
  */
-import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { AlertTriangle, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { AvailableConversionBatchItem } from '@/schemas/supply';
@@ -63,6 +63,23 @@ export default function IngredientList({
   className = '',
 }: IngredientListProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const sortedItems = [...items].sort((a, b) => b.weight_g - a.weight_g);
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return sortedItems;
+    const q = searchQuery.toLowerCase();
+    return sortedItems.filter(
+      (item) =>
+        item.ingredient_name?.toLowerCase().includes(q) ||
+        item.note?.toLowerCase().includes(q) ||
+        item.ingredient_retail_section_name?.toLowerCase().includes(q),
+    );
+  }, [sortedItems, searchQuery]);
+
+  // Total recipe weight for proportional warning calculation (2.1)
+  const totalWeightG = items.reduce((s, i) => s + i.weight_g * portionsMultiplier, 0);
 
   if (items.length === 0) {
     return (
@@ -71,11 +88,6 @@ export default function IngredientList({
       </div>
     );
   }
-
-  const sortedItems = [...items].sort((a, b) => b.weight_g - a.weight_g);
-
-  // Total recipe weight for proportional warning calculation (2.1)
-  const totalWeightG = items.reduce((s, i) => s + i.weight_g * portionsMultiplier, 0);
 
   const toggleExpanded = (itemId: number) => {
     setExpandedItems((prev) => {
@@ -91,9 +103,26 @@ export default function IngredientList({
 
   return (
     <div className={className}>
+      {/* Search filter */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Zutat suchen..."
+          className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+
       {/* Ingredient list */}
       <ul className="divide-y divide-border rounded-xl border bg-card overflow-hidden">
-        {sortedItems.map((item) => {
+        {filteredItems.length === 0 ? (
+          <li className="px-4 py-6 text-center text-muted-foreground text-sm">
+            Keine Zutaten gefunden
+          </li>
+        ) : (
+          filteredItems.map((item) => {
           // Calculate weight in grams from pre-calculated backend weight
           const weightG = item.weight_g * portionsMultiplier;
 
@@ -190,6 +219,11 @@ export default function IngredientList({
                       {item.ingredient_name || item.note || 'Zutat'}
                     </span>
                   )}
+                  {item.ingredient_retail_section_name && (
+                    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                      {item.ingredient_retail_section_name}
+                    </span>
+                  )}
                   {showWeightWarning && (
                     <span className="inline-flex items-center gap-1 text-amber-600 text-sm font-medium shrink-0">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
@@ -277,7 +311,7 @@ export default function IngredientList({
               {ingredientContent}
             </li>
           );
-        })}
+        }))}
       </ul>
     </div>
   );

@@ -267,7 +267,7 @@ class MealPlanUpdateIn(Schema):
     end_datetime: dt.datetime | None = None
     day_part_factors: dict[str, float] | None = None
     meal_default_times: dict[str, list[str]] | None = None
-    visibility: Literal["private", "group", "public"] | None = None
+    visibility: Literal["private", "group", "public", "draft"] | None = None
     nutritional_tag_ids: list[int] | None = None
 
 

@@ -51,7 +51,7 @@ meal_plan_router = Router(tags=["meal-plans"])
 
 def _require_auth(request):
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _get_user_role(meal_plan: MealPlan, user) -> str | None:

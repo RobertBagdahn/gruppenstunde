@@ -107,6 +107,17 @@ def suggest_ingredients(request, q: str = "", limit: int = Query(default=5, le=5
     return do_suggest(query=q, limit=limit)
 
 
+@ingredient_router.post("/ai-create/", response=IngredientDetailOut)
+def ai_create(request, payload: IngredientAiCreateIn):
+    """Create a complete ingredient from just a name using AI."""
+    require_auth(request)
+
+    from supply.services.ingredient_ai_suggest_service import ai_create_ingredient
+
+    ingredient = ai_create_ingredient(payload.name, user=request.user)
+    return ingredient
+
+
 @ingredient_router.get("/{slug}/", response=IngredientDetailOut)
 def get_ingredient(request, slug: str):
     """Get ingredient detail by slug."""
@@ -408,17 +419,6 @@ def ai_suggest_all(request, slug: str):
 
     result = suggest_all_fields(ingredient, user=request.user)
     return result
-
-
-@ingredient_router.post("/ai-create/", response=IngredientDetailOut)
-def ai_create(request, payload: IngredientAiCreateIn):
-    """Create a complete ingredient from just a name using AI."""
-    require_auth(request)
-
-    from supply.services.ingredient_ai_suggest_service import ai_create_ingredient
-
-    ingredient = ai_create_ingredient(payload.name, user=request.user)
-    return ingredient
 
 
 @ingredient_router.post("/import-from-url/", response=IngredientImportUrlOut)

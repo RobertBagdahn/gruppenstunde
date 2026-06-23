@@ -7,12 +7,14 @@ Infrastruktur, Deployment und CI/CD-Konfiguration für die Inspi-Plattform. Defi
 ## Context
 
 - **Hosting**: Google Cloud Run (Migration von App Engine)
-- **Datenbank**: Cloud SQL PostgreSQL (kostenoptimiert)
+- **Datenbank**: Cloud SQL PostgreSQL (kostenoptimiert) in europe-west3
 - **Container Runtime**: Podman (lokal), Docker (Cloud Build CI)
 - **CI/CD**: Google Cloud Build (nicht GitHub Actions)
 - **IaC**: OpenTofu (nicht Terraform/HashiCorp)
-- **Region**: europe-west3
-- **Domain**: gruppenstunde.de
+- **Region Split**:
+  - Backend + Main Frontend: `europe-west3` (gleiche Region wie Cloud SQL)
+  - Food Frontend: `europe-west1`
+- **Domain**: gruppenstunde.de, essensplan.app
 
 ## Requirements
 
@@ -39,9 +41,10 @@ Das System SHALL folgende Cloud-Architektur verwenden.
 - **THEN** besteht sie aus:
   - **GitHub** als Source Repository
   - **Artifact Registry** für Container-Images
-- **Cloud Run Frontend** (`inspi-frontend`) — Nginx Reverse Proxy + Static Files auf Port 80
-- **Cloud Run Backend** (`inspi-backend`) — Django/Gunicorn auf Port 8000
-- **Cloud SQL** — Managed PostgreSQL, `db-f1-micro`, `PD_SSD`, Backups deaktiviert
+- **Cloud Run Frontend** (`inspi-frontend`, europe-west3) — Nginx + SPA auf Port 80
+- **Cloud Run Backend** (`inspi-backend`, europe-west3) — Django/Gunicorn auf Port 8000
+- **Cloud Run Food Frontend** (`inspi-frontend-food`, europe-west1) — Nginx + SPA auf Port 80
+- **Cloud SQL** — Managed PostgreSQL, `db-f1-micro`, `PD_SSD`, Backups deaktiviert (europe-west3)
 - **GCS Media Bucket** — Benutzer-Uploads
 - **Serverless VPC Access Connector** — Cloud Run → Cloud SQL Verbindung
 
@@ -314,6 +317,38 @@ Das System MUST alle GCP-Ressourcen über OpenTofu verwalten (nicht manuell per 
   - Cloud Build GitHub-Verbindung muss manuell über Console erstellt werden (OAuth-Flow)
   - Danach wird der Repo-Name in `env/prod.tfvars` eingetragen
   - Immer `tofu` statt `terraform` verwenden. Installation: `brew install opentofu`
+
+### Requirement: Region-Split und CORS/CSRF
+
+Das System SHALL die Frontend- und Backend-Dienste über Regionsgrenzen hinweg korrekt verbinden.
+
+#### Scenario: Region-Split
+
+- GIVEN die Plattform-Architektur
+- THEN läuft Food Frontend in europe-west1
+- THEN laufen Backend + Main Frontend in europe-west3 (gleiche Region wie Cloud SQL)
+- THEN existiert KEIN Food Frontend in europe-west3 (nur ein Dienst pro Region)
+
+#### Scenario: CORS-Konfiguration
+
+- GIVEN Frontend und Backend laufen auf verschiedenen Domains
+- THEN MUSS `CORS_ALLOWED_ORIGINS` in `inspi/settings/production.py` ALLE Frontend-URLs enthalten
+- THEN MUSS `CSRF_TRUSTED_ORIGINS` ebenfalls ALLE Frontend-URLs enthalten
+- THEN MUSS `CORS_ALLOW_CREDENTIALS = True` gesetzt sein
+- THEN MUSS `SESSION_COOKIE_SAMESITE = "None"` gesetzt sein (erlaubt Cross-Site-Cookies)
+- THEN MUSS `SESSION_COOKIE_SECURE = True` gesetzt sein
+- THEN MUSS die Frontend-Seite bei API-Aufrufen `credentials: 'include'` setzen
+- THEN gilt: Fehlt eine Frontend-URL in `CORS_ALLOWED_ORIGINS`, schlagen alle authentifizierten Requests fehl (CORS-Preflight blockiert Credentials)
+
+#### Scenario: Region-Übergreifende Deployment-Schritte
+
+- GIVEN ein Deployment betrifft beide Regionen
+- THEN wird das Backend-Image in europe-west3 gebaut (Artifact Registry)
+- THEN wird der Backend-Cloud-Run-Dienst in europe-west3 deployed
+- THEN wird Main Frontend in europe-west3 deployed
+- THEN wird Food Frontend in europe-west1 deployed (eigene Region)
+- THEN MUSS `gcloud run deploy` mit der korrekten `--region`-Flag ausgeführt werden
+- THEN gilt: `gcloud builds submit` erwartet die Region des Builds, NICHT des Ziel-Deployments
 
 ### Requirement: Implementierungs-Reihenfolge
 

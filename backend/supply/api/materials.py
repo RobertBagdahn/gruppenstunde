@@ -77,7 +77,7 @@ def get_material(request, material_id: int):
 def create_material(request, payload: MaterialCreateIn):
     """Create a new material."""
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich.")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
     material = Material.objects.create(
         name=payload.name,
@@ -93,7 +93,7 @@ def create_material(request, payload: MaterialCreateIn):
 def update_material(request, material_id: int, payload: MaterialUpdateIn):
     """Update a material."""
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich.")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
     material = get_object_or_404(Material, id=material_id)
 

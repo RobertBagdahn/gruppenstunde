@@ -48,7 +48,7 @@ shopping_router = Router(tags=["shopping-lists"])
 
 def _require_auth(request) -> None:
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 def _get_user_role(shopping_list: ShoppingList, user) -> str | None:

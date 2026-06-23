@@ -43,7 +43,7 @@ class GeminiAuthError(HttpError):
     """User not authenticated for Gemini calls."""
 
     def __init__(self):
-        super().__init__(403, "Anmeldung erforderlich")
+        super().__init__(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
 class GeminiUnavailableError(HttpError):
