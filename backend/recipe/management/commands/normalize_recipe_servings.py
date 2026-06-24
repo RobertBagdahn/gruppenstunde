@@ -60,9 +60,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run: bool = options["dry_run"]
 
-        recipes = Recipe.objects.filter(portions__gt=1).prefetch_related(
-            "recipe_items__portion"
-        )
+        recipes = Recipe.objects.filter(portions__gt=1).prefetch_related("recipe_items__portion")
         total = recipes.count()
         self.stdout.write(f"Found {total} recipes with portions > 1\n")
 
@@ -83,7 +81,7 @@ class Command(BaseCommand):
             )
 
             if category == "already_normalized":
-                self.stdout.write(f"  → Set portions=1 (quantities unchanged)")
+                self.stdout.write("  → Set portions=1 (quantities unchanged)")
                 if not dry_run:
                     recipe.portions = 1
                     recipe.save(update_fields=["portions"])
@@ -93,33 +91,25 @@ class Command(BaseCommand):
                 for item in items:
                     old_qty = item.quantity
                     new_qty = round(old_qty / portions, 4)
-                    self.stdout.write(
-                        f"  {item.id}: qty {old_qty:.4f} → {new_qty:.4f}"
-                    )
+                    self.stdout.write(f"  {item.id}: qty {old_qty:.4f} → {new_qty:.4f}")
                     if not dry_run:
                         item.quantity = new_qty
                         item.save(update_fields=["quantity"])
 
-                self.stdout.write(f"  → Set portions=1")
+                self.stdout.write("  → Set portions=1")
                 if not dry_run:
                     recipe.portions = 1
                     recipe.save(update_fields=["portions"])
                     recalculate_recipe_cache(recipe)
 
             elif category == "broken_data":
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"  ⚠ MANUAL REVIEW NEEDED — per-person weights too high"
-                    )
-                )
+                self.stdout.write(self.style.WARNING("  ⚠ MANUAL REVIEW NEEDED — per-person weights too high"))
                 # Still try to divide; better than leaving broken
                 items = recipe.recipe_items.all()
                 for item in items:
                     old_qty = item.quantity
                     new_qty = round(old_qty / portions, 4)
-                    self.stdout.write(
-                        f"  {item.id}: qty {old_qty:.4f} → {new_qty:.4f}"
-                    )
+                    self.stdout.write(f"  {item.id}: qty {old_qty:.4f} → {new_qty:.4f}")
                     if not dry_run:
                         item.quantity = new_qty
                         item.save(update_fields=["quantity"])

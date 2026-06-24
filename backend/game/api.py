@@ -17,15 +17,14 @@ from content.base_api import (
     toggle_emotion,
 )
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
-from content.schemas import ImageFromUrlIn
 from content.choices import ContentStatus
 from content.models import Tag
+from content.schemas import ImageFromUrlIn
 
 from .models import Game
 from .schemas import (
     GameCreateIn,
     GameDetailOut,
-    GameListOut,
     GameUpdateIn,
     PaginatedGameOut,
 )

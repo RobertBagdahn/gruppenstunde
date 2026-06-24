@@ -72,4 +72,3 @@ Item-Karten und tabellarische Listenzeilen im frontend-food MUST das zentrale Ca
 #### Scenario: Lesbarkeit auf Mobile
 - **WHEN** der Viewport 320px breit ist
 - **THEN** bleibt die Item-Karte vollständig lesbar und klar abgegrenzt
-

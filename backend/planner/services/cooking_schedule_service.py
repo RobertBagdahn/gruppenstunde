@@ -60,7 +60,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
     zu kochenden Rezepte. Externe Mahlzeiten und Mahlzeiten ohne Servierzeit
     werden ausgeschlossen.
     """
-    from planner.models import Meal, MealItem
+    from planner.models import Meal
 
     meals = (
         Meal.objects.filter(meal_plan=meal_plan)

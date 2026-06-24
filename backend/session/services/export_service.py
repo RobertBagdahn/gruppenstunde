@@ -6,8 +6,6 @@ Generates 3 Instagram slides (1080x1080px) using Pillow.
 import io
 import logging
 
-from django.conf import settings
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,8 +24,6 @@ def generate_instagram_slides(session) -> list[str]:
         logger.warning("Pillow not installed – Instagram export disabled")
         return []
 
-    import base64
-
     SIZE = (1080, 1080)
     slides = []
 
@@ -42,7 +38,7 @@ def generate_instagram_slides(session) -> list[str]:
         font_body = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
         font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
         font_brand = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-    except (OSError, IOError):
+    except OSError:
         font_title = ImageFont.load_default()
         font_body = ImageFont.load_default()
         font_small = ImageFont.load_default()

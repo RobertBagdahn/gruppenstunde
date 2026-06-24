@@ -1,9 +1,7 @@
 """Tests for recipe cache invalidation signals."""
 
 import pytest
-from unittest.mock import patch
 
-from recipe.models import Recipe
 from recipe.tests import make_recipe, make_recipe_item
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
@@ -166,7 +164,6 @@ class TestRecipeCacheSignals:
 class TestSuggestionCacheKey:
     def test_cache_key_includes_cached_at_timestamp(self):
         """Cache key should differ after recalculate_recipe_cache is called."""
-        from recipe.services.suggestion_service import get_suggestions
 
         recipe = make_recipe()
         ingredient = make_ingredient(energy_kcal=24)

@@ -13,11 +13,15 @@ if TYPE_CHECKING:
     from planner.models import Meal, MealPlan
 
 from recipe.models import Rule
-from recipe.services.recipe_checks import CACHED_MICRONUTRIENT_FIELDS, get_recipe_nutritional_values, get_recipe_total_weight_g
+from recipe.services.recipe_checks import (
+    CACHED_MICRONUTRIENT_FIELDS,
+    get_recipe_nutritional_values,
+    get_recipe_total_weight_g,
+)
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 
 
-def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
+def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
     """Aggregate nutritional values and price for a single Meal."""
     from planner.models import MealItem
 
@@ -48,7 +52,7 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
     for item in items:
         recipe = item.recipe
         ingredient = item.ingredient
-        
+
         if recipe:
             # Handle recipe items
             if recipe.cached_at:
@@ -72,11 +76,22 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
                     totals[field] += (getattr(recipe, cached_field, None) or 0.0) * nutrient_scale * item.factor
             else:
                 from recipe.services.recipe_checks import get_recipe_values_with_computed as _get_computed
+
                 values, total_weight_g = _get_computed(recipe)
 
                 nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
 
-                for key in ["energy_kcal", "protein_g", "fat_g", "fat_sat_g", "carbohydrate_g", "sugar_g", "fibre_g", "salt_g", "sodium_mg"]:
+                for key in [
+                    "energy_kcal",
+                    "protein_g",
+                    "fat_g",
+                    "fat_sat_g",
+                    "carbohydrate_g",
+                    "sugar_g",
+                    "fibre_g",
+                    "salt_g",
+                    "sodium_mg",
+                ]:
                     totals[key] += values.get(key, 0.0) * nutrient_scale * item.factor
                 totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
                 totals["weight_g"] += total_weight_g * item.factor
@@ -96,10 +111,10 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
                     # For ml, try to use density if available
                     if ingredient.density is not None:
                         weight_g = float(item.quantity) * ingredient.density
-            
+
             if weight_g > 0:
                 nutrient_scale = weight_g / 100.0
-                
+
                 totals["energy_kcal"] += (ingredient.energy_kcal or 0.0) * nutrient_scale * item.factor
                 totals["protein_g"] += (ingredient.protein_g or 0.0) * nutrient_scale * item.factor
                 totals["fat_g"] += (ingredient.fat_g or 0.0) * nutrient_scale * item.factor
@@ -110,10 +125,10 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
                 totals["fat_sat_g"] += (ingredient.fat_sat_g or 0.0) * nutrient_scale * item.factor
                 totals["sodium_mg"] += (ingredient.sodium_mg or 0.0) * nutrient_scale * item.factor
                 totals["weight_g"] += weight_g * item.factor
-                
+
                 if ingredient.price_per_kg:
                     totals["price_total"] += (float(ingredient.price_per_kg) / 1000.0) * weight_g * item.factor
-                
+
                 for field in CACHED_MICRONUTRIENT_FIELDS:
                     field_val = getattr(ingredient, field, None) or 0.0
                     totals[field] += field_val * nutrient_scale * item.factor
@@ -127,7 +142,7 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
     return totals
 
 
-def _aggregate_day_values(meal_plan: "MealPlan", date: dt.date) -> dict[str, float]:
+def _aggregate_day_values(meal_plan: MealPlan, date: dt.date) -> dict[str, float]:
     """Aggregate nutritional values for all meals on a given day."""
     from planner.models import Meal
 
@@ -167,7 +182,7 @@ def _aggregate_day_values(meal_plan: "MealPlan", date: dt.date) -> dict[str, flo
     return totals
 
 
-def _aggregate_meal_plan_values(meal_plan: "MealPlan") -> dict[str, float]:
+def _aggregate_meal_plan_values(meal_plan: MealPlan) -> dict[str, float]:
     """Aggregate nutritional values for the entire MealPlan (all days)."""
     from planner.models import Meal
 
@@ -262,21 +277,21 @@ def _build_dashboard(evaluations: list[dict]) -> dict:
     }
 
 
-def evaluate_meal_plan_cockpit(meal_plan: "MealPlan") -> dict:
+def evaluate_meal_plan_cockpit(meal_plan: MealPlan) -> dict:
     """Evaluate all MealPlan-scope Rules."""
     values = _aggregate_meal_plan_values(meal_plan)
     evaluations = _evaluate_rules("meal_event", values)
     return _build_dashboard(evaluations)
 
 
-def evaluate_day_cockpit(meal_plan: "MealPlan", date: dt.date) -> dict:
+def evaluate_day_cockpit(meal_plan: MealPlan, date: dt.date) -> dict:
     """Evaluate all day-scope Rules for a specific date."""
     values = _aggregate_day_values(meal_plan, date)
     evaluations = _evaluate_rules("day", values)
     return _build_dashboard(evaluations)
 
 
-def evaluate_meal_cockpit(meal: "Meal") -> dict:
+def evaluate_meal_cockpit(meal: Meal) -> dict:
     """Evaluate all meal-scope Rules for a specific meal."""
     values = _aggregate_meal_values(meal)
     evaluations = _evaluate_rules("meal", values)

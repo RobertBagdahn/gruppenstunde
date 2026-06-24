@@ -1,6 +1,5 @@
 """RecipeItem CRUD endpoints."""
 
-from django.http import Http404
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -21,6 +20,7 @@ from recipe.schemas import (
 def _recipe_item_has_active_splits(item: RecipeItem) -> bool:
     """True if any MealItemSplit references this recipe item."""
     return item.meal_splits.exists()
+
 
 router = Router()
 
@@ -83,7 +83,9 @@ def list_recipe_items(request, recipe_id: int):
     """List recipe items for a recipe."""
     recipe = _get_visible_recipe_or_404(request, recipe_id, require_auth=False)
     return RecipeItem.objects.filter(recipe=recipe).select_related(
-        "portion", "portion__ingredient", "portion__measuring_unit",
+        "portion",
+        "portion__ingredient",
+        "portion__measuring_unit",
     )
 
 
@@ -105,7 +107,9 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
     )
     # Reload with relations for schema resolvers
     item = RecipeItem.objects.select_related(
-        "portion", "portion__ingredient", "portion__measuring_unit",
+        "portion",
+        "portion__ingredient",
+        "portion__measuring_unit",
     ).get(id=item.id)
     return item
 
@@ -125,9 +129,7 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
 
     # Determine resulting optional/exchange state to validate mutual exclusion.
     result_is_optional = data.get("is_optional", item.is_optional)
-    result_exchange_group = (
-        data["exchange_group_id"] if "exchange_group_id" in data else item.exchange_group_id
-    )
+    result_exchange_group = data["exchange_group_id"] if "exchange_group_id" in data else item.exchange_group_id
     if result_is_optional and result_exchange_group is not None:
         raise HttpError(
             400,
@@ -148,7 +150,9 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
 
     # Reload with relations for schema resolvers
     item = RecipeItem.objects.select_related(
-        "portion", "portion__ingredient", "portion__measuring_unit",
+        "portion",
+        "portion__ingredient",
+        "portion__measuring_unit",
     ).get(id=item.id)
     return item
 
@@ -257,16 +261,15 @@ def ai_suggest_ingredients(request, recipe_id: int):
 
     # Collect ingredient IDs already in this recipe (via portions)
     existing_ingredient_ids: set[int] = set(
-        recipe.items.select_related("portion__ingredient")
-        .values_list("portion__ingredient_id", flat=True)
+        recipe.items.select_related("portion__ingredient").values_list("portion__ingredient_id", flat=True)
     )
 
     # Also collect alias ingredient IDs for ingredients already in the recipe
     # so that e.g. "Zwiebeln" is excluded when "Zwiebel" is already present
     alias_ingredient_ids: set[int] = set(
-        IngredientAlias.objects.filter(
-            ingredient_id__in=existing_ingredient_ids
-        ).values_list("ingredient_id", flat=True)
+        IngredientAlias.objects.filter(ingredient_id__in=existing_ingredient_ids).values_list(
+            "ingredient_id", flat=True
+        )
     )
     all_excluded_ids = existing_ingredient_ids | alias_ingredient_ids
 
@@ -296,10 +299,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
 
     # Get current max sort_order
     last_sort = (
-        RecipeItem.objects.filter(recipe=recipe)
-        .order_by("-sort_order")
-        .values_list("sort_order", flat=True)
-        .first()
+        RecipeItem.objects.filter(recipe=recipe).order_by("-sort_order").values_list("sort_order", flat=True).first()
     ) or 0
 
     created_items = []
@@ -317,10 +317,10 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
 
     recalculate_recipe_cache(recipe)
 
-    return RecipeItem.objects.filter(
-        id__in=[item.id for item in created_items]
-    ).select_related(
-        "portion", "portion__ingredient", "portion__measuring_unit",
+    return RecipeItem.objects.filter(id__in=[item.id for item in created_items]).select_related(
+        "portion",
+        "portion__ingredient",
+        "portion__measuring_unit",
     )
 
 

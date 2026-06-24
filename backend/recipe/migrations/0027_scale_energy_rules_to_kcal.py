@@ -14,14 +14,14 @@ def scale_energy_rules_to_kcal(apps, schema_editor):
             rule.max_green = round(rule.max_green / 4.184, 1)
         if rule.max_yellow is not None:
             rule.max_yellow = round(rule.max_yellow / 4.184, 1)
-        
+
         rule.unit = "kcal"
-        
+
         if rule.tip_text:
             rule.tip_text = rule.tip_text.replace("kJ", "kcal")
         if rule.description:
             rule.description = rule.description.replace("kJ", "kcal")
-            
+
         rule.save()
 
 
@@ -36,19 +36,18 @@ def unscale_energy_rules_from_kcal(apps, schema_editor):
             rule.max_green = round(rule.max_green * 4.184, 1)
         if rule.max_yellow is not None:
             rule.max_yellow = round(rule.max_yellow * 4.184, 1)
-            
+
         rule.unit = "kJ"
-        
+
         if rule.tip_text:
             rule.tip_text = rule.tip_text.replace("kcal", "kJ")
         if rule.description:
             rule.description = rule.description.replace("kcal", "kJ")
-            
+
         rule.save()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0026_recipe_cached_weight_g"),
     ]

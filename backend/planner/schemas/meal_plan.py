@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Literal
 
 from ninja import Schema
+
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.schemas.reference import NutritionalTagOut
 
@@ -75,9 +76,7 @@ class MealItemOut(Schema):
         if obj.splits.exists():
             from planner.services.split_service import get_split_delta_total
 
-            recipe_items = list(
-                obj.recipe.recipe_items.select_related("portion__ingredient").all()
-            )
+            recipe_items = list(obj.recipe.recipe_items.select_related("portion__ingredient").all())
             base_total += get_split_delta_total(obj, recipe_items, "energy_kcal")
         return base_total * obj.factor * (effective_portions / servings)
 
@@ -91,9 +90,7 @@ class MealItemOut(Schema):
         if obj.splits.exists():
             from planner.services.split_service import get_split_delta_total
 
-            recipe_items = list(
-                obj.recipe.recipe_items.select_related("portion__ingredient").all()
-            )
+            recipe_items = list(obj.recipe.recipe_items.select_related("portion__ingredient").all())
             base_total += get_split_delta_total(obj, recipe_items, "price")
         return base_total * obj.factor * (effective_portions / servings)
 
@@ -185,7 +182,7 @@ class MealOut(Schema):
                         # For ml, try to use density if available
                         if item.ingredient.density is not None:
                             weight_g = float(item.quantity) * item.ingredient.density
-                
+
                 if weight_g > 0:
                     kcal_per_100g = float(item.ingredient.energy_kcal)
                     total += (kcal_per_100g / 100.0) * weight_g * item.factor
@@ -218,7 +215,7 @@ class MealOut(Schema):
                         # For ml, try to use density if available
                         if item.ingredient.density is not None:
                             weight_g = float(item.quantity) * item.ingredient.density
-                
+
                 if weight_g > 0:
                     price_eur = (float(item.ingredient.price_per_kg) / 1000.0) * weight_g * item.factor
                     total += price_eur
@@ -556,9 +553,7 @@ class RefMealOut(Schema):
 
     @staticmethod
     def resolve_total_meals_count(obj) -> int:
-        return obj.meal_plan.meals.filter(
-            meal_type=obj.meal_type, is_reference=False
-        ).count()
+        return obj.meal_plan.meals.filter(meal_type=obj.meal_type, is_reference=False).count()
 
 
 class LinkMealIn(Schema):
@@ -620,4 +615,3 @@ class CookingScheduleDayOut(Schema):
 class CookingScheduleOut(Schema):
     days: list[CookingScheduleDayOut]
     excluded_meal_count: int
-

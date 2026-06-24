@@ -15,7 +15,6 @@ def migrate_recipe_owner_reverse(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0033_migrate_rule_scope_data"),
     ]

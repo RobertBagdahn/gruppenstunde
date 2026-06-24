@@ -2,7 +2,7 @@
 
 ### Requirement: Idea Model with idea_type field
 **Reason**: The Idea model is dissolved. Ideas with idea_type='idea' become GroupSession, ideas with idea_type='knowledge' become Blog. Both inherit from the abstract Content base class.
-**Migration**: 
+**Migration**:
 - All Idea records with idea_type='idea' SHALL be migrated to GroupSession
 - All Idea records with idea_type='knowledge' SHALL be migrated to Blog
 - The Idea model and idea app SHALL be removed after migration

@@ -50,7 +50,9 @@ class Command(BaseCommand):
                 ing.retail_section = rs
                 assigned.append(ing)
                 if dry_run:
-                    self.stdout.write(f"  Geplant: \"{ing.name}\" ({ing.description or 'keine Beschreibung'}) → \"{rs.name}\"")
+                    self.stdout.write(
+                        f"  Geplant: \"{ing.name}\" ({ing.description or 'keine Beschreibung'}) → \"{rs.name}\""
+                    )
             else:
                 no_match_names.append(ing.name)
 
@@ -62,7 +64,9 @@ class Command(BaseCommand):
             Ingredient.objects.bulk_update(assigned, ["retail_section"], batch_size=batch_size)
             self.stdout.write(self.style.SUCCESS(f"\nErfolgreich {assigned_count} Zutaten aktualisiert."))
         elif dry_run:
-            self.stdout.write(self.style.WARNING(f"\nDry Run abgeschlossen. {assigned_count} Zutaten wären aktualisiert worden."))
+            self.stdout.write(
+                self.style.WARNING(f"\nDry Run abgeschlossen. {assigned_count} Zutaten wären aktualisiert worden.")
+            )
         else:
             self.stdout.write("\nKeine Zutaten aktualisiert.")
 

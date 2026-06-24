@@ -15,7 +15,6 @@ from ..choices import (
     RegistrationDeletionReason,
 )
 
-
 # ---------------------------------------------------------------------------
 # Event Location
 # ---------------------------------------------------------------------------
@@ -321,9 +320,7 @@ class Event(models.Model):
             return True
         from profiles.models import GroupMembership
 
-        user_group_ids = GroupMembership.objects.filter(
-            user=user, is_active=True
-        ).values_list("group_id", flat=True)
+        user_group_ids = GroupMembership.objects.filter(user=user, is_active=True).values_list("group_id", flat=True)
         if self.invited_groups.filter(pk__in=user_group_ids).exists():
             return True
         return False

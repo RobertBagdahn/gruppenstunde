@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0008_recipe_folder_and_folder_fk"),
     ]

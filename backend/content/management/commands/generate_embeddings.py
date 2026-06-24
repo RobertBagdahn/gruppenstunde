@@ -90,7 +90,9 @@ class Command(BaseCommand):
                 get_title = lambda obj, i: f"[{i}/{count}] {obj.name[:50]}" if obj.name else f"[{i}/{count}] #{obj.pk}"
             else:
                 update_fn = update_content_embedding
-                get_title = lambda obj, i: f"[{i}/{count}] {obj.title[:50]}" if obj.title else f"[{i}/{count}] #{obj.pk}"
+                get_title = lambda obj, i: (
+                    f"[{i}/{count}] {obj.title[:50]}" if obj.title else f"[{i}/{count}] #{obj.pk}"
+                )
 
             for i, obj in enumerate(qs[:batch_size], 1):
                 try:
@@ -108,15 +110,11 @@ class Command(BaseCommand):
                 if delay > 0 and i < count:
                     time.sleep(delay)
 
-            self.stdout.write(
-                f"  {name}: {updated} updated, {skipped} skipped, {failed} failed"
-            )
+            self.stdout.write(f"  {name}: {updated} updated, {skipped} skipped, {failed} failed")
             total_updated += updated
             total_skipped += skipped
             total_failed += failed
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"\nDone: {total_updated} updated, {total_skipped} skipped, {total_failed} failed"
-            )
+            self.style.SUCCESS(f"\nDone: {total_updated} updated, {total_skipped} skipped, {total_failed} failed")
         )

@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0007_meal_enhancements"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

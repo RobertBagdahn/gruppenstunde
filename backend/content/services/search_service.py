@@ -45,9 +45,7 @@ def apply_mine_filter(queryset, user, content_type: str):
     elif content_type == "event":
         from profiles.models import GroupMembership
 
-        user_group_ids = GroupMembership.objects.filter(
-            user=user, is_active=True
-        ).values_list("group_id", flat=True)
+        user_group_ids = GroupMembership.objects.filter(user=user, is_active=True).values_list("group_id", flat=True)
         return queryset.filter(
             Q(created_by=user)
             | Q(responsible_persons=user)
@@ -98,9 +96,7 @@ def unified_search(
 
     for content_type in CONTENT_TYPES:
         results = (
-            _search_by_type(content_type, q, scope=effective_scope, user=user)
-            if content_type in search_types
-            else []
+            _search_by_type(content_type, q, scope=effective_scope, user=user) if content_type in search_types else []
         )
         type_counts[content_type] = len(results)
         if content_type in search_types:
@@ -242,15 +238,13 @@ def _search_sessions(
     scope: Literal["all", "mine"] = "all",
     user=None,
 ) -> list[dict]:
-    from session.models import GroupSession
     from content.choices import ContentStatus
+    from session.models import GroupSession
 
     if scope == "mine" and user and user.is_authenticated:
         # Mine: approved OR (draft AND owned by user)
         mine_q = Q(created_by=user) | Q(authors=user)
-        qs = GroupSession.objects.filter(
-            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
-        )
+        qs = GroupSession.objects.filter(Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q))
         qs = apply_mine_filter(qs, user, "session")
     else:
         qs = GroupSession.objects.filter(status=ContentStatus.APPROVED)
@@ -280,9 +274,7 @@ def _search_blogs(
 
     if scope == "mine" and user and user.is_authenticated:
         mine_q = Q(created_by=user) | Q(authors=user)
-        qs = Blog.objects.filter(
-            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
-        )
+        qs = Blog.objects.filter(Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q))
         qs = apply_mine_filter(qs, user, "blog")
     else:
         qs = Blog.objects.filter(status=ContentStatus.APPROVED)
@@ -306,14 +298,12 @@ def _search_games(
     scope: Literal["all", "mine"] = "all",
     user=None,
 ) -> list[dict]:
-    from game.models import Game
     from content.choices import ContentStatus
+    from game.models import Game
 
     if scope == "mine" and user and user.is_authenticated:
         mine_q = Q(created_by=user) | Q(authors=user)
-        qs = Game.objects.filter(
-            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
-        )
+        qs = Game.objects.filter(Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q))
         qs = apply_mine_filter(qs, user, "game")
     else:
         qs = Game.objects.filter(status=ContentStatus.APPROVED)
@@ -339,14 +329,12 @@ def _search_recipes(
     scope: Literal["all", "mine"] = "all",
     user=None,
 ) -> list[dict]:
-    from recipe.models import Recipe
     from content.choices import ContentStatus
+    from recipe.models import Recipe
 
     if scope == "mine" and user and user.is_authenticated:
         mine_q = Q(owner=user) | Q(authors=user)
-        qs = Recipe.objects.filter(
-            Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q)
-        )
+        qs = Recipe.objects.filter(Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q))
         qs = apply_mine_filter(qs, user, "recipe")
     else:
         qs = Recipe.objects.filter(status=ContentStatus.APPROVED)

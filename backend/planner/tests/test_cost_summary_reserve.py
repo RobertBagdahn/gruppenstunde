@@ -8,9 +8,9 @@ from django.test import Client
 from model_bakery import baker
 
 from planner.models import MealItem
-from planner.tests import make_meal_plan, make_meal, make_meal_item
+from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
-from supply.tests import make_ingredient, make_portion, make_measuring_unit
+from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 User = get_user_model()
 
@@ -23,9 +23,7 @@ class TestMealPlanCostSummaryAPI:
         self.client.force_login(self.user)
 
     def _build_plan_with_cost(self, reserve_factor: float):
-        plan = make_meal_plan(
-            created_by=self.user, norm_portions=10, reserve_factor=reserve_factor
-        )
+        plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=reserve_factor)
         meal = make_meal(meal_plan=plan)
         recipe = make_recipe(portions=1)
         ing = make_ingredient(name="Kosten-Zutat", price_per_kg=Decimal("10.00"))
@@ -64,15 +62,11 @@ class TestMealPlanCostSummaryAPI:
 
     def test_cost_summary_includes_standalone_ingredient(self):
         """Standalone ingredients (no recipe) must be included in the cost."""
-        plan = make_meal_plan(
-            created_by=self.user, norm_portions=10, reserve_factor=1.0
-        )
+        plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.0)
         meal = make_meal(meal_plan=plan)
         ing = make_ingredient(name="Butter", price_per_kg=Decimal("5.00"))
         mu = make_measuring_unit(unit="g", quantity=1.0)
-        portion = make_portion(
-            ingredient=ing, measuring_unit=mu, weight_g=200.0, name="200g"
-        )
+        portion = make_portion(ingredient=ing, measuring_unit=mu, weight_g=200.0, name="200g")
         # 0.2 kg per person * 10 persons * 5.00 EUR/kg = 10.00 EUR
         MealItem.objects.create(
             meal=meal,
@@ -90,27 +84,21 @@ class TestMealPlanCostSummaryAPI:
 
     def test_cost_summary_standalone_matches_shopping_list(self):
         """Cost summary and shopping list totals should match for same data."""
-        plan = make_meal_plan(
-            created_by=self.user, norm_portions=10, reserve_factor=1.15
-        )
+        plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.15)
         meal = make_meal(meal_plan=plan)
 
         # Recipe-based item
         recipe = make_recipe(portions=4)
         ing1 = make_ingredient(name="Mehl", price_per_kg=Decimal("2.00"))
         mu1 = make_measuring_unit(unit="g", quantity=1.0)
-        portion1 = make_portion(
-            ingredient=ing1, measuring_unit=mu1, weight_g=500.0, name="500g"
-        )
+        portion1 = make_portion(ingredient=ing1, measuring_unit=mu1, weight_g=500.0, name="500g")
         make_recipe_item(recipe=recipe, portion=portion1, quantity=1.0)
         make_meal_item(meal=meal, recipe=recipe, factor=1.0)
 
         # Standalone ingredient
         ing2 = make_ingredient(name="Eier", price_per_kg=Decimal("4.00"))
         mu2 = make_measuring_unit(unit="g", quantity=1.0)
-        portion2 = make_portion(
-            ingredient=ing2, measuring_unit=mu2, weight_g=60.0, name="1 Ei"
-        )
+        portion2 = make_portion(ingredient=ing2, measuring_unit=mu2, weight_g=60.0, name="1 Ei")
         MealItem.objects.create(
             meal=meal,
             ingredient=ing2,
@@ -130,14 +118,10 @@ class TestMealPlanCostSummaryAPI:
         shop_data = resp_shop.json()
 
         # Shopping list returns a flat list of items
-        shop_total = sum(
-            item.get("estimated_price_eur", 0) or 0 for item in shop_data
-        )
+        shop_total = sum(item.get("estimated_price_eur", 0) or 0 for item in shop_data)
 
         # With reserve_factor=1.0 both should match
-        assert float(cost_data["total_cost_with_reserve"]) == pytest.approx(
-            shop_total, abs=0.01
-        ), (
+        assert float(cost_data["total_cost_with_reserve"]) == pytest.approx(shop_total, abs=0.01), (
             f"Cost summary (with reserve): {cost_data['total_cost_with_reserve']}, "
             f"Shopping list total: {shop_total}"
         )

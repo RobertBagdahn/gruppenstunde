@@ -27,7 +27,7 @@ Die Rezept-Detailseite zeigt Zutaten read-only an. Bearbeitung erfordert Navigat
 - Bei Abbrechen: State verwerfen, kein PATCH
 
 ### 2. AI-Mengen-Schätzung: Neuer dedizierter Endpoint
-- `POST /api/recipes/{id}/estimate-quantities/` 
+- `POST /api/recipes/{id}/estimate-quantities/`
 - Nutzt bestehenden Gemini-Client, aber mit angepasstem Prompt der die **existierenden** Zutaten des Rezepts nimmt (nicht neue vorschlägt)
 - Response enthält pro Item: `item_id`, `quantity_per_person`, `quantity_total`, `unit`
 - Frontend zeigt Vorschau-Dialog → User bestätigt → Werte werden in lokalen Edit-State übernommen (noch nicht gespeichert)

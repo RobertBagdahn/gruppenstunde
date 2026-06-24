@@ -17,15 +17,14 @@ from content.base_api import (
     toggle_emotion,
 )
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
-from content.schemas import ImageFromUrlIn
 from content.choices import ContentStatus
 from content.models import Tag
+from content.schemas import ImageFromUrlIn
 
 from .models import Blog
 from .schemas import (
     BlogCreateIn,
     BlogDetailOut,
-    BlogListOut,
     BlogUpdateIn,
     PaginatedBlogOut,
 )
@@ -382,7 +381,7 @@ def set_blog_image_from_url(request, blog_id: int, payload: ImageFromUrlIn):
     try:
         saved_path = download_and_save_image(payload.image_url, "content/")
     except RuntimeError as exc:
-        raise HttpError(500, str(exc))
+        raise HttpError(500, str(exc)) from exc
 
     blog.image = saved_path
     blog.save(update_fields=["image"])

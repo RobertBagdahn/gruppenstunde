@@ -1,8 +1,5 @@
 """Recipe-specific choices + re-exports from supply/content for backward compatibility."""
 
-from django.db import models
-from django.utils.translation import gettext_lazy as _
-
 # Re-export content choices for backward compatibility
 from content.choices import (
     ContentStatus,
@@ -28,13 +25,13 @@ RecipeStatusChoices = ContentStatus
 # Re-export all for backward compatibility so `from recipe.choices import X` still works
 __all__ = [
     "ContentStatus",
+    "DifficultyChoices",
+    "ExecutionTimeChoices",
+    "HintLevelChoices",
+    "HintMinMaxChoices",
+    "HintParameterChoices",
+    "PreparationTimeChoices",
+    "RecipeObjectiveChoices",
     "RecipeStatusChoices",
     "RecipeTypeChoices",
-    "DifficultyChoices",
-    "PreparationTimeChoices",
-    "ExecutionTimeChoices",
-    "RecipeObjectiveChoices",
-    "HintParameterChoices",
-    "HintMinMaxChoices",
-    "HintLevelChoices",
 ]

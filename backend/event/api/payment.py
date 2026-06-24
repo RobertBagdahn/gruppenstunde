@@ -1,7 +1,6 @@
 """Payment API endpoints — create, list, delete payments for event participants."""
 
 from django.shortcuts import get_object_or_404
-from ninja.errors import HttpError
 
 from event.choices import PaymentMethodChoices
 from event.models import Event, Participant, Payment

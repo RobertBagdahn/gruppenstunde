@@ -13,7 +13,6 @@ from supply.schemas.unit_conversion import (
     AvailableConversionsOut,
     UnitConversionCreateIn,
     UnitConversionOut,
-    UnitConversionUpdateIn,
 )
 
 unit_conversion_router = Router(tags=["Unit Conversions"])
@@ -27,9 +26,7 @@ def list_unit_conversions(
     ingredient: int | None = Query(None),
 ) -> list[UnitConversionOut]:
     """List unit conversions with optional filters."""
-    qs = UnitConversion.objects.select_related(
-        "from_unit", "to_unit", "ingredient"
-    )
+    qs = UnitConversion.objects.select_related("from_unit", "to_unit", "ingredient")
 
     if from_unit:
         qs = qs.filter(from_unit_id=from_unit)
@@ -98,9 +95,7 @@ def create_unit_conversion(request, payload: UnitConversionCreateIn) -> UnitConv
         factor=payload.factor,
         ingredient_id=payload.ingredient_id,
     )
-    conversion = UnitConversion.objects.select_related(
-        "from_unit", "to_unit", "ingredient"
-    ).get(pk=conversion.pk)
+    conversion = UnitConversion.objects.select_related("from_unit", "to_unit", "ingredient").get(pk=conversion.pk)
 
     return UnitConversionOut(
         id=conversion.id,
@@ -130,26 +125,18 @@ def _get_available_conversions(
         return from_unit.name, []
 
     # Get all conversions FROM this unit
-    conversions_qs = UnitConversion.objects.filter(
-        from_unit_id=from_unit_id
-    ).select_related("to_unit")
+    conversions_qs = UnitConversion.objects.filter(from_unit_id=from_unit_id).select_related("to_unit")
 
     if ingredient_id:
-        conversions_qs = conversions_qs.filter(
-            Q(ingredient_id=ingredient_id) | Q(ingredient__isnull=True)
-        )
+        conversions_qs = conversions_qs.filter(Q(ingredient_id=ingredient_id) | Q(ingredient__isnull=True))
     else:
         conversions_qs = conversions_qs.filter(ingredient__isnull=True)
 
     # Also get conversions TO this unit (reverse: if 1 Ta = 250g, then g→Ta = 1/250)
-    reverse_qs = UnitConversion.objects.filter(
-        to_unit_id=from_unit_id
-    ).select_related("from_unit")
+    reverse_qs = UnitConversion.objects.filter(to_unit_id=from_unit_id).select_related("from_unit")
 
     if ingredient_id:
-        reverse_qs = reverse_qs.filter(
-            Q(ingredient_id=ingredient_id) | Q(ingredient__isnull=True)
-        )
+        reverse_qs = reverse_qs.filter(Q(ingredient_id=ingredient_id) | Q(ingredient__isnull=True))
     else:
         reverse_qs = reverse_qs.filter(ingredient__isnull=True)
 
@@ -192,9 +179,7 @@ def available_conversions(
     ingredient_id: int | None = Query(None),
 ) -> AvailableConversionsOut:
     """Get all available unit conversions for an ingredient+unit pair."""
-    from_unit_name, conversions = _get_available_conversions(
-        ingredient_id, from_unit_id, quantity
-    )
+    from_unit_name, conversions = _get_available_conversions(ingredient_id, from_unit_id, quantity)
     return AvailableConversionsOut(
         from_unit_id=from_unit_id,
         from_unit_name=from_unit_name,
@@ -212,9 +197,7 @@ def available_conversions_batch(
     result_items: list[AvailableConversionBatchItemOut] = []
 
     for item in items:
-        from_unit_name, conversions = _get_available_conversions(
-            item.ingredient_id, item.from_unit_id, item.quantity
-        )
+        from_unit_name, conversions = _get_available_conversions(item.ingredient_id, item.from_unit_id, item.quantity)
         result_items.append(
             AvailableConversionBatchItemOut(
                 ingredient_id=item.ingredient_id,

@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0027_alter_ingredient_standalone_type"),
     ]

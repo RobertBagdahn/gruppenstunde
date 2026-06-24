@@ -10,12 +10,12 @@ compatibility with ``from content.tags_api import tags_router``.
 
 from ninja import Router
 
-from .search import router as search_router
-from .ai import router as ai_router
 from .admin import router as admin_router
+from .ai import router as ai_router
 from .content_links import router as content_links_router
 from .featured import router as featured_router
-from .tags import tags_router, scout_levels_router
+from .search import router as search_router
+from .tags import scout_levels_router, tags_router
 
 # Main content router — combines all sub-routers
 router = Router(tags=["content"])
@@ -51,6 +51,6 @@ router.add_router("", featured_router)
 
 __all__ = [
     "router",
-    "tags_router",
     "scout_levels_router",
+    "tags_router",
 ]

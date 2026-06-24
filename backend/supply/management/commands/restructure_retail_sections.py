@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 SECTIONS_TO_DELETE = [
     "Kühlung",
@@ -45,9 +45,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("DRY RUN — keine Änderungen.\n"))
 
         # --- Step 1: Delete sections ---
-        sections_to_delete = list(
-            RetailSection.objects.filter(name__in=SECTIONS_TO_DELETE)
-        )
+        sections_to_delete = list(RetailSection.objects.filter(name__in=SECTIONS_TO_DELETE))
 
         if not sections_to_delete:
             self.stdout.write("Keine der anzulöschenden Abteilungen gefunden.\n")
@@ -55,44 +53,34 @@ class Command(BaseCommand):
             self.stdout.write(f"Gefundene Abteilungen zum Löschen ({len(sections_to_delete)}):")
             for section in sections_to_delete:
                 count = section.ingredients.count()
-                self.stdout.write(
-                    f"  - \"{section.name}\" (ID={section.id}, rank={section.rank}, "
-                    f"{count} Zutaten)"
-                )
+                self.stdout.write(f'  - "{section.name}" (ID={section.id}, rank={section.rank}, ' f"{count} Zutaten)")
 
             if not dry_run:
                 for section in sections_to_delete:
                     affected = section.ingredients.count()
                     section.delete()
                     self.stdout.write(
-                        self.style.SUCCESS(
-                            f"  Gelöscht: \"{section.name}\" "
-                            f"({affected} Zutaten auf NULL gesetzt)"
-                        )
+                        self.style.SUCCESS(f'  Gelöscht: "{section.name}" ' f"({affected} Zutaten auf NULL gesetzt)")
                     )
             else:
-                self.stdout.write(
-                    self.style.WARNING("  (Trockenlauf — nichts gelöscht)")
-                )
+                self.stdout.write(self.style.WARNING("  (Trockenlauf — nichts gelöscht)"))
 
         # --- Step 2: Rename sections ---
         for old_name, new_name in RENAME_MAP.items():
             try:
                 section = RetailSection.objects.get(name=old_name)
                 self.stdout.write(
-                    f"Umbenennen: \"{old_name}\" → \"{new_name}\" "
+                    f'Umbenennen: "{old_name}" → "{new_name}" '
                     f"(ID={section.id}, {section.ingredients.count()} Zutaten)"
                 )
                 if not dry_run:
                     section.name = new_name
                     section.save()
-                    self.stdout.write(
-                        self.style.SUCCESS(f"  Umbenannt: \"{old_name}\" → \"{new_name}\"")
-                    )
+                    self.stdout.write(self.style.SUCCESS(f'  Umbenannt: "{old_name}" → "{new_name}"'))
                 else:
                     self.stdout.write(self.style.WARNING("  (Trockenlauf — nichts umbenannt)"))
             except RetailSection.DoesNotExist:
-                self.stdout.write(f"Übersprungen: \"{old_name}\" nicht gefunden.\n")
+                self.stdout.write(f'Übersprungen: "{old_name}" nicht gefunden.\n')
 
         if dry_run:
             self.stdout.write(self.style.WARNING("\nDry Run abgeschlossen."))

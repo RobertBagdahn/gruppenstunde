@@ -24,7 +24,6 @@ from recipe.services.nutrition_aggregation import (
     _aggregate_meal_values,
 )
 
-
 # Mapping meal_type to recipe_type for recipe suggestions
 MEAL_TYPE_TO_RECIPE_TYPE = {
     "breakfast": "breakfast",
@@ -41,7 +40,7 @@ MEAL_TYPE_LABELS = {
 }
 
 
-def evaluate_suggestions(meal_plan: "MealPlan") -> SuggestionDashboardOut:
+def evaluate_suggestions(meal_plan: MealPlan) -> SuggestionDashboardOut:
     """Evaluate all rules and system checks for a MealPlan."""
     suggestions: list[SuggestionOut] = []
 
@@ -77,10 +76,9 @@ def evaluate_suggestions(meal_plan: "MealPlan") -> SuggestionDashboardOut:
     )
 
 
-def _check_completeness(meal_plan: "MealPlan") -> list[SuggestionOut]:
+def _check_completeness(meal_plan: MealPlan) -> list[SuggestionOut]:
     """Check that every meal has at least one recipe/ingredient."""
     from planner.models import Meal, MealItem
-    from recipe.models import Recipe
 
     meals = Meal.objects.filter(meal_plan=meal_plan).order_by("start_datetime")
     suggestions: list[SuggestionOut] = []
@@ -131,13 +129,11 @@ def _check_completeness(meal_plan: "MealPlan") -> list[SuggestionOut]:
     return suggestions
 
 
-def _check_duplicates(meal_plan: "MealPlan") -> list[SuggestionOut]:
+def _check_duplicates(meal_plan: MealPlan) -> list[SuggestionOut]:
     """Find recipes used more than once in the plan."""
     from planner.models import MealItem
 
-    items = MealItem.objects.filter(
-        meal__meal_plan=meal_plan, recipe__isnull=False
-    ).select_related("recipe")
+    items = MealItem.objects.filter(meal__meal_plan=meal_plan, recipe__isnull=False).select_related("recipe")
 
     recipe_counts: Counter = Counter()
     for item in items:
@@ -161,7 +157,7 @@ def _check_duplicates(meal_plan: "MealPlan") -> list[SuggestionOut]:
     return suggestions
 
 
-def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
+def _evaluate_admin_rules(meal_plan: MealPlan) -> list[SuggestionOut]:
     """Evaluate all admin-configured Rules against aggregated nutrition values."""
     from planner.models import Meal
 
@@ -198,7 +194,9 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
                     scope_label=f"Gesamt: {rule.name}",
                     status=status,
                     priority=3,
-                    message=_format_rule_message(rule, current, suffix="/Tag" if rule.parameter != "nutri_class" else ""),
+                    message=_format_rule_message(
+                        rule, current, suffix="/Tag" if rule.parameter != "nutri_class" else ""
+                    ),
                     current_value=round(current, 2),
                     target_range=_format_range(rule),
                     tip=rule.tip_text if status != "green" else None,
@@ -290,7 +288,7 @@ def _evaluate_admin_rules(meal_plan: "MealPlan") -> list[SuggestionOut]:
     return suggestions
 
 
-def _check_nutritional_tag_compliance(meal_plan: "MealPlan") -> list[SuggestionOut]:
+def _check_nutritional_tag_compliance(meal_plan: MealPlan) -> list[SuggestionOut]:
     """Check that all recipes in the plan comply with the plan's nutritional tags.
 
     E.g., if the plan is tagged 'Halal', all recipe ingredients should carry that tag.
@@ -303,7 +301,6 @@ def _check_nutritional_tag_compliance(meal_plan: "MealPlan") -> list[SuggestionO
         return suggestions
 
     from planner.models import MealItem
-    from recipe.models import Recipe
 
     # Collect all recipe items in this plan
     meal_items = (
@@ -359,7 +356,7 @@ def _check_nutritional_tag_compliance(meal_plan: "MealPlan") -> list[SuggestionO
     return suggestions
 
 
-def _check_budget(meal_plan: "MealPlan") -> list[SuggestionOut]:
+def _check_budget(meal_plan: MealPlan) -> list[SuggestionOut]:
     """Check budget_per_person_per_day against actual costs using cached recipe prices."""
     if not meal_plan.budget_per_person_per_day:
         return []
@@ -377,9 +374,7 @@ def _check_budget(meal_plan: "MealPlan") -> list[SuggestionOut]:
     most_expensive_cost = 0.0
     has_price_data = False
 
-    items = MealItem.objects.filter(
-        meal__meal_plan=meal_plan, recipe__isnull=False
-    ).select_related("recipe")
+    items = MealItem.objects.filter(meal__meal_plan=meal_plan, recipe__isnull=False).select_related("recipe")
 
     for item in items:
         recipe = item.recipe
@@ -436,7 +431,9 @@ def _get_recipe_suggestions(recipe_type: str, limit: int = 3) -> list[RecipeSugg
     recipes = Recipe.objects.filter(
         recipe_type=recipe_type,
         status="approved",
-    ).order_by("-like_score")[:limit]
+    ).order_by(
+        "-like_score"
+    )[:limit]
 
     return [
         RecipeSuggestionOut(
@@ -450,7 +447,7 @@ def _get_recipe_suggestions(recipe_type: str, limit: int = 3) -> list[RecipeSugg
     ]
 
 
-def _get_plan_days(meal_plan: "MealPlan") -> list[dt.date]:
+def _get_plan_days(meal_plan: MealPlan) -> list[dt.date]:
     """Get all unique days in the meal plan."""
     from planner.models import Meal
 
@@ -463,7 +460,7 @@ def _get_plan_days(meal_plan: "MealPlan") -> list[dt.date]:
     return list(dates)
 
 
-def _day_number(meal_plan: "MealPlan", date: dt.date) -> int:
+def _day_number(meal_plan: MealPlan, date: dt.date) -> int:
     """Get the day number (1-indexed) relative to plan start."""
     if meal_plan.start_datetime:
         return (date - meal_plan.start_datetime.date()).days + 1
@@ -518,9 +515,11 @@ def _format_nutri_class(value: float) -> str:
 # ===========================================================================
 
 import logging
-from pydantic import BaseModel, Field
+
 from django.core.cache import cache
 from ninja.errors import HttpError
+from pydantic import BaseModel, Field
+
 from core.services.gemini import gemini_call
 
 logger = logging.getLogger(__name__)
@@ -547,7 +546,7 @@ class SuggestionsOutput(BaseModel):
     )
 
 
-def _build_ingredient_list(recipe: "Recipe") -> str:
+def _build_ingredient_list(recipe: Recipe) -> str:
     """Build a human-readable ingredient list from RecipeItems."""
     from recipe.models import RecipeItem
 
@@ -598,7 +597,7 @@ def _build_nutritional_summary(values: dict[str, float]) -> str:
     return "\n".join(lines)
 
 
-def _check_rate_limit(user: "AbstractBaseUser") -> None:
+def _check_rate_limit(user: AbstractBaseUser) -> None:
     """Enforce max 10 requests per user per hour. Raises HttpError(429) if exceeded."""
     cache_key = f"suggestion_ratelimit:{user.id}"
     current_count = cache.get(cache_key, 0)
@@ -611,7 +610,9 @@ def _check_rate_limit(user: "AbstractBaseUser") -> None:
     cache.set(cache_key, new_count, timeout=RATE_LIMIT_WINDOW_SECONDS)
 
 
-def get_suggestions(recipe: "Recipe", objective: str, user: "AbstractBaseUser", direction: str = "reduce") -> list[dict[str, Any]]:
+def get_suggestions(
+    recipe: Recipe, objective: str, user: AbstractBaseUser, direction: str = "reduce"
+) -> list[dict[str, Any]]:
     """Generate LLM-based ingredient suggestions for improving a recipe.
 
     Args:
@@ -624,7 +625,6 @@ def get_suggestions(recipe: "Recipe", objective: str, user: "AbstractBaseUser", 
         List of dicts with keys: ingredient_name, recommended_amount, unit,
         reasoning, expected_improvement. Returns empty list on error.
     """
-    from typing import Any
     # --- Rate limit ---
     _check_rate_limit(user)
 

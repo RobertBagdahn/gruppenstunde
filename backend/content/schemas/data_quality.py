@@ -1,10 +1,8 @@
 """Schemas for data quality features."""
 
 from datetime import datetime
-from typing import Optional
 
 from ninja import Schema
-
 
 # ---------------------------------------------------------------------------
 # Price Analysis

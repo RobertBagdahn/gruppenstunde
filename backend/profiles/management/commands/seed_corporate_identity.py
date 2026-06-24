@@ -134,10 +134,10 @@ def generate_placeholder_logo(initials: str, color: str) -> ContentFile:
     # Draw initials
     try:
         font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 100)
-    except (OSError, IOError):
+    except OSError:
         try:
             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 100)
-        except (OSError, IOError):
+        except OSError:
             font = ImageFont.load_default()
 
     bbox = draw.textbbox((0, 0), initials, font=font)

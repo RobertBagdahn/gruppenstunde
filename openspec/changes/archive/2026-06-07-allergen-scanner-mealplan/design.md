@@ -60,7 +60,7 @@ Aktuell gibt es im MealPlan-Modul keine Möglichkeit, Allergene zu konfigurieren
 **Begründung:** Backend-Suche unterstützt schon `nutritional_tag_ids` als Filter. Wir nutzen es als Ausschluss (NOT IN). Keine API-Änderung nötig, nur Frontend-Default.
 
 ### 5. UI: Warn-Badge Komponente + Scanner-Tab
-**Entscheidung:** 
+**Entscheidung:**
 - `AllergenWarningBadge` (neue Komponente): Roter Kreis mit 🚨 + Tooltip "Enthält: Erdnüsse, Gluten"
 - `AllergenScannerTab` (neue Page-Komponente): Tabelle gruppiert nach Allergen → Meals/Recipes
 - Integration in bestehende Views via `meal_plan.allergen_tag_ids` (bereits im Detail geladen)

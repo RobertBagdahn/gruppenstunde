@@ -1,7 +1,6 @@
 """Pydantic schemas for core Event models (Django Ninja)."""
 
-import datetime as _dt
-from datetime import date, datetime, time
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 
@@ -14,7 +13,6 @@ from supply.schemas import NutritionalTagOut
 from .custom_fields import CustomFieldValueOut
 from .day_slots import EventDaySlotOut
 from .labels import LabelOut
-
 
 # ---------------------------------------------------------------------------
 # Choices (for reference / output)

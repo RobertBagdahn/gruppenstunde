@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from decimal import Decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -49,7 +48,7 @@ class ShoppingListItem:
 
 
 def generate_shopping_list(
-    meal_plan: "MealPlan",
+    meal_plan: MealPlan,
     scaling_override: float | None = None,
 ) -> list[ShoppingListItem]:
     """Generate an aggregated shopping list for a meal plan.
@@ -67,7 +66,6 @@ def generate_shopping_list(
         Sorted list of ShoppingListItem grouped by retail section, then name
     """
     from planner.models import MealItem
-    from recipe.models import RecipeItem
     from supply.models import Portion
     from supply.services.price_service import get_portion_price
 
@@ -92,9 +90,7 @@ def generate_shopping_list(
 
     # Batch-load portions for direct-ingredient MealItems to avoid N+1
     direct_ingredient_pairs = [
-        (mi.ingredient_id, mi.measuring_unit_id)
-        for mi in meal_items
-        if mi.ingredient_id and mi.measuring_unit_id
+        (mi.ingredient_id, mi.measuring_unit_id) for mi in meal_items if mi.ingredient_id and mi.measuring_unit_id
     ]
     portion_lookup: dict[tuple[int, int], Portion] = {}
     if direct_ingredient_pairs:
@@ -135,9 +131,7 @@ def generate_shopping_list(
             recipe_items = list(recipe.recipe_items.all())
 
             # Split-aware: fraction of portions each recipe item is included for.
-            included_fractions = get_included_fractions(
-                mi, recipe_items, effective_portions
-            )
+            included_fractions = get_included_fractions(mi, recipe_items, effective_portions)
 
             for ri in recipe_items:
                 if not ri.portion:
@@ -153,7 +147,9 @@ def generate_shopping_list(
                     continue
 
                 recipe_servings = getattr(recipe, "portions", 1) or 1
-                weight_g = ri.quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling * fraction / recipe_servings
+                weight_g = (
+                    ri.quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling * fraction / recipe_servings
+                )
 
                 # Track raw quantity for items where portion has no weight
                 if not ri.portion.weight_g:
@@ -203,11 +199,7 @@ def generate_shopping_list(
             ing = mi.ingredient
             ingredient_cache[ing.id] = ing
             # Direct ingredient case — use batch-loaded portion lookup
-            portion = (
-                portion_lookup.get((ing.id, mi.measuring_unit_id))
-                if mi.measuring_unit_id
-                else None
-            )
+            portion = portion_lookup.get((ing.id, mi.measuring_unit_id)) if mi.measuring_unit_id else None
 
             portion_weight = portion.weight_g if portion else None
             if not portion_weight and mi.measuring_unit:
@@ -333,24 +325,52 @@ def _format_natural_portion(count: int | float, name: str) -> str:
     and handles leading numbers in portion names (e.g. "1 TL").
     """
     units_without_x = {
-        'el', 'tl', 'esslöffel', 'teelöffel', 'g', 'kg', 'gramm', 'kilogramm',
-        'ml', 'l', 'milliliter', 'liter', 'st.', 'stk', 'stück', 'prise', 'pr.',
-        'dose', 'dosen', 'tasse', 'tassen', 'becher', 'portion', 'portionen',
-        'handvoll', 'tropfen', 'zehe', 'zehen', 'packung', 'packungen', 'beutel',
-        'scheibe', 'scheiben',
+        "el",
+        "tl",
+        "esslöffel",
+        "teelöffel",
+        "g",
+        "kg",
+        "gramm",
+        "kilogramm",
+        "ml",
+        "l",
+        "milliliter",
+        "liter",
+        "st.",
+        "stk",
+        "stück",
+        "prise",
+        "pr.",
+        "dose",
+        "dosen",
+        "tasse",
+        "tassen",
+        "becher",
+        "portion",
+        "portionen",
+        "handvoll",
+        "tropfen",
+        "zehe",
+        "zehen",
+        "packung",
+        "packungen",
+        "beutel",
+        "scheibe",
+        "scheiben",
     }
 
     count = _clean_float_display(float(count))
 
-    match = re.match(r'^(\d+(?:[.,]\d+)?)\s*(.*)$', name.strip())
+    match = re.match(r"^(\d+(?:[.,]\d+)?)\s*(.*)$", name.strip())
     if match:
-        val = float(match.group(1).replace(',', '.'))
+        val = float(match.group(1).replace(",", "."))
         rest = match.group(2).strip()
         multiplied = count * val
         multiplied = _clean_float_display(multiplied)
         return f"ca. {multiplied} {rest}" if rest else f"ca. {multiplied}"
 
-    first_word = name.split()[0].lower().rstrip('.,')
+    first_word = name.split()[0].lower().rstrip(".,")
     should_omit_x = first_word in units_without_x or name.lower() in units_without_x
 
     if should_omit_x:
@@ -368,7 +388,7 @@ def compute_portion_options(
     """
     options: list[dict] = []
     best_portion = None
-    best_diff = float('inf')
+    best_diff = float("inf")
 
     for p in portions:
         if not p.weight_g or p.weight_g <= 0:
@@ -384,20 +404,19 @@ def compute_portion_options(
             count_display = int(count_display)
 
         display = _format_natural_portion(count_display, p.name)
-        options.append({
-            "name": p.name,
-            "display": display,
-            "is_default": p.is_default,
-            "weight_g": p.weight_g,
-            "count": round(count, 1),
-        })
+        options.append(
+            {
+                "name": p.name,
+                "display": display,
+                "is_default": p.is_default,
+                "weight_g": p.weight_g,
+                "count": round(count, 1),
+            }
+        )
 
         # Find best portion (closest to 1 whole unit)
         diff = abs(count - 1.0)
-        if p.is_default and diff <= 0.5:
-            best_diff = diff
-            best_portion = p
-        elif diff < best_diff:
+        if (p.is_default and diff <= 0.5) or diff < best_diff:
             best_diff = diff
             best_portion = p
 
@@ -421,7 +440,6 @@ def _enrich_display_fields(
 ) -> None:
     """Add display_quantity, natural_portions, and display_text to shopping list items."""
     from supply.models import Ingredient
-    from supply.models.ingredient import Portion
 
     if raw_quantities is None:
         raw_quantities = {}

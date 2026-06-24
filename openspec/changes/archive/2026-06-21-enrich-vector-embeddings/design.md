@@ -38,20 +38,20 @@ Was fehlt:
 
 **Format Ingredient:**
 ```
-Zutat: <name>. <description>. Pro 100g: <energy> kcal, <protein>g Eiweiß, 
-<fat>g Fett, <carbs>g Kohlenhydrate, <sugar>g Zucker, <fibre>g Ballaststoffe, 
-<salt>g Salz. Nutri-Score: <class>. Preis: <price>/kg. 
-Lagerung: <storage>, <durability> Tage haltbar. Saison: <start>-<end>. 
-Kind-Score: <child>, Pfadfinder-Score: <scout>, Umwelt-Score: <env>. 
+Zutat: <name>. <description>. Pro 100g: <energy> kcal, <protein>g Eiweiß,
+<fat>g Fett, <carbs>g Kohlenhydrate, <sugar>g Zucker, <fibre>g Ballaststoffe,
+<salt>g Salz. Nutri-Score: <class>. Preis: <price>/kg.
+Lagerung: <storage>, <durability> Tage haltbar. Saison: <start>-<end>.
+Kind-Score: <child>, Pfadfinder-Score: <scout>, Umwelt-Score: <env>.
 Tags: <tag1>, <tag2>. Abteilung: <retail_section>.
 ```
 
 **Format Recipe:**
 ```
-Titel: <title>. <summary>. <description>. Typ: <recipe_type>, 
-<servings> Portionen. Schwierigkeit: <difficulty>, Kosten: <costs_rating>, 
-Dauer: <execution_time>min. Tags: <tags>. 
-Zutaten: <ingredient1_name> (<energy> kcal, <protein>g Eiweiß, ...); 
+Titel: <title>. <summary>. <description>. Typ: <recipe_type>,
+<servings> Portionen. Schwierigkeit: <difficulty>, Kosten: <costs_rating>,
+Dauer: <execution_time>min. Tags: <tags>.
+Zutaten: <ingredient1_name> (<energy> kcal, <protein>g Eiweiß, ...);
 <ingredient2_name> (...); ...
 ```
 

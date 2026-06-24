@@ -10,10 +10,6 @@ from core.services.gemini import (
     CACHE_KEY,
     GLOBAL_LIMIT,
     WINDOW_SECONDS,
-    GeminiAuthError,
-    GeminiRateLimitError,
-    GeminiUpstreamRateLimitError,
-    GeminiUnavailableError,
     gemini_call,
     gemini_image_call,
 )

@@ -7,6 +7,39 @@ Re-exports all schemas so that existing imports like
 """
 
 # Base schemas (previously in base_schemas.py)
+# Admin schemas (previously inline in api.py)
+from .admin import (
+    AdminApprovalActionIn,
+    ApprovalActionOut,
+    ApprovalLogItemOut,
+    ApprovalQueueItemOut,
+    BatchEmbeddingIn,
+    BatchEmbeddingOut,
+    EmbeddingFeedbackItemOut,
+    EmbeddingStatusItemOut,
+    PaginatedApprovalQueueOut,
+    PaginatedEmbeddingFeedbackOut,
+    PaginatedEmbeddingStatusOut,
+)
+
+# AI schemas (previously inline in api.py)
+from .ai import (
+    AiErrorOut,
+    AiGenerateImageIn,
+    AiGenerateImageOut,
+    AiImproveTextIn,
+    AiImproveTextOut,
+    AiIngredientSuggestionOut,
+    AiMaterialSuggestionOut,
+    AiRefurbishIn,
+    AiRefurbishOut,
+    AiSuggestSuppliesIn,
+    AiSuggestSuppliesOut,
+    AiSuggestTagsIn,
+    AiSuggestTagsOut,
+    SuggestedMaterialOut,
+    SuggestedTagOut,
+)
 from .base import (
     ApprovalActionIn,
     ApprovalLogOut,
@@ -33,52 +66,18 @@ from .base import (
     TagTreeOut,
 )
 
+# Content link detail schemas (previously inline in api.py)
+from .content_links import (
+    ContentLinkDetailOut,
+    FeaturedContentDetailOut,
+)
+
 # Search schemas (previously inline in api.py)
 from .search import (
     AutocompleteResultOut,
     PaginatedSearchOut,
     UnifiedSearchFilterIn,
     UnifiedSearchResultOut,
-)
-
-# AI schemas (previously inline in api.py)
-from .ai import (
-    AiErrorOut,
-    AiGenerateImageIn,
-    AiGenerateImageOut,
-    AiImproveTextIn,
-    AiImproveTextOut,
-    AiIngredientSuggestionOut,
-    AiMaterialSuggestionOut,
-    AiRefurbishIn,
-    AiRefurbishOut,
-    AiSuggestSuppliesIn,
-    AiSuggestSuppliesOut,
-    AiSuggestTagsIn,
-    AiSuggestTagsOut,
-    SuggestedMaterialOut,
-    SuggestedTagOut,
-)
-
-# Admin schemas (previously inline in api.py)
-from .admin import (
-    AdminApprovalActionIn,
-    ApprovalActionOut,
-    ApprovalLogItemOut,
-    ApprovalQueueItemOut,
-    BatchEmbeddingIn,
-    BatchEmbeddingOut,
-    EmbeddingFeedbackItemOut,
-    EmbeddingStatusItemOut,
-    PaginatedApprovalQueueOut,
-    PaginatedEmbeddingFeedbackOut,
-    PaginatedEmbeddingStatusOut,
-)
-
-# Content link detail schemas (previously inline in api.py)
-from .content_links import (
-    ContentLinkDetailOut,
-    FeaturedContentDetailOut,
 )
 
 __all__ = [

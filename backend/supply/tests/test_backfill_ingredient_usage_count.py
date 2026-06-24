@@ -3,7 +3,6 @@
 import pytest
 from django.core.management import call_command
 
-from recipe.models import RecipeItem
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import Ingredient, Portion
 from supply.tests import make_ingredient, make_measuring_unit
@@ -18,9 +17,7 @@ class TestBackfillIngredientUsageCount:
         assert ing.usage_count == 0
 
         unit = make_measuring_unit()
-        portion = Portion.objects.create(
-            name="1 Tomate", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=100
-        )
+        portion = Portion.objects.create(name="1 Tomate", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=100)
         recipe1 = make_recipe()
         recipe2 = make_recipe()
         make_recipe_item(recipe=recipe1, portion=portion)

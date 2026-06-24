@@ -7,6 +7,7 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         from django.contrib import admin
+
         from core.admin import InspiAdminSite
 
         # Replace the default admin site with our custom one

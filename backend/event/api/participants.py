@@ -6,8 +6,8 @@ from django.utils import timezone
 from ninja import Schema
 from ninja.errors import HttpError
 
+from event.choices import TimelineActionChoices
 from event.models import BookingOption, Event, Participant, Person, Registration
-from event.choices import GenderChoices, TimelineActionChoices
 from event.schemas import (
     AdminRegisterIn,
     PaginatedParticipantOut,

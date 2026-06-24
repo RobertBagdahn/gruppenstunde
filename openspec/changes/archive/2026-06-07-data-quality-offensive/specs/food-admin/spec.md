@@ -20,4 +20,3 @@ Das food-frontend MUST einen Admin-Bereich unter `/admin` bereitstellen, der nur
 #### Scenario: Datenqualität direkt aufrufbar
 - **WHEN** Staff-User auf `/admin/data-quality` navigiert
 - **THEN** SHALL das Datenqualität-Dashboard mit Zutaten/Rezepte-Auswahl geladen werden
-

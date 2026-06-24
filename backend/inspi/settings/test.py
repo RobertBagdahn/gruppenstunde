@@ -2,7 +2,7 @@
 Test settings – uses SQLite for fast test runs.
 """
 
-from .base import *  # noqa: F401,F403
+from .base import *  # noqa: F403
 
 DEBUG = False
 
@@ -17,6 +17,7 @@ DATABASES = {
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
+
 
 # Disable migrations for faster tests
 class DisableMigrations:

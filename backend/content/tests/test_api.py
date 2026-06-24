@@ -2,14 +2,13 @@
 Tests for content API (search, content links, featured content).
 """
 
-import pytest
 from datetime import date, timedelta
+
+import pytest
 from django.contrib.contenttypes.models import ContentType
-from django.test import Client
 
 from content.choices import ContentStatus
 from content.models import ContentLink, FeaturedContent
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

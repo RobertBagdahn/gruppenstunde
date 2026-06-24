@@ -9,7 +9,6 @@ from datetime import date, datetime
 
 from ninja import Schema
 
-
 # ---------------------------------------------------------------------------
 # Shared Sub-Schemas (Tag, ScoutLevel, Author)
 # ---------------------------------------------------------------------------

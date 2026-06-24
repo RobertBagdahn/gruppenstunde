@@ -3,12 +3,12 @@
 from django.db.models import Avg, Count
 from ninja import Router
 
-from recipe.models import Recipe
-from recipe.schemas.dashboard import FoodDashboardOut, DashboardInsightsOut, RecipeInsightOut
-from supply.models import Ingredient
 from planner.models import MealPlan
 from planner.models.meal_plan import Meal
+from recipe.models import Recipe
+from recipe.schemas.dashboard import DashboardInsightsOut, FoodDashboardOut, RecipeInsightOut
 from shopping.models import ShoppingList
+from supply.models import Ingredient
 
 router = Router(tags=["dashboard"])
 
@@ -22,9 +22,12 @@ def get_food_dashboard(request) -> FoodDashboardOut:
     shopping_list_count = ShoppingList.objects.count()
 
     # Insights
-    avg_ingredients = Recipe.objects.filter(status="approved").annotate(
-        item_count=Count("recipe_items")
-    ).aggregate(avg=Avg("item_count"))["avg"] or 0.0
+    avg_ingredients = (
+        Recipe.objects.filter(status="approved")
+        .annotate(item_count=Count("recipe_items"))
+        .aggregate(avg=Avg("item_count"))["avg"]
+        or 0.0
+    )
 
     # Most planned recipe (recipe appearing in most meal items)
     most_planned = (
@@ -36,17 +39,10 @@ def get_food_dashboard(request) -> FoodDashboardOut:
     )
 
     # Newest recipe
-    newest = (
-        Recipe.objects.filter(status="approved")
-        .order_by("-created_at")
-        .values("title", "slug")
-        .first()
-    )
+    newest = Recipe.objects.filter(status="approved").order_by("-created_at").values("title", "slug").first()
 
     # Total unique days with meals planned
-    total_meal_days = (
-        Meal.objects.dates("start_datetime", "day").count()
-    )
+    total_meal_days = Meal.objects.dates("start_datetime", "day").count()
 
     insights = DashboardInsightsOut(
         most_planned_recipe=RecipeInsightOut(**most_planned) if most_planned else None,

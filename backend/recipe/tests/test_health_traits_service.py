@@ -3,13 +3,7 @@
 import pytest
 
 from recipe.services.health_traits_service import (
-    BALANCED_SCORE_MAX,
-    BALANCED_SCORE_MIN,
-    FIBER_THRESHOLD_G,
     PROTEIN_ENERGY_PCT,
-    SALT_THRESHOLD_G,
-    SAT_FAT_THRESHOLD_G,
-    SUGAR_THRESHOLD_G,
     compute_positive_traits,
     is_balanced,
     is_high_fiber,
@@ -20,7 +14,6 @@ from recipe.services.health_traits_service import (
 )
 from recipe.tests import make_recipe, make_recipe_item
 from supply.tests import make_ingredient, make_portion
-
 
 # ---------------------------------------------------------------------------
 # Unit tests for individual trait helpers
@@ -139,7 +132,7 @@ class TestComputePositiveTraitsIntegration:
         # With energy_kcal=120, need protein_g >= 120*0.20/4 = 6.0
         recipe = self._make_recipe_with_nutrition(
             energy_kcal=120,
-            protein_g=6.0,    # 6*4/120 = 20.0% — exactly at threshold
+            protein_g=6.0,  # 6*4/120 = 20.0% — exactly at threshold
             fat_g=2.0,
             fat_sat_g=1.0,
             carbohydrate_g=15.0,
@@ -167,13 +160,13 @@ class TestComputePositiveTraitsIntegration:
         """Recipe violating all thresholds returns empty or only 'balanced'."""
         recipe = self._make_recipe_with_nutrition(
             energy_kcal=478,
-            protein_g=3.0,    # 3*4/478 = 2.5% — not high protein
+            protein_g=3.0,  # 3*4/478 = 2.5% — not high protein
             fat_g=20.0,
-            fat_sat_g=10.0,   # not low sat fat
+            fat_sat_g=10.0,  # not low sat fat
             carbohydrate_g=50.0,
-            sugar_g=25.0,     # not low sugar
-            fibre_g=1.0,      # not high fiber
-            salt_g=3.0,       # not low salt
+            sugar_g=25.0,  # not low sugar
+            fibre_g=1.0,  # not high fiber
+            salt_g=3.0,  # not low salt
         )
         traits = compute_positive_traits(recipe)
         assert "high_fiber" not in traits

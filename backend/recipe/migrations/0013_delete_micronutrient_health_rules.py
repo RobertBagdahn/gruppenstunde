@@ -36,7 +36,6 @@ def delete_micronutrient_rules(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0012_remove_recipe_cached_calcium_mg_and_more"),
     ]

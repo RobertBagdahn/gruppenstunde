@@ -6,7 +6,6 @@ from recipe.services.nutri_improvement_service import calculate_nutri_improvemen
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import Ingredient, MeasuringUnit, Portion
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

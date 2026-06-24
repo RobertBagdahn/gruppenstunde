@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0003_alter_portion_options_portion_is_default_and_more"),
     ]

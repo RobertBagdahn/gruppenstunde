@@ -2,8 +2,13 @@ import datetime as dt
 
 import pytest
 from django.utils import timezone
+
 from planner.tests import make_meal, make_meal_item, make_meal_plan
-from recipe.services.nutrition_aggregation import _aggregate_day_values, _aggregate_meal_plan_values, _aggregate_meal_values
+from recipe.services.nutrition_aggregation import (
+    _aggregate_day_values,
+    _aggregate_meal_plan_values,
+    _aggregate_meal_values,
+)
 from recipe.services.recipe_checks import recalculate_recipe_cache
 from recipe.services.suggestion_service import _evaluate_admin_rules
 from recipe.tests import make_recipe, make_recipe_item, make_rule
@@ -205,6 +210,7 @@ class TestNutritionAggregationPortionScaling:
 
     def test_evaluate_rules_returns_target_bounds_and_midpoint(self):
         from recipe.services.nutrition_aggregation import _evaluate_rules
+
         rule = make_rule(
             name="Fett limit",
             parameter="fat_g",

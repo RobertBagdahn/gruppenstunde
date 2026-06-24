@@ -34,8 +34,8 @@ from .schemas import (
     ShoppingListItemOut,
     ShoppingListItemUpdateIn,
     ShoppingListOut,
-    UserSimpleOut,
     ShoppingListUpdateIn,
+    UserSimpleOut,
 )
 
 shopping_router = Router(tags=["shopping-lists"])
@@ -230,9 +230,11 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     _require_access(shopping_list, request.user)
 
-    items = shopping_list.items.select_related("ingredient", "retail_section").prefetch_related(
-        "sources"
-    ).order_by("retail_section__name", "sort_order")
+    items = (
+        shopping_list.items.select_related("ingredient", "retail_section")
+        .prefetch_related("sources")
+        .order_by("retail_section__name", "sort_order")
+    )
 
     if view == "summarized":
         # Group by ingredient, sum quantities
@@ -241,7 +243,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
             key = item.ingredient_id or item.name
             if key not in grouped:
                 grouped[key] = {
-                "name": item.ingredient.name if item.ingredient else item.name,
+                    "name": item.ingredient.name if item.ingredient else item.name,
                     "total_quantity_g": 0.0,
                     "unit": item.unit or "g",
                     "retail_section": item.retail_section.name if item.retail_section else "",
@@ -262,32 +264,35 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
             source = item.note or "Sonstiges"
             if source not in by_source:
                 by_source[source] = []
-            by_source[source].append({
-                "id": item.id,
-                "name": item.ingredient.name if item.ingredient else item.name,
-                "quantity_g": float(item.quantity_g or 0),
-                "unit": item.unit or "g",
-                "is_checked": item.is_checked,
-            })
+            by_source[source].append(
+                {
+                    "id": item.id,
+                    "name": item.ingredient.name if item.ingredient else item.name,
+                    "quantity_g": float(item.quantity_g or 0),
+                    "unit": item.unit or "g",
+                    "is_checked": item.is_checked,
+                }
+            )
 
-        return {"view": "by_recipe", "groups": [
-            {"source": k, "items": v} for k, v in by_source.items()
-        ]}
+        return {"view": "by_recipe", "groups": [{"source": k, "items": v} for k, v in by_source.items()]}
 
     else:
         # Detailed: return raw items
-        return {"view": "detailed", "items": [
-            {
-                "id": item.id,
-                "name": item.ingredient.name if item.ingredient else item.name,
-                "quantity_g": float(item.quantity_g or 0),
-                "unit": item.unit or "g",
-                "retail_section": item.retail_section.name if item.retail_section else "",
-                "is_checked": item.is_checked,
-                "note": item.note or "",
-            }
-            for item in items
-        ]}
+        return {
+            "view": "detailed",
+            "items": [
+                {
+                    "id": item.id,
+                    "name": item.ingredient.name if item.ingredient else item.name,
+                    "quantity_g": float(item.quantity_g or 0),
+                    "unit": item.unit or "g",
+                    "retail_section": item.retail_section.name if item.retail_section else "",
+                    "is_checked": item.is_checked,
+                    "note": item.note or "",
+                }
+                for item in items
+            ],
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -545,10 +550,8 @@ def create_from_meal_plan(request, meal_plan_id: int):
         source_id=meal_plan.id,
     )
 
-    from supply.models.ingredient import Ingredient
-    from supply.models.reference import RetailSection
-    from planner.models.meal_plan import Meal
     from recipe.models import Recipe as RecipeModel
+    from supply.models.ingredient import Ingredient
 
     for sort_idx, ti in enumerate(transient_items):
         # Try to resolve ingredient and its retail section
@@ -639,9 +642,7 @@ def list_kitchen_reminders(request):
 
     # Also include uncategorized user suggestions
     if user:
-        uncategorized = KitchenReminder.objects.filter(
-            suggested_by=user, is_published=False, category__isnull=True
-        )
+        uncategorized = KitchenReminder.objects.filter(suggested_by=user, is_published=False, category__isnull=True)
         if uncategorized.exists():
             reminders = [
                 KitchenReminderOut(

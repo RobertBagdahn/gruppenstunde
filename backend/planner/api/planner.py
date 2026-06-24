@@ -5,12 +5,8 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from profiles.models import GroupMembership
-from profiles.choices import MembershipRoleChoices
-
 from planner.models import Planner, PlannerCollaborator, PlannerEntry
 from planner.schemas import (
-    CollaboratorOut,
     InviteIn,
     PlannerCreateIn,
     PlannerDetailOut,
@@ -20,6 +16,8 @@ from planner.schemas import (
     PlannerOut,
     PlannerUpdateIn,
 )
+from profiles.choices import MembershipRoleChoices
+from profiles.models import GroupMembership
 
 router = Router(tags=["planner"])
 

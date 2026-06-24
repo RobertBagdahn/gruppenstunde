@@ -1,7 +1,7 @@
 
 archive.today
 webpage capture
-Saved from	
+Saved from
 https://www.faz.net/aktuell/stil/drinnen-draussen/pfadfinder-was-kinder-dort-lernen-19707871.html
 no other snapshots from this url
 18 May 2024 12:33:11 UTC
@@ -65,5 +65,3 @@ Pfadfinder bitten Opfer und Zeitzeugen um Mithilfe
 Pfadfindergruppen gibt es weltweit. Beim letzten internationalen Treffen kamen in Korea 55.000 Pfadfinder zusammen. „Als Pfadfinder geht man unvoreingenommen auf andere Menschen zu, weiß, dass alle Menschen gleich und wir hier auf dem Planeten nur als Gast sind“, sagt Paul Ritter. Und man lerne, kulturelle Unterschiede zu akzeptieren. Viele Gruppen treffen sich noch Jahre später. Denn nicht zuletzt entstehen bei den Pfadfindern auch Freundschaften fürs Leben.
 Quelle: F.A.S.
 Artikelrechte erwerben
-
-

@@ -7,8 +7,8 @@ For each ingredient:
 
 import time
 
-from django.core.management.base import BaseCommand
 from django.contrib.postgres.search import TrigramSimilarity
+from django.core.management.base import BaseCommand
 
 from supply.models import Ingredient
 from supply.services.ingredient_ai_suggest_service import ai_create_ingredient
@@ -469,9 +469,7 @@ class Command(BaseCommand):
                 continue
 
             if dry_run:
-                self.stdout.write(
-                    f"  [{i}/{start_at + total}] WOULD CREATE '{name}'"
-                )
+                self.stdout.write(f"  [{i}/{start_at + total}] WOULD CREATE '{name}'")
                 created += 1
                 continue
 
@@ -480,22 +478,13 @@ class Command(BaseCommand):
                 ingredient = ai_create_ingredient(name, bypass_limits=True)
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"  [{i}/{start_at + total}] CREATED '{ingredient.name}' "
-                        f"(slug={ingredient.slug})"
+                        f"  [{i}/{start_at + total}] CREATED '{ingredient.name}' " f"(slug={ingredient.slug})"
                     )
                 )
                 created += 1
                 # Rate limit - avoid hammering Gemini
                 time.sleep(2)
             except Exception as e:
-                self.stdout.write(
-                    self.style.ERROR(
-                        f"  [{i}/{start_at + total}] ERROR '{name}': {e}"
-                    )
-                )
+                self.stdout.write(self.style.ERROR(f"  [{i}/{start_at + total}] ERROR '{name}': {e}"))
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"\nDone! Created: {created}, Skipped: {skipped}"
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"\nDone! Created: {created}, Skipped: {skipped}"))

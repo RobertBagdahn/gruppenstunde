@@ -1,6 +1,6 @@
 # Stakeholder-Gespräch — Food App Review
-**Datum:** 23. Juni 2026  
-**Teilnehmer:** Robert (Entwickler), Stakeholder (erfahrener Pfadfinder-Küchenverantwortlicher)  
+**Datum:** 23. Juni 2026
+**Teilnehmer:** Robert (Entwickler), Stakeholder (erfahrener Pfadfinder-Küchenverantwortlicher)
 **Kontext:** Live-Demo der Food App (Rezepte, Zutaten, Essensplanung) auf einem deployed System
 
 ---

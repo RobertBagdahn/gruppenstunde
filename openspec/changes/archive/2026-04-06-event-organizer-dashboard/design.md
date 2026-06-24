@@ -234,7 +234,7 @@ backend/planner/
 
 **Entscheidung**: Custom Field Definitionen werden als `CustomField` Model gespeichert. Die Antworten werden als `CustomFieldValue` Model mit FK zum Participant gespeichert.
 
-**Model**: 
+**Model**:
 - `CustomField(event, label, field_type (text/select/checkbox/date/number), options (JSONField für Select-Optionen), is_required, sort_order)`
 - `CustomFieldValue(custom_field, participant, value (TextField))`
 

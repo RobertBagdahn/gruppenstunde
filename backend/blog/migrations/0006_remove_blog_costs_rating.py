@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("blog", "0005_remove_blog_is_deleted_alter_blog_status"),
     ]

@@ -252,4 +252,3 @@ The allergen scan endpoint SHALL compare ALL `nutritional_tags` of assigned reci
 #### Scenario: Scan returns all plan nutritional tags
 - **WHEN** GET `/api/meal-plans/{id}/allergen-scan/` is called
 - **THEN** the response `allergen_tags` field SHALL contain all `nutritional_tags` of the plan (not only dangerous ones)
-

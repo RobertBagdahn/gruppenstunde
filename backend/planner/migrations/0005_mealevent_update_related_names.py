@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("event", "0008_event_participant_visibility"),
         ("planner", "0004_mealevent_meal_datetime_refactor"),

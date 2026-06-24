@@ -362,4 +362,3 @@ Das Kalorien-Soll für einen Tag SHALL aus der Summe der `day_part_factor`-Werte
 
 - **WHEN** ein Tag Frühstück (0.25) + Mittagessen (0.35) + Abendessen (0.30) + Snack (0.10) hat
 - **THEN** ist das Kalorien-Soll 100% des täglichen Bedarfs
-

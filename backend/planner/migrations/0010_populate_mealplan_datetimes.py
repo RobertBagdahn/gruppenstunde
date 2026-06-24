@@ -17,7 +17,6 @@ def populate_datetimes(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0009_add_mealplan_start_end_datetime"),
     ]

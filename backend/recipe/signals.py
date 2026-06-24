@@ -87,9 +87,7 @@ def invalidate_recipes_on_ingredient_change(sender, instance, **kwargs):
 @receiver(post_delete, sender=Portion, dispatch_uid="recipe.invalidate_on_portion_delete")
 def invalidate_recipes_on_portion_change(sender, instance, **kwargs):
     """Recalculate cache for all recipes that use this portion."""
-    recipe_ids = set(
-        RecipeItem.objects.filter(portion=instance).values_list("recipe_id", flat=True)
-    )
+    recipe_ids = set(RecipeItem.objects.filter(portion=instance).values_list("recipe_id", flat=True))
     _recalculate_for_recipe_ids(recipe_ids)
 
 
@@ -134,6 +132,7 @@ def sync_recipe_allergens_on_recipe_change(sender, instance, **kwargs):
     instance._syncing_allergens = True
     try:
         from recipe.services.recipe_checks import sync_recipe_allergen_tags
+
         sync_recipe_allergen_tags(instance)
     finally:
         delattr(instance, "_syncing_allergens")
@@ -164,6 +163,7 @@ def update_recipe_quality_score(sender, instance: Recipe, created: bool, **kwarg
             )
     except Exception:
         import logging
+
         logging.getLogger(__name__).warning("Failed to update quality score for Recipe #%d", instance.pk)
     finally:
         if hasattr(instance, "_updating_score"):
@@ -175,9 +175,19 @@ def update_recipe_quality_score(sender, instance: Recipe, created: bool, **kwarg
 # ---------------------------------------------------------------------------
 
 _recipe_tracked_fields = {
-    "title", "summary", "summary_long", "description", "recipe_type", "portions",
-    "execution_time", "preparation_time", "difficulty", "status",
-    "visibility", "folder_id", "source_url",
+    "title",
+    "summary",
+    "summary_long",
+    "description",
+    "recipe_type",
+    "portions",
+    "execution_time",
+    "preparation_time",
+    "difficulty",
+    "status",
+    "visibility",
+    "folder_id",
+    "source_url",
 }
 
 
@@ -190,9 +200,7 @@ def capture_recipe_old_values(sender, instance: Recipe, **kwargs):
 
     try:
         old = Recipe.objects.get(pk=instance.pk)
-        instance._old_values = {
-            field: getattr(old, field, None) for field in _recipe_tracked_fields
-        }
+        instance._old_values = {field: getattr(old, field, None) for field in _recipe_tracked_fields}
     except Recipe.DoesNotExist:
         instance._old_values = {}
 
@@ -220,6 +228,7 @@ def log_recipe_changes(sender, instance: Recipe, created: bool, **kwargs):
 
 def timezone_now():
     from django.utils import timezone
+
     return timezone.now()
 
 
@@ -260,9 +269,7 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, update_fiel
         except Exception:
             import logging
 
-            logging.getLogger(__name__).warning(
-                "Failed to update embedding for Recipe #%d", recipe_pk, exc_info=True
-            )
+            logging.getLogger(__name__).warning("Failed to update embedding for Recipe #%d", recipe_pk, exc_info=True)
 
     from django.db import transaction
 
@@ -309,6 +316,7 @@ def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
 @receiver(post_delete, sender=Recipe, dispatch_uid="recipe_type_stats_update_delete")
 def update_type_stats_on_recipe_change(sender, instance: Recipe, **kwargs):
     """Recalculate type stats when a Recipe is saved or deleted."""
+
     def _do_update():
         from recipe.services.type_stats_service import recalculate_type_stats
 
@@ -317,8 +325,6 @@ def update_type_stats_on_recipe_change(sender, instance: Recipe, **kwargs):
         except Exception:
             import logging
 
-            logging.getLogger(__name__).warning(
-                "Failed to update type stats for recipe_type=%s", instance.recipe_type
-            )
+            logging.getLogger(__name__).warning("Failed to update type stats for recipe_type=%s", instance.recipe_type)
 
     transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())

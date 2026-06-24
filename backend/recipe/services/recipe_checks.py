@@ -19,9 +19,8 @@ from django.utils import timezone
 if TYPE_CHECKING:
     from recipe.models import Recipe
 
+from recipe.models import RecipeItem, Rule
 from supply.choices import RecipeTypeChoices
-
-from recipe.models import Rule, RecipeItem
 
 # Micronutrient fields tracked on Ingredient — used for aggregation
 MICRONUTRIENT_FIELDS = [
@@ -34,7 +33,7 @@ CACHED_MICRONUTRIENT_FIELDS = [
 ]
 
 
-def get_recipe_nutritional_values(recipe: "Recipe") -> dict[str, float]:
+def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
     """Aggregate nutritional values for a recipe (per 100g of total recipe).
 
     Sums all RecipeItem contributions weighted by quantity and portion weight,
@@ -105,7 +104,7 @@ def get_recipe_nutritional_values(recipe: "Recipe") -> dict[str, float]:
     return totals
 
 
-def get_recipe_total_weight_g(recipe: "Recipe") -> float:
+def get_recipe_total_weight_g(recipe: Recipe) -> float:
     """Return total recipe weight in grams, using cache when available."""
     if recipe.cached_weight_g is not None:
         return float(recipe.cached_weight_g)
@@ -122,7 +121,7 @@ def get_recipe_total_weight_g(recipe: "Recipe") -> float:
     return total_weight_g
 
 
-def get_recipe_values_with_computed(recipe: "Recipe") -> tuple[dict[str, float], float]:
+def get_recipe_values_with_computed(recipe: Recipe) -> tuple[dict[str, float], float]:
     """Get recipe nutritional values (per 100g) and computed total weight (g), including nutri_class."""
     values = get_recipe_nutritional_values(recipe)
 
@@ -149,7 +148,7 @@ def get_recipe_values_with_computed(recipe: "Recipe") -> tuple[dict[str, float],
     return values, total_weight_g
 
 
-def evaluate_recipe_rules(recipe: "Recipe") -> dict:
+def evaluate_recipe_rules(recipe: Recipe) -> dict:
     """Evaluate all active Rules (scope=recipe) against recipe nutritional values.
 
     Returns a dict with green/yellow/red counts and a list of all evaluated rules.
@@ -188,9 +187,7 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
     )
     if not rules.exists():
         legacy_recipe_type_rules = (
-            Q(name__startswith="Frühstück:")
-            | Q(name__startswith="Snack:")
-            | Q(name__startswith="Getränk:")
+            Q(name__startswith="Frühstück:") | Q(name__startswith="Snack:") | Q(name__startswith="Getränk:")
         )
         rules = Rule.objects.filter(is_active=True, scope="recipe").exclude(legacy_recipe_type_rules)
     rules = rules.order_by("sort_order", "name", "id")
@@ -255,18 +252,20 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
             threshold_direction = "min"
             threshold = rule.min_green if rule.min_green is not None else rule.min_yellow
 
-        items.append({
-            "rule_id": rule.id,
-            "name": rule.name,
-            "parameter": rule.parameter,
-            "status": status,
-            "value_per_serving": round(value_per_serving, 2),
-            "display_value": display_value,
-            "unit": unit,
-            "threshold": threshold,
-            "threshold_direction": threshold_direction,
-            "tip_text": rule.tip_text if status != "green" else ""
-        })
+        items.append(
+            {
+                "rule_id": rule.id,
+                "name": rule.name,
+                "parameter": rule.parameter,
+                "status": status,
+                "value_per_serving": round(value_per_serving, 2),
+                "display_value": display_value,
+                "unit": unit,
+                "threshold": threshold,
+                "threshold_direction": threshold_direction,
+                "tip_text": rule.tip_text if status != "green" else "",
+            }
+        )
 
     return {
         "green_count": green_count,
@@ -279,7 +278,7 @@ def evaluate_recipe_rules(recipe: "Recipe") -> dict:
 
 
 def match_recipe_hints(
-    recipe: "Recipe",
+    recipe: Recipe,
     recipe_objective: str = "",
 ) -> list[dict]:
     """Match Rule rules (scope=recipe) against recipe nutritional values.
@@ -337,7 +336,7 @@ def models_Q_recipe_type_blank_or_match(recipe_type: str):
     return Q(recipe_type="") | Q(recipe_type=recipe_type)
 
 
-def recalculate_recipe_cache(recipe: "Recipe") -> None:
+def recalculate_recipe_cache(recipe: Recipe) -> None:
     """Recalculate and store denormalized nutritional values on Recipe.
 
     Computes aggregated per-100g nutritional values (macro + micro),
@@ -374,7 +373,9 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     recipe.cached_nutri_class = ns_class
 
     # Calculate total price
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient", "portion__measuring_unit")
+    items = RecipeItem.objects.filter(recipe=recipe).select_related(
+        "portion", "portion__ingredient", "portion__measuring_unit"
+    )
     total_price = Decimal("0.00")
     total_weight_g = 0.0
     has_prices = False
@@ -391,14 +392,16 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
         elif item.portion.measuring_unit:
             weight_g = item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
             total_weight_g += float(weight_g)
-        
+
         if ingredient.price_per_kg and weight_g:
             has_prices = True
             price = ingredient.price_per_kg * Decimal(str(weight_g)) / Decimal("1000")
             total_price += price
 
     energy_per_100g = values.get("energy_kcal")
-    recipe.cached_energy_total_kcal = float(energy_per_100g) * (total_weight_g / 100.0) if energy_per_100g and total_weight_g else None
+    recipe.cached_energy_total_kcal = (
+        float(energy_per_100g) * (total_weight_g / 100.0) if energy_per_100g and total_weight_g else None
+    )
     recipe.cached_weight_g = total_weight_g
     recipe.cached_price_total = total_price if has_prices else None
     recipe.cached_at = timezone.now()
@@ -424,27 +427,22 @@ def recalculate_recipe_cache(recipe: "Recipe") -> None:
     recipe.save(update_fields=update_fields)
 
 
-def sync_recipe_allergen_tags(recipe: "Recipe") -> int:
+def sync_recipe_allergen_tags(recipe: Recipe) -> int:
     """Sync the recipe's nutritional_tags (dangerous/allergen only) with ingredients."""
-    from supply.models.reference import NutritionalTag
     from recipe.models import RecipeItem
+    from supply.models.reference import NutritionalTag
 
     # Get non-dangerous tags currently set on the recipe to preserve them
     non_dangerous_tags = list(recipe.nutritional_tags.filter(is_dangerous=False))
 
     # Find the distinct ingredient IDs associated with the recipe
     ingredient_ids = list(
-        RecipeItem.objects.filter(recipe=recipe)
-        .values_list("portion__ingredient_id", flat=True)
-        .distinct()
+        RecipeItem.objects.filter(recipe=recipe).values_list("portion__ingredient_id", flat=True).distinct()
     )
 
     if ingredient_ids:
         dangerous_tags = list(
-            NutritionalTag.objects.filter(
-                is_dangerous=True,
-                ingredients__id__in=ingredient_ids
-            ).distinct()
+            NutritionalTag.objects.filter(is_dangerous=True, ingredients__id__in=ingredient_ids).distinct()
         )
     else:
         dangerous_tags = []

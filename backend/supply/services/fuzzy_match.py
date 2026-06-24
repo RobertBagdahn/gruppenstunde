@@ -1,8 +1,6 @@
 """Fuzzy matching service for ingredients using pg_trgm similarity."""
 
 from django.contrib.postgres.search import TrigramSimilarity
-from django.db.models import Q, Value
-from django.db.models.functions import Greatest
 
 from supply.models import Ingredient, IngredientAlias
 
@@ -51,22 +49,26 @@ def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> l
     all_matches: list[dict] = []
 
     for m in ingredient_matches:
-        all_matches.append({
-            "id": m["id"],
-            "name": m["name"],
-            "slug": m["slug"],
-            "similarity": float(m["similarity"]),
-            "matched_via": None,
-        })
+        all_matches.append(
+            {
+                "id": m["id"],
+                "name": m["name"],
+                "slug": m["slug"],
+                "similarity": float(m["similarity"]),
+                "matched_via": None,
+            }
+        )
 
     for m in alias_matches:
-        all_matches.append({
-            "id": m["ingredient__id"],
-            "name": m["ingredient__name"],
-            "slug": m["ingredient__slug"],
-            "similarity": float(m["similarity"]),
-            "matched_via": m["name"],
-        })
+        all_matches.append(
+            {
+                "id": m["ingredient__id"],
+                "name": m["ingredient__name"],
+                "slug": m["ingredient__slug"],
+                "similarity": float(m["similarity"]),
+                "matched_via": m["name"],
+            }
+        )
 
     all_matches.sort(key=lambda x: x["similarity"], reverse=True)
 

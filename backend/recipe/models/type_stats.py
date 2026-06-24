@@ -47,26 +47,30 @@ class RecipeTypeStats(models.Model):
 
     # Nutri-Score distribution
     nutri_score_dist = models.JSONField(
-        default=dict, blank=True,
+        default=dict,
+        blank=True,
         verbose_name=_("Nutri-Score Verteilung"),
         help_text=_('{"A": 5, "B": 12, "C": 18, "D": 8, "E": 4}'),
     )
 
     # Histogram buckets (for visualization)
     price_buckets = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         verbose_name=_("Preis-Buckets"),
         help_text=_('Array of bucket objects: [{"min": 0, "max": 10, "count": 5}, ...]'),
     )
     energy_buckets = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         verbose_name=_("Energie-Buckets"),
-        help_text=_('Array of bucket objects with kcal ranges'),
+        help_text=_("Array of bucket objects with kcal ranges"),
     )
     protein_buckets = models.JSONField(
-        default=list, blank=True,
+        default=list,
+        blank=True,
         verbose_name=_("Protein-Buckets"),
-        help_text=_('Array of bucket objects with gram ranges'),
+        help_text=_("Array of bucket objects with gram ranges"),
     )
 
     updated_at = models.DateTimeField(auto_now=True)

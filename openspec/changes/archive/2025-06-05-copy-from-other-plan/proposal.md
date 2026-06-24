@@ -22,7 +22,7 @@ Die bisherige "Eintrag kopieren"-Funktion erlaubt nur das Kopieren einzelner Ite
 ## Impact
 
 - **Backend**: Neuer Endpoint in `backend/planner/api/meal_plan.py`, neues Schema in `backend/planner/schemas/meal_plan.py`
-- **Frontend**: 
+- **Frontend**:
   - Neues `CopyFromPlanDialog` in `frontend-food/src/pages/planning/`
   - Neuer API-Hook in `frontend-food/src/api/mealPlans.ts`
   - Neues Zod-Schema in `frontend-food/src/schemas/mealPlan.ts`

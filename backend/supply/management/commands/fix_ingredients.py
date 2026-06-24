@@ -233,10 +233,14 @@ class Command(BaseCommand):
 
         # Find ingredients with missing core data (0 counts as missing for nutrition)
         ingredients = Ingredient.objects.filter(
-            Q(energy_kcal__isnull=True) | Q(energy_kcal=0)
-            | Q(protein_g__isnull=True) | Q(protein_g=0)
-            | Q(fat_g__isnull=True) | Q(fat_g=0)
-            | Q(carbohydrate_g__isnull=True) | Q(carbohydrate_g=0)
+            Q(energy_kcal__isnull=True)
+            | Q(energy_kcal=0)
+            | Q(protein_g__isnull=True)
+            | Q(protein_g=0)
+            | Q(fat_g__isnull=True)
+            | Q(fat_g=0)
+            | Q(carbohydrate_g__isnull=True)
+            | Q(carbohydrate_g=0)
             | Q(nova_score__isnull=True)
             | Q(child_score__isnull=True)
             | Q(scout_score__isnull=True)

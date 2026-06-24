@@ -1,7 +1,6 @@
 """Tests for `is_invited` field in event list API response."""
 
 import pytest
-from django.test import Client
 from model_bakery import baker
 
 from event.tests import make_event

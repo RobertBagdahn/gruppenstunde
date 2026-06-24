@@ -20,7 +20,6 @@ from .models import (
     TagSuggestion,
 )
 
-
 # ---------------------------------------------------------------------------
 # Reusable mixin for content-type admins (GroupSession, Blog, Game, Recipe)
 # ---------------------------------------------------------------------------

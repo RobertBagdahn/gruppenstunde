@@ -1,7 +1,7 @@
 ## 1. Frontend: Query-Keys korrigieren
 
 - [x] 1.1 `api/refMeals.ts:102` — `['mealPlan', planId]` → `['meal-plan', planId]`
-- [x] 1.2 `api/refMeals.ts:103` — `['mealPlan', planId]` → `['meal-plan', planId]`  
+- [x] 1.2 `api/refMeals.ts:103` — `['mealPlan', planId]` → `['meal-plan', planId]`
 - [x] 1.3 `api/refMeals.ts:115` — `['mealPlan', planId]` → `['meal-plan', planId]`
 - [x] 1.4 `api/refMeals.ts:116` — `['mealPlan', planId]` → `['meal-plan', planId]`
 - [x] 1.5 `api/refMeals.ts:127` — `['mealPlan', planId]` → `['meal-plan', planId]`

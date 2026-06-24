@@ -4,19 +4,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('recipe', '0037_delete_recipetypestats_and_more'),
-        ('supply', '0034_remove_ingredient_food_category_and_more'),
+        ("recipe", "0037_delete_recipetypestats_and_more"),
+        ("supply", "0034_remove_ingredient_food_category_and_more"),
     ]
 
     operations = [
         migrations.RemoveConstraint(
-            model_name='recipeitem',
-            name='recipe_item_quantity_positive',
+            model_name="recipeitem",
+            name="recipe_item_quantity_positive",
         ),
         migrations.AddConstraint(
-            model_name='recipeitem',
-            constraint=models.CheckConstraint(condition=models.Q(('quantity__gt', 0)), name='recipe_item_quantity_positive'),
+            model_name="recipeitem",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("quantity__gt", 0)), name="recipe_item_quantity_positive"
+            ),
         ),
     ]

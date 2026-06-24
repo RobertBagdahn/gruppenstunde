@@ -249,14 +249,14 @@ _SORTED_KEYWORDS = sorted(KEYWORD_TO_RETAIL_SECTION_NAME.keys(), key=len, revers
 
 
 @lru_cache(maxsize=1)
-def _get_retail_section_by_name() -> dict[str, "RetailSection"]:
+def _get_retail_section_by_name() -> dict[str, RetailSection]:
     """Load all RetailSections into a dict by name (cached)."""
     from supply.models import RetailSection
 
     return {rs.name: rs for rs in RetailSection.objects.all()}
 
 
-def get_retail_section(name: str, description: str = "") -> "RetailSection | None":
+def get_retail_section(name: str, description: str = "") -> RetailSection | None:
     """Determine retail section from ingredient name and/or description.
 
     Tries description first (REWE category), then falls back to name-based matching.
@@ -267,7 +267,7 @@ def get_retail_section(name: str, description: str = "") -> "RetailSection | Non
     return get_retail_section_from_name(name)
 
 
-def get_retail_section_from_name(name: str) -> "RetailSection | None":
+def get_retail_section_from_name(name: str) -> RetailSection | None:
     """Match retail section from ingredient name using keywords."""
     if not name:
         return None
@@ -281,7 +281,7 @@ def get_retail_section_from_name(name: str) -> "RetailSection | None":
     return rs_map.get(section_name)
 
 
-def get_retail_section_from_description(description: str) -> "RetailSection | None":
+def get_retail_section_from_description(description: str) -> RetailSection | None:
     """Extract retail section from a REWE-style ingredient description.
 
     The description typically follows the pattern:

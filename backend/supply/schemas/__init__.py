@@ -1,24 +1,5 @@
 """Supply schemas package — re-exports all schemas for backward compatibility."""
 
-from .materials import (
-    ContentMaterialItemIn,
-    ContentMaterialItemOut,
-    MaterialCreateIn,
-    MaterialListOut,
-    MaterialOut,
-    MaterialUpdateIn,
-    PaginatedMaterialOut,
-)
-from .reference import (
-    DgeReferenceOut,
-    MeasuringUnitOut,
-    NutritionalTagIn,
-    NutritionalTagOut,
-    NutritionalTagUpdateIn,
-    RetailSectionIn,
-    RetailSectionOut,
-    RetailSectionUpdateIn,
-)
 from .ingredients import (
     AliasCreateIn,
     IngredientAiCreateIn,
@@ -39,12 +20,31 @@ from .ingredients import (
     PortionSuggestionOut,
     PortionUpdateIn,
 )
+from .materials import (
+    ContentMaterialItemIn,
+    ContentMaterialItemOut,
+    MaterialCreateIn,
+    MaterialListOut,
+    MaterialOut,
+    MaterialUpdateIn,
+    PaginatedMaterialOut,
+)
 from .norm_person import (
     DgeReferencePointOut,
     NormPersonCurvePointOut,
     NormPersonCurvesOut,
     NormPersonReferenceOut,
     NormPersonResultOut,
+)
+from .reference import (
+    DgeReferenceOut,
+    MeasuringUnitOut,
+    NutritionalTagIn,
+    NutritionalTagOut,
+    NutritionalTagUpdateIn,
+    RetailSectionIn,
+    RetailSectionOut,
+    RetailSectionUpdateIn,
 )
 
 __all__ = [

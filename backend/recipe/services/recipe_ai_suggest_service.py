@@ -36,9 +36,16 @@ class RecipeSuggestAllSchema(BaseModel):
     difficulty: str | None = Field(None, description="Schwierigkeit: 'easy', 'medium' oder 'hard'")
     duration_minutes: int | None = Field(None, description="Zubereitungszeit in Minuten")
     portions: int | None = Field(None, description="Anzahl Portionen")
-    recipe_type: str | None = Field(None, description="Rezepttyp: 'main', 'dessert', 'snack', 'drink', 'breakfast', 'side', 'soup', 'salad', 'baking'")
-    scout_levels: list[str] | None = Field(None, description="Pfadfinderstufen: 'woelflinge', 'jungpfadfinder', 'pfadfinder', 'rover'")
-    tags: list[str] | None = Field(None, description="Passende Tags für das Rezept, z.B. 'vegetarisch', 'schnell', 'lagerküche'")
+    recipe_type: str | None = Field(
+        None,
+        description="Rezepttyp: 'main', 'dessert', 'snack', 'drink', 'breakfast', 'side', 'soup', 'salad', 'baking'",
+    )
+    scout_levels: list[str] | None = Field(
+        None, description="Pfadfinderstufen: 'woelflinge', 'jungpfadfinder', 'pfadfinder', 'rover'"
+    )
+    tags: list[str] | None = Field(
+        None, description="Passende Tags für das Rezept, z.B. 'vegetarisch', 'schnell', 'lagerküche'"
+    )
 
 
 class RecipeItemSuggestion(BaseModel):
@@ -57,7 +64,9 @@ class RecipeAiCreateSchema(BaseModel):
     difficulty: str = Field(description="'easy', 'medium' oder 'hard'")
     duration_minutes: int = Field(description="Zubereitungszeit in Minuten")
     portions: int = Field(description="Anzahl Portionen")
-    recipe_type: str = Field(description="'main', 'dessert', 'snack', 'drink', 'breakfast', 'side', 'soup', 'salad', 'baking'")
+    recipe_type: str = Field(
+        description="'main', 'dessert', 'snack', 'drink', 'breakfast', 'side', 'soup', 'salad', 'baking'"
+    )
     items: list[RecipeItemSuggestion] = Field(description="Zutaten mit Mengen")
 
 
@@ -66,7 +75,7 @@ class RecipeAiCreateSchema(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def suggest_recipe_metadata(recipe: "Recipe", user: AbstractBaseUser | None = None) -> dict:
+def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None) -> dict:
     """Suggest missing metadata for an existing recipe using Gemini + Search Grounding.
 
     Returns a dict with suggested values (None for fields that couldn't be determined).
@@ -82,7 +91,11 @@ def suggest_recipe_metadata(recipe: "Recipe", user: AbstractBaseUser | None = No
     items = recipe.recipe_items.select_related("portion", "portion__ingredient").all()
     if items:
         ingredient_list = ", ".join(
-            f"{item.quantity} {item.portion.ingredient.name}" if item.portion and item.portion.ingredient else str(item.quantity)
+            (
+                f"{item.quantity} {item.portion.ingredient.name}"
+                if item.portion and item.portion.ingredient
+                else str(item.quantity)
+            )
             for item in items
         )
         context_parts.append(f"Zutaten: {ingredient_list}")
@@ -118,7 +131,7 @@ def suggest_recipe_metadata(recipe: "Recipe", user: AbstractBaseUser | None = No
     return result.model_dump()
 
 
-def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser | None = None) -> "Recipe":
+def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser | None = None) -> Recipe:
     """Create a complete recipe from title/description using Gemini + Search Grounding.
 
     Creates Recipe, matches/creates Ingredients, creates RecipeItems.
@@ -198,7 +211,7 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
     return recipe
 
 
-def _match_or_create_ingredient(name: str, user: AbstractBaseUser | None) -> "Ingredient":
+def _match_or_create_ingredient(name: str, user: AbstractBaseUser | None) -> Ingredient:
     """Find an existing ingredient by name/alias or create a new one."""
     from supply.models import Ingredient, IngredientAlias
 

@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("event", "0017_event_public_landing_idx"),
         ("planner", "0018_alter_meal_options"),

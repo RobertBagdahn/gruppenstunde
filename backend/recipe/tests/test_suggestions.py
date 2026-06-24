@@ -1,8 +1,8 @@
 """Tests for suggestion_service — LLM ingredient suggestions (mocked Gemini)."""
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.core.cache import cache
 from ninja.errors import HttpError
 
@@ -15,7 +15,6 @@ from recipe.services.suggestion_service import (
 )
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import Ingredient, MeasuringUnit, Portion
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -105,7 +105,7 @@ Einige Tabs (z.B. Datenqualität) können einen `status`-Parameter anbieten, um 
 
 Tab-spezifische Filter gehen als Query-Parameter: `/ingredients/statistics/sugar-distribution?retail_section=3,5`
 
-**Rationale**: 
+**Rationale**:
 - Jeder Tab ist eine eigene, teilbare URL
 - Browser-Zurück/Vor funktioniert zwischen Tabs
 - SEO: Jede Statistik-Ansicht ist eine eigene Seite

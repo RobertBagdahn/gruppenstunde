@@ -139,4 +139,3 @@ Das System MUST `scope=recipe`-Regeln für die Parameter `price_total`, `weight_
 
 - **WHEN** eine aktive `scope=recipe`-Regel mit `parameter="nutri_class"` für ein anwendbares Rezept existiert
 - **THEN** wertet das System die numerische Nutri-Klasse aus und zeigt den Wert als Buchstaben A bis E an
-

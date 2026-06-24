@@ -148,12 +148,10 @@ class TestImportLegacyFoodSignalLifecycle:
     """7.8: Nach Command-Ende sind recipe/signals wieder connected."""
 
     def test_signal_lifecycle(self, fixture_dir: str) -> None:
-        from recipe.models import RecipeItem
         from recipe.signals import (
             invalidate_recipes_on_ingredient_change,
             recalculate_recipe_cache_on_item_change,
         )
-        from supply.models import Ingredient
 
         call_command("import_legacy_food", "--data-dir", fixture_dir, "--files", "0")
 
@@ -172,7 +170,7 @@ class TestImportLegacyFoodDryRun:
     """7.9: --dry-run → keine DB-Zeilen nach Ende."""
 
     def test_dry_run(self, fixture_dir: str) -> None:
-        from supply.models import Ingredient, MeasuringUnit
+        from supply.models import Ingredient
 
         call_command("import_legacy_food", "--data-dir", fixture_dir, "--files", "0,1", "--dry-run")
 

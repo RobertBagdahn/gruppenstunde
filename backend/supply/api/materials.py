@@ -17,8 +17,6 @@ from supply.schemas import (
     PaginatedMaterialOut,
 )
 
-from .helpers import require_auth
-
 router = Router(tags=["supplies"])
 
 

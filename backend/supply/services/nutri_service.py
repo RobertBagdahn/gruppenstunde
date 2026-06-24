@@ -65,7 +65,7 @@ def _lookup_points(value: float | None, thresholds: list[float]) -> int:
     return len(thresholds)
 
 
-def calculate_nutri_score(ingredient: "Ingredient") -> tuple[int, int]:
+def calculate_nutri_score(ingredient: Ingredient) -> tuple[int, int]:
     """Calculate Nutri-Score for an ingredient.
 
     Returns:
@@ -140,7 +140,7 @@ def _total_to_class(total: int, is_beverage: bool) -> int:
             return 5  # E
 
 
-def get_nutri_score_details(ingredient: "Ingredient") -> dict:
+def get_nutri_score_details(ingredient: Ingredient) -> dict:
     """Get detailed Nutri-Score breakdown for an ingredient."""
     is_beverage = ingredient.physical_viscosity == "beverage"
 
@@ -199,7 +199,7 @@ def get_nutri_score_details(ingredient: "Ingredient") -> dict:
     }
 
 
-def update_ingredient_nutri_score(ingredient: "Ingredient") -> None:
+def update_ingredient_nutri_score(ingredient: Ingredient) -> None:
     """Recalculate and save Nutri-Score for an ingredient."""
     total, nutri_class = calculate_nutri_score(ingredient)
     ingredient.nutri_score = total

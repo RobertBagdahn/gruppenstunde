@@ -49,8 +49,8 @@ def largest_remainder_round(shares: dict[int, float], total: int) -> dict[int, i
 
 
 def get_included_fractions(
-    meal_item: "MealItem",
-    recipe_items: list["RecipeItem"],
+    meal_item: MealItem,
+    recipe_items: list[RecipeItem],
     effective_portions: int,
 ) -> dict[int, float]:
     """Return the included fraction (0.0–1.0) per RecipeItem for a meal item.
@@ -66,10 +66,7 @@ def get_included_fractions(
     """
     from planner.models import MealItemSplit
 
-    splits = {
-        s.recipe_item_id: s.share
-        for s in MealItemSplit.objects.filter(meal_item=meal_item)
-    }
+    splits = {s.recipe_item_id: s.share for s in MealItemSplit.objects.filter(meal_item=meal_item)}
 
     # Group recipe items by their split-group key.
     # exchange group -> {recipe_item_id: share}; optional item -> {id: share}
@@ -103,11 +100,7 @@ def get_included_fractions(
     fractions: dict[int, float] = {}
     for ri in recipe_items:
         if ri.id in rounded_by_item:
-            fractions[ri.id] = (
-                rounded_by_item[ri.id] / effective_portions
-                if effective_portions > 0
-                else 0.0
-            )
+            fractions[ri.id] = rounded_by_item[ri.id] / effective_portions if effective_portions > 0 else 0.0
         elif ri.is_optional:
             fractions[ri.id] = 1.0  # default included
         elif ri.exchange_group_id is not None:
@@ -118,7 +111,7 @@ def get_included_fractions(
     return fractions
 
 
-def _item_total_for_field(ri: "RecipeItem", field: str) -> float:
+def _item_total_for_field(ri: RecipeItem, field: str) -> float:
     """Total contribution of one RecipeItem to a nutrition/price field over the
     whole recipe (per Recipe.portions servings).
 
@@ -140,8 +133,8 @@ def _item_total_for_field(ri: "RecipeItem", field: str) -> float:
 
 
 def get_split_delta_total(
-    meal_item: "MealItem",
-    recipe_items: list["RecipeItem"],
+    meal_item: MealItem,
+    recipe_items: list[RecipeItem],
     field: str,
 ) -> float:
     """Delta to add to the cached recipe total for a nutrition/price field.
@@ -152,16 +145,13 @@ def get_split_delta_total(
     """
     from planner.models import MealItemSplit
 
-    splits = {
-        s.recipe_item_id: s.share
-        for s in MealItemSplit.objects.filter(meal_item=meal_item)
-    }
+    splits = {s.recipe_item_id: s.share for s in MealItemSplit.objects.filter(meal_item=meal_item)}
     if not splits:
         return 0.0
 
     items_by_id = {ri.id: ri for ri in recipe_items}
     # Group exchange members for default-vs-actual comparison.
-    exchange_groups: dict[int, list["RecipeItem"]] = {}
+    exchange_groups: dict[int, list[RecipeItem]] = {}
     for ri in recipe_items:
         if ri.exchange_group_id is not None:
             exchange_groups.setdefault(ri.exchange_group_id, []).append(ri)
@@ -172,9 +162,7 @@ def get_split_delta_total(
     for group_id, members in exchange_groups.items():
         if not any(m.id in splits for m in members):
             continue
-        default_member = next(
-            (m for m in members if (m.exchange_position or 0) == 0), None
-        )
+        default_member = next((m for m in members if (m.exchange_position or 0) == 0), None)
         base = _item_total_for_field(default_member, field) if default_member else 0.0
         actual = 0.0
         for m in members:

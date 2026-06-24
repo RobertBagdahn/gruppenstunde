@@ -10,27 +10,23 @@ from pathlib import Path
 DOCS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(DOCS_DIR))
 
+from page_optimizer import optimize_layout
+from pdf_builder import LayoutParams, build_all_flowables, trial_build_pages
 from schema import (
     EventConfig,
-    FormFieldConfig,
     RegistrationConfig,
-    load_config,
     load_defaults,
     resolve_form_fields,
     resolve_packlist,
 )
 from text_resolver import (
     format_date_range,
+    format_deadline,
     format_fee,
     format_meeting_point,
-    format_return_point,
-    format_deadline,
-    generate_details,
-    resolve_text,
     german_weekday,
+    resolve_text,
 )
-from pdf_builder import LayoutParams, build_all_flowables, trial_build_pages
-from page_optimizer import optimize_layout
 
 
 def test_yaml_validation_minimal() -> None:
@@ -298,8 +294,14 @@ def test_page_optimizer_fits_default() -> None:
     def build_fn(params: LayoutParams) -> list:
         return build_all_flowables(
             config=config,
-            resolved_texts={"subtitle": "", "greeting": "Hallo", "additional_info": "Info",
-                          "consent": "Consent", "signup_note": "", "packlist_note": ""},
+            resolved_texts={
+                "subtitle": "",
+                "greeting": "Hallo",
+                "additional_info": "Info",
+                "consent": "Consent",
+                "signup_note": "",
+                "packlist_note": "",
+            },
             details=[("Wann", "Datum")],
             packlist=["Item"],
             form_fields=form_fields,
@@ -316,9 +318,11 @@ def test_page_optimizer_fits_default() -> None:
 def test_cli_missing_file() -> None:
     """Test CLI with missing YAML file."""
     import subprocess
+
     result = subprocess.run(
         ["uv", "run", "python", "documents/generate.py", "nonexistent.yaml"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
         cwd=str(DOCS_DIR.parent),
     )
     assert result.returncode == 1
@@ -328,15 +332,23 @@ def test_cli_missing_file() -> None:
 def test_cli_basic_invocation() -> None:
     """Test CLI basic invocation."""
     import subprocess
+
     output_path = DOCS_DIR / "output" / "test_output.pdf"
     if output_path.exists():
         output_path.unlink()
 
     result = subprocess.run(
-        ["uv", "run", "python", "documents/generate.py",
-         "documents/templates/sippentippel_2026.yaml",
-         "--output", str(output_path)],
-        capture_output=True, text=True,
+        [
+            "uv",
+            "run",
+            "python",
+            "documents/generate.py",
+            "documents/templates/sippentippel_2026.yaml",
+            "--output",
+            str(output_path),
+        ],
+        capture_output=True,
+        text=True,
         cwd=str(DOCS_DIR.parent),
     )
     assert result.returncode == 0

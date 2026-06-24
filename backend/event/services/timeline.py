@@ -7,7 +7,6 @@ from typing import Any
 from django.contrib.auth.models import User
 from django.db import models
 
-from ..choices import TimelineActionChoices
 from ..models.timeline import TimelineEntry
 
 

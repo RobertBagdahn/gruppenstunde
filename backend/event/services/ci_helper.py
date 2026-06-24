@@ -43,7 +43,6 @@ def get_event_ci(event: Event) -> CIData:
     Returns the CI of the first invited group (alphabetically by name)
     that has a CI configured. Falls back to default Inspi styling.
     """
-    from profiles.models import GroupCorporateIdentity
 
     groups_with_ci = (
         event.invited_groups.filter(

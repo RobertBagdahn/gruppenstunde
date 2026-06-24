@@ -13,7 +13,6 @@ def migrate_ingredient_status_reverse(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0030_ingredient_embedding_ingredient_embedding_updated_at_and_more"),
     ]

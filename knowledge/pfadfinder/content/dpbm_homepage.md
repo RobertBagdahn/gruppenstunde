@@ -7,7 +7,7 @@ Pfadfinden steht für eine weltweit verbundene Bewegung junger Menschen, die auf
 
 Das „Mosaik“ prägt als Leitbild unser Bundesleben: Solange die Steine eines Mosaiks trotz ihrer unterschiedlichen Schattierungen gemeinsam ein harmonisches Bild ergeben, solange kann Vielfalt sinnvoll und fruchtbar sein. Vielfalt in Einheit zu ermöglichen, ist daher zu einer zentralen Idee des Deutschen Pfadfinder*innenbundes Mosaik geworden. Mehr als äußere Formen sind deshalb unsere gemeinsamen Werte Ausdruck der Bundesgemeinschaft. Diese basieren auf unseren Pfadfinderregeln und äußern sich im Miteinander durch ein Streben nach Freundschaft, Verständigungswillen und Toleranz innerhalb und außerhalb unseres Bundeslebens.
 
- 
+
 Was wir tun
 Lernen durch eigenes Tun (“learning by doing”) steht im Mittelpunkt des Pfadfindens. Wesentlich hierbei ist die kleine Gruppengemeinschaft, in der jedes Mitglied verantwortlich Aufgaben übernimmt. Weiterhin sind die Pfadfinderregeln und das Pfadfinderversprechen, unsere Kluft, die wöchentlichen Heimabende, Fahrten, Lager und einfaches Leben in der Natur im Leben unserer Gemeinschaft wichtig.
 

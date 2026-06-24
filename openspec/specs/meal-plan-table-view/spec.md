@@ -128,4 +128,3 @@ The system SHALL display all 4 active meal types (breakfast, lunch, dinner, snac
 #### Scenario: Full grid layout
 - **WHEN** the user opens the table view for a meal plan
 - **THEN** the system displays columns for all scheduled dates and rows for breakfast, lunch, dinner, and snack, with placeholder cells for empty slots.
-

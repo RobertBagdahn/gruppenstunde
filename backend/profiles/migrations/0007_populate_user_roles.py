@@ -19,7 +19,6 @@ def reverse_populate_user_roles(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("profiles", "0006_userprofile_role"),
     ]

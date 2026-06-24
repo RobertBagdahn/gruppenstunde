@@ -9,9 +9,7 @@ def fix_portions_and_create_base(apps, schema_editor):
     Portion = apps.get_model("supply", "Portion")
 
     # Ensure base measuring units exist
-    g_unit, _ = MeasuringUnit.objects.get_or_create(
-        name="g", unit="g", quantity=1, defaults={"description": "Gramm"}
-    )
+    g_unit, _ = MeasuringUnit.objects.get_or_create(name="g", unit="g", quantity=1, defaults={"description": "Gramm"})
     ml_unit, _ = MeasuringUnit.objects.get_or_create(
         name="ml", unit="ml", quantity=1, defaults={"description": "Milliliter"}
     )
@@ -33,9 +31,7 @@ def fix_portions_and_create_base(apps, schema_editor):
         portion.save()
 
     # Create base portions for Ingredients that don't have an is_default portion
-    ingredients_without_default = Ingredient.objects.exclude(
-        portions__is_default=True
-    ).distinct()
+    ingredients_without_default = Ingredient.objects.exclude(portions__is_default=True).distinct()
 
     for ingredient in ingredients_without_default:
         if ingredient.physical_viscosity == "beverage":

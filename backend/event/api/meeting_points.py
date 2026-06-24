@@ -7,8 +7,6 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from profiles.models import GroupMembership, UserGroup
-
 from event.models import MeetingPoint
 from event.schemas import (
     MeetingPointCreateIn,
@@ -16,6 +14,7 @@ from event.schemas import (
     MeetingPointUpdateIn,
     PaginatedMeetingPointOut,
 )
+from profiles.models import GroupMembership, UserGroup
 
 from .helpers import require_auth
 

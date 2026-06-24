@@ -10,9 +10,8 @@ import re
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, F, Model
-from ninja.errors import HttpError
 
-from content.choices import CommentStatus, EmotionType
+from content.choices import CommentStatus
 from content.models import ContentComment, ContentEmotion, ContentView
 
 

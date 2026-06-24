@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib.contenttypes.admin import GenericTabularInline
 
 from content.admin import ContentApprovalMixin
-from content.models import ContentComment, ContentEmotion
 from supply.models import ContentMaterialItem
 
 from .models import Recipe, RecipeItem, Rule

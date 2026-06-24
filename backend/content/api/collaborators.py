@@ -11,7 +11,6 @@ from content.api.helpers import (
 )
 from content.models import ContentCollaborator, ContentCollaboratorRole
 
-
 router = Router(tags=["content-collaborators"])
 
 
@@ -114,16 +113,18 @@ def list_collaborators(request, content_type_app: str, content_type_model: str, 
             user_display = profile.scout_display_name if profile else c.user.email
         if c.group:
             group_name = c.group.name
-        result.append(ContentCollaboratorOut(
-            id=c.id,
-            user_id=c.user_id,
-            user_display_name=user_display,
-            group_id=c.group_id,
-            group_name=group_name,
-            role=c.role,
-            created_by_id=c.created_by_id,
-            created_at=c.created_at.isoformat(),
-        ))
+        result.append(
+            ContentCollaboratorOut(
+                id=c.id,
+                user_id=c.user_id,
+                user_display_name=user_display,
+                group_id=c.group_id,
+                group_name=group_name,
+                role=c.role,
+                created_by_id=c.created_by_id,
+                created_at=c.created_at.isoformat(),
+            )
+        )
     return result
 
 

@@ -10,11 +10,9 @@ from django.core.management import call_command
 from django.test import Client
 from model_bakery import baker
 
-from planner.models import MealItem
 from planner.tests import make_meal, make_meal_plan
 from recipe.models import Recipe
 from recipe.tests import make_recipe, make_recipe_item
-from supply.models import Ingredient, Portion
 from supply.tests import make_ingredient, make_portion
 
 User = get_user_model()
@@ -66,6 +64,7 @@ class TestMigrateStandaloneToIngredientItems:
         plan = make_meal_plan()
         meal = make_meal(meal_plan=plan)
         from planner.models import MealItem as MI
+
         meal_item = MI.objects.create(
             meal=meal,
             recipe=dummy_recipe,
@@ -97,6 +96,7 @@ class TestMigrateStandaloneToIngredientItems:
         plan = make_meal_plan()
         meal = make_meal(meal_plan=plan)
         from planner.models import MealItem as MI
+
         meal_item = MI.objects.create(
             meal=meal,
             recipe=dummy_recipe,
@@ -129,6 +129,7 @@ class TestMigrateStandaloneToIngredientItems:
         plan = make_meal_plan()
         meal = make_meal(meal_plan=plan)
         from planner.models import MealItem as MI
+
         meal_item = MI.objects.create(
             meal=meal,
             recipe=dummy_recipe,
@@ -234,8 +235,10 @@ class TestMealWithIngredientItems:
         make_portion(ingredient=ingredient, measuring_unit=g_unit, weight_g=1.0)
 
         # Create ingredient-based MealItem: 250g
-        from planner.models import MealItem as MI
         from model_bakery import baker
+
+        from planner.models import MealItem as MI
+
         mi = baker.make(
             MI,
             meal=meal,

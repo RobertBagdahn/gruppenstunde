@@ -77,4 +77,3 @@ in Warnfarbe) und NICHT still bei 100% deckeln. Die angezeigte Soll-kcal-Summe (
 #### Scenario: Normaler Tag bleibt unverändert
 - **WHEN** ein Tag Mahlzeiten mit zusammen ≤100% Tagesanteil hat
 - **THEN** die Badge SHALL wie bisher Vollständig/Teilweise/Lückenhaft anzeigen
-

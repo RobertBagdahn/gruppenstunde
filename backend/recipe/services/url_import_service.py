@@ -29,6 +29,8 @@ VALID_RECIPE_TYPES = {"breakfast", "warm_meal", "cold_meal", "dessert", "recipe_
 VALID_DIFFICULTIES = {"easy", "medium", "hard"}
 VALID_EXECUTION_TIMES = {"less_30", "30_60", "60_90", "more_90"}
 VALID_PREPARATION_TIMES = {"none", "less_15", "15_30", "30_60", "more_60"}
+
+
 def _validate_choice(value: str, valid_set: set[str], default: str) -> str:
     """Return value if valid, otherwise default."""
     return value if value in valid_set else default
@@ -67,19 +69,16 @@ class GeminiIngredientMatch(BaseModel):
     """Single ingredient result from Gemini."""
 
     original_name: str = Field(description="Original ingredient name from recipe")
-    matched_ingredient_id: int | None = Field(
-        None, description="ID of matched existing ingredient, or null if new"
-    )
+    matched_ingredient_id: int | None = Field(None, description="ID of matched existing ingredient, or null if new")
     quantity: float = Field(description="Numeric quantity")
     unit: str = Field(description="Measuring unit (e.g. g, ml, EL, Stück)")
     note: str = Field("", description="Additional note (e.g. 'fein gewürfelt')")
     estimated_portion_weight_g: float = Field(
-        100, description="Estimated weight in grams for one unit of this ingredient (e.g. 1 EL = 10g, 1 Stück Zwiebel = 120g, 1 g = 1g)"
+        100,
+        description="Estimated weight in grams for one unit of this ingredient (e.g. 1 EL = 10g, 1 Stück Zwiebel = 120g, 1 g = 1g)",
     )
     # Fields for new ingredients (only if matched_ingredient_id is null)
-    new_ingredient: GeminiNewIngredient | None = Field(
-        None, description="Data for creating a new ingredient"
-    )
+    new_ingredient: GeminiNewIngredient | None = Field(None, description="Data for creating a new ingredient")
 
 
 class GeminiNewIngredient(BaseModel):
@@ -116,16 +115,16 @@ class GeminiRecipeExtraction(BaseModel):
     servings: int = Field(4, description="Number of servings")
     preparation_time: int | None = Field(None, description="Prep time in minutes")
     execution_time: int | None = Field(None, description="Cook/execution time in minutes")
-    recipe_type: str = Field("", description="One of: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack")
+    recipe_type: str = Field(
+        "", description="One of: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack"
+    )
     difficulty: str = Field("easy", description="One of: easy, medium, hard")
     execution_time_choice: str = Field("less_30", description="One of: less_30, 30_60, 60_90, more_90")
     preparation_time_choice: str = Field("none", description="One of: none, less_15, 15_30, 30_60, more_60")
     scout_level_ids: list[int] = Field(default_factory=list, description="IDs of suitable scout levels")
     tag_ids: list[int] = Field(default_factory=list, description="IDs of matching tags")
     steps: list[str] = Field(default_factory=list, description="Cooking steps")
-    ingredients: list[GeminiIngredientMatch] = Field(
-        default_factory=list, description="Matched/new ingredients"
-    )
+    ingredients: list[GeminiIngredientMatch] = Field(default_factory=list, description="Matched/new ingredients")
 
 
 # Need forward ref update since GeminiIngredientMatch references GeminiNewIngredient
@@ -218,7 +217,7 @@ class UrlImportResult:
 
 def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
     """Full URL import pipeline with Gemini ingredient matching."""
-    from recipe.services.import_service import ImportedRecipe, import_from_url
+    from recipe.services.import_service import import_from_url
 
     # Step 1: Fetch and parse (schema.org / fallback)
     try:
@@ -254,6 +253,7 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
 
     # Filter scout level IDs to only valid ones
     from content.models.tags import ScoutLevel
+
     valid_scout_level_ids = set(
         ScoutLevel.objects.filter(id__in=gemini_result.scout_level_ids).values_list("id", flat=True)
     )
@@ -275,9 +275,7 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
         source_url=url,
         recipe_items=recipe_items,
         created_ingredients=[
-            CreatedIngredientResult(
-                id=ci["id"], name=ci["name"], aliases=ci["aliases"], nutri_class=ci["nutri_class"]
-            )
+            CreatedIngredientResult(id=ci["id"], name=ci["name"], aliases=ci["aliases"], nutri_class=ci["nutri_class"])
             for ci in created_ingredients
         ],
     )
@@ -346,6 +344,7 @@ def _get_ingredient_candidates(
 ) -> dict[str, list[dict[str, Any]]]:
     """For each extracted ingredient name, find DB candidates via multi-strategy search."""
     from django.contrib.postgres.search import TrigramSimilarity
+
     from supply.models import Ingredient, IngredientAlias
 
     candidates: dict[str, list[dict[str, Any]]] = {}
@@ -368,43 +367,53 @@ def _get_ingredient_candidates(
             for i in exact:
                 if i.id not in found_ids:
                     found_ids.add(i.id)
-                    results.append({
-                        "id": i.id,
-                        "name": i.name,
-                        "aliases": list(i.aliases.values_list("name", flat=True)),
-                    })
+                    results.append(
+                        {
+                            "id": i.id,
+                            "name": i.name,
+                            "aliases": list(i.aliases.values_list("name", flat=True)),
+                        }
+                    )
 
             if len(results) >= 8:
                 break
 
             # Strategy 2: Alias exact match
-            alias_exact = IngredientAlias.objects.filter(
-                name__iexact=term
-            ).select_related("ingredient").exclude(ingredient_id__in=found_ids)[:3]
+            alias_exact = (
+                IngredientAlias.objects.filter(name__iexact=term)
+                .select_related("ingredient")
+                .exclude(ingredient_id__in=found_ids)[:3]
+            )
             for a in alias_exact:
                 if a.ingredient_id not in found_ids:
                     found_ids.add(a.ingredient_id)
-                    results.append({
-                        "id": a.ingredient_id,
-                        "name": a.ingredient.name,
-                        "aliases": list(a.ingredient.aliases.values_list("name", flat=True)),
-                    })
+                    results.append(
+                        {
+                            "id": a.ingredient_id,
+                            "name": a.ingredient.name,
+                            "aliases": list(a.ingredient.aliases.values_list("name", flat=True)),
+                        }
+                    )
 
             if len(results) >= 8:
                 break
 
             # Strategy 3: startswith / contains
-            partial = Ingredient.objects.filter(
-                Q(name__istartswith=term) | Q(name__icontains=term)
-            ).exclude(id__in=found_ids).distinct()[:3]
+            partial = (
+                Ingredient.objects.filter(Q(name__istartswith=term) | Q(name__icontains=term))
+                .exclude(id__in=found_ids)
+                .distinct()[:3]
+            )
             for i in partial:
                 if i.id not in found_ids:
                     found_ids.add(i.id)
-                    results.append({
-                        "id": i.id,
-                        "name": i.name,
-                        "aliases": list(i.aliases.values_list("name", flat=True)),
-                    })
+                    results.append(
+                        {
+                            "id": i.id,
+                            "name": i.name,
+                            "aliases": list(i.aliases.values_list("name", flat=True)),
+                        }
+                    )
 
             if len(results) >= 8:
                 break
@@ -412,9 +421,7 @@ def _get_ingredient_candidates(
             # Strategy 4: Trigram similarity (fuzzy matching)
             if len(term) >= 4:
                 trigram = (
-                    Ingredient.objects.annotate(
-                        similarity=TrigramSimilarity("name", term)
-                    )
+                    Ingredient.objects.annotate(similarity=TrigramSimilarity("name", term))
                     .filter(similarity__gt=0.3)
                     .exclude(id__in=found_ids)
                     .order_by("-similarity")[:3]
@@ -422,11 +429,13 @@ def _get_ingredient_candidates(
                 for i in trigram:
                     if i.id not in found_ids:
                         found_ids.add(i.id)
-                        results.append({
-                            "id": i.id,
-                            "name": i.name,
-                            "aliases": list(i.aliases.values_list("name", flat=True)),
-                        })
+                        results.append(
+                            {
+                                "id": i.id,
+                                "name": i.name,
+                                "aliases": list(i.aliases.values_list("name", flat=True)),
+                            }
+                        )
 
         candidates[raw_name] = results[:8]
 
@@ -444,8 +453,9 @@ def _call_gemini_for_matching(
     user: AbstractBaseUser,
 ) -> GeminiRecipeExtraction:
     """Single Gemini call with Google Search Grounding for ingredient matching + enrichment."""
-    from content.models.tags import ScoutLevel, Tag
     from google.genai import types
+
+    from content.models.tags import ScoutLevel, Tag
 
     # Load DB lists for scout levels and tags
     scout_levels = list(ScoutLevel.objects.values("id", "name"))
@@ -458,13 +468,10 @@ def _call_gemini_for_matching(
     ingredients_context = ""
     for ing_name, cands in candidates.items():
         if cands:
-            cand_str = ", ".join(
-                f"[id={c['id']}] {c['name']} (aliases: {', '.join(c['aliases'])})"
-                for c in cands
-            )
-            ingredients_context += f"- \"{ing_name}\" → Kandidaten: {cand_str}\n"
+            cand_str = ", ".join(f"[id={c['id']}] {c['name']} (aliases: {', '.join(c['aliases'])})" for c in cands)
+            ingredients_context += f'- "{ing_name}" → Kandidaten: {cand_str}\n'
         else:
-            ingredients_context += f"- \"{ing_name}\" → Keine Kandidaten gefunden\n"
+            ingredients_context += f'- "{ing_name}" → Keine Kandidaten gefunden\n'
 
     # Recipe text from parsed data
     recipe_text = f"""Titel: {parsed.title}
@@ -569,12 +576,14 @@ def _create_new_ingredients(
         existing = Ingredient.objects.filter(name__iexact=data.name).first()
         if existing:
             ing.matched_ingredient_id = existing.id
-            created.append({
-                "id": existing.id,
-                "name": existing.name,
-                "aliases": [],
-                "nutri_class": data.nutri_class,
-            })
+            created.append(
+                {
+                    "id": existing.id,
+                    "name": existing.name,
+                    "aliases": [],
+                    "nutri_class": data.nutri_class,
+                }
+            )
             continue
 
         # Map viscosity
@@ -612,6 +621,7 @@ def _create_new_ingredients(
 
         # Create default portion
         from supply.services.unit_resolution import resolve_canonical_unit
+
         unit = resolve_canonical_unit(data.portion_name)
         if not unit:
             unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm")
@@ -629,18 +639,20 @@ def _create_new_ingredients(
             quantity=1.0,
             defaults={
                 "weight_g": weight,
-            }
+            },
         )
 
         # Store the ID on the match object for later reference
         ing.matched_ingredient_id = ingredient.id
 
-        created.append({
-            "id": ingredient.id,
-            "name": data.name,
-            "aliases": data.aliases,
-            "nutri_class": data.nutri_class,
-        })
+        created.append(
+            {
+                "id": ingredient.id,
+                "name": data.name,
+                "aliases": data.aliases,
+                "nutri_class": data.nutri_class,
+            }
+        )
 
     return created
 
@@ -655,7 +667,7 @@ def _build_recipe_items(
     created_ingredients: list[dict[str, Any]],
 ) -> list[RecipeItemDraftResult]:
     """Map Gemini results to RecipeItemDraftResult list with portion resolution."""
-    from supply.models import Ingredient, MeasuringUnit, Portion
+    from supply.models import Ingredient, MeasuringUnit
 
     results: list[RecipeItemDraftResult] = []
     created_ids = {ci["id"] for ci in created_ingredients}
@@ -691,8 +703,10 @@ def _build_recipe_items(
             }
             normalized_unit = unit_aliases.get(ing.unit, ing.unit)
             mu = MeasuringUnit.objects.filter(
-                Q(name__iexact=normalized_unit) | Q(description__iexact=normalized_unit)
-                | Q(name__iexact=ing.unit) | Q(description__iexact=ing.unit)
+                Q(name__iexact=normalized_unit)
+                | Q(description__iexact=normalized_unit)
+                | Q(name__iexact=ing.unit)
+                | Q(description__iexact=ing.unit)
             ).first()
             if mu:
                 measuring_unit_id = mu.id
@@ -789,7 +803,7 @@ def _resolve_portion(
             quantity=1.0,
             defaults={
                 "weight_g": weight,
-            }
+            },
         )
         return portion.id
 

@@ -4,7 +4,6 @@ from datetime import datetime
 
 from ninja import Schema
 
-
 # --- Collaborator schemas ---
 
 
@@ -60,6 +59,7 @@ class ShoppingListItemOut(Schema):
     @staticmethod
     def resolve_quantity_g(obj) -> float:
         return round(obj.quantity_g, 2)
+
     retail_section_id: int | None = None
     retail_section_name: str = ""
     is_checked: bool
@@ -102,6 +102,7 @@ class ShoppingListItemOut(Schema):
         if not obj.ingredient or not obj.ingredient.price_per_kg or not obj.quantity_g:
             return None
         from supply.services.price_service import get_portion_price
+
         price = get_portion_price(obj.ingredient, obj.quantity_g)
         return round(float(price), 2) if price is not None else None
 
@@ -124,6 +125,7 @@ class ShoppingListItemOut(Schema):
         if not portions:
             return ""
         from supply.services.shopping_service import compute_portion_options
+
         best_display, _ = compute_portion_options(obj.quantity_g, portions)
         return best_display
 
@@ -135,6 +137,7 @@ class ShoppingListItemOut(Schema):
         if not portions:
             return []
         from supply.services.shopping_service import compute_portion_options
+
         _, options = compute_portion_options(obj.quantity_g, portions)
         return options
 
@@ -220,9 +223,11 @@ class ShoppingListDetailOut(Schema):
 
     @staticmethod
     def resolve_items(obj) -> list:
-        return obj.items.select_related(
-            "retail_section", "checked_by", "ingredient"
-        ).prefetch_related("sources", "ingredient__portions").all()
+        return (
+            obj.items.select_related("retail_section", "checked_by", "ingredient")
+            .prefetch_related("sources", "ingredient__portions")
+            .all()
+        )
 
     @staticmethod
     def resolve_collaborators(obj) -> list:

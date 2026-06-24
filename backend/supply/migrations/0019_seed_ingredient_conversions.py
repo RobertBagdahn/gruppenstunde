@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-
 # Ingredient-specific density conversions.
 # Format: (ingredient_name, from_unit_name, to_unit_name, factor)
 # Sources: German cooking references, Rezeptkalkulator tool
@@ -10,7 +9,6 @@ INGREDIENT_CONVERSIONS = [
     # Ingredient-specific density conversions.
     # Format: (ingredient_name, from_unit_name, to_unit_name, factor)
     # Note: DB uses abbreviated unit names: Ta (Tasse), Pr (Prise), Msp (Messerspitze)
-
     # Mehl & Stärke
     ("Mehl", "Ta", "g", 125.0),
     ("Mehl", "EL", "g", 10.0),
@@ -20,7 +18,6 @@ INGREDIENT_CONVERSIONS = [
     ("Vollkornmehl", "Ta", "g", 130.0),
     ("Speisestärke", "EL", "g", 9.0),
     ("Speisestärke", "TL", "g", 3.0),
-
     # Zucker
     ("Zucker", "Ta", "g", 200.0),
     ("Zucker", "EL", "g", 12.0),
@@ -28,7 +25,6 @@ INGREDIENT_CONVERSIONS = [
     ("Puderzucker", "Ta", "g", 120.0),
     ("Puderzucker", "EL", "g", 8.0),
     ("Brauner Zucker", "Ta", "g", 180.0),
-
     # Reis & Getreide
     ("Reis", "Ta", "g", 185.0),
     ("Reis", "Ta", "ml", 250.0),
@@ -36,7 +32,6 @@ INGREDIENT_CONVERSIONS = [
     ("Haferflocken", "EL", "g", 6.0),
     ("Couscous", "Ta", "g", 175.0),
     ("Bulgur", "Ta", "g", 180.0),
-
     # Milchprodukte & Fette
     ("Butter", "EL", "g", 12.0),
     ("Butter", "TL", "g", 4.0),
@@ -51,14 +46,12 @@ INGREDIENT_CONVERSIONS = [
     ("Öl", "TL", "ml", 5.0),
     ("Olivenöl", "EL", "ml", 15.0),
     ("Sonnenblumenöl", "EL", "ml", 15.0),
-
     # Nüsse & Samen
     ("Mandeln", "Ta", "g", 140.0),
     ("Walnüsse", "Ta", "g", 100.0),
     ("Sonnenblumenkerne", "Ta", "g", 140.0),
     ("Leinsamen", "EL", "g", 10.0),
     ("Sesam", "EL", "g", 9.0),
-
     # Gewürze & Pulver
     ("Kakao", "EL", "g", 7.0),
     ("Kakao", "TL", "g", 2.5),
@@ -72,7 +65,6 @@ INGREDIENT_CONVERSIONS = [
     ("Pfeffer", "TL", "g", 2.5),
     ("Paprikapulver", "TL", "g", 2.5),
     ("Currypulver", "TL", "g", 2.5),
-
     # Flüssigkeiten & Saucen
     ("Honig", "EL", "g", 20.0),
     ("Honig", "TL", "g", 7.0),
@@ -82,7 +74,6 @@ INGREDIENT_CONVERSIONS = [
     ("Tomatenmark", "TL", "g", 6.0),
     ("Sojasauce", "EL", "ml", 15.0),
     ("Essig", "EL", "ml", 15.0),
-
     # Hülsenfrüchte (trocken)
     ("Linsen", "Ta", "g", 190.0),
     ("Kichererbsen", "Ta", "g", 200.0),
@@ -127,7 +118,6 @@ def reverse_seed(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0018_seed_kitchen_units"),
     ]

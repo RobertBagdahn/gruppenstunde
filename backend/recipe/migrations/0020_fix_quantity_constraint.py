@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0019_recipe_item_portion_mandatory"),
         ("supply", "0017_fix_quantity_constraint"),

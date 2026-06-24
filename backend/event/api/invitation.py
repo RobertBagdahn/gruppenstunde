@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -12,11 +11,12 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from ninja import Schema
 
-from .events import event_router
-from .helpers import require_auth, require_event_manager
 from event.models import Event
 from event.services.ci_helper import get_event_ci
 from event.services.invitation_pdf import InvitationPdfService
+
+from .events import event_router
+from .helpers import require_auth, require_event_manager
 
 logger = logging.getLogger(__name__)
 

@@ -32,7 +32,6 @@ from recipe.models import RecipeItem, RecipeItemExchangeGroup
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import Ingredient, MeasuringUnit, Portion
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -286,10 +285,12 @@ class TestSplitConstraint:
 
         resp = client.put(
             f"/api/meal-plans/{plan.id}/meal-items/{mi.id}/splits/",
-            json.dumps([
-                {"recipe_item_id": item_a.id, "share": 0.6},
-                {"recipe_item_id": item_b.id, "share": 0.6},
-            ]),
+            json.dumps(
+                [
+                    {"recipe_item_id": item_a.id, "share": 0.6},
+                    {"recipe_item_id": item_b.id, "share": 0.6},
+                ]
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 400
@@ -300,10 +301,12 @@ class TestSplitConstraint:
 
         resp = client.put(
             f"/api/meal-plans/{plan.id}/meal-items/{mi.id}/splits/",
-            json.dumps([
-                {"recipe_item_id": item_a.id, "share": 0.8},
-                {"recipe_item_id": item_b.id, "share": 0.2},
-            ]),
+            json.dumps(
+                [
+                    {"recipe_item_id": item_a.id, "share": 0.8},
+                    {"recipe_item_id": item_b.id, "share": 0.2},
+                ]
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 200

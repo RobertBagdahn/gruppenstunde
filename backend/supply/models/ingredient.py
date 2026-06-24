@@ -9,7 +9,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from pgvector.django import VectorField
 
-from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, RecipeTypeChoices, StorageTypeChoices
+from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, StorageTypeChoices
 from .reference import NutritionalTag, RetailSection
 
 

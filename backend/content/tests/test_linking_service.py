@@ -3,10 +3,9 @@ Tests for content/services/linking_service.py — ContentLink CRUD and recommend
 """
 
 import pytest
-from django.contrib.contenttypes.models import ContentType
 
 from content.choices import ContentStatus, EmbeddingFeedbackType, LinkType
-from content.models import ContentLink, EmbeddingFeedback
+from content.models import ContentLink
 from content.services.linking_service import (
     create_embedding_links,
     create_manual_link,
@@ -16,7 +15,6 @@ from content.services.linking_service import (
     reject_link,
     reject_link_with_feedback,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -1,16 +1,14 @@
 """Labels API endpoints — CRUD for event labels and participant label assignment."""
 
 from django.shortcuts import get_object_or_404
-from ninja.errors import HttpError
 
-from event.models import Event, Participant, ParticipantLabel
 from event.choices import TimelineActionChoices
+from event.models import Event, Participant, ParticipantLabel
 from event.schemas import LabelAssignIn, LabelCreateIn, LabelOut, LabelUpdateIn
 from event.services.timeline import TimelineService
 
 from .events import event_router
 from .helpers import require_auth, require_event_manager
-
 
 # ==========================================================================
 # Label CRUD (on events)

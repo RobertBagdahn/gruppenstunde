@@ -7,7 +7,6 @@ from typing import Any
 from ninja import Schema
 from pydantic import field_validator
 
-
 # --- Data Overview Sub-Schemas ---
 
 

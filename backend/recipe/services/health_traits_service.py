@@ -15,18 +15,19 @@ if TYPE_CHECKING:
 # DGE / EU-Claim Thresholds (per 100g)
 # ---------------------------------------------------------------------------
 
-FIBER_THRESHOLD_G = 6.0          # "high fiber" ≥ 6g/100g
-PROTEIN_ENERGY_PCT = 20.0        # "high protein" ≥ 20% of energy from protein
-SALT_THRESHOLD_G = 0.3           # "low salt" ≤ 0.3g/100g
-SAT_FAT_THRESHOLD_G = 1.5        # "low saturated fat" ≤ 1.5g/100g
-SUGAR_THRESHOLD_G = 5.0          # "low sugar" ≤ 5g/100g
-BALANCED_SCORE_MIN = -1          # "balanced" nutri-score total points in [-1, +4]
+FIBER_THRESHOLD_G = 6.0  # "high fiber" ≥ 6g/100g
+PROTEIN_ENERGY_PCT = 20.0  # "high protein" ≥ 20% of energy from protein
+SALT_THRESHOLD_G = 0.3  # "low salt" ≤ 0.3g/100g
+SAT_FAT_THRESHOLD_G = 1.5  # "low saturated fat" ≤ 1.5g/100g
+SUGAR_THRESHOLD_G = 5.0  # "low sugar" ≤ 5g/100g
+BALANCED_SCORE_MIN = -1  # "balanced" nutri-score total points in [-1, +4]
 BALANCED_SCORE_MAX = 4
 
 
 # ---------------------------------------------------------------------------
 # Individual trait checks (small helpers for testability)
 # ---------------------------------------------------------------------------
+
 
 def is_high_fiber(fibre_per_100g: float) -> bool:
     """Return True if fibre content qualifies as 'high fiber'."""
@@ -69,7 +70,8 @@ def is_balanced(nutri_score_total_points: int) -> bool:
 # Main computation
 # ---------------------------------------------------------------------------
 
-def compute_positive_traits(recipe: "Recipe") -> list[str]:
+
+def compute_positive_traits(recipe: Recipe) -> list[str]:
     """Compute positive health trait keys for a recipe.
 
     Uses cached per-100g nutrition values from the recipe model and
@@ -77,9 +79,9 @@ def compute_positive_traits(recipe: "Recipe") -> list[str]:
 
     Returns a list of trait enum keys (may be empty).
     """
+    from recipe.models import RecipeItem
     from recipe.services.recipe_checks import get_recipe_nutritional_values
     from supply.services.nutri_service import calculate_nutri_score
-    from recipe.models import RecipeItem
 
     # No items → no traits
     if not RecipeItem.objects.filter(recipe=recipe).exists():

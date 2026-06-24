@@ -1,12 +1,11 @@
 """WebSocket consumer for real-time shopping list collaboration."""
 
-import json
 from datetime import datetime
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
-from .models import CollaboratorRole, ShoppingList, ShoppingListCollaborator
+from .models import ShoppingList, ShoppingListCollaborator
 
 
 class ShoppingListConsumer(AsyncJsonWebsocketConsumer):

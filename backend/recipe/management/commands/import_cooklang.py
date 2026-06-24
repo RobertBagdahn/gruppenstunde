@@ -84,11 +84,13 @@ def parse_cooklang(content: str, filename: str) -> dict:
             ingredient_key = name.lower()
             if ingredient_key not in seen_ingredients:
                 seen_ingredients.add(ingredient_key)
-                ingredients.append({
-                    "name": name,
-                    "quantity": quantity,
-                    "unit": unit,
-                })
+                ingredients.append(
+                    {
+                        "name": name,
+                        "quantity": quantity,
+                        "unit": unit,
+                    }
+                )
 
         # Also catch @Ingredient without braces (rare)
         stripped_line = INGREDIENT_RE.sub("", line)
@@ -97,11 +99,13 @@ def parse_cooklang(content: str, filename: str) -> dict:
             ingredient_key = name.lower()
             if ingredient_key not in seen_ingredients:
                 seen_ingredients.add(ingredient_key)
-                ingredients.append({
-                    "name": name,
-                    "quantity": None,
-                    "unit": None,
-                })
+                ingredients.append(
+                    {
+                        "name": name,
+                        "quantity": None,
+                        "unit": None,
+                    }
+                )
 
         # Clean line for description (remove cooklang syntax)
         clean_line = INGREDIENT_RE.sub(lambda m: m.group(1), line)
@@ -191,13 +195,10 @@ class Command(BaseCommand):
         with transaction.atomic():
             if force:
                 from recipe.models import Recipe
-                deleted = Recipe.objects.filter(
-                    summary__startswith="Importiert aus Cooklang"
-                ).delete()
+
+                deleted = Recipe.objects.filter(summary__startswith="Importiert aus Cooklang").delete()
                 deleted_count = deleted[0] if isinstance(deleted, tuple) else deleted
-                self.stdout.write(
-                    self.style.WARNING(f"Deleted {deleted_count} previously imported Cooklang recipes.")
-                )
+                self.stdout.write(self.style.WARNING(f"Deleted {deleted_count} previously imported Cooklang recipes."))
             self._import(deduped)
 
     def _dry_run(self, deduped: dict):
@@ -215,7 +216,6 @@ class Command(BaseCommand):
     def _import(self, deduped: dict):
         from content.choices import ContentStatus
         from recipe.models import Recipe, RecipeItem
-        from supply.choices import RecipeTypeChoices
         from supply.models import Ingredient, MeasuringUnit, Portion
 
         # Build unit map (lowercase name -> MeasuringUnit)
@@ -226,66 +226,135 @@ class Command(BaseCommand):
         # Common unit aliases: Cooklang string -> DB unit name (lowercase)
         # None = portion-based unit (will create/use Portion on ingredient)
         unit_aliases = {
-            "gramm": "g", "gram": "g", "g": "g",
-            "kilogramm": "g", "kg": "g",
-            "milliliter": "ml", "ml": "ml",
-            "liter": "ml", "l": "ml",
-            "esslöffel": "el", "eßlöffel": "el", "el": "el",
-            "teelöffel": "tl", "tl": "tl",
-            "messerspitze": "msp", "msp": "msp",
-            "prise": "pr", "prisen": "pr", "pr": "pr",
-            "spritzer": "sp", "sp": "sp",
-            "stück": None, "stk": None,
-            "bund": None, "dose": None, "dosen": None,
-            "becher": None, "scheibe": None, "scheiben": None,
-            "packung": None, "paket": None, "päckchen": None, "tüte": None,
-            "kleines paket": None, "großes paket": None,
-            "pack": None, "pck.": None, "pk.": None,
-            "tasse": None, "tassen": None,
-            "nach belieben": "pr", "etwas": "pr",
-            "kleine": None, "große": None, "mittelgroße": None,
-            "zehen": None, "zehe": None,
-            "handvoll": None, "glas": None,
-            "kugel": None, "pinnchen": None,
-            "zweige": None, "stangen": None,
-            "streifen": None, "tropfen": None,
-            "tube": None, "streuer": None,
-            "bd.": None, "gehäufter tl": None, "gehäufter el": None,
-            "ganze (65g)": None, "evtl.": None,
-            "große dose": None, "dosen (à 400g)": None,
-            "kleines stück": None, "großes stück": None,
-            "glasfüllung": None, "zum anbraten": None,
-            "cm": None, "n. b.": None,
-            "zitrone": None, "hauaidbih": None,
+            "gramm": "g",
+            "gram": "g",
+            "g": "g",
+            "kilogramm": "g",
+            "kg": "g",
+            "milliliter": "ml",
+            "ml": "ml",
+            "liter": "ml",
+            "l": "ml",
+            "esslöffel": "el",
+            "eßlöffel": "el",
+            "el": "el",
+            "teelöffel": "tl",
+            "tl": "tl",
+            "messerspitze": "msp",
+            "msp": "msp",
+            "prise": "pr",
+            "prisen": "pr",
+            "pr": "pr",
+            "spritzer": "sp",
+            "sp": "sp",
+            "stück": None,
+            "stk": None,
+            "bund": None,
+            "dose": None,
+            "dosen": None,
+            "becher": None,
+            "scheibe": None,
+            "scheiben": None,
+            "packung": None,
+            "paket": None,
+            "päckchen": None,
+            "tüte": None,
+            "kleines paket": None,
+            "großes paket": None,
+            "pack": None,
+            "pck.": None,
+            "pk.": None,
+            "tasse": None,
+            "tassen": None,
+            "nach belieben": "pr",
+            "etwas": "pr",
+            "kleine": None,
+            "große": None,
+            "mittelgroße": None,
+            "zehen": None,
+            "zehe": None,
+            "handvoll": None,
+            "glas": None,
+            "kugel": None,
+            "pinnchen": None,
+            "zweige": None,
+            "stangen": None,
+            "streifen": None,
+            "tropfen": None,
+            "tube": None,
+            "streuer": None,
+            "bd.": None,
+            "gehäufter tl": None,
+            "gehäufter el": None,
+            "ganze (65g)": None,
+            "evtl.": None,
+            "große dose": None,
+            "dosen (à 400g)": None,
+            "kleines stück": None,
+            "großes stück": None,
+            "glasfüllung": None,
+            "zum anbraten": None,
+            "cm": None,
+            "n. b.": None,
+            "zitrone": None,
+            "hauaidbih": None,
             "ta": None,
         }
 
         # Default weight estimates (g) for portion-based units
         PORTION_WEIGHT_DEFAULTS = {
-            "stück": 100, "stk": 100,
-            "kleine": 70, "große": 150, "mittelgroße": 100,
-            "kleines stück": 50, "großes stück": 200,
-            "dose": 400, "dosen": 400, "große dose": 800, "dosen (à 400g)": 400,
-            "packung": 500, "paket": 500, "päckchen": 40, "tüte": 40,
-            "pack": 500, "pck.": 500, "pk.": 500, "kleines paket": 250, "großes paket": 1000,
+            "stück": 100,
+            "stk": 100,
+            "kleine": 70,
+            "große": 150,
+            "mittelgroße": 100,
+            "kleines stück": 50,
+            "großes stück": 200,
+            "dose": 400,
+            "dosen": 400,
+            "große dose": 800,
+            "dosen (à 400g)": 400,
+            "packung": 500,
+            "paket": 500,
+            "päckchen": 40,
+            "tüte": 40,
+            "pack": 500,
+            "pck.": 500,
+            "pk.": 500,
+            "kleines paket": 250,
+            "großes paket": 1000,
             "becher": 200,
-            "scheibe": 30, "scheiben": 30,
-            "bund": 50, "bd.": 50,
-            "tasse": 250, "tassen": 250, "ta": 250,
-            "glas": 250, "glasfüllung": 250,
+            "scheibe": 30,
+            "scheiben": 30,
+            "bund": 50,
+            "bd.": 50,
+            "tasse": 250,
+            "tassen": 250,
+            "ta": 250,
+            "glas": 250,
+            "glasfüllung": 250,
             "handvoll": 30,
-            "zehe": 5, "zehen": 5,
-            "kugel": 70, "pinnchen": 20,
-            "zweige": 5, "stangen": 30,
-            "streifen": 20, "tropfen": 1,
-            "tube": 125, "streuer": 50,
-            "gehäufter tl": 8, "gehäufter el": 20,
+            "zehe": 5,
+            "zehen": 5,
+            "kugel": 70,
+            "pinnchen": 20,
+            "zweige": 5,
+            "stangen": 30,
+            "streifen": 20,
+            "tropfen": 1,
+            "tube": 125,
+            "streuer": 50,
+            "gehäufter tl": 8,
+            "gehäufter el": 20,
             "ganze (65g)": 65,
             "zitrone": 80,
             "cm": 10,
             "zum anbraten": 15,
-            "evtl.": 50, "n. b.": 50, "hauaidbih": 50,
-            "nach belieben": 5, "etwas": 5,
+            "evtl.": 50,
+            "n. b.": 50,
+            "hauaidbih": 50,
+            "nach belieben": 5,
+            "etwas": 5,
         }
 
         # Conversion factors: source unit (lowercase) -> multiply quantity by factor
@@ -324,6 +393,7 @@ class Command(BaseCommand):
                     time_str = meta[key].lower()
                     minutes = 0
                     import re as _re
+
                     h_match = _re.search(r"(\d+)\s*(?:h|hour|stunde)", time_str)
                     m_match = _re.search(r"(\d+)\s*(?:m|min|minute)", time_str)
                     if h_match:
@@ -411,9 +481,7 @@ class Command(BaseCommand):
                 quantity = None
                 if quantity_raw:
                     try:
-                        quantity = float(
-                            re.match(r"[\d.,]+", quantity_raw.replace(",", ".")).group(0)
-                        )
+                        quantity = float(re.match(r"[\d.,]+", quantity_raw.replace(",", ".")).group(0))
                     except (AttributeError, ValueError):
                         # Try fraction like "1/2"
                         frac_match = re.match(r"(\d+)/(\d+)", quantity_raw)
@@ -446,7 +514,9 @@ class Command(BaseCommand):
                             if unit_key not in unit_warnings:
                                 unit_warnings.add(unit_key)
                                 self.stderr.write(
-                                    self.style.WARNING(f"  Unit '{unit_raw}' → portion-based (weight_g={PORTION_WEIGHT_DEFAULTS.get(unit_key, 100)})")
+                                    self.style.WARNING(
+                                        f"  Unit '{unit_raw}' → portion-based (weight_g={PORTION_WEIGHT_DEFAULTS.get(unit_key, 100)})"
+                                    )
                                 )
                     else:
                         # resolved=None → portion-based unit (Stück, Dose, etc.)

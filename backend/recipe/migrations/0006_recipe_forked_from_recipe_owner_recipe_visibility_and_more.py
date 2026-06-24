@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0002_pg_trgm"),
         ("recipe", "0005_normalize_servings"),

@@ -2,10 +2,10 @@
 
 from ninja import Schema
 
-
 # =============================================================================
 # Rankings
 # =============================================================================
+
 
 class RankingItem(Schema):
     id: int
@@ -31,6 +31,7 @@ class RankingsOut(Schema):
 # =============================================================================
 # Distributions
 # =============================================================================
+
 
 class DistributionBucket(Schema):
     min: float
@@ -63,6 +64,7 @@ class DistributionOut(Schema):
 # Scatter / Correlations
 # =============================================================================
 
+
 class ScatterPoint(Schema):
     id: int
     name: str
@@ -89,6 +91,7 @@ class ScatterOut(Schema):
 # =============================================================================
 # Tag Lists
 # =============================================================================
+
 
 class TagListItem(Schema):
     id: int
@@ -124,6 +127,7 @@ class TagListOut(Schema):
 # Scores
 # =============================================================================
 
+
 class ScoreClassItem(Schema):
     id: int
     name: str
@@ -155,6 +159,7 @@ class ScoresOut(Schema):
 # Outliers
 # =============================================================================
 
+
 class OutlierItem(Schema):
     id: int
     name: str
@@ -185,6 +190,7 @@ class OutliersOut(Schema):
 # =============================================================================
 # Comparison
 # =============================================================================
+
 
 class ComparisonGroup(Schema):
     label: str

@@ -1,7 +1,6 @@
 """Custom Fields API endpoints — CRUD for event custom fields and participant values."""
 
 from django.shortcuts import get_object_or_404
-from ninja.errors import HttpError
 
 from event.models import CustomField, CustomFieldValue, Event, Participant
 from event.schemas import (
@@ -14,7 +13,6 @@ from event.schemas import (
 
 from .events import event_router
 from .helpers import require_auth, require_event_manager
-
 
 # ==========================================================================
 # Custom Field CRUD (on events)

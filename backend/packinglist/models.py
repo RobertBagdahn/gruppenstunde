@@ -88,8 +88,8 @@ class PackingList(models.Model):
         if self.owner == user:
             return True
         if self.group_id:
-            from profiles.models import GroupMembership
             from profiles.choices import MembershipRoleChoices
+            from profiles.models import GroupMembership
 
             return GroupMembership.objects.filter(
                 group=self.group,

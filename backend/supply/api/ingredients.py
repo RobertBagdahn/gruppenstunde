@@ -10,13 +10,13 @@ from ninja import Query, Router
 from ninja.errors import HttpError
 
 from recipe.models import Recipe
+from recipe.schemas import PaginatedRecipeOut
 from supply.models import (
     Ingredient,
     IngredientAlias,
     MeasuringUnit,
     Portion,
 )
-from recipe.schemas import PaginatedRecipeOut
 from supply.schemas import (
     AliasCreateIn,
     IngredientAiCreateIn,
@@ -31,7 +31,6 @@ from supply.schemas import (
     PaginatedIngredientOut,
     PortionCreateIn,
     PortionOut,
-    PortionSuggestionOut,
     PortionUpdateIn,
 )
 
@@ -140,6 +139,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
 
     if not data["retail_section_id"]:
         from supply.services.retail_section_mapping import get_retail_section
+
         rs = get_retail_section(data["name"], data.get("description", ""))
         if rs:
             data["retail_section_id"] = rs.id
@@ -346,10 +346,7 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
     ingredient = get_object_or_404(Ingredient, slug=slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
-    portions = list(
-        Portion.objects.filter(ingredient=ingredient, is_deleted=False)
-        .order_by("rank", "id")
-    )
+    portions = list(Portion.objects.filter(ingredient=ingredient, is_deleted=False).order_by("rank", "id"))
 
     idx = next((i for i, p in enumerate(portions) if p.id == portion.id), None)
     if idx is None:
@@ -391,9 +388,7 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
         raise HttpError(400, "Alias-Name darf nicht leer sein.")
 
     # Reject duplicate alias names (case-insensitive)
-    if IngredientAlias.objects.filter(
-        ingredient=ingredient, name__iexact=name
-    ).exists():
+    if IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=name).exists():
         raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
 
     # Also reject if alias matches the ingredient name itself
@@ -424,9 +419,7 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
                 return alias
         except IntegrityError:
             # Check if name became duplicate during concurrent requests
-            if IngredientAlias.objects.filter(
-                ingredient=ingredient, name__iexact=name
-            ).exists():
+            if IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=name).exists():
                 raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
 
             if attempt == max_attempts - 1:

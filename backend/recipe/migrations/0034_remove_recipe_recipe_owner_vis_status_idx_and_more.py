@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0006_contentcollaborator"),
         ("recipe", "0035_migrate_recipe_owner"),

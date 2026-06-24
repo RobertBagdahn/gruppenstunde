@@ -85,7 +85,7 @@ class TestStartTimeCalculation:
         )
         recipe = make_recipe(
             preparation_time=PreparationTimeChoices.BETWEEN_15_30,  # 30min
-            execution_time=ExecutionTimeChoices.BETWEEN_30_60,       # 60min
+            execution_time=ExecutionTimeChoices.BETWEEN_30_60,  # 60min
         )
         make_meal_item(meal=meal, recipe=recipe)
 

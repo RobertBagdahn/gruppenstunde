@@ -6,7 +6,7 @@ from decimal import Decimal
 from django.utils import timezone
 from model_bakery import baker
 
-from event.choices import GenderChoices, PaymentMethodChoices, CustomFieldTypeChoices
+from event.choices import CustomFieldTypeChoices, GenderChoices, PaymentMethodChoices
 from event.models import (
     BookingOption,
     CustomField,
@@ -20,7 +20,6 @@ from event.models import (
     Registration,
     TimelineEntry,
 )
-
 
 # ---------------------------------------------------------------------------
 # EventLocation

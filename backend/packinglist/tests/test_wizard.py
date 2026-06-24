@@ -4,15 +4,12 @@ import json
 
 import pytest
 
-from packinglist.models import PackingList, PackingCategory, PackingItem
+from packinglist.models import PackingList
 from packinglist.services.suggestion_service import (
-    PRESETS,
-    UNIFIED_CATALOG,
     build_dynamic_list,
     get_full_catalog,
     preview_dynamic_list,
 )
-
 
 # ==========================================================================
 # build_dynamic_list() unit tests

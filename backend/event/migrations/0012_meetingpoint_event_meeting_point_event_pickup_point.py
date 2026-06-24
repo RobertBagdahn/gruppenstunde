@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("event", "0011_event_guest_registration_enabled"),
         ("profiles", "0002_initial"),

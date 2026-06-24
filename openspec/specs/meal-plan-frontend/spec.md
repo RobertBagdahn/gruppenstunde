@@ -234,4 +234,3 @@ Die Inline-Such-Ergebnisliste im MealSlot MUSS für jeden Vorschlag anzeigen: Am
 #### Scenario: Inline-Ergebnis ohne Preis
 - **WHEN** ein Rezept keinen Preis hat (price_per_serving null)
 - **THEN** "—" wird anstelle des Preises angezeigt
-

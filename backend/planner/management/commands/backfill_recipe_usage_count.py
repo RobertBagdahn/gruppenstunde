@@ -1,7 +1,7 @@
 """Management command to backfill Recipe.usage_count from MealItem counts."""
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count, Subquery, OuterRef
+from django.db.models import Count, OuterRef
 
 from planner.models.meal_plan import MealItem
 from recipe.models import Recipe
@@ -23,18 +23,12 @@ class Command(BaseCommand):
 
         # Update recipes that have MealItems
         recipes_with_counts = (
-            MealItem.objects.filter(recipe_id__isnull=False)
-            .values("recipe_id")
-            .annotate(cnt=Count("id"))
+            MealItem.objects.filter(recipe_id__isnull=False).values("recipe_id").annotate(cnt=Count("id"))
         )
 
         updated = 0
         for entry in recipes_with_counts:
-            Recipe.objects.filter(pk=entry["recipe_id"]).update(
-                usage_count=entry["cnt"]
-            )
+            Recipe.objects.filter(pk=entry["recipe_id"]).update(usage_count=entry["cnt"])
             updated += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Updated usage_count for {updated} recipes.")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Updated usage_count for {updated} recipes."))

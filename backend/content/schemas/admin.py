@@ -4,7 +4,6 @@ Admin/approval-related schemas (extracted from api.py inline schemas).
 
 from ninja import Schema
 
-
 # ---------------------------------------------------------------------------
 # Approval Queue Schemas
 # ---------------------------------------------------------------------------

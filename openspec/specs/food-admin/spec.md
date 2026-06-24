@@ -122,4 +122,3 @@ Alle Stammdaten-Tabs MUST ein konsistentes Layout verwenden: sortierbare Tabelle
 #### Scenario: Bestätigungsdialog beim Löschen
 - **WHEN** Staff-User die Löschen-Aktion wählt
 - **THEN** erscheint ein Bestätigungsdialog bevor die Löschung ausgeführt wird
-

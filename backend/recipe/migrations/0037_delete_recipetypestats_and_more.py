@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0008_delete_contentcollaborator"),
         ("recipe", "0036_recipetypestats"),

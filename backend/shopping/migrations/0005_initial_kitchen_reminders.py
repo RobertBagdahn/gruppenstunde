@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-
 INITIAL_DATA = {
     "Reinigung": [
         "Spülmittel",
@@ -42,9 +41,7 @@ def create_initial_reminders(apps, schema_editor):
     KitchenReminder = apps.get_model("shopping", "KitchenReminder")
 
     for cat_order, (cat_name, items) in enumerate(INITIAL_DATA.items()):
-        category = KitchenReminderCategory.objects.create(
-            name=cat_name, sort_order=cat_order
-        )
+        category = KitchenReminderCategory.objects.create(name=cat_name, sort_order=cat_order)
         for item_order, item_name in enumerate(items):
             KitchenReminder.objects.create(
                 name=item_name,
@@ -56,13 +53,10 @@ def create_initial_reminders(apps, schema_editor):
 
 def remove_initial_reminders(apps, schema_editor):
     KitchenReminderCategory = apps.get_model("shopping", "KitchenReminderCategory")
-    KitchenReminderCategory.objects.filter(
-        name__in=INITIAL_DATA.keys()
-    ).delete()
+    KitchenReminderCategory.objects.filter(name__in=INITIAL_DATA.keys()).delete()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("shopping", "0004_kitchenremindercategory_kitchenreminder"),
     ]

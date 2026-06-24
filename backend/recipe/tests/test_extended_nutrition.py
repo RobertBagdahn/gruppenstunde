@@ -23,18 +23,17 @@ from recipe.choices import (
     HintParameterChoices,
     RecipeObjectiveChoices,
 )
-from recipe.models import Rule, Recipe, RecipeItem
-from recipe.services.nutrition_aggregation import evaluate_day_cockpit, evaluate_meal_cockpit
+from recipe.models import Recipe
+from recipe.services.nutrition_aggregation import evaluate_day_cockpit
 from recipe.services.recipe_checks import (
     CACHED_MICRONUTRIENT_FIELDS,
     match_recipe_hints,
     recalculate_recipe_cache,
 )
 from recipe.tests import make_health_rule, make_recipe, make_recipe_hint, make_recipe_item
-from supply.models import DgeReference, Ingredient, MeasuringUnit, Portion
+from supply.models import DgeReference
 from supply.models.reference import DgeGenderChoices
-from supply.tests import make_ingredient, make_measuring_unit, make_portion
-
+from supply.tests import make_ingredient, make_portion
 
 # ---------------------------------------------------------------------------
 # 9.1 — Ingredient vitamin_c_mg field

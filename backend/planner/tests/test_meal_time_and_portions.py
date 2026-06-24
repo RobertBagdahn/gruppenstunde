@@ -1,4 +1,5 @@
 """Tests for meal time editing validation and effective_portions aggregation."""
+
 import datetime as dt
 import json
 
@@ -76,8 +77,8 @@ class TestEffectivePortionsAggregation:
         today = dt.date.today()
 
         # Build a recipe with one ingredient so the nutrition aggregation has data.
-        from supply.tests import make_ingredient, make_portion
         from recipe.tests import make_recipe_item
+        from supply.tests import make_ingredient, make_portion
 
         ingredient = make_ingredient(energy_kcal=100.0)  # per 100g
         portion = make_portion(ingredient=ingredient, weight_g=100.0)

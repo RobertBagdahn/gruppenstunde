@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0018_fix_recipe_items_portion"),
         ("supply", "0016_portion_fields_mandatory"),

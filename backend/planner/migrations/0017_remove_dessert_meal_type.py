@@ -7,7 +7,6 @@ def delete_dessert_meals(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0016_meal_external_cost_per_person_alter_meal_meal_type"),
     ]

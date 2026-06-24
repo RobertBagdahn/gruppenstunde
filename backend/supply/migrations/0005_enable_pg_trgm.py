@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0004_ingredient_biotin_ug_ingredient_calcium_mg_and_more"),
     ]

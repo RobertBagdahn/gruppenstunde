@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("packinglist", "0003_packingitem_is_do_not_bring_packinglist_visibility_and_more"),
     ]

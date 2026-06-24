@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
+from planner.api.meal_plan import _require_access, _require_auth, _require_edit
 from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
     Meal,
@@ -13,12 +14,10 @@ from planner.models import (
 )
 from planner.schemas import (
     LinkMealIn,
-    MealItemCreateIn,
     RefMealCreateIn,
     RefMealOut,
     RefMealUpdateIn,
 )
-from planner.api.meal_plan import _require_auth, _require_edit, _require_access
 
 ref_meal_router = Router(tags=["ref-meals"])
 
@@ -33,9 +32,7 @@ def _get_plan(plan_id: int, user, edit: bool = False) -> MealPlan:
 
 
 def _get_ref_meal(plan: MealPlan, ref_meal_id: int) -> Meal:
-    meal = get_object_or_404(
-        Meal, id=ref_meal_id, meal_plan=plan, is_reference=True
-    )
+    meal = get_object_or_404(Meal, id=ref_meal_id, meal_plan=plan, is_reference=True)
     return meal
 
 
@@ -68,7 +65,9 @@ def _sync_ref_meal_to_targets(ref_meal: Meal) -> int:
 def list_ref_meals(request, plan_id: int):
     _require_auth(request)
     plan = _get_plan(plan_id, request.user)
-    return plan.meals.filter(is_reference=True).prefetch_related("items__recipe", "items__ingredient", "items__measuring_unit", "synced_meals")
+    return plan.meals.filter(is_reference=True).prefetch_related(
+        "items__recipe", "items__ingredient", "items__measuring_unit", "synced_meals"
+    )
 
 
 @ref_meal_router.post(

@@ -5,7 +5,6 @@ Content API — Search endpoints.
 import math
 
 from ninja import Query, Router
-from ninja.errors import HttpError
 
 from content.schemas.search import (
     AutocompleteResultOut,

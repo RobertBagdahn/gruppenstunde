@@ -4,8 +4,6 @@ from collections import Counter, defaultdict
 from datetime import date
 from decimal import Decimal
 
-from django.db.models import Sum
-
 from event.models import Event, Participant, Registration
 
 

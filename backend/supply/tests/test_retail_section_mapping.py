@@ -3,11 +3,9 @@
 import pytest
 
 from supply.services.retail_section_mapping import (
-    KEYWORD_TO_RETAIL_SECTION_NAME,
     _match_keywords,
     get_retail_section,
     get_retail_section_from_description,
-    get_retail_section_from_name,
 )
 
 

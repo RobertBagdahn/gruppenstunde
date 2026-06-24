@@ -12,7 +12,6 @@ from django.core.management.base import BaseCommand
 
 from recipe.models import Rule
 
-
 # DGE reference values for 13-18 year olds, per day
 RULES_DATA = [
     # --- Day-level rules (most important) ---

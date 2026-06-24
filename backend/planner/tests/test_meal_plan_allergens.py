@@ -12,6 +12,7 @@ from supply.models.reference import NutritionalTag
 class TestMealPlanNutritionalTags:
     def test_create_meal_plan_with_nutritional_tags(self):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         user = baker.make(User)
 
@@ -40,6 +41,7 @@ class TestMealPlanNutritionalTags:
 
     def test_create_meal_plan_with_non_dangerous_tag_succeeds(self):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         user = baker.make(User)
 
@@ -113,6 +115,7 @@ class TestMealPlanNutritionalTagScanner:
 
     def test_scanner_not_found_for_unauthorized_user(self):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         other_user = baker.make(User)
         plan = make_meal_plan()
@@ -124,8 +127,8 @@ class TestMealPlanNutritionalTagScanner:
         assert response.json()["detail"] == "Essensplan nicht gefunden"
 
     def test_scanner_detects_violations_and_aggregates_summary(self):
-        from recipe.tests import make_recipe
         from planner.tests import make_meal, make_meal_item
+        from recipe.tests import make_recipe
 
         plan = make_meal_plan()
         client = Client()
@@ -188,8 +191,9 @@ class TestMealPlanNutritionalTagScanner:
         tag_peanuts = baker.make(NutritionalTag, name="Erdnuss", is_dangerous=True)
         plan.nutritional_tags.add(tag_peanuts)
 
-        from recipe.tests import make_recipe
         from planner.tests import make_meal, make_meal_item
+        from recipe.tests import make_recipe
+
         recipe_safe = make_recipe(title="Sichere Nudeln")
         meal = make_meal(meal_plan=plan)
         make_meal_item(meal=meal, recipe=recipe_safe)
@@ -204,8 +208,8 @@ class TestMealPlanNutritionalTagScanner:
         assert data["summary"]["unique_tags"] == 0
 
     def test_scanner_detects_non_dangerous_tag_violations(self):
-        from recipe.tests import make_recipe
         from planner.tests import make_meal, make_meal_item
+        from recipe.tests import make_recipe
 
         plan = make_meal_plan()
         client = Client()
@@ -231,6 +235,7 @@ class TestMealPlanNutritionalTagScanner:
 class TestRecipeSearchNutritionalTagExclusion:
     def test_search_recipes_with_nutritional_tag_exclusion(self):
         from django.contrib.auth import get_user_model
+
         from recipe.tests import make_recipe
         from supply.models import Ingredient
 
@@ -276,7 +281,9 @@ class TestRecipeSearchNutritionalTagExclusion:
         ing_ids = {i["id"] for i in data.get("standalone_ingredients", [])}
         assert ing_peanut.id not in ing_ids
 
-        response = client.get(f"/api/meal-plans/recipes/search/?exclude_nutritional_tag_ids={tag_peanuts.id},{tag_milk.id}")
+        response = client.get(
+            f"/api/meal-plans/recipes/search/?exclude_nutritional_tag_ids={tag_peanuts.id},{tag_milk.id}"
+        )
         assert response.status_code == 200
         data = response.json()
 

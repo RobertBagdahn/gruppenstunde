@@ -161,4 +161,3 @@ Neu: Korrekte Unit-Zuordnung und `quantity_type="per_person"` mit Pro-Portion-Me
 #### Scenario: Re-Import bestehender Daten
 - **WHEN** `--force` Flag beim Aufruf gesetzt ist
 - **THEN** werden vorherige Cooklang-Imports gelöscht und korrekt neu importiert
-

@@ -70,4 +70,3 @@ Die Timeline SHALL die gleichen Interaktionsmöglichkeiten bieten wie der DayPla
 #### Scenario: Rezept zu Meal hinzufügen
 - **WHEN** der Benutzer im Zeitplan auf das Plus-Icon eines Meals klickt
 - **THEN** öffnet sich die Rezept-Suche wie im Tagesplan
-

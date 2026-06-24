@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0029_ingredient_camp_suitable_ingredient_cooking_factor_and_more"),
     ]

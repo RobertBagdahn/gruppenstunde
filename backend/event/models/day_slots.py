@@ -6,7 +6,6 @@ from django.utils.translation import gettext_lazy as _
 
 from .core import Event
 
-
 # ---------------------------------------------------------------------------
 # Event Day Slot (Tagesplan)
 # ---------------------------------------------------------------------------

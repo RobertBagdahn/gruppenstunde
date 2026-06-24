@@ -2,11 +2,7 @@
 Production settings for GCP deployment.
 """
 
-import io
-
-from google.cloud import secretmanager
-
-from .base import *  # noqa: F401,F403
+from .base import *  # noqa: F403
 
 DEBUG = env("DEBUG", default="False").lower() in ("true", "1")  # noqa: F405
 

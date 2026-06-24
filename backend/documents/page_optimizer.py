@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from pdf_builder import LayoutParams, trial_build_pages
 

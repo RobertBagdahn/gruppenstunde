@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from supply.models import Ingredient
 
 
-def get_portion_price(ingredient: "Ingredient", weight_g: float) -> Decimal | None:
+def get_portion_price(ingredient: Ingredient, weight_g: float) -> Decimal | None:
     """Calculate price for a given weight based on ingredient's price_per_kg."""
     if ingredient.price_per_kg is None or weight_g is None or weight_g <= 0:
         return None

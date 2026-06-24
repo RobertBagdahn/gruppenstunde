@@ -79,7 +79,7 @@ Der "Zutaten bearbeiten"-Button SHALL im Zutaten-Header verbleiben.
 
 #### Scenario: Mobile Action Bar zeigt alle Aktionen
 - **WHEN** ein Nutzer auf Mobile die Detailseite öffnet
-- **THEN** sieht er unten: [Einkaufsliste] [Portionen] [⋮] 
+- **THEN** sieht er unten: [Einkaufsliste] [Portionen] [⋮]
 - **THEN** im Overflow ⋮ sind Bearbeiten, Löschen, Clonen, Kochen, Drucken, Teilen
 
 #### Scenario: Desktop Sidebar zeigt alle Aktionen

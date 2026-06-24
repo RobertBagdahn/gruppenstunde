@@ -15,7 +15,6 @@ def convert_once_to_per_person(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0016_recipe_source_url"),
     ]

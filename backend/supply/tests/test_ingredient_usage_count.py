@@ -1,11 +1,10 @@
 """Tests for Ingredient.usage_count signals — RecipeItem create/update/delete."""
 
 import pytest
-from django.test import Client
 
 from recipe.models import RecipeItem
 from recipe.tests import make_recipe, make_recipe_item
-from supply.models import Ingredient, Portion
+from supply.models import Portion
 from supply.tests import make_ingredient, make_measuring_unit
 
 
@@ -18,9 +17,7 @@ class TestIngredientUsageCountSignals:
         assert ing.usage_count == 0
 
         unit = make_measuring_unit()
-        portion = Portion.objects.create(
-            name="1 Prise", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=1
-        )
+        portion = Portion.objects.create(name="1 Prise", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=1)
         recipe = make_recipe()
         make_recipe_item(recipe=recipe, portion=portion)
 
@@ -30,9 +27,7 @@ class TestIngredientUsageCountSignals:
     def test_delete_recipe_item_decrements_usage_count(self):
         ing = make_ingredient(name="Pfeffer")
         unit = make_measuring_unit()
-        portion = Portion.objects.create(
-            name="1 Prise", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=1
-        )
+        portion = Portion.objects.create(name="1 Prise", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=1)
         recipe = make_recipe()
         item = make_recipe_item(recipe=recipe, portion=portion)
 
@@ -87,9 +82,7 @@ class TestIngredientUsageCountSignals:
         ing.save()
 
         unit = make_measuring_unit()
-        portion = Portion.objects.create(
-            name="1 Blatt", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=0.5
-        )
+        portion = Portion.objects.create(name="1 Blatt", ingredient=ing, measuring_unit=unit, quantity=1, weight_g=0.5)
 
         # Delete a RecipeItem that references this ingredient when count is 0
         recipe = make_recipe()

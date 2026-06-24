@@ -1,13 +1,13 @@
 """Pydantic schemas for RecipeTypeStats."""
 
 from datetime import datetime
-from typing import Optional
 
 from ninja import Schema
 
 
 class BucketOut(Schema):
     """Histogram bucket with min, max, and count."""
+
     min: float
     max: float
     count: int
@@ -16,21 +16,21 @@ class BucketOut(Schema):
 class RecipeTypeStatsOut(Schema):
     recipe_type: str
     count: int
-    price_min: Optional[float] = None
-    price_max: Optional[float] = None
-    price_avg: Optional[float] = None
-    price_median: Optional[float] = None
-    energy_min: Optional[float] = None
-    energy_max: Optional[float] = None
-    energy_avg: Optional[float] = None
-    energy_median: Optional[float] = None
-    protein_avg: Optional[float] = None
-    fat_avg: Optional[float] = None
-    carbs_avg: Optional[float] = None
-    weight_min: Optional[float] = None
-    weight_max: Optional[float] = None
-    weight_avg: Optional[float] = None
-    weight_median: Optional[float] = None
+    price_min: float | None = None
+    price_max: float | None = None
+    price_avg: float | None = None
+    price_median: float | None = None
+    energy_min: float | None = None
+    energy_max: float | None = None
+    energy_avg: float | None = None
+    energy_median: float | None = None
+    protein_avg: float | None = None
+    fat_avg: float | None = None
+    carbs_avg: float | None = None
+    weight_min: float | None = None
+    weight_max: float | None = None
+    weight_avg: float | None = None
+    weight_median: float | None = None
     nutri_score_dist: dict = {}
     price_buckets: list[BucketOut] = []
     energy_buckets: list[BucketOut] = []

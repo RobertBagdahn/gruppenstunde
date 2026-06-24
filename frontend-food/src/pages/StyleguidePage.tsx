@@ -2,17 +2,17 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import EmptyState from '@/components/shared/EmptyState';
-import { 
-  Search, 
-  Check, 
-  Plus, 
-  Trash2, 
-  ChevronRight, 
-  Calendar, 
-  Clock, 
-  ShoppingBag, 
-  Settings, 
-  AlertTriangle 
+import {
+  Search,
+  Check,
+  Plus,
+  Trash2,
+  ChevronRight,
+  Calendar,
+  Clock,
+  ShoppingBag,
+  Settings,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function StyleguidePage() {
@@ -101,8 +101,8 @@ export default function StyleguidePage() {
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground font-mono">body.font-sans (Inter)</div>
             <p className="text-base text-foreground leading-relaxed">
-              Das ist der normale Fließtext. Pfadfinder-Gruppenleiter nutzen Inspi Food, um Rezepte zu erstellen, 
-              Zutaten zu portionieren und Speisepläne für Zeltlager zu kalkulieren. Die Schrift ist hochgradig 
+              Das ist der normale Fließtext. Pfadfinder-Gruppenleiter nutzen Inspi Food, um Rezepte zu erstellen,
+              Zutaten zu portionieren und Speisepläne für Zeltlager zu kalkulieren. Die Schrift ist hochgradig
               lesbar und modern.
             </p>
           </div>

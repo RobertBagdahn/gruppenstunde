@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("event", "0010_registration_deleted_at_registration_deleted_by_and_more"),
     ]

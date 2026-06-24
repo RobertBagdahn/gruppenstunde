@@ -1,19 +1,5 @@
 """Profiles schemas package — re-exports all schemas for backward compatibility."""
 
-from .profile import (
-    MyContentOut,
-    ProfilePictureOut,
-    PublicContentOut,
-    PublicMealPlanOut,
-    PublicRecipeOut,
-    PublicShoppingListOut,
-    PublicUserFoodProfileOut,
-    PublicUserProfileOut,
-    UserPreferenceIn,
-    UserPreferenceOut,
-    UserProfileOut,
-    UserProfileUpdateIn,
-)
 from .groups import (
     AddMemberIn,
     GroupCorporateIdentityIn,
@@ -36,6 +22,20 @@ from .privacy import (
     CategorySchema,
     DataOverviewSchema,
     DeleteAccountRequestSchema,
+)
+from .profile import (
+    MyContentOut,
+    ProfilePictureOut,
+    PublicContentOut,
+    PublicMealPlanOut,
+    PublicRecipeOut,
+    PublicShoppingListOut,
+    PublicUserFoodProfileOut,
+    PublicUserProfileOut,
+    UserPreferenceIn,
+    UserPreferenceOut,
+    UserProfileOut,
+    UserProfileUpdateIn,
 )
 
 __all__ = [

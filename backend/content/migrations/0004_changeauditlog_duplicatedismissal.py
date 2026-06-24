@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0003_pgvector_extension"),
         ("contenttypes", "0002_remove_content_type_name"),

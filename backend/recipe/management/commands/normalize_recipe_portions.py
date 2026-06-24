@@ -30,9 +30,7 @@ class NormalizedItem(BaseModel):
 
 
 class NormalizationOutput(BaseModel):
-    items: list[NormalizedItem] = Field(
-        description="Korrigierte Mengen für jede Zutat"
-    )
+    items: list[NormalizedItem] = Field(description="Korrigierte Mengen für jede Zutat")
 
 
 # ---------------------------------------------------------------------------
@@ -60,9 +58,7 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
         recipe_id: int | None = options["recipe_id"]
 
-        qs = Recipe.objects.prefetch_related(
-            "recipe_items__ingredient", "recipe_items__measuring_unit"
-        )
+        qs = Recipe.objects.prefetch_related("recipe_items__ingredient", "recipe_items__measuring_unit")
         if recipe_id:
             qs = qs.filter(id=recipe_id)
 
@@ -71,9 +67,7 @@ class Command(BaseCommand):
             self.stdout.write("No recipes found.")
             return
 
-        self.stdout.write(
-            f"{'[DRY RUN] ' if dry_run else ''}Normalizing {len(recipes)} recipes...\n"
-        )
+        self.stdout.write(f"{'[DRY RUN] ' if dry_run else ''}Normalizing {len(recipes)} recipes...\n")
 
         for recipe in recipes:
             self._process_recipe(recipe, dry_run)
@@ -124,9 +118,7 @@ class Command(BaseCommand):
             new_qty = normalized.quantity_g
             ing_name = item.portion.ingredient.name if item.portion and item.portion.ingredient else "?"
 
-            self.stdout.write(
-                f"  {ing_name:<30} {old_qty:>10.1f} {new_qty:>10.1f}"
-            )
+            self.stdout.write(f"  {ing_name:<30} {old_qty:>10.1f} {new_qty:>10.1f}")
 
             if not dry_run and abs(old_qty - new_qty) > 0.01:
                 item.quantity = new_qty

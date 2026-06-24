@@ -6,7 +6,6 @@ gemini_image_call(). Direct genai.Client usage is not permitted elsewhere.
 """
 
 import logging
-import time
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser

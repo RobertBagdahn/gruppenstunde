@@ -747,7 +747,8 @@ class Command(BaseCommand):
             2: ExecutionTimeChoices.BETWEEN_30_60,
             3: ExecutionTimeChoices.BETWEEN_60_90,
         }
-            costs_map = {}
+
+        costs_map = {}
 
         # Location → Game play_area / GroupSession location_type
         location_to_play_area = {

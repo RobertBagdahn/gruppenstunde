@@ -4,8 +4,8 @@ import pytest
 
 from planner.tests import (
     make_meal,
-    make_meal_plan,
     make_meal_item,
+    make_meal_plan,
     make_planner,
     make_planner_collaborator,
     make_planner_entry,

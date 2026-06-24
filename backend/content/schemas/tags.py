@@ -13,8 +13,8 @@ from .base import (
 )
 
 __all__ = [
-    "TagOut",
-    "TagTreeOut",
-    "TagSuggestIn",
     "ScoutLevelOut",
+    "TagOut",
+    "TagSuggestIn",
+    "TagTreeOut",
 ]

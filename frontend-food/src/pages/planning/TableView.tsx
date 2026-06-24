@@ -399,7 +399,7 @@ export default function TableView({
                                         const itemEffPortions = effectivePortions(meal, normPortions);
                                         const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / itemEffPortions) : null;
                                         const cost = item.cost_eur != null ? item.cost_eur / itemEffPortions : null;
-                                        
+
                                         const itemViolations = scanData?.violations.filter(
                                           (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
                                         ) || [];

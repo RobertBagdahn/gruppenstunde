@@ -2,7 +2,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0030_remove_mealplan_planner_mea_created_40af1a_idx_and_more"),
     ]

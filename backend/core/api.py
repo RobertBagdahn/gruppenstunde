@@ -2,14 +2,13 @@
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpResponse
 from django.middleware.csrf import get_token
 from ninja import Router, Schema
 from ninja.errors import HttpError
-from pydantic import ValidationError as PydanticValidationError
 
 from profiles.schemas.privacy import DataOverviewSchema, DeleteAccountRequestSchema
 from profiles.services.privacy import PrivacyService
@@ -122,7 +121,7 @@ def export_data(request):
         raise HttpError(401, "Nicht authentifiziert")
 
     export = PrivacyService.export_user_data(request.user)
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date_str = datetime.now(UTC).strftime("%Y-%m-%d")
     filename = f"inspi-datenexport-{date_str}.json"
 
     response = HttpResponse(

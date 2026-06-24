@@ -18,11 +18,7 @@ def migrate_ingredient_recipes_forward(apps, schema_editor):
 
     for recipe in recipes.select_related(None).iterator():
         # Find the linked ingredient via RecipeItem -> Portion -> Ingredient
-        item = (
-            RecipeItem.objects.filter(recipe=recipe)
-            .select_related("portion__ingredient")
-            .first()
-        )
+        item = RecipeItem.objects.filter(recipe=recipe).select_related("portion__ingredient").first()
         new_type = "snack"
         if item and item.portion and item.portion.ingredient:
             ingredient = item.portion.ingredient
@@ -38,7 +34,6 @@ def migrate_ingredient_recipes_backward(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0042_remove_recipe_costs_rating"),
     ]

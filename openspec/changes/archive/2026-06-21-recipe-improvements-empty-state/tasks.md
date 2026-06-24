@@ -40,4 +40,3 @@
 - [ ] 6.4 API-Fehler simulieren (z.B. im DevTools Network-Tab blockieren) → Fehlerkarte wird angezeigt, kein leerer Bereich
 
 <!-- Manuelle Verifikation durch den Nutzer im Browser -->
-

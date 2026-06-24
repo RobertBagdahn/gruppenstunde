@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0007_recipe_cached_calcium_mg_recipe_cached_folate_ug_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

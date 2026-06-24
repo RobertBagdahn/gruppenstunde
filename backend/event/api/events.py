@@ -8,8 +8,6 @@ from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 from ninja.errors import HttpError
 
-from profiles.models import GroupMembership, UserGroup
-
 from event.choices import GenderChoices, ParticipantVisibilityChoices
 from event.models import BookingOption, Event, EventLocation, MeetingPoint, Participant, Registration
 from event.schemas import (
@@ -25,12 +23,11 @@ from event.schemas import (
     GenerateInvitationOut,
     GuestRegistrationIn,
     GuestRegistrationOut,
-    InvitationStatusOut,
     InviteGroupIn,
     PaginatedEventListOut,
     PaginatedInvitationStatusOut,
-    RegistrationOut,
 )
+from profiles.models import GroupMembership, UserGroup
 
 from .helpers import check_rate_limit, require_auth, require_event_manager
 
@@ -93,16 +90,12 @@ def public_landing_events(request):
         "booking_options", "registrations"
     )
 
-    upcoming = list(
-        base_qs.filter(start_date__gte=now).order_by("start_date", "id")[:12]
-    )
+    upcoming = list(base_qs.filter(start_date__gte=now).order_by("start_date", "id")[:12])
 
     items: list[Event] = list(upcoming)
     if len(items) < 12:
         remaining = 12 - len(items)
-        past = list(
-            base_qs.filter(start_date__lt=now).order_by("-start_date", "-id")[:remaining]
-        )
+        past = list(base_qs.filter(start_date__lt=now).order_by("-start_date", "-id")[:remaining])
         items.extend(past)
 
     # Public landing hides system options and invitation/registration status

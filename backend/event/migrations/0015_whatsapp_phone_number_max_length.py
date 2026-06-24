@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('event', '0014_participant_phone_number_person_phone_number_and_more'),
+        ("event", "0014_participant_phone_number_person_phone_number_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='whatsappconnection',
-            name='phone_number',
-            field=models.CharField(blank=True, default='', max_length=50, verbose_name='Telefonnummer'),
+            model_name="whatsappconnection",
+            name="phone_number",
+            field=models.CharField(blank=True, default="", max_length=50, verbose_name="Telefonnummer"),
         ),
     ]

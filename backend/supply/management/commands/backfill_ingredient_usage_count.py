@@ -1,7 +1,7 @@
 """Management command to backfill Ingredient.usage_count from RecipeItem counts."""
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Count, OuterRef
 
 from recipe.models import RecipeItem
 from supply.models import Ingredient
@@ -28,11 +28,7 @@ class Command(BaseCommand):
 
         count = 0
         for entry in ingredients_with_counts:
-            Ingredient.objects.filter(pk=entry["portion__ingredient_id"]).update(
-                usage_count=entry["cnt"]
-            )
+            Ingredient.objects.filter(pk=entry["portion__ingredient_id"]).update(usage_count=entry["cnt"])
             count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Updated usage_count for {count} ingredients.")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Updated usage_count for {count} ingredients."))

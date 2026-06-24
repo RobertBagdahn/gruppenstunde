@@ -33,8 +33,8 @@
 
 ## 2. Backend-API (planner + supply)
 
-- [ ] 2.1 Endpunkt `GET /api/supply/breakfast-catalog/`: Basis-Zutaten (Scheibengewicht, BE/Stück) + Belag-Zutaten (Intensitäts-Portionen, Packung, price_per_kg), gruppiert nach Kategorie
-- [ ] 2.2 Pydantic-Schemas für den Katalog (Basis, Belag mit Portionen)
+- [x] 2.1 Endpunkt `GET /api/supply/breakfast-catalog/`: Basis-Zutaten (Scheibengewicht, BE/Stück) + Belag-Zutaten (Intensitäts-Portionen, Packung, price_per_kg), gruppiert nach Kategorie
+- [x] 2.2 Pydantic-Schemas für den Katalog (Basis, Belag mit Portionen)
 - [ ] 2.3 Reste-Endpunkt `POST /api/meal-plans/{id}/breakfast-leftovers/`: nimmt Belag-Mengen/Person + norm_portions + Tage, liefert pro Belag Bedarf (g), Packungen, Rest (g), Restwert (€)
 - [ ] 2.4 Pydantic-Schemas für Reste-Endpunkt (Request + Response)
 - [ ] 2.5 RefMeal-Response liefert `day_part_factor` für die Soll-Rechnung (prüfen, bereits vorhanden)

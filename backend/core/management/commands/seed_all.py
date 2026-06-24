@@ -129,13 +129,14 @@ class Command(BaseCommand):
     def _seed_content(self, users: list):
         self.stdout.write("Seeding content (sessions, blogs, games, materials, ingredients)...")
 
+        from django.contrib.contenttypes.models import ContentType
+
+        from blog.models import Blog
         from content.choices import ContentStatus, DifficultyChoices, ExecutionTimeChoices
         from content.models import ContentComment, ContentEmotion, FeaturedContent, Tag
-        from session.models import GroupSession
-        from blog.models import Blog
         from game.models import Game
+        from session.models import GroupSession
         from supply.models import ContentMaterialItem, Ingredient, Material, MeasuringUnit, Portion
-        from django.contrib.contenttypes.models import ContentType
 
         # --- GroupSessions ---
         session_data = [
@@ -1889,8 +1890,7 @@ class Command(BaseCommand):
             RecipeStatusChoices,
             RecipeTypeChoices,
         )
-        from recipe.models import Recipe, Rule, RecipeItem
-
+        from recipe.models import Recipe, RecipeItem
         from supply.models import Ingredient, MeasuringUnit, Portion
 
         # All recipes normalized to portions=1 (one Normportion)
@@ -3766,7 +3766,7 @@ class Command(BaseCommand):
     def _seed_events(self, users: list):
         self.stdout.write("Seeding events...")
 
-        from event.choices import GenderChoices, PaymentMethodChoices, TimelineActionChoices, CustomFieldTypeChoices
+        from event.choices import CustomFieldTypeChoices, GenderChoices, PaymentMethodChoices, TimelineActionChoices
         from event.models import (
             BookingOption,
             CustomField,
@@ -4303,20 +4303,19 @@ class Command(BaseCommand):
     def _seed_planner(self, users: list):
         self.stdout.write("Seeding planners...")
 
+        from content.choices import ContentStatus
         from planner.models import (
             EntryStatusChoices,
             Meal,
-            MealPlan,
             MealItem,
+            MealPlan,
             MealTypeChoices,
             Planner,
             PlannerCollaborator,
             PlannerEntry,
             WeekdayChoices,
         )
-
         from session.models import GroupSession
-        from content.choices import ContentStatus
 
         # --- Planners ---
         planners_data = [
@@ -4387,8 +4386,8 @@ class Command(BaseCommand):
             self.stdout.write(f"  + MealPlan: {meal_plan.name}")
 
             # Create 7 days with meals
-            from recipe.models import Recipe
             from recipe.choices import RecipeTypeChoices
+            from recipe.models import Recipe
 
             recipes = list(Recipe.objects.filter(status="approved").exclude(recipe_type=RecipeTypeChoices.DRINK)[:10])
             drink_recipes = list(Recipe.objects.filter(status="approved", recipe_type=RecipeTypeChoices.DRINK))
@@ -4420,7 +4419,7 @@ class Command(BaseCommand):
                                 factor=1.0,
                             )
 
-            self.stdout.write(f"  + 7 days with Meals")
+            self.stdout.write("  + 7 days with Meals")
 
         # --- Second MealPlan (Pfingstlager) ---
         if not MealPlan.objects.filter(name="Pfingstlager Essensplan 2026").exists():
@@ -4458,12 +4457,12 @@ class Command(BaseCommand):
                         else:
                             recipe_idx = (day_offset * 3 + idx) % len(recipes)
                             MealItem.objects.create(
-                                    meal=meal,
-                                    recipe=recipes[recipe_idx],
-                                    factor=1.0,
-                                )
+                                meal=meal,
+                                recipe=recipes[recipe_idx],
+                                factor=1.0,
+                            )
 
-            self.stdout.write(f"  + 4 days with Meals (Pfingstlager)")
+            self.stdout.write("  + 4 days with Meals (Pfingstlager)")
 
         # --- 10 Weekend MealPlans (Fr Abend → So Mittag) ---
         from recipe.models import Recipe
@@ -4670,12 +4669,8 @@ class Command(BaseCommand):
             start_hour = plan_start_hours[plan_idx]
             end_hour = plan_end_hours[plan_idx]
 
-            start_dt = timezone.make_aware(
-                datetime.datetime.combine(friday, datetime.time(start_hour, 0))
-            )
-            end_dt = timezone.make_aware(
-                datetime.datetime.combine(sunday, datetime.time(end_hour, 0))
-            )
+            start_dt = timezone.make_aware(datetime.datetime.combine(friday, datetime.time(start_hour, 0)))
+            end_dt = timezone.make_aware(datetime.datetime.combine(sunday, datetime.time(end_hour, 0)))
 
             meal_plan = MealPlan.objects.create(
                 name=plan_name,

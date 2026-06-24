@@ -85,12 +85,8 @@ class MealPlan(models.Model):
         related_name="meal_plans",
         verbose_name=_("Event"),
     )
-    start_datetime = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("Startdatum/-zeit")
-    )
-    end_datetime = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("Enddatum/-zeit")
-    )
+    start_datetime = models.DateTimeField(null=True, blank=True, verbose_name=_("Startdatum/-zeit"))
+    end_datetime = models.DateTimeField(null=True, blank=True, verbose_name=_("Enddatum/-zeit"))
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -209,8 +205,16 @@ class MealPlan(models.Model):
     ) -> list["Meal"]:
         """Create meals for a date, filtering by plan start/end time on first/last day."""
         meals = []
-        start_time = self.start_datetime.astimezone(timezone.get_current_timezone()).time() if self.start_datetime else dt.time(0, 0)
-        end_time = self.end_datetime.astimezone(timezone.get_current_timezone()).time() if self.end_datetime else dt.time(23, 59)
+        start_time = (
+            self.start_datetime.astimezone(timezone.get_current_timezone()).time()
+            if self.start_datetime
+            else dt.time(0, 0)
+        )
+        end_time = (
+            self.end_datetime.astimezone(timezone.get_current_timezone()).time()
+            if self.end_datetime
+            else dt.time(23, 59)
+        )
 
         for meal_type in DEFAULT_MEAL_TYPES:
             times = MEAL_TYPE_DEFAULT_TIMES.get(meal_type, ((12, 0), (13, 0)))
@@ -468,7 +472,9 @@ class MealItem(models.Model):
         ]
 
     def __str__(self):
-        name = self.display_name or (self.recipe.title if self.recipe else self.ingredient.name if self.ingredient else "?")
+        name = self.display_name or (
+            self.recipe.title if self.recipe else self.ingredient.name if self.ingredient else "?"
+        )
         return f"{self.meal} – {name}"
 
 

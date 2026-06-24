@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-
 CONVERSIONS = [
     # Generic conversions (no ingredient)
     # from_unit_name, to_unit_name, factor
@@ -47,7 +46,6 @@ def reverse_seed(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0006_unit_conversion"),
     ]

@@ -1,9 +1,9 @@
 """Seed default Portions and price_per_kg for Rezeptkalkulator ingredients."""
 
 from decimal import Decimal
+
 from django.db import migrations
 from django.utils.text import slugify
-
 
 # (ingredient_name, default_unit_name, weight_g, price_per_kg_eur)
 # weight_g = weight of 1 unit of the default measuring unit
@@ -61,7 +61,6 @@ INGREDIENT_DATA = [
     ("Spargel (weiß)", "Gramm", 1, Decimal("12.90")),
     ("Zuckerschoten", "Gramm", 1, Decimal("8.40")),
     ("Maiskolben", "Gramm", 1, Decimal("4.98")),
-
     # Obst
     ("Apfel", "Gramm", 1, Decimal("2.99")),
     ("Banane", "Gramm", 1, Decimal("1.99")),
@@ -83,7 +82,6 @@ INGREDIENT_DATA = [
     ("Granatapfel", "Gramm", 1, Decimal("12.63")),
     ("Grapefruit", "Gramm", 1, Decimal("3.97")),
     ("Pflaumen", "Gramm", 1, Decimal("4.99")),
-
     # Fleisch & Fisch
     ("Hähnchenbrust", "Gramm", 1, Decimal("9.99")),
     ("Hähnchenschenkel", "Gramm", 1, Decimal("4.81")),
@@ -102,7 +100,6 @@ INGREDIENT_DATA = [
     ("Chorizo", "Gramm", 1, Decimal("15.96")),
     ("Wiener Würstchen", "Gramm", 1, Decimal("15.95")),
     ("Bratwurst (frisch)", "Gramm", 1, Decimal("15.45")),
-
     # Kühlung / Milchprodukte
     ("Tomaten-Passata", "Milliliter", 1, Decimal("2.27")),
     ("Frischkäse", "Gramm", 1, Decimal("5.30")),
@@ -131,7 +128,6 @@ INGREDIENT_DATA = [
     ("Buttermilch", "Milliliter", 1, Decimal("2.38")),
     ("Bacon", "Gramm", 1, Decimal("19.90")),
     ("Salami", "Gramm", 1, Decimal("8.45")),
-
     # Brot & Backwaren
     ("Mehl", "Gramm", 1, Decimal("0.99")),
     ("Dinkelmehl", "Gramm", 1, Decimal("1.29")),
@@ -162,7 +158,6 @@ INGREDIENT_DATA = [
     ("Baguette", "Gramm", 1, Decimal("4.76")),
     ("Burger Buns", "Gramm", 1, Decimal("6.43")),
     ("Knäckebrot", "Gramm", 1, Decimal("5.00")),
-
     # Gewürze & Kräuter
     ("Salz", "Prise", 0.3, Decimal("1.58")),
     ("Pfeffer", "Prise", 0.3, Decimal("48.54")),
@@ -185,7 +180,6 @@ INGREDIENT_DATA = [
     ("Lorbeerblatt", "Gramm", 1, Decimal("92.14")),
     ("Kardamom", "Teelöffel", 5, Decimal("79.60")),
     ("Kümmel", "Teelöffel", 5, Decimal("57.00")),
-
     # Konserven & Gläser
     ("Olivenöl", "Milliliter", 1, Decimal("9.27")),
     ("Rapsöl", "Milliliter", 1, Decimal("3.45")),
@@ -219,7 +213,6 @@ INGREDIENT_DATA = [
     ("Reisnudeln", "Gramm", 1, Decimal("11.96")),
     ("Glasnudeln", "Gramm", 1, Decimal("8.90")),
     ("Risottoreis", "Gramm", 1, Decimal("3.98")),
-
     # Getränke
     ("Wasser", "Milliliter", 1, Decimal("0.00")),
     ("Mineralwasser", "Milliliter", 1, Decimal("0.43")),
@@ -229,13 +222,11 @@ INGREDIENT_DATA = [
     ("Rotwein", "Milliliter", 1, Decimal("5.55")),
     ("Weißwein", "Milliliter", 1, Decimal("5.55")),
     ("Bier", "Milliliter", 1, Decimal("2.04")),
-
     # Öle & Soßen
     ("Worcestersauce", "Milliliter", 1, Decimal("15.64")),
     ("Kokosöl", "Esslöffel", 15, Decimal("11.96")),
     ("Essig", "Esslöffel", 15, Decimal("2.89")),
     ("Balsamico-Creme", "Milliliter", 1, Decimal("11.96")),
-
     # Tiefkühl
     ("Tiefkühlspinat", "Gramm", 1, Decimal("4.15")),
     ("Erbsen (Tiefkühl)", "Gramm", 1, Decimal("4.20")),
@@ -293,7 +284,6 @@ def reverse_seed(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0008_seed_ingredients_from_rezeptkalkulator"),
     ]

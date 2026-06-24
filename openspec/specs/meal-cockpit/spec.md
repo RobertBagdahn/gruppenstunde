@@ -212,4 +212,3 @@ For each rule in the "Durchschnitt pro Tag (Ø Plan)" section, each rule's `Soll
 
 - **WHEN** a meal plan has only 1 day
 - **THEN** the SollIstBar SHALL render with `scopeLabel="1 Tag"`
-

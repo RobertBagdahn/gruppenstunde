@@ -1,12 +1,10 @@
 """PDF export service for MealPlans using WeasyPrint."""
 
-import io
 from collections import defaultdict
 
 from weasyprint import HTML
 
-from planner.models import MealPlan, Meal
-
+from planner.models import Meal, MealPlan
 
 MEAL_TYPE_LABELS = {
     "breakfast": "Frühstück",
@@ -48,7 +46,6 @@ def _render_recipe_item_html(item, effective_portions: int, reserve_factor: floa
     per exchange variant (task 12.1, 12.2). Optional items with share=0 are excluded
     (task 12.3). Items without splits render as a single block (task 12.4).
     """
-    from planner.models import MealItemSplit
     from planner.services.split_service import largest_remainder_round
 
     recipe = item.recipe
@@ -77,10 +74,7 @@ def _render_recipe_item_html(item, effective_portions: int, reserve_factor: floa
             normal.append(ri)
 
     # Check if any splits actually involve exchange groups
-    has_exchange_splits = any(
-        ri.exchange_group_id is not None and ri.id in splits
-        for ri in recipe_items
-    )
+    has_exchange_splits = any(ri.exchange_group_id is not None and ri.id in splits for ri in recipe_items)
 
     if not has_exchange_splits:
         return f"<li><strong>{title}</strong></li>"
@@ -142,6 +136,7 @@ def _render_html(
     for date_str, meals in sorted(days.items()):
         # Format date
         from datetime import datetime
+
         date_obj = datetime.strptime(date_str, "%Y-%m-%d")
         day_label = date_obj.strftime("%A, %d.%m.%Y")
 

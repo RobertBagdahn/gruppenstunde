@@ -36,7 +36,6 @@ def fix_weight_g(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0022_portion_weight_g_nullable"),
     ]

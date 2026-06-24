@@ -2,10 +2,10 @@
 
 from ninja import Router
 
-from .recipes import router as recipes_router
+from .folders import folder_router
 from .items import router as items_router
 from .nutrition import router as nutrition_router
-from .folders import folder_router
+from .recipes import router as recipes_router
 from .type_stats import router as type_stats_router
 
 router = Router(tags=["recipes"])

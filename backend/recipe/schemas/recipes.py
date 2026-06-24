@@ -10,8 +10,8 @@ from content.base_schemas import (
     ContentListOut,
     ContentUpdateIn,
 )
-from .items import RecipeItemCreateIn, RecipeItemOut
 
+from .items import RecipeItemCreateIn, RecipeItemOut
 
 # --- Reuse NutritionalTag schema ---
 
@@ -221,16 +221,10 @@ class RecipeDetailOut(ContentDetailOut):
     def resolve_usage_in_meal_plans_count(obj) -> int:
         """Count how many visible meal plans use this recipe."""
         from planner.models import MealItem
-        from content.choices import ContentStatus
 
         # Count distinct meal plans that use this recipe
         # Only count meal plans visible to the requesting user (simplified: public/approved)
-        return (
-            MealItem.objects.filter(recipe=obj)
-            .values("meal__meal_plan")
-            .distinct()
-            .count()
-        )
+        return MealItem.objects.filter(recipe=obj).values("meal__meal_plan").distinct().count()
 
 
 # --- Recipe Create / Update Schemas (extend Content base) ---

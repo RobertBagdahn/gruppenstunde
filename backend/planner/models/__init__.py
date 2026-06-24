@@ -1,5 +1,19 @@
 """Planner models package — re-exports all models for backward compatibility."""
 
+from .meal_plan import (
+    DEFAULT_MEAL_TYPES,
+    MEAL_TYPE_DAY_FACTORS,
+    MEAL_TYPE_DEFAULT_TIMES,
+    Meal,
+    MealItem,
+    MealItemOverride,
+    MealItemSplit,
+    MealPlan,
+    MealPlanCollaborator,
+    MealPlanCollaboratorRole,
+    MealPlanVisibility,
+    MealTypeChoices,
+)
 from .planner import (
     EntryStatusChoices,
     Planner,
@@ -7,34 +21,20 @@ from .planner import (
     PlannerEntry,
     WeekdayChoices,
 )
-from .meal_plan import (
-    DEFAULT_MEAL_TYPES,
-    MEAL_TYPE_DAY_FACTORS,
-    MEAL_TYPE_DEFAULT_TIMES,
-    Meal,
-    MealPlan,
-    MealPlanCollaborator,
-    MealPlanCollaboratorRole,
-    MealPlanVisibility,
-    MealItem,
-    MealItemOverride,
-    MealItemSplit,
-    MealTypeChoices,
-)
 
 __all__ = [
     "DEFAULT_MEAL_TYPES",
-    "EntryStatusChoices",
     "MEAL_TYPE_DAY_FACTORS",
     "MEAL_TYPE_DEFAULT_TIMES",
+    "EntryStatusChoices",
     "Meal",
+    "MealItem",
+    "MealItemOverride",
+    "MealItemSplit",
     "MealPlan",
     "MealPlanCollaborator",
     "MealPlanCollaboratorRole",
     "MealPlanVisibility",
-    "MealItem",
-    "MealItemOverride",
-    "MealItemSplit",
     "MealTypeChoices",
     "Planner",
     "PlannerCollaborator",

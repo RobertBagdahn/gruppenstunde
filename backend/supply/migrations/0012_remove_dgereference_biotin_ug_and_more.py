@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0011_add_ingredient_standalone_fields"),
     ]

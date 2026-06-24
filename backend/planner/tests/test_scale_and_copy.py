@@ -1,19 +1,19 @@
 """Tests for scale-to-target and copy meal item endpoints, plus drinks and external meal behavior."""
-import json
 
 import datetime as dt
+import json
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.utils import timezone
 from model_bakery import baker
 
-from planner.models import Meal, MealItem, MealPlan, MealTypeChoices
+from event.tests import make_event
+from planner.models import Meal, MealItem, MealTypeChoices
 from planner.schemas.meal_plan import MealOut
 from planner.tests import make_meal, make_meal_item, make_meal_plan
-from event.tests import make_event
-from recipe.tests import make_recipe, make_recipe_item
-from supply.tests import make_ingredient, make_portion
+from recipe.tests import make_recipe
 
 User = get_user_model()
 
@@ -32,7 +32,7 @@ class TestScaleAndCopyAPI:
         # Let's create a breakfast meal with portions = 10, target per portion = 583.75 kcal.
         # Total target energy for 10 portions = 5837.5 kcal = 24424.125 kJ.
         meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST, day_part_factor=0.25)
-        
+
         # Add recipe with total energy cache of 478 kcal (was 2000 kJ, ÷4.184)
         # Target kcal per portion is 583.75. Current kcal per portion is ~47.8.
         # Scale factor should be 583.75 / 47.8 ≈ 12.2
@@ -46,11 +46,10 @@ class TestScaleAndCopyAPI:
 
         # Perform scale-to-target via API
         response = self.client.post(
-            f"/api/meal-plans/{self.plan.id}/meals/{meal.id}/scale-to-target/",
-            content_type="application/json"
+            f"/api/meal-plans/{self.plan.id}/meals/{meal.id}/scale-to-target/", content_type="application/json"
         )
         assert response.status_code == 200
-        
+
         item1.refresh_from_db()
         item2.refresh_from_db()
 
@@ -96,8 +95,7 @@ class TestScaleAndCopyAPI:
         # 1. External meal
         external_meal = make_meal(meal_plan=self.plan, is_external=True, external_energy_kcal=239)
         response = self.client.post(
-            f"/api/meal-plans/{self.plan.id}/meals/{external_meal.id}/scale-to-target/",
-            content_type="application/json"
+            f"/api/meal-plans/{self.plan.id}/meals/{external_meal.id}/scale-to-target/", content_type="application/json"
         )
         assert response.status_code == 400
         assert "Externe Mahlzeiten" in response.json()["detail"]
@@ -119,8 +117,7 @@ class TestScaleAndCopyAPI:
             end_datetime=timezone.make_aware(dt.datetime.combine(dt.date.today(), dt.time(9, 0))),
         )
         response = self.client.post(
-            f"/api/meal-plans/{self.plan.id}/meals/{synced_meal.id}/scale-to-target/",
-            content_type="application/json"
+            f"/api/meal-plans/{self.plan.id}/meals/{synced_meal.id}/scale-to-target/", content_type="application/json"
         )
         assert response.status_code == 400
         assert "Synchronisierte Mahlzeiten" in response.json()["detail"]
@@ -134,8 +131,7 @@ class TestScaleAndCopyAPI:
             end_datetime=timezone.make_aware(dt.datetime.combine(dt.date.today(), dt.time(19, 0))),
         )
         response = self.client.post(
-            f"/api/meal-plans/{self.plan.id}/meals/{empty_meal.id}/scale-to-target/",
-            content_type="application/json"
+            f"/api/meal-plans/{self.plan.id}/meals/{empty_meal.id}/scale-to-target/", content_type="application/json"
         )
         assert response.status_code == 400
         assert "keine Kalorien" in response.json()["detail"]
@@ -153,11 +149,13 @@ class TestScaleAndCopyAPI:
 
         response = self.client.post(
             f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
-            data=json.dumps({
-                "source_plan_id": source_plan.id,
-                "source_meal_id": source_meal.id,
-            }),
-            content_type="application/json"
+            data=json.dumps(
+                {
+                    "source_plan_id": source_plan.id,
+                    "source_meal_id": source_meal.id,
+                }
+            ),
+            content_type="application/json",
         )
         assert response.status_code == 200
         data = response.json()
@@ -180,12 +178,14 @@ class TestScaleAndCopyAPI:
 
         response = self.client.post(
             f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
-            data=json.dumps({
-                "source_plan_id": source_plan.id,
-                "source_meal_id": source_meal.id,
-                "note": source_plan.name,
-            }),
-            content_type="application/json"
+            data=json.dumps(
+                {
+                    "source_plan_id": source_plan.id,
+                    "source_meal_id": source_meal.id,
+                    "note": source_plan.name,
+                }
+            ),
+            content_type="application/json",
         )
         assert response.status_code == 200
         target_meal.refresh_from_db()
@@ -202,12 +202,14 @@ class TestScaleAndCopyAPI:
 
         response = self.client.post(
             f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
-            data=json.dumps({
-                "source_plan_id": source_plan.id,
-                "source_meal_id": source_meal.id,
-                "note": source_plan.name,
-            }),
-            content_type="application/json"
+            data=json.dumps(
+                {
+                    "source_plan_id": source_plan.id,
+                    "source_meal_id": source_meal.id,
+                    "note": source_plan.name,
+                }
+            ),
+            content_type="application/json",
         )
         assert response.status_code == 200
         target_meal.refresh_from_db()
@@ -231,11 +233,13 @@ class TestScaleAndCopyAPI:
 
         response = self.client.post(
             f"/api/meal-plans/{self.plan.id}/meals/{synced_meal.id}/copy-items-from/",
-            data=json.dumps({
-                "source_plan_id": source_plan.id,
-                "source_meal_id": source_meal.id,
-            }),
-            content_type="application/json"
+            data=json.dumps(
+                {
+                    "source_plan_id": source_plan.id,
+                    "source_meal_id": source_meal.id,
+                }
+            ),
+            content_type="application/json",
         )
         assert response.status_code == 400
         assert "synchronisierte Mahlzeiten" in response.json()["detail"]
@@ -252,11 +256,13 @@ class TestScaleAndCopyAPI:
 
         response = self.client.post(
             f"/api/meal-plans/{self.plan.id}/meals/{target_meal.id}/copy-items-from/",
-            data=json.dumps({
-                "source_plan_id": source_plan.id,
-                "source_meal_id": source_meal.id,
-            }),
-            content_type="application/json"
+            data=json.dumps(
+                {
+                    "source_plan_id": source_plan.id,
+                    "source_meal_id": source_meal.id,
+                }
+            ),
+            content_type="application/json",
         )
         assert response.status_code == 404
         assert "Essensplan nicht gefunden" in response.json()["detail"]
@@ -289,12 +295,14 @@ class TestScaleAndCopyAPI:
     def test_list_meal_plans_date_from_filter(self):
         """Filtering by date_from should exclude plans ending before that date."""
         make_meal_plan(
-            created_by=self.user, name="Früher Plan",
+            created_by=self.user,
+            name="Früher Plan",
             start_datetime=timezone.make_aware(dt.datetime(2024, 6, 1)),
             end_datetime=timezone.make_aware(dt.datetime(2024, 6, 10)),
         )
         make_meal_plan(
-            created_by=self.user, name="Später Plan",
+            created_by=self.user,
+            name="Später Plan",
             start_datetime=timezone.make_aware(dt.datetime(2025, 7, 1)),
             end_datetime=timezone.make_aware(dt.datetime(2025, 7, 10)),
         )
@@ -309,12 +317,14 @@ class TestScaleAndCopyAPI:
     def test_list_meal_plans_date_to_filter(self):
         """Filtering by date_to should exclude plans starting after that date."""
         make_meal_plan(
-            created_by=self.user, name="Früher Plan",
+            created_by=self.user,
+            name="Früher Plan",
             start_datetime=timezone.make_aware(dt.datetime(2024, 6, 1)),
             end_datetime=timezone.make_aware(dt.datetime(2024, 6, 10)),
         )
         make_meal_plan(
-            created_by=self.user, name="Später Plan",
+            created_by=self.user,
+            name="Später Plan",
             start_datetime=timezone.make_aware(dt.datetime(2025, 7, 1)),
             end_datetime=timezone.make_aware(dt.datetime(2025, 7, 10)),
         )

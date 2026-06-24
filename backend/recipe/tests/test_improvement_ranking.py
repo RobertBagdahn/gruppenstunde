@@ -5,8 +5,8 @@ import pytest
 from recipe.choices import HintLevelChoices, HintMinMaxChoices, HintParameterChoices
 from recipe.services.improvement_ranking_service import (
     ALL_GOOD_MESSAGE,
-    NOTHING_ACTIONABLE_MESSAGE,
     NOT_APPLICABLE_MESSAGE,
+    NOTHING_ACTIONABLE_MESSAGE,
     TOP_N,
     _classify_empty_reason,
     compute_improvement_ranking,
@@ -272,8 +272,6 @@ class TestImprovementRanking:
 
     def test_missing_nutrition_data_classification(self):
         """_classify_empty_reason with candidates but all-zero → missing data."""
-        is_applicable, message = _classify_empty_reason(
-            None, ["candidate"], []
-        )
+        is_applicable, message = _classify_empty_reason(None, ["candidate"], [])
         assert is_applicable is True
         assert message == NOTHING_ACTIONABLE_MESSAGE

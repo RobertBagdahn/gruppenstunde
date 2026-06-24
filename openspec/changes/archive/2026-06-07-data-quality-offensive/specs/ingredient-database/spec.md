@@ -24,4 +24,3 @@ The model SHALL include the following new fields for data quality and search:
 - **WHEN** an Ingredient is saved with data changes affecting the embedding text
 - **THEN** an embedding vector SHALL be generated and stored
 - **THEN** `quality_score` SHALL be calculated from field completeness
-

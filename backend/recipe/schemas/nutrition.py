@@ -2,7 +2,6 @@
 
 from ninja import Schema
 
-
 # --- Nutri Score Schemas ---
 
 

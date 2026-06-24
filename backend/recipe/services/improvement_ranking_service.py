@@ -28,12 +28,10 @@ NOT_APPLICABLE_MESSAGE = (
     "auf die gesamte Mahlzeit angewandt — nicht auf das Einzelrezept."
 )
 NO_NUTRITION_DATA_MESSAGE = (
-    "Keine Nährwertdaten für die Zutaten hinterlegt – sobald "
-    "Nährwerte erfasst sind, erscheinen hier Vorschläge."
+    "Keine Nährwertdaten für die Zutaten hinterlegt – sobald " "Nährwerte erfasst sind, erscheinen hier Vorschläge."
 )
 NOTHING_ACTIONABLE_MESSAGE = (
-    "Keine konkreten Verbesserungen gefunden – das Rezept liegt "
-    "in allen bewerteten Dimensionen im Rahmen."
+    "Keine konkreten Verbesserungen gefunden – das Rezept liegt " "in allen bewerteten Dimensionen im Rahmen."
 )
 
 # Nutri-Score class boundaries (per-100g thresholds for a one-class improvement).
@@ -51,7 +49,7 @@ _NUTRI_FALLBACK_THRESHOLDS: dict[str, float] = {
 }
 
 
-def compute_improvement_ranking(recipe: "Recipe") -> dict:
+def compute_improvement_ranking(recipe: Recipe) -> dict:
     """Compute ranked Top-N improvement list for a recipe.
 
     Returns a dict with ``items``, ``all_good``, ``is_applicable`` and ``message`` keys.
@@ -173,16 +171,14 @@ def compute_improvement_ranking(recipe: "Recipe") -> dict:
     items = items[:TOP_N]
 
     if not items:
-        is_applicable, message = _classify_empty_reason(
-            recipe, nutri_candidates, hint_matches
-        )
+        is_applicable, message = _classify_empty_reason(recipe, nutri_candidates, hint_matches)
         return {"items": [], "all_good": False, "is_applicable": is_applicable, "message": message}
 
     return {"items": items, "all_good": False, "is_applicable": True, "message": ""}
 
 
 def _classify_empty_reason(
-    recipe: "Recipe",
+    recipe: Recipe,
     nutri_candidates: list,
     hint_matches: list,
 ) -> tuple[bool, str]:

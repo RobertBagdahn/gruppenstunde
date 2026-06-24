@@ -20,7 +20,6 @@ def migrate_recipe_types_backward(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0039_recipetypestats"),
         ("supply", "0035_update_recipe_type_choices"),

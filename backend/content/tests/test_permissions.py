@@ -6,11 +6,11 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 
-from content.models import ContentCollaborator, ContentCollaboratorRole
+from content.models import ContentCollaborator
+from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
-from planner.tests import make_meal_plan, make_meal, make_meal_item
-from supply.tests import make_ingredient, make_portion, make_measuring_unit, make_retail_section
-from supply.models import Ingredient, Portion
+from supply.models import Ingredient
+from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 User = get_user_model()
 
@@ -366,13 +366,15 @@ class TestContentCollaboratorAPI:
         other = make_user(username="other", email="other@inspi.dev")
         resp = client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": other.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": other.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 200
@@ -388,13 +390,15 @@ class TestContentCollaboratorAPI:
         # Share with other
         client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": other.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": other.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -412,13 +416,15 @@ class TestContentCollaboratorAPI:
 
         resp = other_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": third.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": third.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 403
@@ -431,13 +437,15 @@ class TestContentCollaboratorAPI:
         other = make_user(username="other", email="other@inspi.dev")
         client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": other.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": other.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -457,13 +465,15 @@ class TestContentCollaboratorAPI:
         other = make_user(username="other", email="other@inspi.dev")
         add_resp = client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": other.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": other.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
         collab_id = add_resp.json()["id"]
@@ -565,13 +575,15 @@ class TestCollaboratorEditPermissions:
         # Creator shares ingredient with editor role
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": editor.id,
-                "role": "editor",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": editor.id,
+                    "role": "editor",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -592,13 +604,15 @@ class TestCollaboratorEditPermissions:
         # Share as editor
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": editor.id,
-                "role": "editor",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": editor.id,
+                    "role": "editor",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -629,13 +643,15 @@ class TestCollaboratorEditPermissions:
         # Share as viewer
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "supply",
-                "content_type_model": "ingredient",
-                "object_id": ing.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "supply",
+                    "content_type_model": "ingredient",
+                    "object_id": ing.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -665,13 +681,15 @@ class TestMealPlanCollaboratorPermissions:
         # Share via ContentCollaborator
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -688,13 +706,15 @@ class TestMealPlanCollaboratorPermissions:
 
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": editor.id,
-                "role": "editor",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": editor.id,
+                    "role": "editor",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -715,13 +735,15 @@ class TestMealPlanCollaboratorPermissions:
 
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -757,13 +779,15 @@ class TestTransitiveVisibility:
         # Share MealPlan with viewer
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -785,13 +809,15 @@ class TestTransitiveVisibility:
 
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -820,13 +846,15 @@ class TestTransitiveVisibility:
 
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -853,13 +881,15 @@ class TestTransitiveVisibility:
 
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -886,13 +916,15 @@ class TestTransitiveVisibility:
 
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -919,13 +951,15 @@ class TestTransitiveVisibility:
 
         creator_client.post(
             "/api/content-collaborators/",
-            data=json.dumps({
-                "content_type_app": "planner",
-                "content_type_model": "mealplan",
-                "object_id": mp.id,
-                "user_id": viewer.id,
-                "role": "viewer",
-            }),
+            data=json.dumps(
+                {
+                    "content_type_app": "planner",
+                    "content_type_model": "mealplan",
+                    "object_id": mp.id,
+                    "user_id": viewer.id,
+                    "role": "viewer",
+                }
+            ),
             content_type="application/json",
         )
 
@@ -960,6 +994,7 @@ class TestMigrationDataIntegrity:
         # The migration would have set it to 'admin'. Since migrations are disabled
         # in test, we just verify the model handles the default correctly.
         from profiles.models import UserProfile
+
         profile = UserProfile.objects.get_or_create(user=user, defaults={"role": "admin"})[0]
         profile.role = "admin"
         profile.save(update_fields=["role"])

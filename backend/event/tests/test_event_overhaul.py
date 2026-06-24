@@ -25,7 +25,6 @@ from event.models import (
     AttendanceRecord,
     BudgetItem,
     Event,
-    EventLocation,
     MeetingPoint,
     ParentAccessToken,
     RoomAssignment,
@@ -530,7 +529,6 @@ class TestParticipantImport:
         client = _manager_client(event)
 
         csv_content = "Vorname,Nachname,Geburtsdatum\nAnna,Schmidt,2010-05-15\nLukas,Meier,2011-03-20"
-        from io import BytesIO
         from django.core.files.uploadedfile import SimpleUploadedFile
 
         file = SimpleUploadedFile("test.csv", csv_content.encode("utf-8"), content_type="text/csv")

@@ -37,7 +37,9 @@ class PortionSuggestion(BaseModel):
 
     name: str = Field(description="Name der Portion, z.B. '1 Packung (500g)'")
     weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
-    measuring_unit_name: str = Field(description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Tasse', 'Esslöffel', 'Stück'")
+    measuring_unit_name: str = Field(
+        description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Tasse', 'Esslöffel', 'Stück'"
+    )
     priority: int = Field(
         default=0,
         description=(
@@ -136,7 +138,9 @@ class IngredientAiCreateSchema(BaseModel):
     max_storage_temperature: int = Field(description="Maximale Lagertemperatur in °C")
 
     # Preis
-    price_per_kg: float = Field(description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen")
+    price_per_kg: float = Field(
+        description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen"
+    )
 
     # Portionen
     portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen")
@@ -145,7 +149,10 @@ class IngredientAiCreateSchema(BaseModel):
     aliases: list[str] = Field(default_factory=list, description="Alternative Bezeichnungen")
 
     # Ernährungstags
-    nutritional_tags: list[str] = Field(default_factory=list, description="Zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei')")
+    nutritional_tags: list[str] = Field(
+        default_factory=list,
+        description="Zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei')",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +160,7 @@ class IngredientAiCreateSchema(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None = None) -> dict:
+def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = None) -> dict:
     """Suggest all fields for an existing ingredient using Gemini + Search Grounding.
 
     Returns a dict with suggested values (None for fields that couldn't be determined).
@@ -215,6 +222,7 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
 
     # Resolve nutritional tags names/opposites to database objects
     from supply.models import NutritionalTag
+
     tags_resolved = []
     if result.nutritional_tags:
         for t_name in result.nutritional_tags:
@@ -225,19 +233,21 @@ def suggest_all_fields(ingredient: "Ingredient", user: AbstractBaseUser | None =
             if not tag:
                 tag = NutritionalTag.objects.filter(name_opposite__iexact=name_stripped).first()
             if tag:
-                tags_resolved.append({
-                    "id": tag.id,
-                    "name": tag.name,
-                    "name_opposite": tag.name_opposite,
-                    "description": tag.description,
-                    "rank": tag.rank,
-                    "is_dangerous": tag.is_dangerous,
-                })
+                tags_resolved.append(
+                    {
+                        "id": tag.id,
+                        "name": tag.name,
+                        "name_opposite": tag.name_opposite,
+                        "description": tag.description,
+                        "rank": tag.rank,
+                        "is_dangerous": tag.is_dangerous,
+                    }
+                )
     data["nutritional_tags"] = tags_resolved
     return data
 
 
-def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass_limits: bool = False) -> "Ingredient":
+def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass_limits: bool = False) -> Ingredient:
     """Create a complete ingredient from just a name using Gemini + Search Grounding.
 
     Creates the Ingredient in the database with Portions and Aliases.
@@ -325,6 +335,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
 
     # Resolve measuring units
     mu_cache: dict[str, MeasuringUnit] = {}
+
     def _get_mu(name: str) -> MeasuringUnit:
         if name not in mu_cache:
             mu = MeasuringUnit.objects.filter(name__iexact=name).first()
@@ -356,6 +367,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
     # Set nutritional tags
     if data.nutritional_tags:
         from supply.models import NutritionalTag
+
         tag_ids = []
         for t_name in data.nutritional_tags:
             name_stripped = t_name.strip()
@@ -371,6 +383,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
 
     # Calculate and save Nutri-Score points and class
     from supply.services.nutri_service import update_ingredient_nutri_score
+
     update_ingredient_nutri_score(ingredient)
 
     return ingredient

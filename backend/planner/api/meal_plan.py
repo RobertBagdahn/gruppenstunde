@@ -8,48 +8,47 @@ from django.utils import timezone
 from ninja import Router
 from ninja.errors import HttpError
 
-from recipe.models import Recipe, RecipeItem
-from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
-
 from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
     Meal,
-    MealPlan,
-    MealPlanVisibility,
-    MealPlanCollaborator,
-    MealPlanCollaboratorRole,
     MealItem,
     MealItemOverride,
     MealItemSplit,
+    MealPlan,
+    MealPlanCollaborator,
+    MealPlanCollaboratorRole,
+    MealPlanVisibility,
 )
 from planner.schemas import (
     CookingScheduleOut,
+    CopyItemsFromPlanIn,
     MealCreateIn,
     MealDayBulkCreateIn,
+    MealItemCreateIn,
+    MealItemOut,
+    MealItemOverrideIn,
+    MealItemOverrideOut,
+    MealItemSplitIn,
+    MealItemSplitOut,
+    MealItemUpdateIn,
+    MealOut,
+    MealPlanCollaboratorCreateIn,
+    MealPlanCollaboratorOut,
+    MealPlanCollaboratorUpdateIn,
     MealPlanCostSummaryOut,
     MealPlanCreateIn,
     MealPlanDetailOut,
     MealPlanDuplicateIn,
     MealPlanOut,
     MealPlanUpdateIn,
-    MealItemCreateIn,
-    MealItemOut,
-    MealItemUpdateIn,
-    CopyItemsFromPlanIn,
-    MealItemOverrideIn,
-    MealItemOverrideOut,
-    MealItemSplitIn,
-    MealItemSplitOut,
-    MealOut,
     MealUpdateIn,
-    NutritionSummaryOut,
-    ShoppingListItemOut,
-    MealPlanCollaboratorOut,
-    MealPlanCollaboratorCreateIn,
-    MealPlanCollaboratorUpdateIn,
-    RecipeSuggestionOut,
     NutritionalTagScanOut,
+    NutritionSummaryOut,
+    RecipeSuggestionOut,
+    ShoppingListItemOut,
 )
+from recipe.models import Recipe, RecipeItem
+from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 
 meal_plan_router = Router(tags=["meal-plans"])
 
@@ -137,9 +136,7 @@ def list_meal_plans(
         qs = qs.filter(is_template=True)
     elif origin == "shared":
         # "Geteilt mit mir" tab: plans shared via collaborators where user is not owner
-        qs = qs.filter(
-            collaborators__user=request.user
-        ).exclude(created_by=request.user).distinct()
+        qs = qs.filter(collaborators__user=request.user).exclude(created_by=request.user).distinct()
     elif origin == "community":
         qs = qs.filter(owner__isnull=False, visibility=MealPlanVisibility.PUBLIC)
     elif origin == "mine":
@@ -160,11 +157,7 @@ def list_meal_plans(
             qs = qs.distinct()
 
     if search:
-        qs = qs.filter(
-            Q(name__icontains=search)
-            | Q(description__icontains=search)
-            | Q(event__name__icontains=search)
-        )
+        qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search) | Q(event__name__icontains=search))
 
     if date_from:
         qs = qs.filter(end_datetime__date__gte=date_from)
@@ -195,12 +188,22 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
     nutritional_tags_to_set = None
     if payload.nutritional_tag_ids is not None:
         from supply.models.reference import NutritionalTag
+
         tags = list(NutritionalTag.objects.filter(id__in=payload.nutritional_tag_ids))
         if len(tags) != len(payload.nutritional_tag_ids):
             raise HttpError(422, "Einige der angegebenen Tags wurden nicht gefunden")
         nutritional_tags_to_set = tags
 
-    data = payload.dict(exclude={"event_id", "start_datetime", "end_datetime", "day_part_factors", "nutritional_tag_ids", "meal_default_times"})
+    data = payload.dict(
+        exclude={
+            "event_id",
+            "start_datetime",
+            "end_datetime",
+            "day_part_factors",
+            "nutritional_tag_ids",
+            "meal_default_times",
+        }
+    )
     meal_plan = MealPlan(created_by=request.user, **data)
 
     if payload.day_part_factors is not None:
@@ -218,8 +221,16 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
 
     # Set start/end datetime (make timezone-aware if naive)
     if payload.start_datetime and payload.end_datetime:
-        meal_plan.start_datetime = timezone.make_aware(payload.start_datetime) if timezone.is_naive(payload.start_datetime) else payload.start_datetime
-        meal_plan.end_datetime = timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
+        meal_plan.start_datetime = (
+            timezone.make_aware(payload.start_datetime)
+            if timezone.is_naive(payload.start_datetime)
+            else payload.start_datetime
+        )
+        meal_plan.end_datetime = (
+            timezone.make_aware(payload.end_datetime)
+            if timezone.is_naive(payload.end_datetime)
+            else payload.end_datetime
+        )
     elif meal_plan.event and meal_plan.event.start_date and meal_plan.event.end_date:
         meal_plan.start_datetime = timezone.make_aware(dt.datetime.combine(meal_plan.event.start_date, dt.time(0, 0)))
         meal_plan.end_datetime = timezone.make_aware(dt.datetime.combine(meal_plan.event.end_date, dt.time(0, 0)))
@@ -275,6 +286,7 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
     nutritional_tags_to_set = None
     if payload.nutritional_tag_ids is not None:
         from supply.models.reference import NutritionalTag
+
         tags = list(NutritionalTag.objects.filter(id__in=payload.nutritional_tag_ids))
         if len(tags) != len(payload.nutritional_tag_ids):
             raise HttpError(422, "Einige der angegebenen Tags wurden nicht gefunden")
@@ -323,7 +335,11 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
     if not source.start_datetime:
         raise HttpError(400, "Quell-Essensplan hat kein Startdatum")
 
-    start_dt = timezone.make_aware(payload.start_datetime) if timezone.is_naive(payload.start_datetime) else payload.start_datetime
+    start_dt = (
+        timezone.make_aware(payload.start_datetime)
+        if timezone.is_naive(payload.start_datetime)
+        else payload.start_datetime
+    )
     offset = start_dt - source.start_datetime
 
     # Prefetch items + overrides to avoid N+1 during clone
@@ -500,8 +516,14 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
     if day_part_factor is None:
         day_part_factor = MEAL_TYPE_DAY_FACTORS.get(payload.meal_type, 0.0)
 
-    start_dt = timezone.make_aware(payload.start_datetime) if timezone.is_naive(payload.start_datetime) else payload.start_datetime
-    end_dt = timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
+    start_dt = (
+        timezone.make_aware(payload.start_datetime)
+        if timezone.is_naive(payload.start_datetime)
+        else payload.start_datetime
+    )
+    end_dt = (
+        timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
+    )
 
     meal = Meal.objects.create(
         meal_plan=meal_plan,
@@ -551,6 +573,7 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
         recipe = get_object_or_404(Recipe, id=payload.recipe_id)
     if payload.ingredient_id:
         from supply.models import Ingredient
+
         ingredient = get_object_or_404(Ingredient, id=payload.ingredient_id)
 
     item = MealItem.objects.create(
@@ -638,11 +661,7 @@ def update_meal(request, meal_plan_id: int, meal_id: int, payload: MealUpdateIn)
         meal.start_datetime = payload.start_datetime
     if "end_datetime" in payload_fields and payload.end_datetime is not None:
         meal.end_datetime = payload.end_datetime
-    if (
-        meal.start_datetime is not None
-        and meal.end_datetime is not None
-        and meal.end_datetime <= meal.start_datetime
-    ):
+    if meal.start_datetime is not None and meal.end_datetime is not None and meal.end_datetime <= meal.start_datetime:
         raise HttpError(400, "Die Endzeit muss nach der Startzeit liegen.")
 
     meal.save()
@@ -675,6 +694,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     scale = target_kcal / current_kcal
 
     from django.db import transaction
+
     with transaction.atomic():
         for item in meal.items.all():
             item.factor = round(item.factor * scale, 1)
@@ -693,9 +713,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     "/{meal_plan_id}/meals/{meal_id}/copy-items-from/",
     response=list[MealItemOut],
 )
-def copy_items_from_plan(
-    request, meal_plan_id: int, meal_id: int, payload: CopyItemsFromPlanIn
-):
+def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: CopyItemsFromPlanIn):
     """Copy all items from a source plan's meal into the target meal."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
@@ -746,9 +764,7 @@ def copy_items_from_plan(
     "/{meal_plan_id}/meal-items/{item_id}/overrides/",
     response=list[MealItemOverrideOut],
 )
-def set_meal_item_overrides(
-    request, meal_plan_id: int, item_id: int, payload: list[MealItemOverrideIn]
-):
+def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: list[MealItemOverrideIn]):
     """Set overrides for a meal item's recipe ingredients."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
@@ -765,9 +781,7 @@ def set_meal_item_overrides(
     overrides = []
     for override_in in payload:
         # Verify recipe_item belongs to this recipe
-        recipe_item = get_object_or_404(
-            RecipeItem, id=override_in.recipe_item_id, recipe=item.recipe
-        )
+        recipe_item = get_object_or_404(RecipeItem, id=override_in.recipe_item_id, recipe=item.recipe)
         # Overrides are not allowed on optional or exchange-group ingredients —
         # those are configured via MealItemSplit instead.
         if recipe_item.is_optional or recipe_item.exchange_group_id is not None:
@@ -799,10 +813,7 @@ def _validate_split_shares(item: MealItem, splits: list[MealItemSplitIn]) -> Non
     Groups splits by their RecipeItem's exchange_group (or by the optional item
     itself) and ensures each group's shares total 1.0.
     """
-    recipe_items = {
-        ri.id: ri
-        for ri in RecipeItem.objects.filter(recipe=item.recipe)
-    }
+    recipe_items = {ri.id: ri for ri in RecipeItem.objects.filter(recipe=item.recipe)}
     # group_key -> summed share
     group_sums: dict[str, float] = {}
     for split in splits:
@@ -843,9 +854,7 @@ def get_meal_item_splits(request, meal_plan_id: int, item_id: int):
     "/{meal_plan_id}/meal-items/{item_id}/splits/",
     response=list[MealItemSplitOut],
 )
-def set_meal_item_splits(
-    request, meal_plan_id: int, item_id: int, payload: list[MealItemSplitIn]
-):
+def set_meal_item_splits(request, meal_plan_id: int, item_id: int, payload: list[MealItemSplitIn]):
     """Replace all portion splits for a meal item (atomic, constraint-checked)."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
@@ -857,9 +866,7 @@ def set_meal_item_splits(
 
     _validate_split_shares(item, payload)
 
-    recipe_items = {
-        ri.id: ri for ri in RecipeItem.objects.filter(recipe=item.recipe)
-    }
+    recipe_items = {ri.id: ri for ri in RecipeItem.objects.filter(recipe=item.recipe)}
 
     from django.db import transaction
 
@@ -989,6 +996,7 @@ def cost_summary(request, meal_plan_id: int):
 
     from collections import defaultdict
     from decimal import Decimal
+
     from supply.services.price_service import get_portion_price
 
     meals = Meal.objects.filter(meal_plan=meal_plan).prefetch_related(
@@ -1003,9 +1011,7 @@ def cost_summary(request, meal_plan_id: int):
     # Aggregate costs per day and meal. ``per_person`` sums the per-meal
     # cost_per_person values so meals with differing effective_portions
     # (e.g. day guests) aggregate correctly.
-    day_costs: dict[str, dict] = defaultdict(
-        lambda: {"total": Decimal("0"), "per_person": Decimal("0"), "meals": []}
-    )
+    day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "per_person": Decimal("0"), "meals": []})
 
     # Aggregate costs per recipe
     recipe_costs: dict[int, dict] = {}
@@ -1024,9 +1030,7 @@ def cost_summary(request, meal_plan_id: int):
                 # Recipe-based item: use prefetched recipe_items (no extra DB query)
                 recipe_servings = item.recipe.portions or 1
                 recipe_items = list(item.recipe.recipe_items.all())
-                included_fractions = get_included_fractions(
-                    item, recipe_items, effective_portions
-                )
+                included_fractions = get_included_fractions(item, recipe_items, effective_portions)
                 recipe_item_cost = Decimal("0")
                 rid = item.recipe.id
                 if rid not in recipe_costs:
@@ -1047,11 +1051,7 @@ def cost_summary(request, meal_plan_id: int):
                     total_ingredients += 1
                     recipe_costs[rid]["total_ingredients"] += 1
                     ing = ri.portion.ingredient
-                    weight_g = (
-                        float(ri.quantity) * float(ri.portion.weight_g)
-                        if ri.portion.weight_g
-                        else 0
-                    )
+                    weight_g = float(ri.quantity) * float(ri.portion.weight_g) if ri.portion.weight_g else 0
                     # Scale: item.factor * (effective_portions / recipe_servings) * fraction
                     scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings) * fraction
                     price = get_portion_price(ing, scaled_weight_g)
@@ -1068,6 +1068,7 @@ def cost_summary(request, meal_plan_id: int):
                 total_ingredients += 1
 
                 from supply.models import Portion
+
                 portion = (
                     Portion.objects.filter(
                         ingredient=ing,
@@ -1083,12 +1084,7 @@ def cost_summary(request, meal_plan_id: int):
                         portion_weight = item.measuring_unit.quantity
 
                 if portion_weight and item.quantity:
-                    weight_g = (
-                        float(item.quantity)
-                        * float(portion_weight)
-                        * item.factor
-                        * float(effective_portions)
-                    )
+                    weight_g = float(item.quantity) * float(portion_weight) * item.factor * float(effective_portions)
                 else:
                     weight_g = 0.0
 
@@ -1097,19 +1093,19 @@ def cost_summary(request, meal_plan_id: int):
                     priced_ingredients += 1
                     meal_cost += price
 
-        cost_per_person = (
-            meal_cost / effective_portions if effective_portions > 0 else Decimal("0")
-        )
+        cost_per_person = meal_cost / effective_portions if effective_portions > 0 else Decimal("0")
 
         day_costs[str(meal_date)]["total"] += meal_cost
         day_costs[str(meal_date)]["per_person"] += cost_per_person
-        day_costs[str(meal_date)]["meals"].append({
-            "meal_id": meal.id,
-            "meal_type": meal.meal_type,
-            "date": meal_date,
-            "cost": meal_cost,
-            "cost_per_person": cost_per_person,
-        })
+        day_costs[str(meal_date)]["meals"].append(
+            {
+                "meal_id": meal.id,
+                "meal_type": meal.meal_type,
+                "date": meal_date,
+                "cost": meal_cost,
+                "cost_per_person": cost_per_person,
+            }
+        )
 
     # Build response
     total_cost = sum(d["total"] for d in day_costs.values())
@@ -1121,12 +1117,14 @@ def cost_summary(request, meal_plan_id: int):
     days = []
     for date_str in sorted(day_costs.keys()):
         d = day_costs[date_str]
-        days.append({
-            "date": date_str,
-            "total_cost": d["total"],
-            "cost_per_person": d["per_person"],
-            "meals": d["meals"],
-        })
+        days.append(
+            {
+                "date": date_str,
+                "total_cost": d["total"],
+                "cost_per_person": d["per_person"],
+                "meals": d["meals"],
+            }
+        )
 
     return MealPlanCostSummaryOut(
         total_cost=total_cost,
@@ -1183,7 +1181,13 @@ def shopping_list(request, meal_plan_id: int):
             natural_portions=item.natural_portions,
             portion_options=item.portion_options or [],
             sources=[
-                {"recipe_id": s.recipe_id, "recipe_name": s.recipe_name, "recipe_slug": s.recipe_slug, "meal_label": s.meal_label, "quantity_g": s.quantity_g}
+                {
+                    "recipe_id": s.recipe_id,
+                    "recipe_name": s.recipe_name,
+                    "recipe_slug": s.recipe_slug,
+                    "meal_label": s.meal_label,
+                    "quantity_g": s.quantity_g,
+                }
                 for s in (item.sources or [])
             ],
         )
@@ -1195,6 +1199,7 @@ def shopping_list(request, meal_plan_id: int):
 # Recipe Suggestions
 # ==========================================================================
 
+
 def _resolve_recipe_badge(recipe, user):
     """Resolve recipe reliability badge: verified, community, or draft."""
     if recipe.owner_id is None:
@@ -1204,6 +1209,7 @@ def _resolve_recipe_badge(recipe, user):
     if recipe.owner_id == user.id:
         return "draft"
     return "community"
+
 
 # Map meal_type to recipe_type values
 MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
@@ -1230,8 +1236,9 @@ def recipe_suggestions(
     recipe_types: str | None = None,
 ):
     """Return recipe suggestions sorted by usage frequency, then price."""
-    from django.db.models import Count, Q
     import random as _random
+
+    from django.db.models import Count, Q
 
     limit = min(limit, 20)
 
@@ -1239,9 +1246,7 @@ def recipe_suggestions(
 
     # Include own drafts
     if request.user.is_authenticated:
-        base_filter &= Q(
-            Q(recipe__status="approved") | Q(recipe__owner=request.user)
-        )
+        base_filter &= Q(Q(recipe__status="approved") | Q(recipe__owner=request.user))
     else:
         base_filter &= Q(recipe__status="approved")
 
@@ -1280,9 +1285,7 @@ def recipe_suggestions(
         )
         recipe_ids = [entry["recipe_id"] for entry in type_qs]
         if recipe_ids:
-            recipes_map = {
-                r.id: r for r in Recipe.objects.filter(id__in=recipe_ids)
-            }
+            recipes_map = {r.id: r for r in Recipe.objects.filter(id__in=recipe_ids)}
             counts_map = {entry["recipe_id"]: entry["count"] for entry in type_qs}
             for rid in recipe_ids:
                 r = recipes_map.get(rid)
@@ -1312,9 +1315,7 @@ def recipe_suggestions(
         )
         recipe_ids = [entry["recipe_id"] for entry in global_qs]
         if recipe_ids:
-            recipes_map = {
-                r.id: r for r in Recipe.objects.filter(id__in=recipe_ids)
-            }
+            recipes_map = {r.id: r for r in Recipe.objects.filter(id__in=recipe_ids)}
             counts_map = {entry["recipe_id"]: entry["count"] for entry in global_qs}
             for rid in recipe_ids:
                 r = recipes_map.get(rid)
@@ -1354,21 +1355,23 @@ def recipe_suggestions(
             own_entries.append((r, 0, badge, price_per_serving, price))
             seen_ids.add(r.id)
         if own_entries:
-            results = own_entries + results[:limit - len(own_entries)]
+            results = own_entries + results[: limit - len(own_entries)]
 
     if random and results:
-        top_n = results[:min(20, len(results))]
+        top_n = results[: min(20, len(results))]
         chosen = _random.choice(top_n)
         r, count, badge, pps, _ = chosen
-        return [RecipeSuggestionOut(
-            id=r.id,
-            title=r.title,
-            usage_count=count,
-            image_thumbnail=r.image.url if r.image else None,
-            recipe_badge=badge,
-            price_per_serving=pps,
-            recipe_type=r.recipe_type,
-        )]
+        return [
+            RecipeSuggestionOut(
+                id=r.id,
+                title=r.title,
+                usage_count=count,
+                image_thumbnail=r.image.url if r.image else None,
+                recipe_badge=badge,
+                price_per_serving=pps,
+                recipe_type=r.recipe_type,
+            )
+        ]
 
     return [
         RecipeSuggestionOut(
@@ -1431,26 +1434,17 @@ def popular_recipes(
     # Personal: aggregate MealItems for current user
     personal = []
     if request.user.is_authenticated:
-        personal_qs = (
-            MealItem.objects.filter(
-                recipe__isnull=False,
-                meal__meal_plan__created_by=request.user,
-            )
+        personal_qs = MealItem.objects.filter(
+            recipe__isnull=False,
+            meal__meal_plan__created_by=request.user,
         )
         if meal_type and meal_type in MEAL_TYPE_TO_RECIPE_TYPES:
             personal_qs = personal_qs.filter(meal__meal_type=meal_type)
 
-        personal_agg = (
-            personal_qs.values("recipe_id")
-            .annotate(count=Count("id"))
-            .order_by("-count")[:limit]
-        )
+        personal_agg = personal_qs.values("recipe_id").annotate(count=Count("id")).order_by("-count")[:limit]
         recipe_ids = [entry["recipe_id"] for entry in personal_agg]
         if recipe_ids:
-            recipes_map = {
-                r.id: r
-                for r in Recipe.objects.filter(id__in=recipe_ids)
-            }
+            recipes_map = {r.id: r for r in Recipe.objects.filter(id__in=recipe_ids)}
             counts_map = {entry["recipe_id"]: entry["count"] for entry in personal_agg}
             for rid in recipe_ids:
                 r = recipes_map.get(rid)
@@ -1461,15 +1455,17 @@ def popular_recipes(
                         if r.cached_price_total and r.portions and r.portions > 0
                         else None
                     )
-                    personal.append({
-                        "id": r.id,
-                        "title": r.title,
-                        "recipe_type": r.recipe_type,
-                        "image": r.image.url if r.image else None,
-                        "usage_count": counts_map[rid],
-                        "recipe_badge": badge,
-                        "price_per_serving": pps,
-                    })
+                    personal.append(
+                        {
+                            "id": r.id,
+                            "title": r.title,
+                            "recipe_type": r.recipe_type,
+                            "image": r.image.url if r.image else None,
+                            "usage_count": counts_map[rid],
+                            "recipe_badge": badge,
+                            "price_per_serving": pps,
+                        }
+                    )
 
     return {"personal": personal, "community": community}
 
@@ -1489,8 +1485,7 @@ def recently_used_recipes(
     limit = min(limit, 10)
 
     recipe_ids = (
-        MealItem.objects
-        .filter(
+        MealItem.objects.filter(
             recipe__isnull=False,
             meal__meal_plan__created_by=request.user,
         )
@@ -1512,17 +1507,19 @@ def recently_used_recipes(
                     else None
                 )
                 tags = [{"id": t.id, "name": t.name} for t in r.nutritional_tags.all()]
-                recipes.append({
-                    "id": r.id,
-                    "title": r.title,
-                    "slug": r.slug,
-                    "recipe_type": r.recipe_type,
-                    "image": r.image.url if r.image else None,
-                    "usage_count": r.usage_count,
-                    "recipe_badge": badge,
-                    "price_per_serving": pps,
-                    "nutritional_tags": tags,
-                })
+                recipes.append(
+                    {
+                        "id": r.id,
+                        "title": r.title,
+                        "slug": r.slug,
+                        "recipe_type": r.recipe_type,
+                        "image": r.image.url if r.image else None,
+                        "usage_count": r.usage_count,
+                        "recipe_badge": badge,
+                        "price_per_serving": pps,
+                        "nutritional_tags": tags,
+                    }
+                )
 
     return {"recipes": recipes}
 
@@ -1554,9 +1551,7 @@ def search_recipes(
     fallback_applied = False
 
     # --- Recipes ---
-    qs = Recipe.objects.filter(
-        Q(status="approved") | Q(owner=request.user)
-    )
+    qs = Recipe.objects.filter(Q(status="approved") | Q(owner=request.user))
 
     # Badge filter: 'verified' = owner is None, 'community' = public approved with owner
     if recipe_badge == "verified":
@@ -1568,9 +1563,7 @@ def search_recipes(
         from django.contrib.postgres.search import SearchQuery, SearchRank
 
         search_query = SearchQuery(q, config="german")
-        qs_fts = qs.filter(search_vector=search_query).annotate(
-            rank=SearchRank("search_vector", search_query)
-        )
+        qs_fts = qs.filter(search_vector=search_query).annotate(rank=SearchRank("search_vector", search_query))
         if qs_fts.exists():
             qs = qs_fts.order_by("-rank")
         else:
@@ -1604,7 +1597,9 @@ def search_recipes(
             fallback_applied = True
             seen_ids = {r.id for r in primary_recipes}
             remaining = limit - len(primary_recipes)
-            fallback_qs = qs.exclude(id__in=seen_ids).order_by("-is_own", "-usage_count", "cached_price_total")[:remaining]
+            fallback_qs = qs.exclude(id__in=seen_ids).order_by("-is_own", "-usage_count", "cached_price_total")[
+                :remaining
+            ]
             recipes_qs = primary_recipes + list(fallback_qs)
         else:
             recipes_qs = primary_recipes
@@ -1620,8 +1615,11 @@ def search_recipes(
     ingredients_map: dict[int, list[str]] = {}
     if recipe_ids:
         from supply.models.reference import NutritionalTag
+
         through_model = Recipe.nutritional_tags.through
-        through_rows = through_model.objects.filter(recipe_id__in=recipe_ids).values_list("recipe_id", "nutritionaltag_id")
+        through_rows = through_model.objects.filter(recipe_id__in=recipe_ids).values_list(
+            "recipe_id", "nutritionaltag_id"
+        )
         tag_ids_all = set(tid for _, tid in through_rows)
         tags_map: dict[int, str] = {}
         if tag_ids_all:
@@ -1632,8 +1630,13 @@ def search_recipes(
 
         # Fetch recipe items for preview
         from recipe.models import RecipeItem
-        for item in RecipeItem.objects.filter(recipe_id__in=recipe_ids).select_related("portion__ingredient").order_by("sort_order"):
-            if hasattr(item, 'portion') and item.portion and item.portion.ingredient:
+
+        for item in (
+            RecipeItem.objects.filter(recipe_id__in=recipe_ids)
+            .select_related("portion__ingredient")
+            .order_by("sort_order")
+        ):
+            if hasattr(item, "portion") and item.portion and item.portion.ingredient:
                 ingredients_map.setdefault(item.recipe_id, []).append(item.portion.ingredient.name)
 
     recipes = []
@@ -1646,26 +1649,28 @@ def search_recipes(
             if r.cached_price_total and r.portions and r.portions > 0
             else None
         )
-        recipes.append({
-            "id": r.id,
-            "title": r.title,
-            "slug": r.slug,
-            "recipe_type": r.recipe_type,
-            "image": r.image.url if r.image else None,
-            "portions": r.portions,
-            "cached_energy_kcal": r.cached_energy_kcal,
-            "cached_protein_g": r.cached_protein_g,
-            "cached_fat_g": r.cached_fat_g,
-            "cached_carbohydrate_g": r.cached_carbohydrate_g,
-            "cached_price_total": float(r.cached_price_total) if r.cached_price_total else None,
-            "cached_nutri_class": r.cached_nutri_class,
-            "nutritional_tags": tags,
-            "usage_count": r.usage_count,
-            "description": description,
-            "ingredients_preview": ingredients_map.get(r.id, [])[:8],
-            "recipe_badge": badge,
-            "price_per_serving": price_per_serving,
-        })
+        recipes.append(
+            {
+                "id": r.id,
+                "title": r.title,
+                "slug": r.slug,
+                "recipe_type": r.recipe_type,
+                "image": r.image.url if r.image else None,
+                "portions": r.portions,
+                "cached_energy_kcal": r.cached_energy_kcal,
+                "cached_protein_g": r.cached_protein_g,
+                "cached_fat_g": r.cached_fat_g,
+                "cached_carbohydrate_g": r.cached_carbohydrate_g,
+                "cached_price_total": float(r.cached_price_total) if r.cached_price_total else None,
+                "cached_nutri_class": r.cached_nutri_class,
+                "nutritional_tags": tags,
+                "usage_count": r.usage_count,
+                "description": description,
+                "ingredients_preview": ingredients_map.get(r.id, [])[:8],
+                "recipe_badge": badge,
+                "price_per_serving": price_per_serving,
+            }
+        )
 
     # --- Standalone Ingredients ---
     from supply.models import Ingredient, Portion
@@ -1690,17 +1695,21 @@ def search_recipes(
     # Attach portions to each ingredient
     if ing_list:
         ing_ids = [i["id"] for i in ing_list]
-        portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related("measuring_unit")
+        portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
+            "measuring_unit"
+        )
         portions_by_ing: dict[int, list[dict]] = {}
         for p in portions:
-            portions_by_ing.setdefault(p.ingredient_id, []).append({
-                "id": p.id,
-                "name": p.name,
-                "measuring_unit": p.measuring_unit.name if p.measuring_unit else None,
-                "measuring_unit_id": p.measuring_unit_id,
-                "quantity": float(p.quantity) if p.quantity else None,
-                "weight_g": float(p.weight_g) if p.weight_g else None,
-            })
+            portions_by_ing.setdefault(p.ingredient_id, []).append(
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "measuring_unit": p.measuring_unit.name if p.measuring_unit else None,
+                    "measuring_unit_id": p.measuring_unit_id,
+                    "quantity": float(p.quantity) if p.quantity else None,
+                    "weight_g": float(p.weight_g) if p.weight_g else None,
+                }
+            )
         for ing in ing_list:
             ing["portions"] = portions_by_ing.get(ing["id"], [])
 
@@ -1720,6 +1729,7 @@ def export_pdf(request, meal_plan_id: int, include_notes: bool = False):
     _require_access(meal_plan, request.user)
 
     from django.http import HttpResponse
+
     from planner.services.pdf_export import generate_meal_plan_pdf
 
     pdf_bytes = generate_meal_plan_pdf(meal_plan, include_notes=include_notes)
@@ -1783,9 +1793,7 @@ def add_collaborator(request, meal_plan_id: int, payload: MealPlanCollaboratorCr
     "/{meal_plan_id}/collaborators/{collaborator_id}/",
     response=MealPlanCollaboratorOut,
 )
-def update_collaborator(
-    request, meal_plan_id: int, collaborator_id: int, payload: MealPlanCollaboratorUpdateIn
-):
+def update_collaborator(request, meal_plan_id: int, collaborator_id: int, payload: MealPlanCollaboratorUpdateIn):
     """Update a collaborator's role (owner/admin only)."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
@@ -1848,25 +1856,29 @@ def get_allergen_scan(request, meal_plan_id: int):
         meal_plan = MealPlan.objects.prefetch_related(
             Prefetch(
                 "meals",
-                queryset=Meal.objects.filter(is_reference=False).order_by("start_datetime").prefetch_related(
-                    Prefetch(
-                        "items",
-                        queryset=MealItem.objects.select_related("recipe").prefetch_related(
-                            "recipe__nutritional_tags"
+                queryset=(
+                    Meal.objects.filter(is_reference=False)
+                    .order_by("start_datetime")
+                    .prefetch_related(
+                        Prefetch(
+                            "items",
+                            queryset=MealItem.objects.select_related("recipe").prefetch_related(
+                                "recipe__nutritional_tags"
+                            ),
                         )
                     )
-                )
-                if hasattr(Meal, "is_reference")
-                else Meal.objects.order_by("start_datetime").prefetch_related(
-                    Prefetch(
-                        "items",
-                        queryset=MealItem.objects.select_related("recipe").prefetch_related(
-                            "recipe__nutritional_tags"
+                    if hasattr(Meal, "is_reference")
+                    else Meal.objects.order_by("start_datetime").prefetch_related(
+                        Prefetch(
+                            "items",
+                            queryset=MealItem.objects.select_related("recipe").prefetch_related(
+                                "recipe__nutritional_tags"
+                            ),
                         )
                     )
-                )
+                ),
             ),
-            "nutritional_tags"
+            "nutritional_tags",
         ).get(id=meal_plan_id)
     except MealPlan.DoesNotExist:
         raise HttpError(404, "Essensplan nicht gefunden")
@@ -1886,16 +1898,18 @@ def get_allergen_scan(request, meal_plan_id: int):
 
             for tag in item.recipe.nutritional_tags.all():
                 if tag.id in plan_tag_ids:
-                    violations.append({
-                        "meal_id": meal.id,
-                        "meal_type": meal.meal_type,
-                        "date": meal_date,
-                        "recipe_id": item.recipe.id,
-                        "recipe_title": item.recipe.title,
-                        "recipe_slug": item.recipe.slug,
-                        "nutritional_tag": tag,
-                        "source": "recipe_tag",
-                    })
+                    violations.append(
+                        {
+                            "meal_id": meal.id,
+                            "meal_type": meal.meal_type,
+                            "date": meal_date,
+                            "recipe_id": item.recipe.id,
+                            "recipe_title": item.recipe.title,
+                            "recipe_slug": item.recipe.slug,
+                            "nutritional_tag": tag,
+                            "source": "recipe_tag",
+                        }
+                    )
                     affected_meal_ids.add(meal.id)
                     unique_tag_ids.add(tag.id)
 
@@ -1931,4 +1945,3 @@ def get_cooking_schedule(request, meal_plan_id: int):
 
     result = build_cooking_schedule(meal_plan)
     return result
-

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
-from typing import Union
 
 import yaml
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class EventConfig(BaseModel):
@@ -28,7 +27,7 @@ class EventConfig(BaseModel):
     registration_method: str = ""
 
     @model_validator(mode="after")
-    def set_return_point_default(self) -> "EventConfig":
+    def set_return_point_default(self) -> EventConfig:
         if self.return_point is None:
             self.return_point = self.meeting_point
         return self
@@ -69,9 +68,9 @@ class RegistrationConfig(BaseModel):
     participants: ParticipantsConfig = ParticipantsConfig()
     texts: TextsConfig = TextsConfig()
     layout: LayoutConfig = LayoutConfig()
-    packlist: Union[str, list[str]] = "wanderung"
+    packlist: str | list[str] = "wanderung"
     packlist_extra: list[str] = Field(default_factory=list)
-    form_fields: Union[str, list[FormFieldConfig]] = "standard"
+    form_fields: str | list[FormFieldConfig] = "standard"
     consent: str = "default"
     signup_note: str = ""
 
@@ -81,13 +80,13 @@ def load_defaults(base_dir: Path) -> dict:
     defaults_dir = base_dir / "defaults"
     result: dict = {}
     for yaml_file in defaults_dir.glob("*.yaml"):
-        with open(yaml_file, "r", encoding="utf-8") as f:
+        with open(yaml_file, encoding="utf-8") as f:
             result[yaml_file.stem] = yaml.safe_load(f)
     return result
 
 
 def resolve_packlist(
-    value: Union[str, list[str]],
+    value: str | list[str],
     extra: list[str],
     defaults: dict,
 ) -> list[str]:
@@ -98,15 +97,12 @@ def resolve_packlist(
     presets = defaults.get("packlists", {})
     if value not in presets:
         available = ", ".join(sorted(presets.keys()))
-        raise ValueError(
-            f"Unbekannter Packlisten-Preset: '{value}'. "
-            f"Verfügbare Presets: {available}"
-        )
+        raise ValueError(f"Unbekannter Packlisten-Preset: '{value}'. " f"Verfügbare Presets: {available}")
     return presets[value] + extra
 
 
 def resolve_form_fields(
-    value: Union[str, list[FormFieldConfig]],
+    value: str | list[FormFieldConfig],
     defaults: dict,
 ) -> list[FormFieldConfig]:
     """Resolve form fields from preset key or inline list."""
@@ -116,10 +112,7 @@ def resolve_form_fields(
     presets = defaults.get("form_fields", {})
     if value not in presets:
         available = ", ".join(sorted(presets.keys()))
-        raise ValueError(
-            f"Unbekannter Formularfeld-Preset: '{value}'. "
-            f"Verfügbare Presets: {available}"
-        )
+        raise ValueError(f"Unbekannter Formularfeld-Preset: '{value}'. " f"Verfügbare Presets: {available}")
     return [FormFieldConfig(**field) for field in presets[value]]
 
 
@@ -128,7 +121,7 @@ def load_config(yaml_path: Path, base_dir: Path) -> RegistrationConfig:
     if not yaml_path.exists():
         raise FileNotFoundError(f"Datei nicht gefunden: {yaml_path}")
 
-    with open(yaml_path, "r", encoding="utf-8") as f:
+    with open(yaml_path, encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
     if not isinstance(raw, dict):

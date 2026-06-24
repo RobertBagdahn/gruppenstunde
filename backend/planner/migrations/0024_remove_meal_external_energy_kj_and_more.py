@@ -10,7 +10,6 @@ def _convert_reverse_sql(old_col, new_col, table):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0023_alter_mealplan_allergen_tags"),
     ]

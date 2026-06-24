@@ -14,7 +14,6 @@ def reverse_source_type(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("shopping", "0006_rename_source_type_meal_event_to_meal_plan"),
     ]

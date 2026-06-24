@@ -40,15 +40,12 @@ class BatchCleanNamesSchema(BaseModel):
 
 def clean_names_batch(items: list[dict[str, str]]) -> dict[str, str] | None:
     """Send a batch of name+description pairs to AI and get clean versions back.
-    
+
     items: list of {"name": ..., "description": ...}
     """
     from google.genai import types
 
-    items_list = "\n".join(
-        f"- Name: {item['name']} | Beschreibung: {item['description']}"
-        for item in items
-    )
+    items_list = "\n".join(f"- Name: {item['name']} | Beschreibung: {item['description']}" for item in items)
 
     prompt = (
         f"Du bekommst eine Liste von Produktnamen und Beschreibungen aus einem REWE-Supermarkt-Import. "
@@ -118,14 +115,14 @@ class Command(BaseCommand):
         if min_id:
             qs = qs.filter(id__gt=min_id)
 
-        ingredients = list(qs[offset:offset + limit] if limit else qs[offset:])
+        ingredients = list(qs[offset : offset + limit] if limit else qs[offset:])
         self.stdout.write(f"Processing {len(ingredients)} ingredients (offset={offset})")
 
         total_renamed = 0
         total_failed = 0
 
         for i in range(0, len(ingredients), batch_size):
-            batch = ingredients[i:i + batch_size]
+            batch = ingredients[i : i + batch_size]
             items = [{"name": ing.name, "description": ing.description or ""} for ing in batch]
 
             self.stdout.write(f"\nBatch {i // batch_size + 1} ({i}-{i + len(batch) - 1}):")
@@ -133,17 +130,17 @@ class Command(BaseCommand):
             result = clean_names_batch(items)
 
             if not result:
-                self.stdout.write(self.style.ERROR(f"  AI call failed, retrying after 30s..."))
+                self.stdout.write(self.style.ERROR("  AI call failed, retrying after 30s..."))
                 time.sleep(30)
                 result = clean_names_batch(items)
 
             if not result:
-                self.stdout.write(self.style.ERROR(f"  Still failed, waiting 60s..."))
+                self.stdout.write(self.style.ERROR("  Still failed, waiting 60s..."))
                 time.sleep(60)
                 result = clean_names_batch(items)
 
             if not result:
-                self.stdout.write(self.style.ERROR(f"  Still failed, skipping batch"))
+                self.stdout.write(self.style.ERROR("  Still failed, skipping batch"))
                 total_failed += len(batch)
                 continue
 
@@ -164,9 +161,7 @@ class Command(BaseCommand):
 
             time.sleep(sleep_time)
 
-        self.stdout.write(self.style.SUCCESS(
-            f"\nDone: {total_renamed} renamed, {total_failed} failed"
-        ))
+        self.stdout.write(self.style.SUCCESS(f"\nDone: {total_renamed} renamed, {total_failed} failed"))
 
     def _unique_slug(self, name: str, exclude_pk: int) -> str:
         base = slugify(name)

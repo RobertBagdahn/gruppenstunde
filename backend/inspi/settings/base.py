@@ -3,7 +3,6 @@ Django base settings for Inspi project.
 Shared between local and production environments.
 """
 
-import os
 from pathlib import Path
 
 import environ

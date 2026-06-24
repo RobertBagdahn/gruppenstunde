@@ -96,6 +96,7 @@ from .mail import (
     MailFilterIn,
     MailResultOut,
 )
+from .messaging import FailedRecipientOut as MessagingFailedRecipientOut
 from .messaging import (
     MessageFilterIn,
     MessagePreviewOut,
@@ -103,7 +104,6 @@ from .messaging import (
     SendMessageIn,
     SendMessageResultOut,
 )
-from .messaging import FailedRecipientOut as MessagingFailedRecipientOut
 from .parent_access import (
     BatchParentAccessTokenCreateIn,
     PaginatedParentAccessTokenOut,
@@ -229,10 +229,10 @@ __all__ = [
     "RegisterPersonIn",
     "RegistrationOut",
     "ResponsiblePersonOut",
+    "RoomAssignParticipantIn",
     "RoomAssignmentCreateIn",
     "RoomAssignmentOut",
     "RoomAssignmentUpdateIn",
-    "RoomAssignParticipantIn",
     "SendMessageIn",
     "SendMessageResultOut",
     "StatsOut",

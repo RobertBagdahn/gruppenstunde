@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0022_mealplan_allergen_tags"),
         ("supply", "0027_alter_ingredient_standalone_type"),

@@ -26,12 +26,15 @@ def fix_portion_data_integrity(apps, schema_editor):
             # Synonyms check
             try:
                 from supply.services.unit_resolution import SYNONYMS
+
                 canon_name = SYNONYMS.get(dup.name.lower().strip())
                 if canon_name:
-                    canonical = MeasuringUnit.objects.filter(name__iexact=canon_name).exclude(id=dup.id).order_by("id").first()
+                    canonical = (
+                        MeasuringUnit.objects.filter(name__iexact=canon_name).exclude(id=dup.id).order_by("id").first()
+                    )
             except ImportError:
                 pass
-        
+
         if canonical:
             # Remap portions and delete the duplicate
             Portion.objects.filter(measuring_unit_id=dup.id).update(measuring_unit_id=canonical.id)
@@ -39,6 +42,7 @@ def fix_portion_data_integrity(apps, schema_editor):
 
     # 2. Derive empty/blank or "g" portion names from measuring unit names (Task 5.3)
     from django.db.models import Q
+
     bad_name_portions = Portion.objects.filter(Q(name="") | Q(name__isnull=True) | Q(name="g"))
     for p in bad_name_portions:
         mu_id = p.measuring_unit_id
@@ -50,10 +54,10 @@ def fix_portion_data_integrity(apps, schema_editor):
                 derived_name = "Stück"
         else:
             derived_name = "Stück"
-        
+
         if not derived_name or derived_name == "g":
             derived_name = "Stück"
-        
+
         p.name = derived_name
         p.save(update_fields=["name"])
 
@@ -101,6 +105,7 @@ def fix_portion_data_integrity(apps, schema_editor):
     if recalculated_recipe_ids:
         try:
             from recipe.services.recipe_checks import recalculate_recipe_cache
+
             for recipe in Recipe.objects.filter(id__in=list(recalculated_recipe_ids)):
                 try:
                     recalculate_recipe_cache(recipe)
@@ -115,7 +120,6 @@ def reverse_portion_data_integrity(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0023_fix_portion_weight_g_data"),
         ("recipe", "0025_recipe_cached_energy_total_kj"),

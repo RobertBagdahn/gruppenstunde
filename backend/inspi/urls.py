@@ -4,17 +4,13 @@ from django.http import HttpResponse
 from django.urls import include, path
 from ninja import NinjaAPI
 
-from core.api import auth_router
+from blog.api import router as blog_router
 from content.admin_api import router as admin_router
 from content.api import router as content_router
-from content.api.data_quality import admin_router as dq_admin_router, public_router as dq_public_router
-from recipe.api import router as recipe_router, folder_router as recipe_folder_router
-from recipe.api.dashboard import router as dashboard_router
-from recipe.api.rules import router as rules_router
-from planner.api import router as planner_router
-from planner.meal_plan_api import meal_plan_router
-from planner.api.ref_meal import ref_meal_router
-from profiles.api import group_router, profile_router
+from content.api.data_quality import admin_router as dq_admin_router
+from content.api.data_quality import public_router as dq_public_router
+from content.tags_api import scout_levels_router, tags_router
+from core.api import auth_router
 from event.api import (
     event_router,
     location_router,
@@ -23,22 +19,31 @@ from event.api import (
     template_router,
     whatsapp_router,
 )
+from game.api import router as game_router
 from packinglist.api import packing_list_router
-from shopping.api import kitchen_reminder_router, shopping_router
+from planner.api import router as planner_router
+from planner.api.ref_meal import ref_meal_router
+from planner.meal_plan_api import meal_plan_router
+from profiles.api import group_router, profile_router
+from recipe.api import folder_router as recipe_folder_router
+from recipe.api import router as recipe_router
+from recipe.api.dashboard import router as dashboard_router
+from recipe.api.rules import router as rules_router
 from session.api import router as session_router
+from shopping.api import kitchen_reminder_router, shopping_router
 from supply.api import (
-    router as supply_router,
+    breakfast_catalog_router,
+    dge_reference_router,
     ingredient_router,
     ingredient_statistics_router,
+    norm_person_router,
     nutritional_tag_router,
     retail_section_router,
-    norm_person_router,
-    dge_reference_router,
     unit_conversion_router,
 )
-from blog.api import router as blog_router
-from game.api import router as game_router
-from content.tags_api import tags_router, scout_levels_router
+from supply.api import (
+    router as supply_router,
+)
 
 api = NinjaAPI(
     title="Inspi API",
@@ -77,6 +82,7 @@ api.add_router("/sessions/", session_router)
 api.add_router("/supplies/", supply_router)
 api.add_router("/norm-person/", norm_person_router)
 api.add_router("/dge-references/", dge_reference_router)
+api.add_router("/supply/", breakfast_catalog_router)
 api.add_router("/blogs/", blog_router)
 api.add_router("/games/", game_router)
 api.add_router("/tags/", tags_router)
@@ -87,11 +93,11 @@ api.add_router("/content/", content_router)
 
 def sitemap_xml(request):
     """Generate sitemap.xml for search engine crawlers."""
-    from content.choices import ContentStatus
-    from session.models import GroupSession
     from blog.models import Blog
+    from content.choices import ContentStatus
     from game.models import Game
     from recipe.models import Recipe
+    from session.models import GroupSession
 
     domain = request.get_host()
     scheme = "https" if request.is_secure() else "http"

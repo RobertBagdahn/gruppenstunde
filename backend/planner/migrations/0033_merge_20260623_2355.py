@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0032_alter_mealplan_visibility"),
         ("planner", "0032_mealplan_is_template"),

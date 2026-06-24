@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0022_migrate_healthrule_recipehint_to_rule"),
     ]

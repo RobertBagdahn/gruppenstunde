@@ -77,4 +77,3 @@ The Django admin and frontend admin SHALL provide comprehensive management for M
 - **WHEN** an admin navigates to the ingredient admin page
 - **THEN** ingredients SHALL be listed with: name, nutri_score, portion_count, price_per_kg, usage_count
 - **THEN** the admin SHALL be able to filter by nutritional tags and retail section
-

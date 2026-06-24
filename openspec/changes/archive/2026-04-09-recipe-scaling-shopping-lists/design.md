@@ -32,7 +32,7 @@ Für WebSocket-Echtzeit-Kollaboration wird Django Channels benötigt, das über 
 
 **Entscheidung**: Alle Rezepte speichern Mengen für exakt 1 Normportion. Das `servings`-Feld auf Recipe wird auf `1` als Default gesetzt und dient als reine Referenz. Die Skalierung erfolgt rein clientseitig.
 
-**Rationale**: 1 Normportion als Basis ist mathematisch einfach (Multiplikation statt Division) und konsistent mit dem MealEvent-System, das bereits `norm_portions` hat. 
+**Rationale**: 1 Normportion als Basis ist mathematisch einfach (Multiplikation statt Division) und konsistent mit dem MealEvent-System, das bereits `norm_portions` hat.
 
 **Alternative**: 4 Portionen als Default beibehalten und durch `servings` dividieren -- führt zu Rundungsfehlern und inkonsistenter Basis.
 
@@ -129,14 +129,14 @@ Für WebSocket-Echtzeit-Kollaboration wird Django Channels benötigt, das über 
 
 ## Risks / Trade-offs
 
-**[WebSocket-Komplexität]** → Django Channels + Redis erhöht die Infrastruktur-Komplexität.  
+**[WebSocket-Komplexität]** → Django Channels + Redis erhöht die Infrastruktur-Komplexität.
 **Mitigation**: Redis kann als kleiner Cloud Memorystore oder als Sidecar-Container in Cloud Run betrieben werden. Fallback auf REST-Polling, falls WebSocket-Probleme auftreten.
 
-**[Normportionen-Migration]** → Bestehende Rezepte haben Mengen für `servings=4`, müssen auf 1 Portion umgerechnet werden.  
+**[Normportionen-Migration]** → Bestehende Rezepte haben Mengen für `servings=4`, müssen auf 1 Portion umgerechnet werden.
 **Mitigation**: Data-Migration, die alle RecipeItem-Quantities durch `recipe.servings` teilt. Keine Rückwärtskompatibilität nötig.
 
-**[Portions-Genauigkeit]** → Natürliche Portionen ("3 Äpfel") sind Schätzungen, da Portionsgewichte variieren.  
+**[Portions-Genauigkeit]** → Natürliche Portionen ("3 Äpfel") sind Schätzungen, da Portionsgewichte variieren.
 **Mitigation**: Anzeige als "ca. 3 Äpfel" mit Tilde/ca.-Prefix. Gewichtsangabe bleibt die Primäranzeige.
 
-**[Performance Shopping-List WebSocket]** → Viele gleichzeitige WebSocket-Verbindungen auf Cloud Run.  
+**[Performance Shopping-List WebSocket]** → Viele gleichzeitige WebSocket-Verbindungen auf Cloud Run.
 **Mitigation**: Cloud Run unterstützt WebSocket nativ. Connection-Limit pro Instanz beachten, ggf. horizontal skalieren.

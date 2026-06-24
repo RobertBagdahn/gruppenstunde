@@ -1,25 +1,21 @@
 """Profile and preference API endpoints."""
 
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from ninja import File, Router
 from ninja.errors import HttpError
 from ninja.files import UploadedFile
 
-from django.core.validators import validate_slug
-from django.core.exceptions import ValidationError
-
 from profiles.models import GroupMembership, UserPreference, UserProfile
 from profiles.schemas import (
+    JoinRequestOut,
     MyContentOut,
     ProfilePictureOut,
-    PublicMealPlanOut,
-    PublicRecipeOut,
-    PublicShoppingListOut,
     PublicUserFoodProfileOut,
     PublicUserProfileOut,
     UserGroupOut,
-    JoinRequestOut,
     UserPreferenceIn,
     UserPreferenceOut,
     UserProfileOut,
@@ -61,7 +57,9 @@ def update_my_profile(request, payload: UserProfileUpdateIn):
             try:
                 validate_slug(slug_value)
             except ValidationError:
-                raise HttpError(422, "Ungültiges Slug-Format. Erlaubt: Kleinbuchstaben, Zahlen, Bindestriche und Unterstriche.")
+                raise HttpError(
+                    422, "Ungültiges Slug-Format. Erlaubt: Kleinbuchstaben, Zahlen, Bindestriche und Unterstriche."
+                )
             if UserProfile.objects.filter(slug=slug_value).exclude(pk=profile.pk).exists():
                 raise HttpError(422, "Dieser Slug ist bereits vergeben")
 
@@ -173,15 +171,16 @@ def get_public_user_food_profile(request, slug: str):
         raise HttpError(404, "Profil nicht gefunden")
 
     from content.choices import ContentStatus
-    from recipe.models import RecipeVisibility
-    from recipe.models import Recipe
+    from recipe.models import Recipe, RecipeVisibility
 
     profile.recipes = list(
         Recipe.objects.filter(
             Q(owner_id=profile.user_id) | Q(authors__id=profile.user_id),
             visibility=RecipeVisibility.PUBLIC,
             status=ContentStatus.APPROVED,
-        ).distinct().order_by("-created_at")[:20]
+        )
+        .distinct()
+        .order_by("-created_at")[:20]
     )
 
     from shopping.models import ShoppingList
@@ -189,7 +188,9 @@ def get_public_user_food_profile(request, slug: str):
     profile.shopping_lists = list(
         ShoppingList.objects.filter(
             owner_id=profile.user_id,
-        ).order_by("-created_at")[:20]
+        ).order_by(
+            "-created_at"
+        )[:20]
     )
 
     from planner.models.meal_plan import MealPlan
@@ -197,7 +198,9 @@ def get_public_user_food_profile(request, slug: str):
     profile.meal_plans = list(
         MealPlan.objects.filter(
             created_by_id=profile.user_id,
-        ).order_by("-created_at")[:20]
+        ).order_by(
+            "-created_at"
+        )[:20]
     )
 
     return profile
@@ -212,9 +215,8 @@ def get_user_profile(request, user_id: int):
     is_own_profile = request.user.is_authenticated and request.user.id == user_id
     if not profile.is_public and not is_own_profile:
         raise HttpError(404, "Profil nicht gefunden")
-    from content.choices import ContentStatus
-
     from blog.models import Blog
+    from content.choices import ContentStatus
     from game.models import Game
     from session.models import GroupSession
 

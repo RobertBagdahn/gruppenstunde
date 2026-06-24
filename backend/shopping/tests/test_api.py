@@ -473,6 +473,7 @@ class TestShoppingListViewBugFixes:
         """get_shopping_list_view must not raise AttributeError (item.portion fixed)."""
         # Add an item with an ingredient
         from supply.tests import make_ingredient
+
         ing = make_ingredient(name="Mehl")
         ShoppingListItem.objects.create(
             shopping_list=shopping_list,

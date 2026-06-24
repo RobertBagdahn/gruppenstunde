@@ -3,7 +3,6 @@
 import json
 
 import pytest
-from django.test import Client
 
 from content.choices import ContentStatus
 from content.models import ScoutLevel, Tag

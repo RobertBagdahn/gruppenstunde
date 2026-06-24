@@ -2,33 +2,25 @@
 
 import math
 
-from django.db.models import Avg, Count, Max, Min, Q, StdDev
 from ninja import Router
 
-from supply.models import Ingredient, NutritionalTag, RetailSection
+from supply.models import Ingredient, RetailSection
 from supply.schemas.ingredient_statistics import (
-    ComparisonFilters,
     ComparisonGroup,
     ComparisonOut,
     DistributionBucket,
-    DistributionFilters,
     DistributionOut,
     DistributionStats,
     FieldOutliers,
-    OutlierFilters,
     OutlierItem,
     OutliersOut,
-    RankingFilters,
     RankingItem,
     RankingsOut,
-    ScatterFilters,
     ScatterOut,
     ScatterPoint,
     ScoreClassData,
     ScoreClassItem,
-    ScoreFilters,
     ScoresOut,
-    TagListFilters,
     TagListItem,
     TagListOut,
 )
@@ -128,9 +120,7 @@ def _compute_histogram(values: list[float], num_buckets: int = 20):
     max_val = sorted_vals[-1]
 
     if min_val == max_val:
-        bucket = DistributionBucket(
-            min=min_val, max=max_val, count=n, percentage=100.0, label=f"{min_val:.1f}"
-        )
+        bucket = DistributionBucket(min=min_val, max=max_val, count=n, percentage=100.0, label=f"{min_val:.1f}")
         stats = DistributionStats(
             mean=round(sum(values) / n, 2),
             median=round(sorted_vals[n // 2], 2),
@@ -200,8 +190,11 @@ def _compute_iqr_outliers(
             deviation = val / median_val if median_val != 0 else 0
             outliers.append(
                 OutlierItem(
-                    id=id_val, name=name, slug=slug,
-                    value=round(val, 2), severity="extreme",
+                    id=id_val,
+                    name=name,
+                    slug=slug,
+                    value=round(val, 2),
+                    severity="extreme",
                     deviation=round(deviation, 2),
                 )
             )
@@ -209,8 +202,11 @@ def _compute_iqr_outliers(
             deviation = val / median_val if median_val != 0 else 0
             outliers.append(
                 OutlierItem(
-                    id=id_val, name=name, slug=slug,
-                    value=round(val, 2), severity="moderate",
+                    id=id_val,
+                    name=name,
+                    slug=slug,
+                    value=round(val, 2),
+                    severity="moderate",
                     deviation=round(deviation, 2),
                 )
             )
@@ -227,7 +223,7 @@ def _compute_pearson_r(x_values: list[float], y_values: list[float]) -> float | 
     mean_x = sum(x_values) / n
     mean_y = sum(y_values) / n
 
-    cov = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, y_values))
+    cov = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, y_values, strict=False))
     std_x = math.sqrt(sum((x - mean_x) ** 2 for x in x_values))
     std_y = math.sqrt(sum((y - mean_y) ** 2 for y in y_values))
 
@@ -263,6 +259,7 @@ def _make_ranking_item(ing, value: float) -> RankingItem:
 # Rankings Endpoint
 # =============================================================================
 
+
 @ingredient_statistics_router.get("/rankings/", response=RankingsOut)
 def ingredient_rankings(request, field: str, retail_section_id: str | None = None, tag: str | None = None):
     qs = _base_queryset(retail_section_id=retail_section_id, tag=tag)
@@ -283,15 +280,19 @@ def ingredient_rankings(request, field: str, retail_section_id: str | None = Non
 
 def _make_ranking_item_from_tuple(t: tuple) -> RankingItem:
     return RankingItem(
-        id=t[0], name=t[1], slug=t[2],
+        id=t[0],
+        name=t[1],
+        slug=t[2],
         value=round(t[3], 2),
-        nutri_class=None, retail_section_name=None,
+        nutri_class=None,
+        retail_section_name=None,
     )
 
 
 # =============================================================================
 # Distributions Endpoint
 # =============================================================================
+
 
 @ingredient_statistics_router.get("/distributions/", response=DistributionOut)
 def ingredient_distributions(request, field: str, retail_section_id: str | None = None, tag: str | None = None):
@@ -306,6 +307,7 @@ def ingredient_distributions(request, field: str, retail_section_id: str | None 
 # =============================================================================
 # Scatter Endpoint
 # =============================================================================
+
 
 @ingredient_statistics_router.get("/scatter/", response=ScatterOut)
 def ingredient_scatter(
@@ -346,6 +348,7 @@ def ingredient_scatter(
 # =============================================================================
 # Tag Lists Endpoint
 # =============================================================================
+
 
 @ingredient_statistics_router.get("/tag-lists/", response=TagListOut)
 def ingredient_tag_lists(
@@ -397,6 +400,7 @@ def ingredient_tag_lists(
 # =============================================================================
 # Scores Endpoint
 # =============================================================================
+
 
 @ingredient_statistics_router.get("/scores/", response=ScoresOut)
 def ingredient_scores(request, score_type: str, retail_section_id: str | None = None):
@@ -452,13 +456,20 @@ def ingredient_scores(request, score_type: str, retail_section_id: str | None = 
 # Outliers Endpoint
 # =============================================================================
 
+
 @ingredient_statistics_router.get("/outliers/", response=OutliersOut)
 def ingredient_outliers(request, field: str | None = None, retail_section_id: str | None = None):
     qs = _base_queryset(retail_section_id=retail_section_id)
 
     outlier_nutrient_fields = [
-        "sugar_g", "protein_g", "energy_kcal", "fat_g", "fibre_g",
-        "salt_g", "price_per_kg", "carbohydrate_g",
+        "sugar_g",
+        "protein_g",
+        "energy_kcal",
+        "fat_g",
+        "fibre_g",
+        "salt_g",
+        "price_per_kg",
+        "carbohydrate_g",
     ]
 
     if field:
@@ -492,6 +503,7 @@ def ingredient_outliers(request, field: str | None = None, retail_section_id: st
 # =============================================================================
 # Comparison Endpoint
 # =============================================================================
+
 
 @ingredient_statistics_router.get("/comparison/", response=ComparisonOut)
 def ingredient_comparison(

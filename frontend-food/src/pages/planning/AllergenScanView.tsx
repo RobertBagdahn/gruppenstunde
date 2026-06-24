@@ -121,7 +121,7 @@ export default function AllergenScanView({
       {/* Accordion List */}
       <div className="space-y-3">
         <h3 className="font-display font-bold text-base text-foreground pl-1">Gefundene Konflikte</h3>
-        
+
         <div className="space-y-3">
           {Object.entries(groupedViolations).map(([tagIdStr, group]) => {
             const tagId = Number(tagIdStr);

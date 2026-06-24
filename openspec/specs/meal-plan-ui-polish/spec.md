@@ -40,4 +40,3 @@ The Nutrition View SHALL feature a horizontal day selector (composed of clickabl
 #### Scenario: Toggling day-specific nutrition data
 - **WHEN** a user clicks the "Di 04.06." button in the horizontal day selector
 - **THEN** the nutrition cockpit displays averages and Soll/Ist bars specifically for Tuesday, June 4th
-

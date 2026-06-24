@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0031_recipe_quality_score_recipe_quality_score_updated_at_and_more"),
     ]

@@ -1,7 +1,4 @@
-from decimal import Decimal
-
 from django.core.management.base import BaseCommand, CommandParser
-from django.db.models import F, Sum
 
 from recipe.models import Recipe, RecipeItem
 
@@ -51,21 +48,15 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"Fixed {len(flagged_recipes)} recipe(s)."))
         else:
             self.stdout.write(
-                self.style.WARNING(
-                    f"{len(flagged_recipes)} recipe(s) need attention. Run with --fix to correct."
-                )
+                self.style.WARNING(f"{len(flagged_recipes)} recipe(s) need attention. Run with --fix to correct.")
             )
 
-    def _find_problematic_recipes(
-        self, threshold: float
-    ) -> list[tuple[Recipe, float, list[tuple[str, float]]]]:
+    def _find_problematic_recipes(self, threshold: float) -> list[tuple[Recipe, float, list[tuple[str, float]]]]:
         results = []
 
         recipes = Recipe.objects.all()
         for recipe in recipes:
-            items = RecipeItem.objects.filter(recipe=recipe).select_related(
-                "portion", "portion__ingredient"
-            )
+            items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
             if not items.exists():
                 continue
 
@@ -78,9 +69,7 @@ class Command(BaseCommand):
                 total_weight += weight
 
                 if per_person > threshold:
-                    problematic_items.append(
-                        (item.portion.ingredient.name, per_person)
-                    )
+                    problematic_items.append((item.portion.ingredient.name, per_person))
 
             per_person_total = total_weight / max(recipe.portions, 1)
             if problematic_items or per_person_total > threshold:
@@ -88,9 +77,7 @@ class Command(BaseCommand):
 
         return results
 
-    def _report_recipe(
-        self, recipe: Recipe, total_weight: float, items: list[tuple[str, float]]
-    ) -> None:
+    def _report_recipe(self, recipe: Recipe, total_weight: float, items: list[tuple[str, float]]) -> None:
         per_person = total_weight / max(recipe.portions, 1)
         self.stdout.write(f"\n  Recipe: {recipe.title} (ID={recipe.id})")
         self.stdout.write(f"  Portions: {recipe.portions}")
@@ -117,4 +104,4 @@ class Command(BaseCommand):
                 )
             )
         else:
-            self.stdout.write(f"  No fix needed (portions already reasonable)")
+            self.stdout.write("  No fix needed (portions already reasonable)")

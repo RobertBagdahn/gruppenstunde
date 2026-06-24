@@ -77,7 +77,6 @@ def migrate_recipe_hints(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0021_create_rule_model"),
     ]

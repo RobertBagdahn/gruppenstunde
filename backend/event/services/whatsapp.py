@@ -24,7 +24,7 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from neonize import NewClient
+    pass
 
 
 class NeonizeUnavailableError(Exception):
@@ -135,7 +135,6 @@ class WhatsAppClientManager:
         The client connects and blocks in the thread, handling events.
         """
         import segno as _segno
-
         from neonize.events import ConnectedEv
 
         user_id = user.id
@@ -298,9 +297,7 @@ class WhatsAppClientManager:
             try:
                 future.result(timeout=30)
             except concurrent.futures.TimeoutError:
-                raise RuntimeError(
-                    "WhatsApp-Nachricht konnte nicht gesendet werden (Timeout nach 30s)."
-                )
+                raise RuntimeError("WhatsApp-Nachricht konnte nicht gesendet werden (Timeout nach 30s).")
 
     def is_on_whatsapp(self, user, phone_numbers: list[str]) -> dict[str, bool]:
         """Check which phone numbers are registered on WhatsApp.
@@ -347,9 +344,7 @@ class WhatsAppClientManager:
             for suffix in ["_keys", "_sessions", "_pre_keys", "_sender_keys", "_identity", "_contacts", "_chats"]:
                 table_name = f"{session_name}{suffix}"
                 try:
-                    cursor.execute(
-                        f"DROP TABLE IF EXISTS {table_name} CASCADE"  # noqa: S608
-                    )
+                    cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")
                 except Exception:
                     logger.debug("Could not drop table %s (may not exist)", table_name)
 

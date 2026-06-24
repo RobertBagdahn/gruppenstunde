@@ -41,7 +41,6 @@ class Command(BaseCommand):
         # Find all dummy recipes (recipe_type='ingredient')
         dummy_recipes = Recipe.objects.filter(recipe_type="ingredient")
         migrated_count = 0
-        already_ingredient_count = 0
         failed_count = 0
 
         for dummy_recipe in dummy_recipes:
@@ -54,9 +53,7 @@ class Command(BaseCommand):
                     recipe_item = dummy_recipe.recipe_items.select_related("portion__ingredient").first()
                     if not recipe_item or not recipe_item.portion or not recipe_item.portion.ingredient:
                         self.stdout.write(
-                            self.style.WARNING(
-                                f"Dummy recipe #{dummy_recipe.pk} has no ingredient, skipping"
-                            )
+                            self.style.WARNING(f"Dummy recipe #{dummy_recipe.pk} has no ingredient, skipping")
                         )
                         failed_count += 1
                         continue
@@ -75,16 +72,10 @@ class Command(BaseCommand):
                         meal_item.save()
 
                     migrated_count += 1
-                    self.stdout.write(
-                        f"  MealItem #{meal_item.pk} → Ingredient #{ingredient.pk}"
-                    )
+                    self.stdout.write(f"  MealItem #{meal_item.pk} → Ingredient #{ingredient.pk}")
 
                 except Exception as e:
-                    self.stdout.write(
-                        self.style.ERROR(
-                            f"Failed to migrate MealItem #{meal_item.pk}: {e}"
-                        )
-                    )
+                    self.stdout.write(self.style.ERROR(f"Failed to migrate MealItem #{meal_item.pk}: {e}"))
                     failed_count += 1
                     if not dry_run:
                         raise
@@ -104,13 +95,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Migrated MealItems: {migrated_count}")
         self.stdout.write(f"  Deleted dummy recipes: {deleted_count}")
         if failed_count:
-            self.stdout.write(
-                self.style.ERROR(f"  Failed: {failed_count}")
-            )
+            self.stdout.write(self.style.ERROR(f"  Failed: {failed_count}"))
 
         if dry_run:
-            self.stdout.write(
-                self.style.WARNING(
-                    "\nDry run — no changes made. Run again without --dry-run to apply."
-                )
-            )
+            self.stdout.write(self.style.WARNING("\nDry run — no changes made. Run again without --dry-run to apply."))

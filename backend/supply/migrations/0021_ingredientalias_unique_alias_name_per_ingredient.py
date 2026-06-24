@@ -7,38 +7,41 @@ from django.db import migrations, models
 
 def remove_duplicate_aliases(apps, schema_editor):
     """Remove duplicate IngredientAlias entries (case-insensitive) before adding unique constraint."""
-    IngredientAlias = apps.get_model('supply', 'IngredientAlias')
+    IngredientAlias = apps.get_model("supply", "IngredientAlias")
     from django.db.models import Count
     from django.db.models.functions import Lower
 
     # Find duplicates: same lower(name) + same ingredient
     duplicates = (
-        IngredientAlias.objects.values(name_lower=Lower('name'), ing=models.F('ingredient'))
-        .annotate(count=Count('id'))
+        IngredientAlias.objects.values(name_lower=Lower("name"), ing=models.F("ingredient"))
+        .annotate(count=Count("id"))
         .filter(count__gt=1)
     )
 
     for dup in duplicates:
         # Keep the first entry, delete the rest
         entries = IngredientAlias.objects.filter(
-            ingredient_id=dup['ing'],
-            name__iexact=dup['name_lower'],
-        ).order_by('id')
+            ingredient_id=dup["ing"],
+            name__iexact=dup["name_lower"],
+        ).order_by("id")
         # Delete all but the first
         entries.exclude(id=entries.first().id).delete()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0020_fix_salt_g_factor_1000'),
+        ("supply", "0020_fix_salt_g_factor_1000"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.RunPython(remove_duplicate_aliases, migrations.RunPython.noop),
         migrations.AddConstraint(
-            model_name='ingredientalias',
-            constraint=models.UniqueConstraint(django.db.models.functions.text.Lower('name'), models.F('ingredient'), name='unique_alias_name_per_ingredient'),
+            model_name="ingredientalias",
+            constraint=models.UniqueConstraint(
+                django.db.models.functions.text.Lower("name"),
+                models.F("ingredient"),
+                name="unique_alias_name_per_ingredient",
+            ),
         ),
     ]

@@ -1,7 +1,6 @@
 from django.db import migrations
 from django.utils.text import slugify
 
-
 INGREDIENTS = {
     "Tomaten-Passata": "Konserven & Gläser",
     "Ingwer": "Gemüse",
@@ -246,7 +245,6 @@ def reverse_seed(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0007_seed_unit_conversions"),
     ]

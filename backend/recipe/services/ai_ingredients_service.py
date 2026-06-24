@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils.text import slugify
 from pydantic import BaseModel, Field
@@ -33,9 +32,7 @@ class AiIngredientSuggestion(BaseModel):
     """Single ingredient suggestion from Gemini."""
 
     name: str = Field(description="Name der Zutat auf Deutsch")
-    estimated_grams: float = Field(
-        ge=0, description="Geschätzte Menge in Gramm für 1 Person"
-    )
+    estimated_grams: float = Field(ge=0, description="Geschätzte Menge in Gramm für 1 Person")
 
 
 class AiIngredientsOutput(BaseModel):
@@ -83,7 +80,7 @@ class MatchedIngredientResult:
 class RecipeAiIngredientsService:
     """Service for AI-powered recipe ingredient suggestions."""
 
-    def suggest_ingredients(self, recipe: "Recipe", user: AbstractBaseUser | None = None) -> AiIngredientsOutput | None:
+    def suggest_ingredients(self, recipe: Recipe, user: AbstractBaseUser | None = None) -> AiIngredientsOutput | None:
         """Call Gemini to suggest ingredients for a recipe.
 
         Returns structured output with ingredient names and estimated grams per person.
@@ -147,17 +144,13 @@ class RecipeAiIngredientsService:
 
             # Try alias match
             if not ingredient:
-                alias = IngredientAlias.objects.filter(
-                    name__iexact=name_lower
-                ).select_related("ingredient").first()
+                alias = IngredientAlias.objects.filter(name__iexact=name_lower).select_related("ingredient").first()
                 if alias:
                     ingredient = alias.ingredient
 
             # Try contains match as fallback
             if not ingredient:
-                ingredient = Ingredient.objects.filter(
-                    name__icontains=name_lower
-                ).first()
+                ingredient = Ingredient.objects.filter(name__icontains=name_lower).first()
 
             if ingredient:
                 results.append((suggestion, ingredient.id, False))
@@ -172,9 +165,7 @@ class RecipeAiIngredientsService:
 
         return results
 
-    def assign_portions(
-        self, matched: list[tuple[AiIngredientSuggestion, int, bool]]
-    ) -> list[MatchedIngredientResult]:
+    def assign_portions(self, matched: list[tuple[AiIngredientSuggestion, int, bool]]) -> list[MatchedIngredientResult]:
         """Assign best portion for each matched ingredient and calculate quantity.
 
         Logic:
@@ -239,7 +230,9 @@ class RecipeAiIngredientsService:
 
         return results
 
-    def get_full_suggestions(self, recipe: "Recipe", user: AbstractBaseUser | None = None) -> list[MatchedIngredientResult] | None:
+    def get_full_suggestions(
+        self, recipe: Recipe, user: AbstractBaseUser | None = None
+    ) -> list[MatchedIngredientResult] | None:
         """Full pipeline: suggest → match → assign portions → filter existing."""
         ai_output = self.suggest_ingredients(recipe, user=user)
         if not ai_output or not ai_output.items:
@@ -260,7 +253,7 @@ class RecipeAiIngredientsService:
 
         return results
 
-    def _build_suggest_prompt(self, recipe: "Recipe") -> str:
+    def _build_suggest_prompt(self, recipe: Recipe) -> str:
         """Build prompt for ingredient suggestion."""
         parts = [
             "Du bist ein erfahrener Koch und Ernährungsexperte. ",
@@ -307,17 +300,13 @@ class AiQuantityEstimate(BaseModel):
     """Single quantity estimate from Gemini for an existing recipe item."""
 
     item_id: int = Field(description="ID des RecipeItems")
-    estimated_grams_per_person: float = Field(
-        ge=0, description="Geschätzte Menge in Gramm für 1 Person"
-    )
+    estimated_grams_per_person: float = Field(ge=0, description="Geschätzte Menge in Gramm für 1 Person")
 
 
 class AiQuantityEstimatesOutput(BaseModel):
     """Gemini response: estimated quantities for existing recipe items."""
 
-    items: list[AiQuantityEstimate] = Field(
-        description="Liste der geschätzten Mengen pro Item"
-    )
+    items: list[AiQuantityEstimate] = Field(description="Liste der geschätzten Mengen pro Item")
 
 
 # ---------------------------------------------------------------------------
@@ -328,9 +317,7 @@ class AiQuantityEstimatesOutput(BaseModel):
 class RecipeQuantityEstimationService:
     """Estimates realistic quantities for existing recipe items via Gemini."""
 
-    def estimate_quantities(
-        self, recipe: "Recipe", user: Any = None
-    ) -> list[dict] | None:
+    def estimate_quantities(self, recipe: Recipe, user: Any = None) -> list[dict] | None:
         """Estimate quantities for all existing recipe items.
 
         Returns list of dicts with item_id, ingredient_name,
@@ -424,16 +411,18 @@ class RecipeQuantityEstimationService:
             estimated_grams = max(estimate.estimated_grams_per_person, 1.0)
             quantity_per_portion = estimated_grams / weight_g
 
-            results.append({
-                "item_id": item.id,
-                "ingredient_name": ingredient_name,
-                "quantity_per_portion": round(quantity_per_portion, 2),
-                "unit": unit,
-            })
+            results.append(
+                {
+                    "item_id": item.id,
+                    "ingredient_name": ingredient_name,
+                    "quantity_per_portion": round(quantity_per_portion, 2),
+                    "unit": unit,
+                }
+            )
 
         return results
 
-    def _build_estimate_prompt(self, recipe: "Recipe", items: list) -> str:
+    def _build_estimate_prompt(self, recipe: Recipe, items: list) -> str:
         """Build prompt for quantity estimation of existing items."""
         item_lines = []
         for item in items:

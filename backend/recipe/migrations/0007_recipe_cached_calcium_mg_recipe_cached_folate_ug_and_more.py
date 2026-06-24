@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0006_recipe_forked_from_recipe_owner_recipe_visibility_and_more"),
     ]

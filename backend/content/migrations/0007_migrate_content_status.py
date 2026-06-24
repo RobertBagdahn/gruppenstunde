@@ -29,7 +29,6 @@ def migrate_status_reverse(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0006_contentcollaborator"),
         ("session", "0003_groupsession_is_deleted_alter_groupsession_status"),

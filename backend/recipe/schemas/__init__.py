@@ -1,14 +1,34 @@
 """Recipe schemas package — re-exports all schemas for backward compatibility."""
 
-from .rules import (
-    RuleIn,
-    RuleOut,
-    RuleUpdateIn,
+from .dashboard import (
+    DashboardInsightsOut,
+    FoodDashboardOut,
+    RecipeInsightOut,
 )
-from .suggestions import (
-    RecipeSuggestionOut,
-    SuggestionDashboardOut,
-    SuggestionOut,
+from .items import (
+    AiIngredientApplyIn,
+    AiIngredientSuggestionOut,
+    EstimateQuantitiesOut,
+    EstimateQuantityItemOut,
+    ExchangeGroupMemberOut,
+    RecipeItemCreateIn,
+    RecipeItemExchangeGroupCreateIn,
+    RecipeItemExchangeGroupOut,
+    RecipeItemOut,
+    RecipeItemUpdateIn,
+)
+from .nutrition import (
+    ContributionOut,
+    ImprovementListOut,
+    ImprovementOut,
+    LlmSuggestionOut,
+    LlmSuggestionRequestIn,
+    NutriScoreDetailOut,
+    RecipeItemNutritionOut,
+    RecipeNutritionBreakdownOut,
+    RecipeRuleResult,
+    RecipeRulesOut,
+    SuggestedIngredientOut,
 )
 from .recipes import (
     ForkRecipeIn,
@@ -25,35 +45,15 @@ from .recipes import (
     RecipeUpdateIn,
     VisibilityUpdateIn,
 )
-from .items import (
-    AiIngredientApplyIn,
-    AiIngredientSuggestionOut,
-    EstimateQuantitiesOut,
-    EstimateQuantityItemOut,
-    ExchangeGroupMemberOut,
-    RecipeItemCreateIn,
-    RecipeItemExchangeGroupCreateIn,
-    RecipeItemExchangeGroupOut,
-    RecipeItemOut,
-    RecipeItemUpdateIn,
+from .rules import (
+    RuleIn,
+    RuleOut,
+    RuleUpdateIn,
 )
-from .dashboard import (
-    DashboardInsightsOut,
-    FoodDashboardOut,
-    RecipeInsightOut,
-)
-from .nutrition import (
-    ContributionOut,
-    ImprovementListOut,
-    ImprovementOut,
-    LlmSuggestionOut,
-    LlmSuggestionRequestIn,
-    NutriScoreDetailOut,
-    RecipeItemNutritionOut,
-    RecipeNutritionBreakdownOut,
-    RecipeRuleResult,
-    RecipeRulesOut,
-    SuggestedIngredientOut,
+from .suggestions import (
+    RecipeSuggestionOut,
+    SuggestionDashboardOut,
+    SuggestionOut,
 )
 from .type_stats import (
     BucketOut,
@@ -71,6 +71,7 @@ __all__ = [
     "DashboardInsightsOut",
     "EstimateQuantitiesOut",
     "EstimateQuantityItemOut",
+    "ExchangeGroupMemberOut",
     "FoodDashboardOut",
     "ForkRecipeIn",
     "ImprovementListOut",
@@ -87,19 +88,18 @@ __all__ = [
     "RecipeFilterIn",
     "RecipeInsightOut",
     "RecipeItemCreateIn",
+    "RecipeItemExchangeGroupCreateIn",
+    "RecipeItemExchangeGroupOut",
     "RecipeItemNutritionOut",
     "RecipeItemOut",
     "RecipeItemUpdateIn",
-    "RecipeItemExchangeGroupCreateIn",
-    "RecipeItemExchangeGroupOut",
-    "ExchangeGroupMemberOut",
     "RecipeListOut",
     "RecipeNutritionBreakdownOut",
     "RecipeRuleResult",
     "RecipeRulesOut",
     "RecipeSimilarOut",
-    "RecipeSuggestionOut",
     "RecipeSuggestAllOut",
+    "RecipeSuggestionOut",
     "RecipeTypeStatsOut",
     "RecipeTypeStatsRequest",
     "RecipeUpdateIn",

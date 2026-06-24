@@ -43,4 +43,3 @@ The Recipe API SHALL provide an endpoint that finds similar recipes based on emb
 - **WHEN** Staff-User `POST /api/admin/data-quality/recipes/merge/` with `{source_id, target_id}` is called
 - **THEN** the source recipe SHALL be soft-deleted
 - **THEN** a ContentLink with `link_type="duplicate_merged"` SHALL be created between source and target
-

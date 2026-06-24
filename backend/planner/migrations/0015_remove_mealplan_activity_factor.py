@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0014_meal_external_energy_kj_meal_is_external_and_more"),
     ]

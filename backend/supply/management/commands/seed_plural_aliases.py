@@ -59,9 +59,7 @@ class Command(BaseCommand):
 
         for canonical_fragment, alias_name in PLURAL_PAIRS:
             # Find ingredients whose name starts with (or exactly matches) the canonical fragment
-            ingredients = Ingredient.objects.filter(
-                name__iexact=canonical_fragment
-            ) | Ingredient.objects.filter(
+            ingredients = Ingredient.objects.filter(name__iexact=canonical_fragment) | Ingredient.objects.filter(
                 name__istartswith=canonical_fragment + " "
             )
 
@@ -74,17 +72,13 @@ class Command(BaseCommand):
                     continue
 
                 if dry_run:
-                    self.stdout.write(
-                        f"[DRY-RUN] Would add alias '{alias_name}' → '{ingredient.name}'"
-                    )
+                    self.stdout.write(f"[DRY-RUN] Would add alias '{alias_name}' → '{ingredient.name}'")
                 else:
                     IngredientAlias.objects.create(
                         ingredient=ingredient,
                         name=alias_name,
                     )
-                    self.stdout.write(
-                        f"Added alias '{alias_name}' → '{ingredient.name}'"
-                    )
+                    self.stdout.write(f"Added alias '{alias_name}' → '{ingredient.name}'")
                 created_count += 1
 
         if dry_run:
@@ -94,8 +88,4 @@ class Command(BaseCommand):
                 )
             )
         else:
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Created {created_count} aliases, skipped {skipped_count} existing."
-                )
-            )
+            self.stdout.write(self.style.SUCCESS(f"Created {created_count} aliases, skipped {skipped_count} existing."))

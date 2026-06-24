@@ -14,7 +14,6 @@ def reverse_rule_scope(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0032_rename_rule_scope_meal_event_to_meal_plan"),
     ]

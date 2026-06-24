@@ -1,7 +1,7 @@
 # Technical Design: Configurable Day-Part Factors and External Meals
 
 ## Context
-In den Pfadfinderlagern und -gruppenstunden werden Essenspläne (`MealPlan`) verwendet, um Mahlzeiten zu planen, Nährwerte im Cockpit zu überwachen und Einkaufslisten zu generieren. 
+In den Pfadfinderlagern und -gruppenstunden werden Essenspläne (`MealPlan`) verwendet, um Mahlzeiten zu planen, Nährwerte im Cockpit zu überwachen und Einkaufslisten zu generieren.
 Derzeit sind die prozentualen Tagesanteile (`day_part_factors`) für jeden Mahlzeitentyp (z.B. Frühstück = 25%, Mittagessen = 35%, Abendessen = 30%, Snack = 10%) global fest im Code verdrahtet (`MEAL_TYPE_DAY_FACTORS`). Dies verhindert individuelle Anpassungen pro Essensplan.
 Zudem gibt es keine Möglichkeit, Mahlzeiten als "extern" zu kennzeichnen (z.B. wenn die Gruppe auswärts isst oder Lunchpakete erhält), oder deren Kalorien manuell einzupflegen. Dies führt zu unvollständigen Tagesbilanzen und störenden Ampel-Warnungen im Cockpit.
 
@@ -10,7 +10,7 @@ Zudem gibt es keine Möglichkeit, Mahlzeiten als "extern" zu kennzeichnen (z.B. 
 ### Goals:
 - **Konfigurierbare Tagesanteile**: Ein Essensplan soll eigene Gewichtungen für Frühstück, Mittag, Abend, Snack und Dessert haben können.
 - **Externe Mahlzeiten**: Einzelne Mahlzeiten können als "extern" markiert werden. Sie erhalten ein optionales Feld für manuell eingegebene Ist-Kalorien (`external_energy_kcal`).
-- **Nährstoff-Cockpit-Integration**: 
+- **Nährstoff-Cockpit-Integration**:
   - Die manuellen Kalorien einer externen Mahlzeit fließen in die tägliche Energiebilanz ein.
   - Alle anderen Nährwerte einer externen Mahlzeit werden als neutral (0) gewertet.
   - Das Cockpit für die externe Mahlzeit selbst zeigt sich neutral (Soll-Wert = Ist-Wert, Status grün, keine Warnungen).
@@ -35,7 +35,7 @@ Wir speichern den Energiewert in Kilojoule (`external_energy_kj`) in der Datenba
 - **Alternative**: Speichern als `external_energy_kcal` direkt in der DB. Dies würde die systemweite Einheitlichkeit verletzen und bei späteren SQL-Aggregations-Abfragen Konvertierungsfehler begünstigen.
 
 ### 3. Propagierung von Plan-Faktoren auf Mahlzeiten
-Wenn die `day_part_factors` eines `MealPlan` aktualisiert werden, aktualisieren wir automatisch die `day_part_factor` Felder aller zugehörigen Mahlzeiten, deren Faktor noch dem alten Standardwert entsprach. 
+Wenn die `day_part_factors` eines `MealPlan` aktualisiert werden, aktualisieren wir automatisch die `day_part_factor` Felder aller zugehörigen Mahlzeiten, deren Faktor noch dem alten Standardwert entsprach.
 - **Wahl**: Intelligenter Abgleich beim `save()` des `MealPlan` Models.
 - **Rationale**: Verhindert, dass manuell editierte Faktoren einzelner Mahlzeiten überschrieben werden, während allgemeine Änderungen am Plan-Standard komfortabel auf alle unberührten Mahlzeiten übertragen werden.
 

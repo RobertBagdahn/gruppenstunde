@@ -9,9 +9,7 @@ def ensure_default_portions(apps, schema_editor):
     Portion = apps.get_model("supply", "Portion")
 
     # Get or create base measuring units (g and ml)
-    g_unit, _ = MeasuringUnit.objects.get_or_create(
-        name="g", unit="g", quantity=1.0, defaults={"description": "Gramm"}
-    )
+    g_unit, _ = MeasuringUnit.objects.get_or_create(name="g", unit="g", quantity=1.0, defaults={"description": "Gramm"})
     ml_unit, _ = MeasuringUnit.objects.get_or_create(
         name="ml", unit="ml", quantity=1.0, defaults={"description": "Milliliter"}
     )
@@ -65,7 +63,6 @@ def reverse(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0025_alter_portion_name"),
     ]

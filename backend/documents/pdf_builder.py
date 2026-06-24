@@ -6,26 +6,21 @@ from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import (
-    BaseDocTemplate,
-    Frame,
     Image,
     KeepTogether,
     PageBreak,
-    PageTemplate,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
 )
-from reportlab.lib import colors
-from reportlab.pdfbase.pdfmetrics import stringWidth
-
 from schema import FormFieldConfig, RegistrationConfig
 
 
@@ -166,11 +161,15 @@ def build_header_block(
             [[title_para, logo]],
             colWidths=[title_width, logo_width + 5 * mm],
         )
-        header_table.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("ALIGN", (0, 0), (0, 0), "CENTER"),
-            ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-        ]))
+        header_table.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 0), (0, 0), "CENTER"),
+                    ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                ]
+            )
+        )
         elements.append(header_table)
     else:
         elements.append(title_para)
@@ -236,10 +235,14 @@ def build_signup_note_block(text: str, params: LayoutParams) -> list:
     if not text:
         return []
     styles = _build_styles(params)
-    return [KeepTogether([
-        Paragraph(text, styles["italic"]),
-        Spacer(1, params.paragraph_spacing * mm),
-    ])]
+    return [
+        KeepTogether(
+            [
+                Paragraph(text, styles["italic"]),
+                Spacer(1, params.paragraph_spacing * mm),
+            ]
+        )
+    ]
 
 
 def _underline(target_width: float, font_name: str, font_size: float) -> str:
@@ -401,7 +404,6 @@ def measure_content_height(
 
     Returns total height in points (estimated from page count).
     """
-    from io import BytesIO
     import copy
 
     buf = BytesIO()
@@ -426,7 +428,6 @@ def trial_build_pages(
     params: LayoutParams,
 ) -> int:
     """Do a trial PDF build and return actual page count."""
-    from io import BytesIO
     import copy
 
     buf = BytesIO()

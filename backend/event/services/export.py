@@ -2,18 +2,16 @@
 
 import csv
 import io
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import date
 
 from openpyxl import Workbook
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from event.models import CustomField, Event, Participant
-
 
 # Column definitions: (id, german_label, type, value_extractor)
 STANDARD_COLUMNS = [

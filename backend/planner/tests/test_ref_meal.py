@@ -10,7 +10,7 @@ from django.utils import timezone
 from model_bakery import baker
 
 from planner.models import Meal, MealItem, MealPlan, MealTypeChoices
-from planner.tests import make_meal, make_meal_item, make_meal_plan
+from planner.tests import make_meal, make_meal_plan
 
 User = get_user_model()
 

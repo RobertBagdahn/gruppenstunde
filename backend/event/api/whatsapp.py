@@ -134,9 +134,7 @@ def list_templates(request):
 
     from event.models import MessageTemplate
 
-    templates = MessageTemplate.objects.filter(
-        user__isnull=True  # system templates
-    ) | MessageTemplate.objects.filter(
+    templates = MessageTemplate.objects.filter(user__isnull=True) | MessageTemplate.objects.filter(  # system templates
         user=request.user  # user's own templates
     )
     return list(templates.order_by("-is_system", "title"))

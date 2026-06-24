@@ -65,19 +65,19 @@ class Rule(models.Model):
     parameter: str  # choices aus HintParameterChoices (energy_kj, protein_g, etc.)
     scope: str      # "meal_event" | "day" | "meal" | "recipe"
     rule_type: str  # "nutrition" (erweiterbar für zukünftige Typen)
-    
+
     # Range-basierte Ampel (von HealthRule übernommen)
     min_yellow: Decimal
     min_green: Decimal
     max_green: Decimal
     max_yellow: Decimal
     unit: str
-    
+
     # Vorschlags-Text (von RecipeHint übernommen)
     hint_level: str  # "info" | "warn" | "error"
     tip_text: str
     improvement_text: str
-    
+
     is_active: bool
     sort_order: int
 ```

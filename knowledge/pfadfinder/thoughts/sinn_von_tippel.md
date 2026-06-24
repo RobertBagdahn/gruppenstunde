@@ -1,4 +1,4 @@
-Tippeln gehört zu den Pfafinder dazu, wie Heimabend und Zeltlager. 
+Tippeln gehört zu den Pfafinder dazu, wie Heimabend und Zeltlager.
 Wichtig für Gruppendynmamik, Entwicklung der Gruppe, wichtige Abenteuer
 Wichtig um die gelernten Pfadfinder Fährigkeiten aufzubauen. (Kartenkunde, Wetterkunde, Feuer, )
 
@@ -12,7 +12,7 @@ Kinder und Jugendliche...
 Eigenständige Planung von Strecke, Essen, Übernachtungen
 
 Wir suchen uns abends einen Zeltplatz oder schlafen in Schutzhütten, manchmal auch bei befreundeten Pfadfinder.
-Wir achten auf Naturschutz, 
+Wir achten auf Naturschutz,
 
 
 Was ist das?
@@ -26,7 +26,7 @@ Nichts ist Selbstverständlich.
 
 Wer schwere Sachen einpackt muss sie selbst tragen.
 
-Tippel ist erst ab 11 Jahre. 
+Tippel ist erst ab 11 Jahre.
 
 Ein Tippel ist vorausetzung für das Pfadfinderversprechen/Blaue Halstuch
 

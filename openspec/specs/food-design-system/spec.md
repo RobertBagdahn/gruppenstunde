@@ -102,4 +102,3 @@ Das Food Frontend SHALL eine Route `/styleguide` bereitstellen, die als lebendes
 #### Scenario: Styleguide spiegelt aktuelle Token
 - **WHEN** ein Design-Token geändert wurde
 - **THEN** zeigt die Styleguide-Page den aktualisierten Wert ohne separate Pflege
-

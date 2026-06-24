@@ -1,20 +1,14 @@
 """Pydantic schemas for the blog app (Blog)."""
 
-from datetime import datetime
-
 from ninja import Schema
 
 from content.base_schemas import (
-    ContentAuthorOut,
     ContentCreateIn,
     ContentDetailOut,
     ContentListOut,
     ContentSimilarOut,
     ContentUpdateIn,
-    ScoutLevelOut,
-    TagOut,
 )
-
 
 # ---------------------------------------------------------------------------
 # Blog List Schema

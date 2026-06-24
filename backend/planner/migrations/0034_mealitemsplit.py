@@ -5,28 +5,47 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('planner', '0033_merge_20260623_2355'),
-        ('recipe', '0044_alter_recipe_recipe_type'),
+        ("planner", "0033_merge_20260623_2355"),
+        ("recipe", "0044_alter_recipe_recipe_type"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='MealItemSplit',
+            name="MealItemSplit",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('share', models.FloatField(help_text='Anteil der Portionen 0.0–1.0', verbose_name='Anteil')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('meal_item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='splits', to='planner.mealitem', verbose_name='Mahlzeit-Eintrag')),
-                ('recipe_item', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='meal_splits', to='recipe.recipeitem', verbose_name='Rezept-Zutat')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("share", models.FloatField(help_text="Anteil der Portionen 0.0–1.0", verbose_name="Anteil")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "meal_item",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="splits",
+                        to="planner.mealitem",
+                        verbose_name="Mahlzeit-Eintrag",
+                    ),
+                ),
+                (
+                    "recipe_item",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="meal_splits",
+                        to="recipe.recipeitem",
+                        verbose_name="Rezept-Zutat",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Portionen-Split',
-                'verbose_name_plural': 'Portionen-Splits',
-                'constraints': [models.CheckConstraint(condition=models.Q(('share__gte', 0), ('share__lte', 1)), name='meal_item_split_share_range')],
-                'unique_together': {('meal_item', 'recipe_item')},
+                "verbose_name": "Portionen-Split",
+                "verbose_name_plural": "Portionen-Splits",
+                "constraints": [
+                    models.CheckConstraint(
+                        condition=models.Q(("share__gte", 0), ("share__lte", 1)), name="meal_item_split_share_range"
+                    )
+                ],
+                "unique_together": {("meal_item", "recipe_item")},
             },
         ),
     ]

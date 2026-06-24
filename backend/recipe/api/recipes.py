@@ -3,7 +3,7 @@
 import logging
 import time
 
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
 from ninja.errors import HttpError
@@ -13,15 +13,12 @@ from content.base_api import (
     enrich_content_with_interactions,
     enrich_list_with_permissions,
     get_comments,
-    get_emotion_counts,
-    get_user_emotion,
     paginate_queryset,
     record_view,
     toggle_emotion,
 )
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
 from content.schemas import ImageFromUrlIn
-
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
     ForkRecipeIn,
@@ -30,7 +27,6 @@ from recipe.schemas import (
     RecipeCreateIn,
     RecipeDetailOut,
     RecipeFilterIn,
-    RecipeListOut,
     RecipeSimilarOut,
     RecipeSuggestAllOut,
     RecipeUpdateIn,
@@ -226,10 +222,7 @@ def import_recipe_from_url(request, payload: RecipeImportRequestIn):
         title=result.title,
         description=result.description,
         servings=result.servings,
-        ingredients=[
-            {"name": i.name, "quantity": i.quantity, "unit": i.unit}
-            for i in result.ingredients
-        ],
+        ingredients=[{"name": i.name, "quantity": i.quantity, "unit": i.unit} for i in result.ingredients],
         steps=result.steps,
         image_url=result.image_url,
         source_url=result.source_url,
@@ -409,6 +402,7 @@ def create_recipe(request, payload: RecipeCreateIn):
     # Set M2M relations
     if payload.scout_level_ids:
         from content.models.tags import ScoutLevel
+
         valid_ids = set(ScoutLevel.objects.filter(id__in=payload.scout_level_ids).values_list("id", flat=True))
         recipe.scout_levels.set(valid_ids)
     if payload.tag_ids:
@@ -460,6 +454,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
 
     if scout_level_ids is not None:
         from content.models.tags import ScoutLevel
+
         valid_ids = set(ScoutLevel.objects.filter(id__in=scout_level_ids).values_list("id", flat=True))
         recipe.scout_levels.set(valid_ids)
     if tag_ids is not None:

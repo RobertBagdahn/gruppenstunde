@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("game", "0002_alter_game_game_type_alter_game_play_area"),
     ]

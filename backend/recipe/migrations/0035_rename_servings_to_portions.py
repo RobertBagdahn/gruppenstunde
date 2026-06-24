@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("recipe", "0034_remove_recipe_recipe_owner_vis_status_idx_and_more"),
     ]

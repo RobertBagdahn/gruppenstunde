@@ -12,7 +12,7 @@ Idempotent: uses slug-based deduplication.
 
 from django.core.management.base import BaseCommand
 
-from supply.models import Ingredient, NutritionalTag, MeasuringUnit, Portion
+from supply.models import Ingredient, MeasuringUnit, NutritionalTag, Portion
 
 # (name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, portions_grams, package_g)
 # portions_grams: (knapp, normal, üppig)
@@ -91,9 +91,8 @@ class Command(BaseCommand):
                     updated_count += 1
 
                 # Add tag if not already present
-                if not ing.nutritional_tags.filter(id=tag.id).exists():
-                    if not dry_run:
-                        ing.nutritional_tags.add(tag)
+                if not ing.nutritional_tags.filter(id=tag.id).exists() and not dry_run:
+                    ing.nutritional_tags.add(tag)
 
                 # Create three intensity portions
                 if not dry_run:
@@ -149,9 +148,7 @@ class Command(BaseCommand):
                     )
 
             except Exception as e:
-                self.stdout.write(
-                    self.style.ERROR(f"  ✗ Failed to process {name}: {e}")
-                )
+                self.stdout.write(self.style.ERROR(f"  ✗ Failed to process {name}: {e}"))
 
         # Summary
         self.stdout.write(self.style.SUCCESS("\n✓ Breakfast topping ingredients seed complete"))
@@ -159,6 +156,4 @@ class Command(BaseCommand):
         self.stdout.write(f"  Updated: {updated_count}")
 
         if dry_run:
-            self.stdout.write(
-                self.style.WARNING("\nDry run — no changes made.")
-            )
+            self.stdout.write(self.style.WARNING("\nDry run — no changes made."))

@@ -10,8 +10,6 @@ Usage:
     uv run python manage.py enrich_recipe_metadata_rules --all
 """
 
-import re
-
 from django.core.management.base import BaseCommand
 
 

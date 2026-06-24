@@ -386,7 +386,7 @@ export function useNutritionSummary(mealPlanId: number, date?: string) {
   return useQuery<NutritionSummary>({
     queryKey: ['meal-plan', mealPlanId, 'nutrition', date],
     queryFn: () => {
-      const url = date 
+      const url = date
         ? `${API_BASE}/${mealPlanId}/nutrition-summary/?date=${date}`
         : `${API_BASE}/${mealPlanId}/nutrition-summary/`;
       return fetchJson(url, NutritionSummarySchema);

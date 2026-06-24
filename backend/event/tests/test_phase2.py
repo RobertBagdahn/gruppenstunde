@@ -1,13 +1,11 @@
 """Tests for Export and Statistics APIs (Phase 2)."""
 
-import io
 import json
 from decimal import Decimal
 
 import pytest
 from django.test import Client
 
-from event.models import Event
 from event.tests import (
     make_booking_option,
     make_custom_field,
@@ -17,7 +15,6 @@ from event.tests import (
     make_payment,
     make_registration,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

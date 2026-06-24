@@ -14,9 +14,7 @@ def increment_usage_count_on_create(sender, instance, created, **kwargs):
     if created and instance.recipe_id:
         from recipe.models import Recipe
 
-        Recipe.objects.filter(pk=instance.recipe_id).update(
-            usage_count=F("usage_count") + 1
-        )
+        Recipe.objects.filter(pk=instance.recipe_id).update(usage_count=F("usage_count") + 1)
 
 
 @receiver(pre_save, sender=MealItem, dispatch_uid="planner.track_previous_recipe")
@@ -24,9 +22,7 @@ def track_previous_recipe(sender, instance, **kwargs):
     """Store previous recipe_id before save to detect changes."""
     if instance.pk:
         try:
-            instance._previous_recipe_id = MealItem.objects.values_list(
-                "recipe_id", flat=True
-            ).get(pk=instance.pk)
+            instance._previous_recipe_id = MealItem.objects.values_list("recipe_id", flat=True).get(pk=instance.pk)
         except MealItem.DoesNotExist:
             instance._previous_recipe_id = None
     else:
@@ -49,9 +45,7 @@ def update_usage_count_on_change(sender, instance, created, **kwargs):
 
     if previous:
         # Use GREATEST to prevent usage_count going below 0
-        Recipe.objects.filter(pk=previous).update(
-            usage_count=Greatest(F("usage_count") - 1, 0)
-        )
+        Recipe.objects.filter(pk=previous).update(usage_count=Greatest(F("usage_count") - 1, 0))
     if current:
         Recipe.objects.filter(pk=current).update(usage_count=F("usage_count") + 1)
 
@@ -63,6 +57,4 @@ def decrement_usage_count_on_delete(sender, instance, **kwargs):
         from recipe.models import Recipe
 
         # Use GREATEST to prevent usage_count going below 0
-        Recipe.objects.filter(pk=instance.recipe_id).update(
-            usage_count=Greatest(F("usage_count") - 1, 0)
-        )
+        Recipe.objects.filter(pk=instance.recipe_id).update(usage_count=Greatest(F("usage_count") - 1, 0))

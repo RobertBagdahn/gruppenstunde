@@ -13,21 +13,19 @@ from content.base_api import (
     enrich_content_with_interactions,
     enrich_list_with_permissions,
     get_comments,
-    paginate_queryset,
     record_view,
     toggle_emotion,
 )
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
-from content.schemas import ImageFromUrlIn
 from content.choices import ContentStatus
 from content.models import Tag
+from content.schemas import ImageFromUrlIn
 from supply.schemas import ContentMaterialItemIn
 
 from .models import GroupSession
 from .schemas import (
     GroupSessionCreateIn,
     GroupSessionDetailOut,
-    GroupSessionListOut,
     GroupSessionUpdateIn,
     PaginatedGroupSessionOut,
 )

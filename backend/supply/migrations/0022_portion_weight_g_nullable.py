@@ -5,15 +5,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0021_ingredientalias_unique_alias_name_per_ingredient'),
+        ("supply", "0021_ingredientalias_unique_alias_name_per_ingredient"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='portion',
-            name='weight_g',
-            field=models.FloatField(blank=True, default=None, help_text='Gewicht einer Portion in Gramm. NULL = unbekannt.', null=True, validators=[django.core.validators.MinValueValidator(0.01)], verbose_name='Gewicht (g)'),
+            model_name="portion",
+            name="weight_g",
+            field=models.FloatField(
+                blank=True,
+                default=None,
+                help_text="Gewicht einer Portion in Gramm. NULL = unbekannt.",
+                null=True,
+                validators=[django.core.validators.MinValueValidator(0.01)],
+                verbose_name="Gewicht (g)",
+            ),
         ),
     ]

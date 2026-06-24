@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("session", "0004_remove_groupsession_is_deleted_and_more"),
     ]

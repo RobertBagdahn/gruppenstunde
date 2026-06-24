@@ -9,7 +9,7 @@ from ninja.errors import HttpError
 
 from event.api.events import event_router
 from event.api.helpers import require_auth, require_event_manager
-from event.models import Event, Participant, ParentAccessToken
+from event.models import Event, ParentAccessToken, Participant
 from event.schemas import (
     BatchParentAccessTokenCreateIn,
     MeetingPointOut,
@@ -17,7 +17,6 @@ from event.schemas import (
     ParentAccessTokenCreateIn,
     ParentAccessTokenOut,
 )
-
 
 # ==========================================================================
 # Parent View (public, no auth required)

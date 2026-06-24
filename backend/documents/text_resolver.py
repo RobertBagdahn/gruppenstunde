@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import locale
-from typing import Any
 
 from schema import EventConfig, RegistrationConfig
 
@@ -63,8 +61,19 @@ def format_fee(event: EventConfig) -> str:
 def format_deadline(event: EventConfig) -> str:
     """Generate 'Bitte bis zum 22. Mai 2026 abgeben!'."""
     months = [
-        "", "Januar", "Februar", "März", "April", "Mai", "Juni",
-        "Juli", "August", "September", "Oktober", "November", "Dezember",
+        "",
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
     ]
     d = event.registration_deadline
     return f"Bitte bis zum {d.day}. {months[d.month]} {d.year} abgeben!"
@@ -197,9 +206,6 @@ Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
         return text
 
     except ImportError:
-        raise RuntimeError(
-            "KI-Textgenerierung benötigt google-genai. "
-            "Installiere es mit: uv add google-genai"
-        )
+        raise RuntimeError("KI-Textgenerierung benötigt google-genai. " "Installiere es mit: uv add google-genai")
     except Exception as e:
         raise RuntimeError(f"KI-Textgenerierung fehlgeschlagen: {e}") from e

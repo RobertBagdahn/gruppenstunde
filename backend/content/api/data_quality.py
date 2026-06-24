@@ -7,21 +7,19 @@ from collections import defaultdict
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models as db_models
-from django.db.models import Avg, Count, F, Q, StdDev
+from django.db.models import Avg, Q
 from django.utils import timezone
 from ninja import Router
 from ninja.errors import HttpError
-from ninja.pagination import paginate
 
-from content.models import ChangeAuditLog, DuplicateDismissal
+from content.models import DuplicateDismissal
 from content.schemas.data_quality import (
     CacheStalenessOut,
     CompletenessItemOut,
     CostDistributionOut,
+    DismissRequestIn,
     DistributionBucketOut,
     DistributionStatsOut,
-    DismissRequestIn,
-    DuplicatePairOut,
     EnergyDistributionOut,
     ImpactOut,
     MergePreviewOut,
@@ -99,12 +97,17 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
     items = []
     for ing in ingredients:
         if ing.price_per_kg is None:
-            items.append({
-                "id": ing.id, "name": ing.name, "slug": ing.slug,
-                "price_per_kg": None,
-                "retail_section": ing.retail_section.name if ing.retail_section else None,
-                "z_score": None, "anomaly_type": "missing",
-            })
+            items.append(
+                {
+                    "id": ing.id,
+                    "name": ing.name,
+                    "slug": ing.slug,
+                    "price_per_kg": None,
+                    "retail_section": ing.retail_section.name if ing.retail_section else None,
+                    "z_score": None,
+                    "anomaly_type": "missing",
+                }
+            )
             continue
 
         section_id = ing.retail_section_id or 0
@@ -113,12 +116,17 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
 
         if abs(z) > 2.5:
             anomaly = "high" if z > 0 else "low"
-            items.append({
-                "id": ing.id, "name": ing.name, "slug": ing.slug,
-                "price_per_kg": str(ing.price_per_kg),
-                "retail_section": ing.retail_section.name if ing.retail_section else None,
-                "z_score": round(z, 2), "anomaly_type": anomaly,
-            })
+            items.append(
+                {
+                    "id": ing.id,
+                    "name": ing.name,
+                    "slug": ing.slug,
+                    "price_per_kg": str(ing.price_per_kg),
+                    "retail_section": ing.retail_section.name if ing.retail_section else None,
+                    "z_score": round(z, 2),
+                    "anomaly_type": anomaly,
+                }
+            )
 
     if anomaly_type:
         items = [i for i in items if i["anomaly_type"] == anomaly_type]
@@ -129,7 +137,7 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
-    page_items = items[start:start + page_size]
+    page_items = items[start : start + page_size]
 
     return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
@@ -146,12 +154,14 @@ def price_evaluate(request, body: PriceEvaluateRequestIn):
     for ing in ingredients[:50]:
         # Use Gemini to suggest a price
         suggested = _ai_suggest_price(ing)
-        suggestions.append(PriceSuggestionOut(
-            ingredient_id=ing.id,
-            current_price=str(ing.price_per_kg) if ing.price_per_kg else None,
-            suggested_price=suggested.get("price"),
-            reasoning=suggested.get("reasoning", "Keine KI-Empfehlung verfügbar"),
-        ))
+        suggestions.append(
+            PriceSuggestionOut(
+                ingredient_id=ing.id,
+                current_price=str(ing.price_per_kg) if ing.price_per_kg else None,
+                suggested_price=suggested.get("price"),
+                reasoning=suggested.get("reasoning", "Keine KI-Empfehlung verfügbar"),
+            )
+        )
 
     return PriceEvaluateResponseOut(suggestions=suggestions, batch_token=str(uuid.uuid4()))
 
@@ -181,7 +191,7 @@ def _ai_suggest_price(ingredient) -> dict:
         if price_str:
             try:
                 float(price_str)
-                return {"price": price_str, "reasoning": f"KI-Schätzung basierend auf Produktname und Kategorie."}
+                return {"price": price_str, "reasoning": "KI-Schätzung basierend auf Produktname und Kategorie."}
             except ValueError:
                 pass
     except Exception as e:
@@ -261,11 +271,13 @@ def ingredient_duplicates(request):
         if pair_key in seen or pair_key in dismissed:
             continue
         seen.add(pair_key)
-        pairs.append({
-            "ingredient_a": {"id": id_a, "name": name_a, "slug": slug_a},
-            "ingredient_b": {"id": id_b, "name": name_b, "slug": slug_b},
-            "similarity": round(sim, 4),
-        })
+        pairs.append(
+            {
+                "ingredient_a": {"id": id_a, "name": name_a, "slug": slug_a},
+                "ingredient_b": {"id": id_b, "name": name_b, "slug": slug_b},
+                "similarity": round(sim, 4),
+            }
+        )
 
     return {"items": pairs, "total": len(pairs), "page": 1, "page_size": 5, "total_pages": 1}
 
@@ -312,11 +324,13 @@ def recipe_duplicates(request):
         if pair_key in seen:
             continue
         seen.add(pair_key)
-        pairs.append({
-            "ingredient_a": {"id": id_a, "name": title_a, "slug": slug_a},
-            "ingredient_b": {"id": id_b, "name": title_b, "slug": slug_b},
-            "similarity": round(sim, 4),
-        })
+        pairs.append(
+            {
+                "ingredient_a": {"id": id_a, "name": title_a, "slug": slug_a},
+                "ingredient_b": {"id": id_b, "name": title_b, "slug": slug_b},
+                "similarity": round(sim, 4),
+            }
+        )
 
     return {"items": pairs, "total": len(pairs), "page": 1, "page_size": 5, "total_pages": 1}
 
@@ -327,8 +341,10 @@ def dismiss_duplicate(request, body: DismissRequestIn):
     ct = ContentType.objects.get_for_model(Ingredient)
     a, b = sorted([body.ingredient_a_id, body.ingredient_b_id])
     DuplicateDismissal.objects.get_or_create(
-        source_content_type=ct, source_object_id=a,
-        target_content_type=ct, target_object_id=b,
+        source_content_type=ct,
+        source_object_id=a,
+        target_content_type=ct,
+        target_object_id=b,
         defaults={"dismissed_by": request.user},
     )
     return {"success": True}
@@ -340,8 +356,10 @@ def undismiss_duplicate(request, body: DismissRequestIn):
     ct = ContentType.objects.get_for_model(Ingredient)
     a, b = sorted([body.ingredient_a_id, body.ingredient_b_id])
     DuplicateDismissal.objects.filter(
-        source_content_type=ct, source_object_id=a,
-        target_content_type=ct, target_object_id=b,
+        source_content_type=ct,
+        source_object_id=a,
+        target_content_type=ct,
+        target_object_id=b,
     ).delete()
     return {"success": True}
 
@@ -356,6 +374,7 @@ def merge_preview(request, source_id: int, target_id: int):
         raise HttpError(404, "Zutat nicht gefunden")
 
     from recipe.models import RecipeItem
+
     affected = RecipeItem.objects.filter(portion__ingredient=source).count()
 
     return MergePreviewOut(
@@ -397,9 +416,7 @@ def merge_ingredients(request, body: MergeRequestIn):
     # Rebind RecipeItems
     from recipe.models import RecipeItem
 
-    RecipeItem.objects.filter(portion__ingredient=source).update(
-        portion_id=None
-    )
+    RecipeItem.objects.filter(portion__ingredient=source).update(portion_id=None)
     # Delete source portions and soft-delete source
     source.portions.all().delete()
     source.delete()
@@ -420,16 +437,25 @@ def ingredient_completeness(request, page: int = 1, page_size: int = 20):
     total = ingredients.count()
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
-    qs = ingredients[start:start + page_size]
+    qs = ingredients[start : start + page_size]
 
     items = []
     for ing in qs:
-        items.append(CompletenessItemOut(
-            id=ing.id, name=ing.name, slug=ing.slug,
-            quality_score=ing.quality_score, status=ing.status,
-            nutrition_score=0, price_score=0, physical_score=0,
-            classification_score=0, scout_score=0, portion_score=0,
-        ))
+        items.append(
+            CompletenessItemOut(
+                id=ing.id,
+                name=ing.name,
+                slug=ing.slug,
+                quality_score=ing.quality_score,
+                status=ing.status,
+                nutrition_score=0,
+                price_score=0,
+                physical_score=0,
+                classification_score=0,
+                scout_score=0,
+                portion_score=0,
+            )
+        )
 
     return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
@@ -437,21 +463,23 @@ def ingredient_completeness(request, page: int = 1, page_size: int = 20):
 @admin_router.get("/ingredients/missing-classification/")
 def missing_classification(request, page: int = 1, page_size: int = 20):
     _require_staff(request)
-    qs = Ingredient.objects.filter(
-        Q(retail_section__isnull=True) | Q(nutritional_tags__isnull=True)
-    ).distinct()
+    qs = Ingredient.objects.filter(Q(retail_section__isnull=True) | Q(nutritional_tags__isnull=True)).distinct()
 
     total = qs.count()
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
 
     items = []
-    for ing in qs[start:start + page_size]:
-        items.append(MissingClassificationOut(
-            id=ing.id, name=ing.name, slug=ing.slug,
-            missing_retail_section=ing.retail_section_id is None,
-            missing_tags=not ing.nutritional_tags.exists(),
-        ))
+    for ing in qs[start : start + page_size]:
+        items.append(
+            MissingClassificationOut(
+                id=ing.id,
+                name=ing.name,
+                slug=ing.slug,
+                missing_retail_section=ing.retail_section_id is None,
+                missing_tags=not ing.nutritional_tags.exists(),
+            )
+        )
 
     return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
@@ -464,26 +492,38 @@ def nutrition_plausibility(request, page: int = 1, page_size: int = 20):
     for ing in ingredients:
         macro_sum = (ing.protein_g or 0) + (ing.fat_g or 0) + (ing.carbohydrate_g or 0)
         if macro_sum > 110:
-            items.append(NutritionPlausibilityOut(
-                id=ing.id, name=ing.name, slug=ing.slug,
-                energy_kcal=ing.energy_kcal or 0, protein_g=ing.protein_g or 0,
-                fat_g=ing.fat_g or 0, carbohydrate_g=ing.carbohydrate_g or 0,
-                macro_sum=round(macro_sum, 1),
-                issue=f"Makro-Summe {round(macro_sum, 1)}g > 100g/100g",
-            ))
+            items.append(
+                NutritionPlausibilityOut(
+                    id=ing.id,
+                    name=ing.name,
+                    slug=ing.slug,
+                    energy_kcal=ing.energy_kcal or 0,
+                    protein_g=ing.protein_g or 0,
+                    fat_g=ing.fat_g or 0,
+                    carbohydrate_g=ing.carbohydrate_g or 0,
+                    macro_sum=round(macro_sum, 1),
+                    issue=f"Makro-Summe {round(macro_sum, 1)}g > 100g/100g",
+                )
+            )
         elif ing.energy_kcal and ing.energy_kcal > 900:
-            items.append(NutritionPlausibilityOut(
-                id=ing.id, name=ing.name, slug=ing.slug,
-                energy_kcal=ing.energy_kcal, protein_g=ing.protein_g or 0,
-                fat_g=ing.fat_g or 0, carbohydrate_g=ing.carbohydrate_g or 0,
-                macro_sum=round(macro_sum, 1),
-                issue=f"Extrem hohe Energiedichte: {ing.energy_kcal} kcal/100g",
-            ))
+            items.append(
+                NutritionPlausibilityOut(
+                    id=ing.id,
+                    name=ing.name,
+                    slug=ing.slug,
+                    energy_kcal=ing.energy_kcal,
+                    protein_g=ing.protein_g or 0,
+                    fat_g=ing.fat_g or 0,
+                    carbohydrate_g=ing.carbohydrate_g or 0,
+                    macro_sum=round(macro_sum, 1),
+                    issue=f"Extrem hohe Energiedichte: {ing.energy_kcal} kcal/100g",
+                )
+            )
 
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
-    page_items = items[start:start + page_size]
+    page_items = items[start : start + page_size]
     return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
 
@@ -492,22 +532,24 @@ def recipe_metadata_check(request, page: int = 1, page_size: int = 20):
     _require_staff(request)
     from recipe.models import Recipe
 
-    qs = Recipe.objects.filter(
-        Q(image__isnull=True) | Q(summary="") | Q(tags__isnull=True)
-    ).distinct()
+    qs = Recipe.objects.filter(Q(image__isnull=True) | Q(summary="") | Q(tags__isnull=True)).distinct()
 
     total = qs.count()
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
 
     items = []
-    for recipe in qs[start:start + page_size]:
-        items.append(RecipeMetadataCheckOut(
-            id=recipe.id, title=recipe.title, slug=recipe.slug,
-            missing_image=not bool(recipe.image),
-            missing_tags=not recipe.tags.exists(),
-            missing_summary=not bool(recipe.summary),
-        ))
+    for recipe in qs[start : start + page_size]:
+        items.append(
+            RecipeMetadataCheckOut(
+                id=recipe.id,
+                title=recipe.title,
+                slug=recipe.slug,
+                missing_image=not bool(recipe.image),
+                missing_tags=not recipe.tags.exists(),
+                missing_summary=not bool(recipe.summary),
+            )
+        )
 
     return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
@@ -528,16 +570,20 @@ def recipe_cache_staleness(request, page: int = 1, page_size: int = 20):
                     stale = True
                     break
         if stale:
-            items.append(CacheStalenessOut(
-                id=recipe.id, title=recipe.title, slug=recipe.slug,
-                cached_at=str(recipe.cached_at),
-                stale_since=str(recipe.cached_at),
-            ))
+            items.append(
+                CacheStalenessOut(
+                    id=recipe.id,
+                    title=recipe.title,
+                    slug=recipe.slug,
+                    cached_at=str(recipe.cached_at),
+                    stale_since=str(recipe.cached_at),
+                )
+            )
 
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
-    page_items = items[start:start + page_size]
+    page_items = items[start : start + page_size]
     return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
 
@@ -550,22 +596,30 @@ def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
     items = []
     for recipe in qs:
         if recipe.cached_weight_g and recipe.cached_weight_g < 100:
-            items.append(PortionPlausibilityOut(
-                id=recipe.id, title=recipe.title, slug=recipe.slug,
-                cached_weight_g=recipe.cached_weight_g,
-                issue=f"Sehr wenig Gewicht pro Portion: {recipe.cached_weight_g:.0f}g",
-            ))
+            items.append(
+                PortionPlausibilityOut(
+                    id=recipe.id,
+                    title=recipe.title,
+                    slug=recipe.slug,
+                    cached_weight_g=recipe.cached_weight_g,
+                    issue=f"Sehr wenig Gewicht pro Portion: {recipe.cached_weight_g:.0f}g",
+                )
+            )
         elif recipe.cached_weight_g and recipe.cached_weight_g > 2000:
-            items.append(PortionPlausibilityOut(
-                id=recipe.id, title=recipe.title, slug=recipe.slug,
-                cached_weight_g=recipe.cached_weight_g,
-                issue=f"Sehr viel Gewicht pro Portion: {recipe.cached_weight_g:.0f}g",
-            ))
+            items.append(
+                PortionPlausibilityOut(
+                    id=recipe.id,
+                    title=recipe.title,
+                    slug=recipe.slug,
+                    cached_weight_g=recipe.cached_weight_g,
+                    issue=f"Sehr viel Gewicht pro Portion: {recipe.cached_weight_g:.0f}g",
+                )
+            )
 
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
-    page_items = items[start:start + page_size]
+    page_items = items[start : start + page_size]
     return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
 
@@ -580,6 +634,7 @@ def quality_trend(request, type: str = "ingredients"):
         avg = Ingredient.objects.exclude(quality_score__isnull=True).aggregate(avg=Avg("quality_score"))["avg"]
     else:
         from recipe.models import Recipe
+
         avg = Recipe.objects.exclude(quality_score__isnull=True).aggregate(avg=Avg("quality_score"))["avg"]
     points.append(QualityTrendPointOut(date=now.strftime("%Y-%m-%d"), avg_score=round(avg or 0, 1)))
     return QualityTrendOut(points=points)
@@ -591,7 +646,9 @@ def quality_trend(request, type: str = "ingredients"):
 
 
 @admin_router.get("/audit-log/", response=PaginatedAuditLogOut)
-def audit_log(request, content_type: str | None = None, object_id: int | None = None, page: int = 1, page_size: int = 20):
+def audit_log(
+    request, content_type: str | None = None, object_id: int | None = None, page: int = 1, page_size: int = 20
+):
     _require_staff(request)
 
     qs = get_audit_log_queryset(content_type_str=content_type, object_id=object_id)
@@ -600,15 +657,17 @@ def audit_log(request, content_type: str | None = None, object_id: int | None = 
     start = (page - 1) * page_size
 
     entries = []
-    for entry in qs[start:start + page_size]:
-        entries.append({
-            "id": entry.id,
-            "field_name": entry.field_name,
-            "old_value": entry.old_value,
-            "new_value": entry.new_value,
-            "changed_by_name": entry.changed_by.username if entry.changed_by else None,
-            "changed_at": entry.changed_at,
-        })
+    for entry in qs[start : start + page_size]:
+        entries.append(
+            {
+                "id": entry.id,
+                "field_name": entry.field_name,
+                "old_value": entry.old_value,
+                "new_value": entry.new_value,
+                "changed_by_name": entry.changed_by.username if entry.changed_by else None,
+                "changed_at": entry.changed_at,
+            }
+        )
 
     return {"items": entries, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
@@ -626,9 +685,11 @@ def ingredient_impact(request, slug: str):
         raise HttpError(404, "Zutat nicht gefunden")
 
     from recipe.models import RecipeItem
+
     recipe_count = RecipeItem.objects.filter(portion__ingredient=ing).values("recipe_id").distinct().count()
 
     from planner.models import MealPlan
+
     recipe_ids = RecipeItem.objects.filter(portion__ingredient=ing).values_list("recipe_id", flat=True)
     meal_plan_count = MealPlan.objects.filter(meals__recipeitem__recipe_id__in=recipe_ids).distinct().count()
 
@@ -641,7 +702,9 @@ def ingredient_impact(request, slug: str):
 
 
 @public_router.get("/ingredients/distribution/cost/", response=CostDistributionOut)
-def ingredient_cost_distribution(request, tags: str | None = None, retail_section: int | None = None, status: str | None = None):
+def ingredient_cost_distribution(
+    request, tags: str | None = None, retail_section: int | None = None, status: str | None = None
+):
     qs = Ingredient.objects.filter(price_per_kg__isnull=False)
     if retail_section:
         qs = qs.filter(retail_section_id=retail_section)
@@ -653,7 +716,9 @@ def ingredient_cost_distribution(request, tags: str | None = None, retail_sectio
 
     prices = [float(ing.price_per_kg) for ing in qs]
     if not prices:
-        return CostDistributionOut(buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0))
+        return CostDistributionOut(
+            buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0)
+        )
 
     prices.sort()
     bucket_ranges = [(0, 1), (1, 2), (2, 5), (5, 10), (10, 20), (20, 50), (50, None)]
@@ -674,7 +739,9 @@ def ingredient_cost_distribution(request, tags: str | None = None, retail_sectio
 
 
 @public_router.get("/ingredients/distribution/energy/", response=EnergyDistributionOut)
-def ingredient_energy_distribution(request, tags: str | None = None, retail_section: int | None = None, status: str | None = None):
+def ingredient_energy_distribution(
+    request, tags: str | None = None, retail_section: int | None = None, status: str | None = None
+):
     qs = Ingredient.objects.exclude(energy_kcal=0)
     if retail_section:
         qs = qs.filter(retail_section_id=retail_section)
@@ -686,7 +753,12 @@ def ingredient_energy_distribution(request, tags: str | None = None, retail_sect
 
     energies = [(ing.id, ing.name, ing.energy_kcal or 0) for ing in qs]
     if not energies:
-        return EnergyDistributionOut(buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0), top_dense=[], bottom_dense=[])
+        return EnergyDistributionOut(
+            buckets=[],
+            stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0),
+            top_dense=[],
+            bottom_dense=[],
+        )
 
     kcal_values = [e[2] for e in energies]
     kcal_values.sort()
@@ -713,7 +785,9 @@ def ingredient_energy_distribution(request, tags: str | None = None, retail_sect
 
 
 @public_router.get("/ingredients/distribution/nutrients/", response=NutrientDistributionOut)
-def ingredient_nutrient_distribution(request, tags: str | None = None, retail_section: int | None = None, status: str | None = None):
+def ingredient_nutrient_distribution(
+    request, tags: str | None = None, retail_section: int | None = None, status: str | None = None
+):
     qs = Ingredient.objects.exclude(energy_kcal=0)
     if retail_section:
         qs = qs.filter(retail_section_id=retail_section)
@@ -727,6 +801,7 @@ def ingredient_nutrient_distribution(request, tags: str | None = None, retail_se
 
     # Determine which ingredients are vegan
     from supply.models import NutritionalTag
+
     try:
         vegan_tag = NutritionalTag.objects.get(name__iexact="vegan")
         vegan_ids = set(Ingredient.objects.filter(nutritional_tags=vegan_tag).values_list("id", flat=True))
@@ -736,14 +811,17 @@ def ingredient_nutrient_distribution(request, tags: str | None = None, retail_se
     nutrients = []
     scatter = []
     for ing in qs[:500]:
-        scatter.append(NutrientScatterItemOut(
-            id=ing.id, name=ing.name,
-            energy_kcal=ing.energy_kcal or 0,
-            protein_g=ing.protein_g or 0,
-            fat_g=ing.fat_g or 0,
-            carbohydrate_g=ing.carbohydrate_g or 0,
-            is_vegan=ing.id in vegan_ids,
-        ))
+        scatter.append(
+            NutrientScatterItemOut(
+                id=ing.id,
+                name=ing.name,
+                energy_kcal=ing.energy_kcal or 0,
+                protein_g=ing.protein_g or 0,
+                fat_g=ing.fat_g or 0,
+                carbohydrate_g=ing.carbohydrate_g or 0,
+                is_vegan=ing.id in vegan_ids,
+            )
+        )
 
     return NutrientDistributionOut(nutrients=nutrients, scatter_data=scatter)
 
@@ -758,7 +836,9 @@ def recipe_cost_distribution(request, recipe_type: str | None = None):
 
     prices = [float(r.cached_price_total) for r in qs]
     if not prices:
-        return CostDistributionOut(buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0))
+        return CostDistributionOut(
+            buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0)
+        )
 
     prices.sort()
     bucket_ranges = [(0, 1), (1, 2), (2, 5), (5, 10), (10, 20), (20, None)]
@@ -788,7 +868,12 @@ def recipe_calorie_distribution(request, recipe_type: str | None = None):
 
     energies = [(r.id, r.title, r.cached_energy_total_kcal or 0) for r in qs]
     if not energies:
-        return EnergyDistributionOut(buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0), top_dense=[], bottom_dense=[])
+        return EnergyDistributionOut(
+            buckets=[],
+            stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0),
+            top_dense=[],
+            bottom_dense=[],
+        )
 
     kcal_vals = [e[2] for e in energies]
     kcal_vals.sort()

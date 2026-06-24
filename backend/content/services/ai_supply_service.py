@@ -281,6 +281,3 @@ def match_ingredients_to_database(suggestions: list[dict[str, Any]]) -> list[dic
         )
 
     return enriched
-
-
-

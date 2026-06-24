@@ -36,4 +36,3 @@ The system SHALL NOT copy MealPlanCollaborators, MealItemOverrides, or Meal note
 #### Scenario: Notes not copied
 - **WHEN** a plan with Meal notes is duplicated
 - **THEN** the new plan's Meals have empty note fields
-

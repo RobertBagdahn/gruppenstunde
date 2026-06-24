@@ -4,7 +4,6 @@ from django.utils.translation import gettext_lazy as _
 
 from ..choices import WhatsAppMessageStatusChoices
 
-
 # ---------------------------------------------------------------------------
 # WhatsApp Connection (one per user)
 # ---------------------------------------------------------------------------

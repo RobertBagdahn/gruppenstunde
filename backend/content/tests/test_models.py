@@ -4,19 +4,14 @@ import pytest
 from django.contrib.contenttypes.models import ContentType
 
 from content.models import (
-    ApprovalLog,
     ContentComment,
     ContentEmotion,
     ContentLink,
-    ContentView,
     FeaturedContent,
     ScoutLevel,
-    SearchLog,
     Tag,
-    TagSuggestion,
 )
 from supply.models import Material
-
 
 # ---------------------------------------------------------------------------
 # SoftDeleteModel Tests (via Material which inherits Supply → SoftDeleteModel)

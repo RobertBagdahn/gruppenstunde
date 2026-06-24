@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0004_changeauditlog_duplicatedismissal"),
         ("supply", "0030_ingredient_embedding_ingredient_embedding_updated_at_and_more"),

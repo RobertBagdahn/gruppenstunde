@@ -13,7 +13,7 @@ from typing import Any
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-from pgvector.django import CosineDistance, L2Distance
+from pgvector.django import CosineDistance
 
 logger = logging.getLogger(__name__)
 
@@ -203,9 +203,7 @@ def build_recipe_embedding_text(recipe) -> str:
 
     # Ingredients
     try:
-        items = recipe.recipe_items.select_related(
-            "portion__ingredient", "portion__measuring_unit"
-        ).all()
+        items = recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").all()
         if items:
             ingredient_parts = []
             for item in items:
@@ -369,7 +367,7 @@ def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     """Compute cosine similarity between two vectors."""
     if len(vec_a) != len(vec_b):
         return 0.0
-    dot = sum(a * b for a, b in zip(vec_a, vec_b))
+    dot = sum(a * b for a, b in zip(vec_a, vec_b, strict=False))
     norm_a = sum(a * a for a in vec_a) ** 0.5
     norm_b = sum(b * b for b in vec_b) ** 0.5
     if norm_a == 0 or norm_b == 0:

@@ -9,7 +9,6 @@ from django.test import Client
 from event.models import Event, EventDaySlot
 from event.tests import make_event
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

@@ -4,9 +4,7 @@ import pytest
 from django.test import Client
 
 from planner.api.meal_plan import MEAL_TYPE_TO_RECIPE_TYPES, _resolve_recipe_badge
-from recipe.models import Recipe
 from recipe.tests import make_recipe
-from planner.tests import make_meal, make_meal_plan
 
 
 @pytest.mark.django_db
@@ -40,6 +38,7 @@ class TestRecipeBadge:
 
     def test_community_badge(self, db):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         owner = User.objects.create_user(username="community_owner", password="pass")
         recipe = make_recipe(title="Test")
@@ -52,6 +51,7 @@ class TestRecipeBadge:
 
     def test_draft_badge(self, db):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         owner = User.objects.create_user(username="draft_owner", password="pass")
         recipe = make_recipe(title="Test")
@@ -80,7 +80,11 @@ class TestPricePerServing:
         recipe.portions = 5
         recipe.cached_price_total = None
         recipe.save()
-        pps = round(float(recipe.cached_price_total) / recipe.portions, 2) if recipe.cached_price_total and recipe.portions > 0 else None
+        pps = (
+            round(float(recipe.cached_price_total) / recipe.portions, 2)
+            if recipe.cached_price_total and recipe.portions > 0
+            else None
+        )
         assert pps is None
 
     def test_price_null_when_zero_portions(self):
@@ -88,7 +92,11 @@ class TestPricePerServing:
         recipe.portions = 0
         recipe.cached_price_total = 10.00
         recipe.save()
-        pps = round(float(recipe.cached_price_total) / recipe.portions, 2) if recipe.cached_price_total and recipe.portions > 0 else None
+        pps = (
+            round(float(recipe.cached_price_total) / recipe.portions, 2)
+            if recipe.cached_price_total and recipe.portions > 0
+            else None
+        )
         assert pps is None
 
 
@@ -113,6 +121,7 @@ class TestRecentlyUsedEndpoint:
 
     def test_endpoint_returns_empty_for_new_user(self, db):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         user = User.objects.create_user(username="testuser", password="pass")
         client = Client()
@@ -129,9 +138,7 @@ class TestRandomSuggestion:
 
     def test_random_returns_single_or_empty(self):
         client = Client()
-        response = client.get(
-            "/api/meal-plans/recipes/suggestions/?meal_type=breakfast&random=true&limit=1"
-        )
+        response = client.get("/api/meal-plans/recipes/suggestions/?meal_type=breakfast&random=true&limit=1")
         assert response.status_code in (200, 401, 403)
 
 
@@ -141,9 +148,7 @@ class TestSearchEndpoint:
 
     def test_search_returns_fallback_applied(self):
         client = Client()
-        response = client.get(
-            "/api/meal-plans/recipes/search/?meal_type=breakfast&limit=5"
-        )
+        response = client.get("/api/meal-plans/recipes/search/?meal_type=breakfast&limit=5")
         assert response.status_code in (200, 401, 403)
         if response.status_code == 200:
             data = response.json()

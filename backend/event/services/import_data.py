@@ -78,7 +78,7 @@ class ImportService:
         mappings = cls._suggest_mappings(columns)
         mapping_dict = {m["source_column"]: m["target_field"] for m in mappings}
 
-        from event.models import Person, Registration, Participant, BookingOption
+        from event.models import Participant, Person, Registration
 
         success_count = 0
         errors = []
@@ -140,7 +140,7 @@ class ImportService:
                 success_count += 1
 
             except Exception as e:
-                errors.append(f"Zeile {i + 1}: {str(e)}")
+                errors.append(f"Zeile {i + 1}: {e!s}")
 
         return {
             "total_processed": len(rows),

@@ -1,7 +1,6 @@
 """Tests for the public food profile endpoint (by-slug)."""
 
 import pytest
-from django.test import Client
 
 from content.choices import ContentStatus
 from profiles.tests import make_user_profile

@@ -1,17 +1,15 @@
 """Factories for creating test data (recipe app)."""
 
+from django.contrib.contenttypes.models import ContentType
 from model_bakery import baker
 
 from content.choices import ContentStatus
 from content.models import ContentComment, ContentEmotion, ContentView
-from django.contrib.contenttypes.models import ContentType
-
 from recipe.models import (
     Recipe,
     RecipeItem,
     Rule,
 )
-
 
 # ---------------------------------------------------------------------------
 # Recipe
@@ -43,10 +41,11 @@ def make_recipe_item(recipe: Recipe | None = None, **kwargs) -> RecipeItem:
         recipe = make_recipe()
 
     ingredient = kwargs.pop("ingredient", None)
-    portion = kwargs.get("portion", None)
+    portion = kwargs.get("portion")
 
     if portion is None and ingredient is not None:
-        from supply.models import Portion, MeasuringUnit
+        from supply.models import MeasuringUnit, Portion
+
         portion = Portion.objects.filter(ingredient=ingredient).first()
         if not portion:
             unit, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0})

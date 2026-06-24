@@ -2,10 +2,10 @@
 
 from django.core.management.base import BaseCommand
 
-from supply.models import Ingredient
 from recipe.models import Recipe
-from supply.services.quality_score import calculate_ingredient_quality_score
 from recipe.services.quality_score import calculate_recipe_quality_score
+from supply.models import Ingredient
+from supply.services.quality_score import calculate_ingredient_quality_score
 
 
 class Command(BaseCommand):

@@ -13,7 +13,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 
-from content.choices import EmbeddingFeedbackType, LinkType
+from content.choices import LinkType
 from content.models import ContentLink, EmbeddingFeedback
 
 logger = logging.getLogger(__name__)

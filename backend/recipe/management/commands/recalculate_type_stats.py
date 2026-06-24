@@ -11,11 +11,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Get all unique recipe_type values
-        recipe_types = (
-            Recipe.objects.values_list("recipe_type", flat=True)
-            .distinct()
-            .order_by("recipe_type")
-        )
+        recipe_types = Recipe.objects.values_list("recipe_type", flat=True).distinct().order_by("recipe_type")
 
         count = 0
         for recipe_type in recipe_types:
@@ -27,10 +23,6 @@ class Command(BaseCommand):
                     f"{len(stats.get('price_buckets', []))} price buckets"
                 )
             else:
-                self.stdout.write(
-                    f"⊘ {recipe_type}: fewer than 10 recipes (deleted stats)"
-                )
+                self.stdout.write(f"⊘ {recipe_type}: fewer than 10 recipes (deleted stats)")
 
-        self.stdout.write(
-            self.style.SUCCESS(f"\nDone. {count} types with stats.")
-        )
+        self.stdout.write(self.style.SUCCESS(f"\nDone. {count} types with stats."))

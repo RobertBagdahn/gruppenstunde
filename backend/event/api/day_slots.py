@@ -13,7 +13,6 @@ from event.schemas import (
 from .events import event_router
 from .helpers import require_auth, require_event_manager
 
-
 # ==========================================================================
 # Event Day Slots (Tagesplan)
 # ==========================================================================

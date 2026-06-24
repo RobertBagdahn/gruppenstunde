@@ -22,7 +22,7 @@ Auf der Zutatendetailseite fehlt eine Übersicht, welche Rezepte diese Zutat ver
 ## Impact
 
 - **Backend**: Neuer Endpunkt in `supply/api/ingredients.py` mit Visibility-Filterung (gleiche Regeln wie Recipe-Liste), existierendes `RecipeSimilarOut` Schema + neuer paginierter Wrapper `PaginatedRecipeSimilarOut` in `supply/schemas/ingredients.py`
-- **Frontend**: 
+- **Frontend**:
   - `IngredientDetailPage.tsx` – neue Sektion am Ende
   - `CreateRecipePage.tsx` – neuer Effekt zum Einlesen von `?ingredient=` aus URL-Param
   - Neue `useRecipesByIngredient(slug)` Query in `api/supplies.ts`

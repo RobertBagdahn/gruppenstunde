@@ -30,9 +30,7 @@ def fix_salt_g(apps, schema_editor):
     if fixed_ingredient_ids:
         RecipeItem = apps.get_model("recipe", "RecipeItem")
         recipe_ids = (
-            RecipeItem.objects.filter(
-                portion__ingredient_id__in=fixed_ingredient_ids
-            )
+            RecipeItem.objects.filter(portion__ingredient_id__in=fixed_ingredient_ids)
             .values_list("recipe_id", flat=True)
             .distinct()
         )
@@ -40,6 +38,7 @@ def fix_salt_g(apps, schema_editor):
         # Import the service function for cache recalculation
         try:
             from recipe.services.recipe_checks import recalculate_recipe_cache
+
             Recipe = apps.get_model("recipe", "Recipe")
             for recipe in Recipe.objects.filter(id__in=list(recipe_ids)):
                 try:
@@ -68,7 +67,6 @@ def reverse_salt_g(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0019_seed_ingredient_conversions"),
         ("recipe", "0024_add_usage_count"),

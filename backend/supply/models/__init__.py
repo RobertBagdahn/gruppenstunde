@@ -1,8 +1,8 @@
 """Supply models package — re-exports all models for backward compatibility."""
 
+from .ingredient import Ingredient, IngredientAlias, Portion
 from .material import ContentMaterialItem, Material, Supply
 from .reference import DgeGenderChoices, DgeReference, MeasuringUnit, NutritionalTag, RetailSection
-from .ingredient import Ingredient, IngredientAlias, Portion
 from .unit_conversion import UnitConversion
 
 __all__ = [

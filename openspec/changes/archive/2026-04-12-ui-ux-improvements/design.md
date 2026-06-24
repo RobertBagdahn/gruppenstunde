@@ -38,7 +38,7 @@ This is a frontend-only change. No backend API changes, no schema changes, no da
 
 ### Decision 1: Recharts for data visualizations
 
-**Choice**: Recharts  
+**Choice**: Recharts
 **Alternatives considered**:
 - **Chart.js / react-chartjs-2**: More mature but heavier bundle, imperative API doesn't align well with React's declarative model
 - **Nivo**: Beautiful charts but large bundle size, overkill for our needs
@@ -49,7 +49,7 @@ This is a frontend-only change. No backend API changes, no schema changes, no da
 
 ### Decision 2: Shared component location
 
-**Choice**: `frontend/src/components/shared/` directory  
+**Choice**: `frontend/src/components/shared/` directory
 **Alternatives considered**:
 - `frontend/src/components/ui/` alongside shadcn/ui components
 - Feature-specific directories
@@ -73,7 +73,7 @@ All wrapped consistently with `container mx-auto px-4 sm:px-6 lg:px-8`.
 
 ### Decision 4: Pagination style — numbered buttons
 
-**Choice**: Numbered page buttons with prev/next arrows (current SearchPage/RecipeListPage style)  
+**Choice**: Numbered page buttons with prev/next arrows (current SearchPage/RecipeListPage style)
 **Alternatives considered**:
 - "Mehr laden" (Load more) button pattern — spec says this is the convention
 - Text-based "Vorherige/Nachste" without page numbers
@@ -83,7 +83,7 @@ All wrapped consistently with `container mx-auto px-4 sm:px-6 lg:px-8`.
 
 ### Decision 5: Command palette implementation
 
-**Choice**: Custom component using shadcn/ui `Dialog` + `Command` (cmdk)  
+**Choice**: Custom component using shadcn/ui `Dialog` + `Command` (cmdk)
 **Alternatives considered**:
 - **kbar**: Purpose-built command palette library, but adds another dependency when cmdk already ships with shadcn/ui
 - **Custom from scratch**: Higher effort, lower quality
@@ -92,7 +92,7 @@ All wrapped consistently with `container mx-auto px-4 sm:px-6 lg:px-8`.
 
 ### Decision 6: localStorage for persisting filter/sort preferences
 
-**Choice**: Store last-used sort and filter selections per page in localStorage  
+**Choice**: Store last-used sort and filter selections per page in localStorage
 **Rationale**: URL-state remains the source of truth for shareability and bookmarkability. localStorage is only used to pre-fill defaults when a user navigates to a page without explicit URL parameters. This avoids cluttering the URL while giving returning users a personalized experience.
 
 ## Risks / Trade-offs

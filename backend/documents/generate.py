@@ -11,9 +11,13 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
+from page_optimizer import optimize_layout
+from pdf_builder import (
+    LayoutParams,
+    build_all_flowables,
+    generate_pdf,
+)
 from schema import (
-    FormFieldConfig,
-    RegistrationConfig,
     load_config,
     load_defaults,
     resolve_form_fields,
@@ -24,12 +28,6 @@ from text_resolver import (
     generate_details,
     resolve_text,
 )
-from pdf_builder import (
-    LayoutParams,
-    build_all_flowables,
-    generate_pdf,
-)
-from page_optimizer import optimize_layout
 
 
 def main() -> None:

@@ -4,46 +4,66 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('game', '0006_fix_help_texts'),
+        ("game", "0006_fix_help_texts"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='game',
-            name='is_deleted',
+            model_name="game",
+            name="is_deleted",
         ),
         migrations.RemoveField(
-            model_name='game',
-            name='location_type',
+            model_name="game",
+            name="location_type",
         ),
         migrations.RemoveField(
-            model_name='game',
-            name='max_participants',
+            model_name="game",
+            name="max_participants",
         ),
         migrations.RemoveField(
-            model_name='game',
-            name='min_participants',
+            model_name="game",
+            name="min_participants",
         ),
         migrations.AddField(
-            model_name='game',
-            name='max_players',
-            field=models.PositiveIntegerField(blank=True, help_text='Maximum number of players.', null=True),
+            model_name="game",
+            name="max_players",
+            field=models.PositiveIntegerField(blank=True, help_text="Maximum number of players.", null=True),
         ),
         migrations.AddField(
-            model_name='game',
-            name='min_players',
-            field=models.PositiveIntegerField(blank=True, help_text='Minimum number of players.', null=True),
+            model_name="game",
+            name="min_players",
+            field=models.PositiveIntegerField(blank=True, help_text="Minimum number of players.", null=True),
         ),
         migrations.AddField(
-            model_name='game',
-            name='play_area',
-            field=models.CharField(choices=[('indoor', 'Drinnen'), ('outdoor', 'Draußen'), ('field', 'Wiese / Feld'), ('forest', 'Wald'), ('gym', 'Turnhalle'), ('any', 'Überall')], default='any', max_length=20),
+            model_name="game",
+            name="play_area",
+            field=models.CharField(
+                choices=[
+                    ("indoor", "Drinnen"),
+                    ("outdoor", "Draußen"),
+                    ("field", "Wiese / Feld"),
+                    ("forest", "Wald"),
+                    ("gym", "Turnhalle"),
+                    ("any", "Überall"),
+                ],
+                default="any",
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='game',
-            name='status',
-            field=models.CharField(choices=[('draft', 'Entwurf'), ('submitted', 'Eingereicht'), ('approved', 'Genehmigt'), ('rejected', 'Abgelehnt'), ('archived', 'Archiviert')], default='draft', max_length=20),
+            model_name="game",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("draft", "Entwurf"),
+                    ("submitted", "Eingereicht"),
+                    ("approved", "Genehmigt"),
+                    ("rejected", "Abgelehnt"),
+                    ("archived", "Archiviert"),
+                ],
+                default="draft",
+                max_length=20,
+            ),
         ),
     ]

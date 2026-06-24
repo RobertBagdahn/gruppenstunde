@@ -16,8 +16,14 @@ class TestNutritionContributions:
         # Ingredient 1: Nudeln — high carbs
         nudeln = make_ingredient(
             name="Nudeln",
-            energy_kcal=359, protein_g=12.0, fat_g=2.0, fat_sat_g=0.5,
-            carbohydrate_g=70.0, sugar_g=2.0, fibre_g=3.0, salt_g=0.01,
+            energy_kcal=359,
+            protein_g=12.0,
+            fat_g=2.0,
+            fat_sat_g=0.5,
+            carbohydrate_g=70.0,
+            sugar_g=2.0,
+            fibre_g=3.0,
+            salt_g=0.01,
         )
         p_nudeln = make_portion(ingredient=nudeln, name="200g Nudeln", weight_g=200.0)
         make_recipe_item(recipe=recipe, portion=p_nudeln, quantity=1.0)
@@ -25,8 +31,14 @@ class TestNutritionContributions:
         # Ingredient 2: Tomatensoße — moderate salt
         tomaten = make_ingredient(
             name="Tomatensoße",
-            energy_kcal=48, protein_g=1.5, fat_g=0.5, fat_sat_g=0.1,
-            carbohydrate_g=8.0, sugar_g=6.0, fibre_g=1.5, salt_g=1.2,
+            energy_kcal=48,
+            protein_g=1.5,
+            fat_g=0.5,
+            fat_sat_g=0.1,
+            carbohydrate_g=8.0,
+            sugar_g=6.0,
+            fibre_g=1.5,
+            salt_g=1.2,
         )
         p_tomaten = make_portion(ingredient=tomaten, name="150g Soße", weight_g=150.0)
         make_recipe_item(recipe=recipe, portion=p_tomaten, quantity=1.0)
@@ -34,8 +46,14 @@ class TestNutritionContributions:
         # Ingredient 3: Käse — high fat
         kaese = make_ingredient(
             name="Käse",
-            energy_kcal=382, protein_g=25.0, fat_g=30.0, fat_sat_g=18.0,
-            carbohydrate_g=0.5, sugar_g=0.5, fibre_g=0.0, salt_g=1.8,
+            energy_kcal=382,
+            protein_g=25.0,
+            fat_g=30.0,
+            fat_sat_g=18.0,
+            carbohydrate_g=0.5,
+            sugar_g=0.5,
+            fibre_g=0.0,
+            salt_g=1.8,
         )
         p_kaese = make_portion(ingredient=kaese, name="50g Käse", weight_g=50.0)
         make_recipe_item(recipe=recipe, portion=p_kaese, quantity=1.0)
@@ -65,8 +83,14 @@ class TestNutritionContributions:
         recipe = make_recipe()
         ing = make_ingredient(
             name="Wasser",
-            energy_kcal=0, protein_g=0.0, fat_g=0.0, fat_sat_g=0.0,
-            carbohydrate_g=0.0, sugar_g=0.0, fibre_g=0.0, salt_g=0.0,
+            energy_kcal=0,
+            protein_g=0.0,
+            fat_g=0.0,
+            fat_sat_g=0.0,
+            carbohydrate_g=0.0,
+            sugar_g=0.0,
+            fibre_g=0.0,
+            salt_g=0.0,
         )
         portion = make_portion(ingredient=ing, weight_g=500.0)
         make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)

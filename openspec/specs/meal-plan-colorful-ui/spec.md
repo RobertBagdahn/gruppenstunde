@@ -102,4 +102,3 @@ Das bunte Meal-Plan-UI MUST seine Farben (Leitfarbe, Akzente, Meal-Type-Farben, 
 #### Scenario: Akzentfarben aus Token
 - **WHEN** ein Meal-Type-Akzent oder eine Diagrammfarbe gerendert wird
 - **THEN** stammt der Wert aus den zentralen Design-Token (`--primary`, `--chart-*` o.ä.)
-

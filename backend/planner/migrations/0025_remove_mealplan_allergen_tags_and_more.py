@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0024_remove_meal_external_energy_kj_and_more"),
         ("supply", "0029_ingredient_camp_suitable_ingredient_cooking_factor_and_more"),

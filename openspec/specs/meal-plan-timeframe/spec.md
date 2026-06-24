@@ -60,4 +60,3 @@ Bestehende MealPlans bekommen Start/Ende aus ihren vorhandenen Meals.
 #### Scenario: Bestehender Plan ohne Zeitraum
 - **WHEN** ein MealPlan Meals hat aber kein `start_datetime`/`end_datetime`
 - **THEN** werden die Werte aus dem frühesten/spätesten Meal-Datetime abgeleitet
-

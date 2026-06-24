@@ -1205,5 +1205,3 @@ export default function RecipeDetailPage() {
     </EntityLinkContext.Provider>
   );
 }
-
-

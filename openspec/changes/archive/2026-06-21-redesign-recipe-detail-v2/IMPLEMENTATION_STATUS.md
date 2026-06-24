@@ -1,7 +1,7 @@
 # Implementation Status: redesign-recipe-detail-v2
 
-**Date**: June 21, 2026  
-**Progress**: 32/55 tasks complete (58%)  
+**Date**: June 21, 2026
+**Progress**: 32/55 tasks complete (58%)
 **Status**: Core functionality implemented, remaining work is UI/UX refinement
 
 ## Completed (32 tasks)

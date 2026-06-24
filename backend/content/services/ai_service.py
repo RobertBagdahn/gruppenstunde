@@ -22,7 +22,6 @@ from django.contrib.auth.models import AbstractBaseUser
 from pydantic import BaseModel, Field, ValidationError
 
 from core.services.gemini import (
-    GeminiInvalidResponseError,
     GeminiUnavailableError,
     gemini_call,
     gemini_embed,
@@ -213,8 +212,9 @@ class ContentAIService:
 
     def suggest_tags(self, text: str, user: AbstractBaseUser | None = None) -> dict[str, Any]:
         """Analyze text and suggest matching tags from the content.Tag database."""
-        from content.models import Tag
         from google.genai import types
+
+        from content.models import Tag
 
         available_tags = list(Tag.objects.filter(is_approved=True).values("id", "name"))
         tag_list = ", ".join(f"{t['name']} (ID:{t['id']})" for t in available_tags)
@@ -254,7 +254,9 @@ class ContentAIService:
     # refurbish (content-type aware)
     # ------------------------------------------------------------------
 
-    def refurbish(self, raw_text: str, content_type: str = "session", user: AbstractBaseUser | None = None) -> dict[str, Any]:
+    def refurbish(
+        self, raw_text: str, content_type: str = "session", user: AbstractBaseUser | None = None
+    ) -> dict[str, Any]:
         """
         Convert raw unstructured text into a structured content item.
 
@@ -272,6 +274,7 @@ class ContentAIService:
 
         # Build dynamic scout level list from DB
         from content.models.tags import ScoutLevel as ScoutLevelModel
+
         scout_levels = list(ScoutLevelModel.objects.order_by("sorting", "id").values("id", "name"))
         scout_levels_str = ", ".join(f"{sl['id']}={sl['name']}" for sl in scout_levels)
         scout_level_ids_valid = {sl["id"] for sl in scout_levels}
@@ -427,9 +430,9 @@ class ContentAIService:
         Supports all content types. Returns a list with one saved image URL.
         """
         from django.core.files.base import ContentFile
+        from google.genai import types
         from PIL import Image
 
-        from google.genai import types
         ct_config = CONTENT_TYPE_PROMPTS.get(content_type, CONTENT_TYPE_PROMPTS["session"])
 
         context_parts = []
@@ -515,7 +518,9 @@ class ContentAIService:
 
         return []
 
-    def generate_image(self, prompt: str, content_type: str = "session", user: AbstractBaseUser | None = None) -> str | None:
+    def generate_image(
+        self, prompt: str, content_type: str = "session", user: AbstractBaseUser | None = None
+    ) -> str | None:
         """Generate a single title image. Delegates to generate_images."""
         urls = self.generate_images(prompt=prompt, content_type=content_type, user=user)
         return urls[0] if urls else None

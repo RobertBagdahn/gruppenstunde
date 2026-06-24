@@ -4,8 +4,7 @@ import pytest
 from django.test import Client
 
 from planner.models import MealItem
-from planner.tests import make_meal, make_meal_item, make_meal_plan
-from recipe.models import Recipe
+from planner.tests import make_meal, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
 
 

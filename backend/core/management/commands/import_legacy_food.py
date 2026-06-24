@@ -104,9 +104,7 @@ class Command(BaseCommand):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.pk_map = LegacyPkMap()
-        self.counters: dict[str, dict[str, int]] = defaultdict(
-            lambda: {"created": 0, "skipped": 0, "dropped": 0}
-        )
+        self.counters: dict[str, dict[str, int]] = defaultdict(lambda: {"created": 0, "skipped": 0, "dropped": 0})
         self.imported_recipe_ids: list[int] = []
         self.batch_size: int = 500
         self.warnings: list[str] = []
@@ -272,7 +270,6 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     def _import_file_0_master_data(self) -> None:
-        from recipe.models import Recipe, RecipeItem
         from supply.models import MeasuringUnit, NutritionalTag, RetailSection
 
         entries = self._load_fixture("0_init_data.json")
@@ -391,6 +388,7 @@ class Command(BaseCommand):
 
             if not rs_new_pk:
                 from supply.services.retail_section_mapping import get_retail_section
+
                 rs_obj = get_retail_section(name, fields.get("description", ""))
                 if rs_obj:
                     rs_new_pk = rs_obj.pk
@@ -478,22 +476,25 @@ class Command(BaseCommand):
                     obj.ingredient_ref_id = pk_to_ref[obj.pk]
                     objs_to_update.append(obj)
                 if objs_to_update:
-                    Ingredient.objects.bulk_update(objs_to_update, fields=["ingredient_ref"], batch_size=self.batch_size)
+                    Ingredient.objects.bulk_update(
+                        objs_to_update, fields=["ingredient_ref"], batch_size=self.batch_size
+                    )
                 self.stdout.write(f"    ingredient_ref: {len(objs_to_update)} aktualisiert")
 
         # Portions
         portion_entries = grouped.get("food.portion", [])
         self.stdout.write(f"  Portions importieren: {len(portion_entries)} Zeilen...")
 
-        from supply.models import MeasuringUnit, Portion
+        from supply.models import MeasuringUnit
+
         mu_cache = {mu.pk: mu for mu in MeasuringUnit.objects.all()}
 
         # Load existing portions for dedup
         existing_portions_qs = Portion.objects.filter(deleted_at__isnull=True).values(
-            'id', 'ingredient_id', 'name', 'measuring_unit_id', 'quantity'
+            "id", "ingredient_id", "name", "measuring_unit_id", "quantity"
         )
         existing_portions = {
-            (p['ingredient_id'], p['name'].strip().lower(), p['measuring_unit_id'], float(p['quantity'])): p['id']
+            (p["ingredient_id"], p["name"].strip().lower(), p["measuring_unit_id"], float(p["quantity"])): p["id"]
             for p in existing_portions_qs
         }
 
@@ -612,14 +613,15 @@ class Command(BaseCommand):
         if portion_entries:
             self.stdout.write(f"  Portions aus Rezept-Datei: {len(portion_entries)} Zeilen...")
             from supply.models import MeasuringUnit, Portion
+
             mu_cache = {mu.pk: mu for mu in MeasuringUnit.objects.all()}
 
             # Load existing portions for dedup
             existing_portions_qs = Portion.objects.filter(deleted_at__isnull=True).values(
-                'id', 'ingredient_id', 'name', 'measuring_unit_id', 'quantity'
+                "id", "ingredient_id", "name", "measuring_unit_id", "quantity"
             )
             existing_portions = {
-                (p['ingredient_id'], p['name'].strip().lower(), p['measuring_unit_id'], float(p['quantity'])): p['id']
+                (p["ingredient_id"], p["name"].strip().lower(), p["measuring_unit_id"], float(p["quantity"])): p["id"]
                 for p in existing_portions_qs
             }
 
@@ -850,9 +852,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Laufzeit: {duration:.1f}s")
 
         if self.pk_map.total_misses:
-            self.stdout.write(
-                self.style.WARNING(f"\n  Warnung: {self.pk_map.total_misses} FK-Lookups nicht aufgelöst")
-            )
+            self.stdout.write(self.style.WARNING(f"\n  Warnung: {self.pk_map.total_misses} FK-Lookups nicht aufgelöst"))
 
         if self.warnings:
             self.stdout.write(self.style.WARNING(f"\n  {len(self.warnings)} Warnungen (fehlende MetaInfos etc.)"))

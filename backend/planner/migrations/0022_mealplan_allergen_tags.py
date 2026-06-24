@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0021_meal_display_name_mealplan_meal_default_times_and_more"),
         ("supply", "0027_alter_ingredient_standalone_type"),

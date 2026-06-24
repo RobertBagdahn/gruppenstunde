@@ -4,15 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('planner', '0031_create_missing_collaborator_tables'),
+        ("planner", "0031_create_missing_collaborator_tables"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='mealplan',
-            name='is_template',
-            field=models.BooleanField(default=False, help_text="Nur Admins können setzen. Referenz-Pläne erscheinen im Tab 'Referenz-Vorlagen' für alle Nutzer.", verbose_name='Referenz-Vorlage'),
+            model_name="mealplan",
+            name="is_template",
+            field=models.BooleanField(
+                default=False,
+                help_text="Nur Admins können setzen. Referenz-Pläne erscheinen im Tab 'Referenz-Vorlagen' für alle Nutzer.",
+                verbose_name="Referenz-Vorlage",
+            ),
         ),
     ]

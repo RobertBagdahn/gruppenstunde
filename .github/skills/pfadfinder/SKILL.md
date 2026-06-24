@@ -56,6 +56,6 @@ Dieses Skill erklärt Pfadfinder-spezifische Begriffe, die im Projekt verwendet 
 
 ## Verwendung im Projekt
 
-- Im **Code** wird der englische Begriff **"Idea"** für Heimabend-Ideen verwendet (nicht "Activity", "Gruppenstunde" oder "Heimabend"). 
+- Im **Code** wird der englische Begriff **"Idea"** für Heimabend-Ideen verwendet (nicht "Activity", "Gruppenstunde" oder "Heimabend").
 - In der **UI** werden deutsche Begriffe angezeigt
 - **Inspi** (das Glühwürmchen) ist das Maskottchen und Namensgeber der Plattform

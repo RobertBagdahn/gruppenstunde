@@ -1,9 +1,9 @@
 import pytest
 from django.test import Client
 
-from recipe.models import Rule, Recipe
+from recipe.models import Recipe
 from recipe.services.recipe_checks import evaluate_recipe_rules, recalculate_recipe_cache
-from recipe.tests import make_recipe, make_recipe_item, make_rule, make_recipe_hint
+from recipe.tests import make_recipe, make_recipe_hint, make_recipe_item
 from supply.tests import make_ingredient, make_portion
 
 

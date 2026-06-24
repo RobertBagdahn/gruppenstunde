@@ -4,7 +4,6 @@ Provides shared logic for downloading images from URLs and validating
 that URLs point to the application's own storage.
 """
 
-import io
 import logging
 import uuid
 
@@ -67,7 +66,7 @@ def download_and_save_image(image_url: str, upload_to: str) -> str:
     # Local media path (no scheme) — read directly from storage
     media_url = getattr(settings, "MEDIA_URL", "/media/")
     if image_url.startswith(media_url) and not image_url.startswith("http"):
-        storage_path = image_url[len(media_url):]
+        storage_path = image_url[len(media_url) :]
         try:
             with default_storage.open(storage_path, "rb") as f:
                 file_bytes = f.read()

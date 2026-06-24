@@ -10,7 +10,6 @@
 import datetime as dt
 
 from django.db import migrations, models
-import django.db.models.deletion
 from django.utils import timezone as tz
 
 

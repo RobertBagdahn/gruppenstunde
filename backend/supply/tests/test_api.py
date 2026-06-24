@@ -3,7 +3,6 @@
 import json
 
 import pytest
-from django.test import Client
 
 from supply.models import (
     Ingredient,
@@ -14,7 +13,6 @@ from supply.models import (
     Portion,
     RetailSection,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

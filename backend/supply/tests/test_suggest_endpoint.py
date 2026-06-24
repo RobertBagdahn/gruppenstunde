@@ -21,6 +21,7 @@ class TestSuggestEndpoint:
 
     def setup_method(self):
         from django.test import Client
+
         self.client = Client()
 
     def test_suggest_returns_enriched_fields(self):

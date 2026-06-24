@@ -4,7 +4,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("event", "0004_remove_participant_is_paid_customfield_and_more"),
     ]

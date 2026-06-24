@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import uuid
 from abc import ABC, abstractmethod
+from datetime import UTC
 from typing import Any
 
 from django.contrib.auth import get_user_model
@@ -60,12 +61,12 @@ class PrivacyService:
     @classmethod
     def export_user_data(cls, user: User) -> dict[str, Any]:
         """Build a complete data export for the user (GDPR Art. 20)."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         data = cls.collect_user_data(user)
         return {
             "metadata": {
-                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "exported_at": datetime.now(UTC).isoformat(),
                 "user_email": user.email,
                 "platform": "Inspi (gruppenstunde.de)",
                 "data_categories": list(data.keys()),

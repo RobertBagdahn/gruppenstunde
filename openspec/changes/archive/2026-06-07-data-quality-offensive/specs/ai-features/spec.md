@@ -22,4 +22,3 @@ The AI service SHALL support batch evaluation of ingredient prices via Gemini. G
 #### Scenario: Non-staff cannot access
 - **WHEN** a non-staff user calls the batch price evaluation endpoint
 - **THEN** a 403 error SHALL be returned
-

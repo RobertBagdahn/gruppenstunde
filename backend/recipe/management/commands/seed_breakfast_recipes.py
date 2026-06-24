@@ -15,20 +15,29 @@ from content.choices import ContentStatus
 from recipe.models import Recipe, RecipeItem
 from supply.models import Ingredient, MeasuringUnit, Portion
 
-
 # Recipes: (title, slug, recipe_type, items: [(ingredient_name, portion_name_or_none, quantity, weight_g_fallback)])
 BREAKFAST_RECIPES = [
     # --- Warme Gerichte ---
-    ("Rührei", "ruehrei", "breakfast", [
-        ("Ei", None, 2, 120),
-        ("Butter", None, 1, 5),
-    ]),
-    ("Pfannkuchen", "pfannkuchen", "breakfast", [
-        ("Ei", None, 1, 60),
-        ("Mehl", None, 1, 50),
-        ("Milch", None, 1, 100),
-        ("Butter", None, 1, 10),
-    ]),
+    (
+        "Rührei",
+        "ruehrei",
+        "breakfast",
+        [
+            ("Ei", None, 2, 120),
+            ("Butter", None, 1, 5),
+        ],
+    ),
+    (
+        "Pfannkuchen",
+        "pfannkuchen",
+        "breakfast",
+        [
+            ("Ei", None, 1, 60),
+            ("Mehl", None, 1, 50),
+            ("Milch", None, 1, 100),
+            ("Butter", None, 1, 10),
+        ],
+    ),
 ]
 
 
@@ -102,6 +111,6 @@ class Command(BaseCommand):
             self.stdout.write(f"  CREATED {slug}: {title} ({len(items_data)} items)")
 
         action = "Would create" if dry_run else "Created"
-        self.stdout.write(self.style.SUCCESS(
-            f"\n{action} {created_count} recipes, skipped {skipped_count} (already exist)."
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(f"\n{action} {created_count} recipes, skipped {skipped_count} (already exist).")
+        )

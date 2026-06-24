@@ -89,7 +89,7 @@ Feature-Dokumentation gehört in **OpenSpec**, nicht in AGENTS.md.
 
 # Umlaute
 
-Immer echte deutsche Umlaute verwenden: **ä, ö, ü, Ä, Ö, Ü, ß**. Niemals Ersatzschreibweisen wie `ae`, `oe`, `ue` oder `ss` benutzen – weder in UI-Texten, noch in Kommentaren oder Dokumentation. 
+Immer echte deutsche Umlaute verwenden: **ä, ö, ü, Ä, Ö, Ü, ß**. Niemals Ersatzschreibweisen wie `ae`, `oe`, `ue` oder `ss` benutzen – weder in UI-Texten, noch in Kommentaren oder Dokumentation.
 
 
 # Food Frontend
@@ -144,4 +144,3 @@ uv run pytest recipe/tests/test_api.py -xvs
 cd backend
 uv run python manage.py shell
 ```
-

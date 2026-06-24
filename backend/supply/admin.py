@@ -195,9 +195,7 @@ class DgeReferenceAdmin(admin.ModelAdmin):
         (
             "Vitamine (pro Tag)",
             {
-                "fields": (
-                    "vitamin_c_mg",
-                ),
+                "fields": ("vitamin_c_mg",),
             },
         ),
     )

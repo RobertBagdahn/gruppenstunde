@@ -103,7 +103,7 @@ class ContentLink(models.Model):
 class Content(models.Model):
     embedding = VectorField(dimensions=768, null=True, blank=True)
     embedding_updated_at = models.DateTimeField(null=True)
-    
+
     class Meta:
         abstract = True
 ```
@@ -127,7 +127,7 @@ class Supply(models.Model):
     description = models.TextField(blank=True)
     image = models.ImageField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    
+
     class Meta:
         abstract = True
 
@@ -230,18 +230,18 @@ class SoftDeleteManager(models.Manager):
 
 class SoftDeleteModel(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
-    
+
     objects = SoftDeleteManager()
     all_objects = models.Manager()
-    
+
     def soft_delete(self):
         self.deleted_at = timezone.now()
         self.save(update_fields=['deleted_at'])
-    
+
     def restore(self):
         self.deleted_at = None
         self.save(update_fields=['deleted_at'])
-    
+
     class Meta:
         abstract = True
 ```

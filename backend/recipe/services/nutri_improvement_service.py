@@ -32,7 +32,7 @@ _POSITIVE_PARAMS: list[dict[str, str]] = [
 ]
 
 
-def calculate_nutri_improvements(recipe: "Recipe") -> list[dict]:
+def calculate_nutri_improvements(recipe: Recipe) -> list[dict]:
     """Calculate Nutri-Score improvement candidates sorted by impact.
 
     For each Nutri-Score parameter, simulates a 10% improvement and
@@ -134,7 +134,7 @@ def calculate_nutri_improvements(recipe: "Recipe") -> list[dict]:
     return results
 
 
-def _find_contributing_ingredients(recipe: "Recipe", parameter: str) -> list[dict]:
+def _find_contributing_ingredients(recipe: Recipe, parameter: str) -> list[dict]:
     """Find which ingredients contribute most to a nutritional parameter.
 
     For sodium_mg, reads salt_g from the ingredient and converts

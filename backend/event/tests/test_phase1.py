@@ -8,13 +8,10 @@ from django.test import Client
 from django.utils import timezone
 
 from event.choices import (
-    CustomFieldTypeChoices,
-    PaymentMethodChoices,
     TimelineActionChoices,
 )
 from event.models import (
     CustomField,
-    CustomFieldValue,
     Event,
     Participant,
     ParticipantLabel,
@@ -31,7 +28,6 @@ from event.tests import (
     make_registration,
     make_timeline_entry,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

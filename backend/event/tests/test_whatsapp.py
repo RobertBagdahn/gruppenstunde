@@ -14,11 +14,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
-from model_bakery import baker
 
 from event.choices import WhatsAppMessageStatusChoices
 from event.models import (
-    Event,
     MessageTemplate,
     Participant,
     WhatsAppConnection,
@@ -39,7 +37,6 @@ from event.tests import (
     make_person,
     make_registration,
 )
-
 
 # ---------------------------------------------------------------------------
 # 11.1 — WhatsApp Models

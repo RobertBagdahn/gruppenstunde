@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("session", "0003_groupsession_is_deleted_alter_groupsession_status"),
     ]

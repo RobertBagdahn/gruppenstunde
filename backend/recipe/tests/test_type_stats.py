@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 
 from content.choices import ContentStatus
-from recipe.models import Recipe, RecipeTypeStats
+from recipe.models import RecipeTypeStats
 from recipe.tests import make_recipe
 
 

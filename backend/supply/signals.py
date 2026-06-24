@@ -1,5 +1,5 @@
 """Signals for supply app — Portion weight_g calculation, Ingredient base portion,
- embedding generation, quality score calculation, and audit logging."""
+embedding generation, quality score calculation, and audit logging."""
 
 import threading
 
@@ -107,14 +107,31 @@ def _embedding_fields_changed(instance, created: bool) -> bool:
         return True
 
     relevant = {
-        "name", "description", "retail_section_id",
-        "season_start", "season_end",
-        "energy_kcal", "protein_g", "fat_g", "carbohydrate_g",
-        "sugar_g", "fibre_g", "salt_g", "fat_sat_g",
-        "vitamin_c_mg", "child_score", "scout_score", "environmental_score",
-        "child_fave", "scout_fave", "is_vegetarian", "is_vegan",
-        "is_gluten_free", "is_lactose_free", "price_per_kg",
-        "season_start", "season_end", "status",
+        "name",
+        "description",
+        "retail_section_id",
+        "season_start",
+        "season_end",
+        "energy_kcal",
+        "protein_g",
+        "fat_g",
+        "carbohydrate_g",
+        "sugar_g",
+        "fibre_g",
+        "salt_g",
+        "fat_sat_g",
+        "vitamin_c_mg",
+        "child_score",
+        "scout_score",
+        "environmental_score",
+        "child_fave",
+        "scout_fave",
+        "is_vegetarian",
+        "is_vegan",
+        "is_gluten_free",
+        "is_lactose_free",
+        "price_per_kg",
+        "status",
     }
     for field in relevant:
         old_val = old_values.get(field)
@@ -135,14 +152,42 @@ def timezone_now():
 # ---------------------------------------------------------------------------
 
 _ingredient_tracked_fields = {
-    "name", "description", "price_per_kg", "energy_kcal", "protein_g", "fat_g",
-    "carbohydrate_g", "sugar_g", "fibre_g", "salt_g", "fat_sat_g", "sodium_mg",
-    "fructose_g", "lactose_g", "vitamin_c_mg", "child_score", "scout_score",
-    "environmental_score", "nova_score", "fruit_factor", "nutri_score", "nutri_class",
-    "physical_density", "physical_viscosity", "durability_in_days",
-    "max_storage_temperature", "storage_type", "cooking_factor", "camp_suitable",
-    "preparation_time_min", "season_start", "season_end", "status", "retail_section_id",
-    "is_standalone_food", "standalone_type",
+    "name",
+    "description",
+    "price_per_kg",
+    "energy_kcal",
+    "protein_g",
+    "fat_g",
+    "carbohydrate_g",
+    "sugar_g",
+    "fibre_g",
+    "salt_g",
+    "fat_sat_g",
+    "sodium_mg",
+    "fructose_g",
+    "lactose_g",
+    "vitamin_c_mg",
+    "child_score",
+    "scout_score",
+    "environmental_score",
+    "nova_score",
+    "fruit_factor",
+    "nutri_score",
+    "nutri_class",
+    "physical_density",
+    "physical_viscosity",
+    "durability_in_days",
+    "max_storage_temperature",
+    "storage_type",
+    "cooking_factor",
+    "camp_suitable",
+    "preparation_time_min",
+    "season_start",
+    "season_end",
+    "status",
+    "retail_section_id",
+    "is_standalone_food",
+    "standalone_type",
 }
 
 
@@ -155,9 +200,7 @@ def capture_ingredient_old_values(sender, instance: Ingredient, **kwargs):
 
     try:
         old = Ingredient.objects.get(pk=instance.pk)
-        instance._old_values = {
-            field: getattr(old, field, None) for field in _ingredient_tracked_fields
-        }
+        instance._old_values = {field: getattr(old, field, None) for field in _ingredient_tracked_fields}
     except Ingredient.DoesNotExist:
         instance._old_values = {}
 

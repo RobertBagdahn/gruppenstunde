@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from profiles.models import GroupMembership
 from profiles.choices import MembershipRoleChoices
+from profiles.models import GroupMembership
 
 from .models import (
     PackingCategory,
@@ -21,14 +21,11 @@ from .models import (
     VisibilityChoices,
 )
 from .schemas import (
-    AiSuggestErrorOut,
     AiSuggestIn,
     AiSuggestOut,
-    CatalogItemOut,
     CatalogSuggestionsOut,
     FullCatalogOut,
     GeneratePackingListIn,
-    PreviewIn,
     PackingCategoryCreateIn,
     PackingCategoryOut,
     PackingCategoryUpdateIn,
@@ -37,19 +34,18 @@ from .schemas import (
     PackingItemUpdateIn,
     PackingListCreateIn,
     PackingListOut,
-    PackingListSummaryOut,
     PackingListUpdateIn,
     PaginatedPackingListOut,
     PresetOut,
-    PreviewCategoryOut,
+    PreviewIn,
     PreviewOut,
     RandomSuggestionsOut,
     ShareCheckUpdateIn,
     ShareCreateIn,
-    ShareOut,
     SharedPackingCategoryOut,
     SharedPackingItemOut,
     SharedPackingListOut,
+    ShareOut,
     SortOrderIn,
 )
 
@@ -357,7 +353,7 @@ def export_text(request, packing_list_id: int):
     checked = PackingItem.objects.filter(
         category__packing_list=packing_list, is_checked=True, is_do_not_bring=False
     ).count()
-    lines.append(f"---")
+    lines.append("---")
     lines.append(f"Fortschritt: {checked}/{total} gepackt")
 
     text = "\n".join(lines)
@@ -760,7 +756,7 @@ def get_ai_suggestions(request, packing_list_id: int, payload: AiSuggestIn):
             status=503,
             content_type="application/json",
         )
-    except Exception as exc:
+    except Exception:
         logger.exception("Unexpected AI suggestion error")
         return HttpResponse(
             json.dumps({"detail": "KI-Vorschlag fehlgeschlagen", "error_code": "ai_error"}),

@@ -9,18 +9,14 @@
 
 import json
 from datetime import timedelta
-from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.utils import timezone
 
-from event.choices import RegistrationDeletionReason
 from event.models import (
-    BookingOption,
     Event,
-    Participant,
     Person,
     Registration,
 )

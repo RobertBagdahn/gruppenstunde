@@ -19,14 +19,13 @@ def calculate_recipe_quality_score(recipe) -> int:
     scores = []
 
     # Ingredients (30%) — materialise once, reuse for cache freshness check
-    items = list(
-        recipe.recipe_items.select_related("portion", "portion__ingredient").all()
-    )
+    items = list(recipe.recipe_items.select_related("portion", "portion__ingredient").all())
     if items:
         valid_items = sum(
             1
             for item in items
-            if item.portion and item.portion.ingredient
+            if item.portion
+            and item.portion.ingredient
             and item.portion.ingredient.energy_kcal
             and item.portion.ingredient.energy_kcal > 0
         )
@@ -50,8 +49,7 @@ def calculate_recipe_quality_score(recipe) -> int:
     # Cache freshness (20%) — reuse materialised items list
     if recipe.cached_at:
         stale = any(
-            item.portion and item.portion.ingredient
-            and item.portion.ingredient.updated_at > recipe.cached_at
+            item.portion and item.portion.ingredient and item.portion.ingredient.updated_at > recipe.cached_at
             for item in items
         )
         cache_score = 0.0 if stale else 100.0

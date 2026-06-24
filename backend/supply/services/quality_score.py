@@ -1,9 +1,6 @@
 """Quality score calculation for Ingredient objects."""
 
 import logging
-from datetime import date
-
-from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-
 NEW_UNITS = [
     # (name, description, quantity, unit_type)
     ("Handvoll", "Eine Handvoll (~30g)", 1, "g"),
@@ -66,7 +65,6 @@ def reverse_seed(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0017_fix_quantity_constraint"),
     ]

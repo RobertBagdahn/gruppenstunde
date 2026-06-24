@@ -62,7 +62,7 @@ Es gibt keine Möglichkeit für Nutzer, ihre Daten einzusehen, zu exportieren od
 # profiles/services/privacy.py
 class PrivacyService:
     collectors: list[PrivacyDataCollector]
-    
+
     def collect_user_data(self, user: User) -> dict
     def export_user_data(self, user: User) -> dict
     def anonymize_user(self, user: User) -> None

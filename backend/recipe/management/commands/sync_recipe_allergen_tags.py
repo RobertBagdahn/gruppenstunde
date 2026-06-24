@@ -1,6 +1,7 @@
 """Management command to sync all recipe allergen tags from their ingredients."""
 
 from django.core.management.base import BaseCommand
+
 from recipe.models import Recipe
 from recipe.services.recipe_checks import sync_recipe_allergen_tags
 from supply.models.reference import NutritionalTag
@@ -36,14 +37,12 @@ class Command(BaseCommand):
             )
 
             # Compute new dangerous tags
-            ingredient_ids = list(
-                recipe.recipe_items.values_list("portion__ingredient_id", flat=True).distinct()
-            )
+            ingredient_ids = list(recipe.recipe_items.values_list("portion__ingredient_id", flat=True).distinct())
             if ingredient_ids:
                 new_dangerous_tag_ids = set(
-                    NutritionalTag.objects.filter(
-                        is_dangerous=True, ingredients__id__in=ingredient_ids
-                    ).values_list("id", flat=True)
+                    NutritionalTag.objects.filter(is_dangerous=True, ingredients__id__in=ingredient_ids).values_list(
+                        "id", flat=True
+                    )
                 )
             else:
                 new_dangerous_tag_ids = set()
@@ -63,11 +62,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {i}/{total_recipes} done")
 
         if dry_run:
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Dry-run complete. Would update {updated_recipes_count} recipes."
-                )
-            )
+            self.stdout.write(self.style.SUCCESS(f"Dry-run complete. Would update {updated_recipes_count} recipes."))
         else:
             self.stdout.write(
                 self.style.SUCCESS(

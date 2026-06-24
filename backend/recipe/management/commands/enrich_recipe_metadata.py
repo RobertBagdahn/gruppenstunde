@@ -15,7 +15,6 @@ import time
 
 from django.core.management.base import BaseCommand
 
-
 GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
 
 SYSTEM_PROMPT = """Du bist ein Koch-Experte. Schätze für jedes Rezept die folgenden Metadaten:
@@ -84,7 +83,9 @@ class Command(BaseCommand):
             if i + batch_size < len(recipes):
                 time.sleep(2)
 
-        self.stdout.write(self.style.SUCCESS(f"\nDone: {updated_count} recipes {'would be ' if dry_run else ''}updated."))
+        self.stdout.write(
+            self.style.SUCCESS(f"\nDone: {updated_count} recipes {'would be ' if dry_run else ''}updated.")
+        )
 
     def _estimate_batch(self, recipes) -> list[dict]:
         from google.genai import types
@@ -94,15 +95,21 @@ class Command(BaseCommand):
         # Build prompt with recipe summaries
         recipe_data = []
         for r in recipes:
-            ingredients = [item.portion.ingredient.name for item in r.recipe_items.all() if item.portion and item.portion.ingredient]
-            recipe_data.append({
-                "id": r.id,
-                "title": r.title,
-                "type": r.recipe_type,
-                "portions": r.portions,
-                "ingredients": ingredients[:15],  # limit to keep prompt short
-                "description_preview": (r.description or "")[:200],
-            })
+            ingredients = [
+                item.portion.ingredient.name
+                for item in r.recipe_items.all()
+                if item.portion and item.portion.ingredient
+            ]
+            recipe_data.append(
+                {
+                    "id": r.id,
+                    "title": r.title,
+                    "type": r.recipe_type,
+                    "portions": r.portions,
+                    "ingredients": ingredients[:15],  # limit to keep prompt short
+                    "description_preview": (r.description or "")[:200],
+                }
+            )
 
         prompt = f"{SYSTEM_PROMPT}\n\nRezepte:\n{json.dumps(recipe_data, ensure_ascii=False)}"
 

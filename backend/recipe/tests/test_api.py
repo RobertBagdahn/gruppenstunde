@@ -3,13 +3,11 @@
 import json
 
 import pytest
-from django.test import Client
 
 from content.choices import ContentStatus
-from content.models import ContentComment, ContentEmotion, ScoutLevel, Tag
+from content.models import ScoutLevel, Tag
 from recipe.models import Recipe, RecipeItem
 from supply.models import Ingredient, MeasuringUnit, NutritionalTag, Portion
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -505,6 +503,7 @@ class TestRecipeImageUpload:
 @pytest.mark.django_db
 def test_recipe_item_out_weight_g_calculation(db, portion):
     from recipe.schemas.items import RecipeItemOut
+
     recipe = Recipe.objects.create(title="Test Recipe")
     # Test case 1: item has portion with explicit weight_g
     item1 = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=250, sort_order=0)
@@ -579,7 +578,7 @@ class TestRecipeDetailVisibility:
             visibility="private",
             owner=owner,
         )
-        resp = api_client.get(f"/api/recipes/by-slug/private-slug/")
+        resp = api_client.get("/api/recipes/by-slug/private-slug/")
         assert resp.status_code == 404
 
 
@@ -590,9 +589,7 @@ class TestRecipeItemPermissions:
     def test_non_owner_cannot_add_item(self, auth_client, user_factory, portion):
         """Non-owner should not be able to add items."""
         owner = user_factory()
-        recipe = Recipe.objects.create(
-            title="Test", status=ContentStatus.DRAFT, owner=owner
-        )
+        recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, owner=owner)
         resp = auth_client.post(
             f"/api/recipes/{recipe.id}/recipe-items/",
             {
@@ -606,9 +603,7 @@ class TestRecipeItemPermissions:
 
     def test_owner_can_add_item(self, auth_client, portion):
         """Owner should be able to add items."""
-        recipe = Recipe.objects.create(
-            title="Test", status=ContentStatus.DRAFT, owner=auth_client._user
-        )
+        recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, owner=auth_client._user)
         resp = auth_client.post(
             f"/api/recipes/{recipe.id}/recipe-items/",
             {
@@ -660,9 +655,7 @@ def test_embedding_updates_on_recipe_item_change(db):
 
     ingredient = Ingredient.objects.create(name="Zutat", slug="zutat")
     unit = MeasuringUnit.objects.create(name="g", quantity=1.0)
-    portion = Portion.objects.create(
-        ingredient=ingredient, measuring_unit=unit, name="g", quantity=1, weight_g=100
-    )
+    portion = Portion.objects.create(ingredient=ingredient, measuring_unit=unit, name="g", quantity=1, weight_g=100)
 
     recipe = Recipe.objects.create(title="Test", status=ContentStatus.APPROVED)
 
@@ -730,4 +723,3 @@ class TestRecipeSubresourceVisibility:
         )
         resp = api_client.get(f"/api/recipes/{recipe.id}/comments/")
         assert resp.status_code == 404
-

@@ -4,7 +4,6 @@ import pytest
 from django.core.management import call_command
 from model_bakery import baker
 
-from recipe.models import Recipe
 from recipe.services.recipe_checks import sync_recipe_allergen_tags
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models.reference import NutritionalTag
