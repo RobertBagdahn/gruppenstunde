@@ -3,7 +3,7 @@
  * Route: /meal-plans/:id/ref-meals/:mealType
  */
 import { useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   useRefMeals,
@@ -16,8 +16,7 @@ import { useRecipeSearch } from '@/api/mealPlans';
 import { useMealPlan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { RefMealItemIn } from '@/schemas/mealPlan';
-
-const DEFAULT_DAILY_KCAL = 2400;
+import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
 
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
@@ -33,8 +32,10 @@ const RECIPE_TYPE_GROUPS: Record<string, string> = {
 
 export default function RefMealEditorPage() {
   const { id, mealType } = useParams<{ id: string; mealType: string }>();
+  const navigate = useNavigate();
   const planId = Number(id) || 0;
   const currentMealType = mealType || 'breakfast';
+  const isBreakfast = currentMealType === 'breakfast';
 
   // Data fetching
   const { data: plan } = useMealPlan(planId);
@@ -79,7 +80,7 @@ export default function RefMealEditorPage() {
 
   // Energy calculation
   const dayPartFactor = refMeal?.day_part_factor || 0.25;
-  const targetKcal = DEFAULT_DAILY_KCAL * dayPartFactor;
+  const targetKcal = NORM_PERSON_DAILY_KCAL * dayPartFactor;
 
   const totalEnergyKcal = useMemo(() => {
     if (!refMeal) return 0;
@@ -201,11 +202,32 @@ export default function RefMealEditorPage() {
           <p className="text-muted-foreground">
             Noch keine Referenz-Mahlzeit für {mealTypeLabel} vorhanden.
           </p>
+          {isBreakfast ? (
+            <button
+              onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Frühstücksassistent starten
+            </button>
+          ) : (
+            <button
+              onClick={handleCreateRefMeal}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Referenz-Mahlzeit erstellen
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Wizard button for existing breakfast RefMeal */}
+      {refMeal && isBreakfast && (
+        <div className="flex justify-end">
           <button
-            onClick={handleCreateRefMeal}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm border rounded-lg hover:bg-muted transition-colors"
           >
-            Referenz-Mahlzeit erstellen
+            Frühstücksassistent öffnen
           </button>
         </div>
       )}
@@ -302,7 +324,7 @@ export default function RefMealEditorPage() {
                 <span className="font-mono">{Math.round(totalEnergyKcal)} kcal</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Soll ({Math.round(dayPartFactor * 100)}% von {DEFAULT_DAILY_KCAL}):</span>
+                <span>Soll ({Math.round(dayPartFactor * 100)}% von {NORM_PERSON_DAILY_KCAL}):</span>
                 <span className="font-mono">{Math.round(targetKcal)} kcal</span>
               </div>
               <div className="flex justify-between text-sm font-medium">

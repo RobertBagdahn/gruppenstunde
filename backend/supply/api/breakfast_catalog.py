@@ -2,13 +2,16 @@
 
 Returns base ingredients (Basis-Zutaten) and topping ingredients (Belag-Zutaten)
 with their portions, weights, and pricing information.
+
+Also provides the breakfast-leftovers calculation endpoint.
 """
 
+import math
 from typing import Any
 
 from ninja import Router, Schema
 
-from supply.models import NutritionalTag
+from supply.models import Ingredient, NutritionalTag, Portion
 
 breakfast_catalog_router = Router(tags=["breakfast"])
 
@@ -150,3 +153,106 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
         "base_ingredients": base_ingredients,
         "topping_ingredients": topping_ingredients,
     }
+
+
+# ============================================================================
+# Breakfast Leftovers — Schemas + Endpoint
+# ============================================================================
+
+
+class ToppingPortionIn(Schema):
+    """A topping with quantity per person (in grams)."""
+
+    ingredient_id: int
+    grams_per_person: float
+
+
+class BreakfastLeftoversIn(Schema):
+    """Input for the breakfast leftovers calculation."""
+
+    toppings: list[ToppingPortionIn]
+    norm_portions: int
+    days: int = 1
+
+
+class ToppingLeftoverOut(Schema):
+    """Leftover calculation result for a single topping."""
+
+    ingredient_id: int
+    ingredient_name: str
+    total_needed_g: float
+    package_size_g: float | None = None
+    packages_needed: int | None = None
+    leftover_g: float | None = None
+    leftover_eur: float | None = None
+    price_per_kg: float | None = None
+
+
+class BreakfastLeftoversOut(Schema):
+    """Response for the breakfast leftovers calculation."""
+
+    toppings: list[ToppingLeftoverOut]
+
+
+@breakfast_catalog_router.post(
+    "/breakfast-leftovers/",
+    response=BreakfastLeftoversOut,
+    auth=None,  # accessible to logged-in users; caller checks meal plan access separately
+)
+def calculate_breakfast_leftovers(request, data: BreakfastLeftoversIn) -> dict[str, Any]:
+    """Calculate leftover amounts and costs for breakfast toppings.
+
+    For each topping:
+      total_needed_g = grams_per_person × norm_portions × days
+      packages_needed = ceil(total_needed_g / package_size_g)
+      leftover_g = packages_needed × package_size_g − total_needed_g
+      leftover_eur = leftover_g / 1000 × price_per_kg
+
+    Returns per topping: Bedarf (g), Packungen (Stück), Rest (g), Restwert (€).
+    """
+    ing_ids = [t.ingredient_id for t in data.toppings]
+    ingredients = {ing.id: ing for ing in Ingredient.objects.filter(id__in=ing_ids)}
+
+    # Batch-load "Packung" portions
+    package_portions: dict[int, Portion] = {}
+    for p in Portion.objects.filter(ingredient_id__in=ing_ids, name__startswith="Packung"):
+        # Keep the first/only Packung per ingredient
+        if p.ingredient_id not in package_portions:
+            package_portions[p.ingredient_id] = p
+
+    results = []
+    for t in data.toppings:
+        ing = ingredients.get(t.ingredient_id)
+        if not ing:
+            continue
+
+        total_needed_g = t.grams_per_person * data.norm_portions * data.days
+
+        pkg = package_portions.get(t.ingredient_id)
+        pkg_size = float(pkg.weight_g) if pkg and pkg.weight_g else None
+        price_per_kg = float(ing.price_per_kg) if ing.price_per_kg else None
+
+        packages_needed: int | None = None
+        leftover_g: float | None = None
+        leftover_eur: float | None = None
+
+        if pkg_size and pkg_size > 0:
+            packages_needed = math.ceil(total_needed_g / pkg_size)
+            leftover_g = round(packages_needed * pkg_size - total_needed_g, 1)
+            if price_per_kg is not None:
+                leftover_eur = round(leftover_g / 1000.0 * price_per_kg, 2)
+
+        results.append(
+            {
+                "ingredient_id": ing.id,
+                "ingredient_name": ing.name,
+                "total_needed_g": round(total_needed_g, 1),
+                "package_size_g": pkg_size,
+                "packages_needed": packages_needed,
+                "leftover_g": leftover_g,
+                "leftover_eur": leftover_eur,
+                "price_per_kg": price_per_kg,
+            }
+        )
+
+    return {"toppings": results}

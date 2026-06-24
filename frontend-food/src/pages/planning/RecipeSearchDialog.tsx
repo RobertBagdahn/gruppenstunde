@@ -18,7 +18,7 @@ import {
 import { useRecipeSearch } from '@/api/mealPlans';
 import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipePreviewDialog from './RecipePreviewDialog';
-import CategoryPills, { RECIPE_TYPE_LABELS } from '@/components/recipe/CategoryPills';
+import CategoryPills from '@/components/recipe/CategoryPills';
 import RecipeSearchCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 

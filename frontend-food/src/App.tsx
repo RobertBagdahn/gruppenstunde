@@ -26,6 +26,7 @@ import MealPlanPrintPage from './pages/planning/MealPlanPrintPage';
 import CookingSchedulePage from './pages/planning/CookingSchedulePage';
 import CookingSchedulePrintPage from './pages/planning/CookingSchedulePrintPage';
 import RefMealEditorPage from './pages/planning/RefMealEditorPage';
+import BreakfastWizardPage from './pages/planning/breakfast/BreakfastWizardPage';
 
 // Print pages (no layout)
 import RecipePrintPage from './pages/recipes/RecipePrintPage';
@@ -97,6 +98,7 @@ export default function App() {
         <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
         <Route path="/meal-plans/:id/cooking-schedule" element={<CookingSchedulePage />} />
         <Route path="/meal-plans/:id/ref-meals/:mealType" element={<RefMealEditorPage />} />
+        <Route path="/meal-plans/:id/ref-meals/breakfast/wizard" element={<BreakfastWizardPage />} />
         <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />
 
         {/* Shopping Lists */}

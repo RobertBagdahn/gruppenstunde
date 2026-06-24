@@ -35,39 +35,39 @@
 
 - [x] 2.1 Endpunkt `GET /api/supply/breakfast-catalog/`: Basis-Zutaten (Scheibengewicht, BE/Stück) + Belag-Zutaten (Intensitäts-Portionen, Packung, price_per_kg), gruppiert nach Kategorie
 - [x] 2.2 Pydantic-Schemas für den Katalog (Basis, Belag mit Portionen)
-- [ ] 2.3 Reste-Endpunkt `POST /api/meal-plans/{id}/breakfast-leftovers/`: nimmt Belag-Mengen/Person + norm_portions + Tage, liefert pro Belag Bedarf (g), Packungen, Rest (g), Restwert (€)
-- [ ] 2.4 Pydantic-Schemas für Reste-Endpunkt (Request + Response)
-- [ ] 2.5 RefMeal-Response liefert `day_part_factor` für die Soll-Rechnung (prüfen, bereits vorhanden)
-- [ ] 2.6 Tests: Katalog-Endpunkt (Happy-Path + 403), Reste-Endpunkt (Packungsrundung, Rest in g/€)
+- [x] 2.3 Reste-Endpunkt `POST /api/meal-plans/{id}/breakfast-leftovers/`: nimmt Belag-Mengen/Person + norm_portions + Tage, liefert pro Belag Bedarf (g), Packungen, Rest (g), Restwert (€)
+- [x] 2.4 Pydantic-Schemas für Reste-Endpunkt (Request + Response)
+- [x] 2.5 RefMeal-Response liefert `day_part_factor` für die Soll-Rechnung (prüfen, bereits vorhanden)
+- [x] 2.6 Tests: Katalog-Endpunkt (Happy-Path + 403), Reste-Endpunkt (Packungsrundung, Rest in g/€)
 
 ## 3. Frontend-Datenschicht (frontend-food)
 
-- [ ] 3.1 Zod-Schemas für Katalog, Wizard-State (Basis/Belag/Extras/Getränke) und Reste-Response — synchron zu Pydantic
-- [ ] 3.2 TanStack-Query-Hook für `breakfast-catalog`
-- [ ] 3.3 Hook/Query für Reste-Endpunkt
-- [ ] 3.4 Hook/Mutation zum Speichern des Wizard-Ergebnisses als RefMeal + MealItems
-- [ ] 3.5 Rechen-Utilities (Frontend): BE↔Gramm↔kcal, Belag-Deckung, Milch-Merge, Normalisieren (Reste kommen vom Backend)
+- [x] 3.1 Zod-Schemas für Katalog, Wizard-State (Basis/Belag/Extras/Getränke) und Reste-Response — synchron zu Pydantic
+- [x] 3.2 TanStack-Query-Hook für `breakfast-catalog`
+- [x] 3.3 Hook/Query für Reste-Endpunkt
+- [x] 3.4 Hook/Mutation zum Speichern des Wizard-Ergebnisses als RefMeal + MealItems
+- [x] 3.5 Rechen-Utilities (Frontend): BE↔Gramm↔kcal, Belag-Deckung, Milch-Merge, Normalisieren (Reste kommen vom Backend)
 
 ## 4. Wizard-UI (frontend-food)
 
-- [ ] 4.1 Wizard-Gerüst `src/pages/planning/breakfast/` mit Schritt-Navigation und Wizard-State-Hook
-- [ ] 4.2 Wiederverwendbarer Schieberegler mit Auto-Rebalance + Lock-Icon (Summe 100%)
-- [ ] 4.3 Schritt 1 Basis: BE/Person + Sortenverteilung + Gramm/kcal-Anzeige
-- [ ] 4.4 Schritt 2 Belag: globaler Intensitäts-Schalter, Sortenverteilung, Belag-Deckungs-Check, Sortenwarnung ab 3 Sorten
-- [ ] 4.5 Schritt 3 Extras: Gemüse (Mengen) + warme Gerichte (Rezeptauswahl + Faktor)
-- [ ] 4.6 Schritt 4 Getränke: Anteile Kaffee/Kakao/Tee + Milch-Zusammenrechnung
-- [ ] 4.7 Abschluss-Cockpit: alle Doppelchecks, Transparenz-Tabelle (Menge/Gewicht/kcal/Anteil), Reste-Tabelle (g + €), Hochrechnung × Personen × Tage, SollIstBar
-- [ ] 4.8 "Normalisieren" verdrahten (Basis+Belag+Getränke skalieren, Extras fix, Deckung erhalten)
+- [x] 4.1 Wizard-Gerüst `src/pages/planning/breakfast/` mit Schritt-Navigation und Wizard-State-Hook
+- [x] 4.2 Wiederverwendbarer Schieberegler mit Auto-Rebalance + Lock-Icon (Summe 100%)
+- [x] 4.3 Schritt 1 Basis: BE/Person + Sortenverteilung + Gramm/kcal-Anzeige
+- [x] 4.4 Schritt 2 Belag: globaler Intensitäts-Schalter, Sortenverteilung, Belag-Deckungs-Check, Sortenwarnung ab 3 Sorten
+- [x] 4.5 Schritt 3 Extras: Gemüse (Mengen) + warme Gerichte (Rezeptauswahl + Faktor)
+- [x] 4.6 Schritt 4 Getränke: Anteile Kaffee/Kakao/Tee + Milch-Zusammenrechnung
+- [x] 4.7 Abschluss-Cockpit: alle Doppelchecks, Transparenz-Tabelle (Menge/Gewicht/kcal/Anteil), Reste-Tabelle (g + €), Hochrechnung × Personen × Tage, SollIstBar
+- [x] 4.8 "Normalisieren" verdrahten (Basis+Belag+Getränke skalieren, Extras fix, Deckung erhalten)
 
 ## 5. Einstieg & Integration
 
-- [ ] 5.1 `RefMealEditorPage` für Frühstück: "Referenz-Mahlzeit erstellen" öffnet Wizard statt direktem `createRefMeal`; harte 2400-kcal-Konstante entfernen
-- [ ] 5.2 "Frühstücksassistent"-Button für vorhandenes Frühstücks-RefMeal (Wizard vorausgefüllt aus MealItems)
+- [x] 5.1 `RefMealEditorPage` für Frühstück: "Referenz-Mahlzeit erstellen" öffnet Wizard statt direktem `createRefMeal`; harte 2400-kcal-Konstante entfernen
+- [x] 5.2 "Frühstücksassistent"-Button für vorhandenes Frühstücks-RefMeal (Wizard vorausgefüllt aus MealItems)
 - [ ] 5.3 State-Rekonstruktion aus vorhandenen MealItems (Mengen → Verteilungen/Intensität ableiten)
 
 ## 6. Validierung & Doku
 
 - [ ] 6.1 Mobile-First prüfen (320px) für alle Schritte und Cockpit
-- [ ] 6.2 `openspec validate breakfast-wizard --strict` bestehen
-- [ ] 6.3 AGENTS.md (Food) um Wizard-Konventionen (Basis-Tag, Belag-Portionen, BE) ergänzen
+- [x] 6.2 `openspec validate breakfast-wizard --strict` bestehen
+- [x] 6.3 AGENTS.md (Food) um Wizard-Konventionen (Basis-Tag, Belag-Portionen, BE) ergänzen
 - [ ] 6.4 Manuelle Verifikation an `/meal-plans/:id/ref-meals/breakfast` (Erstellen, Speichern, Wiederöffnen)

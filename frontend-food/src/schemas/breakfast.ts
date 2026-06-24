@@ -1,0 +1,169 @@
+/**
+ * Zod schemas for the Breakfast Wizard.
+ * MUST stay in sync with:
+ *   backend/supply/api/breakfast_catalog.py
+ *   (PortionOut, BaseIngredientOut, ToppingIngredientOut, BreakfastCatalogOut,
+ *    ToppingPortionIn, BreakfastLeftoversIn, ToppingLeftoverOut, BreakfastLeftoversOut)
+ */
+import { z } from 'zod';
+
+// ============================================================================
+// Catalog schemas
+// ============================================================================
+
+export const BreakfastPortionSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  measuring_unit_id: z.number(),
+  quantity: z.number(),
+  weight_g: z.number().nullable(),
+  is_default: z.boolean(),
+  priority: z.number(),
+});
+export type BreakfastPortion = z.infer<typeof BreakfastPortionSchema>;
+
+export const BaseIngredientSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  is_standalone_food: z.boolean(),
+  standard_recipe_weight_g: z.number().nullable(),
+  energy_kcal: z.number().nullable(),
+  portions: z.array(BreakfastPortionSchema),
+});
+export type BaseIngredient = z.infer<typeof BaseIngredientSchema>;
+
+export const ToppingIngredientSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  is_standalone_food: z.boolean(),
+  energy_kcal: z.number().nullable(),
+  price_per_kg: z.number().nullable(),
+  portions: z.array(BreakfastPortionSchema),
+});
+export type ToppingIngredient = z.infer<typeof ToppingIngredientSchema>;
+
+export const BreakfastCatalogSchema = z.object({
+  base_ingredients: z.array(BaseIngredientSchema),
+  topping_ingredients: z.array(ToppingIngredientSchema),
+});
+export type BreakfastCatalog = z.infer<typeof BreakfastCatalogSchema>;
+
+// ============================================================================
+// Leftovers schemas (request + response)
+// ============================================================================
+
+export const ToppingPortionInSchema = z.object({
+  ingredient_id: z.number(),
+  grams_per_person: z.number(),
+});
+export type ToppingPortionIn = z.infer<typeof ToppingPortionInSchema>;
+
+export const BreakfastLeftoversInSchema = z.object({
+  toppings: z.array(ToppingPortionInSchema),
+  norm_portions: z.number().int(),
+  days: z.number().int().default(1),
+});
+export type BreakfastLeftoversIn = z.infer<typeof BreakfastLeftoversInSchema>;
+
+export const ToppingLeftoverOutSchema = z.object({
+  ingredient_id: z.number(),
+  ingredient_name: z.string(),
+  total_needed_g: z.number(),
+  package_size_g: z.number().nullable(),
+  packages_needed: z.number().nullable(),
+  leftover_g: z.number().nullable(),
+  leftover_eur: z.number().nullable(),
+  price_per_kg: z.number().nullable(),
+});
+export type ToppingLeftoverOut = z.infer<typeof ToppingLeftoverOutSchema>;
+
+export const BreakfastLeftoversOutSchema = z.object({
+  toppings: z.array(ToppingLeftoverOutSchema),
+});
+export type BreakfastLeftoversOut = z.infer<typeof BreakfastLeftoversOutSchema>;
+
+// ============================================================================
+// Wizard State  (client-side only, not persisted)
+// ============================================================================
+
+/** Intensity level for topping portions */
+export type ToppingIntensity = 'knapp' | 'normal' | 'üppig';
+
+/** One basis bread type with share (0–100%) and BE/person */
+export const BasisSelectionSchema = z.object({
+  ingredientId: z.number(),
+  name: z.string(),
+  sharePercent: z.number().min(0).max(100),
+  locked: z.boolean(),
+  /** Scheibenwicht in g */
+  sliceWeightG: z.number(),
+  /** kcal/100g */
+  energyKcal100g: z.number().nullable(),
+});
+export type BasisSelection = z.infer<typeof BasisSelectionSchema>;
+
+/** One topping with share and intensity */
+export const ToppingSelectionSchema = z.object({
+  ingredientId: z.number(),
+  name: z.string(),
+  sharePercent: z.number().min(0).max(100),
+  locked: z.boolean(),
+  energyKcal100g: z.number().nullable(),
+  pricePerKg: z.number().nullable(),
+  portions: z.array(BreakfastPortionSchema),
+});
+export type ToppingSelection = z.infer<typeof ToppingSelectionSchema>;
+
+/** Drink mix proportions */
+export const DrinkStateSchema = z.object({
+  coffeePercent: z.number().min(0).max(100),
+  cocoaPercent: z.number().min(0).max(100),
+  teaPercent: z.number().min(0).max(100),
+  /** Total ml per person */
+  mlPerPerson: z.number(),
+  /** ml/person as coffee with milk → merged into topping milk */
+  coffeeMilkMlPerPerson: z.number(),
+  /** ml/person as cocoa with milk */
+  cocoaMilkMlPerPerson: z.number(),
+});
+export type DrinkState = z.infer<typeof DrinkStateSchema>;
+
+/** Complete wizard state */
+export const WizardStateSchema = z.object({
+  /** Breakfast units per person */
+  bePerPerson: z.number().min(1).max(10),
+  basis: z.array(BasisSelectionSchema),
+  toppings: z.array(ToppingSelectionSchema),
+  globalIntensity: z.enum(['knapp', 'normal', 'üppig']),
+  drinks: DrinkStateSchema,
+  /** IDs of warm-dish recipes chosen in Extras step */
+  warmDishRecipeIds: z.array(z.number()),
+  /** Scaling factor for each warm-dish recipe */
+  warmDishFactors: z.record(z.string(), z.number()),
+  /** Extra standalone ingredients (Gemüse etc.) — id → grams_per_person */
+  extraIngredients: z.record(z.string(), z.number()),
+});
+export type WizardState = z.infer<typeof WizardStateSchema>;
+
+/** Default empty wizard state */
+export function defaultWizardState(): WizardState {
+  return {
+    bePerPerson: 4,
+    basis: [],
+    toppings: [],
+    globalIntensity: 'normal',
+    drinks: {
+      coffeePercent: 40,
+      cocoaPercent: 30,
+      teaPercent: 30,
+      mlPerPerson: 300,
+      coffeeMilkMlPerPerson: 50,
+      cocoaMilkMlPerPerson: 150,
+    },
+    warmDishRecipeIds: [],
+    warmDishFactors: {},
+    extraIngredients: {},
+  };
+}

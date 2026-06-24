@@ -34,3 +34,23 @@ Der integrierte interaktive Styleguide unter `/styleguide` dient als „Single S
 * UI-Muster wie Buttons, Badges, standardisierte Formularelemente und Card-Tabellen.
 * Vorlagen für Lade- und leere Zustände.
 Bei der Entwicklung neuer Komponenten oder Seiten muss immer zuerst der `/styleguide` herangezogen und als visuelle Referenz verwendet werden.
+
+## Frühstücksassistent (Breakfast Wizard)
+
+### Konventionen
+- **BE (Broteinheit)**: 1 BE = 1 belegbare Fläche = 1 Scheibe Brot = ½ Brötchen. 1 ganzes Brötchen = 2 BE.
+- **Belag-Portionen**: Jede Belag-Zutat hat 3 Portionen: `"Belag knapp"`, `"Belag normal"` (Default), `"Belag üppig"` + eine `"Packung (Xg)"` für Reste-Kalkulation.
+- **Basis-Tag**: Basis-Brotsorten erhalten den NutritionalTag `"frühstücks-basis"`.
+- **Belag-Tag**: Belag-Zutaten erhalten den NutritionalTag `"frühstücks-belag"`.
+- **Energienorm**: `NORM_PERSON_DAILY_KCAL = 2335` (aus `src/lib/breakfastCalc.ts`), synchron mit Backend-Konstante in `supply/data/dge_reference.py`.
+
+### Dateien
+- **Schemas**: `src/schemas/breakfast.ts` — Zod-Schemas für Katalog, Wizard-State, Leftovers
+- **API Hooks**: `src/api/breakfast.ts` — `useBreakfastCatalog`, `useBreakfastLeftovers`, `useSaveBreakfastWizard`
+- **Kalkulations-Utilities**: `src/lib/breakfastCalc.ts` — BE↔Gramm↔kcal, Belag-Deckung, Normalisieren, Slider-Rebalance
+- **Wizard UI**: `src/pages/planning/breakfast/` — `BreakfastWizardPage`, `useWizardState`, `StepBasis`, `StepBelag`, `StepExtras`, `StepGetraenke`, `StepCockpit`, `ShareSlider`
+- **Route**: `/meal-plans/:id/ref-meals/breakfast/wizard`
+
+### Einstieg
+- Kein bestehendes Frühstücks-RefMeal → `RefMealEditorPage` zeigt „Frühstücksassistent starten"-Button
+- Bestehendes RefMeal → „Frühstücksassistent öffnen"-Button oben rechts in `RefMealEditorPage`
