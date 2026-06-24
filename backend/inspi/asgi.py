@@ -10,7 +10,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inspi.settings.local")
 django_asgi_app = get_asgi_application()
 
 # Import after Django setup
-from shopping.routing import websocket_urlpatterns  # noqa: E402
+from shopping.routing import websocket_urlpatterns
 
 application = ProtocolTypeRouter(
     {

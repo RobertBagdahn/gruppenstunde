@@ -18,6 +18,7 @@ from core.services.gemini import gemini_call
 
 if TYPE_CHECKING:
     from recipe.models import Recipe
+    from supply.models import Ingredient
 
 logger = logging.getLogger(__name__)
 

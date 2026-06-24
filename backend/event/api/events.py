@@ -809,10 +809,6 @@ def _compute_invitation_counts(event: Event) -> dict:
 
 def _get_all_invited_users(event: Event) -> list[dict]:
     """Get all invited users (direct + via groups) with metadata."""
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-
     seen_user_ids: set[int] = set()
     results: list[dict] = []
 

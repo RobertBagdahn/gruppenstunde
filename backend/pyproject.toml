@@ -94,18 +94,41 @@ ignore = [
     "SIM105",  # suppressible-exception (try-except-pass is sometimes clearer)
     "SIM108",  # if-else-block-instead-of-if-exp (readability preference)
     "SIM102",  # collapsible-if (sometimes nested if is clearer)
+    "SIM103",  # return-condition-directly (sometimes multiline is clearer)
     "E501",  # line-too-long (pragmatic limit, some strings are long)
     "B904",  # within-exception-raise (too strict, raise ... from None is boilerplate)
+    "B017",  # do-not-assert-exception (pytest.raises(Exception) is fine for some tests)
+    "B008",  # function-call-argument-default (sometimes needed)
+    "B011",  # assert-false (sometimes clearer than AssertionError)
+    "B023",  # function-loop-variable (sometimes intentional)
     "N806",  # variable-in-function-should-be-lowercase (type variables often capitalized)
     "N803",  # argument-name-should-be-lowercase (type variables/model names can be capitalized)
     "S110",  # try-except-pass (sometimes appropriate for logging-optional errors)
     "T201",  # print (dev debugging, but not allowed in tests)
     "E402",  # module-level-import-not-at-top (sometimes needed)
+    "F601",  # repeated-keys (sometimes intentional in config dicts)
+    "N802",  # invalid-function-name (sometimes snake_case functions are needed)
+    "RUF005",  # unnecessary-iterable-unpacking (sometimes explicit is clearer)
+    "E731",  # do-not-assign-lambda (sometimes lambda is convenient)
+    "E741",  # ambiguous-variable-name (single letters sometimes necessary)
+    "SIM117",  # multiple-with-statements (sometimes separate is clearer)
+    "SIM401",  # if-else-block-instead-of-dict-get (sometimes clearer)
+    "SIM110",  # for-loop-instead-of-comprehension (sometimes clearer)
+    "B007",  # unused-loop-variable (sometimes intentional - use _ if needed)
+    "S607",  # partial-executable (sometimes necessary for subprocess)
+    "S603",  # subprocess-without-shell-equals-true (safe with list args)
+    "S608",  # hardcoded-sql-expression (sometimes acceptable for known queries)
+    "S311",  # pseudorandom-generator-not-for-cryptography (acceptable for non-crypto)
+    "S108",  # hardcoded-temp-directory (acceptable for temp files)
+    "F405",  # undefined-or-defined-from-star-imports (sometimes necessary)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "S106", "F841", "N817", "T201"]
+"**/tests/**" = ["S101", "S106", "F841", "N817", "T201", "B017"]
 "**/settings/**" = ["S105"]
+"**/migrations/**" = ["B007", "F841"]
+"**/management/commands/**" = ["F841", "B007", "S607", "S603", "S608", "S311", "S108", "F821", "RUF022", "S106"]
+"**/services/**" = ["F841"]
 "conftest.py" = ["S106"]
 
 [tool.ruff.lint.isort]

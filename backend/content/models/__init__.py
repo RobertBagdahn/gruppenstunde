@@ -21,30 +21,22 @@ from .search import SearchLog
 from .tags import ScoutLevel, Tag, TagSuggestion
 
 __all__ = [
-    # Core
-    "SoftDeleteQuerySet",
-    "SoftDeleteManager",
     "AllObjectsManager",
-    "SoftDeleteModel",
+    "ApprovalLog",
+    "ChangeAuditLog",
     "Content",
-    # Tags
-    "Tag",
-    "ScoutLevel",
-    "TagSuggestion",
-    # Search
-    "SearchLog",
-    # Interactions
     "ContentComment",
     "ContentEmotion",
-    "ContentView",
-    # Links
     "ContentLink",
-    "EmbeddingFeedback",
-    # Approval
-    "ApprovalLog",
-    "FeaturedContent",
-    # Audit
-    "ChangeAuditLog",
-    # Data Quality
+    "ContentView",
     "DuplicateDismissal",
+    "EmbeddingFeedback",
+    "FeaturedContent",
+    "ScoutLevel",
+    "SearchLog",
+    "SoftDeleteManager",
+    "SoftDeleteModel",
+    "SoftDeleteQuerySet",
+    "Tag",
+    "TagSuggestion",
 ]

@@ -36,12 +36,10 @@ def generate_instagram_slides(session) -> list[str]:
     try:
         font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
         font_body = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
-        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
         font_brand = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
     except OSError:
         font_title = ImageFont.load_default()
         font_body = ImageFont.load_default()
-        font_small = ImageFont.load_default()
         font_brand = ImageFont.load_default()
 
     watermark = "gruppenstunde.de"

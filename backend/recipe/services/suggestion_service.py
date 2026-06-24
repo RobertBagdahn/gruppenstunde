@@ -10,7 +10,12 @@ from collections import Counter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Any
+
+    from django.contrib.auth.models import AbstractBaseUser
+
     from planner.models import MealPlan
+    from recipe.models import Recipe
 
 from recipe.models import Rule
 from recipe.schemas.suggestions import (

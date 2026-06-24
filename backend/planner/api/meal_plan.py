@@ -1608,7 +1608,6 @@ def search_recipes(
 
     # Fetch related data
     recipe_ids = [r.id for r in recipes_qs]
-    recipes_map = {r.id: r for r in recipes_qs}
     # Prefetch nutritional_tags for all recipes
     nutritional_tags_map: dict[int, list] = {}
     # Prefetch recipe_items for ingredients_preview
