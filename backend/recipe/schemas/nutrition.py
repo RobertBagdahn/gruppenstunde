@@ -72,6 +72,16 @@ class RecipeNutritionBreakdownOut(Schema):
     per_serving_fat_g: float | None
     per_serving_carbohydrate_g: float | None
     per_serving_vitamin_c_mg: float | None = None
+    # Per-100g values
+    per_100g_energy_kcal: float | None
+    per_100g_protein_g: float | None
+    per_100g_fat_g: float | None
+    per_100g_fat_sat_g: float | None
+    per_100g_carbohydrate_g: float | None
+    per_100g_sugar_g: float | None
+    per_100g_fibre_g: float | None
+    per_100g_salt_g: float | None
+    per_100g_vitamin_c_mg: float | None = None
     # DGE coverage percentages (nutrient -> %)
     dge_coverage: dict[str, float | None] = {}
     # DGE reference values (nutrient -> daily reference value in g/mg/kcal)

@@ -154,10 +154,12 @@ export default function IngredientList({
             : null;
 
           // When the portion subline uses a non-gram unit (e.g. Stück, Wrap, EL),
-          // additionally show the gram weight so the quantity stays comparable.
+          // additionally show the gram weight per unit so the quantity stays comparable.
           const isGramUnit = highPrioUnitName === 'g' || highPrioUnitName === 'kg'
             || highPrioUnitName === 'ml' || highPrioUnitName === 'l';
-          const gramDisplay = highPrioDisplay && !isGramUnit ? formatted.display : null;
+          const gramDisplay = highPrioDisplay && !isGramUnit && highPrioPortion?.weight_g
+            ? formatQuantity(highPrioPortion.weight_g, item.ingredient_viscosity, item.ingredient_density).display
+            : null;
 
           // Fallback for ingredients without a non-gram portion:
           // show the highest-priority non-gram portion as secondary info line.

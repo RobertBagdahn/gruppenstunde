@@ -319,6 +319,16 @@ export const RecipeNutritionBreakdownSchema = z.object({
   per_serving_fat_g: z.number().nullable(),
   per_serving_carbohydrate_g: z.number().nullable(),
   per_serving_vitamin_c_mg: z.number().nullable().optional(),
+  // Per-100g values
+  per_100g_energy_kcal: z.number().nullable(),
+  per_100g_protein_g: z.number().nullable(),
+  per_100g_fat_g: z.number().nullable(),
+  per_100g_fat_sat_g: z.number().nullable(),
+  per_100g_carbohydrate_g: z.number().nullable(),
+  per_100g_sugar_g: z.number().nullable(),
+  per_100g_fibre_g: z.number().nullable(),
+  per_100g_salt_g: z.number().nullable(),
+  per_100g_vitamin_c_mg: z.number().nullable().optional(),
   // DGE coverage percentages (nutrient -> %)
   dge_coverage: z.record(z.string(), z.number().nullable()).default({}),
   // DGE reference values (nutrient -> daily reference in g/mg/kJ)

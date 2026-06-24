@@ -300,6 +300,16 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         "per_serving_fat_g": round(totals["fat_g"] / portions, 1),
         "per_serving_carbohydrate_g": round(totals["carbohydrate_g"] / portions, 1),
         "per_serving_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0) / portions, 3) or None,
+        # Per-100g values
+        "per_100g_energy_kcal": round(total_energy_kcal / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_protein_g": round(totals["protein_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_fat_g": round(totals["fat_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_fat_sat_g": round(totals["fat_sat_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_carbohydrate_g": round(totals["carbohydrate_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_sugar_g": round(totals["sugar_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_fibre_g": round(totals["fibre_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_salt_g": round(totals["salt_g"] / total_weight_g * 100, 1) if total_weight_g > 0 else None,
+        "per_100g_vitamin_c_mg": round(micro_totals.get("vitamin_c_mg", 0.0) / total_weight_g * 100, 3) if total_weight_g > 0 and micro_totals.get("vitamin_c_mg", 0.0) else None,
         # DGE coverage
         "dge_coverage": dge_coverage,
         "dge_reference": dge_reference,

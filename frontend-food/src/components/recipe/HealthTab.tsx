@@ -69,57 +69,57 @@ export function HealthTab({ nutriScore, nb, effectivePortions, recipeId, recipeT
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold mb-3">Gesundheitsindikatoren</h3>
+        <h3 className="text-sm font-semibold mb-3">Gesundheitsindikatoren (pro 100g)</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <HealthIndicator
             label="Zucker"
-            value={nb.total_sugar_g / effectivePortions}
+            value={nb.per_100g_sugar_g ?? 0}
             max={25}
             unit="g"
-            goodBelow={10}
-            warnBelow={20}
+            goodBelow={5}
+            warnBelow={22.5}
           />
           <HealthIndicator
             label="Ges. Fett"
-            value={nb.total_fat_sat_g / effectivePortions}
-            max={20}
+            value={nb.per_100g_fat_sat_g ?? 0}
+            max={10}
             unit="g"
-            goodBelow={6}
-            warnBelow={13}
+            goodBelow={1.5}
+            warnBelow={5}
           />
           <HealthIndicator
             label="Salz"
-            value={nb.total_salt_g / effectivePortions}
-            max={6}
+            value={nb.per_100g_salt_g ?? 0}
+            max={3}
             unit="g"
-            goodBelow={1.5}
-            warnBelow={3}
+            goodBelow={0.3}
+            warnBelow={1.5}
           />
           <HealthIndicator
             label="Ballaststoffe"
-            value={nb.total_fibre_g / effectivePortions}
-            max={10}
+            value={nb.per_100g_fibre_g ?? 0}
+            max={15}
             unit="g"
-            goodBelow={999}
+            goodBelow={6}
             warnBelow={999}
             inverted
           />
           <HealthIndicator
             label="Protein"
-            value={(nb.per_serving_protein_g ?? 0)}
-            max={50}
+            value={nb.per_100g_protein_g ?? 0}
+            max={30}
             unit="g"
-            goodBelow={999}
+            goodBelow={12}
             warnBelow={999}
             inverted
           />
           <HealthIndicator
             label="Kalorien"
-            value={(nb.per_serving_energy_kcal ?? 0)}
-            max={800}
+            value={nb.per_100g_energy_kcal ?? 0}
+            max={400}
             unit="kcal"
-            goodBelow={400}
-            warnBelow={600}
+            goodBelow={175}
+            warnBelow={275}
           />
         </div>
       </div>

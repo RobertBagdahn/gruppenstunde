@@ -118,9 +118,10 @@ export function MicronutrientSection({
     value: number | null | undefined;
     unit: string;
     dgeKey: string;
+    per100g?: boolean;
   }>;
   dgeCoverage: Record<string, number | null>;
-  portions: number;
+  portions?: number;
 }) {
   const [open, setOpen] = useState(false);
   const hasAnyValue = nutrients.some((n) => n.value != null && n.value > 0);
@@ -146,14 +147,15 @@ export function MicronutrientSection({
         <div className="px-3 pb-3 space-y-2">
           {nutrients.map((n) => {
             if (n.value == null || n.value <= 0) return null;
-            const perServing = n.value / portions;
+            const displayValue = n.per100g ? n.value : n.value / (portions ?? 1);
+            const unitLabel = n.per100g ? `${n.unit}/100g` : `${n.unit}/Portion`;
             const coverage = dgeCoverage[n.dgeKey] ?? null;
             return (
               <div key={n.dgeKey} className="space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="font-medium">{n.label}</span>
                   <span className="text-muted-foreground">
-                    {perServing < 0.1 ? perServing.toFixed(3) : perServing.toFixed(1)} {n.unit}/Portion
+                    {displayValue < 0.1 ? displayValue.toFixed(3) : displayValue.toFixed(1)} {unitLabel}
                     {coverage != null && (
                       <span className={`ml-2 font-semibold ${coverage >= 80 ? 'text-green-600' : coverage >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
                         {coverage.toFixed(0)}% DGE

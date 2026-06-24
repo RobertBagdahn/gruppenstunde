@@ -154,7 +154,7 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
             </h3>
             <TagMultiSelect selectedSlugs={selectedTagSlugs} onToggle={toggleTag} />
           </div>
-          {RECIPE_TYPE_OPTIONS.map((opt) => (
+          {RECIPE_TYPE_OPTIONS.filter((opt) => opt.value !== 'recipe_part' && opt.value !== 'ingredient').map((opt) => (
             <label key={opt.value} className="flex items-center gap-2 py-1.5 cursor-pointer text-sm hover:text-primary transition-colors">
               <input
                 type="radio"

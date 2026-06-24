@@ -251,6 +251,17 @@ export default function RecipeDetailPage() {
       per_serving_protein_g: totalProteinG / portions,
       per_serving_fat_g: totalFatG / portions,
       per_serving_carbohydrate_g: totalCarbohydrateG / portions,
+      per_100g_energy_kcal: totalWeightG > 0 ? totalEnergyKcal / totalWeightG * 100 : null,
+      per_100g_protein_g: totalWeightG > 0 ? totalProteinG / totalWeightG * 100 : null,
+      per_100g_fat_g: totalWeightG > 0 ? totalFatG / totalWeightG * 100 : null,
+      per_100g_fat_sat_g: totalWeightG > 0 ? totalFatSatG / totalWeightG * 100 : null,
+      per_100g_carbohydrate_g: totalWeightG > 0 ? totalCarbohydrateG / totalWeightG * 100 : null,
+      per_100g_sugar_g: totalWeightG > 0 ? totalSugarG / totalWeightG * 100 : null,
+      per_100g_fibre_g: totalWeightG > 0 ? totalFibreG / totalWeightG * 100 : null,
+      per_100g_salt_g: totalWeightG > 0 ? totalSaltG / totalWeightG * 100 : null,
+      per_100g_vitamin_c_mg: totalWeightG > 0 && items.some((i) => i.vitamin_c_mg != null)
+        ? items.reduce((s, i) => s + (i.vitamin_c_mg ?? 0), 0) / totalWeightG * 100
+        : null,
       positive_traits: nutritionBreakdown.positive_traits ?? [],
       // Proportionally rescale DGE coverage when totals change
       dge_coverage: (() => {
@@ -1065,7 +1076,6 @@ export default function RecipeDetailPage() {
                   content: (
                     <NutritionTab
                       nb={nb}
-                      effectivePortions={effectivePortions}
                       recipeType={recipe.recipe_type}
                     />
                   ),
