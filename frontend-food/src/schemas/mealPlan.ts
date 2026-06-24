@@ -669,6 +669,16 @@ export type NutritionalTagScanResponse = z.infer<typeof NutritionalTagScanRespon
 // Cooking Schedule (Kochplan)
 // ==========================================================================
 
+export const CookingScheduleIngredientSchema = z.object({
+  name: z.string(),
+  quantity: z.number(),
+  unit: z.string(),
+  note: z.string(),
+  is_optional: z.boolean(),
+  weight_g: z.number().nullable(),
+});
+export type CookingScheduleIngredient = z.infer<typeof CookingScheduleIngredientSchema>;
+
 export const CookingScheduleItemSchema = z.object({
   recipe_id: z.number(),
   recipe_title: z.string(),
@@ -678,6 +688,8 @@ export const CookingScheduleItemSchema = z.object({
   lead_minutes: z.number(),
   start_time: z.string(),
   portions: z.number(),
+  steps: z.string(),
+  ingredients: z.array(CookingScheduleIngredientSchema),
 });
 export type CookingScheduleItem = z.infer<typeof CookingScheduleItemSchema>;
 

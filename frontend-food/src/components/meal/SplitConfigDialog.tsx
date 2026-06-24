@@ -17,6 +17,7 @@ interface SplitConfigDialogProps {
   effectivePortions: number;
   open: boolean;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
 interface GroupState {
@@ -52,6 +53,7 @@ export default function SplitConfigDialog({
   effectivePortions,
   open,
   onClose,
+  isLoading = false,
 }: SplitConfigDialogProps) {
   const setSplits = useSetMealItemSplits(mealPlanId, mealItemId);
 
@@ -116,9 +118,21 @@ export default function SplitConfigDialog({
   }, [open, recipeItems, effectivePortions]);
 
   if (!open) return null;
-  if (groups.length === 0) {
+  if (groups.length === 0 && !isLoading) {
     onClose();
     return null;
+  }
+  if (groups.length === 0 && isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <span>Lade Zutaten…</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handlePortionChange = (groupKey: string, recipeItemId: number, value: number) => {

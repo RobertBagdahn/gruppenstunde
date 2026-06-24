@@ -5,7 +5,7 @@
  * A4-optimiert, kein App-Layout, alle Sektionen ausgeklappt.
  * Öffne in neuem Tab, dann Browser-Drucken (Strg+P).
  */
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useRecipeBySlug } from '@/api/recipes';
 import { useRecipeItems } from '@/api/recipes';
 import { Loader2 } from 'lucide-react';
@@ -20,8 +20,11 @@ function parseSteps(description: string): string[] {
 
 export default function RecipePrintPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const { data: recipe, isLoading, error } = useRecipeBySlug(slug ?? '');
   const { data: items = [] } = useRecipeItems(recipe?.id ?? 0);
+  const portionsParam = Number(searchParams.get('portions')) || 0;
+  const portions = portionsParam > 0 ? portionsParam : (recipe?.portions ?? 1);
 
   if (isLoading) {
     return (
@@ -49,7 +52,7 @@ export default function RecipePrintPage() {
         <div className="mb-8 border-b-2 border-black pb-4">
           <h1 className="text-3xl font-bold mb-1">{recipe.title}</h1>
           <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
-            {recipe.portions && <span>Portionen: {recipe.portions}</span>}
+            <span>Portionen: {portions}</span>
             {recipe.execution_time && <span>Kochzeit: {recipe.execution_time} Min.</span>}
             {recipe.preparation_time && <span>Vorbereitung: {recipe.preparation_time} Min.</span>}
             {recipe.difficulty && <span>Schwierigkeit: {recipe.difficulty}</span>}
@@ -67,10 +70,14 @@ export default function RecipePrintPage() {
             </h2>
             {items.length > 0 ? (
               <ul className="space-y-1.5">
-                {items.map((item) => (
+                  {items.map((item) => {
+                  const basePortions = recipe?.portions ?? 1;
+                  const scale = basePortions > 0 ? portions / basePortions : 1;
+                  const scaledQty = item.quantity * scale;
+                  return (
                   <li key={item.id} className="flex items-start gap-2 text-sm">
                     <span className="font-semibold min-w-[80px] text-right shrink-0">
-                      {item.quantity % 1 === 0 ? item.quantity : parseFloat(item.quantity.toFixed(2))} {item.measuring_unit_name ?? ''}
+                      {scaledQty % 1 === 0 ? scaledQty : parseFloat(scaledQty.toFixed(2))} {item.measuring_unit_name ?? ''}
                     </span>
                     <span>
                       {item.ingredient_name}
@@ -79,7 +86,8 @@ export default function RecipePrintPage() {
                       )}
                     </span>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             ) : (
               <p className="text-sm text-gray-500">Keine Zutaten</p>

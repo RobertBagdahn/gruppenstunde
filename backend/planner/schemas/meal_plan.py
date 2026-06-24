@@ -596,6 +596,15 @@ class NutritionalTagScanOut(Schema):
     summary: NutritionalTagScanSummaryOut
 
 
+class CookingScheduleIngredientOut(Schema):
+    name: str
+    quantity: float
+    unit: str
+    note: str
+    is_optional: bool
+    weight_g: float | None = None
+
+
 class CookingScheduleItemOut(Schema):
     recipe_id: int
     recipe_title: str
@@ -605,6 +614,8 @@ class CookingScheduleItemOut(Schema):
     lead_minutes: int
     start_time: dt.datetime
     portions: int
+    steps: str = ""
+    ingredients: list[CookingScheduleIngredientOut] = []
 
 
 class CookingScheduleDayOut(Schema):

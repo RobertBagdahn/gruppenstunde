@@ -2,7 +2,7 @@
  * CookingSchedulePrintPage — Dedizierte Druckansicht des Kochplans.
  * Route: /meal-plans/:id/cooking-schedule/print
  *
- * A4-optimiert, kein App-Layout, alle Tage ausgeklappt.
+ * A4-optimiert, kein App-Layout. Zeigt Rezepte mit Zutaten und Schritten.
  */
 import { useParams } from 'react-router-dom';
 import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import type { CookingScheduleIngredient, CookingScheduleItem } from '@/schemas/mealPlan';
 
 function formatTime(isoString: string): string {
   try {
@@ -25,6 +26,91 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr;
   }
+}
+
+function IngredientRow({ ing }: { ing: CookingScheduleIngredient }) {
+  const parts = [ing.quantity, ing.unit, ing.name].filter(Boolean);
+  const detail = ing.note ? ` (${ing.note})` : '';
+  if (ing.is_optional) {
+    parts.push('(optional)');
+  }
+  return (
+    <li className="flex items-baseline gap-1.5 py-0.5 text-[11px]">
+      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0 mt-1" />
+      <span>
+        {parts.join(' ')}{detail}
+      </span>
+    </li>
+  );
+}
+
+function RecipeCard({ item }: { item: CookingScheduleItem }) {
+  const hasSteps = item.steps.trim().length > 0;
+  const hasIngredients = item.ingredients.length > 0;
+
+  return (
+    <div className="border border-gray-300 rounded-lg mb-3 break-inside-avoid">
+      {/* Header row */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-sm">
+        <div className="font-bold tabular-nums text-gray-900 w-14 shrink-0">
+          {formatTime(item.start_time)} Uhr
+        </div>
+        <div className="text-gray-500 tabular-nums w-14 shrink-0 text-xs">
+          {formatTime(item.serving_time)} Uhr
+        </div>
+        <div className="font-semibold flex-1 text-sm">{item.recipe_title}</div>
+        <div className="text-gray-600 text-xs w-16 text-right shrink-0">
+          {item.lead_minutes} Min.
+        </div>
+        <div className="text-gray-600 text-xs w-20 shrink-0 text-right">
+          {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
+        </div>
+        <div className="text-gray-600 text-xs w-14 shrink-0 text-right">
+          {item.portions} Port.
+        </div>
+      </div>
+
+      {/* Body: Ingredients + Steps */}
+      {(hasIngredients || hasSteps) && (
+        <div className="px-4 py-2.5">
+          {hasIngredients && (
+            <div className="mb-2">
+              <h4 className="text-[11px] font-bold uppercase text-gray-500 tracking-wider mb-1">
+                Zutaten
+              </h4>
+              <ul className="space-y-0">
+                {item.ingredients
+                  .filter((ing) => !ing.is_optional)
+                  .map((ing, i) => (
+                    <IngredientRow key={`${ing.name}-${i}`} ing={ing} />
+                  ))}
+                {item.ingredients.some((ing) => ing.is_optional) && (
+                  <>
+                    <li className="text-[11px] text-gray-400 italic pt-1">Optional:</li>
+                    {item.ingredients
+                      .filter((ing) => ing.is_optional)
+                      .map((ing, i) => (
+                        <IngredientRow key={`opt-${ing.name}-${i}`} ing={ing} />
+                      ))}
+                  </>
+                )}
+              </ul>
+            </div>
+          )}
+          {hasSteps && (
+            <div>
+              <h4 className="text-[11px] font-bold uppercase text-gray-500 tracking-wider mb-1">
+                Zubereitung
+              </h4>
+              <div className="text-[11px] leading-relaxed text-gray-700 whitespace-pre-line">
+                {item.steps}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function CookingSchedulePrintPage() {
@@ -83,44 +169,16 @@ export default function CookingSchedulePrintPage() {
 
         {/* Tage */}
         {schedule.days.map((day) => (
-          <section key={day.date} className="mb-8 break-inside-avoid">
+          <section key={day.date} className="mb-8 break-inside-avoid-page">
             <h2 className="text-lg font-bold border-b border-gray-400 pb-1 mb-3">
               {formatDate(day.date)}
             </h2>
 
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-gray-300 text-left text-xs text-gray-500 uppercase">
-                  <th className="py-1.5 pr-3 font-semibold w-20">Start</th>
-                  <th className="py-1.5 pr-3 font-semibold w-20">Servieren</th>
-                  <th className="py-1.5 pr-3 font-semibold">Rezept</th>
-                  <th className="py-1.5 pr-3 font-semibold text-right w-16">Dauer</th>
-                  <th className="py-1.5 pr-3 font-semibold w-24">Mahlzeit</th>
-                  <th className="py-1.5 font-semibold text-right w-16">Portionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {day.items.map((item, idx) => (
-                  <tr
-                    key={`${item.recipe_slug}-${idx}`}
-                    className="border-b border-gray-100 last:border-0"
-                  >
-                    <td className="py-2 pr-3 font-bold text-gray-900 tabular-nums">
-                      {formatTime(item.start_time)}
-                    </td>
-                    <td className="py-2 pr-3 text-gray-500 tabular-nums">
-                      {formatTime(item.serving_time)}
-                    </td>
-                    <td className="py-2 pr-3 font-medium">{item.recipe_title}</td>
-                    <td className="py-2 pr-3 text-right text-gray-600">{item.lead_minutes} Min.</td>
-                    <td className="py-2 pr-3 text-gray-600">
-                      {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
-                    </td>
-                    <td className="py-2 text-right text-gray-600">{item.portions}×</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="space-y-3">
+              {day.items.map((item, idx) => (
+                <RecipeCard key={`${item.recipe_slug}-${idx}`} item={item} />
+              ))}
+            </div>
           </section>
         ))}
 

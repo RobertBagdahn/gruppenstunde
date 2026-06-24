@@ -443,7 +443,7 @@ export default function RecipeDetailPage() {
       {/* Edit + Delete + Print Buttons */}
       <div className="flex items-center justify-end gap-2">
         <a
-          href={`/recipes/${recipe.slug}/print`}
+          href={`/recipes/${recipe.slug}/print?portions=${displayedPortions}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"

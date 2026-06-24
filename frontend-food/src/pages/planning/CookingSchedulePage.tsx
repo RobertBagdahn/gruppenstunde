@@ -2,14 +2,16 @@
  * CookingSchedulePage — Chronologische Kochplan-Übersicht für einen Essensplan.
  * Route: /meal-plans/:id/cooking-schedule
  *
- * Zeigt pro Tag alle zu kochenden Rezepte mit berechneter Startzeit
- * (rückwärts von der Servierzeit).
+ * Zeigt pro Tag alle zu kochenden Rezepte mit berechneter Startzeit,
+ * skalierten Zutaten und Zubereitungsschritten (aufklappbar).
  */
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
 import { BackButton } from '@/components/shared/BackButton';
-import { Loader2, Printer, Info, ChefHat, Clock } from 'lucide-react';
+import { Loader2, Printer, Info, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks } from 'lucide-react';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import type { CookingScheduleItem, CookingScheduleIngredient } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -29,7 +31,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-const MEAL_TYPE_COLORS: Record<string, string> = {
+const MEAL_TYPE_BADGES: Record<string, string> = {
   breakfast: 'bg-amber-100 text-amber-800 border-amber-200',
   lunch: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   dinner: 'bg-indigo-100 text-indigo-800 border-indigo-200',
@@ -37,13 +39,78 @@ const MEAL_TYPE_COLORS: Record<string, string> = {
   drink: 'bg-sky-100 text-sky-800 border-sky-200',
 };
 
+function IngredientBadge({ ing }: { ing: CookingScheduleIngredient }) {
+  const parts = [ing.quantity, ing.unit, ing.name].filter(Boolean);
+  const detail = ing.note ? ` (${ing.note})` : '';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border
+      ${ing.is_optional ? 'bg-muted text-muted-foreground border-border italic' : 'bg-primary/5 text-foreground border-primary/10'}`}
+    >
+      {parts.join(' ')}{detail}
+      {ing.is_optional && <span className="text-[10px]">(optional)</span>}
+    </span>
+  );
+}
+
+function RecipeDetail({ item }: { item: CookingScheduleItem }) {
+  const hasIngredients = item.ingredients.length > 0;
+  const hasSteps = item.steps.trim().length > 0;
+
+  if (!hasIngredients && !hasSteps) return null;
+
+  return (
+    <div className="px-4 pb-4 pt-1 bg-muted/20">
+      <div className="grid gap-3 md:grid-cols-2">
+        {hasIngredients && (
+          <div>
+            <h4 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <UtensilsCrossed className="w-3.5 h-3.5" />
+              Zutaten ({item.portions} Port.)
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {item.ingredients.map((ing, i) => (
+                <IngredientBadge key={`${ing.name}-${i}`} ing={ing} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasSteps && (
+          <div className={hasIngredients ? '' : 'md:col-span-2'}>
+            <h4 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <ListChecks className="w-3.5 h-3.5" />
+              Zubereitung
+            </h4>
+            <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+              {item.steps}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CookingSchedulePage() {
   const { id } = useParams<{ id: string }>();
   const mealPlanId = Number(id);
   const { data: plan, isLoading: planLoading } = useMealPlan(mealPlanId);
   const { data: schedule, isLoading: scheduleLoading, error } = useCookingSchedule(mealPlanId);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const isLoading = planLoading || scheduleLoading;
+
+  function toggleExpand(key: string) {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
 
   if (isLoading) {
     return (
@@ -124,7 +191,8 @@ export default function CookingSchedulePage() {
           {/* Tabelle */}
           <div className="rounded-xl border border-border bg-card overflow-hidden shadow-soft">
             {/* Header */}
-            <div className="hidden md:grid grid-cols-[5rem_5rem_1fr_5rem_8rem_4.5rem] gap-3 px-4 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <div className="hidden md:grid grid-cols-[2rem_5rem_5rem_1fr_5rem_8rem_4.5rem] gap-3 px-4 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <span />
               <span>Start</span>
               <span>Servierzeit</span>
               <span>Rezept</span>
@@ -135,61 +203,94 @@ export default function CookingSchedulePage() {
 
             {/* Zeilen */}
             <div className="divide-y divide-border">
-              {day.items.map((item, idx) => (
-                <div
-                  key={`${item.recipe_slug}-${idx}`}
-                  className="grid grid-cols-1 md:grid-cols-[5rem_5rem_1fr_5rem_8rem_4.5rem] gap-2 md:gap-3 px-4 py-3 items-center hover:bg-muted/30 transition-colors"
-                >
-                  {/* Startzeit */}
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-primary md:hidden" />
-                    <span className="font-bold text-sm text-primary tabular-nums">
-                      {formatTime(item.start_time)} Uhr
-                    </span>
-                  </div>
+              {day.items.map((item, idx) => {
+                const key = `${day.date}-${item.recipe_slug}-${idx}`;
+                const isExpanded = expandedItems.has(key);
+                const hasDetails = item.ingredients.length > 0 || item.steps.trim().length > 0;
 
-                  {/* Servierzeit */}
-                  <div className="text-sm text-muted-foreground tabular-nums md:block hidden">
-                    {formatTime(item.serving_time)} Uhr
-                  </div>
-                  <div className="md:hidden text-xs text-muted-foreground">
-                    Servieren: {formatTime(item.serving_time)} Uhr
-                  </div>
-
-                  {/* Rezeptname */}
-                  <div>
-                    <Link
-                      to={`/recipes/${item.recipe_slug}`}
-                      className="font-semibold text-sm hover:text-primary transition-colors line-clamp-2"
+                return (
+                  <div key={key}>
+                    <div
+                      className={`grid grid-cols-1 md:grid-cols-[2rem_5rem_5rem_1fr_5rem_8rem_4.5rem] gap-2 md:gap-3 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer ${isExpanded ? 'bg-muted/20' : ''}`}
+                      onClick={() => hasDetails && toggleExpand(key)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hasDetails && toggleExpand(key); }}}
                     >
-                      {item.recipe_title}
-                    </Link>
-                  </div>
+                      {/* Expand-Icon */}
+                      <div className="hidden md:flex justify-center">
+                        {hasDetails ? (
+                          isExpanded
+                            ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <span className="w-4 h-4" />
+                        )}
+                      </div>
 
-                  {/* Dauer */}
-                  <div className="text-sm text-muted-foreground md:text-right">
-                    <span className="md:hidden text-xs">Dauer: </span>
-                    {item.lead_minutes} Min.
-                  </div>
+                      {/* Startzeit */}
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-primary md:hidden" />
+                        <span className="font-bold text-sm text-primary tabular-nums">
+                          {formatTime(item.start_time)} Uhr
+                        </span>
+                      </div>
 
-                  {/* Mahlzeit-Typ */}
-                  <div>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                        MEAL_TYPE_COLORS[item.meal_type] ?? 'bg-muted text-muted-foreground border-border'
-                      }`}
-                    >
-                      {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
-                    </span>
-                  </div>
+                      {/* Servierzeit */}
+                      <div className="text-sm text-muted-foreground tabular-nums md:block hidden">
+                        {formatTime(item.serving_time)} Uhr
+                      </div>
+                      <div className="md:hidden text-xs text-muted-foreground">
+                        Servieren: {formatTime(item.serving_time)} Uhr
+                      </div>
 
-                  {/* Portionen */}
-                  <div className="text-sm text-muted-foreground md:text-right">
-                    <span className="md:hidden text-xs">Portionen: </span>
-                    {item.portions}×
+                      {/* Rezeptname */}
+                      <div>
+                        <Link
+                          to={`/recipes/${item.recipe_slug}`}
+                          className="font-semibold text-sm hover:text-primary transition-colors line-clamp-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {item.recipe_title}
+                        </Link>
+                        {/* Mobile: expand hint */}
+                        {hasDetails && (
+                          <span className="md:hidden text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                            {isExpanded ? 'Details ausblenden' : 'Zutaten & Schritte'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Dauer */}
+                      <div className="text-sm text-muted-foreground md:text-right">
+                        <span className="md:hidden text-xs">Dauer: </span>
+                        {item.lead_minutes} Min.
+                      </div>
+
+                      {/* Mahlzeit-Typ */}
+                      <div>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                            MEAL_TYPE_BADGES[item.meal_type] ?? 'bg-muted text-muted-foreground border-border'
+                          }`}
+                        >
+                          {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
+                        </span>
+                      </div>
+
+                      {/* Portionen */}
+                      <div className="text-sm text-muted-foreground md:text-right">
+                        <span className="md:hidden text-xs">Portionen: </span>
+                        {item.portions}×
+                      </div>
+                    </div>
+
+                    {/* Expandierter Detail-Bereich */}
+                    {isExpanded && <RecipeDetail item={item} />}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

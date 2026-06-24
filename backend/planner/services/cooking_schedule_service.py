@@ -1,7 +1,7 @@
 """Service für die chronologische Kochplan-Berechnung eines Essensplans."""
 
 import datetime as dt
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from content.choices import ExecutionTimeChoices, PreparationTimeChoices
 
@@ -23,6 +23,16 @@ PREPARATION_TIME_MINUTES: dict[str, int] = {
 
 
 @dataclass
+class CookingScheduleIngredient:
+    name: str
+    quantity: float
+    unit: str
+    note: str
+    is_optional: bool
+    weight_g: float | None = None
+
+
+@dataclass
 class CookingScheduleItem:
     recipe_id: int
     recipe_title: str
@@ -32,6 +42,8 @@ class CookingScheduleItem:
     lead_minutes: int
     start_time: dt.datetime
     portions: int
+    steps: str = ""
+    ingredients: list[CookingScheduleIngredient] = field(default_factory=list)
 
 
 @dataclass
@@ -43,7 +55,7 @@ class CookingScheduleDay:
 @dataclass
 class CookingScheduleResult:
     days: list[CookingScheduleDay]
-    excluded_meal_count: int  # Mahlzeiten ohne start_datetime oder externe Mahlzeiten
+    excluded_meal_count: int
 
 
 def compute_recipe_lead_minutes(recipe) -> int:
@@ -53,12 +65,42 @@ def compute_recipe_lead_minutes(recipe) -> int:
     return prep + exec_
 
 
+def _compute_scaled_ingredients(recipe, portions: int, factor: float) -> list[CookingScheduleIngredient]:
+    """Berechne skalierte Zutaten für ein Rezept basierend auf Portionen und Faktor."""
+    recipe_portions = recipe.portions or 1
+    scale = factor * (portions / recipe_portions)
+    ingredients: list[CookingScheduleIngredient] = []
+    for ri in recipe.recipe_items.all():
+        portion = ri.portion
+        if not portion:
+            continue
+        ingredient = portion.ingredient
+        measuring_unit = portion.measuring_unit
+        scaled_qty = round(ri.quantity * portion.quantity * scale, 2)
+        weight_g = (
+            round(ri.quantity * (portion.weight_g or 0) * scale, 1)
+            if portion.weight_g
+            else None
+        )
+        ingredients.append(
+            CookingScheduleIngredient(
+                name=ingredient.name if ingredient else portion.name,
+                quantity=scaled_qty,
+                unit=measuring_unit.name if measuring_unit else "",
+                note=ri.note or "",
+                is_optional=ri.is_optional,
+                weight_g=weight_g,
+            )
+        )
+    return ingredients
+
+
 def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
     """Baut den chronologischen Kochplan für einen Essensplan auf.
 
     Liefert pro Tag eine aufsteigend nach Startzeit sortierte Liste aller
-    zu kochenden Rezepte. Externe Mahlzeiten und Mahlzeiten ohne Servierzeit
-    werden ausgeschlossen.
+    zu kochenden Rezepte inkl. skalierter Zutaten und Zubereitungsschritte.
+    Externe Mahlzeiten und Mahlzeiten ohne Servierzeit werden ausgeschlossen.
     """
     from planner.models import Meal
 
@@ -67,6 +109,8 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
         .select_related("meal_plan")
         .prefetch_related(
             "items__recipe",
+            "items__recipe__recipe_items__portion__measuring_unit",
+            "items__recipe__recipe_items__portion__ingredient",
         )
         .order_by("start_datetime")
     )
@@ -91,6 +135,8 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
             start_time = serving_time - dt.timedelta(minutes=lead_minutes)
             day = serving_time.date()
 
+            ingredients = _compute_scaled_ingredients(recipe, portions, meal_item.factor)
+
             schedule_item = CookingScheduleItem(
                 recipe_id=recipe.id,
                 recipe_title=recipe.title,
@@ -100,6 +146,8 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                 lead_minutes=lead_minutes,
                 start_time=start_time,
                 portions=portions,
+                steps=recipe.description or "",
+                ingredients=ingredients,
             )
 
             items_by_day.setdefault(day, []).append(schedule_item)
