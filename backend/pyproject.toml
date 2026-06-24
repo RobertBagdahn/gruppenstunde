@@ -87,12 +87,26 @@ select = [
 ignore = [
     "S101",  # allow assert in tests
     "S105",  # allow hardcoded passwords in settings (dev defaults)
+    "RUF012",  # mutable-class-default (mostly in Meta classes - acceptable)
+    "RUF001",  # ambiguous-unicode-character-string (en-dashes in user strings)
+    "RUF003",  # ambiguous-unicode-character-comment (en-dashes in comments)
+    "RUF002",  # ambiguous-character-docstring (en-dashes, multiplication signs)
+    "SIM105",  # suppressible-exception (try-except-pass is sometimes clearer)
+    "SIM108",  # if-else-block-instead-of-if-exp (readability preference)
+    "SIM102",  # collapsible-if (sometimes nested if is clearer)
+    "E501",  # line-too-long (pragmatic limit, some strings are long)
+    "B904",  # within-exception-raise (too strict, raise ... from None is boilerplate)
+    "N806",  # variable-in-function-should-be-lowercase (type variables often capitalized)
+    "N803",  # argument-name-should-be-lowercase (type variables/model names can be capitalized)
+    "S110",  # try-except-pass (sometimes appropriate for logging-optional errors)
+    "T201",  # print (dev debugging, but not allowed in tests)
+    "E402",  # module-level-import-not-at-top (sometimes needed)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "S106"]
+"**/tests/**" = ["S101", "S106", "F841", "N817", "T201"]
 "**/settings/**" = ["S105"]
-"**/migrations/**" = ["E501"]
+"conftest.py" = ["S106"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["idea", "planner", "core", "inspi", "packinglist", "content", "supply", "session", "blog", "game"]

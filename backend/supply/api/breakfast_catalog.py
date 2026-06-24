@@ -6,10 +6,9 @@ with their portions, weights, and pricing information.
 
 from typing import Any
 
-from django.db.models import Q
 from ninja import Router, Schema
 
-from supply.models import Ingredient, NutritionalTag, Portion
+from supply.models import NutritionalTag
 
 breakfast_catalog_router = Router(tags=["breakfast"])
 
@@ -89,11 +88,7 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
 
     # Load base ingredients (bread types)
     if base_tag:
-        bases = (
-            base_tag.ingredients.filter(is_standalone_food=True)
-            .order_by("name")
-            .prefetch_related("portions")
-        )
+        bases = base_tag.ingredients.filter(is_standalone_food=True).order_by("name").prefetch_related("portions")
 
         for ing in bases:
             portions = [
@@ -109,23 +104,21 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
                 for p in ing.portions.all()
             ]
 
-            base_ingredients.append({
-                "id": ing.id,
-                "name": ing.name,
-                "slug": ing.slug,
-                "is_standalone_food": ing.is_standalone_food,
-                "standard_recipe_weight_g": ing.standard_recipe_weight_g,
-                "energy_kcal": ing.energy_kcal,
-                "portions": portions,
-            })
+            base_ingredients.append(
+                {
+                    "id": ing.id,
+                    "name": ing.name,
+                    "slug": ing.slug,
+                    "is_standalone_food": ing.is_standalone_food,
+                    "standard_recipe_weight_g": ing.standard_recipe_weight_g,
+                    "energy_kcal": ing.energy_kcal,
+                    "portions": portions,
+                }
+            )
 
     # Load topping ingredients (spreads, condiments)
     if topping_tag:
-        toppings = (
-            topping_tag.ingredients.filter(is_standalone_food=True)
-            .order_by("name")
-            .prefetch_related("portions")
-        )
+        toppings = topping_tag.ingredients.filter(is_standalone_food=True).order_by("name").prefetch_related("portions")
 
         for ing in toppings:
             portions = [
@@ -141,15 +134,17 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
                 for p in ing.portions.all()
             ]
 
-            topping_ingredients.append({
-                "id": ing.id,
-                "name": ing.name,
-                "slug": ing.slug,
-                "is_standalone_food": ing.is_standalone_food,
-                "energy_kcal": ing.energy_kcal,
-                "price_per_kg": ing.price_per_kg,
-                "portions": portions,
-            })
+            topping_ingredients.append(
+                {
+                    "id": ing.id,
+                    "name": ing.name,
+                    "slug": ing.slug,
+                    "is_standalone_food": ing.is_standalone_food,
+                    "energy_kcal": ing.energy_kcal,
+                    "price_per_kg": ing.price_per_kg,
+                    "portions": portions,
+                }
+            )
 
     return {
         "base_ingredients": base_ingredients,
