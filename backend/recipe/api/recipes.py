@@ -496,6 +496,15 @@ def delete_recipe(request, recipe_id: int):
 
     recipe = get_object_or_404(Recipe, id=recipe_id)
 
+    # Protect recipes whose ingredients are used in active meal plan splits.
+    from planner.models import MealItemSplit
+
+    if MealItemSplit.objects.filter(recipe_item__recipe=recipe).exists():
+        raise HttpError(
+            409,
+            "Dieses Rezept wird in Essensplänen mit konfigurierten Varianten verwendet und kann nicht gelöscht werden.",
+        )
+
     recipe.soft_delete()
     return {"success": True}
 
@@ -643,6 +652,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
     original = get_object_or_404(
         Recipe.objects.prefetch_related(
             "recipe_items__portion",
+            "exchange_groups",
             "tags",
             "scout_levels",
             "nutritional_tags",
@@ -675,7 +685,17 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
     fork.nutritional_tags.set(original.nutritional_tags.all())
     fork.authors.add(request.user)
 
-    # Copy all RecipeItems
+    # Copy exchange groups first, mapping original group id -> new group.
+    from recipe.models import RecipeItemExchangeGroup
+
+    group_map: dict[int, RecipeItemExchangeGroup] = {}
+    for group in original.exchange_groups.all():
+        group_map[group.id] = RecipeItemExchangeGroup.objects.create(
+            recipe=fork,
+            name=group.name,
+        )
+
+    # Copy all RecipeItems, preserving optional flag and exchange membership.
     for item in original.recipe_items.all():
         RecipeItem.objects.create(
             recipe=fork,
@@ -683,6 +703,9 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
             quantity=item.quantity,
             sort_order=item.sort_order,
             note=item.note,
+            is_optional=item.is_optional,
+            exchange_group=group_map.get(item.exchange_group_id),
+            exchange_position=item.exchange_position,
         )
 
     fork.emotion_counts = {}

@@ -301,18 +301,18 @@ export default function RecipeSearchDialog({
                   Zutaten
                 </div>
                 {ingredients.map((ing) => (
-                  <button
-                    key={`ing-${ing.id}`}
-                    onClick={() => setIngredientDialog(ing)}
-                    className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
-                  >
-                    <Egg className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="flex-1">{ing.name}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
-                      {ing.standalone_type ? (RECIPE_TYPE_LABELS[ing.standalone_type] ?? ing.standalone_type) : 'Zutat'}
-                    </span>
-                  </button>
-                ))}
+                   <button
+                     key={`ing-${ing.id}`}
+                     onClick={() => setIngredientDialog(ing)}
+                     className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
+                   >
+                     <Egg className="w-4 h-4 text-muted-foreground shrink-0" />
+                     <span className="flex-1">{ing.name}</span>
+                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+                       Zutat
+                     </span>
+                   </button>
+                 ))}
               </>
             )}
 

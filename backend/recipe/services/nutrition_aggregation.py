@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 from recipe.models import Rule
 from recipe.services.recipe_checks import CACHED_MICRONUTRIENT_FIELDS, get_recipe_nutritional_values, get_recipe_total_weight_g
+from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 
 
 def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
@@ -40,50 +41,86 @@ def _aggregate_meal_values(meal: "Meal") -> dict[str, float]:
         if meal.external_energy_kcal is not None:
             totals["energy_kcal"] = meal.external_energy_kcal
         else:
-            totals["energy_kcal"] = 2335.0 * meal.day_part_factor
+            totals["energy_kcal"] = NORM_PERSON_DAILY_KCAL * meal.day_part_factor
         return totals
 
-    items = MealItem.objects.filter(meal=meal).select_related("recipe")
+    items = MealItem.objects.filter(meal=meal).select_related("recipe", "ingredient")
     for item in items:
         recipe = item.recipe
-        if not recipe:
-            continue
+        ingredient = item.ingredient
+        
+        if recipe:
+            # Handle recipe items
+            if recipe.cached_at:
+                total_weight_g = get_recipe_total_weight_g(recipe)
+                nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
 
-        if recipe.cached_at:
-            total_weight_g = get_recipe_total_weight_g(recipe)
-            nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
+                totals["energy_kcal"] += (recipe.cached_energy_kcal or 0.0) * nutrient_scale * item.factor
+                totals["protein_g"] += (recipe.cached_protein_g or 0.0) * nutrient_scale * item.factor
+                totals["fat_g"] += (recipe.cached_fat_g or 0.0) * nutrient_scale * item.factor
+                totals["carbohydrate_g"] += (recipe.cached_carbohydrate_g or 0.0) * nutrient_scale * item.factor
+                totals["sugar_g"] += (recipe.cached_sugar_g or 0.0) * nutrient_scale * item.factor
+                totals["fibre_g"] += (recipe.cached_fibre_g or 0.0) * nutrient_scale * item.factor
+                totals["salt_g"] += (recipe.cached_salt_g or 0.0) * nutrient_scale * item.factor
+                fresh_values = get_recipe_nutritional_values(recipe)
+                totals["fat_sat_g"] += fresh_values.get("fat_sat_g", 0.0) * nutrient_scale * item.factor
+                totals["sodium_mg"] += fresh_values.get("sodium_mg", 0.0) * nutrient_scale * item.factor
+                totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
+                totals["weight_g"] += total_weight_g * item.factor
+                for field in CACHED_MICRONUTRIENT_FIELDS:
+                    cached_field = f"cached_{field}"
+                    totals[field] += (getattr(recipe, cached_field, None) or 0.0) * nutrient_scale * item.factor
+            else:
+                from recipe.services.recipe_checks import get_recipe_values_with_computed as _get_computed
+                values, total_weight_g = _get_computed(recipe)
 
-            totals["energy_kcal"] += (recipe.cached_energy_kcal or 0.0) * nutrient_scale * item.factor
-            totals["protein_g"] += (recipe.cached_protein_g or 0.0) * nutrient_scale * item.factor
-            totals["fat_g"] += (recipe.cached_fat_g or 0.0) * nutrient_scale * item.factor
-            totals["carbohydrate_g"] += (recipe.cached_carbohydrate_g or 0.0) * nutrient_scale * item.factor
-            totals["sugar_g"] += (recipe.cached_sugar_g or 0.0) * nutrient_scale * item.factor
-            totals["fibre_g"] += (recipe.cached_fibre_g or 0.0) * nutrient_scale * item.factor
-            totals["salt_g"] += (recipe.cached_salt_g or 0.0) * nutrient_scale * item.factor
-            fresh_values = get_recipe_nutritional_values(recipe)
-            totals["fat_sat_g"] += fresh_values.get("fat_sat_g", 0.0) * nutrient_scale * item.factor
-            totals["sodium_mg"] += fresh_values.get("sodium_mg", 0.0) * nutrient_scale * item.factor
-            totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
-            totals["weight_g"] += total_weight_g * item.factor
-            for field in CACHED_MICRONUTRIENT_FIELDS:
-                cached_field = f"cached_{field}"
-                totals[field] += (getattr(recipe, cached_field, None) or 0.0) * nutrient_scale * item.factor
-        else:
-            from recipe.services.recipe_checks import get_recipe_values_with_computed as _get_computed
-            values, total_weight_g = _get_computed(recipe)
+                nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
 
-            nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
-
-            for key in ["energy_kcal", "protein_g", "fat_g", "fat_sat_g", "carbohydrate_g", "sugar_g", "fibre_g", "salt_g", "sodium_mg"]:
-                totals[key] += values.get(key, 0.0) * nutrient_scale * item.factor
-            totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
-            totals["weight_g"] += total_weight_g * item.factor
-            for field in CACHED_MICRONUTRIENT_FIELDS:
-                totals[field] += values.get(field, 0.0) * nutrient_scale * item.factor
+                for key in ["energy_kcal", "protein_g", "fat_g", "fat_sat_g", "carbohydrate_g", "sugar_g", "fibre_g", "salt_g", "sodium_mg"]:
+                    totals[key] += values.get(key, 0.0) * nutrient_scale * item.factor
+                totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
+                totals["weight_g"] += total_weight_g * item.factor
+                for field in CACHED_MICRONUTRIENT_FIELDS:
+                    totals[field] += values.get(field, 0.0) * nutrient_scale * item.factor
+        elif ingredient:
+            # Handle ingredient items
+            weight_g = 0.0
+            if item.quantity and item.measuring_unit:
+                # Find a portion with this measuring unit to get weight_g
+                portion = ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
+                if portion and portion.weight_g:
+                    weight_g = portion.weight_g * float(item.quantity)
+                elif item.measuring_unit.name.lower() == "g":
+                    weight_g = float(item.quantity)
+                elif item.measuring_unit.name.lower() == "ml":
+                    # For ml, try to use density if available
+                    if ingredient.density is not None:
+                        weight_g = float(item.quantity) * ingredient.density
+            
+            if weight_g > 0:
+                nutrient_scale = weight_g / 100.0
+                
+                totals["energy_kcal"] += (ingredient.energy_kcal or 0.0) * nutrient_scale * item.factor
+                totals["protein_g"] += (ingredient.protein_g or 0.0) * nutrient_scale * item.factor
+                totals["fat_g"] += (ingredient.fat_g or 0.0) * nutrient_scale * item.factor
+                totals["carbohydrate_g"] += (ingredient.carbohydrate_g or 0.0) * nutrient_scale * item.factor
+                totals["sugar_g"] += (ingredient.sugar_g or 0.0) * nutrient_scale * item.factor
+                totals["fibre_g"] += (ingredient.fibre_g or 0.0) * nutrient_scale * item.factor
+                totals["salt_g"] += (ingredient.salt_g or 0.0) * nutrient_scale * item.factor
+                totals["fat_sat_g"] += (ingredient.fat_sat_g or 0.0) * nutrient_scale * item.factor
+                totals["sodium_mg"] += (ingredient.sodium_mg or 0.0) * nutrient_scale * item.factor
+                totals["weight_g"] += weight_g * item.factor
+                
+                if ingredient.price_per_kg:
+                    totals["price_total"] += (float(ingredient.price_per_kg) / 1000.0) * weight_g * item.factor
+                
+                for field in CACHED_MICRONUTRIENT_FIELDS:
+                    field_val = getattr(ingredient, field, None) or 0.0
+                    totals[field] += field_val * nutrient_scale * item.factor
 
     nutri_classes = []
     for item in items:
-        if item.recipe.cached_nutri_class:
+        if item.recipe and item.recipe.cached_nutri_class:
             nutri_classes.append(item.recipe.cached_nutri_class)
     totals["nutri_class"] = sum(nutri_classes) / len(nutri_classes) if nutri_classes else 0.0
 

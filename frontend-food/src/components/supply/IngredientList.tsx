@@ -65,7 +65,31 @@ export default function IngredientList({
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
-  const sortedItems = [...items].sort((a, b) => b.weight_g - a.weight_g);
+  // Build exchange-group lookup: group_id → sorted members (position ASC)
+  const exchangeGroups = useMemo(() => {
+    const groups = new Map<number, RecipeItem[]>();
+    for (const item of items) {
+      if (item.exchange_group_id != null) {
+        const existing = groups.get(item.exchange_group_id) ?? [];
+        groups.set(item.exchange_group_id, [...existing, item]);
+      }
+    }
+    // Sort members by exchange_position ascending
+    for (const [id, members] of groups) {
+      groups.set(id, members.sort((a, b) => (a.exchange_position ?? 0) - (b.exchange_position ?? 0)));
+    }
+    return groups;
+  }, [items]);
+
+  // Only show position-0 (default) members in the main list; alternatives shown inline.
+  const baseItems = useMemo(() => {
+    return [...items].filter((item) => {
+      if (item.exchange_group_id == null) return true;
+      return (item.exchange_position ?? 0) === 0;
+    }).sort((a, b) => b.weight_g - a.weight_g);
+  }, [items]);
+
+  const sortedItems = baseItems;
 
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return sortedItems;
@@ -219,6 +243,24 @@ export default function IngredientList({
                   ) : (
                     <span className="font-medium text-foreground text-base">
                       {item.ingredient_name || item.note || 'Zutat'}
+                    </span>
+                  )}
+                  {/* Task 10.1: Exchange alternatives in brackets */}
+                  {item.exchange_group_id != null && (() => {
+                    const alts = (exchangeGroups.get(item.exchange_group_id) ?? []).filter(
+                      (m) => (m.exchange_position ?? 0) > 0,
+                    );
+                    if (alts.length === 0) return null;
+                    return (
+                      <span className="text-sm text-muted-foreground shrink-0">
+                        (oder: {alts.map((m) => m.ingredient_name).join(' / ')})
+                      </span>
+                    );
+                  })()}
+                  {/* Task 10.2: Optional badge */}
+                  {item.is_optional && (
+                    <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
+                      optional
                     </span>
                   )}
                   {item.ingredient_retail_section_name && (

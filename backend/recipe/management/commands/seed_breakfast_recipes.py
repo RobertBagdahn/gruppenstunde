@@ -1,7 +1,10 @@
-"""Seed breakfast mini-recipes for the RefMeal baukasten.
+"""Seed breakfast warm dishes for the wizard extras step.
 
-Each mini-recipe is a small Recipe (recipe_type=breakfast/drink) with 1-3 RecipeItems.
-Portions are AI-estimated for 1 person per serving.
+Only warm breakfast recipes (Rührei, Pfannkuchen, etc.) are seeded here.
+Bread+topping combinations are now created dynamically via the wizard using ingredients.
+
+Each recipe is a small Recipe (recipe_type=breakfast) with 1-3 RecipeItems.
+Portions are estimated for 1 person per serving.
 
 Idempotent: uses slug-based deduplication.
 """
@@ -15,108 +18,16 @@ from supply.models import Ingredient, MeasuringUnit, Portion
 
 # Recipes: (title, slug, recipe_type, items: [(ingredient_name, portion_name_or_none, quantity, weight_g_fallback)])
 BREAKFAST_RECIPES = [
-    # --- Brot + Belag ---
-    ("Brot mit Nutella", "brot-mit-nutella", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Nutella", None, 1, 25),
-    ]),
-    ("Brot mit Wurst", "brot-mit-wurst", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Wurst", "Scheibe", 1, 25),
-    ]),
-    ("Brot mit Käse", "brot-mit-kaese", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Käse", "Scheibe", 1, 30),
-    ]),
-    ("Brot mit Frischkäse", "brot-mit-frischkaese", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Frischkäse", None, 1, 30),
-    ]),
-    ("Brot mit Marmelade", "brot-mit-marmelade", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Marmelade", None, 1, 25),
-    ]),
-    ("Brot mit Honig", "brot-mit-honig", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Honig", None, 1, 20),
-    ]),
-    ("Brot mit Butter", "brot-mit-butter", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Butter", None, 1, 10),
-    ]),
-    ("Brot mit Erdnussbutter", "brot-mit-erdnussbutter", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Erdnussbutter", None, 1, 20),
-    ]),
-    ("Brot mit Leberwurst", "brot-mit-leberwurst", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Leberwurst", None, 1, 30),
-    ]),
-    ("Brot mit Lachs", "brot-mit-lachs", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Lachs", "Scheibe", 1, 30),
-    ]),
-    ("Brot mit Avocado", "brot-mit-avocado", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Avocado", None, 0.25, 50),
-    ]),
-    ("Brot mit Hummus", "brot-mit-hummus", "breakfast", [
-        ("Brot", "Scheibe", 1, 50),
-        ("Hummus", None, 1, 30),
-    ]),
-    # --- Cerealien ---
-    ("Müsli mit Milch", "muesli-mit-milch", "breakfast", [
-        ("Haferflocken", None, 1, 60),
-        ("Milch", None, 1, 150),
-    ]),
-    ("Cornflakes mit Milch", "cornflakes-mit-milch", "breakfast", [
-        ("Cornflakes", None, 1, 40),
-        ("Milch", None, 1, 150),
-    ]),
-    ("Porridge", "porridge", "breakfast", [
-        ("Haferflocken", None, 1, 50),
-        ("Milch", None, 1, 200),
-        ("Zucker", None, 1, 10),
-    ]),
-    ("Overnight Oats", "overnight-oats", "breakfast", [
-        ("Haferflocken", None, 1, 50),
-        ("Joghurt", None, 1, 100),
-        ("Milch", None, 1, 50),
-    ]),
-    # --- Getränke ---
-    ("Kakao", "kakao-fruehstueck", "drink", [
-        ("Milch", None, 1, 200),
-        ("Kakaopulver", None, 1, 15),
-        ("Zucker", None, 1, 10),
-    ]),
-    ("Milch", "milch-fruehstueck", "drink", [
-        ("Milch", None, 1, 200),
-    ]),
-    ("Orangensaft", "orangensaft-fruehstueck", "drink", [
-        ("Orangensaft", None, 1, 200),
-    ]),
-    ("Apfelsaft", "apfelsaft-fruehstueck", "drink", [
-        ("Apfelsaft", None, 1, 200),
-    ]),
-    ("Tee", "tee-fruehstueck", "drink", [
-        ("Tee", None, 1, 250),
-    ]),
-    ("Kaffee", "kaffee-fruehstueck", "drink", [
-        ("Kaffee", None, 1, 200),
-    ]),
-    # --- Extras ---
-    ("Joghurt", "joghurt-fruehstueck", "breakfast", [
-        ("Joghurt", None, 1, 150),
-    ]),
-    ("Obst gemischt", "obst-gemischt-fruehstueck", "breakfast", [
-        ("Obst", None, 1, 150),
-    ]),
-    ("Ei gekocht", "ei-gekocht", "breakfast", [
-        ("Ei", None, 1, 60),
-    ]),
+    # --- Warme Gerichte ---
     ("Rührei", "ruehrei", "breakfast", [
         ("Ei", None, 2, 120),
         ("Butter", None, 1, 5),
+    ]),
+    ("Pfannkuchen", "pfannkuchen", "breakfast", [
+        ("Ei", None, 1, 60),
+        ("Mehl", None, 1, 50),
+        ("Milch", None, 1, 100),
+        ("Butter", None, 1, 10),
     ]),
 ]
 

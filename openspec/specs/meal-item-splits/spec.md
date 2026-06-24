@@ -25,7 +25,7 @@ Das System SHALL Portionen-Splits als float-Anteile (0.0–1.0) in `MealItemSpli
 
 #### Scenario: Split-Constraint gewahrt
 
-- **WHEN** der Planer `PUT /api/meal-items/{id}/splits/` mit Splits aufruft, deren Summe ≠ 1.0 ist
+- **WHEN** der Planer `PUT /{meal_plan_id}/meal-items/{id}/splits/` mit Splits aufruft, deren Summe ≠ 1.0 ist
 - **THEN** gibt das Backend HTTP 400 zurück mit Fehlermeldung "Die Summe der Anteile muss 100% ergeben."
 
 #### Scenario: Split-Constraint erfüllt
@@ -71,19 +71,24 @@ Das System SHALL die Einkaufslisten-Mengen pro Zutat unter Berücksichtigung der
 - **WHEN** ein RecipeItem weder optional noch in einer Exchange-Gruppe ist
 - **THEN** wird es für 100% der Portionen mit der vollen Menge in die Einkaufsliste übernommen
 
-### Requirement: Nährwertberechnung als gewichteter Durchschnitt
+### Requirement: Nährwertberechnung per Delta-Ansatz
 
-Das System SHALL bei MealItems mit Splits die Nährwerte als gewichteten Durchschnitt live berechnen. Kein Cache — immer direkt aus den Zutaten-Nährwerten und den Anteilen.
+Das System SHALL bei MealItems mit Splits die Nährwerte/Kosten live per Delta-Ansatz berechnen: Basiswert des Rezepts (aus `Recipe.cached_*`) plus/minus die Differenz pro getauschtem Exchange-Glied bzw. anteilig reduziert pro optionaler Zutat. Kein zusätzlicher Cache am MealItem.
 
-#### Scenario: Gewichteter Nährwert mit Exchange-Split
+#### Scenario: Delta-Nährwert mit Exchange-Split
 
-- **WHEN** ein MealItem Nährwerte angefordert werden und Exchange-Splits vorhanden sind
-- **THEN** berechnet das System `Σ (share_i × ingredient_i.energy_kcal × weight_i_per_portion)` für alle Glieder; das Ergebnis ist ein einzelner kcal-Wert pro Normportion
+- **WHEN** für ein MealItem Nährwerte angefordert werden und Exchange-Splits vorhanden sind
+- **THEN** berechnet das System pro getauschtem Glied `delta = share × (glied_zutat_pro_portion − default_glied_pro_portion)` und addiert die Summe der Deltas zum gecachten Basiswert; das Ergebnis ist ein einzelner Wert pro Normportion
+
+#### Scenario: Delta-Nährwert mit optionaler Zutat
+
+- **WHEN** eine optionale Zutat mit `share < 1.0` gesetzt ist
+- **THEN** wird der Beitrag dieser Zutat anteilig (`1 − share`) vom gecachten Basiswert abgezogen
 
 #### Scenario: Nährwert ohne Split wie bisher
 
 - **WHEN** ein MealItem keine Splits hat
-- **THEN** werden die gecachten Nährwerte des Rezepts (`Recipe.cached_energy_kcal`) verwendet
+- **THEN** werden die gecachten Nährwerte des Rezepts (`Recipe.cached_energy_total_kcal` etc.) wie bisher verwendet, ohne Live-Berechnung
 
 ### Requirement: Split-Daten über API CRUD
 
@@ -91,20 +96,34 @@ Das System SHALL Endpunkte bereitstellen um Splits für ein MealItem zu lesen, z
 
 #### Scenario: Splits lesen
 
-- **WHEN** `GET /api/meal-items/{id}/splits/` aufgerufen wird
+- **WHEN** `GET /{meal_plan_id}/meal-items/{id}/splits/` aufgerufen wird
 - **THEN** gibt das Backend alle `MealItemSplit`-Einträge für dieses MealItem zurück
 
 #### Scenario: Splits setzen (ersetzt alle)
 
-- **WHEN** `PUT /api/meal-items/{id}/splits/` mit einem vollständigen Split-Array aufgerufen wird
+- **WHEN** `PUT /{meal_plan_id}/meal-items/{id}/splits/` mit einem vollständigen Split-Array aufgerufen wird
 - **THEN** werden alle bestehenden Splits für dieses MealItem ersetzt; Constraint-Prüfung erfolgt atomar
 
 #### Scenario: Splits löschen
 
-- **WHEN** `DELETE /api/meal-items/{id}/splits/` aufgerufen wird
+- **WHEN** `DELETE /{meal_plan_id}/meal-items/{id}/splits/` aufgerufen wird
 - **THEN** werden alle Splits für dieses MealItem gelöscht; das MealItem fällt zurück auf Default-Verhalten
 
 #### Scenario: Unautorisierter Zugriff
 
-- **WHEN** ein Nutzer ohne Schreibrecht auf den MealPlan `PUT /api/meal-items/{id}/splits/` aufruft
+- **WHEN** ein Nutzer ohne Schreibrecht auf den MealPlan `PUT /{meal_plan_id}/meal-items/{id}/splits/` aufruft
 - **THEN** antwortet das Backend mit HTTP 403
+
+### Requirement: MealItemSplit und MealItemOverride schließen sich aus
+
+Das System MUST verhindern, dass für dasselbe RecipeItem sowohl ein `MealItemSplit` (bzw. Exchange/Optional) als auch ein `MealItemOverride` gesetzt wird. Ein `MealItemOverride` darf NICHT auf einem RecipeItem erstellt werden, das `is_optional=True` ist oder zu einer `exchange_group` gehört.
+
+#### Scenario: Override auf Split-Zutat blockiert
+
+- **WHEN** der Planer einen `MealItemOverride` auf einem RecipeItem setzt, das optional oder Teil einer Exchange-Gruppe ist
+- **THEN** gibt das Backend HTTP 400 zurück mit Fehlermeldung "Für Varianten- oder optionale Zutaten kann kein Override gesetzt werden."
+
+#### Scenario: Override auf normaler Zutat weiterhin erlaubt
+
+- **WHEN** der Planer einen `MealItemOverride` auf einem RecipeItem setzt, das weder optional noch Teil einer Exchange-Gruppe ist
+- **THEN** wird der Override wie bisher angelegt

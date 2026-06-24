@@ -5,15 +5,22 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from recipe.models import Recipe, RecipeItem
+from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup
 from recipe.schemas import (
     AiIngredientApplyIn,
     AiIngredientSuggestionOut,
     EstimateQuantitiesOut,
     RecipeItemCreateIn,
+    RecipeItemExchangeGroupCreateIn,
+    RecipeItemExchangeGroupOut,
     RecipeItemOut,
     RecipeItemUpdateIn,
 )
+
+
+def _recipe_item_has_active_splits(item: RecipeItem) -> bool:
+    """True if any MealItemSplit references this recipe item."""
+    return item.meal_splits.exists()
 
 router = Router()
 
@@ -115,6 +122,26 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     item = get_object_or_404(RecipeItem, id=item_id, recipe=recipe)
 
     data = payload.dict(exclude_unset=True)
+
+    # Determine resulting optional/exchange state to validate mutual exclusion.
+    result_is_optional = data.get("is_optional", item.is_optional)
+    result_exchange_group = (
+        data["exchange_group_id"] if "exchange_group_id" in data else item.exchange_group_id
+    )
+    if result_is_optional and result_exchange_group is not None:
+        raise HttpError(
+            400,
+            "Eine Zutat kann nicht gleichzeitig optional und Teil einer Austausch-Gruppe sein.",
+        )
+
+    # Protect split-relevant fields while active splits reference this item.
+    split_relevant = {"is_optional", "exchange_group_id", "exchange_position"}
+    if split_relevant & data.keys() and _recipe_item_has_active_splits(item):
+        raise HttpError(
+            409,
+            "Diese Zutat wird in aktiven Essensplänen mit Varianten verwendet und kann nicht geändert werden.",
+        )
+
     for field, value in data.items():
         setattr(item, field, value)
     item.save()
@@ -136,7 +163,74 @@ def delete_recipe_item(request, recipe_id: int, item_id: int):
         raise HttpError(403, "Keine Berechtigung")
 
     item = get_object_or_404(RecipeItem, id=item_id, recipe=recipe)
+    if _recipe_item_has_active_splits(item):
+        raise HttpError(
+            409,
+            "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden.",
+        )
     item.delete()
+    return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Exchange groups
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{recipe_id}/exchanges/", response=list[RecipeItemExchangeGroupOut])
+def list_exchange_groups(request, recipe_id: int):
+    """List all exchange groups of a recipe."""
+    recipe = _get_visible_recipe_or_404(request, recipe_id, require_auth=False)
+    return RecipeItemExchangeGroup.objects.filter(recipe=recipe).prefetch_related(
+        "items__portion__ingredient",
+    )
+
+
+@router.post("/{recipe_id}/exchanges/", response={201: RecipeItemExchangeGroupOut})
+def create_exchange_group(request, recipe_id: int, payload: RecipeItemExchangeGroupCreateIn):
+    """Create an exchange group for a recipe."""
+    _require_auth(request)
+
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    group = RecipeItemExchangeGroup.objects.create(recipe=recipe, name=payload.name)
+    return 201, group
+
+
+@router.delete("/{recipe_id}/exchanges/{group_id}/")
+def delete_exchange_group(request, recipe_id: int, group_id: int):
+    """Delete an exchange group.
+
+    Blocked (409) if any active MealItemSplit references its members. Otherwise the
+    non-default members (exchange_position > 0) are deleted and the original
+    (position 0) is reset to a normal ingredient (exchange_group=None).
+    """
+    _require_auth(request)
+
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
+    if not _can_edit_recipe(request, recipe):
+        raise HttpError(403, "Keine Berechtigung")
+
+    group = get_object_or_404(RecipeItemExchangeGroup, id=group_id, recipe=recipe)
+
+    members = list(group.items.all())
+    if any(_recipe_item_has_active_splits(m) for m in members):
+        raise HttpError(
+            409,
+            "Diese Austausch-Gruppe wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden.",
+        )
+
+    for member in members:
+        if (member.exchange_position or 0) > 0:
+            member.delete()
+        else:
+            member.exchange_group = None
+            member.exchange_position = None
+            member.save(update_fields=["exchange_group", "exchange_position"])
+
+    group.delete()
     return {"success": True}
 
 

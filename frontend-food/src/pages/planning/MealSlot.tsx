@@ -326,32 +326,45 @@ export function MealSlot({
         </p>
       )}
 
-      {meal.items.map((item) => {
-        const itemViolations = scanData?.violations.filter(
-          (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
-        ) || [];
-        const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+       {meal.items.map((item) => {
+         const isIngredient = !item.recipe_id && item.ingredient_id;
+         const itemViolations = scanData?.violations.filter(
+           (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
+         ) || [];
+         const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+         const displayName = isIngredient ? item.ingredient_name : item.recipe_title;
 
-        return (
-          <div key={item.id} className={`flex items-start gap-2 pl-7 py-1.5 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
-            {item.recipe_image && (
-              <img
-                src={item.recipe_image}
-                alt={item.recipe_title}
-                className="w-10 h-10 rounded object-cover flex-shrink-0"
-                loading="lazy"
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Link
-                  to={`/recipes/${item.recipe_slug}`}
-                  className="text-base hover:text-primary transition-colors truncate block font-medium"
-                >
-                  {item.recipe_title}
-                </Link>
-                <AllergenWarningBadge allergenTags={itemAllergenTags} />
-              </div>
+         return (
+           <div key={item.id} className={`flex items-start gap-2 pl-7 py-1.5 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
+             {item.recipe_image && (
+               <img
+                 src={item.recipe_image}
+                 alt={displayName}
+                 className="w-10 h-10 rounded object-cover flex-shrink-0"
+                 loading="lazy"
+               />
+             )}
+             <div className="flex-1 min-w-0">
+               <div className="flex items-center gap-1.5 flex-wrap">
+                 {isIngredient ? (
+                   <span className="text-base truncate block font-medium">
+                     {displayName}
+                   </span>
+                 ) : (
+                   <Link
+                     to={`/recipes/${item.recipe_slug}`}
+                     className="text-base hover:text-primary transition-colors truncate block font-medium"
+                   >
+                     {displayName}
+                   </Link>
+                 )}
+                 {isIngredient && (
+                   <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">
+                     Zutat
+                   </span>
+                 )}
+                 <AllergenWarningBadge allergenTags={itemAllergenTags} />
+               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 {item.energy_kcal != null && (
                   <span>{Math.round(item.energy_kcal / effPortions)} kcal</span>

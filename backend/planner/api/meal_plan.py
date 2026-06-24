@@ -9,6 +9,7 @@ from ninja import Router
 from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem
+from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 
 from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
@@ -19,8 +20,10 @@ from planner.models import (
     MealPlanCollaboratorRole,
     MealItem,
     MealItemOverride,
+    MealItemSplit,
 )
 from planner.schemas import (
+    CookingScheduleOut,
     MealCreateIn,
     MealDayBulkCreateIn,
     MealPlanCostSummaryOut,
@@ -35,6 +38,8 @@ from planner.schemas import (
     CopyItemsFromPlanIn,
     MealItemOverrideIn,
     MealItemOverrideOut,
+    MealItemSplitIn,
+    MealItemSplitOut,
     MealOut,
     MealUpdateIn,
     NutritionSummaryOut,
@@ -666,7 +671,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
     if current_kcal <= 0:
         raise HttpError(400, "Mahlzeit enthält keine Kalorien, Skalierung nicht möglich.")
 
-    target_kcal = 2335.0 * meal.day_part_factor
+    target_kcal = NORM_PERSON_DAILY_KCAL * meal.day_part_factor
     scale = target_kcal / current_kcal
 
     from django.db import transaction
@@ -763,6 +768,13 @@ def set_meal_item_overrides(
         recipe_item = get_object_or_404(
             RecipeItem, id=override_in.recipe_item_id, recipe=item.recipe
         )
+        # Overrides are not allowed on optional or exchange-group ingredients —
+        # those are configured via MealItemSplit instead.
+        if recipe_item.is_optional or recipe_item.exchange_group_id is not None:
+            raise HttpError(
+                400,
+                "Für Varianten- oder optionale Zutaten kann kein Override gesetzt werden.",
+            )
         override = MealItemOverride.objects.create(
             meal_item=item,
             recipe_item=recipe_item,
@@ -772,6 +784,110 @@ def set_meal_item_overrides(
         overrides.append(override)
 
     return overrides
+
+
+# ==========================================================================
+# MealItem Splits (exchange / optional portion shares)
+# ==========================================================================
+
+_SHARE_SUM_TOLERANCE = 0.001
+
+
+def _validate_split_shares(item: MealItem, splits: list[MealItemSplitIn]) -> None:
+    """Validate that shares sum to 1.0 per exchange group and per optional item.
+
+    Groups splits by their RecipeItem's exchange_group (or by the optional item
+    itself) and ensures each group's shares total 1.0.
+    """
+    recipe_items = {
+        ri.id: ri
+        for ri in RecipeItem.objects.filter(recipe=item.recipe)
+    }
+    # group_key -> summed share
+    group_sums: dict[str, float] = {}
+    for split in splits:
+        ri = recipe_items.get(split.recipe_item_id)
+        if ri is None:
+            raise HttpError(400, "Zutat gehört nicht zu diesem Rezept.")
+        if ri.exchange_group_id is not None:
+            key = f"exchange:{ri.exchange_group_id}"
+        elif ri.is_optional:
+            key = f"optional:{ri.id}"
+        else:
+            raise HttpError(
+                400,
+                "Splits sind nur für optionale oder Austausch-Zutaten möglich.",
+            )
+        group_sums[key] = group_sums.get(key, 0.0) + split.share
+
+    for total in group_sums.values():
+        if abs(total - 1.0) > _SHARE_SUM_TOLERANCE:
+            raise HttpError(400, "Die Summe der Anteile muss 100% ergeben.")
+
+
+@meal_plan_router.get(
+    "/{meal_plan_id}/meal-items/{item_id}/splits/",
+    response=list[MealItemSplitOut],
+)
+def get_meal_item_splits(request, meal_plan_id: int, item_id: int):
+    """List all portion splits for a meal item."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+
+    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
+    return list(MealItemSplit.objects.filter(meal_item=item))
+
+
+@meal_plan_router.put(
+    "/{meal_plan_id}/meal-items/{item_id}/splits/",
+    response=list[MealItemSplitOut],
+)
+def set_meal_item_splits(
+    request, meal_plan_id: int, item_id: int, payload: list[MealItemSplitIn]
+):
+    """Replace all portion splits for a meal item (atomic, constraint-checked)."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
+    if not item.recipe:
+        raise HttpError(422, "Splits nur für Rezept-Einträge möglich")
+
+    _validate_split_shares(item, payload)
+
+    recipe_items = {
+        ri.id: ri for ri in RecipeItem.objects.filter(recipe=item.recipe)
+    }
+
+    from django.db import transaction
+
+    with transaction.atomic():
+        MealItemSplit.objects.filter(meal_item=item).delete()
+        created = []
+        for split_in in payload:
+            recipe_item = recipe_items[split_in.recipe_item_id]
+            created.append(
+                MealItemSplit.objects.create(
+                    meal_item=item,
+                    recipe_item=recipe_item,
+                    share=split_in.share,
+                )
+            )
+    return created
+
+
+@meal_plan_router.delete("/{meal_plan_id}/meal-items/{item_id}/splits/")
+def delete_meal_item_splits(request, meal_plan_id: int, item_id: int):
+    """Delete all portion splits for a meal item (falls back to defaults)."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
+    MealItemSplit.objects.filter(meal_item=item).delete()
+    return {"success": True}
 
 
 # ==========================================================================
@@ -812,25 +928,34 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     # then summed, so meals with differing effective_portions are handled correctly.
     per_portion_totals = {field: 0.0 for field in fields}
 
+    from planner.services.split_service import get_included_fractions
+
     for mi in meal_items:
         if not mi.recipe:
             continue
 
         # Use prefetched recipe_items (no extra DB query)
-        recipe_items = mi.recipe.recipe_items.all()
+        recipe_items = list(mi.recipe.recipe_items.all())
 
         recipe_servings = mi.recipe.portions or 1
         effective_portions = mi.meal.effective_portions
 
+        # Split-aware: fraction of portions each recipe item is included for.
+        included_fractions = get_included_fractions(mi, recipe_items, effective_portions)
+
         for ri in recipe_items:
             if not ri.portion or not ri.portion.ingredient:
+                continue
+
+            fraction = included_fractions.get(ri.id, 1.0)
+            if fraction <= 0:
                 continue
 
             ing = ri.portion.ingredient
             # RecipeItem quantity is in the portion unit; portion.weight_g converts to grams
             weight_g = ri.quantity * ri.portion.weight_g if ri.portion.weight_g else 0
             # Scale factor: per 100g, then by item factor, scaled to effective_portions
-            scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings)
+            scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings) * fraction
 
             for field in fields:
                 ing_val = getattr(ing, field, None)
@@ -892,11 +1017,16 @@ def cost_summary(request, meal_plan_id: int):
         effective_portions = meal.effective_portions
         meal_cost = Decimal("0")
 
+        from planner.services.split_service import get_included_fractions
+
         for item in meal.items.all():
             if item.recipe:
                 # Recipe-based item: use prefetched recipe_items (no extra DB query)
                 recipe_servings = item.recipe.portions or 1
-                recipe_items = item.recipe.recipe_items.all()
+                recipe_items = list(item.recipe.recipe_items.all())
+                included_fractions = get_included_fractions(
+                    item, recipe_items, effective_portions
+                )
                 recipe_item_cost = Decimal("0")
                 rid = item.recipe.id
                 if rid not in recipe_costs:
@@ -911,6 +1041,9 @@ def cost_summary(request, meal_plan_id: int):
                 for ri in recipe_items:
                     if not ri.portion or not ri.portion.ingredient:
                         continue
+                    fraction = included_fractions.get(ri.id, 1.0)
+                    if fraction <= 0:
+                        continue
                     total_ingredients += 1
                     recipe_costs[rid]["total_ingredients"] += 1
                     ing = ri.portion.ingredient
@@ -919,8 +1052,8 @@ def cost_summary(request, meal_plan_id: int):
                         if ri.portion.weight_g
                         else 0
                     )
-                    # Scale: item.factor * (effective_portions / recipe_servings)
-                    scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings)
+                    # Scale: item.factor * (effective_portions / recipe_servings) * fraction
+                    scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings) * fraction
                     price = get_portion_price(ing, scaled_weight_g)
                     if price is not None:
                         priced_ingredients += 1
@@ -1542,9 +1675,6 @@ def search_recipes(
     if q and len(q) >= 2:
         ing_qs = ing_qs.filter(name__icontains=q)
 
-    if type_filter:
-        ing_qs = ing_qs.filter(standalone_type__in=type_filter)
-
     if nutritional_tag_ids:
         tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
         for tag_id in tag_ids:
@@ -1555,7 +1685,7 @@ def search_recipes(
         if exclude_tag_ids:
             ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
-    ing_list = list(ing_qs.values("id", "name", "slug", "standalone_type")[:limit])
+    ing_list = list(ing_qs.values("id", "name", "slug")[:limit])
 
     # Attach portions to each ingredient
     if ing_list:
@@ -1780,4 +1910,25 @@ def get_allergen_scan(request, meal_plan_id: int):
         "violations": violations,
         "summary": summary,
     }
+
+
+@meal_plan_router.get("/{meal_plan_id}/cooking-schedule/", response=CookingScheduleOut)
+def get_cooking_schedule(request, meal_plan_id: int):
+    """Chronologische Kochplan-Übersicht für einen Essensplan.
+
+    Liefert pro Tag eine nach Startzeit sortierte Liste aller zu kochenden Rezepte.
+    Startzeit = Servierzeit − (Vorbereitungszeit + Kochzeit) als Bucket-Obergrenzen.
+    """
+    from planner.services.cooking_schedule_service import build_cooking_schedule
+
+    _require_auth(request)
+    try:
+        meal_plan = MealPlan.objects.get(pk=meal_plan_id)
+    except MealPlan.DoesNotExist:
+        raise HttpError(404, "Essensplan nicht gefunden")
+
+    _require_access(meal_plan, request.user)
+
+    result = build_cooking_schedule(meal_plan)
+    return result
 

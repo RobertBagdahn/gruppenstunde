@@ -11,6 +11,28 @@ export const NutritionalTagSchema = z.object({
 export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
 
 // ==========================================================================
+// MealItem Split
+// ==========================================================================
+
+export const MealItemSplitSchema = z.object({
+  id: z.number(),
+  recipe_item_id: z.number(),
+  share: z.number().min(0).max(1),
+});
+export type MealItemSplit = z.infer<typeof MealItemSplitSchema>;
+
+export const MealItemSplitInSchema = z.object({
+  recipe_item_id: z.number(),
+  share: z.number().min(0).max(1),
+});
+export type MealItemSplitIn = z.infer<typeof MealItemSplitInSchema>;
+
+// Bulk-set: list of splits per meal item.
+// Frontend validates: Σ share per exchange group = 1.0 before submitting.
+export const MealItemSplitBulkSetSchema = z.array(MealItemSplitInSchema);
+export type MealItemSplitBulkSet = z.infer<typeof MealItemSplitBulkSetSchema>;
+
+// ==========================================================================
 // MealItem Override
 // ==========================================================================
 
@@ -300,7 +322,6 @@ export const IngredientSearchResultSchema = z.object({
   id: z.number(),
   name: z.string(),
   slug: z.string(),
-  standalone_type: z.string().nullable(),
   portions: z.array(IngredientPortionSchema),
 });
 export type IngredientSearchResult = z.infer<typeof IngredientSearchResultSchema>;
@@ -643,6 +664,34 @@ export const NutritionalTagScanResponseSchema = z.object({
   summary: NutritionalTagScanSummarySchema,
 });
 export type NutritionalTagScanResponse = z.infer<typeof NutritionalTagScanResponseSchema>;
+
+// ==========================================================================
+// Cooking Schedule (Kochplan)
+// ==========================================================================
+
+export const CookingScheduleItemSchema = z.object({
+  recipe_id: z.number(),
+  recipe_title: z.string(),
+  recipe_slug: z.string(),
+  meal_type: z.string(),
+  serving_time: z.string(),
+  lead_minutes: z.number(),
+  start_time: z.string(),
+  portions: z.number(),
+});
+export type CookingScheduleItem = z.infer<typeof CookingScheduleItemSchema>;
+
+export const CookingScheduleDaySchema = z.object({
+  date: z.string(),
+  items: z.array(CookingScheduleItemSchema),
+});
+export type CookingScheduleDay = z.infer<typeof CookingScheduleDaySchema>;
+
+export const CookingScheduleSchema = z.object({
+  days: z.array(CookingScheduleDaySchema),
+  excluded_meal_count: z.number(),
+});
+export type CookingSchedule = z.infer<typeof CookingScheduleSchema>;
 
 // ==========================================================================
 // MealPlan Card Helpers

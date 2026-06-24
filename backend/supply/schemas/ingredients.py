@@ -151,7 +151,6 @@ class IngredientDetailOut(Schema):
 
     # Standalone food
     is_standalone_food: bool = False
-    standalone_type: str | None = None
 
     # Reference
     ingredient_ref_id: int | None = None
@@ -267,7 +266,6 @@ class IngredientCreateIn(Schema):
 
     # Standalone food
     is_standalone_food: bool = False
-    standalone_type: str | None = None
     ingredient_ref_id: int | None = None
     price_per_kg: float | None = None
 
@@ -324,7 +322,6 @@ class IngredientUpdateIn(Schema):
     nutritional_tag_ids: list[int] | None = None
     status: str | None = None
     is_standalone_food: bool | None = None
-    standalone_type: str | None = None
     ingredient_ref_id: int | None = None
 
 

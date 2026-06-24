@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Literal
 
 from ninja import Schema
+from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.schemas.reference import NutritionalTagOut
 
 
@@ -70,7 +71,15 @@ class MealItemOut(Schema):
             return None
         servings = obj.recipe.portions or 1
         effective_portions = obj.meal.effective_portions
-        return float(obj.recipe.cached_energy_total_kcal) * obj.factor * (effective_portions / servings)
+        base_total = float(obj.recipe.cached_energy_total_kcal)
+        if obj.splits.exists():
+            from planner.services.split_service import get_split_delta_total
+
+            recipe_items = list(
+                obj.recipe.recipe_items.select_related("portion__ingredient").all()
+            )
+            base_total += get_split_delta_total(obj, recipe_items, "energy_kcal")
+        return base_total * obj.factor * (effective_portions / servings)
 
     @staticmethod
     def resolve_cost_eur(obj) -> float | None:
@@ -78,11 +87,30 @@ class MealItemOut(Schema):
             return None
         servings = obj.recipe.portions or 1
         effective_portions = obj.meal.effective_portions
-        return float(obj.recipe.cached_price_total) * obj.factor * (effective_portions / servings)
+        base_total = float(obj.recipe.cached_price_total)
+        if obj.splits.exists():
+            from planner.services.split_service import get_split_delta_total
+
+            recipe_items = list(
+                obj.recipe.recipe_items.select_related("portion__ingredient").all()
+            )
+            base_total += get_split_delta_total(obj, recipe_items, "price")
+        return base_total * obj.factor * (effective_portions / servings)
 
     @staticmethod
     def resolve_overrides(obj) -> list:
         return list(obj.overrides.all())
+
+
+class MealItemSplitOut(Schema):
+    id: int
+    recipe_item_id: int
+    share: float
+
+
+class MealItemSplitIn(Schema):
+    recipe_item_id: int
+    share: float
 
 
 class MealItemCreateIn(Schema):
@@ -136,12 +164,31 @@ class MealOut(Schema):
         if obj.is_external:
             if obj.external_energy_kcal is not None:
                 return obj.external_energy_kcal * effective_portions
-            return 2335.0 * obj.day_part_factor * effective_portions
+            return NORM_PERSON_DAILY_KCAL * obj.day_part_factor * effective_portions
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_energy_total_kcal is not None:
                 servings = item.recipe.portions or 1
                 total += float(item.recipe.cached_energy_total_kcal) * item.factor * (effective_portions / servings)
+            elif item.ingredient and item.ingredient.energy_kcal is not None:
+                # For ingredient items: energy_kcal is per 100g
+                # Convert quantity to grams using portion weight_g
+                weight_g = 0.0
+                if item.quantity and item.measuring_unit:
+                    # Find a portion with this measuring unit to get weight_g
+                    portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
+                    if portion and portion.weight_g:
+                        weight_g = portion.weight_g * float(item.quantity)
+                    elif item.measuring_unit.name.lower() == "g":
+                        weight_g = float(item.quantity)
+                    elif item.measuring_unit.name.lower() == "ml":
+                        # For ml, try to use density if available
+                        if item.ingredient.density is not None:
+                            weight_g = float(item.quantity) * item.ingredient.density
+                
+                if weight_g > 0:
+                    kcal_per_100g = float(item.ingredient.energy_kcal)
+                    total += (kcal_per_100g / 100.0) * weight_g * item.factor
         return total
 
     @staticmethod
@@ -156,6 +203,25 @@ class MealOut(Schema):
             if item.recipe and item.recipe.cached_price_total is not None:
                 servings = item.recipe.portions or 1
                 total += float(item.recipe.cached_price_total) * item.factor * (effective_portions / servings)
+            elif item.ingredient and item.ingredient.price_per_kg is not None:
+                # For ingredient items: price_per_kg is the base price
+                # Convert quantity to grams using portion weight_g
+                weight_g = 0.0
+                if item.quantity and item.measuring_unit:
+                    # Find a portion with this measuring unit to get weight_g
+                    portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
+                    if portion and portion.weight_g:
+                        weight_g = portion.weight_g * float(item.quantity)
+                    elif item.measuring_unit.name.lower() == "g":
+                        weight_g = float(item.quantity)
+                    elif item.measuring_unit.name.lower() == "ml":
+                        # For ml, try to use density if available
+                        if item.ingredient.density is not None:
+                            weight_g = float(item.quantity) * item.ingredient.density
+                
+                if weight_g > 0:
+                    price_eur = (float(item.ingredient.price_per_kg) / 1000.0) * weight_g * item.factor
+                    total += price_eur
         return total
 
 
@@ -533,4 +599,25 @@ class NutritionalTagScanOut(Schema):
     nutritional_tags: list[NutritionalTagOut]
     violations: list[NutritionalTagViolationOut]
     summary: NutritionalTagScanSummaryOut
+
+
+class CookingScheduleItemOut(Schema):
+    recipe_id: int
+    recipe_title: str
+    recipe_slug: str
+    meal_type: str
+    serving_time: dt.datetime
+    lead_minutes: int
+    start_time: dt.datetime
+    portions: int
+
+
+class CookingScheduleDayOut(Schema):
+    date: dt.date
+    items: list[CookingScheduleItemOut]
+
+
+class CookingScheduleOut(Schema):
+    days: list[CookingScheduleDayOut]
+    excluded_meal_count: int
 

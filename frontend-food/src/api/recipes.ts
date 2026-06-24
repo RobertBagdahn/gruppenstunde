@@ -12,6 +12,7 @@ import {
   PaginatedRecipesSchema,
   RecipeDetailSchema,
   RecipeItemSchema,
+  RecipeItemExchangeGroupSchema,
   RecipeSimilarSchema,
   NutriScoreDetailSchema,
   RecipeNutritionBreakdownSchema,
@@ -573,6 +574,82 @@ export function useEstimateQuantities(recipeId: number) {
 // ==========================================================================
 // Recipe Type Stats (Kategorie-Benchmarking)
 // ==========================================================================
+
+// ==========================================================================
+// Exchange Groups (8.1, 8.2, 8.3)
+// ==========================================================================
+
+export function useRecipeExchangeGroups(recipeId: number) {
+  return useQuery({
+    queryKey: ['exchange-groups', recipeId] as const,
+    queryFn: () =>
+      fetchJson(`${API_BASE}/${recipeId}/exchanges/`, z.array(RecipeItemExchangeGroupSchema)),
+    enabled: recipeId > 0,
+  });
+}
+
+export function useCreateExchangeGroup(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      postJson(`${API_BASE}/${recipeId}/exchanges/`, { name }, RecipeItemExchangeGroupSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exchange-groups', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
+    },
+  });
+}
+
+export function useDeleteExchangeGroup(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (groupId: number) => {
+      const res = await fetch(`${API_BASE}/${recipeId}/exchanges/${groupId}/`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const msg = errBody.detail || `API error: ${res.status}`;
+        // 409 = PROTECT: zutat in aktiven Essensplänen
+        throw Object.assign(new Error(msg), { status: res.status });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exchange-groups', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
+    },
+  });
+}
+
+// ==========================================================================
+// RecipeItem PATCH — optional / exchange fields (8.4)
+// ==========================================================================
+
+export function usePatchRecipeItem(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      data,
+    }: {
+      itemId: number;
+      data: {
+        is_optional?: boolean;
+        exchange_group_id?: number | null;
+        exchange_position?: number | null;
+        quantity?: number;
+        sort_order?: number;
+        note?: string;
+      };
+    }) => patchJson(`${API_BASE}/${recipeId}/recipe-items/${itemId}/`, data, RecipeItemSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-items', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['exchange-groups', recipeId] });
+    },
+  });
+}
 
 export function useRecipeTypeStats(recipeType: string) {
   return useQuery({

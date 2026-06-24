@@ -4,7 +4,7 @@
 
 Der Autor eines Rezepts SHALL Exchange-Gruppen anlegen können, die austauschbare Zutaten zusammenfassen. Eine Exchange-Gruppe gehört zu einem Rezept und hat einen optionalen Namen (z.B. "Käse-Ersatz"). Jedes Mitglied der Gruppe ist ein `RecipeItem` mit `exchange_group`-FK und `exchange_position` (int). `exchange_position=0` ist das Original/Default.
 
-Eine Zutat MUST entweder `is_optional=True` ODER Teil einer Exchange-Gruppe sein — nie beides. Die DB erzwingt dies via CHECK CONSTRAINT.
+Eine Zutat MUST entweder `is_optional=True` ODER Teil einer Exchange-Gruppe sein — nie beides. Eine DB-CHECK-CONSTRAINT erzwingt dies als Sicherheitsnetz; die API validiert zusätzlich und gibt bei Verstoß HTTP 400 mit deutscher Fehlermeldung zurück.
 
 #### Scenario: Exchange-Gruppe mit zwei Gliedern anlegen
 
@@ -24,12 +24,17 @@ Eine Zutat MUST entweder `is_optional=True` ODER Teil einer Exchange-Gruppe sein
 #### Scenario: Exchange-Gruppe löschen ohne aktive Splits
 
 - **WHEN** der Autor eine Exchange-Gruppe löscht und kein `MealItemSplit` auf ihre Mitglieder zeigt
-- **THEN** werden die Gruppe und alle Nicht-Default-Glieder (position > 0) gelöscht; das Original-RecipeItem (position=0) bleibt als normales RecipeItem erhalten
+- **THEN** löscht die API-Logik die Nicht-Default-Glieder (exchange_position > 0) und setzt das Original-RecipeItem (position 0) auf `exchange_group=NULL` zurück, sodass es als normale Zutat erhalten bleibt
 
 #### Scenario: Löschen eines Ketten-Glieds mit aktiven Splits blockiert
 
 - **WHEN** der Autor versucht, ein Ketten-Glied zu löschen, auf das ein aktiver `MealItemSplit` zeigt
-- **THEN** gibt das Backend HTTP 409 zurück mit Fehlermeldung "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden."
+- **THEN** verhindert die DB-Beziehung `MealItemSplit → RecipeItem` (PROTECT) das Löschen; das Backend gibt HTTP 409 zurück mit Fehlermeldung "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden."
+
+#### Scenario: Rezept mit aktiven Splits nicht löschbar
+
+- **WHEN** ein Autor versucht, ein ganzes Rezept zu löschen, dessen RecipeItems aktive `MealItemSplit`-Einträge haben
+- **THEN** wird das Löschen blockiert (HTTP 409) mit Fehlermeldung "Dieses Rezept wird in Essensplänen mit konfigurierten Varianten verwendet und kann nicht gelöscht werden."
 
 ### Requirement: Exchange-Gruppen in der Rezeptansicht anzeigen
 
@@ -60,10 +65,10 @@ Das System SHALL CRUD-Endpunkte für Exchange-Gruppen bereitstellen, zugänglich
 
 #### Scenario: Exchange-Gruppe anlegen (API)
 
-- **WHEN** ein authentifizierter Autor `POST /api/recipes/{id}/exchanges/` mit optionalem `name` aufruft
+- **WHEN** ein authentifizierter Autor `POST /{recipe_id}/exchanges/` (recipe-Router) mit optionalem `name` aufruft
 - **THEN** wird eine neue `RecipeItemExchangeGroup` angelegt und mit HTTP 201 zurückgegeben
 
-#### Scenario: Exchange-Gruppe löschen (API) — PROTECT
+#### Scenario: Exchange-Gruppe löschen (API) — aktive Splits blockieren
 
-- **WHEN** `DELETE /api/recipes/{id}/exchanges/{group_id}/` aufgerufen wird und aktive Splits existieren
+- **WHEN** `DELETE /{recipe_id}/exchanges/{group_id}/` aufgerufen wird und aktive Splits auf Glieder zeigen
 - **THEN** antwortet das Backend mit HTTP 409 und einer deutschen Fehlermeldung

@@ -12,6 +12,8 @@ import {
   useDeleteRecipeItem,
   useCreateRecipeItem,
   useEstimateQuantities,
+  usePatchRecipeItem,
+  useCreateExchangeGroup,
 } from '@/api/recipes';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
@@ -31,6 +33,9 @@ interface EditableItem {
   measuring_unit_name: string | null;
   note: string;
   sort_order: number;
+  is_optional: boolean;
+  exchange_group_id: number | null;
+  exchange_position: number | null;
   ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; priority?: number | null }[];
   isNew?: boolean;
   isDeleted?: boolean;
@@ -101,6 +106,9 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
         is_default: p.is_default,
         priority: p.priority,
       })),
+      is_optional: item.is_optional ?? false,
+      exchange_group_id: item.exchange_group_id ?? null,
+      exchange_position: item.exchange_position ?? null,
       isDirty: s > 1 || basePortionId !== item.portion_id,
     };
   });
@@ -150,6 +158,8 @@ export default function InlineIngredientEditor({
   const deleteItem = useDeleteRecipeItem(recipeId);
   const createItem = useCreateRecipeItem(recipeId);
   const estimateQuantities = useEstimateQuantities(recipeId);
+  const patchItem = usePatchRecipeItem(recipeId);
+  const createExchangeGroup = useCreateExchangeGroup(recipeId);
 
   // --- Handlers ---
 
@@ -264,6 +274,9 @@ export default function InlineIngredientEditor({
               is_default: p.is_default,
               priority: p.priority,
             })),
+            is_optional: false,
+            exchange_group_id: null,
+            exchange_position: null,
             isNew: true,
             isDirty: true,
           },
@@ -325,6 +338,9 @@ export default function InlineIngredientEditor({
               measuring_unit_name: p.measuring_unit_name,
               is_default: p.is_default,
             })),
+            is_optional: false,
+            exchange_group_id: null,
+            exchange_position: null,
             isNew: true,
             isDirty: true,
           },
@@ -456,9 +472,23 @@ export default function InlineIngredientEditor({
         promises.push(updateRecipe.mutateAsync({ portions: 1 }));
       }
 
-      // Delete removed items
+      // Delete removed items — PROTECT: toast specific message if in active plans
       for (const item of editItems.filter((i) => i.isDeleted && !i.isNew)) {
-        promises.push(deleteItem.mutateAsync(item.id));
+        promises.push(
+          deleteItem.mutateAsync(item.id).catch((err: Error) => {
+            if (err.message.includes('aktiven Essensplänen')) {
+              toast.error('Löschen nicht möglich', {
+                description: 'Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden.',
+              });
+              // Restore item as not-deleted
+              setEditItems((prev) =>
+                prev.map((i) => (i.id === item.id ? { ...i, isDeleted: false } : i)),
+              );
+              throw err;
+            }
+            throw err;
+          }),
+        );
       }
 
       // Create new items (divide by scale to store per-1-portion value)
@@ -620,6 +650,67 @@ export default function InlineIngredientEditor({
                 <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
               </button>
             )}
+            {/* Optional toggle (task 9.3) — disabled when in exchange group */}
+            <button
+              type="button"
+              disabled={item.exchange_group_id !== null}
+              title={item.is_optional ? 'Als Pflicht-Zutat markieren' : 'Als optional markieren'}
+              onClick={() => {
+                patchItem.mutate(
+                  { itemId: item.id, data: { is_optional: !item.is_optional } },
+                  {
+                    onSuccess: () => {
+                      setEditItems((prev) =>
+                        prev.map((i) =>
+                          i.id === item.id ? { ...i, is_optional: !i.is_optional } : i,
+                        ),
+                      );
+                    },
+                    onError: (err) => {
+                      toast.error('Fehler', { description: err.message });
+                    },
+                  },
+                );
+              }}
+              className={`p-1.5 transition-colors rounded ${item.is_optional ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground/40 hover:text-muted-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {item.is_optional ? 'toggle_on' : 'toggle_off'}
+              </span>
+            </button>
+            {/* Alternative hinzufügen (tasks 9.1, 9.2) — only when not optional */}
+            <button
+              type="button"
+              disabled={item.is_optional}
+              title="Alternative hinzufügen"
+              onClick={async () => {
+                try {
+                  const group = item.exchange_group_id
+                    ? { id: item.exchange_group_id }
+                    : await createExchangeGroup.mutateAsync('');
+                  // Assign this item as position 0 if it doesn't have a group yet
+                  if (!item.exchange_group_id) {
+                    await patchItem.mutateAsync({
+                      itemId: item.id,
+                      data: { exchange_group_id: group.id, exchange_position: 0 },
+                    });
+                    setEditItems((prev) =>
+                      prev.map((i) =>
+                        i.id === item.id
+                          ? { ...i, exchange_group_id: group.id, exchange_position: 0 }
+                          : i,
+                      ),
+                    );
+                  }
+                  toast.success('Austausch-Gruppe erstellt – jetzt Alternativ-Zutat hinzufügen');
+                } catch (err) {
+                  toast.error('Fehler', { description: (err as Error).message });
+                }
+              }}
+              className="p-1.5 text-muted-foreground/40 hover:text-primary transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+            </button>
             <button
               type="button"
               onClick={() => handleDelete(item.id)}

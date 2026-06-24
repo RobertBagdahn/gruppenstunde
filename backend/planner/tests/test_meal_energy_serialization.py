@@ -163,3 +163,115 @@ class TestMealEnergySerialization:
             assert ev["status"] == "green"
             assert ev["min_green"] == ev["current_value"]
             assert ev["max_green"] == ev["current_value"]
+
+    def test_meal_with_ingredient_item(self):
+        """Test meal with ingredient item."""
+        from model_bakery import baker
+        from supply.models import MeasuringUnit
+        
+        plan = make_meal_plan(norm_portions=10)
+        meal = make_meal(meal_plan=plan)
+        
+        # Create ingredient with nutrition info
+        ingredient = make_ingredient(
+            energy_kcal=150.0,
+            protein_g=20.0,
+            fat_g=5.0,
+            carbohydrate_g=0.0,
+            sugar_g=0.0,
+            fibre_g=0.0,
+            salt_g=0.0,
+            price_per_kg=8.0
+        )
+        g_unit = MeasuringUnit.objects.get(name="g")
+        make_portion(ingredient=ingredient, measuring_unit=g_unit, weight_g=1.0)
+        
+        # Create meal item with ingredient (no recipe)
+        meal_item = baker.make(
+            "planner.MealItem",
+            meal=meal,
+            recipe=None,
+            ingredient=ingredient,
+            quantity=200,
+            measuring_unit=g_unit,
+            factor=1.0
+        )
+        
+        # Ingredient meal energy: 300 kcal (150 kcal/100g × 200g)
+        ingredient_energy = MealOut.resolve_total_energy_kcal(meal)
+        assert ingredient_energy == pytest.approx(300.0)
+        
+        # Ingredient meal cost: 200g × 8€/kg = 1.6€
+        ingredient_cost = MealOut.resolve_total_cost_eur(meal)
+        assert ingredient_cost == pytest.approx(1.6)
+
+    def test_pure_ingredient_meal(self):
+        """Test meal with only ingredient items."""
+        from model_bakery import baker
+        from recipe.services.nutrition_aggregation import _aggregate_meal_values
+        from supply.models import MeasuringUnit
+        
+        plan = make_meal_plan(norm_portions=10)
+        meal = make_meal(meal_plan=plan)
+        
+        # Two ingredient items
+        ingredient1 = make_ingredient(
+            energy_kcal=100.0,
+            protein_g=5.0,
+            fat_g=2.0,
+            carbohydrate_g=15.0,
+            sugar_g=5.0,
+            fibre_g=1.0,
+            salt_g=0.1,
+            price_per_kg=5.0
+        )
+        g_unit = MeasuringUnit.objects.get(name="g")
+        make_portion(ingredient=ingredient1, measuring_unit=g_unit, weight_g=1.0)
+        
+        ingredient2 = make_ingredient(
+            energy_kcal=50.0,
+            protein_g=2.0,
+            fat_g=1.0,
+            carbohydrate_g=8.0,
+            sugar_g=2.0,
+            fibre_g=0.5,
+            salt_g=0.05,
+            price_per_kg=3.0
+        )
+        make_portion(ingredient=ingredient2, measuring_unit=g_unit, weight_g=1.0)
+        
+        # 250g of ingredient1 (100 kcal/100g) = 250 kcal
+        baker.make(
+            "planner.MealItem",
+            meal=meal,
+            recipe=None,
+            ingredient=ingredient1,
+            quantity=250,
+            measuring_unit=g_unit,
+            factor=1.0
+        )
+        
+        # 150g of ingredient2 (50 kcal/100g) = 75 kcal
+        baker.make(
+            "planner.MealItem",
+            meal=meal,
+            recipe=None,
+            ingredient=ingredient2,
+            quantity=150,
+            measuring_unit=g_unit,
+            factor=1.0
+        )
+        
+        totals = _aggregate_meal_values(meal)
+        
+        # Total energy: 250 + 75 = 325 kcal
+        assert totals["energy_kcal"] == pytest.approx(325.0)
+        
+        # Total protein: 250g * 5/100 + 150g * 2/100 = 12.5 + 3 = 15.5g
+        assert totals["protein_g"] == pytest.approx(15.5)
+        
+        # Total cost: 250g * 5€/kg + 150g * 3€/kg = 1.25 + 0.45 = 1.70€
+        assert totals["price_total"] == pytest.approx(1.70)
+        
+        # Total weight: 250 + 150 = 400g
+        assert totals["weight_g"] == pytest.approx(400.0)

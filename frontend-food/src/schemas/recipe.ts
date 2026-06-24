@@ -45,8 +45,30 @@ export const RecipeItemSchema = z.object({
   ingredient_retail_section_id: z.number().nullable().optional(),
   ingredient_retail_section_name: z.string().nullable().optional(),
   weight_g: z.number(),
+  is_optional: z.boolean().default(false),
+  exchange_group_id: z.number().nullable().optional(),
+  exchange_position: z.number().nullable().optional(),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;
+
+// --- RecipeItemExchangeGroup ---
+
+export const ExchangeGroupMemberSchema = z.object({
+  recipe_item_id: z.number(),
+  exchange_position: z.number().nullable().optional(),
+  portion_id: z.number(),
+  ingredient_name: z.string().default(''),
+  quantity: z.number(),
+});
+export type ExchangeGroupMember = z.infer<typeof ExchangeGroupMemberSchema>;
+
+export const RecipeItemExchangeGroupSchema = z.object({
+  id: z.number(),
+  recipe_id: z.number(),
+  name: z.string().default(''),
+  members: z.array(ExchangeGroupMemberSchema).default([]),
+});
+export type RecipeItemExchangeGroup = z.infer<typeof RecipeItemExchangeGroupSchema>;
 
 // --- Recipe List Item (extends ContentListItem) ---
 

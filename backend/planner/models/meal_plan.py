@@ -547,3 +547,48 @@ class MealItemOverride(models.Model):
 
     def __str__(self):
         return f"{self.meal_item} → {self.recipe_item} (override)"
+
+
+class MealItemSplit(models.Model):
+    """Portion split for an exchange/optional RecipeItem within a meal item.
+
+    Stores the fraction (share) of portions assigned to one member of an exchange
+    group or to an optional ingredient. share is a float 0.0–1.0; the sum of shares
+    per (meal_item, exchange_group) — or per (meal_item, optional recipe_item) — must
+    equal 1.0. No split rows for a group means 100% default (exchange_position=0) /
+    100% included (optional). recipe_item uses PROTECT so a chain member cannot be
+    deleted while active splits reference it.
+    """
+
+    meal_item = models.ForeignKey(
+        MealItem,
+        on_delete=models.CASCADE,
+        related_name="splits",
+        verbose_name=_("Mahlzeit-Eintrag"),
+    )
+    recipe_item = models.ForeignKey(
+        "recipe.RecipeItem",
+        on_delete=models.PROTECT,
+        related_name="meal_splits",
+        verbose_name=_("Rezept-Zutat"),
+    )
+    share = models.FloatField(
+        verbose_name=_("Anteil"),
+        help_text=_("Anteil der Portionen 0.0–1.0"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Portionen-Split")
+        verbose_name_plural = _("Portionen-Splits")
+        unique_together = [("meal_item", "recipe_item")]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(share__gte=0) & models.Q(share__lte=1),
+                name="meal_item_split_share_range",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.meal_item} → {self.recipe_item} ({self.share:.0%})"

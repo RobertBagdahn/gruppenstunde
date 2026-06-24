@@ -150,14 +150,6 @@ class Ingredient(models.Model):
         verbose_name=_("Eigenständig konsumierbar"),
         help_text=_("Kann roh/direkt gegessen werden (z.B. Obst, Getränke, Süßigkeiten)"),
     )
-    standalone_type = models.CharField(
-        max_length=20,
-        choices=RecipeTypeChoices.choices,
-        null=True,
-        blank=True,
-        verbose_name=_("Standalone-Typ"),
-        help_text=_("Mahlzeittyp wenn eigenständig konsumiert"),
-    )
 
     status = models.CharField(
         max_length=20,

@@ -83,7 +83,12 @@ Das System SHALL je Belag-Zutat den Gesamtbedarf (`Portionen × Portionsgewicht 
 - **THEN** zeigt das System 2 Gläser kaufen, 80g Rest und den zugehörigen Restwert in Euro
 
 ### Requirement: Schritt 3 — Extras und warme Gerichte
-Das System SHALL im Schritt Extras Gemüse/Beilagen mit einfacher Mengenangabe pro Person erfassen und warme Frühstücksgerichte als Rezept (mit Faktor) hinzufügbar machen.
+Das System SHALL im Schritt Extras Gemüse/Beilagen als Standalone-Zutaten (`is_standalone_food=True`) mit Portionsauswahl erfassen und warme Frühstücksgerichte als Rezept (mit Faktor) hinzufügbar machen. Der Portionsauswahl-Dialog (definiert in Capability `standalone-ingredient`) wird dabei wiederverwendet.
+
+#### Scenario: Gemüse als Standalone-Zutat hinzufügen
+- **WHEN** der Nutzer im Extras-Schritt "Tomate" wählt
+- **THEN** öffnet sich der Portionsauswahl-Dialog mit den verfügbaren Portionen der Tomate
+- **AND** die gewählte Portion wird als ingredient-MealItem in die Zusammenstellung aufgenommen
 
 #### Scenario: Warmes Gericht als Rezept hinzufügen
 - **WHEN** der Nutzer im Extras-Schritt ein warmes Frühstücksrezept (z.B. Rührei) wählt
@@ -96,12 +101,16 @@ Das System SHALL Getränke über Anteile (Kaffee/Kakao/Tee) und Mengen pro Perso
 - **WHEN** Kakao 200ml Milch und Müsli 150ml Milch pro Person benötigen
 - **THEN** weist das System 350ml Milch als einen Eintrag aus
 
-### Requirement: Soll-Energie über Norm-Person
-Das System SHALL das Energie-Soll je Frühstück als `NORM_PERSON_DAILY_KCAL (2335) × day_part_factor` berechnen und Ist gegen Soll als Ampel darstellen.
+### Requirement: Soll-Energie über Norm-Person-Konstante
+Das System SHALL das Energie-Soll je Frühstück als `NORM_PERSON_DAILY_KCAL × day_part_factor` berechnen und Ist gegen Soll als Ampel darstellen. Der Wert 2335 (Norm-Person, PAL 1.75) MUSS als benannte Konstante `NORM_PERSON_DAILY_KCAL` zentral definiert und überall referenziert werden, statt als Magic Number mehrfach kodiert zu sein.
 
 #### Scenario: Soll basiert auf Norm-Person und day_part_factor
 - **WHEN** `day_part_factor = 0.25` gilt
-- **THEN** beträgt das Frühstücks-Soll ca. 584 kcal (2335 × 0.25)
+- **THEN** beträgt das Frühstücks-Soll ca. 584 kcal (NORM_PERSON_DAILY_KCAL × 0.25)
+
+#### Scenario: Energie-Ist enthält Zutaten-Items
+- **WHEN** das Frühstück aus Zutaten-Items (Basis, Belag, Gemüse, Getränke) besteht
+- **THEN** fließen alle Zutaten-Items in das Energie-Ist ein (nicht nur Rezept-Items)
 
 ### Requirement: Normalisieren skaliert Basis, Belag und Getränke
 Das System SHALL beim Normalisieren auf das Soll Basis-BE, Belag-Portionen und Getränke mit dem Faktor `Soll/Ist` multiplizieren. Gemüse/Extras und warme Rezepte MÜSSEN dabei unverändert bleiben. Die Belag-Deckung MUSS erhalten bleiben.

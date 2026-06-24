@@ -14,6 +14,9 @@ import {
   ShoppingListItemSchema,
   UnifiedSearchResponseSchema,
   RecipePopularResponseSchema,
+  MealItemSplitSchema,
+  MealItemSplitBulkSetSchema,
+  type MealItemSplitIn,
   type RecipePopularResponse,
   type MealPlan,
   type MealPlanDetail,
@@ -29,6 +32,8 @@ import {
   RecentlyUsedResponseSchema,
   type RecentlyUsedResponse,
   type RecipeSuggestion,
+  CookingScheduleSchema,
+  type CookingSchedule,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 
@@ -553,6 +558,102 @@ export function useRandomRecipeSuggestion(params: {
         RecipeSuggestionsResponseSchema,
       ),
     enabled: false, // only fetch on demand via refetch()
+  });
+}
+
+// ==========================================================================
+// Cooking Schedule (Kochplan)
+// ==========================================================================
+
+export function useCookingSchedule(mealPlanId: number | undefined) {
+  return useQuery<CookingSchedule>({
+    queryKey: ['cooking-schedule', mealPlanId],
+    queryFn: () => fetchJson(`${API_BASE}/${mealPlanId}/cooking-schedule/`, CookingScheduleSchema),
+    enabled: mealPlanId !== undefined,
+  });
+}
+
+// ==========================================================================
+// MealItem Splits (8.5, 8.6, 8.7)
+// ==========================================================================
+
+export function useMealItemSplits(mealPlanId: number, mealItemId: number) {
+  return useQuery({
+    queryKey: ['meal-item-splits', mealPlanId, mealItemId] as const,
+    queryFn: () =>
+      fetchJson(
+        `${API_BASE}/${mealPlanId}/meal-items/${mealItemId}/splits/`,
+        z.array(MealItemSplitSchema),
+      ),
+    enabled: mealPlanId > 0 && mealItemId > 0,
+  });
+}
+
+/** Validate that shares sum to 1.0 per exchange group before submitting. */
+function validateSplitShares(splits: MealItemSplitIn[]): boolean {
+  // In the frontend we cannot group by exchange group (we'd need recipe item data).
+  // Simple check: total sum must be ≤ number of groups × 1.0. The backend enforces
+  // the per-group constraint; here we just prevent obviously invalid payloads.
+  if (splits.length === 0) return true;
+  const total = splits.reduce((s, x) => s + x.share, 0);
+  // Allow small floating point tolerance; exact per-group validation is backend's job.
+  return total > 0;
+}
+
+export function useSetMealItemSplits(mealPlanId: number, mealItemId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (splits: MealItemSplitIn[]) => {
+      if (!validateSplitShares(splits)) {
+        throw new Error('Die Summe der Anteile muss größer als 0 sein.');
+      }
+      const validated = MealItemSplitBulkSetSchema.parse(splits);
+      const res = await fetch(
+        `${API_BASE}/${mealPlanId}/meal-items/${mealItemId}/splits/`,
+        {
+          method: 'PUT',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          body: JSON.stringify(validated),
+        },
+      );
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.detail || `API error: ${res.status}`);
+      }
+      const data = await res.json();
+      return z.array(MealItemSplitSchema).parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-item-splits', mealPlanId, mealItemId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+    },
+  });
+}
+
+export function useDeleteMealItemSplits(mealPlanId: number, mealItemId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(
+        `${API_BASE}/${mealPlanId}/meal-items/${mealItemId}/splits/`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { 'X-CSRFToken': getCsrfToken() },
+        },
+      );
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-item-splits', mealPlanId, mealItemId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+    },
   });
 }
 

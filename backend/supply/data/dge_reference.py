@@ -9,6 +9,10 @@ Energy values can be scaled with the PAL factor.
 
 from __future__ import annotations
 
+# Standard norm for a typical person's daily caloric requirement (kcal)
+# Used as baseline for meal plan energy calculations
+NORM_PERSON_DAILY_KCAL = 2335
+
 
 # Age group key: (min_age, max_age) inclusive
 # Values: {parameter: value}

@@ -25,6 +25,9 @@ class RecipeItemOut(Schema):
     ingredient_retail_section_id: int | None = None
     ingredient_retail_section_name: str | None = None
     weight_g: float
+    is_optional: bool = False
+    exchange_group_id: int | None = None
+    exchange_position: int | None = None
 
     @staticmethod
     def resolve_portion_name(obj) -> str | None:
@@ -147,6 +150,44 @@ class RecipeItemUpdateIn(Schema):
     quantity: float | None = None
     sort_order: int | None = None
     note: str | None = None
+    is_optional: bool | None = None
+    exchange_group_id: int | None = None
+    exchange_position: int | None = None
+
+
+class RecipeItemExchangeGroupCreateIn(Schema):
+    name: str = ""
+
+
+class ExchangeGroupMemberOut(Schema):
+    """A member RecipeItem of an exchange group (lightweight)."""
+
+    recipe_item_id: int
+    exchange_position: int | None = None
+    portion_id: int
+    ingredient_name: str = ""
+    quantity: float
+
+    @staticmethod
+    def resolve_recipe_item_id(obj) -> int:
+        return obj.id
+
+    @staticmethod
+    def resolve_ingredient_name(obj) -> str:
+        if obj.portion and obj.portion.ingredient:
+            return obj.portion.ingredient.name
+        return ""
+
+
+class RecipeItemExchangeGroupOut(Schema):
+    id: int
+    recipe_id: int
+    name: str = ""
+    members: list[ExchangeGroupMemberOut] = []
+
+    @staticmethod
+    def resolve_members(obj) -> list:
+        return list(obj.items.select_related("portion__ingredient").order_by("exchange_position"))
 
 
 # ---------------------------------------------------------------------------

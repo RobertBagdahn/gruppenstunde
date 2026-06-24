@@ -13,6 +13,7 @@ import {
   DollarSign,
   Lightbulb,
   ShieldAlert,
+  ChefHat,
 } from 'lucide-react';
 import {
   useMealPlan,
@@ -41,6 +42,8 @@ import ShoppingView from './ShoppingView';
 import { DayPlanView } from './DayPlanView';
 import { CopyFromPlanDialog } from './CopyFromPlanDialog';
 import AllergenScanView from './AllergenScanView';
+import SplitConfigDialog from '@/components/meal/SplitConfigDialog';
+import { useRecipeItems } from '@/api/recipes';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -87,6 +90,18 @@ export default function MealPlanDetailPage() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'allergens'>('plan');
+
+  // Split config dialog state (tasks 11.1–11.7)
+  const [splitDialog, setSplitDialog] = useState<{
+    open: boolean;
+    mealItemId: number;
+    recipeId: number;
+    effectivePortions: number;
+  }>({ open: false, mealItemId: 0, recipeId: 0, effectivePortions: 0 });
+
+  const { data: splitDialogRecipeItems } = useRecipeItems(
+    splitDialog.open ? splitDialog.recipeId : 0,
+  );
 
   // Delete confirmations
   const [deleteDayDate, setDeleteDayDate] = useState<string | null>(null);
@@ -199,11 +214,27 @@ export default function MealPlanDetailPage() {
   };
 
   const handleAddRecipe = (mealId: number, recipeId: number) => {
+    // Find effective portions for this meal
+    const meal = plan?.meals?.find((m) => m.id === mealId);
+    const effectivePortions =
+      meal?.override_portions ?? plan?.norm_portions ?? 10;
+
     addMealItemMutation.mutate(
       { mealId, recipe_id: recipeId },
       {
-        onSuccess: () => {
+        onSuccess: (newItem) => {
           toast.success('Rezept hinzugefügt');
+          // Task 11.1: check if recipe has exchanges/optionals — open split dialog if so.
+          // We fetch recipe items in the background and open the dialog when ready.
+          // The dialog will close itself if no exchange/optional items exist (task 11.7).
+          if (newItem && typeof newItem === 'object' && 'id' in newItem) {
+            setSplitDialog({
+              open: true,
+              mealItemId: (newItem as { id: number }).id,
+              recipeId,
+              effectivePortions,
+            });
+          }
         },
         onError: (err) => toast.error('Fehler', { description: err.message }),
       },
@@ -276,6 +307,14 @@ export default function MealPlanDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 self-start">
+          <a
+            href={`/meal-plans/${mealPlanId}/cooking-schedule`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            title="Chronologischer Kochplan"
+          >
+            <ChefHat className="w-4 h-4 text-primary" />
+            Kochplan
+          </a>
           <a
             href={`/meal-plans/${mealPlanId}/print`}
             target="_blank"
@@ -460,6 +499,16 @@ export default function MealPlanDetailPage() {
         }}
         targetMealId={copyDialogTargetMealId ?? 0}
         targetPlanId={mealPlanId}
+      />
+
+      {/* Split Config Dialog (tasks 11.2–11.7) */}
+      <SplitConfigDialog
+        mealPlanId={mealPlanId}
+        mealItemId={splitDialog.mealItemId}
+        recipeItems={splitDialogRecipeItems ?? []}
+        effectivePortions={splitDialog.effectivePortions}
+        open={splitDialog.open}
+        onClose={() => setSplitDialog((prev) => ({ ...prev, open: false }))}
       />
     </div>
   );

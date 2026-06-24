@@ -23,6 +23,8 @@ import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
 import MealPlanListPage from './pages/planning/MealEventListPage';
 import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
 import MealPlanPrintPage from './pages/planning/MealPlanPrintPage';
+import CookingSchedulePage from './pages/planning/CookingSchedulePage';
+import CookingSchedulePrintPage from './pages/planning/CookingSchedulePrintPage';
 import RefMealEditorPage from './pages/planning/RefMealEditorPage';
 
 // Print pages (no layout)
@@ -68,6 +70,7 @@ export default function App() {
       {/* Print routes (no layout — standalone druckoptimierte Ansichten) */}
       <Route path="/recipes/:slug/print" element={<RecipePrintPage />} />
       <Route path="/meal-plans/:id/print" element={<MealPlanPrintPage />} />
+      <Route path="/meal-plans/:id/cooking-schedule/print" element={<CookingSchedulePrintPage />} />
 
       {/* Main layout routes */}
       <Route element={<FoodLayout />}>
@@ -92,6 +95,7 @@ export default function App() {
         <Route path="/meal-plans" element={<MealPlanLandingPage />} />
         <Route path="/meal-plans/app" element={<MealPlanListPage />} />
         <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
+        <Route path="/meal-plans/:id/cooking-schedule" element={<CookingSchedulePage />} />
         <Route path="/meal-plans/:id/ref-meals/:mealType" element={<RefMealEditorPage />} />
         <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />
 
