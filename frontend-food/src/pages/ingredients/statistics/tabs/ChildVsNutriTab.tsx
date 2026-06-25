@@ -1,11 +1,24 @@
+import { useSearchParams } from 'react-router-dom';
+import { useIngredientScatter } from '@/api/supplies';
+import ScatterExplorer from '../components/ScatterExplorer';
+import TabFilters from '../components/TabFilters';
+
 export default function ChildVsNutriTab() {
+  const [searchParams] = useSearchParams();
+  const retailSectionId = searchParams.get('retail_section') ? Number(searchParams.get('retail_section')) : null;
+  const { data, isLoading } = useIngredientScatter('child_score', 'nutri_score', { retailSectionId });
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <span className="material-symbols-outlined text-5xl text-muted-foreground/30 mb-4">analytics</span>
-      <h3 className="text-lg font-semibold text-muted-foreground">Demnächst verfügbar</h3>
-      <p className="text-sm text-muted-foreground/60 mt-1 max-w-md">
-        Diese Statistik wird in Kürze freigeschaltet.
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Wie hängt der Child-Score mit dem Nutri-Score zusammen? Sind kindgerechte Zutaten automatisch ungesund?
       </p>
+      <TabFilters showRetailSection />
+      {isLoading ? (
+        <div className="h-96 bg-muted/40 animate-pulse rounded-xl" />
+      ) : data ? (
+        <ScatterExplorer data={data} xLabel="Child-Score" yLabel="Nutri-Score" xUnit="pts" yUnit="pts" />
+      ) : null}
     </div>
   );
 }

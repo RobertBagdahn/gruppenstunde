@@ -17,40 +17,66 @@ def calculate_portion_weight_g(sender, instance: Portion, **kwargs):
     instance.weight_g = instance.compute_weight_g(instance.weight_g)
 
 
+def _create_system_portions(ingredient: Ingredient):
+    """Erstelle die drei System-Portionen (g, Packung, Stück) für eine Zutat."""
+    from .models.reference import MeasuringUnit
+
+    weight_g = 1.0
+    if ingredient.physical_viscosity == PhysicalViscosityChoices.BEVERAGE:
+        weight_g = ingredient.physical_density or 1.0
+
+    # Base unit (Gramm)
+    mu = MeasuringUnit.objects.filter(unit=MeasuringUnitType.MASS, quantity=1).first()
+    if not mu:
+        mu = MeasuringUnit.objects.create(name="g", quantity=1, unit=MeasuringUnitType.MASS)
+    Portion.objects.get_or_create(
+        ingredient=ingredient,
+        name="g",
+        defaults={
+            "measuring_unit": mu,
+            "quantity": 1,
+            "weight_g": weight_g,
+            "is_default": True,
+            "is_system": True,
+        },
+    )
+
+    # Packung
+    mu_packung = MeasuringUnit.objects.filter(name__iexact="Packung").first()
+    if not mu_packung:
+        mu_packung = MeasuringUnit.objects.create(name="Packung", quantity=1, unit=MeasuringUnitType.MASS)
+    Portion.objects.get_or_create(
+        ingredient=ingredient,
+        name="Packung",
+        defaults={
+            "measuring_unit": mu_packung,
+            "quantity": 1,
+            "is_system": True,
+        },
+    )
+
+    # Stück
+    mu_stueck = MeasuringUnit.objects.filter(name__iexact="Stück").first()
+    if not mu_stueck:
+        mu_stueck = MeasuringUnit.objects.create(name="Stück", quantity=1, unit=MeasuringUnitType.MASS)
+    Portion.objects.get_or_create(
+        ingredient=ingredient,
+        name="Stück",
+        defaults={
+            "measuring_unit": mu_stueck,
+            "quantity": 1,
+            "is_system": True,
+        },
+    )
+
+
 @receiver(post_save, sender=Ingredient, dispatch_uid="supply.create_base_portion_for_ingredient")
 def create_base_portion_for_ingredient(sender, instance: Ingredient, created: bool, **kwargs):
-    """Ensure every Ingredient has a default base portion (1g or 1ml)."""
+    """Ensure every Ingredient has system portions (g/ml, Packung, Stück)."""
     if not created:
         return
 
-    from .models.reference import MeasuringUnit
-
-    if instance.physical_viscosity == PhysicalViscosityChoices.BEVERAGE:
-        unit_type = MeasuringUnitType.VOLUME
-        name = "ml"
-        weight_g = instance.physical_density or 1.0
-    else:
-        unit_type = MeasuringUnitType.MASS
-        name = "g"
-        weight_g = 1.0
-
-    # Get or create the base measuring unit (1g or 1ml)
-    mu = MeasuringUnit.objects.filter(unit=unit_type, quantity=1).first()
-    if not mu:
-        mu = MeasuringUnit.objects.create(
-            name=name,
-            quantity=1,
-            unit=unit_type,
-        )
-
-    Portion.objects.create(
-        name=name,
-        measuring_unit=mu,
-        ingredient=instance,
-        quantity=1,
-        weight_g=weight_g,
-        is_default=True,
-    )
+    _create_system_portions(instance)
 
 
 # ---------------------------------------------------------------------------

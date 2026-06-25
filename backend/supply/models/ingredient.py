@@ -327,6 +327,11 @@ class Portion(models.Model):
     rank = models.IntegerField(default=1)
     priority = models.IntegerField(default=0, verbose_name=_("Priorität"))
     is_default = models.BooleanField(default=False, verbose_name=_("Standard-Portion"))
+    is_system = models.BooleanField(
+        default=False,
+        verbose_name=_("System-Portion"),
+        help_text=_("Von der App erstellte Standardportionen (g, Packung, Stück) – nicht löschbar"),
+    )
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -391,6 +396,10 @@ class Portion(models.Model):
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
+
+    @classmethod
+    def system_portion_names(cls) -> set[str]:
+        return {"g", "Packung", "Stück"}
 
     def __str__(self):
         unit = self.measuring_unit.name if self.measuring_unit else ""

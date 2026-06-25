@@ -1543,12 +1543,62 @@ def search_recipes(
     """Search for recipes and standalone ingredients to add to meals.
 
     recipe_types: kommaseparierte Liste von recipe_type Werten, z.B. 'warm_meal,cold_meal'.
+                  'ingredient' als einziger Wert gibt nur eigenständig konsumierbare Zutaten zurück.
                   Überschreibt das automatische meal_type-Mapping.
     """
     _require_auth(request)
 
     limit = min(limit, 50)
     fallback_applied = False
+
+    # Parse recipe_types early
+    parsed_types: list[str] = []
+    if recipe_types:
+        parsed_types = [t.strip() for t in recipe_types.split(",") if t.strip()]
+
+    # 'ingredient' mode: only standalone ingredients, no recipes
+    if parsed_types == ["ingredient"]:
+        recipes_data: list[dict] = []
+        from supply.models import Ingredient, Portion
+
+        ing_qs = Ingredient.objects.filter(is_standalone_food=True)
+
+        if q and len(q) >= 2:
+            ing_qs = ing_qs.filter(name__icontains=q)
+
+        if nutritional_tag_ids:
+            tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
+            for tag_id in tag_ids:
+                ing_qs = ing_qs.filter(nutritional_tags__id=tag_id)
+
+        if exclude_nutritional_tag_ids:
+            exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
+            if exclude_tag_ids:
+                ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
+
+        ing_list = list(ing_qs.values("id", "name", "slug")[:limit])
+
+        if ing_list:
+            ing_ids = [i["id"] for i in ing_list]
+            portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
+                "measuring_unit"
+            )
+            portions_by_ing: dict[int, list[dict]] = {}
+            for p in portions:
+                portions_by_ing.setdefault(p.ingredient_id, []).append(
+                    {
+                        "id": p.id,
+                        "name": p.name,
+                        "measuring_unit": p.measuring_unit.name if p.measuring_unit else None,
+                        "measuring_unit_id": p.measuring_unit_id,
+                        "quantity": float(p.quantity) if p.quantity else None,
+                        "weight_g": float(p.weight_g) if p.weight_g else None,
+                    }
+                )
+            for ing in ing_list:
+                ing["portions"] = portions_by_ing.get(ing["id"], [])
+
+        return {"recipes": recipes_data, "ingredients": ing_list, "fallback_applied": False}
 
     # --- Recipes ---
     qs = Recipe.objects.filter(Q(status="approved") | Q(owner=request.user))

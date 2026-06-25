@@ -12,6 +12,7 @@ import {
   Sparkles,
   TrendingUp,
   Calendar,
+  BarChart3,
 } from 'lucide-react';
 
 const MODULES = [
@@ -55,6 +56,14 @@ const MODULES = [
     href: '/tools/norm-portion-simulator',
     color: 'violet',
   },
+  {
+    key: 'statistics',
+    label: 'Zutaten-Statistiken',
+    icon: BarChart3,
+    description: 'Entdecke Verteilungen, Extreme und Zusammenhänge in der Zutatendatenbank – Rankings, Scores und mehr.',
+    href: '/ingredients/statistics',
+    color: 'amber',
+  },
 ] as const;
 
 const COLOR_MAP: Record<string, { bg: string; text: string; ring: string }> = {
@@ -72,7 +81,7 @@ function StatCard({
   href,
 }: {
   label: string;
-  value: number | undefined;
+  value?: number;
   icon: React.ComponentType<{ className?: string }>;
   href: string;
 }) {
@@ -149,11 +158,12 @@ export default function HomePage() {
 
       {/* Stat Cards */}
       <section className="relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           <StatCard label="Rezepte" value={data?.recipe_count} icon={BookOpen} href="/recipes" />
           <StatCard label="Zutaten" value={data?.ingredient_count} icon={Egg} href="/ingredients" />
           <StatCard label="Essenspläne" value={data?.meal_plan_count} icon={Utensils} href="/meal-plans/app" />
           <StatCard label="Einkaufslisten" value={data?.shopping_list_count} icon={ShoppingCart} href="/shopping-lists" />
+          <StatCard label="Statistiken" icon={BarChart3} href="/ingredients/statistics" />
         </div>
       </section>
 

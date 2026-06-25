@@ -168,6 +168,13 @@ class PortionPlausibilityOut(Schema):
     issue: str
 
 
+class MissingSystemPortionOut(Schema):
+    id: int
+    name: str
+    slug: str
+    missing_portions: list[str]
+
+
 # ---------------------------------------------------------------------------
 # Trend
 # ---------------------------------------------------------------------------

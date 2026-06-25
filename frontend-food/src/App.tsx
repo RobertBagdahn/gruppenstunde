@@ -17,6 +17,7 @@ import IngredientListPage from './pages/ingredients/IngredientListPage';
 import CreateIngredientPage from './pages/ingredients/CreateIngredientPage';
 import IngredientEditPage from './pages/ingredients/IngredientEditPage';
 import IngredientDetailPage from './pages/ingredients/IngredientDetailPage';
+import IngredientStatisticsPage from './pages/ingredients/statistics/IngredientStatisticsPage';
 
 // Meal plan pages
 import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="/ingredients/new" element={<CreateIngredientPage />} />
         <Route path="/ingredients/:slug/edit" element={<IngredientEditPage />} />
         <Route path="/ingredients/:slug" element={<IngredientDetailPage />} />
+        <Route path="/ingredients/statistics/:tab?" element={<IngredientStatisticsPage />} />
 
         {/* Meal Plans */}
         <Route path="/meal-plans" element={<MealPlanLandingPage />} />

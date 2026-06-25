@@ -144,6 +144,7 @@ export const PortionSchema = z.object({
   rank: z.number(),
   priority: z.number(),
   is_default: z.boolean(),
+  is_system: z.boolean().default(false),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string().nullable(),
 });
@@ -485,7 +486,7 @@ export const AvailableConversionBatchSchema = z.object({
 export type AvailableConversionBatch = z.infer<typeof AvailableConversionBatchSchema>;
 
 // ==========================================================================
-// Statistics stub types (for Ingredient Statistics tabs)
+// Statistics types (for Ingredient Statistics tabs)
 // ==========================================================================
 
 export const RankingItemSchema = z.object({
@@ -497,6 +498,13 @@ export const RankingItemSchema = z.object({
   retail_section_name: z.string().nullable(),
 });
 export type RankingItem = z.infer<typeof RankingItemSchema>;
+
+export const RankingsOutSchema = z.object({
+  top: z.array(RankingItemSchema),
+  bottom: z.array(RankingItemSchema),
+  count: z.number(),
+});
+export type RankingsOut = z.infer<typeof RankingsOutSchema>;
 
 export const DistributionBucketSchema = z.object({
   min: z.number(),
@@ -522,29 +530,119 @@ export const DistributionOutSchema = z.object({
 });
 export type DistributionOut = z.infer<typeof DistributionOutSchema>;
 
+export const ScatterPointSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  x: z.number(),
+  y: z.number(),
+  nutri_class: z.number().nullable(),
+  retail_section_name: z.string().nullable(),
+});
+export type ScatterPoint = z.infer<typeof ScatterPointSchema>;
+
 export const ScatterOutSchema = z.object({
-  points: z.array(z.object({
-    id: z.number(),
-    name: z.string(),
-    slug: z.string(),
-    x: z.number(),
-    y: z.number(),
-    nutri_class: z.number().nullable(),
-    retail_section_name: z.string().nullable(),
-  })),
+  points: z.array(ScatterPointSchema),
+  pearson_r: z.number().nullable(),
+  count: z.number(),
 });
 export type ScatterOut = z.infer<typeof ScatterOutSchema>;
 
+export const OutlierItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  value: z.number(),
+  severity: z.enum(['moderate', 'extreme']),
+  deviation: z.number(),
+});
+export type OutlierItem = z.infer<typeof OutlierItemSchema>;
+
+export const FieldOutliersSchema = z.object({
+  field: z.string(),
+  field_label: z.string(),
+  unit: z.string(),
+  count: z.number(),
+  items: z.array(OutlierItemSchema),
+});
+export type FieldOutliers = z.infer<typeof FieldOutliersSchema>;
+
 export const OutliersOutSchema = z.object({
-  fields: z.record(z.string(), z.array(z.object({
-    id: z.number(),
-    name: z.string(),
-    slug: z.string(),
-    value: z.number(),
-    severity: z.enum(['moderate', 'extreme']),
-  }))),
+  fields: z.array(FieldOutliersSchema),
+  summary: z.string(),
 });
 export type OutliersOut = z.infer<typeof OutliersOutSchema>;
+
+export const TagListItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  energy_kcal: z.number().nullable(),
+  protein_g: z.number().nullable(),
+  fat_g: z.number().nullable(),
+  carbohydrate_g: z.number().nullable(),
+  sugar_g: z.number().nullable(),
+  fibre_g: z.number().nullable(),
+  salt_g: z.number().nullable(),
+  price_per_kg: z.string().nullable(),
+  nutri_class: z.number().nullable(),
+  retail_section_name: z.string().nullable(),
+  lactose_g: z.number().nullable(),
+});
+export type TagListItem = z.infer<typeof TagListItemSchema>;
+
+export const TagListOutSchema = z.object({
+  items: z.array(TagListItemSchema),
+  total_count: z.number(),
+  total_overall: z.number(),
+  tag_name: z.string(),
+});
+export type TagListOut = z.infer<typeof TagListOutSchema>;
+
+export const ScoreClassItemSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  value: z.number().nullable(),
+  nutri_class: z.number().nullable(),
+});
+export type ScoreClassItem = z.infer<typeof ScoreClassItemSchema>;
+
+export const ScoreClassDataSchema = z.object({
+  class_value: z.number(),
+  class_label: z.string(),
+  count: z.number(),
+  percentage: z.number(),
+  top: z.array(ScoreClassItemSchema),
+  bottom: z.array(ScoreClassItemSchema),
+});
+export type ScoreClassData = z.infer<typeof ScoreClassDataSchema>;
+
+export const ScoresOutSchema = z.object({
+  classes: z.array(ScoreClassDataSchema),
+  total_count: z.number(),
+});
+export type ScoresOut = z.infer<typeof ScoresOutSchema>;
+
+export const ComparisonGroupSchema = z.object({
+  label: z.string(),
+  count: z.number(),
+  mean: z.number().nullable(),
+  median: z.number().nullable(),
+  p5: z.number().nullable(),
+  p95: z.number().nullable(),
+  buckets: z.array(DistributionBucketSchema),
+});
+
+export const ComparisonOutSchema = z.object({
+  group: ComparisonGroupSchema,
+  rest: ComparisonGroupSchema,
+  mean_difference_pct: z.number().nullable(),
+  metric: z.string(),
+  metric_unit: z.string(),
+  group_label: z.string(),
+});
+export type ComparisonOut = z.infer<typeof ComparisonOutSchema>;
 
 // ==========================================================================
 // Ingredient URL Import — sync with backend IngredientImportUrlIn/Out

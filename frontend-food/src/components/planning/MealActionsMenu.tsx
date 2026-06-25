@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   MoreVertical,
   Edit,
@@ -9,6 +10,7 @@ import {
   FileText,
   ClipboardCopy,
   Clock,
+  ChefHat,
   AlertTriangle,
 } from 'lucide-react';
 import {
@@ -35,6 +37,7 @@ import type { Meal } from '@/schemas/mealPlan';
 interface MealActionsMenuProps {
   meal: Meal;
   canEdit: boolean;
+  planId: number;
   onDeleteMeal: (id: number) => void;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
@@ -70,6 +73,7 @@ function withTime(datetimeStr: string | null, time: string): string | null {
 export function MealActionsMenu({
   meal,
   canEdit,
+  planId,
   onDeleteMeal,
   onUpdateMeal,
   onScaleMeal,
@@ -78,6 +82,7 @@ export function MealActionsMenu({
   onCopyFromPlan,
   siblingMeals = [],
 }: MealActionsMenuProps) {
+  const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
   const [showTimeEdit, setShowTimeEdit] = useState(false);
   const [startTime, setStartTime] = useState('');
@@ -197,6 +202,12 @@ export function MealActionsMenu({
             <DropdownMenuItem onClick={onCopyFromPlan}>
               <ClipboardCopy className="mr-2 h-4 w-4 text-primary" />
               <span>Aus anderem Plan kopieren</span>
+            </DropdownMenuItem>
+          )}
+          {meal.meal_type === 'breakfast' && (
+            <DropdownMenuItem onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}>
+              <ChefHat className="mr-2 h-4 w-4 text-primary" />
+              <span>Frühstücksassistent</span>
             </DropdownMenuItem>
           )}
           {canEdit && !meal.is_synced && !meal.is_external && meal.items.length > 0 && (

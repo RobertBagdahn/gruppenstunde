@@ -73,8 +73,18 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     scout_score = (scout_filled / len(scout_fields)) * 100 if scout_fields else 0
     scores.append(("scout", 0.10, scout_score))
 
-    # Portions (5%)
-    portion_score = 100.0 if ingredient.portions.exists() else 0.0
+    # Portions (5%) – prüft ob alle System-Portionen (g/ml, Packung, Stück) existieren
+    from supply.models import Portion
+
+    existing = set(
+        ingredient.portions.filter(deleted_at__isnull=True, name__in=Portion.system_portion_names() | {"ml"})
+        .values_list("name", flat=True)
+    )
+    has_base = "g" in existing or "ml" in existing
+    has_packung = "Packung" in existing
+    has_stueck = "Stück" in existing
+    present = sum([has_base, has_packung, has_stueck])
+    portion_score = (present / 3) * 100
     scores.append(("portions", 0.05, portion_score))
 
     total = sum(weight * score for _, weight, score in scores)

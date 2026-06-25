@@ -25,6 +25,7 @@ from content.schemas.data_quality import (
     MergePreviewOut,
     MergeRequestIn,
     MissingClassificationOut,
+    MissingSystemPortionOut,
     NutrientDistributionOut,
     NutrientScatterItemOut,
     NutriScoreClassOut,
@@ -613,6 +614,42 @@ def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
                     slug=recipe.slug,
                     cached_weight_g=recipe.cached_weight_g,
                     issue=f"Sehr viel Gewicht pro Portion: {recipe.cached_weight_g:.0f}g",
+                )
+            )
+
+    total = len(items)
+    total_pages = max(1, math.ceil(total / page_size))
+    start = (page - 1) * page_size
+    page_items = items[start : start + page_size]
+    return {"items": page_items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+
+
+@admin_router.get("/ingredients/missing-system-portions/")
+def missing_system_portions(request, page: int = 1, page_size: int = 20):
+    """Ingredients die eine oder mehrere System-Portionen (g/ml, Packung, Stück) vermissen."""
+    _require_staff(request)
+    from supply.models import Portion
+
+    system_names = Portion.system_portion_names()
+    qs = Ingredient.objects.all().prefetch_related("portions")
+
+    items: list = []
+    for ing in qs:
+        existing = set(p.name for p in ing.portions.filter(deleted_at__isnull=True))
+        # g oder ml als Basis-System-Portion akzeptieren
+        has_base = "g" in existing or "ml" in existing
+        missing = [name for name in sorted(system_names) if name not in existing]
+        if not has_base:
+            missing = ["g/ml"] + missing
+        elif "g" not in existing:
+            missing = [m for m in missing if m != "g"]
+        if missing:
+            items.append(
+                MissingSystemPortionOut(
+                    id=ing.id,
+                    name=ing.name,
+                    slug=ing.slug,
+                    missing_portions=missing,
                 )
             )
 

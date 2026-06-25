@@ -132,13 +132,22 @@ export default function IngredientListPage() {
         <div className="flex-1">
           {/* Sort */}
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => navigate('/ingredients/new')}
-              className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all shadow-soft"
-            >
-              <span className="material-symbols-outlined text-[16px]">add_circle</span>
-              Neue Zutat
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/ingredients/statistics')}
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-foreground text-sm font-medium hover:bg-muted transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]">analytics</span>
+                Statistiken
+              </button>
+              <button
+                onClick={() => navigate('/ingredients/new')}
+                className="sm:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all shadow-soft"
+              >
+                <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                Neue Zutat
+              </button>
+            </div>
             <div className="flex items-center gap-2 ml-auto">
               <span className="material-symbols-outlined text-muted-foreground text-[18px]">sort</span>
               <select

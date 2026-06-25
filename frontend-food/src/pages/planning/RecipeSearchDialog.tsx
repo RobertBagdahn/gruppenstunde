@@ -1,6 +1,6 @@
 import { useState, useDeferredValue, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf } from 'lucide-react';
+import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple } from 'lucide-react';
 import { useNutritionalTags } from '@/api/supplies';
 import {
   Dialog,
@@ -145,6 +145,8 @@ export default function RecipeSearchDialog({
     onOpenChange(false);
   };
 
+  const isIngredientMode = selectedTypes.has('ingredient');
+
   const recipes = results?.recipes ?? [];
   const ingredients = results?.ingredients ?? [];
   const fallbackApplied = results?.fallback_applied ?? false;
@@ -162,8 +164,11 @@ export default function RecipeSearchDialog({
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-display">
-              <Search className="w-5 h-5 text-primary" />
-              Rezept für {mealTypeLabel} wählen
+              {isIngredientMode ? (
+                <><Apple className="w-5 h-5 text-primary" /> Zutat hinzufügen</>
+              ) : (
+                <><Search className="w-5 h-5 text-primary" /> Rezept für {mealTypeLabel} wählen</>
+              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -175,18 +180,20 @@ export default function RecipeSearchDialog({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rezept oder Zutat suchen..."
+                placeholder={isIngredientMode ? 'Zutat suchen...' : 'Rezept oder Zutat suchen...'}
                 autoFocus
                 className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
-            <Link
-              to="/recipes/new"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Neues Rezept
-            </Link>
+            {!isIngredientMode && (
+              <Link
+                to="/recipes/new"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Neues Rezept
+              </Link>
+            )}
           </div>
 
           {/* Filter-Zeile */}
@@ -266,8 +273,10 @@ export default function RecipeSearchDialog({
             </label>
           )}
 
-          {/* Kürzlich verwendet */}
-          <RecentlyUsedSection onSelect={(recipeId) => { onSelect(recipeId); onOpenChange(false); }} />
+          {/* Kürzlich verwendet (nur im Rezept-Modus) */}
+          {!isIngredientMode && (
+            <RecentlyUsedSection onSelect={(recipeId) => { onSelect(recipeId); onOpenChange(false); }} />
+          )}
 
           {/* Fallback-Hinweis */}
           {fallbackApplied && (
@@ -278,7 +287,7 @@ export default function RecipeSearchDialog({
 
           {/* Ergebnisliste */}
           <div className="flex-1 overflow-y-auto rounded-lg border divide-y min-h-0">
-            {recipes.length > 0 && (
+            {!isIngredientMode && recipes.length > 0 && (
               <>
                 {ingredients.length > 0 && (
                   <div className="px-3 py-1.5 bg-muted/50 text-sm font-semibold text-muted-foreground">
@@ -306,7 +315,7 @@ export default function RecipeSearchDialog({
                      onClick={() => setIngredientDialog(ing)}
                      className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
                    >
-                     <Egg className="w-4 h-4 text-muted-foreground shrink-0" />
+                     <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
                      <span className="flex-1">{ing.name}</span>
                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
                        Zutat
@@ -316,18 +325,21 @@ export default function RecipeSearchDialog({
               </>
             )}
 
-            {recipes.length === 0 && ingredients.length === 0 && (
+            {((!isIngredientMode && recipes.length === 0 && ingredients.length === 0) ||
+             (isIngredientMode && ingredients.length === 0)) && (
               <div className="p-4 text-center space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Keine Ergebnisse gefunden
+                  Keine {isIngredientMode ? 'Zutaten' : 'Ergebnisse'} gefunden
                 </p>
-                <a
-                  href="/recipes/new"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  <Plus className="w-3 h-3" />
-                  Neues Rezept erstellen
-                </a>
+                {!isIngredientMode && (
+                  <a
+                    href="/recipes/new"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Neues Rezept erstellen
+                  </a>
+                )}
               </div>
             )}
           </div>

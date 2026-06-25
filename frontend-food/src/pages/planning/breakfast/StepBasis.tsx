@@ -15,7 +15,7 @@ interface StepBasisProps {
 
 export default function StepBasis({ wiz }: StepBasisProps) {
   const { state, setBePerPerson, setBasisShare, setBasisLocked, initBasis } = wiz;
-  const { data: catalog } = useBreakfastCatalog();
+  const { data: catalog, isPending, isError } = useBreakfastCatalog();
 
   // Initialise basis list from catalog on first load (if not yet set)
   useEffect(() => {
@@ -118,9 +118,19 @@ export default function StepBasis({ wiz }: StepBasisProps) {
         </div>
       )}
 
-      {state.basis.length === 0 && (
+      {isPending && (
         <p className="text-sm text-muted-foreground text-center py-8">
           Katalog wird geladen…
+        </p>
+      )}
+      {isError && (
+        <p className="text-sm text-destructive text-center py-8">
+          Fehler beim Laden des Katalogs
+        </p>
+      )}
+      {!isPending && !isError && catalog && catalog.base_ingredients.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          Keine Basis-Zutaten verfügbar
         </p>
       )}
     </div>

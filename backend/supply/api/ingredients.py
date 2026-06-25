@@ -322,11 +322,14 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
 @ingredient_router.delete("/{slug}/portions/{portion_id}/")
 def delete_portion(request, slug: str, portion_id: int):
-    """Soft-delete a portion."""
+    """Soft-delete a portion. System-portions (g, Packung, Stück) können nicht gelöscht werden."""
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
+
+    if portion.is_system:
+        raise HttpError(422, "System-Portionen (g, Packung, Stück) können nicht gelöscht werden.")
 
     portion.soft_delete()
     return {"success": True}

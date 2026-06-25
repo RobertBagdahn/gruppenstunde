@@ -1,11 +1,24 @@
+import { useSearchParams } from 'react-router-dom';
+import { useIngredientDistributions } from '@/api/supplies';
+import DistributionChart from '../components/DistributionChart';
+import TabFilters from '../components/TabFilters';
+
 export default function SugarDistributionTab() {
+  const [searchParams] = useSearchParams();
+  const retailSectionId = searchParams.get('retail_section') ? Number(searchParams.get('retail_section')) : null;
+  const { data, isLoading } = useIngredientDistributions('sugar_g', { retailSectionId });
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <span className="material-symbols-outlined text-5xl text-muted-foreground/30 mb-4">analytics</span>
-      <h3 className="text-lg font-semibold text-muted-foreground">Demnächst verfügbar</h3>
-      <p className="text-sm text-muted-foreground/60 mt-1 max-w-md">
-        Diese Statistik wird in Kürze freigeschaltet.
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Wie verteilt sich der Zuckergehalt über alle verifizierten Zutaten?
       </p>
+      <TabFilters showRetailSection />
+      {isLoading ? (
+        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+      ) : data ? (
+        <DistributionChart data={data} unit="g" label="Zucker" />
+      ) : null}
     </div>
   );
 }

@@ -1,11 +1,24 @@
+import { useSearchParams } from 'react-router-dom';
+import { useIngredientScatter } from '@/api/supplies';
+import ScatterExplorer from '../components/ScatterExplorer';
+import TabFilters from '../components/TabFilters';
+
 export default function ProteinVsEnergyTab() {
+  const [searchParams] = useSearchParams();
+  const retailSectionId = searchParams.get('retail_section') ? Number(searchParams.get('retail_section')) : null;
+  const { data, isLoading } = useIngredientScatter('protein_g', 'energy_kcal', { retailSectionId });
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <span className="material-symbols-outlined text-5xl text-muted-foreground/30 mb-4">analytics</span>
-      <h3 className="text-lg font-semibold text-muted-foreground">Demnächst verfügbar</h3>
-      <p className="text-sm text-muted-foreground/60 mt-1 max-w-md">
-        Diese Statistik wird in Kürze freigeschaltet.
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Korrelation zwischen Proteingehalt und Kalorien – liefern proteinreiche Zutaten mehr Energie?
       </p>
+      <TabFilters showRetailSection />
+      {isLoading ? (
+        <div className="h-96 bg-muted/40 animate-pulse rounded-xl" />
+      ) : data ? (
+        <ScatterExplorer data={data} xLabel="Protein" yLabel="Energie" xUnit="g" yUnit="kcal" />
+      ) : null}
     </div>
   );
 }

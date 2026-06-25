@@ -99,7 +99,7 @@ export default function MealPlanDetailPage() {
     effectivePortions: number;
   }>({ open: false, mealItemId: 0, recipeId: 0, effectivePortions: 0 });
 
-  const { data: splitDialogRecipeItems, isLoading: splitDialogItemsLoading } = useRecipeItems(
+  const { data: splitDialogRecipeItems, isLoading: splitDialogItemsLoading, isFetching: splitDialogItemsFetching } = useRecipeItems(
     splitDialog.open ? splitDialog.recipeId : 0,
   );
 
@@ -510,6 +510,7 @@ export default function MealPlanDetailPage() {
         open={splitDialog.open}
         onClose={() => setSplitDialog((prev) => ({ ...prev, open: false }))}
         isLoading={splitDialogItemsLoading}
+        isFetching={splitDialogItemsFetching}
       />
     </div>
   );

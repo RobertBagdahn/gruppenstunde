@@ -5,7 +5,7 @@
  * Shows only when the recipe has exchange groups or optional items.
  * Tasks 11.2–11.6.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import type { RecipeItem } from '@/schemas/recipe';
 import { useSetMealItemSplits } from '@/api/mealPlans';
@@ -18,6 +18,7 @@ interface SplitConfigDialogProps {
   open: boolean;
   onClose: () => void;
   isLoading?: boolean;
+  isFetching?: boolean;
 }
 
 interface GroupState {
@@ -54,75 +55,80 @@ export default function SplitConfigDialog({
   open,
   onClose,
   isLoading = false,
+  isFetching = false,
 }: SplitConfigDialogProps) {
   const setSplits = useSetMealItemSplits(mealPlanId, mealItemId);
 
-  // Build groups from recipe items
-  const buildGroups = (): GroupState[] => {
-    const groups: GroupState[] = [];
-    const exchangeMap = new Map<number, RecipeItem[]>();
-
-    for (const ri of recipeItems) {
-      if (ri.exchange_group_id != null) {
-        const existing = exchangeMap.get(ri.exchange_group_id) ?? [];
-        exchangeMap.set(ri.exchange_group_id, [...existing, ri]);
-      }
-    }
-
-    // Exchange groups
-    for (const [groupId, members] of exchangeMap) {
-      const sorted = [...members].sort(
-        (a, b) => (a.exchange_position ?? 0) - (b.exchange_position ?? 0),
-      );
-      const defaultMember = sorted[0];
-      const initPortions: Record<number, number> = {};
-      sorted.forEach((m, idx) => {
-        initPortions[m.id] = idx === 0 ? effectivePortions : 0;
-      });
-      groups.push({
-        key: `exchange:${groupId}`,
-        label: `Austausch-Gruppe`,
-        members: sorted.map((m) => ({
-          recipeItemId: m.id,
-          name: m.ingredient_name,
-          isDefault: m.id === defaultMember?.id,
-        })),
-        portions: initPortions,
-      });
-    }
-
-    // Optional items
-    for (const ri of recipeItems) {
-      if (ri.is_optional) {
-        groups.push({
-          key: `optional:${ri.id}`,
-          label: `Optional: ${ri.ingredient_name}`,
-          members: [
-            { recipeItemId: ri.id, name: `mit ${ri.ingredient_name}`, isDefault: true },
-            { recipeItemId: -ri.id, name: `ohne ${ri.ingredient_name}`, isDefault: false },
-          ],
-          portions: { [ri.id]: effectivePortions, [-ri.id]: 0 },
-        });
-      }
-    }
-
-    return groups;
-  };
-
   const [groups, setGroups] = useState<GroupState[]>([]);
+  const hasBuiltOnce = useRef(false);
 
   useEffect(() => {
-    if (open) {
-      setGroups(buildGroups());
+    if (!open) {
+      hasBuiltOnce.current = false;
+      return;
     }
+
+    const buildGroups = (): GroupState[] => {
+      const groups: GroupState[] = [];
+      const exchangeMap = new Map<number, RecipeItem[]>();
+
+      for (const ri of recipeItems) {
+        if (ri.exchange_group_id != null) {
+          const existing = exchangeMap.get(ri.exchange_group_id) ?? [];
+          exchangeMap.set(ri.exchange_group_id, [...existing, ri]);
+        }
+      }
+
+      // Exchange groups
+      for (const [groupId, members] of exchangeMap) {
+        const sorted = [...members].sort(
+          (a, b) => (a.exchange_position ?? 0) - (b.exchange_position ?? 0),
+        );
+        const defaultMember = sorted[0];
+        const initPortions: Record<number, number> = {};
+        sorted.forEach((m, idx) => {
+          initPortions[m.id] = idx === 0 ? effectivePortions : 0;
+        });
+        groups.push({
+          key: `exchange:${groupId}`,
+          label: `Austausch-Gruppe`,
+          members: sorted.map((m) => ({
+            recipeItemId: m.id,
+            name: m.ingredient_name,
+            isDefault: m.id === defaultMember?.id,
+          })),
+          portions: initPortions,
+        });
+      }
+
+      // Optional items
+      for (const ri of recipeItems) {
+        if (ri.is_optional) {
+          groups.push({
+            key: `optional:${ri.id}`,
+            label: `Optional: ${ri.ingredient_name}`,
+            members: [
+              { recipeItemId: ri.id, name: `mit ${ri.ingredient_name}`, isDefault: true },
+              { recipeItemId: -ri.id, name: `ohne ${ri.ingredient_name}`, isDefault: false },
+            ],
+            portions: { [ri.id]: effectivePortions, [-ri.id]: 0 },
+          });
+        }
+      }
+
+      return groups;
+    };
+
+    setGroups(buildGroups());
+    hasBuiltOnce.current = true;
   }, [open, recipeItems, effectivePortions]);
 
   if (!open) return null;
-  if (groups.length === 0 && !isLoading) {
+  if (groups.length === 0 && !isLoading && !isFetching && hasBuiltOnce.current) {
     onClose();
     return null;
   }
-  if (groups.length === 0 && isLoading) {
+  if (groups.length === 0 && (isLoading || isFetching)) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div className="bg-card rounded-xl border shadow-xl w-full max-w-md p-6">

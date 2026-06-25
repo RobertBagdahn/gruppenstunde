@@ -218,6 +218,7 @@ export function MealSlot({
               <MealActionsMenu
                 meal={meal}
                 canEdit={canEdit}
+                planId={mealPlanId}
                 siblingMeals={siblingMeals}
                 onDeleteMeal={onDeleteMeal}
                 onUpdateMeal={onUpdateMeal}

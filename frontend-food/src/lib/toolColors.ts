@@ -50,3 +50,10 @@ export const TOOL_SHOPPING_LISTS: ToolConfig = {
   icon: 'shopping_cart',
   basePath: '/shopping-lists',
 };
+
+export const TOOL_INGREDIENT_STATISTICS: ToolConfig = {
+  key: 'ingredient-statistics',
+  label: 'Statistiken',
+  icon: 'analytics',
+  basePath: '/ingredients/statistics',
+};

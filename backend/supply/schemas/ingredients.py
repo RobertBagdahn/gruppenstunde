@@ -32,6 +32,7 @@ class PortionOut(Schema):
     rank: int
     priority: int
     is_default: bool
+    is_system: bool = False
     measuring_unit_id: int | None
     measuring_unit_name: str | None = None
 
@@ -199,6 +200,7 @@ class IngredientDetailOut(Schema):
                 "rank": p.rank,
                 "priority": p.priority,
                 "is_default": p.is_default,
+                "is_system": p.is_system,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
             }

@@ -253,6 +253,11 @@ function PortionCard({
               <span className="font-semibold text-sm">
                 {portion.name.trim() || <span className="text-destructive font-medium italic">Unbenannt</span>}
               </span>
+              {portion.is_system && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border/60">
+                  System
+                </span>
+              )}
               {!(portion.name === 'g' && portion.weight_g === 1) && (
                 portion.weight_g ? (
                   <span className="text-xs text-muted-foreground">
@@ -297,13 +302,19 @@ function PortionCard({
             >
               <span className="material-symbols-outlined text-sm">edit</span>
             </button>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="text-destructive/60 hover:text-destructive rounded p-1 transition"
-              title="Löschen"
-            >
-              <span className="material-symbols-outlined text-sm">delete</span>
-            </button>
+            {portion.is_system ? (
+              <span className="text-muted-foreground/30 p-1 cursor-not-allowed" title="System-Portion (kann nicht gelöscht werden)">
+                <span className="material-symbols-outlined text-sm">lock</span>
+              </span>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="text-destructive/60 hover:text-destructive rounded p-1 transition"
+                title="Löschen"
+              >
+                <span className="material-symbols-outlined text-sm">delete</span>
+              </button>
+            )}
           </div>
         )}
       </div>

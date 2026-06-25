@@ -18,6 +18,12 @@ import {
   PortionSchema,
   IngredientAliasSchema,
   DistributionOutSchema,
+  RankingsOutSchema,
+  ScatterOutSchema,
+  OutliersOutSchema,
+  TagListOutSchema,
+  ScoresOutSchema,
+  ComparisonOutSchema,
 } from '@/schemas/supply';
 import { PaginatedRecipesSchema } from '@/schemas/recipe';
 
@@ -487,42 +493,91 @@ export function useIngredientDistributions(
   });
 }
 
-export function useIngredientRankings(_field: string) {
+export function useIngredientRankings(
+  field: string,
+  options?: { retailSectionId?: number | null; tag?: string; enabled?: boolean },
+) {
+  const params = new URLSearchParams({ field });
+  if (options?.retailSectionId) params.set('retail_section_id', String(options.retailSectionId));
+  if (options?.tag) params.set('tag', options.tag);
   return useQuery({
-    queryKey: ['ingredient-rankings', _field] as const,
-    queryFn: () => Promise.resolve([]),
-    enabled: false,
+    queryKey: ['ingredient-rankings', field, options?.retailSectionId ?? null, options?.tag ?? null] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_STATISTICS_BASE}/rankings/?${params}`, RankingsOutSchema),
+    enabled: options?.enabled !== false && !!field,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useIngredientScatter(_xField: string, _yField: string) {
+export function useIngredientScatter(
+  xField: string,
+  yField: string,
+  options?: { retailSectionId?: number | null; enabled?: boolean },
+) {
+  const params = new URLSearchParams({ x_field: xField, y_field: yField });
+  if (options?.retailSectionId) params.set('retail_section_id', String(options.retailSectionId));
   return useQuery({
-    queryKey: ['ingredient-scatter', _xField, _yField] as const,
-    queryFn: () => Promise.resolve([]),
-    enabled: false,
+    queryKey: ['ingredient-scatter', xField, yField, options?.retailSectionId ?? null] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_STATISTICS_BASE}/scatter/?${params}`, ScatterOutSchema),
+    enabled: options?.enabled !== false && !!xField && !!yField,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useIngredientOutliers() {
+export function useIngredientOutliers(
+  options?: { field?: string; retailSectionId?: number | null; enabled?: boolean },
+) {
+  const params = new URLSearchParams();
+  if (options?.field) params.set('field', options.field);
+  if (options?.retailSectionId) params.set('retail_section_id', String(options.retailSectionId));
+  const qs = params.toString();
   return useQuery({
-    queryKey: ['ingredient-outliers'] as const,
-    queryFn: () => Promise.resolve([]),
-    enabled: false,
+    queryKey: ['ingredient-outliers', options?.field ?? null, options?.retailSectionId ?? null] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_STATISTICS_BASE}/outliers/${qs ? `?${qs}` : ''}`, OutliersOutSchema),
+    enabled: options?.enabled !== false,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useIngredientTagLists(_tag: string) {
+export function useIngredientTagLists(
+  tag: string,
+  options?: { sortBy?: string; retailSectionId?: number | null; enabled?: boolean },
+) {
+  const params = new URLSearchParams({ tag });
+  if (options?.sortBy) params.set('sort_by', options.sortBy);
+  if (options?.retailSectionId) params.set('retail_section_id', String(options.retailSectionId));
   return useQuery({
-    queryKey: ['ingredient-tag-lists', _tag] as const,
-    queryFn: () => Promise.resolve({ items: [], total_count: 0 }),
-    enabled: false,
+    queryKey: ['ingredient-tag-lists', tag, options?.sortBy ?? null, options?.retailSectionId ?? null] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_STATISTICS_BASE}/tag-lists/?${params}`, TagListOutSchema),
+    enabled: options?.enabled !== false && !!tag,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useIngredientScores(_scoreType: string) {
+export function useIngredientScores(
+  scoreType: string,
+  options?: { retailSectionId?: number | null; enabled?: boolean },
+) {
+  const params = new URLSearchParams({ score_type: scoreType });
+  if (options?.retailSectionId) params.set('retail_section_id', String(options.retailSectionId));
   return useQuery({
-    queryKey: ['ingredient-scores', _scoreType] as const,
-    queryFn: () => Promise.resolve({}),
-    enabled: false,
+    queryKey: ['ingredient-scores', scoreType, options?.retailSectionId ?? null] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_STATISTICS_BASE}/scores/?${params}`, ScoresOutSchema),
+    enabled: options?.enabled !== false && !!scoreType,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useIngredientComparison(
+  groupBy: string,
+  metric: string,
+  options?: { retailSectionId?: number | null; enabled?: boolean },
+) {
+  const params = new URLSearchParams({ group_by: groupBy, metric });
+  if (options?.retailSectionId) params.set('retail_section_id', String(options.retailSectionId));
+  return useQuery({
+    queryKey: ['ingredient-comparison', groupBy, metric, options?.retailSectionId ?? null] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_STATISTICS_BASE}/comparison/?${params}`, ComparisonOutSchema),
+    enabled: options?.enabled !== false && !!groupBy && !!metric,
+    staleTime: 5 * 60 * 1000,
   });
 }

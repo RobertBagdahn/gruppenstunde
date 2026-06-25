@@ -81,6 +81,11 @@ class IngredientAliasInline(admin.TabularInline):
 class PortionInline(admin.TabularInline):
     model = Portion
     extra = 1
+    readonly_fields = ["is_system"]
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related("measuring_unit")
 
 
 @admin.register(Ingredient)
@@ -166,8 +171,10 @@ class IngredientAdmin(admin.ModelAdmin):
 
 @admin.register(Portion)
 class PortionAdmin(admin.ModelAdmin):
-    list_display = ["name", "ingredient", "quantity", "measuring_unit"]
+    list_display = ["name", "ingredient", "quantity", "measuring_unit", "is_system"]
+    list_filter = ["is_system"]
     search_fields = ["name", "ingredient__name"]
+    readonly_fields = ["is_system"]
     list_per_page = 25
 
 

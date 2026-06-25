@@ -2,10 +2,10 @@
  * InlineIngredientEditor — Edit-Mode for recipe ingredients on the detail page.
  * Allows editing quantities, units, notes, adding/removing items, and AI estimation.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Scale, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Scale, Sparkles, SlidersHorizontal, Search } from 'lucide-react';
 import {
   useUpdateRecipe,
   useUpdateRecipeItem,
@@ -150,6 +150,36 @@ export default function InlineIngredientEditor({
   const [detailSearchOpen, setDetailSearchOpen] = useState(false);
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [scaleFactorInput, setScaleFactorInput] = useState('1,0');
+  const [alternativeTargetId, setAlternativeTargetId] = useState<number | null>(null);
+  const [altSearchQuery, setAltSearchQuery] = useState('');
+  const [altSearchResults, setAltSearchResults] = useState<Array<{ id: number; name: string; slug: string }>>([]);
+  const [altSearching, setAltSearching] = useState(false);
+  const altSearchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (alternativeTargetId === null || altSearchQuery.length < 2) {
+      setAltSearchResults([]);
+      return;
+    }
+    clearTimeout(altSearchTimerRef.current);
+    altSearchTimerRef.current = setTimeout(async () => {
+      setAltSearching(true);
+      try {
+        const res = await fetch(`/api/supplies/?name=${encodeURIComponent(altSearchQuery)}&page_size=10`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAltSearchResults(data.items ?? []);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setAltSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(altSearchTimerRef.current);
+  }, [altSearchQuery, alternativeTargetId]);
 
   const queryClient = useQueryClient();
 
@@ -460,6 +490,108 @@ export default function InlineIngredientEditor({
     setScaleFactorInput('1,0');
   }, [scaleFactorInput]);
 
+  // --- Alternative Ingredient Selection ---
+
+  const handleSelectAlternative = useCallback(
+    async (ingredient: { id: number; name: string; slug: string }) => {
+      const targetItem = editItems.find((i) => i.id === alternativeTargetId);
+      if (!targetItem) return;
+
+      try {
+        // Fetch portions for selected ingredient
+        const res = await fetch(`/api/ingredients/${ingredient.slug}/portions/`, {
+          credentials: 'include',
+        });
+        const portions = await res.json();
+
+        const bestPortion = [...portions]
+          .filter((p: { weight_g: number | null }) => (p.weight_g ?? 0) > 0)
+          .sort(
+            (a: { priority?: number | null }, b: { priority?: number | null }) =>
+              (b.priority ?? 0) - (a.priority ?? 0),
+          )[0]
+          ?? portions[0];
+
+        if (!bestPortion) {
+          toast.error('Keine Portion für diese Zutat gefunden');
+          return;
+        }
+
+        // Create exchange group if the target item doesn't have one yet
+        let groupId = targetItem.exchange_group_id;
+
+        if (!groupId) {
+          const group = await createExchangeGroup.mutateAsync('');
+          groupId = group.id;
+
+          await patchItem.mutateAsync({
+            itemId: targetItem.id,
+            data: { exchange_group_id: groupId, exchange_position: 0 },
+          });
+        }
+
+        // Calculate next exchange position
+        const existingPositions = editItems
+          .filter((i) => i.exchange_group_id === groupId && i.id !== targetItem.id)
+          .map((i) => i.exchange_position ?? 0);
+        const nextPosition =
+          existingPositions.length > 0 ? Math.max(...existingPositions) + 1 : 1;
+
+        const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
+
+        // Add to local state as new item — will be persisted on save
+        setEditItems((prev) => [
+          ...prev.map((i) =>
+            i.id === targetItem.id && !i.exchange_group_id
+              ? { ...i, exchange_group_id: groupId, exchange_position: 0 }
+              : i,
+          ),
+          {
+            id: -Date.now(),
+            portion_id: bestPortion.id,
+            ingredient_id: ingredient.id,
+            ingredient_name: ingredient.name,
+            quantity: 1,
+            quantityInput: '1',
+            measuring_unit_name: bestPortion.measuring_unit_name || bestPortion.name || 'g',
+            note: '',
+            sort_order: maxSort + 1,
+            ingredient_portions: portions.map(
+              (p: {
+                id: number;
+                name: string;
+                weight_g: number | null;
+                measuring_unit_name: string | null;
+                is_default: boolean;
+                priority?: number | null;
+              }) => ({
+                id: p.id,
+                name: p.name,
+                weight_g: p.weight_g,
+                measuring_unit_name: p.measuring_unit_name,
+                is_default: p.is_default,
+                priority: p.priority,
+              }),
+            ),
+            is_optional: false,
+            exchange_group_id: groupId,
+            exchange_position: nextPosition,
+            isNew: true,
+            isDirty: true,
+          },
+        ]);
+
+        toast.success(`${ingredient.name} als Alternative hinzugefügt`);
+        setAlternativeTargetId(null);
+        setAltSearchQuery('');
+        setAltSearchResults([]);
+      } catch (err) {
+        toast.error('Fehler', { description: (err as Error).message });
+      }
+    },
+    [alternativeTargetId, editItems, createExchangeGroup, patchItem],
+  );
+
   // --- Save ---
 
   const handleSave = useCallback(async () => {
@@ -493,14 +625,25 @@ export default function InlineIngredientEditor({
 
       // Create new items (divide by scale to store per-1-portion value)
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
-        promises.push(
-          createItem.mutateAsync({
+        const promise = createItem
+          .mutateAsync({
             portion_id: item.portion_id,
             quantity: scale > 1 ? Math.round((item.quantity / scale) * 1000) / 1000 : item.quantity,
             sort_order: item.sort_order,
             note: item.note,
-          }),
-        );
+          })
+          .then((createdItem) => {
+            if (item.exchange_group_id != null) {
+              return patchItem.mutateAsync({
+                itemId: createdItem.id,
+                data: {
+                  exchange_group_id: item.exchange_group_id,
+                  exchange_position: item.exchange_position,
+                },
+              });
+            }
+          });
+        promises.push(promise);
       }
 
       // Update dirty existing items (divide by scale to store per-1-portion value)
@@ -527,7 +670,7 @@ export default function InlineIngredientEditor({
     } finally {
       setIsSaving(false);
     }
-  }, [editItems, portions, updateRecipe, deleteItem, createItem, updateItem, onSaved]);
+  }, [editItems, portions, scale, updateRecipe, deleteItem, createItem, updateItem, patchItem, onSaved]);
 
   // --- Render ---
 
@@ -601,10 +744,17 @@ export default function InlineIngredientEditor({
 
       {/* Ingredient Rows */}
       <div className="space-y-2">
-        {activeItems.map((item) => (
+        {activeItems.map((item) => {
+          const isExchangeSource = item.exchange_group_id != null && item.exchange_position === 0;
+          const isExchangeAlt = item.exchange_group_id != null && (item.exchange_position ?? 0) > 0;
+          return (
           <div
             key={item.id}
-            className="flex items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+            className={`flex items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors ${
+              isExchangeSource || isExchangeAlt
+                ? 'border-l-4 border-l-amber-400'
+                : ''
+            } ${isExchangeAlt ? 'ml-4' : ''}`}
           >
             <input
               type="text"
@@ -681,39 +831,33 @@ export default function InlineIngredientEditor({
             {/* Alternative hinzufügen (tasks 9.1, 9.2) — only when not optional */}
             <button
               type="button"
-              disabled={item.is_optional}
-              title="Alternative hinzufügen"
-              onClick={async () => {
-                try {
-                  const group = item.exchange_group_id
-                    ? { id: item.exchange_group_id }
-                    : await createExchangeGroup.mutateAsync('');
-                  // Assign this item as position 0 if it doesn't have a group yet
-                  if (!item.exchange_group_id) {
-                    await patchItem.mutateAsync({
-                      itemId: item.id,
-                      data: { exchange_group_id: group.id, exchange_position: 0 },
-                    });
-                    setEditItems((prev) =>
-                      prev.map((i) =>
-                        i.id === item.id
-                          ? { ...i, exchange_group_id: group.id, exchange_position: 0 }
-                          : i,
-                      ),
-                    );
-                  }
-                  toast.success('Austausch-Gruppe erstellt – jetzt Alternativ-Zutat hinzufügen');
-                } catch (err) {
-                  toast.error('Fehler', { description: (err as Error).message });
-                }
-              }}
+              disabled={item.is_optional || item.isNew}
+              title={item.isNew ? 'Bitte zuerst speichern' : 'Alternative hinzufügen'}
+              onClick={() => setAlternativeTargetId(item.id)}
               className="p-1.5 text-muted-foreground/40 hover:text-primary transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
             </button>
             <button
               type="button"
-              onClick={() => handleDelete(item.id)}
+              onClick={() => {
+                const hasAlternatives = item.exchange_group_id != null
+                  && item.exchange_position === 0
+                  && editItems.some(
+                    (other) =>
+                      other.exchange_group_id === item.exchange_group_id &&
+                      other.id !== item.id &&
+                      !other.isDeleted,
+                  );
+                if (hasAlternatives) {
+                  toast.error('Löschen nicht möglich', {
+                    description:
+                      'Dieses Item hat Alternativen. Bitte zuerst die Alternativen entfernen.',
+                  });
+                  return;
+                }
+                handleDelete(item.id);
+              }}
               className="p-1 text-destructive/60 hover:text-destructive transition-colors"
               title="Entfernen"
             >
@@ -938,6 +1082,77 @@ export default function InlineIngredientEditor({
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Übernehmen ({selectedAiSuggestions.size})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alternative Ingredient Selection Dialog */}
+      {alternativeTargetId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-md shadow-xl max-h-[80vh] flex flex-col">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">swap_horiz</span>
+              Alternative Zutat hinzufügen
+            </h3>
+
+            {/* Search input */}
+            <div className="relative mb-4">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={altSearchQuery}
+                onChange={(e) => setAltSearchQuery(e.target.value)}
+                placeholder="Zutat suchen..."
+                autoFocus
+                className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+
+            {/* Results */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {altSearchQuery.length < 2 && (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Gib mindestens 2 Zeichen ein, um zu suchen
+                </p>
+              )}
+              {altSearching && (
+                <p className="text-sm text-muted-foreground text-center py-8">Suche läuft…</p>
+              )}
+              {!altSearching && altSearchResults.length === 0 && altSearchQuery.length >= 2 && (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Keine Zutaten gefunden
+                </p>
+              )}
+              {!altSearching && altSearchResults.length > 0 && (
+                <div className="divide-y rounded-lg border border-border">
+                  {altSearchResults.map((ingredient) => (
+                    <button
+                      key={ingredient.id}
+                      type="button"
+                      onClick={() => handleSelectAlternative(ingredient)}
+                      className="w-full text-left px-4 py-3 hover:bg-accent transition-colors text-sm font-medium"
+                    >
+                      {ingredient.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => {
+                  setAlternativeTargetId(null);
+                  setAltSearchQuery('');
+                  setAltSearchResults([]);
+                }}
+                className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+              >
+                Abbrechen
               </button>
             </div>
           </div>

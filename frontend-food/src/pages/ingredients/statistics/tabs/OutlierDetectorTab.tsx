@@ -1,11 +1,24 @@
+import { useSearchParams } from 'react-router-dom';
+import { useIngredientOutliers } from '@/api/supplies';
+import OutlierAccordion from '../components/OutlierAccordion';
+import TabFilters from '../components/TabFilters';
+
 export default function OutlierDetectorTab() {
+  const [searchParams] = useSearchParams();
+  const retailSectionId = searchParams.get('retail_section') ? Number(searchParams.get('retail_section')) : null;
+  const { data, isLoading } = useIngredientOutliers({ retailSectionId });
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <span className="material-symbols-outlined text-5xl text-muted-foreground/30 mb-4">analytics</span>
-      <h3 className="text-lg font-semibold text-muted-foreground">Demnächst verfügbar</h3>
-      <p className="text-sm text-muted-foreground/60 mt-1 max-w-md">
-        Diese Statistik wird in Kürze freigeschaltet.
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        IQR-basierte Ausreißererkennung – welche Zutaten weichen extrem von der Norm ab?
       </p>
+      <TabFilters showRetailSection />
+      {isLoading ? (
+        <div className="h-80 bg-muted/40 animate-pulse rounded-xl" />
+      ) : data ? (
+        <OutlierAccordion fields={data.fields} summary={data.summary} />
+      ) : null}
     </div>
   );
 }

@@ -156,7 +156,8 @@ def test_resolve_portion_url_import(ingredient, measuring_unit):
     p_id_2 = _resolve_portion(ingredient.id, measuring_unit.id, 120.0, "Gramm")
     assert p_id_1 == p_id_2
 
-    assert Portion.objects.filter(ingredient=ingredient).count() == 2
+    # 3 System-Portionen (g, Packung, Stück) + 1 per _resolve_portion
+    assert Portion.objects.filter(ingredient=ingredient).count() == 4
 
 
 # ---------------------------------------------------------------------------

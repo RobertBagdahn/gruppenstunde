@@ -377,6 +377,7 @@ export default function TableView({
                                         <MealActionsMenu
                                           meal={meal}
                                           canEdit={canEdit}
+                                          planId={mealPlanId}
                                           siblingMeals={MEAL_TYPE_ORDER.flatMap((mt) => grid[mt]?.[date] || [])}
                                           onDeleteMeal={onDeleteMeal || (() => {})}
                                           onUpdateMeal={onUpdateMeal || (() => {})}

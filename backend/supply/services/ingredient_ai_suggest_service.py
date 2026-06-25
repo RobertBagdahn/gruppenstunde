@@ -344,7 +344,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
             mu_cache[name] = mu
         return mu_cache[name]
 
-    # Create portions
+    # Create portions from AI suggestions
     for i, portion in enumerate(data.portions):
         mu = _get_mu(portion.measuring_unit_name)
         Portion.objects.create(
@@ -355,6 +355,11 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
             weight_g=portion.weight_g,
             rank=i + 1,
         )
+
+    # Ensure system portions (g/ml, Packung, Stück) exist
+    from supply.signals import _create_system_portions
+
+    _create_system_portions(ingredient)
 
     # Create aliases
     for i, alias_name in enumerate(data.aliases):

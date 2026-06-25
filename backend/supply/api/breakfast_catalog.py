@@ -99,8 +99,8 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
                     "id": p.id,
                     "name": p.name,
                     "measuring_unit_id": p.measuring_unit_id,
-                    "quantity": float(p.quantity) if p.quantity else None,
-                    "weight_g": float(p.weight_g) if p.weight_g else None,
+                    "quantity": float(p.quantity) if p.quantity is not None else None,
+                    "weight_g": float(p.weight_g) if p.weight_g is not None else None,
                     "is_default": p.is_default,
                     "priority": p.priority,
                 }
@@ -129,8 +129,8 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
                     "id": p.id,
                     "name": p.name,
                     "measuring_unit_id": p.measuring_unit_id,
-                    "quantity": float(p.quantity) if p.quantity else None,
-                    "weight_g": float(p.weight_g) if p.weight_g else None,
+                    "quantity": float(p.quantity) if p.quantity is not None else None,
+                    "weight_g": float(p.weight_g) if p.weight_g is not None else None,
                     "is_default": p.is_default,
                     "priority": p.priority,
                 }
