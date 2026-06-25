@@ -864,7 +864,8 @@ export default function InlineIngredientEditor({
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Add Ingredient */}
