@@ -24,6 +24,7 @@ from decimal import Decimal
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
@@ -77,6 +78,8 @@ class Command(BaseCommand):
 
             if only in (None, "content"):
                 self._seed_content(users)
+                call_command("seed_breakfast_catalog")
+                call_command("seed_breakfast_recipes")
             if only in (None, "recipes"):
                 self._seed_recipes(users)
             if only in (None, "events"):
@@ -477,22 +480,7 @@ class Command(BaseCommand):
                 "retail_section": "Getreide & Teigwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
-            {
-                "name": "Butter",
-                "description": "Deutsche Markenbutter",
-                "physical_density": 0.9,
-                "energy_kcal": 730.0,
-                "protein_g": 0.7,
-                "fat_g": 82.0,
-                "fat_sat_g": 50.0,
-                "carbohydrate_g": 0.6,
-                "sugar_g": 0.6,
-                "fibre_g": 0.0,
-                "salt_g": 0.04,
-                "price_per_kg": Decimal("7.96"),
-                "retail_section": "Milchprodukte",
-                "tags": ["vegetarisch", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
-            },
+            # Butter was removed from seed_all; created by seed_breakfast_catalog
             {
                 "name": "Milch",
                 "description": "Vollmilch 3,5%",
@@ -750,22 +738,7 @@ class Command(BaseCommand):
                 "retail_section": "Obst & Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
-            {
-                "name": "Honig",
-                "description": "Blütenhonig",
-                "physical_density": 1.4,
-                "energy_kcal": 325.0,
-                "protein_g": 0.4,
-                "fat_g": 0.0,
-                "fat_sat_g": 0.0,
-                "carbohydrate_g": 82.0,
-                "sugar_g": 82.0,
-                "fibre_g": 0.0,
-                "salt_g": 0.01,
-                "price_per_kg": Decimal("9.90"),
-                "retail_section": "Grundnahrungsmittel",
-                "tags": ["vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
-            },
+            # Honig was removed from seed_all; created by seed_breakfast_catalog
             {
                 "name": "Joghurt (Natur)",
                 "description": "Naturjoghurt 3,5%",
@@ -1363,87 +1336,10 @@ class Command(BaseCommand):
                 "retail_section": "Getränke",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
-            # --- Frühstückszutaten (ergänzt für seed_breakfast_recipes) ---
-            {
-                "name": "Nutella",
-                "description": "Nuss-Nougat-Creme",
-                "physical_density": 1.2,
-                "energy_kcal": 539.0,
-                "protein_g": 6.3,
-                "fat_g": 30.9,
-                "fat_sat_g": 10.6,
-                "carbohydrate_g": 57.5,
-                "sugar_g": 56.3,
-                "fibre_g": 3.4,
-                "salt_g": 0.1,
-                "price_per_kg": Decimal("5.90"),
-                "retail_section": "Süßwaren & Snacks",
-                "tags": ["vegetarisch"],
-            },
-            {
-                "name": "Marmelade",
-                "description": "Fruchtmarmelade, gemischt",
-                "physical_density": 1.3,
-                "energy_kcal": 250.0,
-                "protein_g": 0.5,
-                "fat_g": 0.1,
-                "fat_sat_g": 0.0,
-                "carbohydrate_g": 62.0,
-                "sugar_g": 60.0,
-                "fibre_g": 0.5,
-                "salt_g": 0.02,
-                "price_per_kg": Decimal("3.50"),
-                "retail_section": "Süßwaren & Snacks",
-                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
-            },
-            {
-                "name": "Wurst (Aufschnitt)",
-                "description": "Aufschnitt-Wurst, gemischt (z.B. Salami, Fleischwurst)",
-                "physical_density": 1.0,
-                "energy_kcal": 280.0,
-                "protein_g": 14.0,
-                "fat_g": 24.0,
-                "fat_sat_g": 9.0,
-                "carbohydrate_g": 1.5,
-                "sugar_g": 0.5,
-                "fibre_g": 0.0,
-                "salt_g": 2.0,
-                "price_per_kg": Decimal("8.90"),
-                "retail_section": "Fleisch & Wurst",
-                "tags": ["glutenfrei", "laktosefrei"],
-            },
-            {
-                "name": "Erdnussbutter",
-                "description": "Cremige Erdnussbutter",
-                "physical_density": 1.1,
-                "energy_kcal": 588.0,
-                "protein_g": 25.0,
-                "fat_g": 50.0,
-                "fat_sat_g": 9.0,
-                "carbohydrate_g": 13.0,
-                "sugar_g": 5.0,
-                "fibre_g": 6.0,
-                "salt_g": 0.4,
-                "price_per_kg": Decimal("5.20"),
-                "retail_section": "Süßwaren & Snacks",
-                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "eifrei", "sojafrei"],
-            },
-            {
-                "name": "Leberwurst",
-                "description": "Streichleberwurst",
-                "physical_density": 1.0,
-                "energy_kcal": 320.0,
-                "protein_g": 11.0,
-                "fat_g": 28.0,
-                "fat_sat_g": 10.0,
-                "carbohydrate_g": 2.5,
-                "sugar_g": 0.5,
-                "fibre_g": 0.0,
-                "salt_g": 1.5,
-                "price_per_kg": Decimal("6.80"),
-                "retail_section": "Fleisch & Wurst",
-                "tags": ["glutenfrei", "laktosefrei"],
-            },
+            # --- Breakfast-specific ingredients (created by seed_breakfast_catalog) ---
+            # Butter, Honig, Nutella, Marmelade, Erdnussbutter, Leberwurst,
+            # Avocado, Hummus, Kaffee are now created by seed_breakfast_catalog
+            # with BE-calibrated nutritional values and proper packaging portions.
             {
                 "name": "Räucherlachs",
                 "description": "Geräucherter Lachs, Aufschnitt",
@@ -1461,39 +1357,6 @@ class Command(BaseCommand):
                 "tags": ["glutenfrei", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
-                "name": "Avocado",
-                "description": "Reife Avocado",
-                "physical_density": 1.0,
-                "energy_kcal": 160.0,
-                "protein_g": 2.0,
-                "fat_g": 15.0,
-                "fat_sat_g": 2.1,
-                "carbohydrate_g": 2.0,
-                "sugar_g": 0.7,
-                "fibre_g": 6.7,
-                "salt_g": 0.01,
-                "price_per_kg": Decimal("4.90"),
-                "retail_section": "Obst & Gemüse",
-                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
-                "fruit_factor": 1.0,
-            },
-            {
-                "name": "Hummus",
-                "description": "Kichererbsen-Aufstrich",
-                "physical_density": 1.1,
-                "energy_kcal": 177.0,
-                "protein_g": 8.0,
-                "fat_g": 9.6,
-                "fat_sat_g": 1.3,
-                "carbohydrate_g": 14.0,
-                "sugar_g": 0.5,
-                "fibre_g": 6.0,
-                "salt_g": 0.7,
-                "price_per_kg": Decimal("5.50"),
-                "retail_section": "Süßwaren & Snacks",
-                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
-            },
-            {
                 "name": "Cornflakes",
                 "description": "Corn Flakes, ungesüßt",
                 "physical_density": 0.15,
@@ -1507,7 +1370,7 @@ class Command(BaseCommand):
                 "salt_g": 1.1,
                 "price_per_kg": Decimal("2.80"),
                 "retail_section": "Backwaren",
-                "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
+                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
                 "name": "Obst gemischt",
@@ -1542,38 +1405,6 @@ class Command(BaseCommand):
                 "retail_section": "Süßwaren & Snacks",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
-            {
-                "name": "Orangensaft",
-                "description": "Frisch gepresster Orangensaft",
-                "physical_density": 1.04,
-                "energy_kcal": 44.0,
-                "protein_g": 0.7,
-                "fat_g": 0.2,
-                "fat_sat_g": 0.0,
-                "carbohydrate_g": 10.0,
-                "sugar_g": 9.0,
-                "fibre_g": 0.2,
-                "salt_g": 0.01,
-                "price_per_kg": Decimal("1.80"),
-                "retail_section": "Getränke",
-                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
-            },
-            {
-                "name": "Kaffee",
-                "description": "Filterkaffee, gebrüht",
-                "physical_density": 1.0,
-                "energy_kcal": 2.0,
-                "protein_g": 0.1,
-                "fat_g": 0.0,
-                "fat_sat_g": 0.0,
-                "carbohydrate_g": 0.0,
-                "sugar_g": 0.0,
-                "fibre_g": 0.0,
-                "salt_g": 0.01,
-                "price_per_kg": Decimal("18.00"),
-                "retail_section": "Getränke",
-                "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
-            },
         ]
 
         # Portions per ingredient (name, quantity, weight_g, unit_name)
@@ -1593,10 +1424,7 @@ class Command(BaseCommand):
                 ("1 EL Mehl", 1.0, 10.0, "Esslöffel"),
                 ("1 Tasse Mehl", 1.0, 125.0, "Tasse"),
             ],
-            "Butter": [
-                ("1 EL Butter", 1.0, 10.0, "Esslöffel"),
-                ("250g Block Butter", 1.0, 250.0, "Stück"),
-            ],
+            # Butter removed; portions created by seed_breakfast_catalog
             "Milch": [
                 ("1 Glas Milch", 1.0, 200.0, "Glas"),
                 ("1 Liter Milch", 1.0, 1030.0, "Liter"),
@@ -1641,9 +1469,7 @@ class Command(BaseCommand):
             "Äpfel": [
                 ("1 Apfel (mittel)", 1.0, 150.0, "Stück"),
             ],
-            "Honig": [
-                ("1 EL Honig", 1.0, 20.0, "Esslöffel"),
-            ],
+            # Honig removed; portions created by seed_breakfast_catalog
             "Joghurt (Natur)": [
                 ("1 Becher Joghurt", 1.0, 150.0, "Becher"),
             ],
@@ -2234,7 +2060,7 @@ class Command(BaseCommand):
         reis = Ingredient.objects.filter(name="Reis").first()
         paprika = Ingredient.objects.filter(name="Paprika").first()
         aepfel = Ingredient.objects.filter(name="Äpfel").first()
-        honig = Ingredient.objects.filter(name="Honig").first()
+        # honig removed; created by seed_breakfast_catalog, looked up inline
         joghurt = Ingredient.objects.filter(name="Joghurt (Natur)").first()
         brot = Ingredient.objects.filter(name="Brot (Vollkorn)").first()
         moehren = Ingredient.objects.filter(name="Möhren").first()
@@ -2287,7 +2113,7 @@ class Command(BaseCommand):
                 (haferflocken, 50.0, ""),
                 (milch, 100.0, "oder Joghurt"),
                 (aepfel, 45.0, ""),
-                (honig, 6.0, ""),
+                (Ingredient.objects.filter(name="Honig").first(), 6.0, ""),
             ],
             "Stockbrot": [
                 (mehl, 50.0, ""),
@@ -2306,7 +2132,7 @@ class Command(BaseCommand):
                 (haferflocken, 50.0, ""),
                 (joghurt, 75.0, ""),
                 (milch, 50.0, ""),
-                (honig, 6.0, ""),
+                (Ingredient.objects.filter(name="Honig").first(), 6.0, ""),
                 (aepfel, 30.0, ""),
             ],
             "Gemüsepfanne mit Reis": [
@@ -2387,7 +2213,7 @@ class Command(BaseCommand):
                 (milch, 150.0, ""),
                 (bananen, 60.0, "in Scheiben"),
                 (zimt, 1.0, ""),
-                (honig, 6.0, ""),
+                (Ingredient.objects.filter(name="Honig").first(), 6.0, ""),
             ],
             "Brotzeit": [
                 (brot, 100.0, ""),

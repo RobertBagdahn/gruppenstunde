@@ -318,6 +318,15 @@ gcloud run jobs execute inspi-seed --region europe-west3 --wait
 The `seed_all` command seeds:
 - Content (sessions, blogs, games, materials)
 - Recipes, events, and planner data
+- **Breakfast catalog** (via internal calls to `seed_breakfast_catalog` and `seed_breakfast_recipes`):
+  - 4 content.Tags (breakfast-base, breakfast-topping, breakfast-drink, breakfast-warm-meal)
+  - 6 base bread ingredients, 17 topping ingredients, 6 drink ingredients, 3 drink recipes
+  - 5 warm breakfast recipes + Müsli (cold_meal)
+
+For existing prod databases where `seed_all --if-empty` already ran before seed_breakfast_catalog existed:
+1. Start Cloud SQL Proxy
+2. Run `uv run python manage.py seed_breakfast_catalog`
+3. Run `uv run python manage.py seed_breakfast_recipes`
 
 ### Phase 8: Deploy Frontend
 

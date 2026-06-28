@@ -11,7 +11,9 @@ from typing import Any
 
 from ninja import Router, Schema
 
-from supply.models import Ingredient, NutritionalTag, Portion
+from content.models import Tag
+from recipe.models import Recipe
+from supply.models import Ingredient, Portion
 
 breakfast_catalog_router = Router(tags=["breakfast"])
 
@@ -57,11 +59,75 @@ class ToppingIngredientOut(Schema):
     portions: list[PortionOut] = []
 
 
+class DrinkRecipeOut(Schema):
+    """A drink recipe for the breakfast wizard (needs preparation)."""
+
+    id: int
+    title: str
+    recipe_type: str
+    cached_energy_kcal: float | None = None
+
+
+class DrinkIngredientOut(Schema):
+    """A drink ingredient for the breakfast wizard (just pour)."""
+
+    id: int
+    name: str
+    slug: str
+    is_standalone_food: bool = True
+    energy_kcal: float | None = None
+    portions: list[PortionOut] = []
+
+
+class WarmMealRecipeOut(Schema):
+    """A warm breakfast recipe (e.g. scrambled eggs, pancakes)."""
+
+    id: int
+    title: str
+    recipe_type: str
+    cached_energy_kcal: float | None = None
+
+
 class BreakfastCatalogOut(Schema):
     """Complete breakfast catalog response."""
 
     base_ingredients: list[BaseIngredientOut] = []
     topping_ingredients: list[ToppingIngredientOut] = []
+    drink_ingredients: list[DrinkIngredientOut] = []
+    drink_recipes: list[DrinkRecipeOut] = []
+    warm_meal_recipes: list[WarmMealRecipeOut] = []
+    gram_measuring_unit_id: int | None = None
+    ml_measuring_unit_id: int | None = None
+
+
+# ============================================================================
+# Helpers
+# ============================================================================
+
+
+def _ingredient_to_dict(ing: Ingredient) -> dict:
+    portions = [
+        {
+            "id": p.id,
+            "name": p.name,
+            "measuring_unit_id": p.measuring_unit_id,
+            "quantity": float(p.quantity) if p.quantity is not None else None,
+            "weight_g": float(p.weight_g) if p.weight_g is not None else None,
+            "is_default": p.is_default,
+            "priority": p.priority,
+        }
+        for p in ing.portions.all()
+    ]
+    return {
+        "id": ing.id,
+        "name": ing.name,
+        "slug": ing.slug,
+        "is_standalone_food": ing.is_standalone_food,
+        "standard_recipe_weight_g": ing.standard_recipe_weight_g,
+        "energy_kcal": ing.energy_kcal,
+        "price_per_kg": ing.price_per_kg,
+        "portions": portions,
+    }
 
 
 # ============================================================================
@@ -71,88 +137,110 @@ class BreakfastCatalogOut(Schema):
 
 @breakfast_catalog_router.get("/breakfast-catalog/", response=BreakfastCatalogOut)
 def get_breakfast_catalog(request) -> dict[str, Any]:
-    """Get breakfast ingredients catalog (base + toppings with portions).
+    from supply.models import MeasuringUnit
 
-    Base ingredients include bread types with standard_recipe_weight_g (slice weight).
-    Topping ingredients include spreads/condiments with three intensity portions
-    (knapp, normal, üppig) plus packaging portion.
-
-    Returns: {
-        base_ingredients: [...],
-        topping_ingredients: [...]
-    }
-    """
-    # Get tags
-    base_tag = NutritionalTag.objects.filter(name="frühstücks-basis").first()
-    topping_tag = NutritionalTag.objects.filter(name="frühstücks-belag").first()
+    base_tag = Tag.objects.filter(slug="breakfast-base").first()
+    topping_tag = Tag.objects.filter(slug="breakfast-topping").first()
 
     base_ingredients = []
     topping_ingredients = []
 
-    # Load base ingredients (bread types)
     if base_tag:
-        bases = base_tag.ingredients.filter(is_standalone_food=True).order_by("name").prefetch_related("portions")
+        bases = Ingredient.objects.filter(
+            tags=base_tag, is_standalone_food=True
+        ).order_by("name").prefetch_related("portions")
 
         for ing in bases:
-            portions = [
-                {
-                    "id": p.id,
-                    "name": p.name,
-                    "measuring_unit_id": p.measuring_unit_id,
-                    "quantity": float(p.quantity) if p.quantity is not None else None,
-                    "weight_g": float(p.weight_g) if p.weight_g is not None else None,
-                    "is_default": p.is_default,
-                    "priority": p.priority,
-                }
-                for p in ing.portions.all()
-            ]
+            ing_dict = _ingredient_to_dict(ing)
+            base_ingredients.append(ing_dict)
 
-            base_ingredients.append(
-                {
-                    "id": ing.id,
-                    "name": ing.name,
-                    "slug": ing.slug,
-                    "is_standalone_food": ing.is_standalone_food,
-                    "standard_recipe_weight_g": ing.standard_recipe_weight_g,
-                    "energy_kcal": ing.energy_kcal,
-                    "portions": portions,
-                }
-            )
-
-    # Load topping ingredients (spreads, condiments)
     if topping_tag:
-        toppings = topping_tag.ingredients.filter(is_standalone_food=True).order_by("name").prefetch_related("portions")
+        toppings = Ingredient.objects.filter(
+            tags=topping_tag, is_standalone_food=True
+        ).order_by("name").prefetch_related("portions")
 
         for ing in toppings:
-            portions = [
-                {
-                    "id": p.id,
-                    "name": p.name,
-                    "measuring_unit_id": p.measuring_unit_id,
-                    "quantity": float(p.quantity) if p.quantity is not None else None,
-                    "weight_g": float(p.weight_g) if p.weight_g is not None else None,
-                    "is_default": p.is_default,
-                    "priority": p.priority,
-                }
-                for p in ing.portions.all()
-            ]
+            ing_dict = _ingredient_to_dict(ing)
+            topping_ingredients.append(ing_dict)
 
-            topping_ingredients.append(
-                {
-                    "id": ing.id,
-                    "name": ing.name,
-                    "slug": ing.slug,
-                    "is_standalone_food": ing.is_standalone_food,
-                    "energy_kcal": ing.energy_kcal,
-                    "price_per_kg": ing.price_per_kg,
-                    "portions": portions,
-                }
-            )
+    drink_tag = Tag.objects.filter(slug="breakfast-drink").first()
+    drink_recipes = []
+    drink_ingredients = []
+    if drink_tag:
+        # Drink recipes (Kaffee, Kakao, Tee)
+        drinks = Recipe.objects.filter(
+            tags=drink_tag, recipe_type="drink", status="approved"
+        ).values("id", "title", "recipe_type", "cached_energy_total_kcal")
+        drink_recipes = [
+            {
+                "id": d["id"],
+                "title": d["title"],
+                "recipe_type": d["recipe_type"],
+                "cached_energy_kcal": d["cached_energy_total_kcal"],
+            }
+            for d in drinks
+        ]
+        # Drink ingredients (Milch, Säfte, Hafermilch)
+        drink_ings = Ingredient.objects.filter(
+            tags=drink_tag, is_standalone_food=True
+        ).order_by("name").prefetch_related("portions")
+        for ing in drink_ings:
+            ing_dict = _ingredient_to_dict(ing)
+            drink_ingredients.append(ing_dict)
+
+    warm_tag = Tag.objects.filter(slug="breakfast-warm-meal").first()
+    warm_meal_recipes = []
+    if warm_tag:
+        warm = Recipe.objects.filter(
+            tags=warm_tag, recipe_type="breakfast", status="approved"
+        ).values("id", "title", "recipe_type", "cached_energy_total_kcal")
+        warm_meal_recipes = [
+            {
+                "id": d["id"],
+                "title": d["title"],
+                "recipe_type": d["recipe_type"],
+                "cached_energy_kcal": d["cached_energy_total_kcal"],
+            }
+            for d in warm
+        ]
+
+    gram_unit = MeasuringUnit.objects.filter(name="g").first()
+    ml_unit = MeasuringUnit.objects.filter(name="ml").first()
 
     return {
         "base_ingredients": base_ingredients,
         "topping_ingredients": topping_ingredients,
+        "drink_ingredients": drink_ingredients,
+        "drink_recipes": drink_recipes,
+        "warm_meal_recipes": warm_meal_recipes,
+        "gram_measuring_unit_id": gram_unit.id if gram_unit else None,
+        "ml_measuring_unit_id": ml_unit.id if ml_unit else None,
     }
+
+
+@breakfast_catalog_router.get(
+    "/breakfast-catalog/drinks/",
+    response=list[DrinkRecipeOut],
+    auth=None,
+)
+def get_drink_recipes(request) -> list[dict]:
+    drink_tag = Tag.objects.filter(slug="breakfast-drink").first()
+
+    qs = Recipe.objects.filter(recipe_type="drink", status="approved")
+    if drink_tag:
+        qs = qs.filter(tags=drink_tag)
+
+    drinks = qs.values("id", "title", "recipe_type", "cached_energy_total_kcal")
+
+    return [
+        {
+            "id": d["id"],
+            "title": d["title"],
+            "recipe_type": d["recipe_type"],
+            "cached_energy_kcal": d["cached_energy_total_kcal"],
+        }
+        for d in drinks
+    ]
 
 
 # ============================================================================
@@ -197,26 +285,14 @@ class BreakfastLeftoversOut(Schema):
 @breakfast_catalog_router.post(
     "/breakfast-leftovers/",
     response=BreakfastLeftoversOut,
-    auth=None,  # accessible to logged-in users; caller checks meal plan access separately
+    auth=None,
 )
 def calculate_breakfast_leftovers(request, data: BreakfastLeftoversIn) -> dict[str, Any]:
-    """Calculate leftover amounts and costs for breakfast toppings.
-
-    For each topping:
-      total_needed_g = grams_per_person × norm_portions × days
-      packages_needed = ceil(total_needed_g / package_size_g)
-      leftover_g = packages_needed × package_size_g − total_needed_g
-      leftover_eur = leftover_g / 1000 × price_per_kg
-
-    Returns per topping: Bedarf (g), Packungen (Stück), Rest (g), Restwert (€).
-    """
     ing_ids = [t.ingredient_id for t in data.toppings]
     ingredients = {ing.id: ing for ing in Ingredient.objects.filter(id__in=ing_ids)}
 
-    # Batch-load "Packung" portions
     package_portions: dict[int, Portion] = {}
-    for p in Portion.objects.filter(ingredient_id__in=ing_ids, name__startswith="Packung"):
-        # Keep the first/only Packung per ingredient
+    for p in Portion.objects.filter(ingredient_id__in=ing_ids, name__startswith="Packung", is_system=False):
         if p.ingredient_id not in package_portions:
             package_portions[p.ingredient_id] = p
 
