@@ -3,7 +3,7 @@
 import pytest
 from django.test import Client
 
-from planner.models import MealItem
+from planner.models import MealItem, MealTypeChoices
 from planner.tests import make_meal, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
 
@@ -117,11 +117,12 @@ class TestPopularRecipesEndpoint:
         user = User.objects.create_user(username="testuser", password="testpass")
 
         meal_plan = make_meal_plan(created_by=user)
-        meal = make_meal(meal_plan=meal_plan)
+        meal_a = make_meal(meal_plan=meal_plan, meal_type=MealTypeChoices.LUNCH)
+        meal_b = make_meal(meal_plan=meal_plan, meal_type=MealTypeChoices.DINNER)
 
         recipe = make_recipe(title="Mein Rezept")
-        MealItem.objects.create(meal=meal, recipe=recipe, factor=1.0)
-        MealItem.objects.create(meal=meal, recipe=recipe, factor=1.0)
+        MealItem.objects.create(meal=meal_a, recipe=recipe, factor=1.0)
+        MealItem.objects.create(meal=meal_b, recipe=recipe, factor=1.0)
 
         self.client.login(username="testuser", password="testpass")
         response = self.client.get("/api/meal-plans/recipes/popular/")

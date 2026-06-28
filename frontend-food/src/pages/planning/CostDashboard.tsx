@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Wallet, AlertCircle, Info, Utensils, Lightbulb } from 'lucide-react';
-import { useMealPlanCosts, useAllergenScan } from '@/api/mealPlans';
+import { useMealPlanCosts, useIngredientScan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS, getDayCoverage, getEffectiveCoverage, getCoverageBadge } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
 import SollIstBar from '@/components/shared/SollIstBar';
@@ -11,7 +11,7 @@ interface CostDashboardProps {
   mealPlanId: number;
   budgetPerPersonPerDay?: number | null;
   meals?: Meal[];
-  onSelectTab?: (tab: 'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'allergens') => void;
+  onSelectTab?: (tab: 'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'ingredient-scan') => void;
 }
 
 function formatEur(value: number): string {
@@ -20,7 +20,7 @@ function formatEur(value: number): string {
 
 export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals, onSelectTab }: CostDashboardProps) {
   const { data, isLoading, error } = useMealPlanCosts(mealPlanId);
-  const { data: scanData } = useAllergenScan(mealPlanId);
+  const { data: scanData } = useIngredientScan(mealPlanId);
   const [showPerPortion, setShowPerPortion] = useState(true);
 
   // Compute day coverage from meals if available
@@ -104,12 +104,12 @@ export default function CostDashboard({ mealPlanId, budgetPerPersonPerDay, meals
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base shrink-0">⚠️</span>
             <p className="font-semibold text-destructive truncate">
-              Dieser Essensplan enthält Allergene: {Array.from(new Set(scanData.violations.map(v => v.nutritional_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
+              Ernährungseinschränkungen erkannt: {Array.from(new Set(scanData.violations.map(v => v.nutritional_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
             </p>
           </div>
           {onSelectTab && (
             <button
-              onClick={() => onSelectTab('allergens')}
+              onClick={() => onSelectTab('ingredient-scan')}
               className="text-xs font-bold underline shrink-0 text-destructive hover:text-destructive/80 transition-colors"
             >
               Zum Scanner

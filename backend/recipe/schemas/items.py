@@ -143,6 +143,7 @@ class RecipeItemCreateIn(Schema):
     quantity: float = 1
     sort_order: int = 0
     note: str = ""
+    is_optional: bool = False
 
 
 class RecipeItemUpdateIn(Schema):
@@ -211,6 +212,7 @@ class AiIngredientApplyIn(Schema):
 
     portion_id: int
     quantity: float = 1.0
+    is_optional: bool = False
 
 
 # ---------------------------------------------------------------------------

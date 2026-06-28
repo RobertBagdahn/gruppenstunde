@@ -93,6 +93,7 @@ export const ShoppingListDetailSchema = z.object({
   items: z.array(ShoppingListItemSchema).default([]),
   collaborators: z.array(ShoppingListCollaboratorSchema).default([]),
   can_edit: z.boolean().default(false),
+  is_owner: z.boolean().default(false),
   created_at: z.string(),
   updated_at: z.string(),
 });

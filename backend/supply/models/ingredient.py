@@ -9,6 +9,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from pgvector.django import VectorField
 
+from content.models import Tag
 from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, StorageTypeChoices
 from .reference import NutritionalTag, RetailSection
 
@@ -143,6 +144,12 @@ class Ingredient(models.Model):
         blank=True,
         related_name="ingredients",
         verbose_name=_("Ernährungstags"),
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name="ingredients",
+        verbose_name=_("Tags"),
     )
     # Standalone food (can be consumed raw without a recipe)
     is_standalone_food = models.BooleanField(

@@ -10,7 +10,7 @@ from content.api import router as content_router
 from content.api.data_quality import admin_router as dq_admin_router
 from content.api.data_quality import public_router as dq_public_router
 from content.tags_api import scout_levels_router, tags_router
-from core.api import auth_router
+from core.api import auth_router, users_router
 from event.api import (
     event_router,
     location_router,
@@ -52,6 +52,7 @@ api = NinjaAPI(
 )
 
 api.add_router("/auth/", auth_router)
+api.add_router("/users/", users_router)
 api.add_router("/admin/", admin_router)
 api.add_router("/admin/data-quality/", dq_admin_router)
 api.add_router("/data-quality/", dq_public_router)

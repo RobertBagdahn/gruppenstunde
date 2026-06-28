@@ -191,7 +191,7 @@ Teilnehmer: {config.participants.type}{theme_line}
 Schreibe 3-5 Sätze. Sachlich, freundlich, an Eltern und Pfadfinder gerichtet.
 Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
 
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=None,
             model="gemini-3.1-flash-lite-preview",
             contents=prompt,

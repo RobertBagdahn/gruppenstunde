@@ -4,12 +4,14 @@ import RetailSectionTab from './RetailSectionTab';
 import NutritionalTagTab from './NutritionalTagTab';
 import RuleTab from './RuleTab';
 import ApprovalTab from './ApprovalTab';
+import AiFeedbackTab from './AiFeedbackTab';
 
 const TABS = [
   { key: 'approvals', label: 'Freigaben' },
   { key: 'retail-sections', label: 'Abteilungen' },
   { key: 'nutritional-tags', label: 'Ernährungstags' },
   { key: 'rules', label: 'Regeln' },
+  { key: 'ai-feedback', label: 'KI Feedback' },
   { key: 'data-quality', label: 'Datenqualität', href: '/admin/data-quality/ingredients' },
 ] as const;
 
@@ -53,6 +55,7 @@ export default function AdminPage() {
 
       {/* Tab Content */}
       {activeTab === 'approvals' && <ApprovalTab />}
+      {activeTab === 'ai-feedback' && <AiFeedbackTab />}
       {activeTab === 'retail-sections' && <RetailSectionTab />}
       {activeTab === 'nutritional-tags' && <NutritionalTagTab />}
       {activeTab === 'rules' && <RuleTab />}

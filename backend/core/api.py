@@ -7,17 +7,20 @@ from datetime import UTC, datetime
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpResponse
 from django.middleware.csrf import get_token
-from ninja import Router, Schema
+from ninja import Query, Router, Schema
 from ninja.errors import HttpError
 
 from profiles.schemas.privacy import DataOverviewSchema, DeleteAccountRequestSchema
 from profiles.services.privacy import PrivacyService
+
+from core.schemas import PaginatedUserOut, UserSimpleOut
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
 auth_router = Router(tags=["auth"])
+users_router = Router(tags=["users"])
 
 
 # --- Schemas ---
@@ -100,6 +103,41 @@ def logout_user(request):
     """Log out the current user."""
     logout(request)
     return {"success": True, "message": "Erfolgreich abgemeldet"}
+
+
+# --- User Search ---
+
+
+@users_router.get("/search/", response=PaginatedUserOut)
+def search_users(
+    request,
+    q: str = "",
+    page: int = 1,
+    page_size: int = Query(default=20, le=50),
+):
+    """Search users by username for collaborator invite flows."""
+    if not request.user.is_authenticated:
+        raise HttpError(403, "Anmeldung erforderlich")
+
+    qs = User.objects.order_by("username")
+    if q:
+        qs = qs.filter(username__icontains=q)
+
+    total = qs.count()
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    offset = (page - 1) * page_size
+    users = [
+        UserSimpleOut(id=u["id"], username=u["username"])
+        for u in qs.values("id", "username")[offset : offset + page_size]
+    ]
+
+    return {
+        "items": users,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 # --- Privacy Endpoints (GDPR) ---

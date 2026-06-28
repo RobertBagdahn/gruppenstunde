@@ -65,6 +65,8 @@ The system SHALL compute the next weekend dates (Friday–Sunday) using smart lo
 
 The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day-based layout showing meals grouped by date. The detail view MUST include tabs: Tagesplan, Tabelle, Nährwerte, Kosten, Einkaufsliste, Vorschläge, and optionally Allergie-Scanner (only when `nutritional_tag_ids.length > 0`).
 
+Each MealItem SHALL display its name as a clickable link: recipe items link to `/recipes/{recipe_slug}`, ingredient items link to `/ingredients/{ingredient_slug}`. Items without a linkable ID (display_name-only items) SHALL remain as plain text.
+
 #### Scenario: User views meal plan detail
 - **WHEN** an authenticated user with access navigates to `/meal-plans/:id`
 - **THEN** the system shows the plan name, days with meals, and items per meal
@@ -84,6 +86,19 @@ The system SHALL display a meal plan detail view at `/meal-plans/:id` with a day
 #### Scenario: User filters nutrition by day
 - **WHEN** the user selects a specific day from the horizontal day selector in the nutrition tab
 - **THEN** the system fetches and displays nutrition totals specifically aggregated for that day
+
+#### Scenario: Ingredient name is clickable
+- **WHEN** a MealItem has an `ingredient_id`
+- **THEN** the ingredient name is rendered as a clickable link to `/ingredients/{ingredient_slug}`
+- **AND** the link follows existing interaction patterns (hover color, transition)
+
+#### Scenario: Recipe name remains clickable
+- **WHEN** a MealItem has a `recipe_id`
+- **THEN** the recipe name links to `/recipes/{recipe_slug}` (unchanged from current behavior)
+
+#### Scenario: Display-name item is not clickable
+- **WHEN** a MealItem has only `display_name` (no recipe_id or ingredient_id)
+- **THEN** the name is rendered as plain text (unchanged from current behavior)
 
 ### Requirement: Meal plan editing
 The system SHALL allow users with edit permission to add/remove days, add/remove meals, and add/remove recipe items.
@@ -234,3 +249,43 @@ Die Inline-Such-Ergebnisliste im MealSlot MUSS für jeden Vorschlag anzeigen: Am
 #### Scenario: Inline-Ergebnis ohne Preis
 - **WHEN** ein Rezept keinen Preis hat (price_per_serving null)
 - **THEN** "—" wird anstelle des Preises angezeigt
+
+<!-- Added by breakfast-wizard-direct-meal -->
+
+### Requirement: Frühstücksassistent-Button im MealSlot
+
+Der MealSlot-Component SHALL für Frühstück-Mahlzeiten (`meal.meal_type === 'breakfast'`) einen "Frühstücksassistent"-Button anzeigen, der den Wizard im DirectMeal-Mode öffnet. Der Button SHALL nur sichtbar sein, wenn `canEdit` true ist und das Meal kein externes Meal ist (`!meal.is_external`).
+
+#### Scenario: Button im leeren Frühstück-Slot
+- **WHEN** ein MealSlot für Frühstück keine Items hat, `canEdit` true und `is_external` false
+- **THEN** wird der "Frühstücksassistent"-Button prominent unter dem existierenden "Rezept oder Zutat wählen"-Button angezeigt
+- **AND** der Button zeigt ein Wizard-Icon und den Text "Frühstücksassistent"
+
+#### Scenario: Button im Frühstück-Slot mit Items
+- **WHEN** ein MealSlot für Frühstück bereits Items hat, `canEdit` true und `is_external` false
+- **THEN** wird ein kompakter "Frühstücksassistent"-Button in der Header-Zeile des MealSlots angezeigt (neben dem Meal-Typ-Label)
+
+#### Scenario: Button nicht im Nicht-Frühstück-Slot
+- **WHEN** ein MealSlot für Mittagessen, Abendessen oder Snack angezeigt wird
+- **THEN** wird der "Frühstücksassistent"-Button NICHT angezeigt
+
+#### Scenario: Button nicht bei fehlender Edit-Berechtigung
+- **WHEN** `canEdit` ist `false`
+- **THEN** wird der "Frühstücksassistent"-Button NICHT angezeigt
+
+#### Scenario: Button nicht bei externem Meal
+- **WHEN** `meal.is_external` ist `true`
+- **THEN** wird der "Frühstücksassistent"-Button NICHT angezeigt
+
+#### Scenario: Button nicht bei verknüpftem Meal
+- **WHEN** `meal.is_synced` ist `true` (Meal ist mit einem RefMeal verknüpft)
+- **THEN** wird der "Frühstücksassistent"-Button NICHT angezeigt
+
+#### Scenario: Klick auf Button im leeren Slot
+- **WHEN** der Nutzer auf "Frühstücksassistent" in einem leeren Frühstück-Slot klickt
+- **THEN** navigiert die App direkt zu `/meal-plans/{planId}/meals/{mealId}/breakfast-wizard`
+
+#### Scenario: Klick auf Button im Slot mit Items
+- **WHEN** der Nutzer auf "Frühstücksassistent" in einem Frühstück-Slot mit bestehenden Items klickt
+- **THEN** öffnet zuerst der Überschreib-Warn-Dialog
+- **AND** erst nach Bestätigung navigiert die App zum Wizard

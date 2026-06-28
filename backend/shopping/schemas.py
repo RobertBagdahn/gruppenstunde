@@ -214,6 +214,7 @@ class ShoppingListDetailOut(Schema):
     items: list[ShoppingListItemOut] = []
     collaborators: list[ShoppingListCollaboratorOut] = []
     can_edit: bool = False
+    is_owner: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -236,6 +237,10 @@ class ShoppingListDetailOut(Schema):
     @staticmethod
     def resolve_can_edit(obj) -> bool:
         return getattr(obj, "_can_edit", False)
+
+    @staticmethod
+    def resolve_is_owner(obj) -> bool:
+        return getattr(obj, "_is_owner", False)
 
 
 def _format_weight(weight_g: float) -> str:
@@ -294,21 +299,7 @@ class FromRecipeIn(Schema):
     portions: int = 1
 
 
-class UserSimpleOut(Schema):
-    """Minimal user info for collaborator selection."""
-
-    id: int
-    username: str
-
-
-class PaginatedUserOut(Schema):
-    """Paginated response for user search results."""
-
-    items: list[UserSimpleOut]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+from core.schemas import UserSimpleOut, PaginatedUserOut  # noqa: F401 — re-export for backward compat
 
 
 # --- Pagination ---

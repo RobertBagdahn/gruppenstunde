@@ -112,8 +112,6 @@ def generate_shopping_list(
     # Track raw quantities for items with weight_g=0: ingredient_id -> (total_quantity, portion_name)
     raw_quantities: dict[int, tuple[float, str]] = {}
 
-    from planner.services.split_service import get_included_fractions
-
     for mi in meal_items:
         meal = mi.meal
         if meal and meal.override_portions is not None:
@@ -127,11 +125,8 @@ def generate_shopping_list(
 
         if mi.recipe:
             recipe = mi.recipe
-            # Use prefetched recipe_items (no extra query)
             recipe_items = list(recipe.recipe_items.all())
-
-            # Split-aware: fraction of portions each recipe item is included for.
-            included_fractions = get_included_fractions(mi, recipe_items, effective_portions)
+            active_ids = set(mi.active_recipe_item_ids or [])
 
             for ri in recipe_items:
                 if not ri.portion:
@@ -139,21 +134,20 @@ def generate_shopping_list(
 
                 ing = ri.portion.ingredient
                 if not ing:
-                    # Skip items without linked ingredient (can't aggregate)
                     continue
 
-                fraction = included_fractions.get(ri.id, 1.0)
-                if fraction <= 0:
-                    continue
+                # Base items always included; exchange/optional only if in active_ids
+                if ri.exchange_group_id is not None or ri.is_optional:
+                    if ri.id not in active_ids:
+                        continue
 
                 recipe_servings = getattr(recipe, "portions", 1) or 1
                 weight_g = (
-                    ri.quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling * fraction / recipe_servings
+                    ri.quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
                 )
 
-                # Track raw quantity for items where portion has no weight
                 if not ri.portion.weight_g:
-                    raw_qty = ri.quantity * mi.factor * meal_scaling * fraction / recipe_servings
+                    raw_qty = ri.quantity * mi.factor * meal_scaling / recipe_servings
                     portion_name = ri.portion.name or ""
                     if ing.id in raw_quantities:
                         raw_quantities[ing.id] = (

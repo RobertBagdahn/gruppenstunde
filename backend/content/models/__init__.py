@@ -5,6 +5,7 @@ Re-exports all models so that existing imports like
 ``from content.models import Content`` continue to work.
 """
 
+from .ai_interaction import AiInteraction
 from .approval import ApprovalLog, FeaturedContent
 from .audit import ChangeAuditLog
 from .core import (
@@ -21,6 +22,7 @@ from .search import SearchLog
 from .tags import ScoutLevel, Tag, TagSuggestion
 
 __all__ = [
+    "AiInteraction",
     "AllObjectsManager",
     "ApprovalLog",
     "ChangeAuditLog",

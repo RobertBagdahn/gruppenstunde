@@ -5,6 +5,7 @@
 import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  MealPlanCollaboratorSchema,
   MealPlanSchema,
   MealPlanDetailSchema,
   MealSchema,
@@ -14,9 +15,9 @@ import {
   ShoppingListItemSchema,
   UnifiedSearchResponseSchema,
   RecipePopularResponseSchema,
-  MealItemSplitSchema,
-  MealItemSplitBulkSetSchema,
-  type MealItemSplitIn,
+  MealItemVariantInSchema,
+  type MealItemVariantIn,
+  type MealPlanCollaborator,
   type RecipePopularResponse,
   type MealPlan,
   type MealPlanDetail,
@@ -135,10 +136,10 @@ export function useMealPlan(id: number) {
   });
 }
 
-export function useAllergenScan(mealPlanId: number) {
+export function useIngredientScan(mealPlanId: number) {
   return useQuery<NutritionalTagScanResponse>({
-    queryKey: ['meal-plan-allergen-scan', mealPlanId],
-    queryFn: () => fetchJson(`${API_BASE}/${mealPlanId}/allergen-scan/`, NutritionalTagScanResponseSchema),
+    queryKey: ['meal-plan-ingredient-scan', mealPlanId],
+    queryFn: () => fetchJson(`${API_BASE}/${mealPlanId}/ingredient-scan/`, NutritionalTagScanResponseSchema),
     enabled: mealPlanId > 0,
   });
 }
@@ -180,7 +181,7 @@ export function useUpdateMealPlan(id: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
       queryClient.invalidateQueries({ queryKey: ['meal-plan', id] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan-allergen-scan', id] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan-ingredient-scan', id] });
     },
   });
 }
@@ -574,50 +575,26 @@ export function useCookingSchedule(mealPlanId: number | undefined) {
 }
 
 // ==========================================================================
-// MealItem Splits (8.5, 8.6, 8.7)
+// Variant Item Batch & Factor Update
 // ==========================================================================
 
-export function useMealItemSplits(mealPlanId: number, mealItemId: number) {
-  return useQuery({
-    queryKey: ['meal-item-splits', mealPlanId, mealItemId] as const,
-    queryFn: () =>
-      fetchJson(
-        `${API_BASE}/${mealPlanId}/meal-items/${mealItemId}/splits/`,
-        z.array(MealItemSplitSchema),
-      ),
-    enabled: mealPlanId > 0 && mealItemId > 0,
-  });
-}
-
-/** Validate that shares sum to 1.0 per exchange group before submitting. */
-function validateSplitShares(splits: MealItemSplitIn[]): boolean {
-  // In the frontend we cannot group by exchange group (we'd need recipe item data).
-  // Simple check: total sum must be ≤ number of groups × 1.0. The backend enforces
-  // the per-group constraint; here we just prevent obviously invalid payloads.
-  if (splits.length === 0) return true;
-  const total = splits.reduce((s, x) => s + x.share, 0);
-  // Allow small floating point tolerance; exact per-group validation is backend's job.
-  return total > 0;
-}
-
-export function useSetMealItemSplits(mealPlanId: number, mealItemId: number) {
+export function useBatchCreateMealItems(mealPlanId: number, mealId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (splits: MealItemSplitIn[]) => {
-      if (!validateSplitShares(splits)) {
-        throw new Error('Die Summe der Anteile muss größer als 0 sein.');
-      }
-      const validated = MealItemSplitBulkSetSchema.parse(splits);
+    mutationFn: async (
+      items: MealItemVariantIn[],
+    ) => {
+      const validated = z.array(MealItemVariantInSchema).parse(items);
       const res = await fetch(
-        `${API_BASE}/${mealPlanId}/meal-items/${mealItemId}/splits/`,
+        `${API_BASE}/${mealPlanId}/meals/${mealId}/items/batch/`,
         {
-          method: 'PUT',
+          method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCsrfToken(),
           },
-          body: JSON.stringify(validated),
+          body: JSON.stringify({ items: validated }),
         },
       );
       if (!res.ok) {
@@ -625,34 +602,59 @@ export function useSetMealItemSplits(mealPlanId: number, mealItemId: number) {
         throw new Error(errBody.detail || `API error: ${res.status}`);
       }
       const data = await res.json();
-      return z.array(MealItemSplitSchema).parse(data);
+      return z.array(MealItemSchema).parse(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-item-splits', mealPlanId, mealItemId] });
       queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
     },
   });
 }
 
-export function useDeleteMealItemSplits(mealPlanId: number, mealItemId: number) {
+// ==========================================================================
+// Collaborator Hooks
+// ==========================================================================
+
+export function useMealPlanCollaborators(planId: number) {
+  return useQuery<MealPlanCollaborator[]>({
+    queryKey: ['meal-plan', planId, 'collaborators'],
+    queryFn: () =>
+      fetchJson(`${API_BASE}/${planId}/collaborators/`, z.array(MealPlanCollaboratorSchema)),
+    enabled: planId > 0,
+  });
+}
+
+export function useAddMealPlanCollaborator(planId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      const res = await fetch(
-        `${API_BASE}/${mealPlanId}/meal-items/${mealItemId}/splits/`,
-        {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: { 'X-CSRFToken': getCsrfToken() },
-        },
-      );
-      if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
-      }
-    },
+    mutationFn: (payload: { user_id: number; role?: string }) =>
+      postJson(`${API_BASE}/${planId}/collaborators/`, payload, MealPlanCollaboratorSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-item-splits', mealPlanId, mealItemId] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId, 'collaborators'] });
+    },
+  });
+}
+
+export function useUpdateMealPlanCollaborator(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ collabId, role }: { collabId: number; role: string }) =>
+      patchJson(`${API_BASE}/${planId}/collaborators/${collabId}/`, { role }, MealPlanCollaboratorSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId, 'collaborators'] });
+    },
+  });
+}
+
+export function useRemoveMealPlanCollaborator(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (collabId: number) =>
+      deleteJson(`${API_BASE}/${planId}/collaborators/${collabId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId, 'collaborators'] });
     },
   });
 }

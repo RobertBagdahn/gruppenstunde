@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShoppingCart, RefreshCw, ChevronRight, ChevronDown, Store } from 'lucide-react';
-import { useShoppingList, useAllergenScan } from '@/api/mealPlans';
+import { useShoppingList, useIngredientScan } from '@/api/mealPlans';
 import type { NutritionalTagViolation } from '@/schemas/mealPlan';
 import { useCurrentUser } from '@/api/auth';
 import { useCreateFromMealPlan } from '@/api/shoppingLists';
@@ -153,7 +153,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
   const navigate = useNavigate();
   const { data: currentUser } = useCurrentUser();
   const { data, error, isLoading, refetch } = useShoppingList(mealPlanId);
-  const { data: scanData } = useAllergenScan(mealPlanId);
+  const { data: scanData } = useIngredientScan(mealPlanId);
   const createFromMealPlan = useCreateFromMealPlan();
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;

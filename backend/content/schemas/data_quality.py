@@ -91,6 +91,19 @@ class MergeRequestIn(Schema):
     target_id: int
 
 
+class RecipeDismissRequestIn(Schema):
+    recipe_a_id: int
+    recipe_b_id: int
+
+
+class RecipeMergePreviewOut(Schema):
+    source_id: int
+    source_name: str
+    target_id: int
+    target_name: str
+    affected_meal_count: int
+
+
 class DismissRequestIn(Schema):
     ingredient_a_id: int
     ingredient_b_id: int

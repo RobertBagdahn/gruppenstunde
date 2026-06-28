@@ -285,11 +285,10 @@ export function useCreateFromMealPlan() {
 
 // --- Users (for collaborator invite) ---
 
-const UserSimpleSchema = z.object({ id: z.number(), username: z.string() });
+import { useUsers as useGenericUsers } from './users';
 
+/** @deprecated Use useUsers from ./users instead. This wrapper provides backward-compat array response. */
 export function useUsers() {
-  return useQuery({
-    queryKey: ['shopping-list-users'],
-    queryFn: () => fetchJson(`${API_BASE}/users/`, z.array(UserSimpleSchema)),
-  });
+  const { data, ...rest } = useGenericUsers();
+  return { data: data?.items ?? [], ...rest };
 }

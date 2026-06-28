@@ -14,6 +14,7 @@ import {
   Lightbulb,
   ShieldAlert,
   ChefHat,
+  Share2,
 } from 'lucide-react';
 import {
   useMealPlan,
@@ -41,9 +42,10 @@ import NutritionView from './NutritionView';
 import ShoppingView from './ShoppingView';
 import { DayPlanView } from './DayPlanView';
 import { CopyFromPlanDialog } from './CopyFromPlanDialog';
-import AllergenScanView from './AllergenScanView';
-import SplitConfigDialog from '@/components/meal/SplitConfigDialog';
+import IngredientScanView from './IngredientScanView';
+import VariantSliderDialog from '@/components/meal/VariantSliderDialog';
 import { useRecipeItems } from '@/api/recipes';
+import MealPlanCollaboratorManager from '@/components/planner/MealPlanCollaboratorManager';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -89,18 +91,19 @@ export default function MealPlanDetailPage() {
   const scaleMealMutation = useScaleMealToTarget(mealPlanId);
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'allergens'>('plan');
+  const [activeTab, setActiveTab] = useState<'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'ingredient-scan'>('plan');
 
-  // Split config dialog state (tasks 11.1–11.7)
-  const [splitDialog, setSplitDialog] = useState<{
+  // Variant dialog state
+  const [variantDialog, setVariantDialog] = useState<{
     open: boolean;
+    mealId: number;
     mealItemId: number;
     recipeId: number;
     effectivePortions: number;
-  }>({ open: false, mealItemId: 0, recipeId: 0, effectivePortions: 0 });
+  }>({ open: false, mealId: 0, mealItemId: 0, recipeId: 0, effectivePortions: 0 });
 
-  const { data: splitDialogRecipeItems, isLoading: splitDialogItemsLoading, isFetching: splitDialogItemsFetching } = useRecipeItems(
-    splitDialog.open ? splitDialog.recipeId : 0,
+  const { data: variantDialogRecipeItems, isLoading: variantDialogLoading, isFetching: variantDialogFetching } = useRecipeItems(
+    variantDialog.open ? variantDialog.recipeId : 0,
   );
 
   // Delete confirmations
@@ -113,6 +116,7 @@ export default function MealPlanDetailPage() {
 
   // Edit settings
   const [showSettings, setShowSettings] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   // Group meals by date for display
   const dayGroups = useMemo(() => {
@@ -123,7 +127,7 @@ export default function MealPlanDetailPage() {
   // Reset to the default tab if the active tab is no longer available
   // (e.g. the allergens tab when all nutritional tags were removed).
   useEffect(() => {
-    if (activeTab === 'allergens' && !(plan?.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)) {
+    if (activeTab === 'ingredient-scan' && !(plan?.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)) {
       setActiveTab('plan');
     }
   }, [activeTab, plan?.nutritional_tag_ids]);
@@ -214,7 +218,6 @@ export default function MealPlanDetailPage() {
   };
 
   const handleAddRecipe = (mealId: number, recipeId: number) => {
-    // Find effective portions for this meal
     const meal = plan?.meals?.find((m) => m.id === mealId);
     const effectivePortions =
       meal?.override_portions ?? plan?.norm_portions ?? 10;
@@ -224,12 +227,10 @@ export default function MealPlanDetailPage() {
       {
         onSuccess: (newItem) => {
           toast.success('Rezept hinzugefügt');
-          // Task 11.1: check if recipe has exchanges/optionals — open split dialog if so.
-          // We fetch recipe items in the background and open the dialog when ready.
-          // The dialog will close itself if no exchange/optional items exist (task 11.7).
           if (newItem && typeof newItem === 'object' && 'id' in newItem) {
-            setSplitDialog({
+            setVariantDialog({
               open: true,
+              mealId,
               mealItemId: (newItem as { id: number }).id,
               recipeId,
               effectivePortions,
@@ -279,7 +280,7 @@ export default function MealPlanDetailPage() {
     costs: DollarSign,
     shopping: ShoppingCart,
     suggestions: Lightbulb,
-    allergens: ShieldAlert,
+    'ingredient-scan': ShieldAlert,
   };
 
   return (
@@ -325,6 +326,13 @@ export default function MealPlanDetailPage() {
             <span className="material-symbols-outlined text-[18px]">print</span>
             Drucken
           </a>
+          <button
+            onClick={() => setShowShare(!showShare)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+          >
+            <Share2 className="w-4 h-4 text-primary" />
+            Teilen
+          </button>
           {plan.can_edit && (
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -342,6 +350,14 @@ export default function MealPlanDetailPage() {
         <SettingsPanel plan={plan} onSave={handleSaveSettings} isPending={updateMutation.isPending} />
       )}
 
+      {/* Share / Collaborator Panel */}
+      {showShare && (
+        <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
+          <h3 className="font-display font-bold text-lg text-foreground">Essensplan teilen</h3>
+          <MealPlanCollaboratorManager planId={mealPlanId} isOwner={plan.is_owner} />
+        </div>
+      )}
+
       {/* Tab Bar */}
       <div className="flex gap-1 border-b border-border overflow-x-auto">
         {[
@@ -351,8 +367,8 @@ export default function MealPlanDetailPage() {
           { key: 'costs' as const, label: 'Kosten' },
           { key: 'shopping' as const, label: 'Einkaufsliste' },
           { key: 'suggestions' as const, label: 'Vorschläge' },
-          { key: 'allergens' as const, label: 'Allergie-Scanner' },
-        ].filter(tab => tab.key !== 'allergens' || (plan.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)).map((tab) => {
+          { key: 'ingredient-scan' as const, label: 'Zutaten-Radar' },
+        ].filter(tab => tab.key !== 'ingredient-scan' || (plan.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)).map((tab) => {
           const IconComponent = TAB_ICONS[tab.key];
           return (
             <button
@@ -422,8 +438,8 @@ export default function MealPlanDetailPage() {
        {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} meals={plan.meals} onSelectTab={setActiveTab} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
       {activeTab === 'suggestions' && <SuggestionDashboard mealPlanId={mealPlanId} />}
-      {activeTab === 'allergens' && (
-        <AllergenScanView
+      {activeTab === 'ingredient-scan' && (
+        <IngredientScanView
           mealPlanId={mealPlanId}
           canEdit={plan.can_edit}
           onOpenSettings={() => setShowSettings(true)}
@@ -501,16 +517,17 @@ export default function MealPlanDetailPage() {
         targetPlanId={mealPlanId}
       />
 
-      {/* Split Config Dialog (tasks 11.2–11.7) */}
-      <SplitConfigDialog
+      {/* Variant Config Dialog */}
+      <VariantSliderDialog
         mealPlanId={mealPlanId}
-        mealItemId={splitDialog.mealItemId}
-        recipeItems={splitDialogRecipeItems ?? []}
-        effectivePortions={splitDialog.effectivePortions}
-        open={splitDialog.open}
-        onClose={() => setSplitDialog((prev) => ({ ...prev, open: false }))}
-        isLoading={splitDialogItemsLoading}
-        isFetching={splitDialogItemsFetching}
+        mealId={variantDialog.mealId}
+        recipeId={variantDialog.recipeId}
+        recipeItems={variantDialogRecipeItems ?? []}
+        effectivePortions={variantDialog.effectivePortions}
+        open={variantDialog.open}
+        onClose={() => setVariantDialog((prev) => ({ ...prev, open: false }))}
+        isLoading={variantDialogLoading}
+        isFetching={variantDialogFetching}
       />
     </div>
   );

@@ -11,7 +11,9 @@ import {
   type PriceApplyRequest,
   PaginatedDuplicatePairSchema,
   MergePreviewSchema,
+  RecipeMergePreviewSchema,
   type MergeRequest,
+  type RecipeDismissRequest,
   PaginatedCompletenessSchema,
   MissingClassificationSchema,
   NutritionPlausibilitySchema,
@@ -191,6 +193,56 @@ export function useMergeIngredients() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-duplicates'] });
       queryClient.invalidateQueries({ queryKey: ['merge-preview'] });
+    },
+  });
+}
+
+// ============================================================================
+// Recipe Duplicate Detection
+// ============================================================================
+
+export function useRecipeMergePreview(sourceId: number, targetId: number) {
+  return useQuery({
+    queryKey: ['recipe-merge-preview', sourceId, targetId] as const,
+    queryFn: async () => {
+      const data = await fetchJson(
+        `${ADMIN_DQ}/recipes/merge/preview/?source_id=${sourceId}&target_id=${targetId}`
+      );
+      return RecipeMergePreviewSchema.parse(data);
+    },
+    enabled: !!sourceId && !!targetId,
+  });
+}
+
+export function useRecipeMerge() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: MergeRequest) => postJson(`${ADMIN_DQ}/recipes/merge/`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-merge-preview'] });
+    },
+  });
+}
+
+export function useRecipeDismissDuplicate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: RecipeDismissRequest) =>
+      postJson(`${ADMIN_DQ}/recipes/duplicates/dismiss/`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-duplicates'] });
+    },
+  });
+}
+
+export function useRecipeUndismissDuplicate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ recipe_a_id, recipe_b_id }: RecipeDismissRequest) =>
+      deleteJson(`${ADMIN_DQ}/recipes/duplicates/dismiss/?a=${recipe_a_id}&b=${recipe_b_id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-duplicates'] });
     },
   });
 }

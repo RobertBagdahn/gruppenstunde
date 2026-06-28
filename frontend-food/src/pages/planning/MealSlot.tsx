@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   PlusCircle,
@@ -10,9 +10,10 @@ import {
   Search,
   Shuffle,
   Clock,
+  Sparkles,
 } from 'lucide-react';
-import { useRecipeSuggestions, useRandomRecipeSuggestion, useAllergenScan } from '@/api/mealPlans';
-import { AllergenWarningBadge } from '@/components/shared/AllergenWarningBadge';
+import { useRecipeSuggestions, useRandomRecipeSuggestion, useIngredientScan } from '@/api/mealPlans';
+import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import RecipeBadge from '@/components/recipe/RecipeBadge';
 import CategoryPills, { RECIPE_TYPE_LABELS } from '@/components/recipe/CategoryPills';
 import {
@@ -74,7 +75,8 @@ export function MealSlot({
 }) {
   const { id } = useParams<{ id: string }>();
   const mealPlanId = Number(id) || 0;
-  const { data: scanData } = useAllergenScan(mealPlanId);
+  const navigate = useNavigate();
+  const { data: scanData } = useIngredientScan(mealPlanId);
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,6 +85,24 @@ export function MealSlot({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [randomPreviewRecipe, setRandomPreviewRecipe] = useState<RecipeSearchResult | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [showWizardWarning, setShowWizardWarning] = useState(false);
+
+  const excludedRecipeIds = useMemo(
+    () => new Set(meal.items.filter((i) => i.recipe_id != null).map((i) => i.recipe_id!)),
+    [meal.items],
+  );
+  const excludedIngredientIds = useMemo(
+    () => new Set(meal.items.filter((i) => i.ingredient_id != null).map((i) => i.ingredient_id!)),
+    [meal.items],
+  );
+
+  const handleOpenWizard = () => {
+    if (meal.items.length > 0) {
+      setShowWizardWarning(true);
+    } else {
+      navigate(`/meal-plans/${mealPlanId}/meals/${meal.id}/breakfast-wizard`);
+    }
+  };
 
   const openSearch = () => {
     const defaults = new Set(MEAL_TYPE_DEFAULT_RECIPE_TYPES[meal.meal_type] ?? []);
@@ -207,13 +227,24 @@ export function MealSlot({
           {canEdit && (
             <>
               {!meal.is_synced && !meal.is_external && (
-                <button
-                  onClick={openSearch}
-                  className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
-                  title="Rezept hinzufügen"
-                >
-                  <PlusCircle className="w-4.5 h-4.5 text-primary" />
-                </button>
+                <>
+                  {meal.meal_type === 'breakfast' && !isEmpty && (
+                    <button
+                      onClick={handleOpenWizard}
+                      className="p-1 rounded text-chart-4 hover:bg-chart-4/10 transition-colors"
+                      title="Frühstücksassistent"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={openSearch}
+                    className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
+                    title="Rezept hinzufügen"
+                  >
+                    <PlusCircle className="w-4.5 h-4.5 text-primary" />
+                  </button>
+                </>
               )}
               <MealActionsMenu
                 meal={meal}
@@ -300,6 +331,15 @@ export function MealSlot({
             <Search className="w-4 h-4" />
             Rezept oder Zutat wählen
           </button>
+          {meal.meal_type === 'breakfast' && (
+            <button
+              onClick={handleOpenWizard}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-chart-4/30 text-chart-4 hover:bg-chart-4/5 transition-colors text-sm font-medium"
+            >
+              <Sparkles className="w-4 h-4" />
+              Frühstücksassistent
+            </button>
+          )}
           <div className="flex gap-2">
             <button
               onClick={handleRandomSuggest}
@@ -327,73 +367,191 @@ export function MealSlot({
         </p>
       )}
 
-       {meal.items.map((item) => {
-         const isIngredient = !item.recipe_id && item.ingredient_id;
-         const itemViolations = scanData?.violations.filter(
-           (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
-         ) || [];
-         const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
-         const displayName = isIngredient ? item.ingredient_name : item.recipe_title;
+       {(() => {
+         // Group variant items by variant_group_id, keep regular items separate
+         const regularItems: typeof meal.items = [];
+         const variantGroups = new Map<string, typeof meal.items>();
+         for (const item of meal.items) {
+           if (item.factor < 0.01) continue;
+           if (item.variant_group_id) {
+             const existing = variantGroups.get(item.variant_group_id) ?? [];
+             existing.push(item);
+             variantGroups.set(item.variant_group_id, existing);
+           } else {
+             regularItems.push(item);
+           }
+         }
 
-         return (
-           <div key={item.id} className={`flex items-start gap-2 pl-7 py-1.5 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
-             {item.recipe_image && (
-               <img
-                 src={item.recipe_image}
-                 alt={displayName}
-                 className="w-10 h-10 rounded object-cover flex-shrink-0"
-                 loading="lazy"
-               />
-             )}
-             <div className="flex-1 min-w-0">
-               <div className="flex items-center gap-1.5 flex-wrap">
-                 {isIngredient ? (
-                   <span className="text-base truncate block font-medium">
-                     {displayName}
-                   </span>
-                 ) : (
-                   <Link
-                     to={`/recipes/${item.recipe_slug}`}
-                     className="text-base hover:text-primary transition-colors truncate block font-medium"
-                   >
-                     {displayName}
-                   </Link>
-                 )}
-                 {isIngredient && (
-                   <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">
-                     Zutat
-                   </span>
-                 )}
-                 <AllergenWarningBadge allergenTags={itemAllergenTags} />
-               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {item.energy_kcal != null && (
-                  <span>{Math.round(item.energy_kcal / effPortions)} kcal</span>
-                )}
-                {item.cost_eur != null && (
-                  <span>{(item.cost_eur / effPortions).toFixed(2)} €</span>
-                )}
-                {canEdit && !meal.is_synced ? (
-                  <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor(item.id, f)} />
-                ) : (
-                  item.factor !== 1.0 && <span>&times;{item.factor.toFixed(1).replace('.', ',')}</span>
-                )}
+         const rendered: React.ReactNode[] = [];
+
+         // Render regular items
+         for (const item of regularItems) {
+           const isIngredient = !item.recipe_id && item.ingredient_id;
+           const itemViolations = scanData?.violations.filter(
+             (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
+           ) || [];
+           const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+           const displayName = isIngredient ? item.ingredient_name : item.recipe_title;
+
+            rendered.push(
+              <div key={item.id} className="pl-7 py-1">
+                <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
+                  <div className="flex items-start gap-3">
+                    {item.recipe_image && (
+                      <img
+                        src={item.recipe_image}
+                        alt={displayName}
+                        className="w-10 h-10 rounded object-cover flex-shrink-0"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {item.recipe_id && item.recipe_slug ? (
+                          <Link
+                            to={`/recipes/${item.recipe_slug}`}
+                            className="text-base hover:text-primary transition-colors truncate block font-medium"
+                          >
+                            {displayName}
+                          </Link>
+                        ) : item.ingredient_id ? (
+                          <Link
+                            to={`/ingredients/${item.ingredient_slug}`}
+                            className="text-base hover:text-primary transition-colors truncate block font-medium"
+                          >
+                            {displayName}
+                          </Link>
+                        ) : (
+                          <span className="text-base truncate block font-medium">
+                            {displayName}
+                          </span>
+                        )}
+                        {isIngredient && (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-muted text-muted-foreground shrink-0">
+                            Zutat
+                          </span>
+                        )}
+                        <NutriTagBadge allergenTags={itemAllergenTags} />
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {item.energy_kcal != null && (
+                          <span>{Math.round(item.energy_kcal / effPortions)} kcal</span>
+                        )}
+                        {item.cost_eur != null && (
+                          <span>{(item.cost_eur / effPortions).toFixed(2)} €</span>
+                        )}
+                         {canEdit && !meal.is_synced ? (
+                           <>
+                             {isIngredient && item.quantity != null && (
+                               <span className="text-xs text-muted-foreground">
+                                 &times;{item.quantity}
+                                 {item.measuring_unit_name ? ` ${item.measuring_unit_name}` : ''}
+                               </span>
+                             )}
+                             <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor(item.id, f)} />
+                           </>
+                         ) : (
+                           <>
+                             {isIngredient && item.quantity != null && (
+                               <span>&times;{item.quantity}{item.measuring_unit_name ? ` ${item.measuring_unit_name}` : ''}</span>
+                             )}
+                             {item.factor !== 1.0 && <span>&times;{item.factor.toFixed(2).replace('.', ',')}</span>}
+                           </>
+                         )}
+                      </div>
+                    </div>
+                    {canEdit && !meal.is_synced && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button
+                          onClick={() => onDeleteItem(item.id)}
+                          className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                          title="Entfernen"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-            {canEdit && !meal.is_synced && (
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                <button
-                  onClick={() => onDeleteItem(item.id)}
-                  className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
-                  title="Entfernen"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+           );
+         }
+
+         // Render variant groups (with recipe header + indented children)
+         for (const [groupId, variants] of variantGroups) {
+           const first = variants[0];
+           const itemViolations = scanData?.violations.filter(
+             (v) => v.meal_id === meal.id && v.recipe_id === first.recipe_id
+           ) || [];
+           const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+
+            rendered.push(
+              <div key={groupId} className="pl-7 py-1">
+                <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30`}>
+                  {/* Recipe header */}
+                  <div className="flex items-center gap-2 mb-1">
+                    {first.recipe_image && (
+                      <img
+                        src={first.recipe_image}
+                        alt={first.recipe_title}
+                        className="w-10 h-10 rounded object-cover flex-shrink-0"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {first.recipe_id && first.recipe_slug ? (
+                          <Link
+                            to={`/recipes/${first.recipe_slug}`}
+                            className="text-base hover:text-primary transition-colors truncate block font-medium"
+                          >
+                            {first.recipe_title}
+                          </Link>
+                        ) : (
+                          <span className="text-base truncate block font-medium">
+                            {first.recipe_title}
+                          </span>
+                        )}
+                        <NutriTagBadge allergenTags={itemAllergenTags} />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Variant children */}
+                  <div className="space-y-1">
+                    {variants.map((v) => (
+                      <div key={v.id} className="flex items-center gap-2 ml-6 py-0.5 group">
+                        <span className="text-sm text-muted-foreground flex-1">
+                          {v.display_name || v.recipe_title}
+                        </span>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {v.energy_kcal != null && (
+                            <span>{Math.round(v.energy_kcal / effPortions)} kcal</span>
+                          )}
+                          {canEdit && !meal.is_synced ? (
+                            <FactorInput value={v.factor} onChange={(f) => onUpdateItemFactor(v.id, f)} />
+                          ) : (
+                            <span className="text-xs">&times;{v.factor.toFixed(2).replace('.', ',')}</span>
+                          )}
+                        </div>
+                        {canEdit && !meal.is_synced && (
+                          <button
+                            onClick={() => onDeleteItem(v.id)}
+                            className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                            title="Entfernen"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        );
-      })}
+           );
+         }
+
+         return rendered;
+       })()}
 
       {/* Recipe Search */}
       {isSearching && (
@@ -481,7 +639,38 @@ export function MealSlot({
         }}
         nutritionalTagIds={nutritionalTagIds}
         nutritionalTagNames={nutritionalTagNames}
+        excludedRecipeIds={excludedRecipeIds}
+        excludedIngredientIds={excludedIngredientIds}
       />
+
+      {/* Warning dialog for overwriting existing items */}
+      {showWizardWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl shadow-xl border border-border p-6 max-w-sm mx-4 space-y-4">
+            <h3 className="font-display font-bold text-lg">Frühstück ersetzen?</h3>
+            <p className="text-sm text-muted-foreground">
+              Dieses Frühstück enthält bereits Einträge. Der Assistent wird alle vorhandenen Einträge ersetzen. Fortfahren?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowWizardWarning(false)}
+                className="px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  setShowWizardWarning(false);
+                  navigate(`/meal-plans/${mealPlanId}/meals/${meal.id}/breakfast-wizard`);
+                }}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Trotzdem ersetzen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Random Recipe Preview */}
       <RecipePreviewDialog

@@ -7,30 +7,29 @@ import { z } from 'zod';
 export const NutritionalTagSchema = z.object({
   id: z.number(),
   name: z.string(),
+  name_opposite: z.string(),
+  description: z.string(),
+  rank: z.number(),
+  is_dangerous: z.boolean(),
 });
 export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
 
 // ==========================================================================
-// MealItem Split
+// Variant Item (batch input)
 // ==========================================================================
 
-export const MealItemSplitSchema = z.object({
-  id: z.number(),
-  recipe_item_id: z.number(),
-  share: z.number().min(0).max(1),
+export const MealItemVariantInSchema = z.object({
+  recipe_id: z.number(),
+  factor: z.number().min(0.01).max(1),
+  display_name: z.string().nullable().optional(),
+  active_recipe_item_ids: z.array(z.number()),
 });
-export type MealItemSplit = z.infer<typeof MealItemSplitSchema>;
+export type MealItemVariantIn = z.infer<typeof MealItemVariantInSchema>;
 
-export const MealItemSplitInSchema = z.object({
-  recipe_item_id: z.number(),
-  share: z.number().min(0).max(1),
+export const MealItemBatchInSchema = z.object({
+  items: z.array(MealItemVariantInSchema),
 });
-export type MealItemSplitIn = z.infer<typeof MealItemSplitInSchema>;
-
-// Bulk-set: list of splits per meal item.
-// Frontend validates: Σ share per exchange group = 1.0 before submitting.
-export const MealItemSplitBulkSetSchema = z.array(MealItemSplitInSchema);
-export type MealItemSplitBulkSet = z.infer<typeof MealItemSplitBulkSetSchema>;
+export type MealItemBatchIn = z.infer<typeof MealItemBatchInSchema>;
 
 // ==========================================================================
 // MealItem Override
@@ -56,13 +55,18 @@ export const MealItemSchema = z.object({
   recipe_image: z.string().nullable(),
   ingredient_id: z.number().nullable(),
   ingredient_name: z.string(),
+  ingredient_slug: z.string(),
   quantity: z.number().nullable(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string(),
   display_name: z.string().nullable(),
   factor: z.number(),
+  active_recipe_item_ids: z.array(z.number()),
+  variant_group_id: z.string().nullable(),
   energy_kcal: z.number().nullable(),
   cost_eur: z.number().nullable(),
+  ingredient_tags: z.array(z.string()),
+  recipe_type: z.string(),
   overrides: z.array(MealItemOverrideSchema),
 });
 export type MealItem = z.infer<typeof MealItemSchema>;
@@ -121,12 +125,35 @@ export const MealPlanSchema = z.object({
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tag_names: z.array(z.string()).default([]),
   is_template: z.boolean().default(false),
+  is_owner: z.boolean().default(false),
+  collaborators_count: z.number().default(0),
 });
 export type MealPlan = z.infer<typeof MealPlanSchema>;
 
 // ==========================================================================
 // MealPlan Detail (with nested meals/items)
 // ==========================================================================
+
+// ==========================================================================
+// Collaborator
+// ==========================================================================
+
+export const COLLABORATOR_ROLE_LABELS: Record<string, string> = {
+  viewer: 'Betrachter',
+  editor: 'Bearbeiter',
+  admin: 'Admin',
+};
+
+export const MealPlanCollaboratorSchema = z.object({
+  id: z.number(),
+  user_id: z.number(),
+  username: z.string().default(''),
+  first_name: z.string().default(''),
+  last_name: z.string().default(''),
+  role: z.string(),
+  created_at: z.string(),
+});
+export type MealPlanCollaborator = z.infer<typeof MealPlanCollaboratorSchema>;
 
 export const MealPlanDetailSchema = z.object({
   id: z.number(),
@@ -150,6 +177,8 @@ export const MealPlanDetailSchema = z.object({
   meal_default_times: z.record(z.string(), z.array(z.string())),
   meals: z.array(MealSchema),
   can_edit: z.boolean(),
+  is_owner: z.boolean().default(false),
+  collaborators: z.array(MealPlanCollaboratorSchema).default([]),
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   is_template: z.boolean().default(false),
@@ -564,12 +593,6 @@ export const RefMealSchema = z.object({
 });
 export type RefMeal = z.infer<typeof RefMealSchema>;
 
-export const RefMealCreateInSchema = z.object({
-  meal_type: z.string(),
-  day_part_factor: z.number().optional(),
-});
-export type RefMealCreateIn = z.infer<typeof RefMealCreateInSchema>;
-
 export const RefMealItemInSchema = z.object({
   recipe_id: z.number().nullable().optional(),
   ingredient_id: z.number().nullable().optional(),
@@ -579,6 +602,13 @@ export const RefMealItemInSchema = z.object({
   factor: z.number().default(1.0),
 });
 export type RefMealItemIn = z.infer<typeof RefMealItemInSchema>;
+
+export const RefMealCreateInSchema = z.object({
+  meal_type: z.string(),
+  day_part_factor: z.number().optional(),
+  items: z.array(RefMealItemInSchema).optional(),
+});
+export type RefMealCreateIn = z.infer<typeof RefMealCreateInSchema>;
 
 export const RefMealUpdateInSchema = z.object({
   day_part_factor: z.number().optional(),
@@ -643,7 +673,7 @@ export const NutritionalTagViolationSchema = z.object({
   meal_id: z.number(),
   meal_type: z.string(),
   date: z.string(),
-  recipe_id: z.number(),
+  recipe_id: z.number().nullable(),
   recipe_title: z.string(),
   recipe_slug: z.string(),
   nutritional_tag: NutritionalTagSchema,
@@ -669,6 +699,12 @@ export type NutritionalTagScanResponse = z.infer<typeof NutritionalTagScanRespon
 // Cooking Schedule (Kochplan)
 // ==========================================================================
 
+export const CookingScheduleStepSchema = z.object({
+  text: z.string(),
+  timer: z.number().nullable(),
+});
+export type CookingScheduleStep = z.infer<typeof CookingScheduleStepSchema>;
+
 export const CookingScheduleIngredientSchema = z.object({
   name: z.string(),
   quantity: z.number(),
@@ -676,6 +712,7 @@ export const CookingScheduleIngredientSchema = z.object({
   note: z.string(),
   is_optional: z.boolean(),
   weight_g: z.number().nullable(),
+  nutritional_tags: z.array(NutritionalTagSchema).default([]),
 });
 export type CookingScheduleIngredient = z.infer<typeof CookingScheduleIngredientSchema>;
 
@@ -690,18 +727,37 @@ export const CookingScheduleItemSchema = z.object({
   portions: z.number(),
   steps: z.string(),
   ingredients: z.array(CookingScheduleIngredientSchema),
+  steps_parsed: z.array(CookingScheduleStepSchema).default([]),
+  nutritional_tags: z.array(NutritionalTagSchema).default([]),
+  total_cost_eur: z.number(),
+  total_energy_kcal: z.number(),
+  total_protein_g: z.number(),
+  total_fat_g: z.number(),
+  total_carbohydrate_g: z.number(),
+  meal_note: z.string(),
 });
 export type CookingScheduleItem = z.infer<typeof CookingScheduleItemSchema>;
 
 export const CookingScheduleDaySchema = z.object({
   date: z.string(),
   items: z.array(CookingScheduleItemSchema),
+  day_start_time: z.string(),
+  day_end_time: z.string(),
+  day_duration_minutes: z.number(),
+  portions: z.number(),
+  day_nutritional_tags: z.array(NutritionalTagSchema).default([]),
+  total_cost_eur: z.number(),
+  total_energy_kcal: z.number(),
 });
 export type CookingScheduleDay = z.infer<typeof CookingScheduleDaySchema>;
 
 export const CookingScheduleSchema = z.object({
   days: z.array(CookingScheduleDaySchema),
   excluded_meal_count: z.number(),
+  total_cost_eur: z.number(),
+  total_cost_with_reserve: z.number(),
+  total_energy_kcal: z.number(),
+  norm_portions: z.number(),
 });
 export type CookingSchedule = z.infer<typeof CookingScheduleSchema>;
 

@@ -1,14 +1,39 @@
 ### Requirement: Wizard-Einstieg über RefMeal-Frühstück
-Das System SHALL auf der Route `/meal-plans/:id/ref-meals/breakfast` den Frühstücks-Wizard öffnen, wenn der Nutzer "Referenz-Mahlzeit erstellen" wählt. Existiert bereits ein RefMeal für Frühstück, SHALL ein "Frühstücksassistent"-Button den Wizard mit den vorhandenen Mengen vorausgefüllt öffnen.
 
-#### Scenario: Wizard ohne vorhandenes RefMeal öffnen
-- **WHEN** kein RefMeal für `meal_type=breakfast` existiert und der Nutzer "Referenz-Mahlzeit erstellen" klickt
-- **THEN** öffnet sich der Frühstücks-Wizard bei Schritt 1 (Basis) mit leerem Zustand
-- **AND** es wird noch kein RefMeal in der Datenbank erstellt
+Das System SHALL den Frühstücks-Wizard über zwei Routen öffnen:
+1. `/meal-plans/:id/ref-meals/breakfast/wizard` — speichert als RefMeal und öffnet entweder einen leeren Wizard (kein RefMeal vorhanden) oder einen mit vorhandenen Daten vorausgefüllten Wizard (RefMeal existiert)
+2. `/meal-plans/:id/meals/:mealId/breakfast-wizard` — speichert direkt in das angegebene Meal (DirectMeal-Mode), kein RefMeal-Bezug
 
-#### Scenario: Wizard für vorhandenes RefMeal vorausgefüllt öffnen
-- **WHEN** ein RefMeal für Frühstück existiert und der Nutzer "Frühstücksassistent" klickt
-- **THEN** öffnet sich der Wizard mit aus den MealItems rekonstruierten Mengen und Verteilungen
+#### Scenario: Kein RefMeal → Redirect zu Wizard
+- **WHEN** der Nutzer `/meal-plans/:id/ref-meals/breakfast` aufruft und kein RefMeal mit `meal_type=breakfast` existiert
+- **THEN** erfolgt ein automatischer Redirect zu `/meal-plans/:id/ref-meals/breakfast/wizard`
+- **AND** der Wizard öffnet bei Schritt 1 (Basis) mit leerem Standardzustand
+
+#### Scenario: Wizard für vorhandenes RefMeal vollständig vorausgefüllt öffnen
+- **WHEN** ein RefMeal für Frühstück existiert (mit Basis, Belag und Getränke-Items) und der Nutzer "Frühstücksassistent" klickt
+- **THEN** öffnet sich der Wizard mit aus den MealItems rekonstruierten Mengen und Verteilungen für Basis, Belag UND Getränke (mlPerPerson, coffeePercent, cocoaPercent, teaPercent, coffeeMilkMlPerPerson, cocoaMilkMlPerPerson)
+- **AND** die Getränke-Slider in Schritt 4 zeigen die rekonstruierten Werte statt Default-Werte
+
+#### Scenario: Abbrechen im Edit-Mode kehrt zur Vorschau zurück
+- **WHEN** der Nutzer den Wizard für ein bestehendes RefMeal geöffnet hat und auf "Abbrechen" oder den ←-Pfeil klickt
+- **THEN** navigiert das System zurück zu `/meal-plans/:id/ref-meals/breakfast`
+- **AND** es werden keine Änderungen am RefMeal vorgenommen
+
+#### Scenario: Wizard im DirectMeal-Mode startet immer mit leerem Zustand
+- **WHEN** der Wizard über `/meal-plans/:id/meals/:mealId/breakfast-wizard` aufgerufen wird
+- **THEN** startet der Wizard mit einem leeren Zustand (keine Rekonstruktion aus MealItems)
+- **AND** der Progress-Bar und alle Steps sind identisch zum RefMeal-Mode
+
+### Requirement: Breakfast ingredient tagging
+
+Das System SHALL breakfast ingredients and recipes using `content.Tag` (not `NutritionalTag`):
+
+- Base ingredients (bread types) are tagged with `breakfast-base`
+- Topping ingredients (spreads, cheese, meat) are tagged with `breakfast-topping`
+- Drink recipes are tagged with `breakfast-drink`
+- Warm-meal recipes (scrambled eggs, pancakes) are tagged with `breakfast-warm-meal`
+
+The breakfast catalog endpoint SHALL filter by `content.Tag` slug. MealItem responses SHALL return tag slugs (e.g. `"breakfast-base"`) in the `ingredient_tags` field.
 
 ### Requirement: Brot-Einheit als Recheneinheit
 Das System SHALL eine Brot-Einheit (BE) als belegbare Fläche definieren: 1 Scheibe = 1 BE, ½ Brötchen = 1 BE, ganzes Brötchen = 2 BE. Eine Belag-Portion SHALL genau 1 BE decken.
@@ -111,7 +136,12 @@ Das System SHALL das Energie-Soll je Frühstück als `NORM_PERSON_DAILY_KCAL × 
 - **THEN** fließen alle Zutaten-Items in das Energie-Ist ein (nicht nur Rezept-Items)
 
 ### Requirement: Normalisieren skaliert Basis, Belag und Getränke
-Das System SHALL beim Normalisieren auf das Soll Basis-BE, Belag-Portionen und Getränke mit dem Faktor `Soll/Ist` multiplizieren. Gemüse/Extras und warme Rezepte MÜSSEN dabei unverändert bleiben. Die Belag-Deckung MUSS erhalten bleiben.
+Das System SHALL beim Normalisieren auf das Soll Basis-BE, Belag-Portionen und Getränke-Mengen mit dem Faktor `Soll/Ist` multiplizieren, wobei Soll und Ist nun kcal aus ALLEN Komponentengruppen einschließlich Getränken umfassen. Gemüse/Extras und warme Rezepte MÜSSEN dabei unverändert bleiben. Die Belag-Deckung MUSS erhalten bleiben.
+
+#### Scenario: Normalisieren berücksichtigt Getränke im Ist
+- **WHEN** Ist 480 kcal (Basis+Belag) und Getränke 80 kcal ergeben, Soll 700 kcal beträgt (Faktor 1,25)
+- **THEN** werden Basis-BE, Belag-Portionen und Getränke-Mengen (mlPerPerson) mit Faktor 1,25 skaliert
+- **AND** Gemüse und Extras bleiben unverändert
 
 #### Scenario: Normalisieren erhält Belag-Deckung
 - **WHEN** Ist 480 kcal und Soll 600 kcal beträgt (Faktor 1,25)
@@ -119,12 +149,43 @@ Das System SHALL beim Normalisieren auf das Soll Basis-BE, Belag-Portionen und G
 - **AND** Gemüse und Extras bleiben unverändert
 
 ### Requirement: Abschluss-Cockpit und Speichern
-Das System SHALL vor dem Speichern ein Cockpit mit allen Doppelchecks und einer Transparenz-Tabelle (Komponente, Menge, Gewicht, kcal, Anteil) sowie der Hochrechnung (× Personen × Tage) anzeigen. Erst bei Bestätigung SHALL das RefMeal erstellt und die Zusammenstellung als MealItems gespeichert werden.
 
-#### Scenario: RefMeal wird erst beim Abschluss erstellt
-- **WHEN** der Nutzer im Cockpit "Frühstück speichern" wählt
-- **THEN** wird ein RefMeal mit `meal_type=breakfast` erstellt und die Komponenten als MealItems (Zutaten mit Gramm/ml-Menge, warme Gerichte mit recipe_id + Faktor) gespeichert
+Das System SHALL vor dem Speichern ein Cockpit mit allen Doppelchecks und einer vollständigen Transparenz-Tabelle anzeigen. Die Tabelle MUSS alle vier Komponentengruppen enthalten: Basis, Belag, warme Gerichte/Extras und Getränke — jeweils mit Position, Menge pro Person, kcal pro Person und prozentualem Anteil am Gesamt. Die Energieberechnung MUSS kcal aus allen Komponentengruppen summieren (nicht nur Basis und Belag). Die Hochrechnung (× Personen × Tage) sowie die Reste-Tabelle für Belag-Packungen bleiben erhalten.
+
+Getränke werden als `recipe_id`-basierte Items (mit `recipe_type="drink"`) gespeichert, nicht als `display_name`-Items. Bei Bestätigung im RefMeal-Mode SHALL ein RefMeal erstellt und die Zusammenstellung als dessen MealItems gespeichert werden. Bei Bestätigung im DirectMeal-Mode SHALL die Zusammenstellung direkt als MealItems des Ziel-Meals gespeichert werden (bestehende Items werden ersetzt).
+
+Zutaten-Items (Basis, Belag, Extras) MÜSSEN mit `measuring_unit_id` der Einheit "Gramm" gespeichert werden, damit das Backend die Energie/Kosten korrekt berechnen kann.
+
+#### Scenario: Cockpit-Tabelle zeigt alle Komponentengruppen
+- **WHEN** der Nutzer im Cockpit ist und Getränke (Kaffee, Kakao, Tee, Milch), warme Gerichte und Extras konfiguriert hat
+- **THEN** zeigt die Transparenz-Tabelle Zeilen für Basis-Sorten, Belag-Sorten, warme Gerichte, Extras-Zutaten und Getränke mit ihren jeweiligen Mengen, kcal und Prozent-Anteilen
+
+#### Scenario: Energieberechnung summiert alle Komponenten
+- **WHEN** Basis 200 kcal, Belag 150 kcal und Getränke (Kakao+Milch) 80 kcal pro Person ergeben
+- **THEN** zeigt das Cockpit 430 kcal als Gesamt-Ist und der Soll-Ist-Balken basiert auf 430 kcal
+
+#### Scenario: RefMeal wird im RefMeal-Mode beim Abschluss erstellt
+- **WHEN** der Nutzer im Cockpit "Frühstück speichern" wählt und der Wizard im RefMeal-Mode läuft
+- **THEN** wird ein RefMeal mit `meal_type=breakfast` erstellt und die Komponenten als MealItems (Zutaten mit Gramm-Menge + measuring_unit_id, warme Gerichte mit recipe_id + Faktor, Getränke mit recipe_id + ml-Menge) gespeichert
+
+#### Scenario: MealItems werden im DirectMeal-Mode direkt gespeichert
+- **WHEN** der Nutzer im Cockpit "Frühstück speichern" wählt und der Wizard im DirectMeal-Mode läuft
+- **THEN** ruft das System `POST /api/meal-plans/{planId}/meals/{mealId}/wizard-items/` mit allen Wizard-Items auf
+- **AND** Zutaten-Items enthalten `measuring_unit_id` für die Einheit "Gramm"
+
+#### Scenario: Zutaten-Energie wird korrekt berechnet
+- **WHEN** der Wizard 150g Bauernbrot als Basis-Item speichert
+- **THEN** berechnet das Backend die Energie aus `(kcal_pro_100g / 100) * 150g * factor`
+- **AND** das Item hat einen sichtbaren `energy_kcal`-Wert im API-Response
 
 #### Scenario: Abbrechen hinterlässt keine Daten
-- **WHEN** der Nutzer den Wizard ohne Abschluss verlässt
-- **THEN** wird kein RefMeal und werden keine MealItems erstellt
+- **WHEN** der Nutzer den Wizard ohne Abschluss verlässt (← oder Abbrechen)
+- **THEN** wird kein RefMeal erstellt und keine MealItems gespeichert
+
+### Requirement: `MealItemOut` liefert `energy_kcal` für Zutaten-Items
+
+Das System SHALL für Zutaten-Items (ohne recipe_id) ebenfalls `energy_kcal` im API-Response ausliefern, basierend auf `ingredient.energy_kcal`, `quantity` und `measuring_unit`.
+
+#### Scenario: Zutaten-Item hat energy_kcal
+- **WHEN** ein MealItem mit ingredient_id, quantity=250 und measuring_unit.name="g" abgefragt wird
+- **THEN** enthält der Response `energy_kcal` berechnet aus `(ingredient.energy_kcal / 100) * 250 * factor`

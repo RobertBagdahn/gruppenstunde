@@ -140,15 +140,52 @@ export function totalMilkMlPerPerson(drinks: DrinkState): number {
 }
 
 // ============================================================================
+// Getränke-kcal (approximation — drinks are display-name-only, no Ingredient FK)
+// ============================================================================
+
+const KCAL_PER_100ML_COFFEE = 2;
+const KCAL_PER_100ML_COCOA = 80;
+const KCAL_PER_100ML_TEA = 0;
+const KCAL_PER_100ML_MILK = 65;
+
+/**
+ * Estimated kcal per person from drinks (Kaffee, Kakao, Tee, Milch).
+ * Uses rough constants since drinks have no Ingredient FK.
+ */
+export function drinksKcalPerPerson(drinks: DrinkState): number {
+  const totalMl = drinks.mlPerPerson;
+  const coffeeMl = totalMl * (drinks.coffeePercent / 100);
+  const cocoaMl = totalMl * (drinks.cocoaPercent / 100);
+  const teaMl = totalMl * (drinks.teaPercent / 100);
+  const milkMl = totalMilkMlPerPerson(drinks);
+
+  return (
+    coffeeMl * (KCAL_PER_100ML_COFFEE / 100) +
+    cocoaMl * (KCAL_PER_100ML_COCOA / 100) +
+    teaMl * (KCAL_PER_100ML_TEA / 100) +
+    milkMl * (KCAL_PER_100ML_MILK / 100)
+  );
+}
+
+/**
+ * Estimated kcal per person from Extras (warm dishes + Gemüse).
+ * Currently returns 0 — wizard state lacks kcal data for recipes/extra-ingredients.
+ * Kept as placeholder for when recipe-kcal data becomes available in wizard state.
+ */
+export function extrasKcalPerPerson(_state: WizardState): number {
+  return 0;
+}
+
+// ============================================================================
 // Normalisieren (scale to target kcal)
 // ============================================================================
 
 /**
  * Scale BE per person so that total kcal per person hits target.
- * Only basis + toppings are scaled; Extras (warm dishes, vegetables) stay fixed.
+ * Basis, toppings, and drinks are scaled; Extras (warm dishes, Gemüse) stay fixed.
  *
  * target = NORM_PERSON_DAILY_KCAL × dayPartFactor
- * extraKcal = kcal from warm dishes (comes from recipe cache, not recalculated here)
+ * extraKcal = kcal from warm dishes + Gemüse (not recalculated here, fixed)
  *
  * Returns the new bePerPerson (rounded to 0.5).
  */
@@ -161,20 +198,18 @@ export function normalizeBePerPerson(
   const remaining = target - extraKcalPerPerson;
   if (remaining <= 0) return state.bePerPerson;
 
-  // Current kcal from basis + toppings
   const currentBasis = basisKcalPerPerson(state.bePerPerson, state.basis);
   const currentTopping = toppingKcalPerPerson(
     state.bePerPerson,
     state.toppings,
     state.globalIntensity,
   );
-  const currentTotal = currentBasis + currentTopping;
+  const currentDrinks = drinksKcalPerPerson(state.drinks);
+  const currentTotal = currentBasis + currentTopping + currentDrinks;
   if (currentTotal <= 0) return state.bePerPerson;
 
-  // Linear scale: new_be = old_be × (remaining / currentTotal)
   const scaleFactor = remaining / currentTotal;
   const rawBe = state.bePerPerson * scaleFactor;
-  // Round to nearest 0.5 BE
   return Math.max(1, Math.round(rawBe * 2) / 2);
 }
 
@@ -221,13 +256,13 @@ export function rebalanceShares<T extends { sharePercent: number; locked: boolea
 // Summary helpers
 // ============================================================================
 
-/** Total kcal per person from basis + toppings + drinks (approximation). */
+/** Total kcal per person from basis + toppings + drinks + extras. */
 export function totalKcalPerPerson(state: WizardState): number {
   const basis = basisKcalPerPerson(state.bePerPerson, state.basis);
   const topping = toppingKcalPerPerson(state.bePerPerson, state.toppings, state.globalIntensity);
-  // Drinks: roughly 150 kcal for full cocoa, less for coffee/tea
-  const drinks = state.drinks.cocoaPercent * 0.015 * state.drinks.mlPerPerson;
-  return basis + topping + drinks;
+  const drinks = drinksKcalPerPerson(state.drinks);
+  const extras = extrasKcalPerPerson(state);
+  return basis + topping + drinks + extras;
 }
 
 /** Energy target per person for a given day_part_factor. */

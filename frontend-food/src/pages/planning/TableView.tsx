@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
 import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes, effectivePortions, formatMealTime } from '@/schemas/mealPlan';
-import { useAllergenScan } from '@/api/mealPlans';
-import { AllergenWarningBadge } from '@/components/shared/AllergenWarningBadge';
+import { useIngredientScan } from '@/api/mealPlans';
+import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import { cn } from '@/lib/utils';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
@@ -92,7 +92,7 @@ export default function TableView({
 }: TableViewProps) {
   const { id } = useParams<{ id: string }>();
   const mealPlanId = Number(id) || 0;
-  const { data: scanData } = useAllergenScan(mealPlanId);
+  const { data: scanData } = useIngredientScan(mealPlanId);
 
   // Dialog state for recipe details/search
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
@@ -395,67 +395,159 @@ export default function TableView({
                                   {/* Items list */}
                                   {meal.items.length > 0 ? (
                                     <div className="space-y-1.5 mb-2">
-                                      {meal.items.map((item, i) => {
-                                        const name = item.recipe_title || item.ingredient_name || item.display_name || '';
-                                        const itemEffPortions = effectivePortions(meal, normPortions);
-                                        const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / itemEffPortions) : null;
-                                        const cost = item.cost_eur != null ? item.cost_eur / itemEffPortions : null;
+                                      {(() => {
+                                        const regularItems: typeof meal.items = [];
+                                        const variantGroups = new Map<string, typeof meal.items>();
+                                        for (const item of meal.items) {
+                                          if (item.factor < 0.01) continue;
+                                          if (item.variant_group_id) {
+                                            const existing = variantGroups.get(item.variant_group_id) ?? [];
+                                            existing.push(item);
+                                            variantGroups.set(item.variant_group_id, existing);
+                                          } else {
+                                            regularItems.push(item);
+                                          }
+                                        }
 
-                                        const itemViolations = scanData?.violations.filter(
-                                          (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
-                                        ) || [];
-                                        const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+                                        const cells: React.ReactNode[] = [];
 
-                                        return (
-                                          <div key={item.id || i} className="group flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
-                                            <div className="min-w-0 flex-1">
-                                              <div className="text-[11px] font-bold text-foreground truncate max-w-[150px] flex items-center gap-1" title={name}>
-                                                {item.recipe_id && item.recipe_slug ? (
+                                        for (const item of regularItems) {
+                                          const name = item.recipe_title || item.ingredient_name || item.display_name || '';
+                                          const itemEffPortions = effectivePortions(meal, normPortions);
+                                          const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / itemEffPortions) : null;
+                                          const cost = item.cost_eur != null ? item.cost_eur / itemEffPortions : null;
+
+                                          const itemViolations = scanData?.violations.filter(
+                                            (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
+                                          ) || [];
+                                          const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+
+                                          cells.push(
+                                            <div key={item.id} className="group flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
+                                              <div className="min-w-0 flex-1">
+                                                <div className="text-[11px] font-bold text-foreground truncate max-w-[150px] flex items-center gap-1" title={name}>
+                                                  {item.recipe_id && item.recipe_slug ? (
+                                                    <Link
+                                                      to={`/recipes/${item.recipe_slug}`}
+                                                      className="hover:underline hover:text-primary transition-colors truncate"
+                                                    >
+                                                      {name}
+                                                    </Link>
+                                                  ) : item.ingredient_id ? (
+                                                    <Link
+                                                      to={`/ingredients/${item.ingredient_slug}`}
+                                                      className="hover:underline hover:text-primary transition-colors truncate"
+                                                    >
+                                                      {name}
+                                                    </Link>
+                                                  ) : (
+                                                    <span className="truncate">{name}</span>
+                                                  )}
+                                                  <NutriTagBadge allergenTags={itemAllergenTags} />
+                                                </div>
+                                                <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
+                                                  {kcal != null && <span>{kcal} kcal</span>}
+                                                  {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
+                                                  {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
+                                                </div>
+                                              </div>
+
+                                              <div className="flex items-center gap-1 shrink-0">
+                                                {item.ingredient_id && !item.recipe_id && item.quantity != null ? (
+                                                  <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                    &times;{item.quantity}
+                                                    {item.measuring_unit_name ? ` ${item.measuring_unit_name}` : ''}
+                                                  </span>
+                                                ) : canEdit && !meal.is_synced ? (
+                                                  <FactorInput
+                                                    value={item.factor}
+                                                    onChange={(f) => onUpdateItemFactor?.(item.id, f)}
+                                                  />
+                                                ) : (
+                                                  item.factor !== 1.0 && (
+                                                    <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                      &times;{item.factor.toFixed(1).replace('.', ',')}
+                                                    </span>
+                                                  )
+                                                )}
+
+                                                {canEdit && !meal.is_synced && (
+                                                  <button
+                                                    onClick={() => onDeleteItem?.(item.id)}
+                                                    className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                                                    title="Entfernen"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+
+                                        for (const [groupId, variants] of variantGroups) {
+                                          const first = variants[0];
+                                          const itemViolations = scanData?.violations.filter(
+                                            (v) => v.meal_id === meal.id && v.recipe_id === first.recipe_id
+                                          ) || [];
+                                          const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+
+                                          cells.push(
+                                            <div key={groupId} className="p-1.5 rounded-lg bg-muted/40 border border-border/50">
+                                              <div className="text-[11px] font-bold text-foreground truncate flex items-center gap-1 mb-1">
+                                                {first.recipe_id && first.recipe_slug ? (
                                                   <Link
-                                                    to={`/recipes/${item.recipe_slug}`}
+                                                    to={`/recipes/${first.recipe_slug}`}
                                                     className="hover:underline hover:text-primary transition-colors truncate"
                                                   >
-                                                    {name}
+                                                    {first.recipe_title}
                                                   </Link>
                                                 ) : (
-                                                  <span className="truncate">{name}</span>
+                                                  <span className="truncate">{first.recipe_title}</span>
                                                 )}
-                                                <AllergenWarningBadge allergenTags={itemAllergenTags} />
+                                                <NutriTagBadge allergenTags={itemAllergenTags} />
                                               </div>
-                                              <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
-                                                {kcal != null && <span>{kcal} kcal</span>}
-                                                {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
-                                                {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
+                                              <div className="space-y-0.5">
+                                                {variants.map((v) => {
+                                                  const itemEffPortions = effectivePortions(meal, normPortions);
+                                                  const kcal = v.energy_kcal != null ? Math.round(v.energy_kcal / itemEffPortions) : null;
+                                                  return (
+                                                    <div key={v.id} className="flex items-center justify-between gap-1 pl-3 group">
+                                                      <span className="text-[10px] text-muted-foreground truncate flex-1">
+                                                        {v.display_name || v.recipe_title}
+                                                      </span>
+                                                      <div className="flex items-center gap-1 shrink-0">
+                                                        {kcal != null && <span className="text-[9px] text-muted-foreground">{kcal} kcal</span>}
+                                                        {canEdit && !meal.is_synced ? (
+                                                          <FactorInput
+                                                            value={v.factor}
+                                                            onChange={(f) => onUpdateItemFactor?.(v.id, f)}
+                                                          />
+                                                        ) : (
+                                                          <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                            &times;{v.factor.toFixed(2).replace('.', ',')}
+                                                          </span>
+                                                        )}
+                                                        {canEdit && !meal.is_synced && (
+                                                          <button
+                                                            onClick={() => onDeleteItem?.(v.id)}
+                                                            className="p-0.5 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                                                            title="Entfernen"
+                                                          >
+                                                            <X className="w-2.5 h-2.5" />
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })}
                                               </div>
                                             </div>
+                                          );
+                                        }
 
-                                            <div className="flex items-center gap-1 shrink-0">
-                                              {canEdit && !meal.is_synced ? (
-                                                <FactorInput
-                                                  value={item.factor}
-                                                  onChange={(f) => onUpdateItemFactor?.(item.id, f)}
-                                                />
-                                              ) : (
-                                                item.factor !== 1.0 && (
-                                                  <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
-                                                    &times;{item.factor.toFixed(1).replace('.', ',')}
-                                                  </span>
-                                                )
-                                              )}
-
-                                              {canEdit && !meal.is_synced && (
-                                                <button
-                                                  onClick={() => onDeleteItem?.(item.id)}
-                                                  className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
-                                                  title="Entfernen"
-                                                >
-                                                  <X className="w-3 h-3" />
-                                                </button>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
+                                        return cells;
+                                      })()}
                                     </div>
                                   ) : (
                                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[9px] uppercase tracking-wider mb-2">

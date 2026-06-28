@@ -3,13 +3,18 @@
  * MUST stay in sync with backend/supply/api/breakfast_catalog.py
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import { API_BASE_URL } from '@/lib/api';
 import {
   BreakfastCatalogSchema,
   BreakfastLeftoversOutSchema,
+  DrinkRecipeSchema,
+  WizardItemsResponseSchema,
   type BreakfastCatalog,
   type BreakfastLeftoversIn,
   type BreakfastLeftoversOut,
+  type DrinkRecipe,
+  type WizardItemsResponse,
 } from '@/schemas/breakfast';
 import { RefMealSchema, type RefMeal } from '@/schemas/mealPlan';
 
@@ -38,6 +43,27 @@ export function useBreakfastCatalog() {
     queryKey: ['breakfast-catalog'],
     queryFn: fetchBreakfastCatalog,
     staleTime: 5 * 60 * 1000, // 5 min — catalog changes rarely
+  });
+}
+
+// ============================================================================
+// Drink Recipes Hook
+// ============================================================================
+
+async function fetchDrinkRecipes(): Promise<DrinkRecipe[]> {
+  const res = await fetch(`${SUPPLY_BASE}/breakfast-catalog/drinks/`, {
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const data = await res.json();
+  return z.array(DrinkRecipeSchema).parse(data);
+}
+
+export function useDrinkRecipes() {
+  return useQuery({
+    queryKey: ['breakfast-catalog', 'drinks'],
+    queryFn: fetchDrinkRecipes,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -79,6 +105,7 @@ export interface WizardItemIn {
   ingredient_id?: number | null;
   quantity?: number | null;
   measuring_unit_id?: number | null;
+  display_name?: string | null;
   factor?: number;
 }
 
@@ -127,6 +154,42 @@ export function useSaveBreakfastWizard(planId: number) {
     mutationFn: (payload: SaveWizardPayload) => saveWizardRefMeal(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+    },
+  });
+}
+
+// ============================================================================
+// Save Wizard directly into a Meal (DirectMeal mode)
+// ============================================================================
+
+export interface SaveDirectMealPayload {
+  planId: number;
+  mealId: number;
+  items: WizardItemIn[];
+}
+
+async function saveWizardDirectMeal(payload: SaveDirectMealPayload): Promise<WizardItemsResponse> {
+  const { planId, mealId, items } = payload;
+
+  const res = await fetch(`${MEAL_PLAN_BASE}/${planId}/meals/${mealId}/wizard-items/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return WizardItemsResponseSchema.parse(await res.json());
+}
+
+export function useSaveDirectMeal(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SaveDirectMealPayload) => saveWizardDirectMeal(payload),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
     },
   });

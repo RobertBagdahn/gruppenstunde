@@ -1,4 +1,4 @@
-"""Tests für die Kochplan-Berechnung (BUG-016)."""
+"""Tests für die Kochplan-Berechnung."""
 
 import datetime
 
@@ -15,6 +15,7 @@ from planner.services.cooking_schedule_service import (
     PREPARATION_TIME_MINUTES,
     build_cooking_schedule,
     compute_recipe_lead_minutes,
+    parse_recipe_steps,
 )
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe
@@ -304,3 +305,264 @@ class TestCookingScheduleAPI:
         client.force_login(user)
         response = client.get("/api/meal-plans/99999/cooking-schedule/")
         assert response.status_code == 404
+
+    def test_api_returns_new_fields(self):
+        """Der API-Response enthält die neuen Felder."""
+        client = Client()
+        user = baker.make(User)
+        client.force_login(user)
+        plan = make_meal_plan(created_by=user, norm_portions=5)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving, override_portions=4, note="Bitte pünktlich kochen")
+        recipe = make_recipe(
+            execution_time=ExecutionTimeChoices.LESS_30,
+            preparation_time=PreparationTimeChoices.NONE,
+            cached_energy_total_kcal=2000.0,
+            cached_price_total=15.0,
+        )
+        make_meal_item(meal=meal, recipe=recipe)
+
+        response = client.get(f"/api/meal-plans/{plan.id}/cooking-schedule/")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Response header fields
+        assert "total_cost_eur" in data
+        assert "total_cost_with_reserve" in data
+        assert "total_energy_kcal" in data
+        assert "norm_portions" in data
+        assert data["norm_portions"] == 5
+
+        # Day-level fields
+        day = data["days"][0]
+        assert "day_start_time" in day
+        assert "day_end_time" in day
+        assert "day_duration_minutes" in day
+        assert "portions" in day
+        assert day["portions"] == 5
+
+        # Item-level fields
+        item = day["items"][0]
+        assert "steps_parsed" in item
+        assert "nutritional_tags" in item
+        assert "total_cost_eur" in item
+        assert "total_energy_kcal" in item
+        assert "total_protein_g" in item
+        assert "total_fat_g" in item
+        assert "total_carbohydrate_g" in item
+        assert "meal_note" in item
+        assert item["meal_note"] == "Bitte pünktlich kochen"
+
+        # Ingredient-level fields
+        if item["ingredients"]:
+            ing = item["ingredients"][0]
+            assert "nutritional_tags" in ing
+
+
+# ---------------------------------------------------------------------------
+# Tests: Schritt-Parsing
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestStepParsing:
+    def test_heading_based_steps(self):
+        """Markdown mit Überschriften wird in Schritte zerlegt."""
+        md = "## Schritt 1\nMehl und Eier mischen\n\n## Schritt 2\nIn der Pfanne ausbacken"
+        steps = parse_recipe_steps(md)
+        assert len(steps) == 2
+        assert "Schritt 1" in steps[0].text or "Mehl" in steps[0].text
+        assert "Pfanne" in steps[1].text
+
+    def test_numbered_list_steps(self):
+        """Nummerierte Liste wird in Schritte zerlegt."""
+        md = "1. Mehl, Eier und Milch verrühren\n2. In der Pfanne ausbacken\n3. Mit Honig servieren"
+        steps = parse_recipe_steps(md)
+        assert len(steps) == 3
+        assert "Mehl" in steps[0].text
+        assert "Pfanne" in steps[1].text
+        assert "Honig" in steps[2].text
+
+    def test_single_block_fallback(self):
+        """Ein einzelner Textblock wird als ein Schritt zurückgegeben."""
+        md = "Alles in eine Schüssel geben und gut verrühren."
+        steps = parse_recipe_steps(md)
+        assert len(steps) == 1
+        assert steps[0].timer is None
+
+    def test_empty_string_returns_empty(self):
+        """Leerer String liefert leere Liste."""
+        assert parse_recipe_steps("") == []
+        assert parse_recipe_steps(None) == []
+        assert parse_recipe_steps("   ") == []
+
+    def test_timer_extraction(self):
+        """[Timer: 20min] wird als timer=20 extrahiert."""
+        md = "1. [Timer: 20min] Nudeln kochen\n2. Sauce anrühren"
+        steps = parse_recipe_steps(md)
+        assert len(steps) == 2
+        assert steps[0].timer == 20
+        assert steps[1].timer is None
+
+    def test_timer_variations(self):
+        """Verschiedene Timer-Formate werden erkannt."""
+        md = "1. [timer:15] Kurz kochen\n2. [Zeit: 30 Min] Lang garen"
+        steps = parse_recipe_steps(md)
+        assert steps[0].timer == 15
+        assert steps[1].timer == 30
+
+
+# ---------------------------------------------------------------------------
+# Tests: Allergene, Kosten, Nährwerte
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestNewFields:
+    def test_nutritional_tags_on_recipe(self):
+        """NutritionalTags des Rezepts erscheinen im Kochplan."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving)
+        recipe = make_recipe()
+        tag = baker.make("supply.NutritionalTag", name="Nüsse", is_dangerous=True)
+        recipe.nutritional_tags.add(tag)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+        item = result.days[0].items[0]
+        tag_names = [t["name"] for t in item.nutritional_tags]
+        assert "Nüsse" in tag_names
+
+    def test_nutritional_tags_on_ingredient(self):
+        """NutritionalTags der Zutat erscheinen im Kochplan."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving)
+        recipe = make_recipe(description="Einfaches Rezept")
+        tag = baker.make("supply.NutritionalTag", name="Gluten")
+        ingredient = baker.make("supply.Ingredient", name="Weizenmehl")
+        ingredient.nutritional_tags.add(tag)
+        unit = baker.make("supply.MeasuringUnit", name="g", quantity=1.0)
+        portion = baker.make("supply.Portion", ingredient=ingredient, measuring_unit=unit, quantity=1.0, weight_g=100.0)
+        baker.make("recipe.RecipeItem", recipe=recipe, portion=portion, quantity=2.0)
+        make_meal_item(meal=meal, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+        assert len(result.days) > 0
+        item = result.days[0].items[0]
+        # Rezept hat keine direkten Tags, aber die Zutat hat Gluten
+        tag_names = [t["name"] for t in item.nutritional_tags]
+        assert "Gluten" in tag_names
+
+    def test_cost_calculation(self):
+        """Kosten werden korrekt berechnet."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving)
+        recipe = make_recipe(portions=4, cached_price_total=20.0)
+        make_meal_item(meal=meal, recipe=recipe, factor=1.0)
+
+        result = build_cooking_schedule(plan)
+        item = result.days[0].items[0]
+        # cached_price_total=20 für 4 Portionen, skalierte auf 4 Portionen mit factor=1.0
+        assert item.total_cost_eur == 20.0
+
+    def test_nutrition_calculation(self):
+        """Nährwerte werden korrekt berechnet."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving)
+        recipe = make_recipe(portions=4, cached_energy_total_kcal=2400.0, cached_protein_g=80.0, cached_fat_g=40.0, cached_carbohydrate_g=360.0)
+        make_meal_item(meal=meal, recipe=recipe, factor=1.0)
+
+        result = build_cooking_schedule(plan)
+        item = result.days[0].items[0]
+        assert item.total_energy_kcal == 2400.0
+        assert item.total_protein_g == 80.0
+        assert item.total_fat_g == 40.0
+        assert item.total_carbohydrate_g == 360.0
+
+    def test_day_nutritional_tags_aggregation(self):
+        """Tages-Allergene werden aus allen Rezepten aggregiert."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving)
+        recipe1 = make_recipe(title="Rezept 1")
+        recipe2 = make_recipe(title="Rezept 2")
+        tag_nüsse = baker.make("supply.NutritionalTag", name="Nüsse")
+        tag_laktose = baker.make("supply.NutritionalTag", name="Laktose")
+        recipe1.nutritional_tags.add(tag_nüsse)
+        recipe2.nutritional_tags.add(tag_laktose)
+        make_meal_item(meal=meal, recipe=recipe1)
+        make_meal_item(meal=meal, recipe=recipe2)
+
+        result = build_cooking_schedule(plan)
+        day = result.days[0]
+        tag_names = [t["name"] for t in day.day_nutritional_tags]
+        assert "Nüsse" in tag_names
+        assert "Laktose" in tag_names
+        assert len(day.day_nutritional_tags) == 2
+
+    def test_day_header_fields(self):
+        """Tages-Kopf-Felder werden korrekt gesetzt."""
+        plan = make_meal_plan(norm_portions=10)
+        serving1 = timezone.make_aware(datetime.datetime(2026, 8, 1, 8, 0))
+        serving2 = timezone.make_aware(datetime.datetime(2026, 8, 1, 18, 0))
+        meal1 = make_meal(meal_plan=plan, start_datetime=serving1, meal_type=MealTypeChoices.BREAKFAST)
+        meal2 = make_meal(meal_plan=plan, start_datetime=serving2, meal_type=MealTypeChoices.DINNER)
+        recipe = make_recipe(execution_time=ExecutionTimeChoices.LESS_30, preparation_time=PreparationTimeChoices.NONE)
+        make_meal_item(meal=meal1, recipe=recipe)
+        make_meal_item(meal=meal2, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+        day = result.days[0]
+        assert day.portions == 10
+        assert day.day_start_time
+        assert day.day_end_time
+        assert day.day_duration_minutes > 0
+        assert day.total_cost_eur >= 0
+        assert day.total_energy_kcal >= 0
+
+    def test_meal_note(self):
+        """Meal-Notiz wird ans Item weitergegeben."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving, note="Achtung: scharf!")
+        recipe = make_recipe()
+        make_meal_item(meal=meal, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+        assert result.days[0].items[0].meal_note == "Achtung: scharf!"
+
+    def test_empty_description_no_steps(self):
+        """Rezept ohne Beschreibung hat leere steps_parsed."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving)
+        recipe = make_recipe(description="")
+        make_meal_item(meal=meal, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+        item = result.days[0].items[0]
+        assert item.steps_parsed == []
+
+    def test_no_cached_values_default_to_zero(self):
+        """Rezept ohne gecachte Werte liefert 0 für Kosten/Nährwerte."""
+        plan = make_meal_plan(norm_portions=4)
+        serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
+        meal = make_meal(meal_plan=plan, start_datetime=serving)
+        recipe = make_recipe(
+            cached_energy_total_kcal=None,
+            cached_price_total=None,
+            cached_protein_g=None,
+            cached_fat_g=None,
+            cached_carbohydrate_g=None,
+        )
+        make_meal_item(meal=meal, recipe=recipe)
+
+        result = build_cooking_schedule(plan)
+        item = result.days[0].items[0]
+        assert item.total_cost_eur == 0.0
+        assert item.total_energy_kcal == 0.0
+        assert item.total_protein_g == 0.0

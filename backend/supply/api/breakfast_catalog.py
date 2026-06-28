@@ -12,10 +12,31 @@ from typing import Any
 from ninja import Router, Schema
 
 from content.models import Tag
+from django.http import JsonResponse
 from recipe.models import Recipe
 from supply.models import Ingredient, Portion
 
 breakfast_catalog_router = Router(tags=["breakfast"])
+
+
+@breakfast_catalog_router.get("/breakfast-catalog/debug/", auth=None)
+def debug_breakfast_catalog(request):
+    base_tag = Tag.objects.filter(slug="breakfast-base").first()
+    result = {
+        "tag_exists": base_tag is not None,
+        "tag_id": base_tag.id if base_tag else None,
+        "base_count": 0,
+        "total_ingredients": Ingredient.objects.count(),
+        "sample_ingredients": [],
+    }
+    if base_tag:
+        qs = Ingredient.objects.filter(tags=base_tag, is_standalone_food=True)
+        result["base_count"] = qs.count()
+        result["sample_ingredients"] = [
+            {"id": i.id, "name": i.name, "standalone": i.is_standalone_food}
+            for i in qs[:5]
+        ]
+    return JsonResponse(result)
 
 
 # ============================================================================
@@ -44,6 +65,7 @@ class BaseIngredientOut(Schema):
     is_standalone_food: bool = True
     standard_recipe_weight_g: float | None = None
     energy_kcal: float | None = None
+    price_per_kg: float | None = None
     portions: list[PortionOut] = []
 
 
@@ -76,6 +98,7 @@ class DrinkIngredientOut(Schema):
     slug: str
     is_standalone_food: bool = True
     energy_kcal: float | None = None
+    price_per_kg: float | None = None
     portions: list[PortionOut] = []
 
 

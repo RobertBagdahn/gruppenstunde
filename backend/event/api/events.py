@@ -433,7 +433,7 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
         class InvitationOutput(BaseModel):
             text: str = Field(min_length=100, max_length=5000)
 
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=request.user,
             model="gemini-3.1-flash-lite-preview",
             contents=prompt,

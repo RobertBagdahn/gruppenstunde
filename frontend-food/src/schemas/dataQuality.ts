@@ -78,6 +78,15 @@ export const MergePreviewSchema = z.object({
 });
 export type MergePreview = z.infer<typeof MergePreviewSchema>;
 
+export const RecipeMergePreviewSchema = z.object({
+  source_id: z.number(),
+  source_name: z.string(),
+  target_id: z.number(),
+  target_name: z.string(),
+  affected_meal_count: z.number(),
+});
+export type RecipeMergePreview = z.infer<typeof RecipeMergePreviewSchema>;
+
 export const MergeRequestSchema = z.object({
   source_id: z.number(),
   target_id: z.number(),
@@ -88,6 +97,12 @@ export const DismissRequestSchema = z.object({
   ingredient_a_id: z.number(),
   ingredient_b_id: z.number(),
 });
+
+export const RecipeDismissRequestSchema = z.object({
+  recipe_a_id: z.number(),
+  recipe_b_id: z.number(),
+});
+export type RecipeDismissRequest = z.infer<typeof RecipeDismissRequestSchema>;
 
 // --- Completeness ---
 

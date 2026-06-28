@@ -40,8 +40,10 @@ Bei der Entwicklung neuer Komponenten oder Seiten muss immer zuerst der `/styleg
 ### Konventionen
 - **BE (Broteinheit)**: 1 BE = 1 belegbare Fläche = 1 Scheibe Brot = ½ Brötchen. 1 ganzes Brötchen = 2 BE.
 - **Belag-Portionen**: Jede Belag-Zutat hat 3 Portionen: `"Belag knapp"`, `"Belag normal"` (Default), `"Belag üppig"` + eine `"Packung (Xg)"` für Reste-Kalkulation.
-- **Basis-Tag**: Basis-Brotsorten erhalten den NutritionalTag `"frühstücks-basis"`.
-- **Belag-Tag**: Belag-Zutaten erhalten den NutritionalTag `"frühstücks-belag"`.
+- **Basis-Tag**: Basis-Brotsorten erhalten den content.Tag `"breakfast-base"` (slug).
+- **Belag-Tag**: Belag-Zutaten erhalten den content.Tag `"breakfast-topping"` (slug).
+- **Getränke-Tag**: Getränke-Rezepte erhalten den content.Tag `"breakfast-drink"` (slug). Der `GET /api/supply/breakfast-catalog/drinks/`-Endpoint filtert nur Rezepte mit diesem Tag.
+- **Warm-Meal-Tag**: Warme Frühstücksgerichte erhalten den content.Tag `"breakfast-warm-meal"` (slug).
 - **Energienorm**: `NORM_PERSON_DAILY_KCAL = 2335` (aus `src/lib/breakfastCalc.ts`), synchron mit Backend-Konstante in `supply/data/dge_reference.py`.
 
 ### Dateien

@@ -47,7 +47,7 @@
 - [x] 6.5 Add `DELETE /api/admin/data-quality/ingredients/duplicates/dismiss/` endpoint
 - [x] 6.6 Add `GET /api/admin/data-quality/ingredients/merge/preview/` endpoint (returns affected recipe_items count, alias list, nutrition comparison)
 - [x] 6.7 Add `POST /api/admin/data-quality/ingredients/merge/` endpoint (rebind recipe_items, create alias, soft-delete source)
-- [x] 6.8 Add `POST /api/admin/data-quality/recipes/merge/` endpoint (soft-delete source, create ContentLink)
+- [ ] 6.8 Add `POST /api/admin/data-quality/recipes/merge/` endpoint (soft-delete source, create ContentLink)
 - [x] 6.9 Create Pydantic schemas for all duplicate/merge endpoints
 - [x] 6.10 Register admin data-quality router in URL configuration
 

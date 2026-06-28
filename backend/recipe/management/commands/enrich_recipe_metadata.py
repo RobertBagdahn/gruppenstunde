@@ -118,7 +118,7 @@ class Command(BaseCommand):
             temperature=0.1,
         )
 
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             model=GEMINI_MODEL,
             contents=prompt,
             config=config,

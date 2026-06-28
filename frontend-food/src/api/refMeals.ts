@@ -6,7 +6,6 @@ import { API_BASE_URL } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   RefMealSchema,
-  type RefMeal,
   type RefMealCreateIn,
   type RefMealUpdateIn,
   type LinkMealIn,
@@ -78,14 +77,14 @@ async function deleteJson(url: string): Promise<void> {
 // ==========================================================================
 
 export function useRefMeals(planId: number) {
-  return useQuery<RefMeal[]>({
+  return useQuery({
     queryKey: ['refMeals', planId],
     queryFn: () => fetchJson(`${API_BASE}/${planId}/ref-meals/`, z.array(RefMealSchema)),
   });
 }
 
 export function useRefMeal(planId: number, refMealId: number) {
-  return useQuery<RefMeal>({
+  return useQuery({
     queryKey: ['refMeal', planId, refMealId],
     queryFn: () => fetchJson(`${API_BASE}/${planId}/ref-meals/${refMealId}/`, RefMealSchema),
     enabled: refMealId > 0,

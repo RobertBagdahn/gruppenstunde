@@ -1,6 +1,6 @@
 """Django Ninja API routes for RefMeal (reference meals)."""
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -19,6 +19,13 @@ from planner.schemas import (
     RefMealUpdateIn,
 )
 
+def _create_ref_meal_item(**kwargs):
+    try:
+        return MealItem.objects.create(**kwargs)
+    except IntegrityError:
+        raise HttpError(409, "Dieses Rezept oder diese Zutat ist bereits in dieser Mahlzeit enthalten")
+
+
 ref_meal_router = Router(tags=["ref-meals"])
 
 
@@ -36,6 +43,21 @@ def _get_ref_meal(plan: MealPlan, ref_meal_id: int) -> Meal:
     return meal
 
 
+def _validate_ref_meal_items(ref_meal: Meal):
+    """Check that ref_meal items don't contain duplicates within themselves."""
+    recipe_ids = []
+    ingredient_ids = []
+    for item in ref_meal.items.all():
+        if item.recipe_id:
+            if item.recipe_id in recipe_ids:
+                raise HttpError(422, f"Rezept «{item.recipe.title}» ist mehrfach im RefMeal enthalten")
+            recipe_ids.append(item.recipe_id)
+        if item.ingredient_id:
+            if item.ingredient_id in ingredient_ids:
+                raise HttpError(422, f"Zutat «{item.ingredient.name}» ist mehrfach im RefMeal enthalten")
+            ingredient_ids.append(item.ingredient_id)
+
+
 def _sync_ref_meal_to_targets(ref_meal: Meal) -> int:
     """Copy all MealItems from ref_meal to all synced meals. Returns count of synced meals."""
     targets = Meal.objects.filter(ref_meal=ref_meal, is_synced=True)
@@ -44,7 +66,7 @@ def _sync_ref_meal_to_targets(ref_meal: Meal) -> int:
     for target in targets:
         target.items.all().delete()
         for item in ref_items:
-            MealItem.objects.create(
+            _create_ref_meal_item(
                 meal=target,
                 recipe=item.recipe,
                 ingredient=item.ingredient,
@@ -75,6 +97,7 @@ def list_ref_meals(request, plan_id: int):
     response={201: RefMealOut},
     summary="RefMeal erstellen",
 )
+@transaction.atomic
 def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
     _require_auth(request)
     plan = _get_plan(plan_id, request.user, edit=True)
@@ -92,6 +115,23 @@ def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
         start_datetime=None,
         end_datetime=None,
     )
+
+    if payload.items:
+        from planner.api.meal_plan import check_duplicates_in_input
+
+        check_duplicates_in_input(payload.items)
+        for item_in in payload.items:
+            _create_ref_meal_item(
+                meal=meal,
+                recipe_id=item_in.recipe_id,
+                ingredient_id=item_in.ingredient_id,
+                quantity=item_in.quantity,
+                measuring_unit_id=item_in.measuring_unit_id,
+                display_name=item_in.display_name,
+                factor=item_in.factor,
+            )
+
+    meal.refresh_from_db()
     return 201, meal
 
 
@@ -122,9 +162,12 @@ def update_ref_meal(request, plan_id: int, ref_meal_id: int, payload: RefMealUpd
         ref_meal.save(update_fields=["day_part_factor"])
 
     if payload.items is not None:
+        from planner.api.meal_plan import check_duplicates_in_input
+
+        check_duplicates_in_input(payload.items)
         ref_meal.items.all().delete()
         for item_in in payload.items:
-            MealItem.objects.create(
+            _create_ref_meal_item(
                 meal=ref_meal,
                 recipe_id=item_in.recipe_id,
                 ingredient_id=item_in.ingredient_id,
@@ -166,6 +209,7 @@ def sync_ref_meal(request, plan_id: int, ref_meal_id: int):
     plan = _get_plan(plan_id, request.user, edit=True)
     ref_meal = _get_ref_meal(plan, ref_meal_id)
 
+    _validate_ref_meal_items(ref_meal)
     count = _sync_ref_meal_to_targets(ref_meal)
     return {"synced_meals": count}
 
@@ -185,6 +229,8 @@ def link_meal(request, plan_id: int, meal_id: int, payload: LinkMealIn):
     if meal.meal_type != ref_meal.meal_type:
         raise HttpError(400, "Meal-Typ stimmt nicht mit RefMeal überein.")
 
+    _validate_ref_meal_items(ref_meal)
+
     meal.ref_meal = ref_meal
     meal.is_synced = True
     meal.save(update_fields=["ref_meal", "is_synced"])
@@ -192,7 +238,7 @@ def link_meal(request, plan_id: int, meal_id: int, payload: LinkMealIn):
     # Sync items immediately
     meal.items.all().delete()
     for item in ref_meal.items.all():
-        MealItem.objects.create(
+        _create_ref_meal_item(
             meal=meal,
             recipe=item.recipe,
             ingredient=item.ingredient,

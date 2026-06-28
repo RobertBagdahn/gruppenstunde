@@ -205,7 +205,7 @@ export default function SettingsPanel({
       </div>
 
       <div className="border-t border-border pt-5">
-        <h4 className="font-display font-bold text-sm text-foreground mb-3">Ernährung & Allergene</h4>
+        <h4 className="font-display font-bold text-sm text-foreground mb-3">Ernährungseinschränkungen</h4>
         <NutritionalTagMultiSelect selectedTagIds={nutritionalTagIds} onToggle={toggleTag} />
       </div>
 

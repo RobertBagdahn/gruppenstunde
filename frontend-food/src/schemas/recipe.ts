@@ -45,7 +45,7 @@ export const RecipeItemSchema = z.object({
   ingredient_retail_section_id: z.number().nullable().optional(),
   ingredient_retail_section_name: z.string().nullable().optional(),
   weight_g: z.number(),
-  is_optional: z.boolean().default(false),
+  is_optional: z.boolean().catch(false),
   exchange_group_id: z.number().nullable().optional(),
   exchange_position: z.number().nullable().optional(),
 });

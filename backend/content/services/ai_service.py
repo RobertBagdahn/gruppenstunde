@@ -15,7 +15,6 @@ Features:
 import io
 import logging
 import time
-import uuid
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
@@ -188,7 +187,7 @@ class ContentAIService:
             f"Text:\n{text}\n\n"
         )
 
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -227,7 +226,7 @@ class ContentAIService:
             "Antworte NUR mit den passenden Tag-IDs."
         )
 
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -304,7 +303,7 @@ class ContentAIService:
 
         logger.info("AI refurbish prompt (first 300 chars): %s", prompt[:300])
 
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -456,7 +455,7 @@ class ContentAIService:
 
         for attempt in range(1, max_retries + 1):
             try:
-                response = gemini_image_call(
+                response, _interaction_id = gemini_image_call(
                     user=user,
                     model=GEMINI_IMAGE_MODEL,
                     contents=[full_prompt],

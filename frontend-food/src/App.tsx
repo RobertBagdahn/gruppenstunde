@@ -26,6 +26,7 @@ import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
 import MealPlanPrintPage from './pages/planning/MealPlanPrintPage';
 import CookingSchedulePage from './pages/planning/CookingSchedulePage';
 import CookingSchedulePrintPage from './pages/planning/CookingSchedulePrintPage';
+import CookingScheduleKitchenPage from './pages/planning/CookingScheduleKitchenPage';
 import RefMealEditorPage from './pages/planning/RefMealEditorPage';
 import BreakfastWizardPage from './pages/planning/breakfast/BreakfastWizardPage';
 
@@ -99,8 +100,10 @@ export default function App() {
         <Route path="/meal-plans/app" element={<MealPlanListPage />} />
         <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
         <Route path="/meal-plans/:id/cooking-schedule" element={<CookingSchedulePage />} />
+        <Route path="/meal-plans/:id/cooking-schedule/kitchen" element={<CookingScheduleKitchenPage />} />
         <Route path="/meal-plans/:id/ref-meals/:mealType" element={<RefMealEditorPage />} />
         <Route path="/meal-plans/:id/ref-meals/breakfast/wizard" element={<BreakfastWizardPage />} />
+        <Route path="/meal-plans/:id/meals/:mealId/breakfast-wizard" element={<BreakfastWizardPage />} />
         <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />
 
         {/* Shopping Lists */}

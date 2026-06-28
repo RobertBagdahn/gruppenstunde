@@ -1,0 +1,338 @@
+import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
+import { BackButton } from '@/components/shared/BackButton';
+import { Loader2, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle } from 'lucide-react';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '@/schemas/mealPlan';
+import type { CookingScheduleItem, CookingScheduleDay, CookingScheduleStep } from '@/schemas/mealPlan';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
+
+function formatTime(isoString: string): string {
+  try {
+    return format(new Date(isoString), 'HH:mm');
+  } catch {
+    return '–';
+  }
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    return format(new Date(dateStr + 'T12:00:00'), 'EEEE, d. MMMM yyyy', { locale: de });
+  } catch {
+    return dateStr;
+  }
+}
+
+const MEAL_TYPE_DOT_COLORS: Record<string, string> = {
+  breakfast: 'bg-amber-400',
+  lunch: 'bg-emerald-400',
+  dinner: 'bg-indigo-400',
+  snack: 'bg-rose-400',
+  drink: 'bg-sky-400',
+};
+
+function AllergenChip({ name, isDangerous }: { name: string; isDangerous?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+        isDangerous ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+      }`}
+    >
+      {isDangerous && <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />}
+      {name}
+    </span>
+  );
+}
+
+function StepView({ steps }: { steps: CookingScheduleStep[] }) {
+  if (!steps || steps.length === 0) return null;
+  return (
+    <ol className="list-decimal list-inside space-y-1.5 text-sm text-muted-foreground leading-relaxed">
+      {steps.map((step, i) => (
+        <li key={i} className="pl-1">
+          <span className="whitespace-pre-line">{step.text.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '')}</span>
+          {step.timer && (
+            <span className="inline-flex items-center gap-0.5 ml-1.5 text-xs font-medium text-primary">
+              <Clock className="w-3 h-3" />
+              {step.timer} Min.
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
+  const hasIngredients = item.ingredients.length > 0;
+  const hasSteps = item.steps_parsed.length > 0 || item.steps.trim().length > 0;
+  const hasAllergens = item.nutritional_tags.length > 0;
+  const hasCost = item.total_cost_eur > 0;
+  const hasNutrition = item.total_energy_kcal > 0;
+
+  return (
+    <div className="px-4 pb-4 pt-1 bg-card border-t border-border">
+      <div className="grid gap-4 md:grid-cols-2">
+        {hasIngredients && (
+          <div>
+            <h4 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <UtensilsCrossed className="w-3.5 h-3.5" />
+              Zutaten ({item.portions} Port.)
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {item.ingredients.map((ing, i) => {
+                const parts = [ing.quantity, ing.unit, ing.name].filter(Boolean);
+                const detail = ing.note ? ` (${ing.note})` : '';
+                return (
+                  <span
+                    key={`${ing.name}-${i}`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border
+                      ${ing.is_optional ? 'bg-muted text-muted-foreground border-border italic' : 'bg-primary/5 text-foreground border-primary/10'}`}
+                  >
+                    {parts.join(' ')}{detail}
+                    {ing.is_optional && <span className="text-[10px]">(optional)</span>}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className={hasIngredients ? '' : 'md:col-span-2'}>
+          {hasSteps && (
+            <>
+              <h4 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <ListChecks className="w-3.5 h-3.5" />
+                Zubereitung
+              </h4>
+              {item.steps_parsed.length > 0 ? (
+                <StepView steps={item.steps_parsed} />
+              ) : (
+                <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                  {item.steps}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-border/50">
+        {hasAllergens && item.nutritional_tags.map((tag) => (
+          <AllergenChip key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
+        ))}
+        {hasCost && (
+          <span className="text-xs text-muted-foreground font-medium">
+            {item.total_cost_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+          </span>
+        )}
+        {hasNutrition && (
+          <span className="text-xs text-muted-foreground">
+            {Math.round(item.total_energy_kcal / item.portions)} kcal/Port.
+          </span>
+        )}
+        {item.meal_note && (
+          <span className="text-xs text-amber-600 italic">📝 {item.meal_note}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TimelineItem({ item, isLast }: { item: CookingScheduleItem; isLast: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasDetails = item.ingredients.length > 0 || item.steps_parsed.length > 0 || item.steps.trim().length > 0;
+  const hasAllergens = item.nutritional_tags.length > 0;
+  const mealColor = MEAL_TYPE_DOT_COLORS[item.meal_type] ?? 'bg-gray-400';
+
+  return (
+    <div className="relative pl-8 pb-4">
+      {!isLast && (
+        <div className="absolute left-[11px] top-5 bottom-0 w-0.5 bg-border" />
+      )}
+      <div className={`absolute left-[4px] top-1.5 w-[15px] h-[15px] rounded-full border-2 border-background ${mealColor}`} />
+
+      <div className={`rounded-xl border border-border bg-card shadow-soft overflow-hidden ${expanded ? '' : ''}`}>
+        <button
+          type="button"
+          onClick={() => hasDetails && setExpanded(!expanded)}
+          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 ${expanded ? 'bg-muted/10' : ''}`}
+          disabled={!hasDetails}
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="font-bold text-sm text-primary tabular-nums shrink-0 w-12">
+              {formatTime(item.start_time)}
+            </span>
+            <span className="text-xs text-muted-foreground shrink-0">
+              {formatTime(item.serving_time)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <Link
+                to={`/recipes/${item.recipe_slug}`}
+                className="font-semibold text-sm hover:text-primary transition-colors line-clamp-1 block"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {item.recipe_title}
+              </Link>
+              {hasAllergens && (
+                <div className="flex flex-wrap gap-1 mt-0.5">
+                  {item.nutritional_tags.slice(0, 3).map((tag) => (
+                    <AllergenChip key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
+                  ))}
+                  {item.nutritional_tags.length > 3 && (
+                    <span className="text-[10px] text-muted-foreground">+{item.nutritional_tags.length - 3}</span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-muted-foreground">{item.lead_minutes} Min.</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground border border-border">
+                {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
+              </span>
+            </div>
+          </div>
+          {hasDetails && (
+            <div className="shrink-0">
+              {expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            </div>
+          )}
+        </button>
+
+        {expanded && <RecipeCardExpanded item={item} />}
+      </div>
+    </div>
+  );
+}
+
+function DayTimeline({ day }: { day: CookingScheduleDay }) {
+  const hasAllergens = day.day_nutritional_tags && day.day_nutritional_tags.length > 0;
+  const hasCost = day.total_cost_eur > 0;
+
+  const groupedItems: Record<string, CookingScheduleItem[]> = {};
+  for (const item of day.items) {
+    if (!groupedItems[item.meal_type]) {
+      groupedItems[item.meal_type] = [];
+    }
+    groupedItems[item.meal_type].push(item);
+  }
+
+  return (
+    <section className="mb-8">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-3 pt-2 border-b border-border">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-base font-display font-bold text-foreground">
+            {formatDate(day.date)}
+          </h2>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="font-semibold">👥 {day.portions} Personen</span>
+            {day.day_start_time && day.day_end_time && (
+              <span>⏱ {day.day_start_time} – {day.day_end_time} ({day.day_duration_minutes} Min.)</span>
+            )}
+            {hasCost && (
+              <span className="font-medium">{day.total_cost_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
+            )}
+          </div>
+        </div>
+        {hasAllergens && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {day.day_nutritional_tags.map((tag) => (
+              <AllergenChip key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4">
+        {MEAL_TYPE_ORDER.map((mealType) => {
+          const items = groupedItems[mealType];
+          if (!items || items.length === 0) return null;
+          return (
+            <div key={mealType} className="mb-4">
+              <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-2 pl-8">
+                <span className={`w-2.5 h-2.5 rounded-full ${MEAL_TYPE_DOT_COLORS[mealType] ?? 'bg-gray-400'}`} />
+                {MEAL_TYPE_LABELS[mealType] ?? mealType}
+              </h3>
+              {items.map((item, idx) => (
+                <TimelineItem
+                  key={`${item.recipe_slug}-${idx}`}
+                  item={item}
+                  isLast={idx === items.length - 1 && (!groupedItems[MEAL_TYPE_ORDER[MEAL_TYPE_ORDER.indexOf(mealType) + 1]] || idx % 2 === 0)}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+export default function CookingScheduleKitchenPage() {
+  const { id } = useParams<{ id: string }>();
+  const mealPlanId = Number(id);
+  const { data: plan, isLoading: planLoading } = useMealPlan(mealPlanId);
+  const { data: schedule, isLoading: scheduleLoading, error } = useCookingSchedule(mealPlanId);
+
+  const isLoading = planLoading || scheduleLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="animate-spin w-8 h-8 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !schedule) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Kochplan konnte nicht geladen werden.
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <BackButton to={`/meal-plans/${id}`} />
+          <div>
+            <h1 className="text-2xl font-display font-bold flex items-center gap-2">
+              <ChefHat className="w-6 h-6 text-primary" />
+              Küchen-Dashboard
+            </h1>
+            {plan && (
+              <p className="text-sm text-muted-foreground mt-0.5">{plan.name}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {schedule.excluded_meal_count > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            {schedule.excluded_meal_count}{' '}
+            {schedule.excluded_meal_count === 1 ? 'Mahlzeit wurde' : 'Mahlzeiten wurden'} nicht berücksichtigt.
+          </span>
+        </div>
+      )}
+
+      {schedule.days.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground space-y-2">
+          <ChefHat className="w-12 h-12 mx-auto opacity-30" />
+          <p className="font-medium">Keine Rezepte im Kochplan</p>
+          <p className="text-sm">
+            Plane Mahlzeiten mit Servierzeit, damit der Kochplan berechnet werden kann.
+          </p>
+        </div>
+      ) : (
+        schedule.days.map((day) => (
+          <DayTimeline key={day.date} day={day} />
+        ))
+      )}
+    </div>
+  );
+}

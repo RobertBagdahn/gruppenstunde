@@ -55,6 +55,7 @@ class RecipeItemSuggestion(BaseModel):
     ingredient_name: str = Field(description="Name der Zutat")
     quantity: float = Field(description="Menge")
     unit: str = Field(description="Einheit, z.B. 'g', 'ml', 'Stück', 'EL', 'TL'")
+    is_optional: bool = False
 
 
 class RecipeAiCreateSchema(BaseModel):
@@ -116,7 +117,7 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response = gemini_call(
+    response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -157,7 +158,7 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response = gemini_call(
+    response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -207,6 +208,7 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
             portion=portion,
             quantity=item.quantity,
             sort_order=i + 1,
+            is_optional=item.is_optional,
         )
 
     return recipe

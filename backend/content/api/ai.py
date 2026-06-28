@@ -22,6 +22,7 @@ from content.schemas.ai import (
     AiSuggestTagsIn,
     AiSuggestTagsOut,
 )
+from content.schemas.ai_interaction import AiVoteIn, AiVoteOut
 
 logger = logging.getLogger(__name__)
 
@@ -275,3 +276,47 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
             status=500,
             content_type="application/json",
         )
+
+
+# ---------------------------------------------------------------------------
+# AI Interaction Vote
+# ---------------------------------------------------------------------------
+
+
+@router.patch(
+    "/ai-interactions/{interaction_id}/vote/",
+    response=AiVoteOut,
+    url_name="content_ai_interaction_vote",
+)
+def ai_interaction_vote(request, interaction_id: str, payload: AiVoteIn):
+    """Vote on an AI interaction (thumbs up/down)."""
+    if not request.user.is_authenticated:
+        raise HttpError(401, "Anmeldung erforderlich")
+
+    from uuid import UUID
+
+    try:
+        uid = UUID(interaction_id)
+    except ValueError:
+        raise HttpError(404, "Interaktion nicht gefunden")
+
+    from content.models import AiInteraction
+
+    try:
+        interaction = AiInteraction.objects.get(id=uid)
+    except AiInteraction.DoesNotExist:
+        raise HttpError(404, "Interaktion nicht gefunden")
+
+    if interaction.user_id != request.user.id and not request.user.is_staff:
+        raise HttpError(403, "Nicht berechtigt")
+
+    if payload.vote not in ("up", "down"):
+        raise HttpError(422, "Ungültiger Vote. Verwende 'up' oder 'down'.")
+
+    from django.utils import timezone
+
+    interaction.vote = payload.vote
+    interaction.voted_at = timezone.now()
+    interaction.save(update_fields=["vote", "voted_at"])
+
+    return {"status": "ok"}

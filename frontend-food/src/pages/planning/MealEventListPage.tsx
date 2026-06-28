@@ -61,10 +61,10 @@ const BADGE_CONFIG: Record<string, { label: string; bg: string; text: string; ic
   },
 };
 
-function getPlanBadge(plan: MealPlan, userId: number | undefined): string | null {
+function getPlanBadge(plan: MealPlan): string | null {
   if (plan.owner_id === null) return 'verified';
   if (plan.visibility === 'public') return 'community';
-  if (userId && plan.owner_id === userId) return 'personal';
+  if (plan.is_owner) return 'personal';
   return null;
 }
 
@@ -97,7 +97,6 @@ export default function MealPlanListPage() {
 
 function MealPlanListPageInner() {
   const navigate = useNavigate();
-  const { data: user } = useCurrentUser();
   const [origin, setOrigin] = useState('all');
   const [sort, setSort] = useState('date_newest');
   const [searchInput, setSearchInput] = useState('');
@@ -263,7 +262,7 @@ function MealPlanListPageInner() {
   };
 
   const PlanCard = ({ plan }: { plan: MealPlan }) => {
-    const badge = getPlanBadge(plan, user?.id);
+    const badge = getPlanBadge(plan);
     const badgeConfig = badge ? BADGE_CONFIG[badge] : null;
     const dateRange = formatDateRange(plan);
 

@@ -1,0 +1,21 @@
+{% extends "event/email/base.html" %}
+{% block content %}
+<h2 style="color: #333; font-size: 18px; margin: 0 0 15px 0;">
+  Du wurdest zu einem Essensplan eingeladen
+</h2>
+<p style="margin: 0 0 10px 0;">
+  Hallo{% if username %} {{ username }}{% endif %},
+</p>
+<p style="margin: 0 0 10px 0;">
+  <strong>{{ inviter_name }}</strong> hat dich als <strong>{{ role_label }}</strong> zum Essensplan
+  <strong>„{{ plan_name }}“</strong> hinzugefügt.
+</p>
+<p style="margin: 0 0 10px 0;">
+  Du kannst den Plan jetzt einsehen und bearbeiten.
+</p>
+<p style="margin: 15px 0 0 0;">
+  <a href="{{ plan_url }}" style="display: inline-block; padding: 10px 20px; background-color: {{ ci_primary_color|default:'#4a3a6b' }}; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+    Zum Essensplan
+  </a>
+</p>
+{% endblock %}

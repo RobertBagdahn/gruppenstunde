@@ -92,7 +92,7 @@ def clean_name_via_ai(name: str) -> str | None:
     )
 
     try:
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=None,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -157,7 +157,7 @@ def fill_missing_data_via_ai(ingredient: Ingredient) -> dict | None:
     )
 
     try:
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=None,
             model=GEMINI_MODEL,
             contents=prompt,

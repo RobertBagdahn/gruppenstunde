@@ -12,7 +12,8 @@ from django.utils import timezone
 from ninja import Router
 from ninja.errors import HttpError
 
-from content.models import DuplicateDismissal
+from content.choices import LinkType
+from content.models import ContentLink, DuplicateDismissal
 from content.schemas.data_quality import (
     CacheStalenessOut,
     CompletenessItemOut,
@@ -43,7 +44,9 @@ from content.schemas.data_quality import (
     PriceSuggestionOut,
     QualityTrendOut,
     QualityTrendPointOut,
+    RecipeDismissRequestIn,
     RecipeMetadataCheckOut,
+    RecipeMergePreviewOut,
 )
 from content.services.audit_service import get_audit_log_queryset
 from supply.models import Ingredient
@@ -182,7 +185,7 @@ def _ai_suggest_price(ingredient) -> dict:
             prompt += f"Energie: {ingredient.energy_kcal} kcal/100g\n"
         prompt += "Antworte NUR mit dem Preis als Zahl in Euro pro kg (z.B. 3.49), sonst nichts."
 
-        result = gemini_call(
+        result, _interaction_id = gemini_call(
             user=None,
             model="gemini-3.1-flash-lite-preview",
             contents=prompt,
@@ -287,6 +290,14 @@ def ingredient_duplicates(request):
 def recipe_duplicates(request):
     _require_staff(request)
 
+    from recipe.models import Recipe
+
+    dismissed = set(
+        DuplicateDismissal.objects.filter(
+            source_content_type=ContentType.objects.get_for_model(Recipe),
+        ).values_list("source_object_id", "target_object_id")
+    )
+
     from django.db import connection
 
     with connection.cursor() as cursor:
@@ -322,7 +333,7 @@ def recipe_duplicates(request):
     pairs = []
     for id_a, title_a, slug_a, id_b, title_b, slug_b, sim in rows:
         pair_key = (id_a, id_b) if id_a < id_b else (id_b, id_a)
-        if pair_key in seen:
+        if pair_key in seen or pair_key in dismissed:
             continue
         seen.add(pair_key)
         pairs.append(
@@ -334,6 +345,104 @@ def recipe_duplicates(request):
         )
 
     return {"items": pairs, "total": len(pairs), "page": 1, "page_size": 5, "total_pages": 1}
+
+
+@admin_router.post("/recipes/duplicates/dismiss/")
+def recipe_dismiss_duplicate(request, body: RecipeDismissRequestIn):
+    _require_staff(request)
+    from recipe.models import Recipe
+    ct = ContentType.objects.get_for_model(Recipe)
+    a, b = sorted([body.recipe_a_id, body.recipe_b_id])
+    DuplicateDismissal.objects.get_or_create(
+        source_content_type=ct,
+        source_object_id=a,
+        target_content_type=ct,
+        target_object_id=b,
+        defaults={"dismissed_by": request.user},
+    )
+    return {"success": True}
+
+
+@admin_router.delete("/recipes/duplicates/dismiss/")
+def recipe_undismiss_duplicate(request, body: RecipeDismissRequestIn):
+    _require_staff(request)
+    from recipe.models import Recipe
+    ct = ContentType.objects.get_for_model(Recipe)
+    a, b = sorted([body.recipe_a_id, body.recipe_b_id])
+    DuplicateDismissal.objects.filter(
+        source_content_type=ct,
+        source_object_id=a,
+        target_content_type=ct,
+        target_object_id=b,
+    ).delete()
+    return {"success": True}
+
+
+@admin_router.get("/recipes/merge/preview/", response=RecipeMergePreviewOut)
+def recipe_merge_preview(request, source_id: int, target_id: int):
+    _require_staff(request)
+    from recipe.models import Recipe
+    try:
+        source = Recipe.objects.get(id=source_id)
+        target = Recipe.objects.get(id=target_id)
+    except Recipe.DoesNotExist:
+        raise HttpError(404, "Rezept nicht gefunden")
+
+    if source_id == target_id:
+        raise HttpError(400, "Quell- und Ziel-Rezept dürfen nicht identisch sein")
+
+    from planner.models import MealItem
+
+    affected_meal_count = MealItem.objects.filter(recipe=source).count()
+
+    return RecipeMergePreviewOut(
+        source_id=source.id,
+        source_name=source.title,
+        target_id=target.id,
+        target_name=target.title,
+        affected_meal_count=affected_meal_count,
+    )
+
+
+@admin_router.post("/recipes/merge/")
+def recipe_merge(request, body: MergeRequestIn):
+    _require_staff(request)
+    from recipe.models import Recipe
+    if body.source_id == body.target_id:
+        raise HttpError(400, "Quell- und Ziel-Rezept dürfen nicht identisch sein")
+
+    try:
+        target = Recipe.objects.get(id=body.target_id)
+        source = Recipe.all_objects.get(id=body.source_id)
+    except Recipe.DoesNotExist:
+        raise HttpError(404, "Rezept nicht gefunden")
+
+    if source.is_deleted:
+        raise HttpError(400, "Quell-Rezept wurde bereits zusammengeführt")
+
+    ct = ContentType.objects.get_for_model(Recipe)
+
+    if ContentLink.objects.filter(
+        source_content_type=ct,
+        source_object_id=source.id,
+        target_content_type=ct,
+        target_object_id=target.id,
+        link_type=LinkType.DUPLICATE_MERGED,
+    ).exists():
+        raise HttpError(400, "Dieses Rezept-Paar wurde bereits zusammengeführt")
+
+    source.soft_delete()
+
+    ContentLink.objects.create(
+        source_content_type=ct,
+        source_object_id=source.id,
+        target_content_type=ct,
+        target_object_id=target.id,
+        link_type=LinkType.DUPLICATE_MERGED,
+        created_by=request.user,
+    )
+
+    return {"success": True}
 
 
 @admin_router.post("/ingredients/duplicates/dismiss/")

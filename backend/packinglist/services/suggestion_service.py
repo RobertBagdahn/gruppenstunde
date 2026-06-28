@@ -1098,7 +1098,7 @@ Denke an Dinge, die oft vergessen werden oder besonders nützlich sind.
 Antworte nur auf Deutsch."""
 
     try:
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=user,
             model="gemini-3.1-flash-lite-preview",
             contents=prompt,

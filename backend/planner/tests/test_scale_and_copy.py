@@ -33,12 +33,10 @@ class TestScaleAndCopyAPI:
         # Total target energy for 10 portions = 5837.5 kcal = 24424.125 kJ.
         meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST, day_part_factor=0.25)
 
-        # Add recipe with total energy cache of 478 kcal (was 2000 kJ, ÷4.184)
-        # Target kcal per portion is 583.75. Current kcal per portion is ~47.8.
-        # Scale factor should be 583.75 / 47.8 ≈ 12.2
-        recipe = make_recipe(portions=10, cached_energy_total_kcal=478.0)
-        item1 = make_meal_item(meal=meal, recipe=recipe, factor=1.0)
-        item2 = make_meal_item(meal=meal, recipe=recipe, factor=2.0)
+        recipe_a = make_recipe(portions=10, cached_energy_total_kcal=350.0)
+        recipe_b = make_recipe(portions=10, cached_energy_total_kcal=128.0)
+        item1 = make_meal_item(meal=meal, recipe=recipe_a, factor=1.0)
+        item2 = make_meal_item(meal=meal, recipe=recipe_b, factor=2.0)
 
         # Before scaling, make sure it has calories
         current_energy_kcal = MealOut.resolve_total_energy_kcal(meal)

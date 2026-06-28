@@ -6,8 +6,11 @@ import {
   useMergePreview,
   useMergeIngredients,
   useDismissDuplicate,
+  useRecipeMergePreview,
+  useRecipeMerge,
+  useRecipeDismissDuplicate,
 } from '@/api/dataQuality';
-import type { DuplicatePair, MergePreview } from '@/schemas/dataQuality';
+import type { DuplicatePair, MergePreview, RecipeMergePreview } from '@/schemas/dataQuality';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -40,17 +43,30 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
 
   const dismissMutation = useDismissDuplicate();
   const mergeMutation = useMergeIngredients();
+  const recipeDismissMutation = useRecipeDismissDuplicate();
+  const recipeMergeMutation = useRecipeMerge();
+
+  const isIngredient = type === 'ingredient';
 
   // Merge dialog state
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [mergePair, setMergePair] = useState<{ sourceId: number; targetId: number; sourceName: string; targetName: string } | null>(null);
 
-  const mergePreviewQuery = useMergePreview(mergePair?.sourceId ?? 0, mergePair?.targetId ?? 0);
+  const ingredientMergePreviewQuery = useMergePreview(mergePair?.sourceId ?? 0, mergePair?.targetId ?? 0);
+  const recipeMergePreviewQuery = useRecipeMergePreview(mergePair?.sourceId ?? 0, mergePair?.targetId ?? 0);
+  const mergePreviewQuery = isIngredient ? ingredientMergePreviewQuery : recipeMergePreviewQuery;
   const { data: mergePreview, isLoading: mergePreviewLoading } = mergePreviewQuery;
+
+  const activeMergeMutation = isIngredient ? mergeMutation : recipeMergeMutation;
+  const activeDismissMutation = isIngredient ? dismissMutation : recipeDismissMutation;
 
   const handleDismiss = async (aId: number, bId: number) => {
     try {
-      await dismissMutation.mutateAsync({ ingredient_a_id: aId, ingredient_b_id: bId });
+      if (isIngredient) {
+        await dismissMutation.mutateAsync({ ingredient_a_id: aId, ingredient_b_id: bId });
+      } else {
+        await recipeDismissMutation.mutateAsync({ recipe_a_id: aId, recipe_b_id: bId });
+      }
       toast.success('Als kein Duplikat markiert');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Fehler beim Markieren');
@@ -65,7 +81,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
   const handleConfirmMerge = async () => {
     if (!mergePair) return;
     try {
-      await mergeMutation.mutateAsync({ source_id: mergePair.sourceId, target_id: mergePair.targetId });
+      await activeMergeMutation.mutateAsync({ source_id: mergePair.sourceId, target_id: mergePair.targetId });
       toast.success(`${mergePair.sourceName} → ${mergePair.targetName} zusammengeführt`);
       setMergeDialogOpen(false);
       setMergePair(null);
@@ -138,7 +154,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDismiss(pair.ingredient_a.id, pair.ingredient_b.id)}
-                      disabled={dismissMutation.isPending}
+                      disabled={activeDismissMutation.isPending}
                     >
                       <EyeOff className="h-3.5 w-3.5 mr-1" />
                       Kein Duplikat
@@ -176,11 +192,11 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
             </div>
           )}
 
-          {mergePreview && type === 'ingredient' && (
-            <IngredientMergePreview preview={mergePreview} />
+          {mergePreview && isIngredient && (
+            <IngredientMergePreview preview={mergePreview as MergePreview} />
           )}
-          {mergePreview && type === 'recipe' && (
-            <RecipeMergePreview preview={mergePreview} />
+          {mergePreview && !isIngredient && (
+            <RecipeMergePreview preview={mergePreview as RecipeMergePreview} />
           )}
 
           {mergePreview && !mergePreviewLoading && (
@@ -200,9 +216,9 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
             <Button
               variant="default"
               onClick={handleConfirmMerge}
-              disabled={mergeMutation.isPending || mergePreviewLoading || !mergePreview}
+              disabled={activeMergeMutation.isPending || mergePreviewLoading || !mergePreview}
             >
-              {mergeMutation.isPending ? (
+              {activeMergeMutation.isPending ? (
                 <Loader2 className="animate-spin h-4 w-4 mr-1" />
               ) : (
                 <GitMerge className="h-4 w-4 mr-1" />
@@ -254,7 +270,7 @@ function IngredientMergePreview({ preview }: { preview: MergePreview }) {
   );
 }
 
-function RecipeMergePreview({ preview }: { preview: MergePreview }) {
+function RecipeMergePreview({ preview }: { preview: RecipeMergePreview }) {
   return (
     <div className="space-y-3 text-sm">
       <p className="text-muted-foreground">
@@ -262,8 +278,8 @@ function RecipeMergePreview({ preview }: { preview: MergePreview }) {
         <strong>{preview.target_name}</strong> erstellt.
       </p>
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Betroffene Rezept-Verweise:</span>
-        <span className="font-semibold">{preview.affected_recipe_items}</span>
+        <span className="text-muted-foreground">Betroffene Mahlzeit-Verweise:</span>
+        <span className="font-semibold">{preview.affected_meal_count}</span>
       </div>
     </div>
   );

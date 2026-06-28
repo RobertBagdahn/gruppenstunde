@@ -50,6 +50,7 @@ class LinkType(models.TextChoices):
     MANUAL = "manual", _("Manuell verknüpft")
     EMBEDDING = "embedding", _("Embedding-basiert")
     AI_SUGGESTED = "ai_suggested", _("KI-Vorschlag")
+    DUPLICATE_MERGED = "duplicate_merged", _("Duplikat zusammengeführt")
 
 
 class ApprovalAction(models.TextChoices):
@@ -70,3 +71,20 @@ class SortChoices(models.TextChoices):
     OLDEST = "oldest", _("Älteste")
     MOST_LIKED = "most_liked", _("Beliebteste")
     RELEVANT = "relevant", _("Relevanz")
+
+
+class AiContextChoices(models.TextChoices):
+    CONTENT_IMPROVE_TEXT = "content_improve_text", _("Text verbessern")
+    CONTENT_SUGGEST_TAGS = "content_suggest_tags", _("Tags vorschlagen")
+    CONTENT_REFURBISH = "content_refurbish", _("Inhalt aufbereiten")
+    CONTENT_GENERATE_IMAGE = "content_generate_image", _("Bild generieren")
+    CONTENT_SUGGEST_SUPPLIES = "content_suggest_supplies", _("Materialien vorschlagen")
+    INGREDIENT_AI_CREATE = "ingredient_ai_create", _("Zutat erstellen")
+    INGREDIENT_AI_SUGGEST_ALL = "ingredient_ai_suggest_all", _("Zutatenfelder vorschlagen")
+    INGREDIENT_IMPORT_URL = "ingredient_import_url", _("Zutat aus URL importieren")
+    RECIPE_AI_CREATE = "recipe_ai_create", _("Rezept erstellen")
+    RECIPE_AI_SUGGEST_ALL = "recipe_ai_suggest_all", _("Rezeptmetadaten vorschlagen")
+    RECIPE_AI_SUGGEST_INGREDIENTS = "recipe_ai_suggest_ingredients", _("Rezeptzutaten vorschlagen")
+    PACKING_LIST_AI_SUGGEST = "packing_list_ai_suggest", _("Packlistenvorschläge")
+    EVENT_GENERATE_INVITATION = "event_generate_invitation", _("Einladung generieren")
+    DOCUMENTS_GENERATE_TEXT = "documents_generate_text", _("Dokumententext generieren")

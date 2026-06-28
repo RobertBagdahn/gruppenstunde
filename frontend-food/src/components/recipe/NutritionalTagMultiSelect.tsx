@@ -111,7 +111,7 @@ export default function NutritionalTagMultiSelect({ selectedTagIds, onToggle }: 
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium bg-muted border border-border rounded-lg hover:bg-border transition-colors whitespace-nowrap"
       >
-        <span>Allergene & Ernährung</span>
+        <span>Ernährungstags</span>
         {selectedTagIds.length > 0 && (
           <span className="inline-flex items-center justify-center min-w-[18px] h-4 rounded-full bg-primary text-white text-[10px] px-1 font-bold">
             {selectedTagIds.length}

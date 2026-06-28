@@ -154,8 +154,15 @@ class Recipe(Content):
         "supply.NutritionalTag",
         blank=True,
         related_name="recipes",
-        verbose_name=_("Ernährungstags"),
-        help_text=_("Ernährungshinweise wie vegan, vegetarisch, etc."),
+        verbose_name=_("Ernährungstags (auto-synchronisiert)"),
+        help_text=_("Aus Zutaten berechnete Ernährungshinweise (auto-synchronisiert)"),
+    )
+    manual_nutritional_tags = models.ManyToManyField(
+        "supply.NutritionalTag",
+        blank=True,
+        related_name="manual_recipes",
+        verbose_name=_("Ernährungstags (manuell)"),
+        help_text=_("Manuell gesetzte Ernährungshinweise, bleiben bei Sync erhalten"),
     )
 
     class Meta(Content.Meta):

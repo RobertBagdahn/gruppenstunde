@@ -399,7 +399,7 @@ def create_recipe(request, payload: RecipeCreateIn):
     )
     recipe.save()
 
-    # Set M2M relations
+    # Set M2M relations (except nutritional tags — handled after items)
     if payload.scout_level_ids:
         from content.models.tags import ScoutLevel
 
@@ -407,12 +407,10 @@ def create_recipe(request, payload: RecipeCreateIn):
         recipe.scout_levels.set(valid_ids)
     if payload.tag_ids:
         recipe.tags.set(payload.tag_ids)
-    if payload.nutritional_tag_ids:
-        recipe.nutritional_tags.set(payload.nutritional_tag_ids)
 
     recipe.authors.add(request.user)
 
-    # Create recipe items
+    # Create recipe items first (triggers sync_recipe_nutritional_tags via signal)
     for item_data in payload.recipe_items:
         RecipeItem.objects.create(
             recipe=recipe,
@@ -420,7 +418,13 @@ def create_recipe(request, payload: RecipeCreateIn):
             quantity=item_data.quantity,
             sort_order=item_data.sort_order,
             note=item_data.note,
+            is_optional=item_data.is_optional,
         )
+
+    # Store manually-set nutritional tags after sync (M2M .set() does NOT trigger post_save)
+    if payload.nutritional_tag_ids:
+        recipe.manual_nutritional_tags.set(payload.nutritional_tag_ids)
+
     recipe.emotion_counts = {}
     recipe.user_emotion = None
     recipe.can_edit = True
@@ -459,11 +463,11 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         recipe.scout_levels.set(valid_ids)
     if tag_ids is not None:
         recipe.tags.set(tag_ids)
-    if nutritional_tag_ids is not None:
-        recipe.nutritional_tags.set(nutritional_tag_ids)
 
-    # Replace recipe items if provided
+    # Replace recipe items FIRST (triggers sync_recipe_nutritional_tags via signal)
     if recipe_items_data is not None:
+        if not recipe_items_data and recipe.status != "draft":
+            raise HttpError(400, "Bei veröffentlichten Rezepten können nicht alle Zutaten entfernt werden")
         recipe.recipe_items.all().delete()
         for item_data in recipe_items_data:
             RecipeItem.objects.create(
@@ -472,7 +476,12 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
                 quantity=item_data["quantity"],
                 sort_order=item_data["sort_order"],
                 note=item_data["note"],
+                is_optional=item_data.get("is_optional", False),
             )
+
+    # Store manually-set nutritional tags AFTER items (M2M .set() does NOT trigger post_save)
+    if nutritional_tag_ids is not None:
+        recipe.manual_nutritional_tags.set(nutritional_tag_ids)
 
     enrich_content_with_interactions(request, recipe, Recipe)
     recipe.can_edit = True
@@ -491,13 +500,13 @@ def delete_recipe(request, recipe_id: int):
 
     recipe = get_object_or_404(Recipe, id=recipe_id)
 
-    # Protect recipes whose ingredients are used in active meal plan splits.
-    from planner.models import MealItemSplit
+    # Protect recipes that are used in active meal plans.
+    from planner.models import MealItem
 
-    if MealItemSplit.objects.filter(recipe_item__recipe=recipe).exists():
+    if MealItem.objects.filter(recipe=recipe).exists():
         raise HttpError(
             409,
-            "Dieses Rezept wird in Essensplänen mit konfigurierten Varianten verwendet und kann nicht gelöscht werden.",
+            "Dieses Rezept wird in Essensplänen verwendet und kann nicht gelöscht werden.",
         )
 
     recipe.soft_delete()
@@ -728,6 +737,8 @@ def update_recipe_visibility(request, recipe_id: int, payload: VisibilityUpdateI
 
     # When setting to public, require moderation
     if payload.visibility == "public" and recipe.status != "approved":
+        if not recipe.recipe_items.exists():
+            raise HttpError(400, "Rezept benötigt mindestens eine Zutat zum Veröffentlichen")
         recipe.status = "submitted"
 
     recipe.save(update_fields=["visibility", "status"])

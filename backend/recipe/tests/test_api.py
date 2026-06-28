@@ -346,6 +346,49 @@ class TestUpdateRecipe:
         assert resp.status_code == 200
         assert resp.json()["title"] == "Admin Updated"
 
+    @pytest.mark.usefixtures("db")
+    def test_block_empty_ingredients_on_submitted(self, auth_client, portion, ingredient):
+        """Cannot remove all ingredients from a submitted recipe."""
+        user = auth_client._user
+        recipe = Recipe.objects.create(
+            title="Eingereichtes Rezept",
+            status=ContentStatus.SUBMITTED,
+            created_by=user,
+        )
+        recipe.authors.add(user)
+        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=500.0, sort_order=0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"recipe_items": []}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+        assert "Zutaten entfernt" in resp.json()["detail"]
+
+        assert RecipeItem.objects.filter(recipe=recipe).count() == 1
+
+    @pytest.mark.usefixtures("db")
+    def test_allow_empty_ingredients_on_draft(self, auth_client, portion, ingredient):
+        """Can remove all ingredients from a draft recipe."""
+        user = auth_client._user
+        recipe = Recipe.objects.create(
+            title="Entwurf",
+            status=ContentStatus.DRAFT,
+            created_by=user,
+        )
+        recipe.authors.add(user)
+        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=500.0, sort_order=0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"recipe_items": []}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+        assert RecipeItem.objects.filter(recipe=recipe).count() == 0
+
 
 # ---------------------------------------------------------------------------
 # Delete Endpoint

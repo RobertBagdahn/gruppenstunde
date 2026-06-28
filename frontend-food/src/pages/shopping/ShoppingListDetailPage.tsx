@@ -114,7 +114,7 @@ export default function ShoppingListDetailPage() {
     );
   }
 
-  const isOwner = user?.id === list.owner_id;
+  const isOwner = list.is_owner ?? (user?.id === list.owner_id);
   const canEdit = list.can_edit ?? false;
 
   // Group items by retail section

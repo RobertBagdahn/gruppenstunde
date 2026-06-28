@@ -6,6 +6,7 @@
  *    ToppingPortionIn, BreakfastLeftoversIn, ToppingLeftoverOut, BreakfastLeftoversOut)
  */
 import { z } from 'zod';
+import { MealItemSchema } from './mealPlan';
 
 // ============================================================================
 // Catalog schemas
@@ -44,9 +45,29 @@ export const ToppingIngredientSchema = z.object({
 });
 export type ToppingIngredient = z.infer<typeof ToppingIngredientSchema>;
 
+export const DrinkRecipeSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  recipe_type: z.string(),
+  cached_energy_kcal: z.number().nullable(),
+});
+export type DrinkRecipe = z.infer<typeof DrinkRecipeSchema>;
+
+export const WarmMealRecipeSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  recipe_type: z.string(),
+  cached_energy_kcal: z.number().nullable(),
+});
+export type WarmMealRecipe = z.infer<typeof WarmMealRecipeSchema>;
+
 export const BreakfastCatalogSchema = z.object({
   base_ingredients: z.array(BaseIngredientSchema),
   topping_ingredients: z.array(ToppingIngredientSchema),
+  drink_recipes: z.array(DrinkRecipeSchema),
+  warm_meal_recipes: z.array(WarmMealRecipeSchema),
+  gram_measuring_unit_id: z.number().nullable(),
+  ml_measuring_unit_id: z.number().nullable(),
 });
 export type BreakfastCatalog = z.infer<typeof BreakfastCatalogSchema>;
 
@@ -146,6 +167,16 @@ export const WizardStateSchema = z.object({
   extraIngredients: z.record(z.string(), z.number()),
 });
 export type WizardState = z.infer<typeof WizardStateSchema>;
+
+// ============================================================================
+// WizardItemsResponse (from batch endpoint)
+// ============================================================================
+
+export const WizardItemsResponseSchema = z.object({
+  meal_id: z.number(),
+  items: z.array(MealItemSchema),
+});
+export type WizardItemsResponse = z.infer<typeof WizardItemsResponseSchema>;
 
 /** Default empty wizard state */
 export function defaultWizardState(): WizardState {

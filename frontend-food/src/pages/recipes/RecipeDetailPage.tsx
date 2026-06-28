@@ -563,6 +563,7 @@ export default function RecipeDetailPage() {
                         measuring_unit_id: orig.measuring_unit_id ?? null,
                         sort_order: orig.sort_order ?? 0,
                         note: orig.note ?? '',
+                        is_optional: orig.is_optional,
                       };
                     })
                     .filter((item) => item !== null);
@@ -601,17 +602,18 @@ export default function RecipeDetailPage() {
                        if (!orig?.portion_id) {
                          return null;
                        }
-                       return {
-                         portion_id: orig.portion_id,
-                         ingredient_id: mod.ingredient_id,
-                         quantity: mod.quantity / portions, // Normalize to 1-portion
-                         measuring_unit_id: orig.measuring_unit_id ?? null,
-                         sort_order: orig.sort_order ?? 0,
-                         note: orig.note ?? '',
-                       };
-                     })
-                     .filter((item) => item !== null);
-                   updateRecipe.mutate(
+                        return {
+                          portion_id: orig.portion_id,
+                          ingredient_id: mod.ingredient_id,
+                          quantity: mod.quantity / portions, // Normalize to 1-portion
+                          measuring_unit_id: orig.measuring_unit_id ?? null,
+                          sort_order: orig.sort_order ?? 0,
+                          note: orig.note ?? '',
+                          is_optional: orig.is_optional,
+                        };
+                      })
+                      .filter((item) => item !== null);
+                    updateRecipe.mutate(
                      {
                        // Always save as portions=1 (normalized)
                        portions: 1,
@@ -809,7 +811,7 @@ export default function RecipeDetailPage() {
         <section className="mt-6 bg-card rounded-xl border p-6">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
             <span className="material-symbols-outlined text-[18px]">nutrition</span>
-            Allergene & Ernährungshinweise
+            Ernährungstags
           </h2>
           <div className="flex flex-wrap gap-2">
             {recipe.nutritional_tags?.map((nt) => (
@@ -972,7 +974,13 @@ export default function RecipeDetailPage() {
             >
               <option value="private">Privat – nur für mich</option>
               <option value="group">Gruppe – für meine Gruppe</option>
-              <option value="public">Öffentlich – für alle sichtbar</option>
+              <option
+                value="public"
+                disabled={recipe.status === 'draft' && (recipe.recipe_items?.length ?? 0) === 0}
+                title={recipe.status === 'draft' && (recipe.recipe_items?.length ?? 0) === 0 ? 'Erst Zutaten hinzufügen' : ''}
+              >
+                Öffentlich – für alle sichtbar
+              </option>
             </select>
             <span className="text-xs text-muted-foreground">
               {recipe.visibility === 'private' && 'Nur du kannst dieses Rezept sehen.'}

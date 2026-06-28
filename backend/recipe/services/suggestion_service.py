@@ -323,7 +323,7 @@ def _check_nutritional_tag_compliance(meal_plan: MealPlan) -> list[SuggestionOut
             if not recipe:
                 continue
 
-            for recipe_item in recipe.items.all():
+            for recipe_item in recipe.recipe_items.all():
                 ingredient = recipe_item.ingredient if hasattr(recipe_item, "ingredient") else None
                 if ingredient is None and hasattr(recipe_item, "portion") and recipe_item.portion:
                     ingredient = recipe_item.portion.ingredient
@@ -675,7 +675,7 @@ def get_suggestions(
     try:
         from google.genai import types
 
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,

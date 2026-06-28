@@ -1,6 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
 import { Scale, TrendingUp } from 'lucide-react';
-import { useNutritionSummary, useAllergenScan } from '@/api/mealPlans';
+import { useNutritionSummary, useIngredientScan } from '@/api/mealPlans';
 import { useRules } from '@/api/suggestions';
 import { MEAL_TYPE_ORDER, type Meal, getDayCoverage, getEffectiveCoverage, getCoverageBadge } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -108,12 +108,12 @@ export default function NutritionView({
 }: {
   mealPlanId: number;
   meals?: Meal[];
-  onSelectTab?: (tab: 'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'allergens') => void;
+  onSelectTab?: (tab: 'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'ingredient-scan') => void;
 }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { data, error, isLoading, refetch } = useNutritionSummary(mealPlanId, selectedDate || undefined);
   const { data: rules } = useRules();
-  const { data: scanData } = useAllergenScan(mealPlanId);
+  const { data: scanData } = useIngredientScan(mealPlanId);
   const [showPerPortion, setShowPerPortion] = useState(true);
 
   // Group meals by date to get unique dates
@@ -225,12 +225,12 @@ export default function NutritionView({
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base shrink-0">⚠️</span>
             <p className="font-semibold text-destructive truncate">
-              Dieser Essensplan enthält Allergene: {Array.from(new Set(scanData.violations.map(v => v.nutritional_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
+              Ernährungseinschränkungen erkannt: {Array.from(new Set(scanData.violations.map(v => v.nutritional_tag.name))).join(', ')}. {scanData.summary.affected_meals} {scanData.summary.affected_meals === 1 ? 'Mahlzeit' : 'Mahlzeiten'} betroffen.
             </p>
           </div>
           {onSelectTab && (
             <button
-              onClick={() => onSelectTab('allergens')}
+              onClick={() => onSelectTab('ingredient-scan')}
               className="text-xs font-bold underline shrink-0 text-destructive hover:text-destructive/80 transition-colors"
             >
               Zum Scanner

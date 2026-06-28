@@ -72,7 +72,7 @@ def clean_names_batch(items: list[dict[str, str]]) -> dict[str, str] | None:
     )
 
     try:
-        response = gemini_call(
+        response, _interaction_id = gemini_call(
             user=None,
             model=GEMINI_MODEL,
             contents=prompt,

@@ -35,6 +35,7 @@ export default function CreateRecipePage() {
     quantity: number;
     sort_order: number;
     note: string;
+    is_optional?: boolean;
   }>>([]);
 
   // AI refurbish state
@@ -43,6 +44,7 @@ export default function CreateRecipePage() {
     quantity: number;
     sort_order: number;
     note: string;
+    is_optional?: boolean;
   }>>([]);
 
   // Tags and scout levels for preview
@@ -93,6 +95,7 @@ export default function CreateRecipePage() {
               : item.quantity,
             sort_order: idx + 1,
             note: item.note,
+            is_optional: false,
           }));
         setImportedRecipeItems(validItems);
 
@@ -114,6 +117,7 @@ export default function CreateRecipePage() {
         quantity: parseFloat(ing.quantity) || 1,
         sort_order: i + 1,
         note: '',
+        is_optional: false,
       })) ?? [];
     setAiRecipeItems(items);
   }
@@ -274,11 +278,10 @@ export default function CreateRecipePage() {
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined text-amber-600 text-[22px] mt-0.5 shrink-0">info</span>
               <div>
-                <p className="text-sm font-medium text-amber-800">Zutaten erst nach dem Erstellen hinzufügen</p>
+                <p className="text-sm font-medium text-amber-800">Zutaten nach dem Erstellen hinzufügen</p>
                 <p className="text-xs text-amber-700 mt-1">
-                  Konzentriere dich hier auf Titel, Beschreibung und Zubereitung. Nach dem Speichern
-                  öffnet sich der Zutaten-Editor mit Portion-Auswahl, KI-Vorschlägen, Mengenschätzung
-                  und Preis-Infos.
+                  Zutaten können später im Zutaten-Editor hinzugefügt werden. Zum Veröffentlichen
+                  wird mindestens eine Zutat benötigt.
                 </p>
               </div>
             </div>

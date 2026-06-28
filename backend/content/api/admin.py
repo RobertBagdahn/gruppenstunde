@@ -18,6 +18,7 @@ from content.schemas.admin import (
     PaginatedEmbeddingFeedbackOut,
     PaginatedEmbeddingStatusOut,
 )
+from content.schemas.ai_interaction import AiContextStatsOut, AiInteractionStatsOut, AiTimelineEntryOut
 
 router = Router(tags=["content"])
 
@@ -333,4 +334,83 @@ def admin_embedding_feedback(
         "page": page,
         "page_size": page_size,
         "total_pages": total_pages,
+    }
+
+
+# ---------------------------------------------------------------------------
+# AI Interaction Stats
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/admin/ai-interactions/stats/",
+    response=AiInteractionStatsOut,
+    url_name="content_admin_ai_interaction_stats",
+)
+def admin_ai_interaction_stats(request):
+    """Aggregated AI interaction statistics (admin only)."""
+    _require_admin(request)
+
+    from django.utils import timezone
+
+    from content.choices import AiContextChoices
+    from content.models import AiInteraction
+
+    today = timezone.now().date()
+
+    total_calls = AiInteraction.objects.count()
+    calls_today = AiInteraction.objects.filter(created_at__date=today).count()
+    voted_calls = AiInteraction.objects.filter(vote__isnull=False).count()
+    vote_rate = round(voted_calls / total_calls * 100, 1) if total_calls else 0
+
+    by_context = []
+    for choice in AiContextChoices:
+        qs = AiInteraction.objects.filter(context=choice.value)
+        total = qs.count()
+        if total == 0:
+            continue
+        success_count = qs.filter(success=True).count()
+        error_count = qs.filter(success=False).count()
+        thumbs_up = qs.filter(vote="up").count()
+        thumbs_down = qs.filter(vote="down").count()
+        ctx_vote_rate = round((thumbs_up + thumbs_down) / total * 100, 1) if total else 0
+        by_context.append(
+            {
+                "context": choice.value,
+                "label": choice.label,
+                "total": total,
+                "success_count": success_count,
+                "error_count": error_count,
+                "thumbs_up": thumbs_up,
+                "thumbs_down": thumbs_down,
+                "vote_rate": ctx_vote_rate,
+            }
+        )
+
+    from datetime import timedelta
+
+    timeline = []
+    for i in range(29, -1, -1):
+        day = today - timedelta(days=i)
+        day_qs = AiInteraction.objects.filter(created_at__date=day)
+        total_day = day_qs.count()
+        thumbs_up_day = day_qs.filter(vote="up").count()
+        thumbs_down_day = day_qs.filter(vote="down").count()
+        if total_day or thumbs_up_day or thumbs_down_day:
+            timeline.append(
+                {
+                    "date": day.isoformat(),
+                    "total": total_day,
+                    "thumbs_up": thumbs_up_day,
+                    "thumbs_down": thumbs_down_day,
+                }
+            )
+
+    return {
+        "total_calls": total_calls,
+        "calls_today": calls_today,
+        "voted_calls": voted_calls,
+        "vote_rate": vote_rate,
+        "by_context": by_context,
+        "timeline": timeline,
     }

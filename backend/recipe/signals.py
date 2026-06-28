@@ -107,35 +107,35 @@ def invalidate_recipes_on_measuring_unit_change(sender, instance, **kwargs):
 
 
 # ---------------------------------------------------------------------------
-# Allergen sync signals
+# Nutritional tag sync signals
 # ---------------------------------------------------------------------------
 
 
-@receiver(post_save, sender=RecipeItem, dispatch_uid="recipe.allergen_sync_on_item_save")
-@receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe.allergen_sync_on_item_delete")
-def sync_recipe_allergens_on_item_change(sender, instance, **kwargs):
-    """Sync recipe allergen tags when a RecipeItem is created, updated, or deleted."""
-    from recipe.services.recipe_checks import sync_recipe_allergen_tags
+@receiver(post_save, sender=RecipeItem, dispatch_uid="recipe.nutritional_sync_on_item_save")
+@receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe.nutritional_sync_on_item_delete")
+def sync_recipe_nutritional_tags_on_item_change(sender, instance, **kwargs):
+    """Sync recipe nutritional tags when a RecipeItem is created, updated, or deleted."""
+    from recipe.services.recipe_checks import sync_recipe_nutritional_tags
 
     try:
         recipe = instance.recipe
     except Exception:
         return
-    sync_recipe_allergen_tags(recipe)
+    sync_recipe_nutritional_tags(recipe)
 
 
-@receiver(post_save, sender=Recipe, dispatch_uid="recipe_allergen_sync")
-def sync_recipe_allergens_on_recipe_change(sender, instance, **kwargs):
-    """Sync recipe allergen tags when a Recipe is saved."""
-    if hasattr(instance, "_syncing_allergens"):
+@receiver(post_save, sender=Recipe, dispatch_uid="recipe_nutritional_sync")
+def sync_recipe_nutritional_tags_on_recipe_change(sender, instance, **kwargs):
+    """Sync recipe nutritional tags when a Recipe is saved."""
+    if hasattr(instance, "_syncing_nutritional_tags"):
         return
-    instance._syncing_allergens = True
+    instance._syncing_nutritional_tags = True
     try:
-        from recipe.services.recipe_checks import sync_recipe_allergen_tags
+        from recipe.services.recipe_checks import sync_recipe_nutritional_tags
 
-        sync_recipe_allergen_tags(instance)
+        sync_recipe_nutritional_tags(instance)
     finally:
-        delattr(instance, "_syncing_allergens")
+        delattr(instance, "_syncing_nutritional_tags")
 
 
 # ---------------------------------------------------------------------------

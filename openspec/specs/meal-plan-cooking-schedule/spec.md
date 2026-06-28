@@ -4,12 +4,25 @@
 
 Das System SHALL einen Endpunkt `GET /api/meal-plans/{id}/cooking-schedule/` bereitstellen, der für einen Essensplan eine nach Tagen gruppierte, chronologisch nach berechneter Startzeit sortierte Liste aller zu kochenden Rezepte zurückgibt.
 
-#### Scenario: Erfolgreicher Abruf des Kochplans
+Zusätzlich zu den bestehenden Feldern SHALL jeder Tages-Eintrag (CookingScheduleDay) folgende Felder enthalten:
+- `day_start_time` (str): Uhrzeit der frühesten Startzeit an diesem Tag
+- `day_end_time` (str): Uhrzeit der spätesten Servierzeit an diesem Tag
+- `day_duration_minutes` (int): Gesamt-Kochdauer in Minuten (von erster Startzeit bis letzte Servierzeit)
+- `portions` (int): Personenanzahl (aus MealPlan.norm_portions)
+- `day_nutritional_tags` (list): Alle NutritionalTags die an diesem Tag in Rezepten oder Zutaten vorkommen
+
+Zusätzlich SHALL der Response-Header (CookingScheduleOut) folgende Felder enthalten:
+- `total_cost_eur` (float): Gesamtkosten aller Rezepte
+- `total_cost_with_reserve` (float): Gesamtkosten inkl. Reservefaktor
+- `total_energy_kcal` (float): Gesamtenergie aller Rezepte
+- `norm_portions` (int): Personenanzahl aus dem Essensplan
+
+#### Scenario: Erfolgreicher Abruf des Kochplans mit neuen Feldern
 
 - **WHEN** ein authentifizierter Nutzer mit Zugriff auf den Essensplan den Endpunkt aufruft
 - **THEN** liefert das System eine Liste von Tagen, jeweils mit den zu kochenden Rezepten dieses Tages
-- **AND** die Rezepte jedes Tages sind aufsteigend nach berechneter Startzeit sortiert
-- **AND** jeder Eintrag enthält Startzeit, Servierzeit, Rezeptname, Rezept-Slug, Zubereitungsdauer in Minuten, Mahlzeit-Typ und Portionen
+- **AND** jeder Tag enthält `day_start_time`, `day_end_time`, `day_duration_minutes`, `portions`, `day_nutritional_tags`
+- **AND** der Response enthält `total_cost_eur`, `total_cost_with_reserve`, `total_energy_kcal`, `norm_portions`
 
 #### Scenario: Essensplan existiert nicht
 
@@ -86,11 +99,16 @@ Das System SHALL die Portionen eines Kochplan-Eintrags aus `Meal.override_portio
 
 Das System SHALL im Food-Frontend eine Kochplan-Seite bereitstellen, die pro Tag gruppiert die berechneten Einträge anzeigt, erreichbar über einen „Kochplan"-Button auf der Essensplan-Detailseite.
 
+Zusätzlich zu den bestehenden Feldern SHALL die Seite anzeigen:
+- Personenanzahl prominent im Header
+- Allergen-Badges pro Rezept (aus `nutritional_tags`)
+- Tägliche Gesamt-Kochzeit
+
 #### Scenario: Kochplan-Seite anzeigen
 
 - **WHEN** ein Nutzer auf der Essensplan-Detailseite den „Kochplan"-Button klickt
 - **THEN** öffnet sich die Kochplan-Seite mit den pro Tag gruppierten Einträgen
-- **AND** jede Zeile zeigt Startzeit, Servierzeit, Rezeptname (verlinkt zur Rezeptdetailseite), Zubereitungsdauer, Mahlzeit-Typ als Badge und Portionen
+- **AND** jede Zeile zeigt Startzeit, Servierzeit, Rezeptname (verlinkt zur Rezeptdetailseite), Zubereitungsdauer, Mahlzeit-Typ als Badge, Portionen und ggf. Allergen-Badges
 
 #### Scenario: Hinweis bei ausgeschlossenen Mahlzeiten
 
@@ -99,9 +117,23 @@ Das System SHALL im Food-Frontend eine Kochplan-Seite bereitstellen, die pro Tag
 
 ### Requirement: Druckansicht des Kochplans
 
-Das System SHALL eine dedizierte Druck-Route `/meal-plans/:id/cooking-schedule/print` bereitstellen, die ohne App-Layout und mit allen Sektionen ausgeklappt A4-optimiert darstellt.
+Das System SHALL eine dedizierte Druck-Route `/meal-plans/:id/cooking-schedule/print` bereitstellen, die ohne App-Layout und mit allen Sektionen ausgeklappt A4-optimiert darstellt. Die Druckansicht SHALL im Kochbuch-Layout erscheinen.
+
+Jedes Rezept SHALL auf einer neuen Seite beginnen (`page-break-before: always`). Jede Rezeptkarte SHALL enthalten:
+- Rezepttitel
+- Zutatenliste mit skalierten Mengen, Einheiten und Notizen
+- Strukturierte Zubereitungsschritte
+- Allergen-Badges
+- Kosten pro Rezept
+- Nährwerte pro Portion (kcal, Protein, Fett, Kohlenhydrate)
+
+Jeder Tag SHALL im Kopf enthalten:
+- Personenanzahl
+- Tägliche Gesamt-Kochzeit (von-bis)
+- Allergen-Zusammenfassung des Tages
 
 #### Scenario: Druckansicht öffnen
 
 - **WHEN** ein Nutzer die Druckansicht des Kochplans öffnet
-- **THEN** wird der Kochplan ohne FoodLayout, ohne Navigation und mit allen Tagen vollständig ausgeklappt dargestellt
+- **THEN** wird der Kochplan ohne FoodLayout, ohne Navigation und mit allen Rezepten vollständig ausgeklappt dargestellt
+- **AND** jedes Rezept beginnt auf einer neuen Seite

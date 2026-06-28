@@ -3,7 +3,7 @@
  * Route: /meal-plans/:id/ref-meals/:mealType
  */
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   useRefMeals,
@@ -15,7 +15,7 @@ import {
 import { useRecipeSearch } from '@/api/mealPlans';
 import { useMealPlan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
-import type { RefMealItemIn } from '@/schemas/mealPlan';
+import type { MealItem, RefMealItemIn } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
 
 /** Category labels for recipe type grouping */
@@ -75,7 +75,7 @@ export default function RefMealEditorPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: searchResults } = useRecipeSearch({
     q: searchQuery,
-    recipe_types: currentMealType === 'breakfast' ? ['breakfast'] : undefined,
+    meal_type: currentMealType,
   });
 
   // Energy calculation
@@ -174,7 +174,59 @@ export default function RefMealEditorPage() {
     );
   }
 
+  // Breakfast with no RefMeal → redirect directly to wizard
+  if (isBreakfast && !refMeal) {
+    return <Navigate to={`/meal-plans/${planId}/ref-meals/breakfast/wizard`} replace />;
+  }
+
   const mealTypeLabel = MEAL_TYPE_LABELS[currentMealType] || currentMealType;
+
+  // Category grouping helpers for breakfast mode
+  const CATEGORY_LABELS: Record<string, string> = {
+    basis: 'Brot',
+    belag: 'Belag',
+    warm: 'Warme Gerichte',
+    extras: 'Extras',
+    getraenke: 'Getränke',
+  };
+
+  const CATEGORY_ORDER = ['basis', 'belag', 'warm', 'extras', 'getraenke'] as const;
+
+  function getItemCategory(item: MealItem): string {
+    const tags = item.ingredient_tags || [];
+    if (tags.includes('breakfast-base')) return 'basis';
+    if (tags.includes('breakfast-topping')) return 'belag';
+    if (item.recipe_type === 'drink') return 'getraenke';
+    if (item.recipe_id) return 'warm';
+    return 'extras';
+  }
+
+  const groupedItems = useMemo(() => {
+    if (!refMeal) return {} as Record<string, MealItem[]>;
+    const groups: Record<string, MealItem[]> = {};
+    for (const item of refMeal.items) {
+      const cat = getItemCategory(item);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item);
+    }
+    return groups;
+  }, [refMeal]);
+
+  const drinkCategory = 'getraenke';
+
+  const foodKcal = useMemo(() => {
+    if (!refMeal) return 0;
+    return refMeal.items
+      .filter((item) => getItemCategory(item) !== drinkCategory)
+      .reduce((sum, item) => sum + (item.energy_kcal || 0), 0);
+  }, [refMeal]);
+
+  const drinkKcal = useMemo(() => {
+    if (!refMeal) return 0;
+    return refMeal.items
+      .filter((item) => getItemCategory(item) === drinkCategory)
+      .reduce((sum, item) => sum + (item.energy_kcal || 0), 0);
+  }, [refMeal]);
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -232,8 +284,81 @@ export default function RefMealEditorPage() {
         </div>
       )}
 
-      {/* RefMeal Editor */}
-      {refMeal && (
+      {/* Breakfast RefMeal — grouped read-only view */}
+      {refMeal && isBreakfast && (
+        <div className="space-y-6">
+          {CATEGORY_ORDER.map((cat) => {
+            const items = groupedItems[cat] || [];
+            if (items.length === 0) return null;
+            return (
+              <div key={cat} className="border rounded-lg p-4 space-y-2">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  {CATEGORY_LABELS[cat]}
+                </h3>
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span className="font-medium">
+                      {item.display_name || item.recipe_title || item.ingredient_name || 'Unbekannt'}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {item.quantity ? `${Math.round(item.quantity)} ${item.measuring_unit_name || 'g'}` : `×${item.factor}`}
+                      {item.energy_kcal != null && ` · ${Math.round(item.energy_kcal)} kcal`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+
+          {/* Energy split */}
+          <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
+            <h3 className="font-semibold text-sm">Energie pro Person</h3>
+            <div className="flex justify-between text-sm">
+              <span>Essen:</span>
+              <span className="font-mono">{Math.round(foodKcal)} kcal</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Getränke:</span>
+              <span className="font-mono">{Math.round(drinkKcal)} kcal</span>
+            </div>
+          </div>
+
+          {/* Sync info */}
+          <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
+            <h3 className="font-semibold text-sm">Verknüpfung</h3>
+            <p className="text-sm text-muted-foreground">
+              {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
+              {plan && (
+                <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
+              )}
+            </p>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleSync}
+              disabled={syncRefMeal.isPending}
+              className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+            >
+              Für alle übernehmen
+            </button>
+            <button
+              onClick={handleLinkAll}
+              disabled={linkAllMeals.isPending}
+              className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+            >
+              Alle {mealTypeLabel} verknüpfen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Non-Breakfast RefMeal Editor (existing Baukasten) */}
+      {refMeal && !isBreakfast && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Recipe Picker (Baukasten) */}
           <div className="space-y-4">

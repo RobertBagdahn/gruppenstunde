@@ -1,15 +1,8 @@
-/**
- * CookingSchedulePage — Chronologische Kochplan-Übersicht für einen Essensplan.
- * Route: /meal-plans/:id/cooking-schedule
- *
- * Zeigt pro Tag alle zu kochenden Rezepte mit berechneter Startzeit,
- * skalierten Zutaten und Zubereitungsschritten (aufklappbar).
- */
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
 import { BackButton } from '@/components/shared/BackButton';
-import { Loader2, Printer, Info, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks } from 'lucide-react';
+import { Loader2, Printer, Info, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, LayoutDashboard, AlertTriangle } from 'lucide-react';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { CookingScheduleItem, CookingScheduleIngredient } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
@@ -52,14 +45,36 @@ function IngredientBadge({ ing }: { ing: CookingScheduleIngredient }) {
   );
 }
 
+function AllergenBadge({ name, isDangerous }: { name: string; isDangerous?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+        isDangerous ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+      }`}
+    >
+      {isDangerous && <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />}
+      {name}
+    </span>
+  );
+}
+
 function RecipeDetail({ item }: { item: CookingScheduleItem }) {
   const hasIngredients = item.ingredients.length > 0;
-  const hasSteps = item.steps.trim().length > 0;
+  const hasSteps = item.steps_parsed.length > 0 || item.steps.trim().length > 0;
+  const hasAllergens = item.nutritional_tags.length > 0;
 
-  if (!hasIngredients && !hasSteps) return null;
+  if (!hasIngredients && !hasSteps && !hasAllergens) return null;
 
   return (
-    <div className="px-4 pb-4 pt-1 bg-muted/20">
+    <div className="px-4 pb-4 pt-1 bg-muted/20 space-y-2">
+      {hasAllergens && (
+        <div className="flex flex-wrap gap-1">
+          {item.nutritional_tags.map((tag) => (
+            <AllergenBadge key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-3 md:grid-cols-2">
         {hasIngredients && (
           <div>
@@ -81,9 +96,20 @@ function RecipeDetail({ item }: { item: CookingScheduleItem }) {
               <ListChecks className="w-3.5 h-3.5" />
               Zubereitung
             </h4>
-            <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-              {item.steps}
-            </div>
+            {item.steps_parsed.length > 0 ? (
+              <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground leading-relaxed">
+                {item.steps_parsed.map((step, i) => (
+                  <li key={i} className="pl-1">
+                    <span className="whitespace-pre-line">{step.text.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '')}</span>
+                    {step.timer && <span className="text-xs text-primary ml-1">(⏱ {step.timer} Min.)</span>}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                {item.steps}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -140,20 +166,40 @@ export default function CookingSchedulePage() {
               Kochplan
             </h1>
             {plan && (
-              <p className="text-sm text-muted-foreground mt-0.5">{plan.name}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                <p className="text-sm text-muted-foreground">{plan.name}</p>
+                <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  👥 {schedule.norm_portions ?? plan.norm_portions} Personen
+                </span>
+                {schedule.total_cost_eur > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {schedule.total_cost_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
-        <a
-          href={`/meal-plans/${id}/cooking-schedule/print`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft shrink-0"
-          title="Druckansicht öffnen"
-        >
-          <Printer className="w-4 h-4" />
-          Drucken
-        </a>
+        <div className="flex items-center gap-2 shrink-0">
+          <a
+            href={`/meal-plans/${id}/cooking-schedule/kitchen`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            title="Küchen-Dashboard"
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </a>
+          <a
+            href={`/meal-plans/${id}/cooking-schedule/print`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            title="Druckansicht öffnen"
+          >
+            <Printer className="w-4 h-4" />
+            <span className="hidden sm:inline">Drucken</span>
+          </a>
+        </div>
       </div>
 
       {/* Hinweis: ausgeschlossene Mahlzeiten */}
@@ -182,119 +228,149 @@ export default function CookingSchedulePage() {
       )}
 
       {/* Tage */}
-      {schedule.days.map((day) => (
-        <section key={day.date} className="space-y-3">
-          <h2 className="text-base font-display font-bold text-foreground border-b border-border pb-2">
-            {formatDate(day.date)}
-          </h2>
-
-          {/* Tabelle */}
-          <div className="rounded-xl border border-border bg-card overflow-hidden shadow-soft">
-            {/* Header */}
-            <div className="hidden md:grid grid-cols-[2rem_5rem_5rem_1fr_5rem_8rem_4.5rem] gap-3 px-4 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              <span />
-              <span>Start</span>
-              <span>Servierzeit</span>
-              <span>Rezept</span>
-              <span className="text-right">Dauer</span>
-              <span>Mahlzeit</span>
-              <span className="text-right">Portionen</span>
+      {schedule.days.map((day) => {
+        const hasAllergens = day.day_nutritional_tags && day.day_nutritional_tags.length > 0;
+        return (
+          <section key={day.date} className="space-y-3">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h2 className="text-base font-display font-bold text-foreground">
+                {formatDate(day.date)}
+              </h2>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {day.day_start_time && day.day_end_time && (
+                  <span>⏱ {day.day_start_time} – {day.day_end_time}</span>
+                )}
+                {day.total_cost_eur > 0 && (
+                  <span className="font-medium">{day.total_cost_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
+                )}
+              </div>
             </div>
 
-            {/* Zeilen */}
-            <div className="divide-y divide-border">
-              {day.items.map((item, idx) => {
-                const key = `${day.date}-${item.recipe_slug}-${idx}`;
-                const isExpanded = expandedItems.has(key);
-                const hasDetails = item.ingredients.length > 0 || item.steps.trim().length > 0;
+            {hasAllergens && (
+              <div className="flex flex-wrap gap-1.5">
+                {day.day_nutritional_tags.map((tag) => (
+                  <AllergenBadge key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
+                ))}
+              </div>
+            )}
 
-                return (
-                  <div key={key}>
-                    <div
-                      className={`grid grid-cols-1 md:grid-cols-[2rem_5rem_5rem_1fr_5rem_8rem_4.5rem] gap-2 md:gap-3 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer ${isExpanded ? 'bg-muted/20' : ''}`}
-                      onClick={() => hasDetails && toggleExpand(key)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hasDetails && toggleExpand(key); }}}
-                    >
-                      {/* Expand-Icon */}
-                      <div className="hidden md:flex justify-center">
-                        {hasDetails ? (
-                          isExpanded
-                            ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                            : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <span className="w-4 h-4" />
-                        )}
-                      </div>
+            {/* Tabelle */}
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-soft">
+              {/* Header */}
+              <div className="hidden md:grid grid-cols-[2rem_5rem_5rem_1fr_5rem_8rem_4.5rem] gap-3 px-4 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <span />
+                <span>Start</span>
+                <span>Servierzeit</span>
+                <span>Rezept</span>
+                <span className="text-right">Dauer</span>
+                <span>Mahlzeit</span>
+                <span className="text-right">Portionen</span>
+              </div>
 
-                      {/* Startzeit */}
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-primary md:hidden" />
-                        <span className="font-bold text-sm text-primary tabular-nums">
-                          {formatTime(item.start_time)} Uhr
-                        </span>
-                      </div>
+              {/* Zeilen */}
+              <div className="divide-y divide-border">
+                {day.items.map((item, idx) => {
+                  const key = `${day.date}-${item.recipe_slug}-${idx}`;
+                  const isExpanded = expandedItems.has(key);
+                  const hasDetails = item.ingredients.length > 0 || item.steps_parsed.length > 0 || item.steps.trim().length > 0;
 
-                      {/* Servierzeit */}
-                      <div className="text-sm text-muted-foreground tabular-nums md:block hidden">
-                        {formatTime(item.serving_time)} Uhr
-                      </div>
-                      <div className="md:hidden text-xs text-muted-foreground">
-                        Servieren: {formatTime(item.serving_time)} Uhr
-                      </div>
+                  return (
+                    <div key={key}>
+                      <div
+                        className={`grid grid-cols-1 md:grid-cols-[2rem_5rem_5rem_1fr_5rem_8rem_4.5rem] gap-2 md:gap-3 px-4 py-3 items-center hover:bg-muted/30 transition-colors cursor-pointer ${isExpanded ? 'bg-muted/20' : ''}`}
+                        onClick={() => hasDetails && toggleExpand(key)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hasDetails && toggleExpand(key); }}}
+                      >
+                        {/* Expand-Icon */}
+                        <div className="hidden md:flex justify-center">
+                          {hasDetails ? (
+                            isExpanded
+                              ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                              : <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <span className="w-4 h-4" />
+                          )}
+                        </div>
 
-                      {/* Rezeptname */}
-                      <div>
-                        <Link
-                          to={`/recipes/${item.recipe_slug}`}
-                          className="font-semibold text-sm hover:text-primary transition-colors line-clamp-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {item.recipe_title}
-                        </Link>
-                        {/* Mobile: expand hint */}
-                        {hasDetails && (
-                          <span className="md:hidden text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                            <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
-                            {isExpanded ? 'Details ausblenden' : 'Zutaten & Schritte'}
+                        {/* Startzeit */}
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-primary md:hidden" />
+                          <span className="font-bold text-sm text-primary tabular-nums">
+                            {formatTime(item.start_time)} Uhr
                           </span>
-                        )}
+                        </div>
+
+                        {/* Servierzeit */}
+                        <div className="text-sm text-muted-foreground tabular-nums md:block hidden">
+                          {formatTime(item.serving_time)} Uhr
+                        </div>
+                        <div className="md:hidden text-xs text-muted-foreground">
+                          Servieren: {formatTime(item.serving_time)} Uhr
+                        </div>
+
+                        {/* Rezeptname */}
+                        <div>
+                          <Link
+                            to={`/recipes/${item.recipe_slug}`}
+                            className="font-semibold text-sm hover:text-primary transition-colors line-clamp-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {item.recipe_title}
+                          </Link>
+                          {item.nutritional_tags && item.nutritional_tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {item.nutritional_tags.slice(0, 2).map((tag) => (
+                                <AllergenBadge key={tag.name} name={tag.name} isDangerous={tag.is_dangerous} />
+                              ))}
+                              {item.nutritional_tags.length > 2 && (
+                                <span className="text-[10px] text-muted-foreground">+{item.nutritional_tags.length - 2}</span>
+                              )}
+                            </div>
+                          )}
+                          {hasDetails && (
+                            <span className="md:hidden text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                              <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                              {isExpanded ? 'Details ausblenden' : 'Zutaten & Schritte'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Dauer */}
+                        <div className="text-sm text-muted-foreground md:text-right">
+                          <span className="md:hidden text-xs">Dauer: </span>
+                          {item.lead_minutes} Min.
+                        </div>
+
+                        {/* Mahlzeit-Typ */}
+                        <div>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                              MEAL_TYPE_BADGES[item.meal_type] ?? 'bg-muted text-muted-foreground border-border'
+                            }`}
+                          >
+                            {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
+                          </span>
+                        </div>
+
+                        {/* Portionen */}
+                        <div className="text-sm text-muted-foreground md:text-right">
+                          <span className="md:hidden text-xs">Portionen: </span>
+                          {item.portions}×
+                        </div>
                       </div>
 
-                      {/* Dauer */}
-                      <div className="text-sm text-muted-foreground md:text-right">
-                        <span className="md:hidden text-xs">Dauer: </span>
-                        {item.lead_minutes} Min.
-                      </div>
-
-                      {/* Mahlzeit-Typ */}
-                      <div>
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                            MEAL_TYPE_BADGES[item.meal_type] ?? 'bg-muted text-muted-foreground border-border'
-                          }`}
-                        >
-                          {MEAL_TYPE_LABELS[item.meal_type] ?? item.meal_type}
-                        </span>
-                      </div>
-
-                      {/* Portionen */}
-                      <div className="text-sm text-muted-foreground md:text-right">
-                        <span className="md:hidden text-xs">Portionen: </span>
-                        {item.portions}×
-                      </div>
+                      {/* Expandierter Detail-Bereich */}
+                      {isExpanded && <RecipeDetail item={item} />}
                     </div>
-
-                    {/* Expandierter Detail-Bereich */}
-                    {isExpanded && <RecipeDetail item={item} />}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </section>
-      ))}
+          </section>
+        );
+      })}
     </div>
   );
 }

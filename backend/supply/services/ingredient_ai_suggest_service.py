@@ -206,7 +206,7 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
         response_schema=IngredientSuggestAllSchema,
     )
 
-    response = gemini_call(
+    response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -279,7 +279,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         response_schema=IngredientAiCreateSchema,
     )
 
-    response = gemini_call(
+    response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,

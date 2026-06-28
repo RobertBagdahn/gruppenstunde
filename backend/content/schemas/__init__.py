@@ -40,6 +40,13 @@ from .ai import (
     SuggestedMaterialOut,
     SuggestedTagOut,
 )
+from .ai_interaction import (
+    AiContextStatsOut,
+    AiInteractionStatsOut,
+    AiTimelineEntryOut,
+    AiVoteIn,
+    AiVoteOut,
+)
 from .base import (
     ApprovalActionIn,
     ApprovalLogOut,
@@ -82,12 +89,14 @@ from .search import (
 
 __all__ = [
     "AdminApprovalActionIn",
+    "AiContextStatsOut",
     "AiErrorOut",
     "AiGenerateImageIn",
     "AiGenerateImageOut",
     "AiImproveTextIn",
     "AiImproveTextOut",
     "AiIngredientSuggestionOut",
+    "AiInteractionStatsOut",
     "AiMaterialSuggestionOut",
     "AiRefurbishIn",
     "AiRefurbishOut",
@@ -95,6 +104,9 @@ __all__ = [
     "AiSuggestSuppliesOut",
     "AiSuggestTagsIn",
     "AiSuggestTagsOut",
+    "AiTimelineEntryOut",
+    "AiVoteIn",
+    "AiVoteOut",
     "ApprovalActionIn",
     "ApprovalActionOut",
     "ApprovalLogItemOut",

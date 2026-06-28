@@ -170,6 +170,49 @@ class TestRefMealAPI:
         data = resp.json()
         assert data["meal_type"] == "breakfast"
 
+    def test_create_ref_meal_with_items(self):
+        from content.models import Tag
+        from recipe.tests import make_recipe
+        from supply.tests import make_ingredient
+
+        tag, _ = Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "breakfast-base"})
+        recipe = make_recipe()
+        ingredient = make_ingredient()
+        ingredient.tags.add(tag)
+
+        resp = self.client.post(
+            f"/api/meal-plans/{self.plan.id}/ref-meals/",
+            data={
+                "meal_type": "breakfast",
+                "items": [
+                    {"recipe_id": recipe.id, "factor": 2.0},
+                    {"ingredient_id": ingredient.id, "quantity": 500.0},
+                ],
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["meal_type"] == "breakfast"
+        assert len(data["items"]) == 2
+
+        # Check MealItemOut resolvers
+        recipe_item = next(i for i in data["items"] if i.get("recipe_id") is not None)
+        assert recipe_item["recipe_type"] == "warm_meal"
+        assert recipe_item["ingredient_tags"] == []
+
+        ingredient_item = next(i for i in data["items"] if i.get("ingredient_id") is not None)
+        assert ingredient_item["ingredient_tags"] == ["breakfast-base"]
+        assert ingredient_item["recipe_type"] == ""
+
+        meal = Meal.objects.get(id=data["id"])
+        items = list(meal.items.all())
+        assert len(items) == 2
+        assert items[0].recipe == recipe
+        assert items[0].factor == 2.0
+        assert items[1].ingredient == ingredient
+        assert items[1].quantity == 500.0
+
     def test_create_duplicate_ref_meal_409(self):
         _make_ref_meal(self.plan)
         resp = self.client.post(

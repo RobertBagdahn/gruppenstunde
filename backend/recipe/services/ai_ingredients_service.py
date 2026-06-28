@@ -90,7 +90,7 @@ class RecipeAiIngredientsService:
         try:
             from google.genai import types
 
-            response = gemini_call(
+            response, _interaction_id = gemini_call(
                 user=user,
                 model=GEMINI_MODEL,
                 contents=prompt,
@@ -339,7 +339,7 @@ class RecipeQuantityEstimationService:
         try:
             from google.genai import types
 
-            response = gemini_call(
+            response, _interaction_id = gemini_call(
                 user=user,
                 model=GEMINI_MODEL,
                 contents=prompt,

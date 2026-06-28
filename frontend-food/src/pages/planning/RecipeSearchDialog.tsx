@@ -24,10 +24,10 @@ import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
 export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
-  breakfast: ['breakfast'],
-  lunch: ['warm_meal', 'cold_meal'],
-  dinner: ['warm_meal', 'cold_meal'],
-  snack: ['snack'],
+  breakfast: ['breakfast', 'drink'],
+  lunch: ['warm_meal', 'cold_meal', 'drink'],
+  dinner: ['warm_meal', 'cold_meal', 'drink'],
+  snack: ['snack', 'drink'],
   drinks: ['drink'],
 };
 
@@ -65,6 +65,8 @@ interface RecipeSearchDialogProps {
   onOpenChange: (open: boolean) => void;
   nutritionalTagIds?: number[];
   nutritionalTagNames?: string[];
+  excludedRecipeIds?: Set<number>;
+  excludedIngredientIds?: Set<number>;
 }
 
 export default function RecipeSearchDialog({
@@ -75,6 +77,8 @@ export default function RecipeSearchDialog({
   onOpenChange,
   nutritionalTagIds,
   nutritionalTagNames,
+  excludedRecipeIds = new Set(),
+  excludedIngredientIds = new Set(),
 }: RecipeSearchDialogProps) {
   const defaultTypes = MEAL_TYPE_DEFAULT_RECIPE_TYPES[mealType] ?? [];
 
@@ -294,13 +298,26 @@ export default function RecipeSearchDialog({
                     Rezepte
                   </div>
                 )}
-                {recipes.map((r) => (
-                  <RecipeSearchCard
-                    key={`recipe-${r.id}`}
-                    recipe={r}
-                    onClick={() => handleSelect(r)}
-                  />
-                ))}
+                {recipes.map((r) => {
+                  const isExcluded = excludedRecipeIds.has(r.id);
+                  return isExcluded ? (
+                    <div
+                      key={`recipe-${r.id}`}
+                      className="w-full text-left px-3 py-2.5 flex items-center gap-2.5 opacity-50 pointer-events-none bg-muted/30"
+                    >
+                      <span className="text-sm font-medium truncate flex-1">{r.title}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                        Bereits enthalten
+                      </span>
+                    </div>
+                  ) : (
+                    <RecipeSearchCard
+                      key={`recipe-${r.id}`}
+                      recipe={r}
+                      onClick={() => handleSelect(r)}
+                    />
+                  );
+                })}
               </>
             )}
 
@@ -309,19 +326,33 @@ export default function RecipeSearchDialog({
                 <div className="px-3 py-1.5 bg-muted/50 text-sm font-semibold text-muted-foreground">
                   Zutaten
                 </div>
-                {ingredients.map((ing) => (
-                   <button
-                     key={`ing-${ing.id}`}
-                     onClick={() => setIngredientDialog(ing)}
-                     className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
-                   >
-                     <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
-                     <span className="flex-1">{ing.name}</span>
-                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
-                       Zutat
-                     </span>
-                   </button>
-                 ))}
+                {ingredients.map((ing) => {
+                  const isExcluded = excludedIngredientIds.has(ing.id);
+                  return isExcluded ? (
+                    <div
+                      key={`ing-${ing.id}`}
+                      className="w-full text-left px-3 py-2.5 flex items-center gap-3 opacity-50 pointer-events-none bg-muted/30"
+                    >
+                      <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1">{ing.name}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                        Bereits enthalten
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      key={`ing-${ing.id}`}
+                      onClick={() => setIngredientDialog(ing)}
+                      className="w-full text-left px-3 py-2.5 text-base hover:bg-accent hover:shadow-sm transition-all flex items-center gap-3"
+                    >
+                      <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1">{ing.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-muted text-muted-foreground">
+                        Zutat
+                      </span>
+                    </button>
+                  );
+                })}
               </>
             )}
 

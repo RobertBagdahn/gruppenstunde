@@ -164,12 +164,14 @@ interface IngredientDetailSearchDialogProps {
     measuringUnitId: number | null,
     quantity: number,
   ) => void;
+  showQuantityDialog?: boolean;
 }
 
 export default function IngredientDetailSearchDialog({
   open,
   onOpenChange,
   onSelect,
+  showQuantityDialog = true,
 }: IngredientDetailSearchDialogProps) {
   const [query, setQuery] = useState('');
   const [selectedRetailSection, setSelectedRetailSection] = useState<number | null>(null);
@@ -219,6 +221,11 @@ export default function IngredientDetailSearchDialog({
   };
 
   const handleIngredientClick = async (slug: string, name: string, id: number) => {
+    if (!showQuantityDialog) {
+      onSelect(id, name, slug, null, null, 0);
+      onOpenChange(false);
+      return;
+    }
     setLoadingPortionsFor(slug);
     try {
       const res = await fetch(`/api/ingredients/${slug}/portions/`, { credentials: 'include' });

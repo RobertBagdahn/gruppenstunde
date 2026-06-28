@@ -11,6 +11,9 @@ import {
   toppingGramsPerPerson,
   normalizeBePerPerson,
   energyTargetKcal,
+  drinksKcalPerPerson,
+  extrasKcalPerPerson,
+  totalMilkMlPerPerson,
 } from '@/lib/breakfastCalc';
 
 interface StepCockpitProps {
@@ -21,14 +24,25 @@ interface StepCockpitProps {
 }
 
 export default function StepCockpit({ wiz, normPortions, days, dayPartFactor }: StepCockpitProps) {
-  const { state, setBePerPerson } = wiz;
+  const { state, setBePerPerson, setDrinks } = wiz;
   const leftovers = useBreakfastLeftovers();
 
   const basisKcal = basisKcalPerPerson(state.bePerPerson, state.basis);
   const toppingKcal = toppingKcalPerPerson(state.bePerPerson, state.toppings, state.globalIntensity);
-  const totalKcal = basisKcal + toppingKcal;
+  const drinksKcal = drinksKcalPerPerson(state.drinks);
+  const extrasKcal = extrasKcalPerPerson(state);
+  const totalKcal = basisKcal + toppingKcal + drinksKcal + extrasKcal;
   const target = energyTargetKcal(dayPartFactor);
   const coverage = target > 0 ? totalKcal / target : 0;
+
+  // Computed per-drink values for table rows
+  const totalMl = state.drinks.mlPerPerson;
+  const coffeeMl = Math.round(totalMl * (state.drinks.coffeePercent / 100));
+  const cocoaMl = Math.round(totalMl * (state.drinks.cocoaPercent / 100));
+  const teaMl = Math.round(totalMl * (state.drinks.teaPercent / 100));
+  const milkMl = Math.round(totalMilkMlPerPerson(state.drinks));
+  const hasDrinks = coffeeMl > 0 || cocoaMl > 0 || teaMl > 0 || milkMl > 0;
+  const hasExtras = state.warmDishRecipeIds.length > 0 || Object.values(state.extraIngredients).some((g) => g > 0);
 
   // Fetch leftovers whenever relevant state changes
   useEffect(() => {
@@ -47,8 +61,12 @@ export default function StepCockpit({ wiz, normPortions, days, dayPartFactor }: 
   }, [state.bePerPerson, state.toppings, state.globalIntensity, normPortions, days]);
 
   function handleNormalize() {
-    const newBe = normalizeBePerPerson(state, dayPartFactor, 0);
+    const ratio = totalKcal > 0 ? target / totalKcal : 1;
+    const newBe = normalizeBePerPerson(state, dayPartFactor, extrasKcal);
     setBePerPerson(newBe);
+    if (state.drinks.mlPerPerson > 0) {
+      setDrinks({ mlPerPerson: Math.round(state.drinks.mlPerPerson * ratio) });
+    }
   }
 
   const barWidth = Math.min(100, Math.round(coverage * 100));
@@ -125,6 +143,76 @@ export default function StepCockpit({ wiz, normPortions, days, dayPartFactor }: 
               </div>
             );
           })}
+          {/* Warme Gerichte & Extras */}
+          {hasExtras && (
+            <div className="px-4 py-2 text-xs text-muted-foreground font-medium border-t border-border">
+              Warme Gerichte & Extras
+            </div>
+          )}
+          {state.warmDishRecipeIds.map((recipeId) => (
+            <div key={`warm-${recipeId}`} className="grid grid-cols-4 px-4 py-2">
+              <span className="truncate">Rezept #{recipeId}</span>
+              <span className="text-right">×{state.warmDishFactors[String(recipeId)] ?? 1}</span>
+              <span className="text-right">—</span>
+              <span className="text-right">—</span>
+            </div>
+          ))}
+          {Object.entries(state.extraIngredients)
+            .filter(([, g]) => g > 0)
+            .map(([ingId, grams]) => (
+              <div key={`extra-${ingId}`} className="grid grid-cols-4 px-4 py-2">
+                <span className="truncate">Zutat #{ingId}</span>
+                <span className="text-right">{Math.round(grams)}g</span>
+                <span className="text-right">—</span>
+                <span className="text-right">—</span>
+              </div>
+            ))}
+
+          {/* Getränke */}
+          {hasDrinks && (
+            <div className="px-4 py-2 text-xs text-muted-foreground font-medium border-t border-border">
+              Getränke
+            </div>
+          )}
+          {coffeeMl > 0 && (
+            <div className="grid grid-cols-4 px-4 py-2">
+              <span className="truncate">Kaffee</span>
+              <span className="text-right">{coffeeMl} ml</span>
+              <span className="text-right">{Math.round(coffeeMl * 0.02)}</span>
+              <span className="text-right">
+                {totalKcal > 0 ? Math.round((coffeeMl * 0.02 / totalKcal) * 100) : 0}%
+              </span>
+            </div>
+          )}
+          {cocoaMl > 0 && (
+            <div className="grid grid-cols-4 px-4 py-2">
+              <span className="truncate">Kakao</span>
+              <span className="text-right">{cocoaMl} ml</span>
+              <span className="text-right">{Math.round(cocoaMl * 0.8)}</span>
+              <span className="text-right">
+                {totalKcal > 0 ? Math.round((cocoaMl * 0.8 / totalKcal) * 100) : 0}%
+              </span>
+            </div>
+          )}
+          {teaMl > 0 && (
+            <div className="grid grid-cols-4 px-4 py-2">
+              <span className="truncate">Tee</span>
+              <span className="text-right">{teaMl} ml</span>
+              <span className="text-right">0</span>
+              <span className="text-right">0%</span>
+            </div>
+          )}
+          {milkMl > 0 && (
+            <div className="grid grid-cols-4 px-4 py-2">
+              <span className="truncate">Milch</span>
+              <span className="text-right">{milkMl} ml</span>
+              <span className="text-right">{Math.round(milkMl * 0.65)}</span>
+              <span className="text-right">
+                {totalKcal > 0 ? Math.round((milkMl * 0.65 / totalKcal) * 100) : 0}%
+              </span>
+            </div>
+          )}
+
           {/* Total */}
           <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/30">
             <span>Gesamt</span>

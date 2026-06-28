@@ -1,8 +1,10 @@
 """Django Ninja API routes for the MealPlan module."""
 
 import datetime as dt
+import logging
 
-from django.db.models import Case, Count, Prefetch, Q, When
+from django.db import IntegrityError
+from django.db.models import BooleanField, Case, Count, Prefetch, Q, Value, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Router
@@ -13,24 +15,25 @@ from planner.models import (
     Meal,
     MealItem,
     MealItemOverride,
-    MealItemSplit,
     MealPlan,
     MealPlanCollaborator,
     MealPlanCollaboratorRole,
     MealPlanVisibility,
 )
+from planner.services.notification_service import notify_collaborator_added
+
 from planner.schemas import (
     CookingScheduleOut,
     CopyItemsFromPlanIn,
     MealCreateIn,
     MealDayBulkCreateIn,
+    MealItemBatchIn,
     MealItemCreateIn,
     MealItemOut,
     MealItemOverrideIn,
     MealItemOverrideOut,
-    MealItemSplitIn,
-    MealItemSplitOut,
     MealItemUpdateIn,
+    MealItemVariantIn,
     MealOut,
     MealPlanCollaboratorCreateIn,
     MealPlanCollaboratorOut,
@@ -46,9 +49,13 @@ from planner.schemas import (
     NutritionSummaryOut,
     RecipeSuggestionOut,
     ShoppingListItemOut,
+    WizardItemsIn,
+    WizardItemsOut,
 )
 from recipe.models import Recipe, RecipeItem
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
+
+logger = logging.getLogger(__name__)
 
 meal_plan_router = Router(tags=["meal-plans"])
 
@@ -100,6 +107,51 @@ def _require_admin(meal_plan: MealPlan, user) -> str:
 
 
 # ==========================================================================
+# Duplicate validation helpers
+# ==========================================================================
+
+
+def raise_if_duplicate_meal_item(meal: Meal, recipe_id: int | None = None, ingredient_id: int | None = None):
+    if recipe_id:
+        if MealItem.objects.filter(meal=meal, recipe_id=recipe_id).exists():
+            from recipe.models import Recipe
+            recipe = Recipe.objects.get(id=recipe_id)
+            raise HttpError(422, f"Rezept «{recipe.title}» ist bereits in dieser Mahlzeit enthalten")
+    if ingredient_id:
+        if MealItem.objects.filter(meal=meal, ingredient_id=ingredient_id).exists():
+            from supply.models import Ingredient
+            ingredient = Ingredient.objects.get(id=ingredient_id)
+            raise HttpError(422, f"Zutat «{ingredient.name}» ist bereits in dieser Mahlzeit enthalten")
+
+
+def _create_meal_item(**kwargs):
+    """Create MealItem with IntegrityError handling for race conditions."""
+    try:
+        return MealItem.objects.create(**kwargs)
+    except IntegrityError:
+        raise HttpError(409, "Dieses Rezept oder diese Zutat ist bereits in dieser Mahlzeit enthalten")
+
+
+def check_duplicates_in_input(items: list) -> dict[str, list[int]]:
+    recipe_ids: list[int] = []
+    ingredient_ids: list[int] = []
+    for item in items:
+        if item.recipe_id:
+            if item.recipe_id in recipe_ids:
+                from recipe.models import Recipe
+                recipe = Recipe.objects.get(id=item.recipe_id)
+                raise HttpError(422, f"Rezept «{recipe.title}» ist mehrfach angegeben")
+            recipe_ids.append(item.recipe_id)
+        if item.ingredient_id:
+            if item.ingredient_id in ingredient_ids:
+                from supply.models import Ingredient
+                ingredient = Ingredient.objects.get(id=item.ingredient_id)
+                raise HttpError(422, f"Zutat «{ingredient.name}» ist mehrfach angegeben")
+            ingredient_ids.append(item.ingredient_id)
+    return {"recipe_ids": recipe_ids, "ingredient_ids": ingredient_ids}
+
+
+# ==========================================================================
 # MealPlan CRUD
 # ==========================================================================
 
@@ -126,7 +178,15 @@ def list_meal_plans(
     qs = (
         MealPlan.objects.select_related("event", "owner")
         .prefetch_related("nutritional_tags")
-        .annotate(meals_count_ann=Count("meals", distinct=True))
+        .annotate(
+            meals_count_ann=Count("meals", distinct=True),
+            collaborators_count_ann=Count("collaborators", distinct=True),
+            is_owner_ann=Case(
+                When(created_by=request.user, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+        )
     )
 
     if origin == "verified":
@@ -263,16 +323,19 @@ def get_meal_plan(request, meal_plan_id: int):
         MealPlan.objects.select_related("event", "owner").prefetch_related(
             Prefetch(
                 "meals__items",
-                queryset=MealItem.objects.select_related("recipe", "meal__meal_plan"),
+                queryset=MealItem.objects.select_related("recipe", "meal__meal_plan")
+                .prefetch_related("recipe__recipe_items__portion__ingredient"),
             ),
             "meals__items__overrides",
             "nutritional_tags",
+            "collaborators__user",
         ),
         id=meal_plan_id,
     )
 
     role = _require_access(meal_plan, request.user)
     meal_plan.can_edit = role in ("owner", MealPlanCollaboratorRole.ADMIN, MealPlanCollaboratorRole.EDITOR)
+    meal_plan.is_owner = role == "owner"
     return meal_plan
 
 
@@ -567,6 +630,8 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
     if not payload.recipe_id and not payload.ingredient_id:
         raise HttpError(422, "Rezept oder Zutat muss angegeben werden")
 
+    raise_if_duplicate_meal_item(meal, recipe_id=payload.recipe_id, ingredient_id=payload.ingredient_id)
+
     recipe = None
     ingredient = None
     if payload.recipe_id:
@@ -576,7 +641,7 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
 
         ingredient = get_object_or_404(Ingredient, id=payload.ingredient_id)
 
-    item = MealItem.objects.create(
+    item = _create_meal_item(
         meal=meal,
         recipe=recipe,
         ingredient=ingredient,
@@ -586,6 +651,102 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
         factor=payload.factor,
     )
     return item
+
+
+@meal_plan_router.post("/{meal_plan_id}/meals/{meal_id}/wizard-items/", response=WizardItemsOut)
+def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardItemsIn):
+    """Atomically replace all items in a meal with wizard-generated items.
+
+    Deletes all existing items for this meal and creates new ones in a single
+    transaction. Returns the updated item list with computed energy/cost values.
+    """
+    from django.db import transaction
+
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
+
+    check_duplicates_in_input(payload.items)
+
+    with transaction.atomic():
+        meal.items.all().delete()
+
+        created_items = []
+        for item_in in payload.items:
+            recipe = None
+            ingredient = None
+            if item_in.recipe_id and item_in.ingredient_id:
+                raise HttpError(422, "Entweder Rezept oder Zutat angeben, nicht beides")
+            if not item_in.recipe_id and not item_in.ingredient_id and not item_in.display_name:
+                raise HttpError(422, "Rezept, Zutat oder Anzeigename muss angegeben werden")
+
+            if item_in.recipe_id:
+                recipe = get_object_or_404(Recipe, id=item_in.recipe_id)
+            if item_in.ingredient_id:
+                from supply.models import Ingredient
+
+                ingredient = get_object_or_404(Ingredient, id=item_in.ingredient_id)
+
+            created_items.append(
+                _create_meal_item(
+                    meal=meal,
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity=item_in.quantity,
+                    measuring_unit_id=item_in.measuring_unit_id,
+                    display_name=item_in.display_name,
+                    factor=item_in.factor,
+                )
+            )
+
+    return WizardItemsOut(
+        meal_id=meal.id,
+        items=list(meal.items.select_related("recipe", "ingredient", "measuring_unit").all()),
+    )
+
+
+@meal_plan_router.post(
+    "/{meal_plan_id}/meals/{meal_id}/items/batch/",
+    response=list[MealItemOut],
+)
+def batch_create_meal_items(request, meal_plan_id: int, meal_id: int, payload: MealItemBatchIn):
+    """Create multiple meal items atomically (for variant items)."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
+
+    if not payload.items:
+        raise HttpError(422, "Mindestens ein Item erforderlich.")
+
+    import uuid
+
+    variant_group_id = uuid.uuid4()
+
+    from django.db import transaction
+
+    created = []
+    with transaction.atomic():
+        recipe = get_object_or_404(Recipe, id=payload.items[0].recipe_id)
+        # Delete original parent items (without variant_group_id) for this meal + recipe
+        MealItem.objects.filter(meal=meal, recipe=recipe, variant_group_id__isnull=True).delete()
+
+        for variant in payload.items:
+            if variant.factor < 0.01:
+                raise HttpError(422, f"Der Faktor muss mindestens 0,01 betragen: {variant.display_name or variant.recipe_id}")
+            item = MealItem.objects.create(
+                meal=meal,
+                recipe=recipe,
+                factor=variant.factor,
+                display_name=variant.display_name or "",
+                active_recipe_item_ids=variant.active_recipe_item_ids,
+                variant_group_id=variant_group_id,
+            )
+            created.append(item)
+
+    return created
 
 
 @meal_plan_router.delete("/{meal_plan_id}/meal-items/{item_id}/")
@@ -730,9 +891,26 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
 
     items_to_copy = source_meal.items.all()
 
+    # Check source items for duplicates within themselves
+    source_recipe_ids = []
+    source_ingredient_ids = []
+    for src in items_to_copy:
+        if src.recipe_id:
+            if src.recipe_id in source_recipe_ids:
+                raise HttpError(422, f"Rezept «{src.recipe.title}» ist mehrfach in der Quell-Mahlzeit enthalten")
+            source_recipe_ids.append(src.recipe_id)
+        if src.ingredient_id:
+            if src.ingredient_id in source_ingredient_ids:
+                raise HttpError(422, f"Zutat «{src.ingredient.name}» ist mehrfach in der Quell-Mahlzeit enthalten")
+            source_ingredient_ids.append(src.ingredient_id)
+
+    # Check source items don't conflict with existing target items
+    for src in items_to_copy:
+        raise_if_duplicate_meal_item(target_meal, recipe_id=src.recipe_id, ingredient_id=src.ingredient_id)
+
     copied_items = []
     for item in items_to_copy:
-        copied = MealItem.objects.create(
+        copied = _create_meal_item(
             meal=target_meal,
             recipe=item.recipe,
             ingredient=item.ingredient,
@@ -783,7 +961,7 @@ def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: l
         # Verify recipe_item belongs to this recipe
         recipe_item = get_object_or_404(RecipeItem, id=override_in.recipe_item_id, recipe=item.recipe)
         # Overrides are not allowed on optional or exchange-group ingredients —
-        # those are configured via MealItemSplit instead.
+        # those are configured via active_recipe_item_ids on variant items instead.
         if recipe_item.is_optional or recipe_item.exchange_group_id is not None:
             raise HttpError(
                 400,
@@ -798,103 +976,6 @@ def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: l
         overrides.append(override)
 
     return overrides
-
-
-# ==========================================================================
-# MealItem Splits (exchange / optional portion shares)
-# ==========================================================================
-
-_SHARE_SUM_TOLERANCE = 0.001
-
-
-def _validate_split_shares(item: MealItem, splits: list[MealItemSplitIn]) -> None:
-    """Validate that shares sum to 1.0 per exchange group and per optional item.
-
-    Groups splits by their RecipeItem's exchange_group (or by the optional item
-    itself) and ensures each group's shares total 1.0.
-    """
-    recipe_items = {ri.id: ri for ri in RecipeItem.objects.filter(recipe=item.recipe)}
-    # group_key -> summed share
-    group_sums: dict[str, float] = {}
-    for split in splits:
-        ri = recipe_items.get(split.recipe_item_id)
-        if ri is None:
-            raise HttpError(400, "Zutat gehört nicht zu diesem Rezept.")
-        if ri.exchange_group_id is not None:
-            key = f"exchange:{ri.exchange_group_id}"
-        elif ri.is_optional:
-            key = f"optional:{ri.id}"
-        else:
-            raise HttpError(
-                400,
-                "Splits sind nur für optionale oder Austausch-Zutaten möglich.",
-            )
-        group_sums[key] = group_sums.get(key, 0.0) + split.share
-
-    for total in group_sums.values():
-        if abs(total - 1.0) > _SHARE_SUM_TOLERANCE:
-            raise HttpError(400, "Die Summe der Anteile muss 100% ergeben.")
-
-
-@meal_plan_router.get(
-    "/{meal_plan_id}/meal-items/{item_id}/splits/",
-    response=list[MealItemSplitOut],
-)
-def get_meal_item_splits(request, meal_plan_id: int, item_id: int):
-    """List all portion splits for a meal item."""
-    _require_auth(request)
-    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _require_access(meal_plan, request.user)
-
-    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
-    return list(MealItemSplit.objects.filter(meal_item=item))
-
-
-@meal_plan_router.put(
-    "/{meal_plan_id}/meal-items/{item_id}/splits/",
-    response=list[MealItemSplitOut],
-)
-def set_meal_item_splits(request, meal_plan_id: int, item_id: int, payload: list[MealItemSplitIn]):
-    """Replace all portion splits for a meal item (atomic, constraint-checked)."""
-    _require_auth(request)
-    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _require_edit(meal_plan, request.user)
-
-    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
-    if not item.recipe:
-        raise HttpError(422, "Splits nur für Rezept-Einträge möglich")
-
-    _validate_split_shares(item, payload)
-
-    recipe_items = {ri.id: ri for ri in RecipeItem.objects.filter(recipe=item.recipe)}
-
-    from django.db import transaction
-
-    with transaction.atomic():
-        MealItemSplit.objects.filter(meal_item=item).delete()
-        created = []
-        for split_in in payload:
-            recipe_item = recipe_items[split_in.recipe_item_id]
-            created.append(
-                MealItemSplit.objects.create(
-                    meal_item=item,
-                    recipe_item=recipe_item,
-                    share=split_in.share,
-                )
-            )
-    return created
-
-
-@meal_plan_router.delete("/{meal_plan_id}/meal-items/{item_id}/splits/")
-def delete_meal_item_splits(request, meal_plan_id: int, item_id: int):
-    """Delete all portion splits for a meal item (falls back to defaults)."""
-    _require_auth(request)
-    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _require_edit(meal_plan, request.user)
-
-    item = get_object_or_404(MealItem, id=item_id, meal__meal_plan=meal_plan)
-    MealItemSplit.objects.filter(meal_item=item).delete()
-    return {"success": True}
 
 
 # ==========================================================================
@@ -935,34 +1016,28 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     # then summed, so meals with differing effective_portions are handled correctly.
     per_portion_totals = {field: 0.0 for field in fields}
 
-    from planner.services.split_service import get_included_fractions
-
     for mi in meal_items:
         if not mi.recipe:
             continue
 
-        # Use prefetched recipe_items (no extra DB query)
         recipe_items = list(mi.recipe.recipe_items.all())
-
         recipe_servings = mi.recipe.portions or 1
         effective_portions = mi.meal.effective_portions
-
-        # Split-aware: fraction of portions each recipe item is included for.
-        included_fractions = get_included_fractions(mi, recipe_items, effective_portions)
+        active_ids = set(mi.active_recipe_item_ids or [])
 
         for ri in recipe_items:
             if not ri.portion or not ri.portion.ingredient:
                 continue
 
-            fraction = included_fractions.get(ri.id, 1.0)
-            if fraction <= 0:
-                continue
+            # Base items (not exchange, not optional) are always included.
+            # Exchange members and optional items are included only if in active_ids.
+            if ri.exchange_group_id is not None or ri.is_optional:
+                if ri.id not in active_ids:
+                    continue
 
             ing = ri.portion.ingredient
-            # RecipeItem quantity is in the portion unit; portion.weight_g converts to grams
-            weight_g = ri.quantity * ri.portion.weight_g if ri.portion.weight_g else 0
-            # Scale factor: per 100g, then by item factor, scaled to effective_portions
-            scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings) * fraction
+            weight_g = float(ri.quantity) * float(ri.portion.weight_g) if ri.portion.weight_g else 0
+            scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings)
 
             for field in fields:
                 ing_val = getattr(ing, field, None)
@@ -1023,14 +1098,11 @@ def cost_summary(request, meal_plan_id: int):
         effective_portions = meal.effective_portions
         meal_cost = Decimal("0")
 
-        from planner.services.split_service import get_included_fractions
-
         for item in meal.items.all():
             if item.recipe:
-                # Recipe-based item: use prefetched recipe_items (no extra DB query)
                 recipe_servings = item.recipe.portions or 1
                 recipe_items = list(item.recipe.recipe_items.all())
-                included_fractions = get_included_fractions(item, recipe_items, effective_portions)
+                active_ids = set(item.active_recipe_item_ids or [])
                 recipe_item_cost = Decimal("0")
                 rid = item.recipe.id
                 if rid not in recipe_costs:
@@ -1045,15 +1117,14 @@ def cost_summary(request, meal_plan_id: int):
                 for ri in recipe_items:
                     if not ri.portion or not ri.portion.ingredient:
                         continue
-                    fraction = included_fractions.get(ri.id, 1.0)
-                    if fraction <= 0:
-                        continue
+                    if ri.exchange_group_id is not None or ri.is_optional:
+                        if ri.id not in active_ids:
+                            continue
                     total_ingredients += 1
                     recipe_costs[rid]["total_ingredients"] += 1
                     ing = ri.portion.ingredient
                     weight_g = float(ri.quantity) * float(ri.portion.weight_g) if ri.portion.weight_g else 0
-                    # Scale: item.factor * (effective_portions / recipe_servings) * fraction
-                    scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings) * fraction
+                    scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings)
                     price = get_portion_price(ing, scaled_weight_g)
                     if price is not None:
                         priced_ingredients += 1
@@ -1213,10 +1284,10 @@ def _resolve_recipe_badge(recipe, user):
 
 # Map meal_type to recipe_type values
 MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
-    "breakfast": ["breakfast"],
-    "lunch": ["warm_meal", "cold_meal"],
-    "dinner": ["warm_meal", "cold_meal"],
-    "snack": ["snack"],
+    "breakfast": ["breakfast", "drink"],
+    "lunch": ["warm_meal", "cold_meal", "drink"],
+    "dinner": ["warm_meal", "cold_meal", "drink"],
+    "snack": ["snack", "drink"],
     "drinks": ["drink"],
 }
 
@@ -1835,6 +1906,13 @@ def add_collaborator(request, meal_plan_id: int, payload: MealPlanCollaboratorCr
         user=user,
         role=payload.role,
     )
+
+    # Send email notification (best-effort)
+    try:
+        notify_collaborator_added(meal_plan, user, request.user, payload.role)
+    except Exception:
+        logger.exception("Failed to send collaborator notification email")
+
     return 201, collab
 
 
@@ -1889,16 +1967,18 @@ def get_suggestions(request, meal_plan_id: int):
     return dashboard.dict()
 
 
-# --- Allergen Scanner ---
+# --- Ingredient Scanner ---
 
 
 @meal_plan_router.get(
-    "/{meal_plan_id}/allergen-scan/",
+    "/{meal_plan_id}/ingredient-scan/",
     response=NutritionalTagScanOut,
-    summary="Check recipe nutritional tags against plan restrictions",
+    summary="Check all ingredients against plan nutritional tag restrictions",
 )
-def get_allergen_scan(request, meal_plan_id: int):
-    """Scan the meal plan for nutritional tag violations."""
+def get_ingredient_scan(request, meal_plan_id: int):
+    """Scan the meal plan for nutritional tag violations at ingredient level.
+    Checks both recipe-level tags (after full sync) and standalone ingredient tags.
+    """
     _require_auth(request)
 
     try:
@@ -1911,8 +1991,8 @@ def get_allergen_scan(request, meal_plan_id: int):
                     .prefetch_related(
                         Prefetch(
                             "items",
-                            queryset=MealItem.objects.select_related("recipe").prefetch_related(
-                                "recipe__nutritional_tags"
+                            queryset=MealItem.objects.select_related("recipe", "ingredient").prefetch_related(
+                                "recipe__nutritional_tags", "ingredient__nutritional_tags"
                             ),
                         )
                     )
@@ -1920,8 +2000,8 @@ def get_allergen_scan(request, meal_plan_id: int):
                     else Meal.objects.order_by("start_datetime").prefetch_related(
                         Prefetch(
                             "items",
-                            queryset=MealItem.objects.select_related("recipe").prefetch_related(
-                                "recipe__nutritional_tags"
+                            queryset=MealItem.objects.select_related("recipe", "ingredient").prefetch_related(
+                                "recipe__nutritional_tags", "ingredient__nutritional_tags"
                             ),
                         )
                     )
@@ -1942,25 +2022,41 @@ def get_allergen_scan(request, meal_plan_id: int):
     for meal in meal_plan.meals.all():
         meal_date = meal.start_datetime.date() if meal.start_datetime else dt.date.today()
         for item in meal.items.all():
-            if not item.recipe:
-                continue
+            tags_to_check = set()
 
-            for tag in item.recipe.nutritional_tags.all():
-                if tag.id in plan_tag_ids:
-                    violations.append(
-                        {
-                            "meal_id": meal.id,
-                            "meal_type": meal.meal_type,
-                            "date": meal_date,
-                            "recipe_id": item.recipe.id,
-                            "recipe_title": item.recipe.title,
-                            "recipe_slug": item.recipe.slug,
-                            "nutritional_tag": tag,
-                            "source": "recipe_tag",
-                        }
+            if item.recipe:
+                for tag in item.recipe.nutritional_tags.all():
+                    tags_to_check.add(tag.id)
+
+            if item.ingredient:
+                for tag in item.ingredient.nutritional_tags.all():
+                    tags_to_check.add(tag.id)
+
+            for tag_id in tags_to_check:
+                if tag_id in plan_tag_ids:
+                    tag = next(
+                        (
+                            t
+                            for t in meal_plan.nutritional_tags.all()
+                            if t.id == tag_id
+                        ),
+                        None,
                     )
-                    affected_meal_ids.add(meal.id)
-                    unique_tag_ids.add(tag.id)
+                    if tag:
+                        violations.append(
+                            {
+                                "meal_id": meal.id,
+                                "meal_type": meal.meal_type,
+                                "date": meal_date,
+                                "recipe_id": item.recipe.id if item.recipe else None,
+                                "recipe_title": item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "Unbekannt"),
+                                "recipe_slug": item.recipe.slug if item.recipe else "",
+                                "nutritional_tag": tag,
+                                "source": "recipe_tag" if item.recipe else "ingredient_tag",
+                            }
+                        )
+                        affected_meal_ids.add(meal.id)
+                        unique_tag_ids.add(tag.id)
 
     summary = {
         "total_violations": len(violations),

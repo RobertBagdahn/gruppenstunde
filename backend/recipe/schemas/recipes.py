@@ -205,8 +205,9 @@ class RecipeDetailOut(ContentDetailOut):
 
     @staticmethod
     def resolve_nutritional_tags(obj) -> list:
-        return [
-            {
+        merged = {}
+        for t in list(obj.nutritional_tags.all()) + list(obj.manual_nutritional_tags.all()):
+            merged[t.id] = {
                 "id": t.id,
                 "name": t.name,
                 "name_opposite": t.name_opposite,
@@ -214,8 +215,7 @@ class RecipeDetailOut(ContentDetailOut):
                 "rank": t.rank,
                 "is_dangerous": t.is_dangerous,
             }
-            for t in obj.nutritional_tags.all()
-        ]
+        return list(merged.values())
 
     @staticmethod
     def resolve_usage_in_meal_plans_count(obj) -> int:

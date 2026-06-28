@@ -178,13 +178,14 @@ def get_shopping_list(request, shopping_list_id: int):
     shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
     role = _require_access(shopping_list, request.user)
 
-    # Inject can_edit for the response — the schema doesn't have a resolver
-    # because it depends on the request user. We attach it as an attribute.
+    # Inject can_edit and is_owner for the response — these depend on the
+    # request user, so we attach them as attributes.
     shopping_list._can_edit = role in (
         "owner",
         CollaboratorRole.ADMIN,
         CollaboratorRole.EDITOR,
     )
+    shopping_list._is_owner = role == "owner"
     return shopping_list
 
 
@@ -525,8 +526,9 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
             meal_label="",
         )
 
-    # Attach can_edit for the response
+    # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True
+    shopping_list._is_owner = True
     return shopping_list
 
 
@@ -586,8 +588,9 @@ def create_from_meal_plan(request, meal_plan_id: int):
                     meal_label=source.meal_label,
                 )
 
-    # Attach can_edit for the response
+    # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True
+    shopping_list._is_owner = True
     return shopping_list
 
 

@@ -8,6 +8,10 @@ from ninja import Schema
 
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.schemas.reference import NutritionalTagOut
+from planner.services.meal_item_helpers import (
+    resolve_ingredient_energy_kcal,
+    resolve_ingredient_cost_eur,
+)
 
 
 class MealItemOverrideOut(Schema):
@@ -31,13 +35,18 @@ class MealItemOut(Schema):
     recipe_image: str | None = None
     ingredient_id: int | None = None
     ingredient_name: str = ""
+    ingredient_slug: str = ""
     quantity: float | None = None
     measuring_unit_id: int | None = None
     measuring_unit_name: str = ""
     display_name: str | None = None
     factor: float
+    active_recipe_item_ids: list[int] = []
+    variant_group_id: str | None = None
     energy_kcal: float | None = None
     cost_eur: float | None = None
+    ingredient_tags: list[str] = []
+    recipe_type: str = ""
     overrides: list[MealItemOverrideOut] = []
 
     @staticmethod
@@ -59,6 +68,10 @@ class MealItemOut(Schema):
         return obj.ingredient.name if obj.ingredient else ""
 
     @staticmethod
+    def resolve_ingredient_slug(obj) -> str:
+        return obj.ingredient.slug if obj.ingredient else ""
+
+    @staticmethod
     def resolve_measuring_unit_name(obj) -> str:
         return obj.measuring_unit.name if obj.measuring_unit else ""
 
@@ -67,18 +80,21 @@ class MealItemOut(Schema):
         return float(obj.quantity) if obj.quantity else None
 
     @staticmethod
-    def resolve_energy_kcal(obj) -> float | None:
-        if not obj.recipe or obj.recipe.cached_energy_total_kcal is None:
-            return None
-        servings = obj.recipe.portions or 1
-        effective_portions = obj.meal.effective_portions
-        base_total = float(obj.recipe.cached_energy_total_kcal)
-        if obj.splits.exists():
-            from planner.services.split_service import get_split_delta_total
+    def resolve_variant_group_id(obj) -> str | None:
+        return str(obj.variant_group_id) if obj.variant_group_id else None
 
-            recipe_items = list(obj.recipe.recipe_items.select_related("portion__ingredient").all())
-            base_total += get_split_delta_total(obj, recipe_items, "energy_kcal")
-        return base_total * obj.factor * (effective_portions / servings)
+    @staticmethod
+    def resolve_energy_kcal(obj) -> float | None:
+        if obj.recipe and obj.recipe.cached_energy_total_kcal is not None:
+            from planner.services.variant_service import compute_variant_energy
+
+            servings = obj.recipe.portions or 1
+            effective_portions = obj.meal.effective_portions
+            total = compute_variant_energy(obj)
+            return total * obj.factor * (effective_portions / servings)
+        if obj.ingredient:
+            return resolve_ingredient_energy_kcal(obj)
+        return None
 
     @staticmethod
     def resolve_cost_eur(obj) -> float | None:
@@ -86,28 +102,35 @@ class MealItemOut(Schema):
             return None
         servings = obj.recipe.portions or 1
         effective_portions = obj.meal.effective_portions
-        base_total = float(obj.recipe.cached_price_total)
-        if obj.splits.exists():
-            from planner.services.split_service import get_split_delta_total
+        from planner.services.variant_service import compute_variant_cost
 
-            recipe_items = list(obj.recipe.recipe_items.select_related("portion__ingredient").all())
-            base_total += get_split_delta_total(obj, recipe_items, "price")
-        return base_total * obj.factor * (effective_portions / servings)
+        total = compute_variant_cost(obj)
+        return total * obj.factor * (effective_portions / servings)
 
     @staticmethod
     def resolve_overrides(obj) -> list:
         return list(obj.overrides.all())
 
+    @staticmethod
+    def resolve_ingredient_tags(obj) -> list[str]:
+        if obj.ingredient:
+            return list(obj.ingredient.tags.values_list("slug", flat=True))
+        return []
 
-class MealItemSplitOut(Schema):
-    id: int
-    recipe_item_id: int
-    share: float
+    @staticmethod
+    def resolve_recipe_type(obj) -> str:
+        return obj.recipe.recipe_type if obj.recipe else ""
 
 
-class MealItemSplitIn(Schema):
-    recipe_item_id: int
-    share: float
+class MealItemVariantIn(Schema):
+    recipe_id: int
+    factor: float
+    display_name: str | None = None
+    active_recipe_item_ids: list[int] = []
+
+
+class MealItemBatchIn(Schema):
+    items: list[MealItemVariantIn]
 
 
 class MealItemCreateIn(Schema):
@@ -121,6 +144,15 @@ class MealItemCreateIn(Schema):
 
 class MealItemUpdateIn(Schema):
     factor: float | None = None
+
+
+class WizardItemsIn(Schema):
+    items: list[MealItemCreateIn]
+
+
+class WizardItemsOut(Schema):
+    meal_id: int
+    items: list[MealItemOut]
 
 
 class CopyItemsFromPlanIn(Schema):
@@ -165,27 +197,14 @@ class MealOut(Schema):
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_energy_total_kcal is not None:
-                servings = item.recipe.portions or 1
-                total += float(item.recipe.cached_energy_total_kcal) * item.factor * (effective_portions / servings)
-            elif item.ingredient and item.ingredient.energy_kcal is not None:
-                # For ingredient items: energy_kcal is per 100g
-                # Convert quantity to grams using portion weight_g
-                weight_g = 0.0
-                if item.quantity and item.measuring_unit:
-                    # Find a portion with this measuring unit to get weight_g
-                    portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
-                    if portion and portion.weight_g:
-                        weight_g = portion.weight_g * float(item.quantity)
-                    elif item.measuring_unit.name.lower() == "g":
-                        weight_g = float(item.quantity)
-                    elif item.measuring_unit.name.lower() == "ml":
-                        # For ml, try to use density if available
-                        if item.ingredient.density is not None:
-                            weight_g = float(item.quantity) * item.ingredient.density
+                from planner.services.variant_service import compute_variant_energy
 
-                if weight_g > 0:
-                    kcal_per_100g = float(item.ingredient.energy_kcal)
-                    total += (kcal_per_100g / 100.0) * weight_g * item.factor
+                servings = item.recipe.portions or 1
+                total += compute_variant_energy(item) * item.factor * (effective_portions / servings)
+            elif item.ingredient:
+                kcal = resolve_ingredient_energy_kcal(item)
+                if kcal is not None:
+                    total += kcal
         return total
 
     @staticmethod
@@ -198,27 +217,14 @@ class MealOut(Schema):
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_price_total is not None:
-                servings = item.recipe.portions or 1
-                total += float(item.recipe.cached_price_total) * item.factor * (effective_portions / servings)
-            elif item.ingredient and item.ingredient.price_per_kg is not None:
-                # For ingredient items: price_per_kg is the base price
-                # Convert quantity to grams using portion weight_g
-                weight_g = 0.0
-                if item.quantity and item.measuring_unit:
-                    # Find a portion with this measuring unit to get weight_g
-                    portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
-                    if portion and portion.weight_g:
-                        weight_g = portion.weight_g * float(item.quantity)
-                    elif item.measuring_unit.name.lower() == "g":
-                        weight_g = float(item.quantity)
-                    elif item.measuring_unit.name.lower() == "ml":
-                        # For ml, try to use density if available
-                        if item.ingredient.density is not None:
-                            weight_g = float(item.quantity) * item.ingredient.density
+                from planner.services.variant_service import compute_variant_cost
 
-                if weight_g > 0:
-                    price_eur = (float(item.ingredient.price_per_kg) / 1000.0) * weight_g * item.factor
-                    total += price_eur
+                servings = item.recipe.portions or 1
+                total += compute_variant_cost(item) * item.factor * (effective_portions / servings)
+            elif item.ingredient:
+                cost = resolve_ingredient_cost_eur(item)
+                if cost is not None:
+                    total += cost
         return total
 
 
@@ -271,6 +277,8 @@ class MealPlanOut(Schema):
     nutritional_tag_ids: list[int] = []
     nutritional_tag_names: list[str] = []
     is_template: bool = False
+    is_owner: bool = False
+    collaborators_count: int = 0
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -300,6 +308,20 @@ class MealPlanOut(Schema):
     @staticmethod
     def resolve_nutritional_tag_names(obj) -> list[str]:
         return [tag.name for tag in obj.nutritional_tags.all()]
+
+    @staticmethod
+    def resolve_is_owner(obj) -> bool:
+        ann = getattr(obj, "is_owner_ann", None)
+        if ann is not None:
+            return ann
+        return False
+
+    @staticmethod
+    def resolve_collaborators_count(obj) -> int:
+        ann = getattr(obj, "collaborators_count_ann", None)
+        if ann is not None:
+            return ann
+        return obj.collaborators.count()
 
 
 class MealPlanDuplicateIn(Schema):
@@ -336,6 +358,45 @@ class MealPlanUpdateIn(Schema):
     is_template: bool | None = None  # Only respected when set by admins
 
 
+# ==========================================================================
+# MealPlan Collaborator Schemas
+# ==========================================================================
+
+
+class MealPlanCollaboratorOut(Schema):
+    id: int
+    user_id: int
+    username: str = ""
+    first_name: str = ""
+    last_name: str = ""
+    role: str
+    created_at: dt.datetime
+
+    @staticmethod
+    def resolve_username(obj) -> str:
+        return obj.user.username if obj.user else ""
+
+    @staticmethod
+    def resolve_first_name(obj) -> str:
+        return obj.user.first_name if obj.user else ""
+
+    @staticmethod
+    def resolve_last_name(obj) -> str:
+        return obj.user.last_name if obj.user else ""
+
+
+class MealPlanCollaboratorCreateIn(Schema):
+    user_id: int
+    role: Literal["viewer", "editor", "admin"] = "viewer"
+
+
+class MealPlanCollaboratorUpdateIn(Schema):
+    role: Literal["viewer", "editor", "admin"]
+
+
+# ==========================================================================
+
+
 class MealPlanDetailOut(Schema):
     id: int
     name: str
@@ -358,6 +419,8 @@ class MealPlanDetailOut(Schema):
     meal_default_times: dict[str, list[str]]
     meals: list[MealOut] = []
     can_edit: bool = False
+    is_owner: bool = False
+    collaborators: list[MealPlanCollaboratorOut] = []
     nutritional_tag_ids: list[int] = []
     nutritional_tags: list[NutritionalTagOut] = []
     is_template: bool = False
@@ -383,6 +446,10 @@ class MealPlanDetailOut(Schema):
         if hasattr(obj, "_prefetched_objects_cache") and "nutritional_tags" in obj._prefetched_objects_cache:
             return obj.nutritional_tags.all()
         return obj.nutritional_tags.all()
+
+    @staticmethod
+    def resolve_collaborators(obj) -> list:
+        return obj.collaborators.select_related("user").all()
 
 
 class NutritionSummaryOut(Schema):
@@ -437,44 +504,6 @@ class ShoppingListItemOut(Schema):
     natural_portions: str = ""
     portion_options: list[ShoppingItemPortionOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
-
-
-# ==========================================================================
-# MealPlan Collaborator Schemas
-# ==========================================================================
-
-
-class MealPlanCollaboratorOut(Schema):
-    id: int
-    user_id: int
-    username: str = ""
-    first_name: str = ""
-    last_name: str = ""
-    role: str
-    created_at: dt.datetime
-
-    @staticmethod
-    def resolve_username(obj) -> str:
-        return obj.user.username if obj.user else ""
-
-    @staticmethod
-    def resolve_first_name(obj) -> str:
-        return obj.user.first_name if obj.user else ""
-
-    @staticmethod
-    def resolve_last_name(obj) -> str:
-        return obj.user.last_name if obj.user else ""
-
-
-class MealPlanCollaboratorCreateIn(Schema):
-    user_id: int
-    role: Literal["viewer", "editor", "admin"] = "viewer"
-
-
-class MealPlanCollaboratorUpdateIn(Schema):
-    role: Literal["viewer", "editor", "admin"]
-
-
 # ==========================================================================
 # Cost Summary Schemas
 # ==========================================================================
@@ -520,11 +549,6 @@ class MealPlanCostSummaryOut(Schema):
 # --- RefMeal Schemas ---
 
 
-class RefMealCreateIn(Schema):
-    meal_type: str
-    day_part_factor: float | None = None
-
-
 class RefMealItemIn(Schema):
     recipe_id: int | None = None
     ingredient_id: int | None = None
@@ -532,6 +556,12 @@ class RefMealItemIn(Schema):
     measuring_unit_id: int | None = None
     display_name: str | None = None
     factor: float = 1.0
+
+
+class RefMealCreateIn(Schema):
+    meal_type: str
+    day_part_factor: float | None = None
+    items: list[RefMealItemIn] | None = None
 
 
 class RefMealUpdateIn(Schema):
@@ -570,16 +600,16 @@ class RecipeSuggestionOut(Schema):
     recipe_type: str = ""
 
 
-# --- Allergen Scanner Schemas ---
+# --- Ingredient Scanner Schemas ---
 
 
 class NutritionalTagViolationOut(Schema):
     meal_id: int
     meal_type: str
     date: dt.date
-    recipe_id: int
+    recipe_id: int | None = None
     recipe_title: str
-    recipe_slug: str
+    recipe_slug: str = ""
     nutritional_tag: NutritionalTagOut
     source: str = "recipe_tag"
 
@@ -596,6 +626,11 @@ class NutritionalTagScanOut(Schema):
     summary: NutritionalTagScanSummaryOut
 
 
+class CookingScheduleStepOut(Schema):
+    text: str
+    timer: int | None = None
+
+
 class CookingScheduleIngredientOut(Schema):
     name: str
     quantity: float
@@ -603,6 +638,7 @@ class CookingScheduleIngredientOut(Schema):
     note: str
     is_optional: bool
     weight_g: float | None = None
+    nutritional_tags: list[NutritionalTagOut] = []
 
 
 class CookingScheduleItemOut(Schema):
@@ -616,13 +652,32 @@ class CookingScheduleItemOut(Schema):
     portions: int
     steps: str = ""
     ingredients: list[CookingScheduleIngredientOut] = []
+    steps_parsed: list[CookingScheduleStepOut] = []
+    nutritional_tags: list[NutritionalTagOut] = []
+    total_cost_eur: float = 0.0
+    total_energy_kcal: float = 0.0
+    total_protein_g: float = 0.0
+    total_fat_g: float = 0.0
+    total_carbohydrate_g: float = 0.0
+    meal_note: str = ""
 
 
 class CookingScheduleDayOut(Schema):
     date: dt.date
     items: list[CookingScheduleItemOut]
+    day_start_time: str = ""
+    day_end_time: str = ""
+    day_duration_minutes: int = 0
+    portions: int = 0
+    day_nutritional_tags: list[NutritionalTagOut] = []
+    total_cost_eur: float = 0.0
+    total_energy_kcal: float = 0.0
 
 
 class CookingScheduleOut(Schema):
     days: list[CookingScheduleDayOut]
     excluded_meal_count: int
+    total_cost_eur: float = 0.0
+    total_cost_with_reserve: float = 0.0
+    total_energy_kcal: float = 0.0
+    norm_portions: int = 0

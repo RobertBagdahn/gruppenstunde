@@ -84,7 +84,7 @@ class Command(BaseCommand):
         prompt = self._build_prompt(recipe, items)
 
         try:
-            response = gemini_call(
+            response, _interaction_id = gemini_call(
                 user=None,
                 model=GEMINI_MODEL,
                 contents=prompt,

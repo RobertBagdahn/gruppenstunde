@@ -17,9 +17,14 @@ from recipe.schemas import (
 )
 
 
-def _recipe_item_has_active_splits(item: RecipeItem) -> bool:
-    """True if any MealItemSplit references this recipe item."""
-    return item.meal_splits.exists()
+def _recipe_item_has_active_variants(item: RecipeItem) -> bool:
+    """True if any MealItem references this recipe item in active_recipe_item_ids."""
+    from planner.models import MealItem
+
+    return any(
+        item.id in (mi.active_recipe_item_ids or [])
+        for mi in MealItem.objects.filter(recipe=item.recipe).only("active_recipe_item_ids").iterator()
+    )
 
 
 router = Router()
@@ -104,6 +109,7 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
         quantity=payload.quantity,
         sort_order=payload.sort_order,
         note=payload.note,
+        is_optional=payload.is_optional,
     )
     # Reload with relations for schema resolvers
     item = RecipeItem.objects.select_related(
@@ -136,9 +142,9 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
             "Eine Zutat kann nicht gleichzeitig optional und Teil einer Austausch-Gruppe sein.",
         )
 
-    # Protect split-relevant fields while active splits reference this item.
+    # Protect split-relevant fields while active variants reference this item.
     split_relevant = {"is_optional", "exchange_group_id", "exchange_position"}
-    if split_relevant & data.keys() and _recipe_item_has_active_splits(item):
+    if split_relevant & data.keys() and _recipe_item_has_active_variants(item):
         raise HttpError(
             409,
             "Diese Zutat wird in aktiven Essensplänen mit Varianten verwendet und kann nicht geändert werden.",
@@ -167,7 +173,7 @@ def delete_recipe_item(request, recipe_id: int, item_id: int):
         raise HttpError(403, "Keine Berechtigung")
 
     item = get_object_or_404(RecipeItem, id=item_id, recipe=recipe)
-    if _recipe_item_has_active_splits(item):
+    if _recipe_item_has_active_variants(item):
         raise HttpError(
             409,
             "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden.",
@@ -207,8 +213,8 @@ def create_exchange_group(request, recipe_id: int, payload: RecipeItemExchangeGr
 def delete_exchange_group(request, recipe_id: int, group_id: int):
     """Delete an exchange group.
 
-    Blocked (409) if any active MealItemSplit references its members. Otherwise the
-    non-default members (exchange_position > 0) are deleted and the original
+    Blocked (409) if any active variant references its members (via active_recipe_item_ids).
+    Otherwise the non-default members (exchange_position > 0) are deleted and the original
     (position 0) is reset to a normal ingredient (exchange_group=None).
     """
     _require_auth(request)
@@ -220,7 +226,7 @@ def delete_exchange_group(request, recipe_id: int, group_id: int):
     group = get_object_or_404(RecipeItemExchangeGroup, id=group_id, recipe=recipe)
 
     members = list(group.items.all())
-    if any(_recipe_item_has_active_splits(m) for m in members):
+    if any(_recipe_item_has_active_variants(m) for m in members):
         raise HttpError(
             409,
             "Diese Austausch-Gruppe wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden.",
@@ -261,7 +267,7 @@ def ai_suggest_ingredients(request, recipe_id: int):
 
     # Collect ingredient IDs already in this recipe (via portions)
     existing_ingredient_ids: set[int] = set(
-        recipe.items.select_related("portion__ingredient").values_list("portion__ingredient_id", flat=True)
+        recipe.recipe_items.select_related("portion__ingredient").values_list("portion__ingredient_id", flat=True)
     )
 
     # Also collect alias ingredient IDs for ingredients already in the recipe
@@ -309,6 +315,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
             portion_id=item_in.portion_id,
             quantity=item_in.quantity,
             sort_order=last_sort + i + 1,
+            is_optional=item_in.is_optional,
         )
         created_items.append(item)
 

@@ -156,3 +156,39 @@ class TestVisibility:
             content_type="application/json",
         )
         assert resp.status_code == 403
+
+    def test_publish_blocked_without_ingredients(self, auth_client):
+        """Cannot set visibility to public on a draft recipe without ingredients."""
+        user = auth_client._user
+        recipe = make_recipe(title="Ohne Zutaten", owner=user, visibility="private", status="draft")
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/visibility/",
+            data=json.dumps({"visibility": "public"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+        assert "Zutat" in resp.json()["detail"]
+
+        recipe.refresh_from_db()
+        assert recipe.visibility == "private"
+        assert recipe.status == "draft"
+
+    def test_publish_allowed_with_ingredients(self, auth_client):
+        """Can set visibility to public on a draft recipe with ingredients."""
+        user = auth_client._user
+        recipe = make_recipe(title="Mit Zutaten", owner=user, visibility="private", status="draft")
+        ingredient = make_ingredient(name="Tomaten")
+        portion = make_portion(ingredient=ingredient, name="100g Tomaten", weight_g=100.0)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=3.0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/visibility/",
+            data=json.dumps({"visibility": "public"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+        data = resp.json()
+        assert data["visibility"] == "public"
+        assert data["status"] == "submitted"

@@ -91,7 +91,7 @@ def import_ingredient_from_url(url: str, user=None) -> dict:
         tools=[types.Tool(url_context=types.UrlContext())],
     )
 
-    response = gemini_call(
+    response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,

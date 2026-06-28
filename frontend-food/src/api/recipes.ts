@@ -221,6 +221,7 @@ export interface RecipeCreatePayload {
     measuring_unit_id?: number | null;
     sort_order?: number;
     note?: string;
+    is_optional?: boolean;
   }>;
   website?: string;
   form_loaded_at?: number;
@@ -257,6 +258,7 @@ export interface RecipeUpdatePayload {
     measuring_unit_id?: number | null;
     sort_order?: number;
     note?: string;
+    is_optional?: boolean;
   }>;
 }
 
@@ -302,6 +304,7 @@ export function useCreateRecipeItem(recipeId: number) {
       quantity?: number;
       sort_order?: number;
       note?: string;
+      is_optional?: boolean;
     }) => postJson(`${API_BASE}/${recipeId}/recipe-items/`, data, RecipeItemSchema),
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);

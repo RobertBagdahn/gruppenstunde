@@ -6,11 +6,16 @@ gemini_image_call(). Direct genai.Client usage is not permitted elsewhere.
 """
 
 import logging
+import time
+import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.core.cache import cache
 from ninja.errors import HttpError
+
+from content.models import AiInteraction
+from content.choices import AiContextChoices
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +207,44 @@ def _handle_gemini_exception(exc: Exception, context: str = "") -> None:
 # ---------------------------------------------------------------------------
 
 
+def _create_interaction(
+    *,
+    user: AbstractBaseUser | None = None,
+    model: str,
+    contents: str | list,
+    context: str = "",
+) -> tuple[AiInteraction, uuid.UUID]:
+    """Create an AiInteraction record and return (record, id)."""
+    kwargs = {}
+    if user and user.is_authenticated:
+        kwargs["user"] = user
+    interaction = AiInteraction.objects.create(
+        context=context,
+        prompt=contents,
+        model=model,
+        success=False,
+        **kwargs,
+    )
+    return interaction, interaction.id
+
+
+def _update_interaction(
+    interaction: AiInteraction,
+    *,
+    success: bool = True,
+    response_text: str = "",
+    error_code: str = "",
+    duration_ms: int | None = None,
+) -> None:
+    """Update an existing AiInteraction record after completion."""
+    update_kwargs = {"success": success, "response": response_text}
+    if error_code:
+        update_kwargs["error_code"] = error_code
+    if duration_ms is not None:
+        update_kwargs["duration_ms"] = duration_ms
+    AiInteraction.objects.filter(id=interaction.id).update(**update_kwargs)
+
+
 def gemini_call(
     *,
     user: AbstractBaseUser | None = None,
@@ -223,7 +266,8 @@ def gemini_call(
         context: Label for logging (e.g. "improve_text", "suggest_tags").
 
     Returns:
-        GenerateContentResponse from the Gemini API.
+        Tuple of (GenerateContentResponse | None, UUID) where UUID is the
+        AiInteraction record id for feedback.
 
     Raises:
         GeminiAuthError: If user is not authenticated.
@@ -231,21 +275,62 @@ def gemini_call(
         GeminiUpstreamRateLimitError: If Google returns 429.
         GeminiUnavailableError: If Gemini is unreachable.
     """
-    _check_auth(user, bypass_limits=bypass_limits)
-    _check_global_limit(bypass_limits=bypass_limits)
+    interaction, interaction_id = _create_interaction(
+        user=user, model=model, contents=contents, context=context
+    )
+
+    try:
+        _check_auth(user, bypass_limits=bypass_limits)
+    except HttpError:
+        _update_interaction(interaction, success=False, error_code="auth_error")
+        raise
+
+    try:
+        _check_global_limit(bypass_limits=bypass_limits)
+    except HttpError:
+        _update_interaction(interaction, success=False, error_code="rate_limit")
+        raise
 
     client = _get_client()
     if not client:
-        return None
+        return None, interaction_id
 
+    start = time.monotonic()
     try:
-        return client.models.generate_content(
+        response = client.models.generate_content(
             model=model,
             contents=contents,
             config=config,
         )
+        duration = int((time.monotonic() - start) * 1000)
+        response_text = response.text if response else ""
+        _update_interaction(interaction, success=True, response_text=response_text, duration_ms=duration)
+        return response, interaction_id
     except Exception as exc:
+        duration = int((time.monotonic() - start) * 1000)
+        error_code = _map_exception_to_error_code(exc)
+        _update_interaction(interaction, success=False, error_code=error_code, duration_ms=duration)
         _handle_gemini_exception(exc, context)
+
+
+def _map_exception_to_error_code(exc: Exception) -> str:
+    """Map a Gemini exception to an error code string."""
+    from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
+    from google.genai.errors import APIError, ClientError, ServerError
+
+    if isinstance(exc, ClientError) and exc.code == 429:
+        return "upstream_rate_limit"
+    if isinstance(exc, ServerError):
+        if exc.code in (504, 408):
+            return "timeout"
+        return "server_error"
+    if isinstance(exc, APIError):
+        return "api_error"
+    if isinstance(exc, DeadlineExceeded):
+        return "timeout"
+    if isinstance(exc, ServiceUnavailable):
+        return "unavailable"
+    return "internal_error"
 
 
 def gemini_image_call(
@@ -261,21 +346,45 @@ def gemini_image_call(
     Execute a Gemini image generation call with auth + global rate limiting.
 
     Same interface as gemini_call() but uses the image client (global location).
+
+    Returns:
+        Tuple of (GenerateContentResponse | None, UUID).
     """
-    _check_auth(user, bypass_limits=bypass_limits)
-    _check_global_limit(bypass_limits=bypass_limits)
+    interaction, interaction_id = _create_interaction(
+        user=user, model=model, contents=contents, context=context
+    )
+
+    try:
+        _check_auth(user, bypass_limits=bypass_limits)
+    except HttpError:
+        _update_interaction(interaction, success=False, error_code="auth_error")
+        raise
+
+    try:
+        _check_global_limit(bypass_limits=bypass_limits)
+    except HttpError:
+        _update_interaction(interaction, success=False, error_code="rate_limit")
+        raise
 
     client = _get_image_client()
     if not client:
-        return None
+        return None, interaction_id
 
+    start = time.monotonic()
     try:
-        return client.models.generate_content(
+        response = client.models.generate_content(
             model=model,
             contents=contents,
             config=config,
         )
+        duration = int((time.monotonic() - start) * 1000)
+        response_text = response.text if response else ""
+        _update_interaction(interaction, success=True, response_text=response_text, duration_ms=duration)
+        return response, interaction_id
     except Exception as exc:
+        duration = int((time.monotonic() - start) * 1000)
+        error_code = _map_exception_to_error_code(exc)
+        _update_interaction(interaction, success=False, error_code=error_code, duration_ms=duration)
         _handle_gemini_exception(exc, context)
 
 

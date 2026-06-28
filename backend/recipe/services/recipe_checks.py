@@ -427,28 +427,35 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
     recipe.save(update_fields=update_fields)
 
 
-def sync_recipe_allergen_tags(recipe: Recipe) -> int:
-    """Sync the recipe's nutritional_tags (dangerous/allergen only) with ingredients."""
+def sync_recipe_nutritional_tags(recipe: Recipe) -> int:
+    """Sync nutritional tags from the recipe's ingredients onto the recipe.
+
+    Uses AND logic (intersection): a tag is only applied if ALL ingredients share it.
+    Only writes to ``nutritional_tags`` (auto-synced). Does NOT touch
+    ``manual_nutritional_tags`` — those are preserved separately by the API layer.
+
+    Returns the count of ingredient-derived tags synced.
+    """
+    from django.db.models import Count, Q
     from recipe.models import RecipeItem
     from supply.models.reference import NutritionalTag
 
-    # Get non-dangerous tags currently set on the recipe to preserve them
-    non_dangerous_tags = list(recipe.nutritional_tags.filter(is_dangerous=False))
-
-    # Find the distinct ingredient IDs associated with the recipe
     ingredient_ids = list(
         RecipeItem.objects.filter(recipe=recipe).values_list("portion__ingredient_id", flat=True).distinct()
     )
 
     if ingredient_ids:
-        dangerous_tags = list(
-            NutritionalTag.objects.filter(is_dangerous=True, ingredients__id__in=ingredient_ids).distinct()
+        total = len(ingredient_ids)
+        ingredient_tags = list(
+            NutritionalTag.objects.filter(ingredients__id__in=ingredient_ids)
+            .annotate(
+                ingredient_count=Count("ingredients", filter=Q(ingredients__id__in=ingredient_ids), distinct=True)
+            )
+            .filter(ingredient_count=total)
         )
     else:
-        dangerous_tags = []
+        ingredient_tags = []
 
-    # Combine non-dangerous and dangerous tags
-    all_tags = non_dangerous_tags + dangerous_tags
-    recipe.nutritional_tags.set(all_tags)
+    recipe.nutritional_tags.set(ingredient_tags)
 
-    return len(dangerous_tags)
+    return len(ingredient_tags)
