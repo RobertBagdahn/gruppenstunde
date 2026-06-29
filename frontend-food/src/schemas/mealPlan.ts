@@ -821,6 +821,53 @@ export const CookingScheduleIngredientSchema = z.object({
 });
 export type CookingScheduleIngredient = z.infer<typeof CookingScheduleIngredientSchema>;
 
+// New nested schemas for meal blocks with variants
+export const CookingScheduleVariantSchema = z.object({
+  variant_group_id: z.string().nullable(),
+  display_name: z.string().nullable(),
+  factor: z.number(),
+  portions: z.number(),
+  active_recipe_item_ids: z.array(z.number()),
+  lead_minutes: z.number(),
+  start_time: z.string(),
+  total_cost_eur: z.number(),
+  total_energy_kcal: z.number(),
+  total_protein_g: z.number(),
+  total_fat_g: z.number(),
+  total_carbohydrate_g: z.number(),
+  steps: z.string(),
+  steps_parsed: z.array(CookingScheduleStepSchema).default([]),
+  ingredients: z.array(CookingScheduleIngredientSchema),
+  meal_note: z.string(),
+});
+export type CookingScheduleVariant = z.infer<typeof CookingScheduleVariantSchema>;
+
+export const CookingScheduleRecipeBlockSchema = z.object({
+  recipe_id: z.number(),
+  recipe_title: z.string(),
+  recipe_slug: z.string(),
+  recipe_image: z.string().nullable(),
+  nutritional_tags: z.array(NutritionalTagSchema).default([]),
+  variants: z.array(CookingScheduleVariantSchema),
+});
+export type CookingScheduleRecipeBlock = z.infer<typeof CookingScheduleRecipeBlockSchema>;
+
+export const CookingScheduleMealSchema = z.object({
+  meal_id: z.number(),
+  meal_type: z.string(),
+  display_name: z.string(),
+  serving_time: z.string(),
+  note: z.string(),
+  override_portions: z.number().nullable(),
+  total_portions: z.number(),
+  recipe_blocks: z.array(CookingScheduleRecipeBlockSchema),
+});
+export type CookingScheduleMeal = z.infer<typeof CookingScheduleMealSchema>;
+
+/**
+ * DEPRECATED: Old flat schema, kept for backward compatibility with existing tests.
+ * New code should use the nested structure: CookingSchedule -> days -> meals -> recipe_blocks -> variants
+ */
 export const CookingScheduleItemSchema = z.object({
   recipe_id: z.number(),
   recipe_title: z.string(),
@@ -845,7 +892,9 @@ export type CookingScheduleItem = z.infer<typeof CookingScheduleItemSchema>;
 
 export const CookingScheduleDaySchema = z.object({
   date: z.string(),
-  items: z.array(CookingScheduleItemSchema),
+  meals: z.array(CookingScheduleMealSchema),
+  // DEPRECATED: Use `meals` instead
+  items: z.array(CookingScheduleItemSchema).default([]),
   day_start_time: z.string(),
   day_end_time: z.string(),
   day_duration_minutes: z.number(),

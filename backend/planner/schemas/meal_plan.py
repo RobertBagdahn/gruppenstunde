@@ -727,7 +727,51 @@ class CookingScheduleIngredientOut(Schema):
     nutritional_tags: list[NutritionalTagOut] = []
 
 
+class CookingScheduleVariantOut(Schema):
+    variant_group_id: str | None = None
+    display_name: str | None = None
+    factor: float
+    portions: int
+    active_recipe_item_ids: list[int] = []
+    lead_minutes: int
+    start_time: dt.datetime
+    total_cost_eur: float = 0.0
+    total_energy_kcal: float = 0.0
+    total_protein_g: float = 0.0
+    total_fat_g: float = 0.0
+    total_carbohydrate_g: float = 0.0
+    steps: str = ""
+    steps_parsed: list[CookingScheduleStepOut] = []
+    ingredients: list[CookingScheduleIngredientOut] = []
+    meal_note: str = ""
+
+
+class CookingScheduleRecipeBlockOut(Schema):
+    recipe_id: int
+    recipe_title: str
+    recipe_slug: str
+    recipe_image: str | None = None
+    nutritional_tags: list[NutritionalTagOut] = []
+    variants: list[CookingScheduleVariantOut]
+
+
+class CookingScheduleMealOut(Schema):
+    meal_id: int
+    meal_type: str
+    display_name: str
+    serving_time: dt.datetime
+    note: str = ""
+    override_portions: int | None = None
+    total_portions: int
+    recipe_blocks: list[CookingScheduleRecipeBlockOut]
+
+
 class CookingScheduleItemOut(Schema):
+    """DEPRECATED: Use CookingScheduleVariantOut within CookingScheduleMealOut instead.
+    
+    This schema is kept for backward compatibility with existing tests.
+    New code should use the nested structure: CookingScheduleOut -> days -> meals -> recipe_blocks -> variants.
+    """
     recipe_id: int
     recipe_title: str
     recipe_slug: str
@@ -750,7 +794,9 @@ class CookingScheduleItemOut(Schema):
 
 class CookingScheduleDayOut(Schema):
     date: dt.date
-    items: list[CookingScheduleItemOut]
+    meals: list[CookingScheduleMealOut]
+    # DEPRECATED: Use `meals` instead
+    items: list[CookingScheduleItemOut] = []
     day_start_time: str = ""
     day_end_time: str = ""
     day_duration_minutes: int = 0
@@ -767,3 +813,19 @@ class CookingScheduleOut(Schema):
     total_cost_with_reserve: float = 0.0
     total_energy_kcal: float = 0.0
     norm_portions: int = 0
+
+
+class CalculateIngredientKcalIn(Schema):
+    """Request for calculating kcal for multiple ingredients."""
+    items: list[dict] = []  # [{"ingredient_id": int, "quantity_g": float}, ...]
+
+
+class IngredientKcalItemOut(Schema):
+    """Single ingredient kcal calculation result."""
+    ingredient_id: int
+    energy_kcal: float | None = None
+
+
+class CalculateIngredientKcalOut(Schema):
+    """Response for ingredient kcal calculation."""
+    items: list[IngredientKcalItemOut]

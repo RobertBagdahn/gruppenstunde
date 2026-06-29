@@ -3,6 +3,12 @@ API tests for POST /api/meal-plans/ai-suggest/ endpoint.
 
 Tests cover: happy path (mocked Gemini), auth, timeout, invalid JSON, missing recipe_ids.
 """
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inspi.settings.test")
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+import django
+django.setup()
 
 import json
 from unittest.mock import patch
@@ -24,9 +30,10 @@ class TestAiSuggestEndpoint(TestCase):
         self.client = Client()
         self.client.force_login(self.user)
 
-        baker.make(Recipe, id=42, title="Haferporridge", recipe_type="breakfast", _fill_optional=True)
-        baker.make(Recipe, id=128, title="Kartoffelsuppe", recipe_type="lunch", _fill_optional=True)
-        baker.make(Recipe, id=256, title="Veganes Curry", recipe_type="dinner", _fill_optional=True)
+        # Create recipes without search_vector field (handled automatically)
+        baker.make(Recipe, id=42, title="Haferporridge", recipe_type="breakfast", _fill_optional=False)
+        baker.make(Recipe, id=128, title="Kartoffelsuppe", recipe_type="lunch", _fill_optional=False)
+        baker.make(Recipe, id=256, title="Veganes Curry", recipe_type="dinner", _fill_optional=False)
 
         self.valid_payload = {
             "prompt": "Sommerlager mit 30 Pfadfindern, herzhafte deutsche Küche",

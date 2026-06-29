@@ -297,3 +297,43 @@ export function useDeleteBreakfastDay() {
     },
   });
 }
+
+// ============================================================================
+// Calculate Ingredient Kcal (for extra ingredients)
+// ============================================================================
+
+const CalculateIngredientKcalResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      ingredient_id: z.number(),
+      energy_kcal: z.number().nullable(),
+    }),
+  ),
+});
+type CalculateIngredientKcalResponse = z.infer<typeof CalculateIngredientKcalResponseSchema>;
+
+async function calculateIngredientKcal(
+  mealPlanId: number,
+  items: Array<{ ingredient_id: number; quantity_g: number }>,
+): Promise<CalculateIngredientKcalResponse> {
+  const PLANNER_BASE = `${API_BASE_URL}/api/meal-plans`;
+  const res = await fetch(`${PLANNER_BASE}/${mealPlanId}/calculate-ingredient-kcal/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
+    body: JSON.stringify({ items }),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const data = await res.json();
+  return CalculateIngredientKcalResponseSchema.parse(data);
+}
+
+export function useCalculateIngredientKcal(mealPlanId: number) {
+  return useMutation({
+    mutationFn: (items: Array<{ ingredient_id: number; quantity_g: number }>) =>
+      calculateIngredientKcal(mealPlanId, items),
+  });
+}

@@ -1,9 +1,16 @@
 """Planner schemas package — re-exports all schemas for backward compatibility."""
 
 from .meal_plan import (
+    CalculateIngredientKcalIn,
+    CalculateIngredientKcalOut,
     CookingScheduleDayOut,
+    CookingScheduleIngredientOut,
     CookingScheduleItemOut,
+    CookingScheduleMealOut,
     CookingScheduleOut,
+    CookingScheduleRecipeBlockOut,
+    CookingScheduleStepOut,
+    CookingScheduleVariantOut,
     CopyItemsFromPlanIn,
     DayCostOut,
     LinkMealIn,
@@ -55,10 +62,17 @@ from .planner import (
 )
 
 __all__ = [
+    "CalculateIngredientKcalIn",
+    "CalculateIngredientKcalOut",
     "CollaboratorOut",
     "CookingScheduleDayOut",
+    "CookingScheduleIngredientOut",
     "CookingScheduleItemOut",
+    "CookingScheduleMealOut",
     "CookingScheduleOut",
+    "CookingScheduleRecipeBlockOut",
+    "CookingScheduleStepOut",
+    "CookingScheduleVariantOut",
     "CopyItemsFromPlanIn",
     "DayCostOut",
     "InviteIn",

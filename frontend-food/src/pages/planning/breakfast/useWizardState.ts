@@ -244,6 +244,13 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     });
   }, []);
 
+  // ── Grams per person ──────────────────────────────────────────────────────
+
+  const setGramsPerPerson = useCallback((value: number) => {
+    const clamped = Math.max(50, Math.min(300, value));
+    setState((s) => ({ ...s, gramsPerPerson: clamped }));
+  }, []);
+
   // ── Full state replace (for normalise / state-restore) ─────────────────────
 
   const replaceState = useCallback((next: WizardState) => {
@@ -275,6 +282,7 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     addDrinkRecipe,
     removeDrinkRecipe,
     setDrinkFactor,
+    setGramsPerPerson,
     replaceState,
   };
 }

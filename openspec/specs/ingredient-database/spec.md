@@ -26,24 +26,30 @@ The model SHALL include the following new fields for data quality and search:
 - **THEN** `quality_score` SHALL be calculated from field completeness
 
 ### Requirement: Portion and Price relationship simplified
-Portion SHALL reference Ingredient directly. The Price model SHALL be removed entirely. Ingredient SHALL store its price via the `price_per_kg` field. Additionally, Portion SHALL have a `priority` field (IntegerField, default=0) to control display ordering and an `is_default` field (BooleanField, default=False) to mark the preferred portion for display. Only one Portion per Ingredient SHALL have `is_default=True`.
+
+Portion SHALL reference Ingredient directly. The Price model SHALL be removed entirely. Ingredient SHALL store its price via the `price_per_kg` field. Additionally, Portion SHALL have a `rank` field (IntegerField, default=1) to control display ordering. The Portion with the lowest `rank` value (rank=1) SHALL be treated as the default/Normalportion. The `priority` field (IntegerField) and `is_default` field (BooleanField) SHALL be removed from the Portion model.
 
 #### Scenario: Portion for supply.Ingredient
+
 - **WHEN** a Portion is created for an Ingredient
 - **THEN** it SHALL reference supply.Ingredient
 - **THEN** all weight conversion and measuring unit logic SHALL remain unchanged
 
-#### Scenario: Portion with priority and default
-- **WHEN** Portionen für eine Zutat existieren
-- **THEN** SHALL die Portion mit `is_default=True` als bevorzugte Anzeige-Portion verwendet werden
-- **THEN** SHALL maximal eine Portion pro Zutat `is_default=True` haben
-- **THEN** SHALL bei Setzen von `is_default=True` auf einer Portion alle anderen Portionen derselben Zutat auf `is_default=False` gesetzt werden
+#### Scenario: Portionen sortiert nach rank
 
-#### Scenario: Portions sortiert nach Priorität
 - **WHEN** Portionen einer Zutat abgefragt werden
-- **THEN** SHALL die Sortierung nach `priority` (absteigend), dann `rank` (aufsteigend) erfolgen
+- **THEN** SHALL die Sortierung nach `rank` (aufsteigend) erfolgen
+- **THEN** SHALL die Portion mit `rank=1` die Normalportion/Default sein
+
+#### Scenario: Kein priority-Feld mehr
+
+- **WHEN** das Portion-Modell inspiziert wird
+- **THEN** SHALL kein `priority`-Feld existieren
+- **THEN** SHALL kein `is_default`-Feld existieren
+- **THEN** SHALL `rank` das einzige Sortierfeld sein
 
 #### Scenario: Price calculation from Ingredient
+
 - **WHEN** a recipe's price needs to be calculated
 - **THEN** the system SHALL use `Ingredient.price_per_kg * weight_g / 1000` for each RecipeItem
 - **THEN** no Price model lookup SHALL be needed
@@ -107,19 +113,6 @@ The AI autocomplete for ingredient data SHALL also suggest Material entries when
 - **WHEN** a user creates a Recipe and the AI analyzes the description
 - **THEN** the AI MAY suggest relevant Materials (kitchen equipment) in addition to Ingredients
 - **THEN** suggested Materials SHALL appear in the "Küchengeräte" section
-
-### Requirement: Portion-Priorität API
-Die Portion-API SHALL das Setzen und Ändern von `priority` und `is_default` unterstützen.
-
-#### Scenario: Portion-Priorität setzen
-- **WHEN** ein Nutzer `PATCH /api/ingredients/{slug}/portions/{id}/` mit `priority` und/oder `is_default` sendet
-- **THEN** SHALL die Priorität aktualisiert werden
-- **THEN** SHALL bei `is_default=true` alle anderen Portionen derselben Zutat auf `is_default=false` gesetzt werden
-
-#### Scenario: Portion erstellen mit Priorität
-- **WHEN** ein Nutzer `POST /api/ingredients/{slug}/portions/` mit `priority` und `is_default` sendet
-- **THEN** SHALL die Portion mit der angegebenen Priorität erstellt werden
-- **THEN** SHALL `priority` den Default-Wert 0 und `is_default` den Default-Wert False haben, wenn nicht angegeben
 
 ### Requirement: Zutatenpreise pflegen
 

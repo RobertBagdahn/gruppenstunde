@@ -423,7 +423,7 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
     ingredient = get_object_or_404(Ingredient, slug=slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
-    portions = list(Portion.objects.filter(ingredient=ingredient, is_deleted=False).order_by("rank", "id"))
+    portions = list(Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank", "id"))
 
     idx = next((i for i, p in enumerate(portions) if p.id == portion.id), None)
     if idx is None:
@@ -442,7 +442,7 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
         swap_with.save(update_fields=["rank"])
 
     return list(
-        Portion.objects.filter(ingredient=ingredient, is_deleted=False)
+        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
         .order_by("rank", "id")
         .select_related("measuring_unit")
     )

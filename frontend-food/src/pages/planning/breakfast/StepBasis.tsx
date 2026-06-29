@@ -28,15 +28,6 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
       sliceWeightG: ing.standard_recipe_weight_g ?? 50,
       energyKcal100g: ing.energy_kcal,
     }));
-    // Even split if multiple items
-    if (initial.length > 1) {
-      const share = Math.round(100 / initial.length);
-      initial.forEach((item, i) => {
-        item.sharePercent = i === initial.length - 1
-          ? 100 - share * (initial.length - 1)
-          : share;
-      });
-    }
     initBasis(initial);
   }, [catalog, state.basis.length, initBasis]);
 

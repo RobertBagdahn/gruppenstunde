@@ -143,8 +143,8 @@ export type ToppingSelection = z.infer<typeof ToppingSelectionSchema>;
 
 /** Complete wizard state */
 export const WizardStateSchema = z.object({
-  /** Breakfast units per person */
-  bePerPerson: z.number().min(1).max(10),
+  /** Grams of bread per person */
+  gramsPerPerson: z.number().min(50).max(300),
   basis: z.array(BasisSelectionSchema),
   toppings: z.array(ToppingSelectionSchema),
   globalIntensity: z.enum(['knapp', 'normal', 'üppig']),
@@ -190,7 +190,7 @@ export type BreakfastDay = z.infer<typeof BreakfastDaySchema>;
 /** Default empty wizard state */
 export function defaultWizardState(): WizardState {
   return {
-    bePerPerson: 4,
+    gramsPerPerson: 150,
     basis: [],
     toppings: [],
     globalIntensity: 'normal',

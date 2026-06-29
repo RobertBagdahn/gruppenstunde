@@ -206,7 +206,6 @@ class IngredientDetailOut(Schema):
                 "quantity": p.quantity,
                 "weight_g": p.weight_g,
                 "rank": p.rank,
-                "is_default": p.rank == 1,
                 "is_system": p.is_system,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
@@ -354,7 +353,7 @@ class PortionSuggestionOut(Schema):
 
     name: str
     weight_g: float
-    priority: int = 0
+    rank: int = 1
 
 
 class IngredientSuggestAllOut(Schema):
@@ -403,6 +402,8 @@ class IngredientSuggestAllOut(Schema):
 
     # Portionen und Aliase
     portions: list[PortionSuggestionOut] = []
+    stueck_weight_g: float | None = None
+    packung_weight_g: float | None = None
     aliases: list[str] = []
     nutritional_tags: list[NutritionalTagOut] = []
 

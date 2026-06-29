@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
 import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
-import { BackButton } from '@/components/shared/BackButton';
 import { Loader2, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle } from 'lucide-react';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '@/schemas/mealPlan';
 import type { CookingScheduleItem, CookingScheduleDay, CookingScheduleStep } from '@/schemas/mealPlan';
@@ -168,13 +166,13 @@ function TimelineItem({ item, isLast }: { item: CookingScheduleItem; isLast: boo
               {formatTime(item.serving_time)}
             </span>
             <div className="min-w-0 flex-1">
-              <Link
-                to={`/recipes/${item.recipe_slug}`}
+              <a
+                href={`/recipes/${item.recipe_slug}`}
                 className="font-semibold text-sm hover:text-primary transition-colors line-clamp-1 block"
                 onClick={(e) => e.stopPropagation()}
               >
                 {item.recipe_title}
-              </Link>
+              </a>
               {hasAllergens && (
                 <div className="flex flex-wrap gap-1 mt-0.5">
                   {item.nutritional_tags.slice(0, 3).map((tag) => (
@@ -269,9 +267,11 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
   );
 }
 
-export default function CookingScheduleKitchenPage() {
-  const { id } = useParams<{ id: string }>();
-  const mealPlanId = Number(id);
+interface CookingScheduleTabProps {
+  mealPlanId: number;
+}
+
+export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabProps) {
   const { data: plan, isLoading: planLoading } = useMealPlan(mealPlanId);
   const { data: schedule, isLoading: scheduleLoading, error } = useCookingSchedule(mealPlanId);
 
@@ -293,23 +293,42 @@ export default function CookingScheduleKitchenPage() {
     );
   }
 
+  const totalCost = schedule.days.reduce((sum, day) => sum + day.total_cost_eur, 0);
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <BackButton to={`/meal-plans/${id}`} />
+    <div className="space-y-6">
+      {/* Tab Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <ChefHat className="w-5 h-5 text-primary" />
           <div>
-            <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-              <ChefHat className="w-6 h-6 text-primary" />
-              Küchen-Dashboard
-            </h1>
+            <h2 className="font-display font-bold text-foreground">Kochplan</h2>
             {plan && (
-              <p className="text-sm text-muted-foreground mt-0.5">{plan.name}</p>
+              <p className="text-xs text-muted-foreground">{plan.name}</p>
             )}
           </div>
         </div>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground font-semibold">
+          {plan && (
+            <>
+              <span>👥 {plan.norm_portions} Personen</span>
+              {totalCost > 0 && (
+                <span>{totalCost.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
+              )}
+            </>
+          )}
+          <a
+            href={`/meal-plans/${mealPlanId}/cooking-schedule/print`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+          >
+            🖨️ Drucken
+          </a>
+        </div>
       </div>
 
+      {/* Warning Banner */}
       {schedule.excluded_meal_count > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -320,6 +339,7 @@ export default function CookingScheduleKitchenPage() {
         </div>
       )}
 
+      {/* Empty State */}
       {schedule.days.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground space-y-2">
           <ChefHat className="w-12 h-12 mx-auto opacity-30" />
@@ -329,9 +349,11 @@ export default function CookingScheduleKitchenPage() {
           </p>
         </div>
       ) : (
-        schedule.days.map((day) => (
-          <DayTimeline key={day.date} day={day} />
-        ))
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {schedule.days.map((day) => (
+            <DayTimeline key={day.date} day={day} />
+          ))}
+        </div>
       )}
     </div>
   );

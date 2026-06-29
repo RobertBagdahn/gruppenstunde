@@ -200,7 +200,7 @@ export function useDeleteIngredient() {
 export function useCreatePortion(slug: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; quantity?: number; measuring_unit_id?: number; weight_g?: number; rank?: number; priority?: number; is_default?: boolean }) =>
+    mutationFn: (data: { name: string; quantity?: number; measuring_unit_id?: number; weight_g?: number; rank?: number }) =>
       postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/`, data, PortionSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });

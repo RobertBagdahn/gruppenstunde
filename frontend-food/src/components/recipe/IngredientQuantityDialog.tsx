@@ -28,7 +28,8 @@ export default function IngredientQuantityDialog({
   onOpenChange,
   onConfirm,
 }: IngredientQuantityDialogProps) {
-  const defaultPortion = ingredient.portions.find((p) => p.is_default) ?? ingredient.portions[0] ?? null;
+  // rank=1 is the Normalportion/default; portions are sorted by rank asc from backend
+  const defaultPortion = ingredient.portions.find((p) => p.rank === 1) ?? ingredient.portions[0] ?? null;
 
   const [selectedPortionId, setSelectedPortionId] = useState<string>(
     defaultPortion ? String(defaultPortion.id) : '',

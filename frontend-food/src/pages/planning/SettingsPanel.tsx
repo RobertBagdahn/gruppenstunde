@@ -63,7 +63,7 @@ export default function SettingsPanel({
   );
 
   const defaultFactors = {
-    breakfast: 0.20,
+    breakfast: 0.30,
     lunch: 0.35,
     dinner: 0.35,
     snack: 0.10,

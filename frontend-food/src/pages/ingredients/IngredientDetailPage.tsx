@@ -193,10 +193,12 @@ function PortionCard({
     );
   };
 
+  const isDefault = portion.rank === 1;
+
   return (
-    <div className="border border-border rounded-xl bg-card overflow-hidden shadow-soft">
-      <div className="flex items-center gap-2 px-4 py-3 bg-muted/20 border-b border-border/80">
-        <span className="material-symbols-outlined text-primary text-lg shrink-0">
+    <div className={`border rounded-xl overflow-hidden shadow-soft ${isDefault ? 'border-primary/40 bg-primary/5' : 'border-border bg-card'}`}>
+      <div className={`flex items-center gap-2 px-4 py-3 border-b ${isDefault ? 'bg-primary/10 border-primary/20' : 'bg-muted/20 border-border/80'}`}>
+        <span className={`material-symbols-outlined text-lg shrink-0 ${isDefault ? 'text-primary' : 'text-primary'}`}>
           scale
         </span>
         <div className="flex-1 min-w-0">
@@ -263,6 +265,11 @@ function PortionCard({
               <span className="font-semibold text-sm">
                 {portion.name.trim() || <span className="text-destructive font-medium italic">Unbenannt</span>}
               </span>
+              {isDefault && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
+                  Standard
+                </span>
+              )}
               {portion.is_system && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border/60">
                   System
@@ -651,6 +658,7 @@ export default function IngredientDetailPage() {
   const updateIngredient = useUpdateIngredient(slug || '');
   const deleteIngredient = useDeleteIngredient();
   const createPortion = useCreatePortion(slug || '');
+  const updatePortionForAi = useUpdatePortion(slug || '');
 
   const createAlias = useCreateAlias(slug || '');
   const deleteAlias = useDeleteAlias(slug || '');
@@ -707,7 +715,7 @@ export default function IngredientDetailPage() {
 
     const data = aiSuggest.data;
     const scalarUpdates: Record<string, unknown> = {};
-    const portionsToCreate: Array<{ name: string; weight_g: number; priority?: number }> = [];
+    const portionsToCreate: Array<{ name: string; weight_g: number; rank?: number }> = [];
     const aliasesToCreate: string[] = [];
     const tagsToAssign: number[] = [];
 
@@ -741,6 +749,23 @@ export default function IngredientDetailPage() {
       );
     }
 
+    // Handle system portion weight updates (Stück and Packung)
+    const systemPortionUpdates: Array<{ portionName: string; weight_g: number }> = [];
+    if (selectedKeys.includes('stueck_weight_g')) {
+      const val = (data as Record<string, unknown>)['stueck_weight_g'];
+      if (typeof val === 'number' && val > 0) {
+        systemPortionUpdates.push({ portionName: 'Stück', weight_g: val });
+      }
+      delete scalarUpdates['stueck_weight_g'];
+    }
+    if (selectedKeys.includes('packung_weight_g')) {
+      const val = (data as Record<string, unknown>)['packung_weight_g'];
+      if (typeof val === 'number' && val > 0) {
+        systemPortionUpdates.push({ portionName: 'Packung', weight_g: val });
+      }
+      delete scalarUpdates['packung_weight_g'];
+    }
+
     const promises: Promise<unknown>[] = [];
     if (Object.keys(scalarUpdates).length > 0) {
       promises.push(
@@ -748,6 +773,21 @@ export default function IngredientDetailPage() {
           updateIngredient.mutate(scalarUpdates, { onSuccess: resolve, onError: reject })
         )
       );
+    }
+
+    // PATCH system portions (Stück, Packung) with weight_g from AI
+    for (const { portionName, weight_g } of systemPortionUpdates) {
+      const sysPortion = ingredient.portions.find((p) => p.name === portionName);
+      if (sysPortion) {
+        promises.push(
+          new Promise((resolve, reject) =>
+            updatePortionForAi.mutate(
+              { portionId: sysPortion.id, data: { weight_g } },
+              { onSuccess: resolve, onError: reject }
+            )
+          )
+        );
+      }
     }
 
     const existingPortionNames = new Set(
@@ -758,7 +798,7 @@ export default function IngredientDetailPage() {
         promises.push(
           new Promise((resolve, reject) =>
             createPortion.mutate(
-              { name: p.name, quantity: 1, weight_g: p.weight_g, priority: p.priority ?? 0 },
+              { name: p.name, quantity: 1, weight_g: p.weight_g },
               { onSuccess: resolve, onError: reject }
             )
           )

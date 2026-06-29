@@ -41,8 +41,8 @@ export default function BreakfastWizardPage() {
     [saveMode, refMeals],
   );
 
-  const normPortions = plan?.norm_portions ?? 10;
-  const dayPartFactor = existingRefMeal?.day_part_factor ?? 0.25;
+   const normPortions = plan?.norm_portions ?? 10;
+   const dayPartFactor = existingRefMeal?.day_part_factor ?? 0.30;
 
   // Compute initial wizard state from existing RefMeal (if any)
   const initialWizardState = useMemo(() => {

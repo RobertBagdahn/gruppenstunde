@@ -36,7 +36,7 @@ interface EditableItem {
   is_optional: boolean;
   exchange_group_id: number | null;
   exchange_position: number | null;
-  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; rank?: number | null }[];
+  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; rank: number }[];
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -67,7 +67,7 @@ interface InlineIngredientEditorProps {
 
 /** Normalize items to per-1-serving quantities in grams.
  *  Converts portion-based quantities to grams for editing,
- *  and switches to the base (is_default) portion. */
+ *  and switches to the rank=1 (Normalportion) portion. */
 function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
   const s = portions ?? 1;
   return items.map((item) => {
@@ -79,8 +79,9 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
     const quantityInGrams = item.quantity * portionWeightG;
     const normalizedQty = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
 
-    // Use the base (default) portion for editing (weight_g ≈ 1)
-    const basePortion = item.ingredient_portions?.find((p) => p.is_default) ?? currentPortion;
+    // Use the rank=1 (Normalportion) for editing; fall back to current portion
+    const sortedPortions = [...(item.ingredient_portions ?? [])].sort((a, b) => a.rank - b.rank);
+    const basePortion = sortedPortions.find((p) => p.rank === 1) ?? currentPortion;
     const basePortionId = basePortion?.id ?? item.portion_id;
     const basePortionWeightG = basePortion?.weight_g ?? 1;
 
@@ -103,8 +104,7 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
         name: p.name,
         weight_g: p.weight_g,
         measuring_unit_name: p.measuring_unit_name,
-        is_default: p.is_default,
-        rank: p.rank,
+        rank: p.rank ?? 999,
       })),
       is_optional: item.is_optional ?? false,
       exchange_group_id: item.exchange_group_id ?? null,
@@ -267,13 +267,12 @@ export default function InlineIngredientEditor({
             measuring_unit_name: bestPortion.measuring_unit_name || bestPortion.name || 'g', // (4.3)
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; rank?: number | null }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; rank?: number | null }) => ({
               id: p.id,
               name: p.name,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
-              is_default: p.is_default,
-              rank: p.rank,
+              rank: p.rank ?? 999,
             })),
             is_optional: false,
             exchange_group_id: null,
@@ -312,7 +311,8 @@ export default function InlineIngredientEditor({
           : null;
 
         if (!selectedPortion) {
-          selectedPortion = portions.find((p: { is_default: boolean }) => p.is_default) ?? portions[0] ?? null;
+          // Fall back to rank=1 (Normalportion) or first available
+          selectedPortion = portions.find((p: { rank?: number }) => p.rank === 1) ?? portions[0] ?? null;
         }
 
         if (!selectedPortion) {
@@ -332,12 +332,12 @@ export default function InlineIngredientEditor({
             measuring_unit_name: selectedPortion!.measuring_unit_name || 'g',
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; rank?: number }) => ({
               id: p.id,
               name: p.name,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
-              is_default: p.is_default,
+              rank: p.rank ?? 999,
             })),
             is_optional: false,
             exchange_group_id: null,
@@ -481,13 +481,13 @@ export default function InlineIngredientEditor({
         });
         const portions = await res.json();
 
-        const bestPortion = [...portions]
-          .filter((p: { weight_g: number | null }) => (p.weight_g ?? 0) > 0)
-          .sort(
-            (a: { priority?: number | null }, b: { priority?: number | null }) =>
-              (b.priority ?? 0) - (a.priority ?? 0),
-          )[0]
-          ?? portions[0];
+        // Use rank=1 (Normalportion) as the best portion for exchange groups
+        const sortedPortions = [...portions].sort(
+          (a: { rank?: number | null }, b: { rank?: number | null }) => (a.rank ?? 999) - (b.rank ?? 999),
+        );
+        const bestPortion = sortedPortions.find((p: { rank?: number | null; weight_g?: number | null }) =>
+          p.rank === 1 && (p.weight_g ?? 0) > 0
+        ) ?? sortedPortions[0] ?? portions[0];
 
         if (!bestPortion) {
           toast.error('Keine Portion für diese Zutat gefunden');
@@ -536,15 +536,13 @@ export default function InlineIngredientEditor({
                 name: string;
                 weight_g: number | null;
                 measuring_unit_name: string | null;
-                is_default: boolean;
-                priority?: number | null;
+                rank?: number | null;
               }) => ({
                 id: p.id,
                 name: p.name,
                 weight_g: p.weight_g,
                 measuring_unit_name: p.measuring_unit_name,
-                is_default: p.is_default,
-                priority: p.priority,
+                rank: p.rank ?? 999,
               }),
             ),
             is_optional: false,

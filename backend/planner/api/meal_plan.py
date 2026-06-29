@@ -23,6 +23,8 @@ from planner.models import (
 from planner.services.notification_service import notify_collaborator_added
 
 from planner.schemas import (
+    CalculateIngredientKcalIn,
+    CalculateIngredientKcalOut,
     CookingScheduleOut,
     CopyItemsFromPlanIn,
     MealCreateIn,
@@ -2324,3 +2326,57 @@ def get_cooking_schedule(request, meal_plan_id: int):
 
     result = build_cooking_schedule(meal_plan)
     return result
+
+
+@meal_plan_router.post("/{meal_plan_id}/calculate-ingredient-kcal/", response=CalculateIngredientKcalOut)
+def calculate_ingredient_kcal(request, meal_plan_id: int, payload: CalculateIngredientKcalIn):
+    """Calculate energy (kcal) for a list of ingredients by quantity in grams.
+
+    Accepts an array of {ingredient_id, quantity_g} and returns {ingredient_id, energy_kcal}.
+    Used by the breakfast wizard to calculate extra ingredient kcal.
+    """
+    from supply.models import Ingredient
+
+    _require_auth(request)
+
+    # Check meal plan exists and user has access
+    try:
+        meal_plan = MealPlan.objects.get(pk=meal_plan_id)
+    except MealPlan.DoesNotExist:
+        raise HttpError(404, "Essensplan nicht gefunden")
+
+    _require_access(meal_plan, request.user)
+
+    # Collect all requested ingredient IDs
+    ingredient_ids = [item.get("ingredient_id") for item in payload.items]
+    if not ingredient_ids:
+        return {"items": []}
+
+    # Fetch all ingredients at once
+    ingredients = {
+        ing.id: ing
+        for ing in Ingredient.objects.filter(id__in=ingredient_ids).only("id", "energy_kcal")
+    }
+
+    # Calculate kcal for each item
+    result_items = []
+    for item in payload.items:
+        ingredient_id = item.get("ingredient_id")
+        quantity_g = item.get("quantity_g", 0)
+
+        if not ingredient_id:
+            continue
+
+        ingredient = ingredients.get(ingredient_id)
+        if not ingredient:
+            result_items.append({"ingredient_id": ingredient_id, "energy_kcal": None})
+            continue
+
+        # energy_kcal is per 100g, so multiply by quantity_g / 100
+        energy_kcal = None
+        if ingredient.energy_kcal is not None:
+            energy_kcal = round((ingredient.energy_kcal * quantity_g) / 100, 2)
+
+        result_items.append({"ingredient_id": ingredient_id, "energy_kcal": energy_kcal})
+
+    return {"items": result_items}

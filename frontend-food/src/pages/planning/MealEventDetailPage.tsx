@@ -46,6 +46,7 @@ import IngredientScanView from './IngredientScanView';
 import VariantSliderDialog from '@/components/meal/VariantSliderDialog';
 import { useRecipeItems } from '@/api/recipes';
 import MealPlanCollaboratorManager from '@/components/planner/MealPlanCollaboratorManager';
+import CookingScheduleTab from './CookingScheduleTab';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -92,7 +93,7 @@ export default function MealPlanDetailPage() {
 
   const navigate = useNavigate();
 
-  const TAB_KEYS = ['plan', 'table', 'nutrition', 'costs', 'shopping', 'suggestions', 'ingredient-scan'] as const;
+  const TAB_KEYS = ['plan', 'table', 'cooking-schedule', 'nutrition', 'costs', 'shopping', 'suggestions', 'ingredient-scan'] as const;
   type TabKey = typeof TAB_KEYS[number];
 
   const tabPath = useParams()['*'] || '';
@@ -295,6 +296,7 @@ export default function MealPlanDetailPage() {
   const TAB_ICONS = {
     plan: Calendar,
     table: Grid3X3,
+    'cooking-schedule': ChefHat,
     nutrition: Scale,
     costs: DollarSign,
     shopping: ShoppingCart,
@@ -327,14 +329,6 @@ export default function MealPlanDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 self-start">
-          <a
-            href={`/meal-plans/${mealPlanId}/cooking-schedule`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
-            title="Chronologischer Kochplan"
-          >
-            <ChefHat className="w-4 h-4 text-primary" />
-            Kochplan
-          </a>
           <button
             onClick={() => setShowShare(!showShare)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
@@ -372,6 +366,7 @@ export default function MealPlanDetailPage() {
         {([
           { key: 'plan' as const, label: 'Tagesplan' },
           { key: 'table' as const, label: 'Tabelle' },
+          { key: 'cooking-schedule' as const, label: 'Kochplan' },
           { key: 'nutrition' as const, label: 'Nährwerte' },
           { key: 'costs' as const, label: 'Kosten' },
           { key: 'shopping' as const, label: 'Einkaufsliste' },
@@ -447,6 +442,7 @@ export default function MealPlanDetailPage() {
           nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
         />
       )}
+      {activeTab === 'cooking-schedule' && <CookingScheduleTab mealPlanId={mealPlanId} />}
        {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
       {activeTab === 'suggestions' && <SuggestionDashboard mealPlanId={mealPlanId} />}
