@@ -5,6 +5,32 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def deduplicate_portions(apps, schema_editor):
+    Portion = apps.get_model("supply", "Portion")
+    from django.db.models import Count, Min
+
+    dupes = (
+        Portion.objects.filter(deleted_at__isnull=True)
+        .annotate(name_lower=django.db.models.functions.text.Lower("name"))
+        .values("name_lower", "ingredient_id")
+        .annotate(cnt=Count("id"))
+        .filter(cnt__gt=1)
+    )
+    for dupe in dupes:
+        ids = Portion.objects.filter(
+            deleted_at__isnull=True,
+            ingredient_id=dupe["ingredient_id"],
+        ).annotate(
+            name_lower=django.db.models.functions.text.Lower("name"),
+        ).filter(
+            name_lower=dupe["name_lower"],
+        ).order_by("id").values_list("id", flat=True)
+
+        keep_id = ids.first()
+        delete_ids = list(ids[1:])
+        Portion.objects.filter(id__in=delete_ids).delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -29,6 +55,10 @@ class Migration(migrations.Migration):
             model_name='portion',
             name='rank',
             field=models.IntegerField(default=1, verbose_name='Rang (1 = Normalportion)'),
+        ),
+        migrations.RunPython(
+            deduplicate_portions,
+            reverse_code=migrations.RunPython.noop,
         ),
         migrations.AddConstraint(
             model_name='portion',
