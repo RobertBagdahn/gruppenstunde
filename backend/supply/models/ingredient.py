@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.postgres.search import SearchVectorField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -331,9 +332,7 @@ class Portion(models.Model):
         validators=[MinValueValidator(0.01)],
         help_text=_("Gewicht einer Portion in Gramm. NULL = unbekannt."),
     )
-    rank = models.IntegerField(default=1)
-    priority = models.IntegerField(default=0, verbose_name=_("Priorität"))
-    is_default = models.BooleanField(default=False, verbose_name=_("Standard-Portion"))
+    rank = models.IntegerField(default=1, verbose_name=_("Rang (1 = Normalportion)"))
     is_system = models.BooleanField(
         default=False,
         verbose_name=_("System-Portion"),
@@ -362,7 +361,15 @@ class Portion(models.Model):
     class Meta:
         verbose_name = _("Portion")
         verbose_name_plural = _("Portionen")
-        ordering = ["-priority", "rank", "name"]
+        ordering = ["rank"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("name"),
+                "ingredient_id",
+                condition=Q(deleted_at__isnull=True),
+                name="unique_portion_name_per_ingredient",
+            ),
+        ]
 
     def compute_weight_g(self, explicit: float | None = None) -> float | None:
         """Compute the weight of this portion in grams."""
@@ -382,10 +389,6 @@ class Portion(models.Model):
 
     def save(self, *args, **kwargs):
         self.weight_g = self.compute_weight_g(self.weight_g)
-        if self.is_default:
-            Portion.objects.filter(ingredient=self.ingredient, is_default=True).exclude(pk=self.pk).update(
-                is_default=False
-            )
         super().save(*args, **kwargs)
 
     def soft_delete(self):

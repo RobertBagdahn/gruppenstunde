@@ -23,7 +23,7 @@ class TestRecipeQuantityEstimationService:
             name="Gramm",
             quantity=1.0,
             weight_g=1.0,
-            is_default=True,
+            rank=1,
         )
         package_portion = make_portion(
             ingredient=ingredient,

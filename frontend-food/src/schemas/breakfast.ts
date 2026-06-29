@@ -141,20 +141,6 @@ export const ToppingSelectionSchema = z.object({
 });
 export type ToppingSelection = z.infer<typeof ToppingSelectionSchema>;
 
-/** Drink mix proportions */
-export const DrinkStateSchema = z.object({
-  coffeePercent: z.number().min(0).max(100),
-  cocoaPercent: z.number().min(0).max(100),
-  teaPercent: z.number().min(0).max(100),
-  /** Total ml per person */
-  mlPerPerson: z.number(),
-  /** ml/person as coffee with milk → merged into topping milk */
-  coffeeMilkMlPerPerson: z.number(),
-  /** ml/person as cocoa with milk */
-  cocoaMilkMlPerPerson: z.number(),
-});
-export type DrinkState = z.infer<typeof DrinkStateSchema>;
-
 /** Complete wizard state */
 export const WizardStateSchema = z.object({
   /** Breakfast units per person */
@@ -162,17 +148,22 @@ export const WizardStateSchema = z.object({
   basis: z.array(BasisSelectionSchema),
   toppings: z.array(ToppingSelectionSchema),
   globalIntensity: z.enum(['knapp', 'normal', 'üppig']),
-  drinks: DrinkStateSchema,
   /** IDs of warm-dish recipes chosen in Extras step */
   warmDishRecipeIds: z.array(z.number()),
   /** Scaling factor for each warm-dish recipe */
   warmDishFactors: z.record(z.string(), z.number()),
+  /** Names of warm-dish recipes for display */
+  warmDishRecipeNames: z.record(z.string(), z.string()),
   /** Extra standalone ingredients (Gemüse etc.) — id → grams_per_person */
   extraIngredients: z.record(z.string(), z.number()),
   /** Names of extra ingredients for display */
   extraIngredientNames: z.record(z.string(), z.string()),
-  /** Names of warm-dish recipes for display */
-  warmDishRecipeNames: z.record(z.string(), z.string()),
+  /** IDs of drink recipes chosen in Getränke step */
+  drinkRecipeIds: z.array(z.number()).default([]),
+  /** Scaling factor for each drink recipe */
+  drinkFactors: z.record(z.string(), z.number()).default({}),
+  /** Names of drink recipes for display */
+  drinkRecipeNames: z.record(z.string(), z.string()).default({}),
 });
 export type WizardState = z.infer<typeof WizardStateSchema>;
 
@@ -193,18 +184,13 @@ export function defaultWizardState(): WizardState {
     basis: [],
     toppings: [],
     globalIntensity: 'normal',
-    drinks: {
-      coffeePercent: 40,
-      cocoaPercent: 30,
-      teaPercent: 30,
-      mlPerPerson: 300,
-      coffeeMilkMlPerPerson: 50,
-      cocoaMilkMlPerPerson: 150,
-    },
     warmDishRecipeIds: [],
     warmDishFactors: {},
     warmDishRecipeNames: {},
     extraIngredients: {},
     extraIngredientNames: {},
+    drinkRecipeIds: [],
+    drinkFactors: {},
+    drinkRecipeNames: {},
   };
 }

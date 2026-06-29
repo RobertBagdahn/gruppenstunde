@@ -131,47 +131,30 @@ export function refMealItemsToWizardState(
     }
   }
 
-  // ── 3. Warm dishes ────────────────────────────────────────────────────────
+  // ── 3. Warm dishes (recipe, not drink tag) ───────────────────────────────
   const warmItems = items.filter(
-    (i) => i.recipe_id && i.recipe_type !== 'drink',
+    (i) => i.recipe_id && !(i.ingredient_tags ?? []).includes('breakfast-drink'),
   );
   for (const item of warmItems) {
     if (!item.recipe_id) continue;
     result.warmDishRecipeIds.push(item.recipe_id);
     result.warmDishFactors[String(item.recipe_id)] = item.factor ?? 1.0;
+    if (item.recipe_title) {
+      result.warmDishRecipeNames[String(item.recipe_id)] = item.recipe_title;
+    }
   }
 
-  // ── 4. Drink items (recipe_type=drink) ────────────────────────────────────
-  const drinkItems = items.filter((i) => i.recipe_type === 'drink');
-  if (drinkItems.length > 0) {
-    const drinkTitleToKey: Record<string, keyof typeof result.drinks> = {
-      Kaffee: 'coffeePercent',
-      Kakao: 'cocoaPercent',
-      Tee: 'teaPercent',
-    };
-    let totalMl = 0;
-    const mlByKey: Record<string, number> = { coffeePercent: 0, cocoaPercent: 0, teaPercent: 0 };
-
-    for (const item of drinkItems) {
-      if (!item.quantity) continue;
-      const title = item.recipe_title || item.display_name || '';
-      const key = drinkTitleToKey[title];
-      if (key) {
-        mlByKey[key] += item.quantity;
-      }
-      totalMl += item.quantity;
+  // ── 4. Drink items (recipe with breakfast-drink tag) ─────────────────────
+  const drinkItems = items.filter(
+    (i) => i.recipe_id && (i.ingredient_tags ?? []).includes('breakfast-drink'),
+  );
+  for (const item of drinkItems) {
+    if (!item.recipe_id) continue;
+    result.drinkRecipeIds.push(item.recipe_id);
+    result.drinkFactors[String(item.recipe_id)] = item.factor ?? 1.0;
+    if (item.recipe_title) {
+      result.drinkRecipeNames[String(item.recipe_id)] = item.recipe_title;
     }
-
-    if (totalMl > 0) {
-      result.drinks.mlPerPerson = Math.round(perPerson(totalMl));
-      result.drinks.coffeePercent = Math.round((mlByKey.coffeePercent / totalMl) * 100);
-      result.drinks.cocoaPercent = Math.round((mlByKey.cocoaPercent / totalMl) * 100);
-      result.drinks.teaPercent = Math.round((mlByKey.teaPercent / totalMl) * 100);
-    }
-
-    // Estimate milk from drinks known to contain milk (Kakao, Kaffee)
-    result.drinks.coffeeMilkMlPerPerson = Math.round(perPerson(mlByKey.coffeePercent * 0.3));
-    result.drinks.cocoaMilkMlPerPerson = Math.round(perPerson(mlByKey.cocoaPercent * 0.8));
   }
 
   // ── 5. Extra ingredients ──────────────────────────────────────────────────

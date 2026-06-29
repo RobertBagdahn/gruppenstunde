@@ -33,13 +33,17 @@ def _make_ingredient(name: str = "Parmesan", energy_kcal: float = 400.0) -> Ingr
 
 def _make_portion(ingredient: Ingredient, weight_g: float = 100.0) -> Portion:
     unit, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
-    return Portion.objects.create(
+    portion, _ = Portion.objects.get_or_create(
         ingredient=ingredient,
-        measuring_unit=unit,
-        name="g",
-        quantity=weight_g,
-        weight_g=weight_g,
+        name=f"{weight_g}g",
+        defaults={
+            "measuring_unit": unit,
+            "quantity": weight_g,
+            "weight_g": weight_g,
+            "rank": 1,
+        },
     )
+    return portion
 
 
 def _make_staff_client() -> tuple:

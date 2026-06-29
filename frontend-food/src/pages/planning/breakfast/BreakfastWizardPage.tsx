@@ -9,7 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 import { useMealPlan } from '@/api/mealPlans';
 import { useRefMeals } from '@/api/refMeals';
-import { useBreakfastCatalog, useDrinkRecipes, useSaveBreakfastWizard, useSaveDirectMeal } from '@/api/breakfast';
+import { useBreakfastCatalog, useSaveBreakfastWizard, useSaveDirectMeal } from '@/api/breakfast';
 import { useWizardState, STEP_LABELS, WIZARD_STEPS } from './useWizardState';
 import StepBasis from './StepBasis';
 import StepBelag from './StepBelag';
@@ -32,7 +32,6 @@ export default function BreakfastWizardPage() {
   const { data: plan } = useMealPlan(planId);
   const { data: refMeals } = useRefMeals(planId);
   const { data: catalog } = useBreakfastCatalog();
-  const { data: drinkRecipes } = useDrinkRecipes();
   const saveWizardRefMeal = useSaveBreakfastWizard(planId);
   const saveWizardDirectMeal = useSaveDirectMeal(planId);
 
@@ -48,7 +47,7 @@ export default function BreakfastWizardPage() {
   // Compute initial wizard state from existing RefMeal (if any)
   const initialWizardState = useMemo(() => {
     if (saveMode !== 'refMeal' || !existingRefMeal?.items || !catalog) return undefined;
-    const mapped = refMealItemsToWizardState(existingRefMeal.items, catalog, normPortions);
+    const mapped = refMealItemsToWizardState(existingRefMeal.items as import('@/schemas/mealPlan').MealItem[], catalog, normPortions);
     // Count unmappable items
     const mappableCount = existingRefMeal.items.filter((i) => i.ingredient_id || i.recipe_id || i.display_name).length;
     const unmappableCount = existingRefMeal.items.length - mappableCount;
@@ -61,16 +60,6 @@ export default function BreakfastWizardPage() {
   const wiz = useWizardState(initialWizardState);
   const { state, step, currentStepIndex, canGoNext, canGoPrev, goNext, goPrev } = wiz;
 
-  // Build drink-id map from drink recipes
-  const drinkNameToId = useMemo(() => {
-    if (!drinkRecipes) return {} as Record<string, number>;
-    const map: Record<string, number> = {};
-    for (const d of drinkRecipes) {
-      map[d.title] = d.id;
-    }
-    return map;
-  }, [drinkRecipes]);
-
   /**
    * Build the list of items to save.
    *
@@ -81,11 +70,8 @@ export default function BreakfastWizardPage() {
    */
   function buildItems(): WizardItemIn[] {
     const gramUnitId = catalog?.gram_measuring_unit_id ?? null;
-    const mlUnitId = catalog?.ml_measuring_unit_id ?? null;
     const scheibeUnitId = catalog?.scheibe_measuring_unit_id ?? gramUnitId;
     const portionUnitId = catalog?.portion_measuring_unit_id ?? gramUnitId;
-    const tasseUnitId = catalog?.tasse_measuring_unit_id ?? mlUnitId;
-    const schussUnitId = catalog?.schuss_measuring_unit_id ?? mlUnitId;
 
     // Accumulate ingredient items in grams for dedup
     const ingGrams: Record<number, number> = {};
@@ -139,59 +125,12 @@ export default function BreakfastWizardPage() {
       ingGrams[id] = (ingGrams[id] ?? 0) + grams;
     }
 
-    // ── Getränke (drinks) ──
-    const drinks = state.drinks;
-    const drinkConfigs: { percent: number; drinkName: string }[] = [
-      { percent: drinks.coffeePercent, drinkName: 'Kaffee' },
-      { percent: drinks.cocoaPercent, drinkName: 'Kakao' },
-      { percent: drinks.teaPercent, drinkName: 'Tee' },
-    ];
-    const tasseMl = 200;
-    for (const cfg of drinkConfigs) {
-      if (cfg.percent <= 0) continue;
-      const mlPerPerson = drinks.mlPerPerson * (cfg.percent / 100);
-      const tassenCount = mlPerPerson / tasseMl;
-      const totalMl = Math.round(mlPerPerson * normPortions);
-      const recipeId = drinkNameToId[cfg.drinkName];
-      if (recipeId) {
-        items.push({
-          recipe_id: recipeId,
-          quantity: parseFloat(tassenCount.toFixed(2)),
-          measuring_unit_id: tasseUnitId,
-          factor: 1.0,
-          display_name: `${cfg.drinkName} (${totalMl}ml)`,
-        });
-      } else {
-        toast.warning(`Kein Rezept für "${cfg.drinkName}" gefunden — wird als Text gespeichert.`);
-        items.push({
-          display_name: cfg.drinkName,
-          quantity: totalMl,
-          measuring_unit_id: mlUnitId,
-        });
-      }
-    }
-
-    // ── Milch ──
-    const totalMilkMl = drinks.coffeeMilkMlPerPerson + drinks.cocoaMilkMlPerPerson;
-    if (totalMilkMl > 0) {
-      const schussCount = totalMilkMl / 30;
-      const totalMilk = Math.round(totalMilkMl * normPortions);
-      const milkRecipeId = drinkNameToId['Milch'];
-      if (milkRecipeId) {
-        items.push({
-          recipe_id: milkRecipeId,
-          quantity: parseFloat(schussCount.toFixed(2)),
-          measuring_unit_id: schussUnitId,
-          factor: 1.0,
-          display_name: `Milch (${totalMilk}ml)`,
-        });
-      } else {
-        items.push({
-          display_name: `Milch (${totalMilk}ml)`,
-          quantity: totalMilk,
-          measuring_unit_id: mlUnitId,
-        });
-      }
+    // ── Getränke (drink recipe-IDs analog zu warmen Gerichten) ──
+    for (const recipeId of state.drinkRecipeIds) {
+      items.push({
+        recipe_id: recipeId,
+        factor: state.drinkFactors[String(recipeId)] ?? 1.0,
+      });
     }
 
     // ── Post-process: merge duplicate ingredients into grams ──

@@ -17,6 +17,7 @@ from .ingredients import (
     PaginatedIngredientOut,
     PortionCreateIn,
     PortionOut,
+    PortionReorderIn,
     PortionSuggestionOut,
     PortionUpdateIn,
 )
@@ -81,6 +82,7 @@ __all__ = [
     "PaginatedMaterialOut",
     "PortionCreateIn",
     "PortionOut",
+    "PortionReorderIn",
     "PortionSuggestionOut",
     "PortionUpdateIn",
     "RetailSectionIn",

@@ -35,18 +35,16 @@ GEMINI_MODEL_WITH_SEARCH = "gemini-3.1-flash-lite-preview"
 class PortionSuggestion(BaseModel):
     """A suggested portion for an ingredient."""
 
-    name: str = Field(description="Name der Portion, z.B. '1 Packung (500g)'")
+    name: str = Field(description="Name der Portion, z.B. '1 Packung (500g)' oder '125g'")
     weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
     measuring_unit_name: str = Field(
         description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Tasse', 'Esslöffel', 'Stück'"
     )
-    priority: int = Field(
-        default=0,
+    rank: int = Field(
+        default=1,
         description=(
-            "Priorität: 100 = typische Rezeptportion pro Person, "
-            "50 = gängige Packungsgröße/Stück, "
-            "10 = Haushaltsmaß (EL, TL, Tasse). "
-            "Höhere Zahl = wichtiger."
+            "Rang (Sortierung): 1 = Standard/Normalportion, "
+            "2,3,... = weitere Portionen in Sortierreihenfolge"
         ),
     )
 
@@ -96,7 +94,9 @@ class IngredientSuggestAllSchema(BaseModel):
     price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg")
 
     # Portionen
-    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen")
+    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen (erste Portion = Normalportion/rank=1)")
+    stueck_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll, z.B. Salz)")
+    packung_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll, z.B. Wasser)")
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Mind. 3 spezifische Aliase")
@@ -143,7 +143,9 @@ class IngredientAiCreateSchema(BaseModel):
     )
 
     # Portionen
-    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen")
+    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen (erste = Normalportion/rank=1)")
+    stueck_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll)")
+    packung_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll)")
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Alternative Bezeichnungen")
@@ -174,22 +176,21 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
         f"Schlage einen präziseren Namen vor, falls aktuell zu generisch. "
         f"Keine Marken, keine Mengenangaben. Z.B. 'Kuhmilch 3,5% Fett' statt 'Milch'.\n\n"
         f"Gib außerdem typische Portionsgrößen mit dem jeweiligen Gewicht in Gramm an. "
-        f"Wichtige Kategorien (absteigend nach Priorität). Gib IMMER Portionen aus ALLEN zutreffenden Kategorien an:\n"
-        f"- Rezeptportion pro Person (priority=100): Wie viel von dieser Zutat kommt typischerweise pro Person in ein Standardrezept? "
-        f"Z.B. '1 Portion Nudeln (80g)', '1 Portion Hähnchenbrust (150g)', '1 Portion Butter (10g)'. "
-        f"Dies ist die wichtigste Portion – immer angeben!\n"
-        f"- Packungsgrößen (priority=50): z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)', '1 Flasche (500ml)', '1 Glas (200g)'\n"
-        f"- Stück (priority=50): z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)', '1 Zwiebel (80g)', '1 Banane (120g)'\n"
-        f"- Haushaltsmaße (priority=10): z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)', '1 Prise (0.5g)'\n"
-        f"- Scheiben/Stücke (priority=10): z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)', '1 Rippe Schokolade (12g)'\n\n"
-        f"Wichtig: Generiere mindestens 3-5 Portionen pro Zutat, die alle relevanten Kategorien abdecken. "
-        f"Für Mehl z.B.: '1 Portion Mehl (80g)' (priority=100), '1 Packung (1kg)' (priority=50), "
-        f"'1 Esslöffel (10g)' (priority=10), '1 Tasse (125g)' (priority=10).\n\n"
+        f"Die ERSTE Portion im Array ist immer die Normalportion (rank=1): die typische Menge pro Person in einem Standardrezept. "
+        f"Z.B. für Nudeln: '80g', für Hähnchenbrust: '150g', für Butter: '10g'.\n"
+        f"Weitere Portionen (rank=2,3,...) sind zusätzliche gängige Größen wie Packungen, Stücke oder Haushaltsmaße.\n\n"
+        f"Gib für jede Portion folgendes an:\n"
+        f"- name: Z.B. '80g Portion', '1 Packung (500g)', '1 Stück (150g)', '1 Esslöffel (15g)'\n"
+        f"- weight_g: Gewicht in Gramm (PFLICHTFELD, auch für Getränke in Gramm konvertieren)\n"
+        f"- measuring_unit_name: Z.B. 'Gramm', 'Milliliter', 'Stück', 'Esslöffel', 'Tasse'\n"
+        f"- rank: Startet mit 1 für Normalportion, dann 2,3,... (NICHT 'priority'!)\n\n"
+        f"Wichtig: Generiere mindestens 3-5 Portionen pro Zutat.\n\n"
+        f"Zusätzlich gib Schätzungen an für:\n"
+        f"- stueck_weight_g: Durchschnittliches Gewicht von 1 Stück dieser Zutat (null wenn nicht sinnvoll, z.B. Salz, Öl)\n"
+        f"- packung_weight_g: Durchschnittliches Gewicht einer Standardpackung (null wenn nicht sinnvoll, z.B. Wasser, Obst)\n\n"
         f"Gib mindestens 3 alternative Bezeichnungen/Aliase für die Zutat an. "
         f"Die Aliase sollen spezifischer sein als der Zutatenname. "
-        f"Format: 'Basisname (Spezifischer Name)'. "
-        f"Z.B. für 'Nudeln': 'Nudeln (Fusilli)', 'Nudeln (Makkaroni)', 'Nudeln (Spaghetti)'. "
-        f"Nicht nur generische Begriffe wie 'Pasta'.\n\n"
+        f"Z.B. für 'Nudeln': 'Nudeln (Fusilli)', 'Nudeln (Makkaroni)', 'Nudeln (Spaghetti)'.\n\n"
         f"Recherchiere zutreffende Ernährungstags für das Lebensmittel "
         f"(z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', "
         f"'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig').\n\n"
@@ -266,15 +267,18 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         f"typische Portionsgrößen, alternative Bezeichnungen, zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', 'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig') und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen. "
         f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren.\n\n"
-        f"Bei den Portionsgrößen beachte folgende Kategorien (absteigend nach Priorität):\n"
-        f"- Rezeptportion pro Person (priority=100): Wie viel kommt typischerweise pro Person in ein Standardrezept? "
-        f"Z.B. '1 Portion Nudeln (80g)', '1 Portion Hähnchenbrust (150g)'. Immer angeben!\n"
-        f"- Packungsgrößen (priority=50): z.B. '1 Packung (500g)', '1 Beutel (250g)', '1 Dose (400g)'\n"
-        f"- Stück (priority=50): z.B. '1 Stück (150g)', '1 Apfel (180g)', '1 Ei (55g)'\n"
-        f"- Haushaltsmaße (priority=10): z.B. '1 Esslöffel (15g)', '1 Tasse (200ml)', '1 Teelöffel (5g)'\n"
-        f"- Scheiben/Stücke (priority=10): z.B. '1 Scheibe (30g)', '1 Scheibe Käse (25g)'\n"
-        f"Für jede Portion gib measuring_unit_name an: 'Gramm' für Gewichtsangaben, 'Milliliter' für Volumen, "
-        f"'Esslöffel'/'Teelöffel'/'Tasse' für Haushaltsmaße, 'Stück' für Stückangaben."
+        f"PORTIONEN: Die ERSTE Portion im Array MUSS die Normalportion (rank=1) sein – die typische Menge pro Person in einem Standardrezept. "
+        f"Z.B. für Nudeln: '80g Portion', für Hähnchenbrust: '150g Filet', für Butter: '10g Portion'. "
+        f"Weitere Portionen (rank=2,3,...) sind zusätzliche gängige Größen wie Packungen, Stücke oder Haushaltsmaße.\n\n"
+        f"Für JEDE Portion gib an:\n"
+        f"- name: Aussagekräftiger Name, z.B. '125g', '1 Packung (500g)', '1 Stück (150g)', '1 Esslöffel (15g)'\n"
+        f"- weight_g: Gewicht in Gramm (PFLICHTFELD, auch Flüssigkeiten als Gramm angeben)\n"
+        f"- measuring_unit_name: 'Gramm', 'Milliliter', 'Stück', 'Esslöffel', 'Tasse', etc.\n"
+        f"- rank: Startet mit 1 (Normalportion), dann 2, 3, ... (NICHT 'priority'!)\n\n"
+        f"Gib mindestens 3-5 Portionen an.\n\n"
+        f"ZUSÄTZLICH:\n"
+        f"- stueck_weight_g: Geschätztes Durchschnittsgewicht von 1 Stück (null wenn nicht sinnvoll, z.B. für Salz, Öl)\n"
+        f"- packung_weight_g: Geschätztes Gewicht einer Standardpackung (null wenn nicht sinnvoll, z.B. für Wasser, loses Obst)"
     )
 
     config = types.GenerateContentConfig(
@@ -363,6 +367,19 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
     from supply.signals import _create_system_portions
 
     _create_system_portions(ingredient)
+    
+    # Set weight_g for Stück and Packung system portions from AI suggestions
+    if data.stueck_weight_g is not None and data.stueck_weight_g > 0:
+        stueck_portion = Portion.objects.filter(ingredient=ingredient, name="Stück").first()
+        if stueck_portion:
+            stueck_portion.weight_g = data.stueck_weight_g
+            stueck_portion.save(update_fields=["weight_g"])
+    
+    if data.packung_weight_g is not None and data.packung_weight_g > 0:
+        packung_portion = Portion.objects.filter(ingredient=ingredient, name="Packung").first()
+        if packung_portion:
+            packung_portion.weight_g = data.packung_weight_g
+            packung_portion.save(update_fields=["weight_g"])
 
     # Create aliases
     for i, alias_name in enumerate(data.aliases):

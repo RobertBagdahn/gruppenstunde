@@ -1084,19 +1084,27 @@ def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: l
 @meal_plan_router.get("/{meal_plan_id}/nutrition-summary/", response=NutritionSummaryOut)
 def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     """Get aggregated nutritional values for the entire meal plan, optionally filtered by date."""
+    from planner.models import MealItemOverride
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
 
-    # Collect all MealItems — prefetch recipe items to avoid N+1
+    # Collect all MealItems — prefetch recipe items, ingredient, and overrides to avoid N+1
     meal_items_qs = MealItem.objects.filter(
         meal__meal_plan=meal_plan,
     )
     if date:
         meal_items_qs = meal_items_qs.filter(meal__start_datetime__date=date)
     meal_items = list(
-        meal_items_qs.select_related("recipe", "meal", "meal__meal_plan").prefetch_related(
+        meal_items_qs.select_related(
+            "recipe", "meal", "meal__meal_plan",
+            "ingredient", "measuring_unit",
+        ).prefetch_related(
             "recipe__recipe_items__portion__ingredient",
+            "ingredient__portions",
+            "overrides",
         )
     )
 
@@ -1115,30 +1123,61 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     per_portion_totals = {field: 0.0 for field in fields}
 
     for mi in meal_items:
-        if not mi.recipe:
-            continue
-
-        recipe_items = list(mi.recipe.recipe_items.all())
-        recipe_servings = mi.recipe.portions or 1
         effective_portions = mi.meal.effective_portions
-        active_ids = set(mi.active_recipe_item_ids or [])
 
-        for ri in recipe_items:
-            if not ri.portion or not ri.portion.ingredient:
+        if mi.recipe:
+            if not mi.recipe.portions:
+                logger.warning(
+                    "Recipe %s '%s' has portions=0 or None, skipping in nutrition_summary",
+                    mi.recipe.id, mi.recipe.title,
+                )
                 continue
+            recipe_items = list(mi.recipe.recipe_items.all())
+            recipe_servings = mi.recipe.portions
+            active_ids = set(mi.active_recipe_item_ids or [])
 
-            # Base items (not exchange, not optional) are always included.
-            # Exchange members and optional items are included only if in active_ids.
-            if ri.exchange_group_id is not None or ri.is_optional:
-                if ri.id not in active_ids:
+            # Build override lookup for O(1) access per recipe item
+            overrides_map = {o.recipe_item_id: o for o in mi.overrides.all()}
+
+            for ri in recipe_items:
+                if not ri.portion or not ri.portion.ingredient:
                     continue
 
-            ing = ri.portion.ingredient
-            weight_g = float(ri.quantity) * float(ri.portion.weight_g) if ri.portion.weight_g else 0
-            scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings)
+                # Base items (not exchange, not optional) are always included.
+                # Exchange members and optional items are included only if in active_ids.
+                if ri.exchange_group_id is not None or ri.is_optional:
+                    if ri.id not in active_ids:
+                        continue
+
+                # Apply MealItemOverride: excluded items are skipped entirely
+                override = overrides_map.get(ri.id)
+                if override and override.excluded:
+                    continue
+
+                # quantity_override replaces the recipe item quantity (same unit: portion count)
+                effective_quantity = float(override.quantity_override) if (override and override.quantity_override is not None) else float(ri.quantity)
+
+                ing = ri.portion.ingredient
+                weight_g = effective_quantity * float(ri.portion.weight_g) if ri.portion.weight_g else 0
+                scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings)
+
+                for field in fields:
+                    ing_val = getattr(ing, field, None)
+                    if ing_val is not None:
+                        contribution = float(ing_val) * scale
+                        totals[field] += contribution
+                        per_portion_totals[field] += contribution / effective_portions
+
+        elif mi.ingredient:
+            # Direct ingredient (e.g. from Breakfast Wizard) — use same weight resolution as meal_item_helpers
+            weight_g = _resolve_ingredient_weight_g(mi)
+            if weight_g <= 0:
+                continue
+
+            scale = (weight_g / 100.0) * mi.factor * effective_portions
 
             for field in fields:
-                ing_val = getattr(ing, field, None)
+                ing_val = getattr(mi.ingredient, field, None)
                 if ing_val is not None:
                     contribution = float(ing_val) * scale
                     totals[field] += contribution
@@ -1170,11 +1209,15 @@ def cost_summary(request, meal_plan_id: int):
     from collections import defaultdict
     from decimal import Decimal
 
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
     from supply.services.price_service import get_portion_price
 
     meals = Meal.objects.filter(meal_plan=meal_plan).prefetch_related(
         "items__recipe__recipe_items__portion__ingredient",
         "items__ingredient",
+        "items__ingredient__portions",
+        "items__measuring_unit",
+        "items__overrides",
     )
 
     norm_portions = meal_plan.norm_portions or 1
@@ -1186,7 +1229,9 @@ def cost_summary(request, meal_plan_id: int):
     # (e.g. day guests) aggregate correctly.
     day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "per_person": Decimal("0"), "meals": []})
 
-    # Aggregate costs per recipe
+    # Aggregate costs per recipe:
+    # total_cost   = sum of scaled cost across all meals this recipe appears in
+    # total_person_portions = sum of effective_portions across all meals (for weighted avg cost_per_person)
     recipe_costs: dict[int, dict] = {}
 
     for meal in meals:
@@ -1198,7 +1243,13 @@ def cost_summary(request, meal_plan_id: int):
 
         for item in meal.items.all():
             if item.recipe:
-                recipe_servings = item.recipe.portions or 1
+                if not item.recipe.portions:
+                    logger.warning(
+                        "Recipe %s '%s' has portions=0 or None, skipping in cost_summary",
+                        item.recipe.id, item.recipe.title,
+                    )
+                    continue
+                recipe_servings = item.recipe.portions
                 recipe_items = list(item.recipe.recipe_items.all())
                 active_ids = set(item.active_recipe_item_ids or [])
                 recipe_item_cost = Decimal("0")
@@ -1209,19 +1260,35 @@ def cost_summary(request, meal_plan_id: int):
                         "recipe_title": item.recipe.title,
                         "recipe_slug": item.recipe.slug,
                         "total_cost": Decimal("0"),
+                        # For weighted cost_per_person: accumulate (cost, portions) per meal
+                        "weighted_cost_sum": Decimal("0"),
+                        "weighted_portions_sum": 0,
                         "priced_ingredients": 0,
                         "total_ingredients": 0,
                     }
+
+                # Build override lookup for this meal item
+                overrides_map = {o.recipe_item_id: o for o in item.overrides.all()}
+
                 for ri in recipe_items:
                     if not ri.portion or not ri.portion.ingredient:
                         continue
                     if ri.exchange_group_id is not None or ri.is_optional:
                         if ri.id not in active_ids:
                             continue
+
+                    # MealItemOverride: excluded items are skipped
+                    override = overrides_map.get(ri.id)
+                    if override and override.excluded:
+                        continue
+
+                    # quantity_override replaces recipe item quantity
+                    effective_quantity = float(override.quantity_override) if (override and override.quantity_override is not None) else float(ri.quantity)
+
                     total_ingredients += 1
                     recipe_costs[rid]["total_ingredients"] += 1
                     ing = ri.portion.ingredient
-                    weight_g = float(ri.quantity) * float(ri.portion.weight_g) if ri.portion.weight_g else 0
+                    weight_g = effective_quantity * float(ri.portion.weight_g) if ri.portion.weight_g else 0
                     scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings)
                     price = get_portion_price(ing, scaled_weight_g)
                     if price is not None:
@@ -1231,32 +1298,17 @@ def cost_summary(request, meal_plan_id: int):
                         recipe_item_cost += price
 
                 recipe_costs[rid]["total_cost"] += recipe_item_cost
+                # Accumulate weighted data for cost_per_person calculation
+                recipe_costs[rid]["weighted_cost_sum"] += recipe_item_cost
+                recipe_costs[rid]["weighted_portions_sum"] += effective_portions
+
             elif item.ingredient:
-                # Standalone ingredient
+                # Standalone ingredient — use canonical helper (portions prefetched above)
                 ing = item.ingredient
                 total_ingredients += 1
 
-                portion_weight = None
-                if item.measuring_unit:
-                    unit_unit = (item.measuring_unit.unit or "").lower()
-                    if unit_unit == "g":
-                        portion_weight = item.measuring_unit.quantity
-
-                if portion_weight is None and item.measuring_unit:
-                    from supply.models import Portion
-
-                    portion = (
-                        Portion.objects.filter(
-                            ingredient=ing,
-                            measuring_unit=item.measuring_unit,
-                        ).first()
-                    )
-                    portion_weight = portion.weight_g if portion else None
-
-                if portion_weight and item.quantity:
-                    weight_g = float(item.quantity) * float(portion_weight) * item.factor * float(effective_portions)
-                else:
-                    weight_g = 0.0
+                base_weight_g = _resolve_ingredient_weight_g(item)
+                weight_g = base_weight_g * item.factor * float(effective_portions)
 
                 price = get_portion_price(ing, weight_g)
                 if price is not None:
@@ -1311,7 +1363,13 @@ def cost_summary(request, meal_plan_id: int):
                 "recipe_title": rc["recipe_title"],
                 "recipe_slug": rc["recipe_slug"],
                 "total_cost": rc["total_cost"],
-                "cost_per_person": rc["total_cost"] / norm_portions if norm_portions > 0 else Decimal("0"),
+                # Weighted cost_per_person: total_cost / total_person_portions across all meals
+                # This correctly handles meals with different effective_portions (override_portions).
+                "cost_per_person": (
+                    rc["weighted_cost_sum"] / rc["weighted_portions_sum"]
+                    if rc["weighted_portions_sum"] > 0
+                    else Decimal("0")
+                ),
                 "priced_ingredients": rc["priced_ingredients"],
                 "total_ingredients": rc["total_ingredients"],
             }

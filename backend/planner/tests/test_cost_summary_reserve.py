@@ -65,8 +65,9 @@ class TestMealPlanCostSummaryAPI:
         plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.0)
         meal = make_meal(meal_plan=plan)
         ing = make_ingredient(name="Butter", price_per_kg=Decimal("5.00"))
-        mu = make_measuring_unit(unit="g", quantity=1.0)
-        make_portion(ingredient=ing, measuring_unit=mu, weight_g=200.0, name="200g")
+        # Use name="g" so _resolve_ingredient_weight_g takes the direct-gram path
+        mu = make_measuring_unit(name="g", unit="g", quantity=1.0)
+        # No portion needed for g-path: weight_g = quantity directly
         # 0.2 kg per person * 10 persons * 5.00 EUR/kg = 10.00 EUR
         MealItem.objects.create(
             meal=meal,
@@ -95,10 +96,9 @@ class TestMealPlanCostSummaryAPI:
         make_recipe_item(recipe=recipe, portion=portion1, quantity=1.0)
         make_meal_item(meal=meal, recipe=recipe, factor=1.0)
 
-        # Standalone ingredient
+        # Standalone ingredient — use name="g" for direct gram path
         ing2 = make_ingredient(name="Eier", price_per_kg=Decimal("4.00"))
-        mu2 = make_measuring_unit(unit="g", quantity=1.0)
-        make_portion(ingredient=ing2, measuring_unit=mu2, weight_g=60.0, name="1 Ei")
+        mu2 = make_measuring_unit(name="g", unit="g", quantity=1.0)
         # 12g per person * 10 persons * 1.15 reserve = 138g, 4.00 €/kg → 0.552 €
         MealItem.objects.create(
             meal=meal,

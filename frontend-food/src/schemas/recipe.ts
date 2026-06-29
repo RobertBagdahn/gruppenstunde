@@ -36,6 +36,8 @@ export const RecipeItemSchema = z.object({
   is_optional: z.boolean().catch(false),
   exchange_group_id: z.number().nullable().optional(),
   exchange_position: z.number().nullable().optional(),
+  portion_display: z.string().default(''),
+  has_missing_weight: z.boolean().default(false),
 });
 export type RecipeItem = z.output<typeof RecipeItemSchema>;
 

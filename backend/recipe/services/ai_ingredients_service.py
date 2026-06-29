@@ -169,9 +169,9 @@ class RecipeAiIngredientsService:
         """Assign best portion for each matched ingredient and calculate quantity.
 
         Logic:
-        1. Use is_default=True portion if available
-        2. Otherwise use lowest priority value
-        3. If no portions exist, create a "Gramm" portion
+        1. Use rank=1 portion (Normalportion/default) if available
+        2. Otherwise use first portion by rank
+        3. If no portions exist, create a "g" (Gramm) fallback portion
         """
         from supply.models import Ingredient, MeasuringUnit, Portion
 
@@ -180,35 +180,35 @@ class RecipeAiIngredientsService:
         for suggestion, ingredient_id, is_new in matched:
             ingredient = Ingredient.objects.get(id=ingredient_id)
 
-            # Find best portion
+            # Find best portion: rank=1 is the Normalportion
             portion = (
-                Portion.objects.filter(ingredient_id=ingredient_id, is_default=True)
+                Portion.objects.filter(ingredient_id=ingredient_id, rank=1, deleted_at__isnull=True)
                 .select_related("measuring_unit")
                 .first()
             )
 
             if not portion:
+                # Fallback: get any portion ordered by rank
                 portion = (
-                    Portion.objects.filter(ingredient_id=ingredient_id)
+                    Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True)
                     .select_related("measuring_unit")
-                    .order_by("priority", "-rank")
+                    .order_by("rank")
                     .first()
                 )
 
             if not portion:
-                # Create "Gramm" fallback portion
+                # Create "g" fallback portion
                 gramm_unit, _ = MeasuringUnit.objects.get_or_create(
                     name="g",
-                    defaults={"description": "Gramm", "quantity": 1.0},
+                    defaults={"description": "Gramm", "quantity": 1.0, "unit": "g"},
                 )
                 portion = Portion.objects.create(
-                    name="Gramm",
+                    name="g",
                     ingredient=ingredient,
                     measuring_unit=gramm_unit,
                     quantity=1.0,
                     weight_g=1.0,
-                    is_default=True,
-                    priority=1,
+                    rank=1,
                 )
 
             # Calculate quantity
@@ -391,10 +391,11 @@ class RecipeQuantityEstimationService:
 
             target_portion = item.portion
             if item.portion and item.portion.ingredient_id:
+                # Use rank=1 portion (Normalportion/default) if available
                 default_portion = (
                     item.portion.ingredient.portions.filter(
                         deleted_at__isnull=True,
-                        is_default=True,
+                        rank=1,
                     )
                     .select_related("measuring_unit")
                     .first()

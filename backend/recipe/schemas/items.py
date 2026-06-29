@@ -28,6 +28,8 @@ class RecipeItemOut(Schema):
     is_optional: bool = False
     exchange_group_id: int | None = None
     exchange_position: int | None = None
+    portion_display: str = ""
+    has_missing_weight: bool = False
 
     @staticmethod
     def resolve_portion_name(obj) -> str | None:
@@ -85,8 +87,7 @@ class RecipeItemOut(Schema):
                 "quantity": p.quantity,
                 "weight_g": p.weight_g,
                 "rank": p.rank,
-                "priority": p.priority,
-                "is_default": p.is_default,
+                "is_default": p.rank == 1,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
             }
@@ -136,6 +137,22 @@ class RecipeItemOut(Schema):
         elif obj.portion and obj.portion.measuring_unit:
             return obj.quantity * obj.portion.quantity * obj.portion.measuring_unit.quantity
         return 0.0
+
+    @staticmethod
+    def resolve_portion_display(obj) -> str:
+        from supply.utils import build_portion_display
+
+        ingredient = obj.portion.ingredient if obj.portion else None
+        display, _ = build_portion_display(obj.quantity, obj.portion, ingredient)
+        return display
+
+    @staticmethod
+    def resolve_has_missing_weight(obj) -> bool:
+        from supply.utils import build_portion_display
+
+        ingredient = obj.portion.ingredient if obj.portion else None
+        _, has_missing = build_portion_display(obj.quantity, obj.portion, ingredient)
+        return has_missing
 
 
 class RecipeItemCreateIn(Schema):

@@ -32,14 +32,24 @@ const MEAL_TYPE_BADGES: Record<string, string> = {
   drink: 'bg-sky-100 text-sky-800 border-sky-200',
 };
 
+function formatIngredientWeight(weightG: number | null | undefined): string {
+  if (weightG == null || weightG <= 0) return '';
+  if (weightG < 1) return `${Math.round(weightG * 1000)}mg`;
+  if (weightG >= 1000) return `${(weightG / 1000).toFixed(1).replace('.', ',')} kg`;
+  return `${Math.round(weightG)}g`;
+}
+
 function IngredientBadge({ ing }: { ing: CookingScheduleIngredient }) {
   const parts = [ing.quantity, ing.unit, ing.name].filter(Boolean);
+  const weightLabel = formatIngredientWeight(ing.weight_g);
   const detail = ing.note ? ` (${ing.note})` : '';
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border
       ${ing.is_optional ? 'bg-muted text-muted-foreground border-border italic' : 'bg-primary/5 text-foreground border-primary/10'}`}
     >
-      {parts.join(' ')}{detail}
+      {parts.join(' ')}
+      {weightLabel && <span className="text-muted-foreground/60">({weightLabel})</span>}
+      {detail}
       {ing.is_optional && <span className="text-[10px]">(optional)</span>}
     </span>
   );

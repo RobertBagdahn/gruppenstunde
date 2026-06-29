@@ -69,7 +69,7 @@ Das System SHALL einen globalen Intensitäts-Schalter (Knapp/Normal/Üppig) anbi
 - **THEN** zeigt das System 1,2 Gouda-, 0,9 Salami- und 0,9 Nutella-Portionen mit Gramm und kcal
 
 ### Requirement: Schieberegler mit Auto-Rebalance und Lock
-Das System SHALL bei Änderung eines Schiebereglers die Differenz proportional auf die ungesperrten Sorten verteilen, sodass die Summe 100% bleibt. Gesperrte Sorten (Lock) MÜSSEN unverändert bleiben.
+Das System SHALL bei Änderung eines Schiebereglers die Differenz proportional auf die ungesperrten Sorten verteilen, sodass die Summe **exakt** 100% (als ganze Zahl) bleibt. Gesperrte Sorten (Lock) MÜSSEN unverändert bleiben. Die Verteilung MUSS den **Largest-Remainder-Algorithmus** verwenden, um Rundungsfehler zu vermeiden — `Math.round` per Item führt zu Summen ≠ 100 und ist verboten.
 
 #### Scenario: Proportionales Rebalance
 - **WHEN** drei Sorten bei 40/30/30 stehen und der Nutzer die erste auf 60% schiebt
@@ -78,6 +78,10 @@ Das System SHALL bei Änderung eines Schiebereglers die Differenz proportional a
 #### Scenario: Gesperrte Sorte bleibt fix
 - **WHEN** eine Sorte gesperrt ist und der Nutzer eine andere ändert
 - **THEN** bleibt die gesperrte Sorte unverändert und nur die übrigen ungesperrten rebalancen
+
+#### Scenario: Rundungsartefakte bei drei gleichwertigen Sorten
+- **WHEN** drei ungesperrte Sorten je 33,33% des verbleibenden Rests erhalten würden
+- **THEN** MUSS die Summe exakt 100 betragen (z.B. 34/33/33, nicht 33/33/33 = 99)
 
 ### Requirement: Doppelcheck Belag-Deckung
 Das System SHALL die Summe der Belag-Portionen mit der Basis-BE-Summe vergleichen und bei Abweichung warnen, ohne den Fortschritt zu blockieren.
@@ -152,6 +156,8 @@ Das System SHALL beim Normalisieren auf das Soll Basis-BE, Belag-Portionen und G
 
 Das System SHALL vor dem Speichern ein Cockpit mit allen Doppelchecks und einer vollständigen Transparenz-Tabelle anzeigen. Die Tabelle MUSS alle vier Komponentengruppen enthalten: Basis, Belag, warme Gerichte/Extras und Getränke — jeweils mit Position, **Portionsmenge pro Person** (nicht Gramm), kcal pro Person und prozentualem Anteil am Gesamt (ohne Getränke).
 
+Wenn warme Gerichte oder Gemüse/Extras vorhanden sind (`hasExtras=true`), MUSS das Cockpit einen sichtbaren Hinweis anzeigen, dass diese Komponenten **nicht** in der Kalorienanzeige (Soll-Ist-Balken) eingerechnet sind, da `extrasKcalPerPerson` derzeit 0 zurückgibt.
+
 Brot-Items SHALL als `×{bePerPerson × sharePercent/100} Scheibe` angezeigt werden.
 Belag-Items SHALL als `×{bePerPerson × sharePercent/totalShare} Portion` angezeigt werden.
 
@@ -168,6 +174,11 @@ Zutaten-Items (Basis, Belag, Extras) MÜSSEN mit `measuring_unit_id` der Einheit
 #### Scenario: Cockpit zeigt Portionen statt Gramm
 - **WHEN** Brot mit bePerPerson=4, sharePercent=66% konfiguriert ist
 - **THEN** zeigt die Tabelle "×2,64 Scheibe" statt "175g"
+
+#### Scenario: Extras-Hinweis bei vorhandenen Extras
+- **WHEN** mindestens ein warmes Gericht oder eine Gemüse/Extra-Zutat hinzugefügt wurde (`hasExtras=true`)
+- **THEN** zeigt das Cockpit den Hinweis "Warme Gerichte und Gemüse sind nicht in der Kalorienanzeige eingerechnet."
+- **AND** der Hinweis erscheint in der Extras-Sektion, nicht im Soll-Ist-Balken
 
 #### Scenario: Summenzeile nach Brot-Gruppe
 - **WHEN** zwei Brote mit 2,5 und 1,5 Scheiben

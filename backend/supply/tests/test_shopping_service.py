@@ -23,12 +23,10 @@ class TestShoppingService:
         ing = make_ingredient(name="Direct Mehl")
 
         # 3. Create Portion with weight for the ingredient
-        Portion.objects.create(
+        Portion.objects.get_or_create(
             name="100g",
-            measuring_unit=mu,
             ingredient=ing,
-            quantity=1.0,
-            weight_g=100.0,
+            defaults={"measuring_unit": mu, "quantity": 1.0, "weight_g": 100.0, "rank": 1},
         )
 
         # 4. Create MealItem with direct ingredient
@@ -63,12 +61,10 @@ class TestShoppingService:
         mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
         ing = make_ingredient(name="Override Zucker")
 
-        Portion.objects.create(
+        Portion.objects.get_or_create(
             name="100g",
-            measuring_unit=mu,
             ingredient=ing,
-            quantity=1.0,
-            weight_g=100.0,
+            defaults={"measuring_unit": mu, "quantity": 1.0, "weight_g": 100.0, "rank": 1},
         )
 
         from model_bakery import baker
@@ -103,7 +99,14 @@ class TestShoppingService:
         mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
         ing = make_ingredient(name="PAL-Frei Brot")
         # 300 g per portion modelled as quantity=300 on a weight_g=1.0 portion
-        Portion.objects.create(name="g", measuring_unit=mu, ingredient=ing, quantity=1.0, weight_g=1.0)
+        # Signal already creates "g" portion; update its weight_g to what we need
+        p, _ = Portion.objects.get_or_create(
+            name="g", ingredient=ing,
+            defaults={"measuring_unit": mu, "quantity": 1.0, "weight_g": 1.0, "rank": 9999},
+        )
+        if p.weight_g != 1.0:
+            p.weight_g = 1.0
+            p.save()
 
         from model_bakery import baker
 

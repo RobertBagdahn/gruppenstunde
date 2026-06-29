@@ -18,14 +18,19 @@ def calculate_portion_weight_g(sender, instance: Portion, **kwargs):
 
 
 def _create_system_portions(ingredient: Ingredient):
-    """Erstelle die drei System-Portionen (g, Packung, Stück) für eine Zutat."""
+    """Erstelle die drei System-Portionen (g, Packung, Stück) für eine Zutat.
+    
+    - g: rank=9999 (immer am Ende, technischer Fallback)
+    - Stück: rank=2 (sortierbar)
+    - Packung: rank=3 (sortierbar)
+    """
     from .models.reference import MeasuringUnit
 
     weight_g = 1.0
     if ingredient.physical_viscosity == PhysicalViscosityChoices.BEVERAGE:
         weight_g = ingredient.physical_density or 1.0
 
-    # Base unit (Gramm)
+    # Base unit (Gramm) - rank=9999, nicht sortierbar
     mu = MeasuringUnit.objects.filter(unit=MeasuringUnitType.MASS, quantity=1).first()
     if not mu:
         mu = MeasuringUnit.objects.create(name="g", quantity=1, unit=MeasuringUnitType.MASS)
@@ -36,12 +41,12 @@ def _create_system_portions(ingredient: Ingredient):
             "measuring_unit": mu,
             "quantity": 1,
             "weight_g": weight_g,
-            "is_default": True,
+            "rank": 9999,
             "is_system": True,
         },
     )
 
-    # Packung
+    # Packung - rank=3, sortierbar
     mu_packung = MeasuringUnit.objects.filter(name__iexact="Packung").first()
     if not mu_packung:
         mu_packung = MeasuringUnit.objects.create(name="Packung", quantity=1, unit=MeasuringUnitType.MASS)
@@ -51,11 +56,12 @@ def _create_system_portions(ingredient: Ingredient):
         defaults={
             "measuring_unit": mu_packung,
             "quantity": 1,
+            "rank": 3,
             "is_system": True,
         },
     )
 
-    # Stück
+    # Stück - rank=2, sortierbar
     mu_stueck = MeasuringUnit.objects.filter(name__iexact="Stück").first()
     if not mu_stueck:
         mu_stueck = MeasuringUnit.objects.create(name="Stück", quantity=1, unit=MeasuringUnitType.MASS)
@@ -65,6 +71,7 @@ def _create_system_portions(ingredient: Ingredient):
         defaults={
             "measuring_unit": mu_stueck,
             "quantity": 1,
+            "rank": 2,
             "is_system": True,
         },
     )

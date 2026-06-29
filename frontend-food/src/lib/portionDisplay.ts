@@ -91,7 +91,7 @@ function formatNaturalPortionDisplay(count: number, portionName: string): string
  *
  * @param weightG - Total weight in grams
  * @param portions - Available portions for the ingredient
- * @returns Array of natural portions, sorted by priority (default first)
+ * @returns Array of natural portions, sorted by rank (default rank=1 first)
  */
 export function calculateNaturalPortions(
   weightG: number,
@@ -103,14 +103,9 @@ export function calculateNaturalPortions(
 
   const results: NaturalPortion[] = [];
 
-  // Sort: is_default first, then by priority desc, then known weight before unknown
-  const sorted = [...portions].sort((a, b) => {
-    if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
-    const aHasWeight = a.weight_g != null && a.weight_g >= 0.01;
-    const bHasWeight = b.weight_g != null && b.weight_g >= 0.01;
-    if (aHasWeight !== bHasWeight) return aHasWeight ? -1 : 1;
-    return b.priority - a.priority;
-  });
+  // Sort by rank (ascending) — rank=1 is the default portion
+  // Portions from backend should already be sorted by rank, but ensure it here
+  const sorted = [...portions].sort((a, b) => a.rank - b.rank);
 
   for (const portion of sorted) {
     const portionName = portion.name || 'Stück';
@@ -126,7 +121,7 @@ export function calculateNaturalPortions(
         name: portionName,
         count: 0,
         display: portionName,
-        isDefault: portion.is_default,
+        isDefault: portion.rank === 1, // rank=1 is the default portion
       });
       continue;
     }
@@ -140,7 +135,7 @@ export function calculateNaturalPortions(
       name: portionName,
       count: rounded,
       display: formatNaturalPortionDisplay(rounded, portionName),
-      isDefault: portion.is_default,
+      isDefault: portion.rank === 1, // rank=1 is the default portion
     });
   }
 

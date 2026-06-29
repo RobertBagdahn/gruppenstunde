@@ -1,48 +1,27 @@
 ## ADDED Requirements
 
-### Requirement: Quantity rounding by magnitude
-The system SHALL round displayed quantities upward based on the magnitude of the value:
-- Values < 2: round up to nearest 0.1
-- Values 2–10: round up to nearest 1
-- Values 10–1000: round up to nearest 5
-- Values >= 1000: round up to nearest 100
+### Requirement: Gewichtsformatierung mit automatischer Einheitenwahl
+Die zentrale Gewichtsformatierungsfunktion MUST die Stufen mg/g/kg unterstützen und deutsche Zahlenformatierung (Komma als Dezimalzeichen) verwenden. Die Funktion existiert sowohl im Backend (`backend/supply/utils.py`) als auch im Frontend (`frontend-food/src/utils/formatWeight.ts`) und MUST konsistentes Verhalten zeigen.
 
-This applies only to units g, kg, ml, l. All other units (Stück, EL, TL, Prise, etc.) SHALL be displayed without rounding.
+#### Scenario: Milligramm-Stufe (neu)
+- **WHEN** der Wert in Gramm ist `< 1`
+- **THEN** MUST in Milligramm ausgegeben werden: `0.3g → "300mg"`, `0.05g → "50mg"`
 
-#### Scenario: Value below 2
-- **WHEN** a quantity of 0.73 g is displayed
-- **THEN** the system shows "0,8 g"
+#### Scenario: Gramm-Stufe — kleine Mengen (1–9g)
+- **WHEN** `1 <= grams < 10`
+- **THEN** MUST auf die nächste ganze Zahl gerundet und mit „g" ausgegeben werden: `3.7g → "4g"`
 
-#### Scenario: Value between 2 and 10
-- **WHEN** a quantity of 3.2 g is displayed
-- **THEN** the system shows "4 g"
+#### Scenario: Gramm-Stufe — mittlere Mengen (10–99g)
+- **WHEN** `10 <= grams < 100`
+- **THEN** MUST auf 5g gerundet ausgegeben werden: `47g → "45g"`
 
-#### Scenario: Value between 10 and 1000
-- **WHEN** a quantity of 142 g is displayed
-- **THEN** the system shows "145 g"
+#### Scenario: Gramm-Stufe — große Mengen (100–999g)
+- **WHEN** `100 <= grams < 1000`
+- **THEN** MUST auf 10g gerundet ausgegeben werden: `145g → "150g"`
 
-#### Scenario: Value at or above 1000
-- **WHEN** a quantity of 1050 g is displayed
-- **THEN** the system shows "1,1 kg" (rounded up to nearest 100g, displayed as kg)
-
-#### Scenario: Non-weight/volume unit unchanged
-- **WHEN** a quantity of 2.5 Stück is displayed
-- **THEN** the system shows "2,5 Stück" without rounding
-
-### Requirement: Automatic unit conversion at threshold
-The system SHALL convert g to kg when the value is >= 1000 g, and ml to l when the value is >= 1000 ml. The rounding (to nearest 100) applies after conversion to the base unit.
-
-#### Scenario: Grams to kilograms
-- **WHEN** a quantity of 1875 g is displayed
-- **THEN** the system shows "1,9 kg"
-
-#### Scenario: Milliliters to liters
-- **WHEN** a quantity of 2300 ml is displayed
-- **THEN** the system shows "2,3 l"
-
-#### Scenario: Below threshold stays in base unit
-- **WHEN** a quantity of 980 g is displayed
-- **THEN** the system shows "980 g"
+#### Scenario: Kilogramm-Stufe
+- **WHEN** `grams >= 1000`
+- **THEN** MUST in kg mit genau einer Dezimalstelle ausgegeben werden, Dezimalzeichen ist Komma: `1500g → "1,5 kg"`, `1000g → "1,0 kg"`
 
 ### Requirement: Internal calculations remain exact
 The system SHALL store and compute with exact (unrounded) values. Rounding is applied only at the display layer and MUST NOT affect stored data, API responses, or intermediate calculations.
@@ -51,9 +30,13 @@ The system SHALL store and compute with exact (unrounded) values. Rounding is ap
 - **WHEN** a recipe with 15g pepper for 8 servings is scaled to 1 serving
 - **THEN** the internal value is 1.875 and the display shows "1,9 g"
 
-### Requirement: German number formatting
-The system SHALL use German locale formatting for displayed quantities: comma as decimal separator, no thousands separator.
+### Requirement: Deutsche Zahlenformatierung für Portionsmengen
+Portionsmengen (der `quantity`-Wert vor dem Einheitennamen) MUST mit deutschem Dezimalzeichen (Komma) angezeigt werden, wenn eine Dezimalstelle nötig ist.
 
-#### Scenario: Decimal display
-- **WHEN** a rounded value of 1.9 kg is displayed
-- **THEN** the system shows "1,9 kg" (comma as decimal separator)
+#### Scenario: Dezimalzahl mit Komma
+- **WHEN** `quantity = 3.4`
+- **THEN** MUST die Anzeige `"3,4"` sein (nicht `"3.4"`)
+
+#### Scenario: Ganzzahl ohne trailing zero
+- **WHEN** `quantity = 2.0`
+- **THEN** MUST die Anzeige `"2"` sein (nicht `"2,0"`)

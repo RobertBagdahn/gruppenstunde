@@ -78,8 +78,8 @@ class TestBreakfastCatalog:
         g_unit = _g_unit()
         ing = make_ingredient(name="Nutella-Test", is_standalone_food=True, price_per_kg=8.0)
         ing.tags.add(tag)
-        make_portion(ingredient=ing, name="Belag normal", measuring_unit=g_unit, weight_g=20.0, is_default=True)
-        make_portion(ingredient=ing, name="Packung (450g)", measuring_unit=g_unit, weight_g=450.0)
+        make_portion(ingredient=ing, name="Belag normal", measuring_unit=g_unit, weight_g=20.0, rank=1)
+        make_portion(ingredient=ing, name="Packung (450g)", measuring_unit=g_unit, weight_g=450.0, rank=3)
 
         c = _client_with_user()
         r = c.get("/api/supply/breakfast-catalog/")

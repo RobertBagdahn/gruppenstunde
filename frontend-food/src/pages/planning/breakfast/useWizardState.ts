@@ -152,8 +152,37 @@ export function useWizardState(initialState?: Partial<WizardState>) {
 
   // ── Drinks actions ─────────────────────────────────────────────────────────
 
-  const setDrinks = useCallback((patch: Partial<WizardState['drinks']>) => {
-    setState((s) => ({ ...s, drinks: { ...s.drinks, ...patch } }));
+  const addDrinkRecipe = useCallback((recipeId: number, name?: string) => {
+    setState((s) => ({
+      ...s,
+      drinkRecipeIds: s.drinkRecipeIds.includes(recipeId)
+        ? s.drinkRecipeIds
+        : [...s.drinkRecipeIds, recipeId],
+      drinkFactors: { ...s.drinkFactors, [String(recipeId)]: s.drinkFactors[String(recipeId)] ?? 1.0 },
+      drinkRecipeNames: name
+        ? { ...s.drinkRecipeNames, [String(recipeId)]: name }
+        : s.drinkRecipeNames,
+    }));
+  }, []);
+
+  const removeDrinkRecipe = useCallback((recipeId: number) => {
+    setState((s) => {
+      const { [String(recipeId)]: _f, ...restFactors } = s.drinkFactors;
+      const { [String(recipeId)]: _n, ...restNames } = s.drinkRecipeNames;
+      return {
+        ...s,
+        drinkRecipeIds: s.drinkRecipeIds.filter((id) => id !== recipeId),
+        drinkFactors: restFactors,
+        drinkRecipeNames: restNames,
+      };
+    });
+  }, []);
+
+  const setDrinkFactor = useCallback((recipeId: number, factor: number) => {
+    setState((s) => ({
+      ...s,
+      drinkFactors: { ...s.drinkFactors, [String(recipeId)]: factor },
+    }));
   }, []);
 
   // ── Full state replace (for normalise / state-restore) ─────────────────────
@@ -185,7 +214,9 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     setWarmDishFactor,
     setExtraIngredient,
     removeExtraIngredient,
-    setDrinks,
+    addDrinkRecipe,
+    removeDrinkRecipe,
+    setDrinkFactor,
     replaceState,
   };
 }

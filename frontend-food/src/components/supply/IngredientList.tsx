@@ -274,6 +274,12 @@ export default function IngredientList({
                       <span>Dominiert das Rezept</span>
                     </span>
                   )}
+                  {item.has_missing_weight && (
+                    <span className="inline-flex items-center gap-1 text-orange-500 text-xs font-medium shrink-0">
+                      <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                      <span>Gewicht unbekannt</span>
+                    </span>
+                  )}
                   {item.note && (
                     <span className="text-sm text-muted-foreground italic">
                       ({item.note})

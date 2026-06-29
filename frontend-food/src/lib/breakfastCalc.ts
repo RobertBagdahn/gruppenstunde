@@ -9,7 +9,7 @@
  * Energy norm: NORM_PERSON_DAILY_KCAL (2335 kcal, kept in sync with backend constant)
  */
 
-import type { BasisSelection, ToppingSelection, DrinkState, WizardState, ToppingIntensity } from '@/schemas/breakfast';
+import type { BasisSelection, ToppingSelection, WizardState, ToppingIntensity } from '@/schemas/breakfast';
 
 export const NORM_PERSON_DAILY_KCAL = 2335;
 
@@ -124,47 +124,37 @@ export function isBelagCovered(toppings: ToppingSelection[]): boolean {
 }
 
 // ============================================================================
-// Milch-Merge
+// Getränke-kcal (aus Rezept-Cache, nicht aus Konstanten)
 // ============================================================================
 
-/**
- * Total milk ml per person across all hot drinks.
- * Coffee: coffeeMilkMlPerPerson × coffeeShare
- * Cocoa:  cocoaMilkMlPerPerson × cocoaShare
- */
-export function totalMilkMlPerPerson(drinks: DrinkState): number {
-  const { coffeePercent, cocoaPercent, coffeeMilkMlPerPerson, cocoaMilkMlPerPerson } = drinks;
-  const coffeeShare = coffeePercent / 100;
-  const cocoaShare = cocoaPercent / 100;
-  return coffeeMilkMlPerPerson * coffeeShare + cocoaMilkMlPerPerson * cocoaShare;
+/** Minimal recipe data needed for kcal calculation. */
+export interface RecipeEnergyData {
+  cached_energy_kcal: number | null;
+  portions: number | null;
 }
 
-// ============================================================================
-// Getränke-kcal (approximation — drinks are display-name-only, no Ingredient FK)
-// ============================================================================
-
-const KCAL_PER_100ML_COFFEE = 2;
-const KCAL_PER_100ML_COCOA = 80;
-const KCAL_PER_100ML_TEA = 0;
-const KCAL_PER_100ML_MILK = 65;
-
 /**
- * Estimated kcal per person from drinks (Kaffee, Kakao, Tee, Milch).
- * Uses rough constants since drinks have no Ingredient FK.
+ * Total kcal per person from selected drink recipes.
+ *
+ * Each drink recipe contributes:
+ *   kcal_per_serving = cached_energy_kcal  (already per-recipe-portion)
+ *   contribution = kcal_per_serving × factor
+ *
+ * `recipeDataMap` is keyed by recipe id and must include the recipes
+ * referenced in `state.drinkRecipeIds`.
  */
-export function drinksKcalPerPerson(drinks: DrinkState): number {
-  const totalMl = drinks.mlPerPerson;
-  const coffeeMl = totalMl * (drinks.coffeePercent / 100);
-  const cocoaMl = totalMl * (drinks.cocoaPercent / 100);
-  const teaMl = totalMl * (drinks.teaPercent / 100);
-  const milkMl = totalMilkMlPerPerson(drinks);
-
-  return (
-    coffeeMl * (KCAL_PER_100ML_COFFEE / 100) +
-    cocoaMl * (KCAL_PER_100ML_COCOA / 100) +
-    teaMl * (KCAL_PER_100ML_TEA / 100) +
-    milkMl * (KCAL_PER_100ML_MILK / 100)
-  );
+export function drinkKcalFromRecipes(
+  state: WizardState,
+  recipeDataMap: Map<number, RecipeEnergyData>,
+): number {
+  let kcal = 0;
+  for (const id of state.drinkRecipeIds) {
+    const data = recipeDataMap.get(id);
+    if (!data?.cached_energy_kcal) continue;
+    const factor = state.drinkFactors[String(id)] ?? 1.0;
+    kcal += data.cached_energy_kcal * factor;
+  }
+  return kcal;
 }
 
 /**
@@ -218,7 +208,10 @@ export function normalizeBePerPerson(
 
 /**
  * Update one slider value and rebalance all unlocked others proportionally
- * so the total stays at 100%.
+ * so the total stays at exactly 100%.
+ *
+ * Uses the Largest Remainder Method to distribute integer shares without
+ * rounding drift (avoids sum ≠ 100 that Math.round per-item would cause).
  *
  * @param items   Array of items with sharePercent and locked
  * @param changedIndex  Which item was changed
@@ -239,15 +232,36 @@ export function rebalanceShares<T extends { sharePercent: number; locked: boolea
 
   const remaining = Math.max(0, 100 - lockedTotal);
 
-  const unlocked = updated.filter((item, i) => !item.locked && i !== changedIndex);
-  if (unlocked.length === 0) return updated;
+  const unlockedIndices = updated
+    .map((_item, i) => i)
+    .filter((i) => !updated[i].locked && i !== changedIndex);
 
-  const unlockedTotal = unlocked.reduce((s, item) => s + item.sharePercent, 0);
+  if (unlockedIndices.length === 0) return updated;
+
+  const unlockedTotal = unlockedIndices.reduce((s, i) => s + updated[i].sharePercent, 0);
+
+  // Largest Remainder Method: compute exact proportions, floor them, then
+  // distribute the leftover integers to items with the largest fractional parts.
+  const proportions = unlockedIndices.map((i) => {
+    const proportion = unlockedTotal > 0 ? updated[i].sharePercent / unlockedTotal : 1 / unlockedIndices.length;
+    return { index: i, exact: proportion * remaining };
+  });
+
+  const floored = proportions.map((p) => ({ ...p, floor: Math.floor(p.exact), frac: p.exact - Math.floor(p.exact) }));
+  const flooredSum = floored.reduce((s, p) => s + p.floor, 0);
+  let leftover = remaining - flooredSum;
+
+  // Sort by descending fractional part to assign the leftover integers
+  const sorted = [...floored].sort((a, b) => b.frac - a.frac);
+  const bonusSet = new Set(sorted.slice(0, leftover).map((p) => p.index));
+
+  const shareMap = new Map<number, number>(
+    floored.map((p) => [p.index, p.floor + (bonusSet.has(p.index) ? 1 : 0)]),
+  );
 
   return updated.map((item, i) => {
     if (item.locked || i === changedIndex) return item;
-    const proportion = unlockedTotal > 0 ? item.sharePercent / unlockedTotal : 1 / unlocked.length;
-    return { ...item, sharePercent: Math.round(proportion * remaining) };
+    return { ...item, sharePercent: shareMap.get(i) ?? item.sharePercent };
   });
 }
 
@@ -255,12 +269,21 @@ export function rebalanceShares<T extends { sharePercent: number; locked: boolea
 // Summary helpers
 // ============================================================================
 
-/** Total kcal per person from basis + toppings + extras (NO drinks). */
-export function totalKcalPerPerson(state: WizardState): number {
+/**
+ * Total kcal per person from basis + toppings + drinks + extras.
+ *
+ * @param recipeDataMap  Optional map of recipe id → energy data for drink/extra recipes.
+ *                       When omitted, drink kcal contribution is 0.
+ */
+export function totalKcalPerPerson(
+  state: WizardState,
+  recipeDataMap?: Map<number, RecipeEnergyData>,
+): number {
   const basis = basisKcalPerPerson(state.bePerPerson, state.basis);
   const topping = toppingKcalPerPerson(state.bePerPerson, state.toppings, state.globalIntensity);
+  const drinks = recipeDataMap ? drinkKcalFromRecipes(state, recipeDataMap) : 0;
   const extras = extrasKcalPerPerson(state);
-  return basis + topping + extras;
+  return basis + topping + drinks + extras;
 }
 
 /** Energy target per person for a given day_part_factor. */

@@ -1,18 +1,31 @@
 /**
- * Format a weight in grams for display.
+ * Format a weight in grams for German-locale display.
  *
- * Rules:
- * - >= 1000g -> kg with 1 decimal (e.g. "1.5 kg")
- * - >= 1g and < 1000g -> integer grams (e.g. "350 g")
- * - < 1g -> 1 decimal place (e.g. "0.5 g")
+ * Tiers (mirrors backend supply.utils.format_weight):
+ * - < 1g    → mg  (e.g. "300mg")
+ * - 1–9g    → 1g steps (e.g. "4g")
+ * - 10–99g  → 5g steps (e.g. "45g")
+ * - 100–999g → 10g steps (e.g. "150g")
+ * - >= 1000g → kg with 1 decimal, German comma (e.g. "1,5 kg")
  */
 export function formatWeight(grams: number): string {
+  if (grams <= 0) return '0g';
+  if (grams < 1) {
+    const mg = Math.round(grams * 1000);
+    return `${mg}mg`;
+  }
   if (grams >= 1000) {
     const kg = grams / 1000;
-    return `${kg.toFixed(1)} kg`;
+    // German locale: always 1 decimal place
+    return `${kg.toFixed(1).replace('.', ',')} kg`;
   }
-  if (grams >= 1) {
-    return `${Math.round(grams)} g`;
+  if (grams >= 100) {
+    const rounded = Math.round(grams / 10) * 10;
+    return `${rounded}g`;
   }
-  return `${grams.toFixed(1)} g`;
+  if (grams >= 10) {
+    const rounded = Math.round(grams / 5) * 5;
+    return `${rounded}g`;
+  }
+  return `${Math.round(grams)}g`;
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastLeftovers } from '@/api/breakfast';
@@ -8,9 +8,9 @@ import {
   normalizeBePerPerson,
   energyTargetKcal,
   totalKcalPerPerson,
-  drinksKcalPerPerson,
+  drinkKcalFromRecipes,
   extrasKcalPerPerson,
-  totalMilkMlPerPerson,
+  type RecipeEnergyData,
 } from '@/lib/breakfastCalc';
 
 interface StepCockpitProps {
@@ -25,18 +25,22 @@ export default function StepCockpit({ wiz, catalog, normPortions, days, dayPartF
   const { state, setBePerPerson } = wiz;
   const leftovers = useBreakfastLeftovers();
 
-  const drinksKcal = drinksKcalPerPerson(state.drinks);
+  // Build recipe energy map from catalog drink recipes
+  const drinkRecipeDataMap = useMemo(() => {
+    const map = new Map<number, RecipeEnergyData>();
+    for (const r of catalog?.drink_recipes ?? []) {
+      map.set(r.id, { cached_energy_kcal: r.cached_energy_kcal, portions: 1 });
+    }
+    return map;
+  }, [catalog?.drink_recipes]);
+
+  const drinksKcal = drinkKcalFromRecipes(state, drinkRecipeDataMap);
   const extrasKcal = extrasKcalPerPerson(state);
-  const totalKcal = totalKcalPerPerson(state);
+  const totalKcal = totalKcalPerPerson(state, drinkRecipeDataMap);
   const target = energyTargetKcal(dayPartFactor);
   const coverage = target > 0 ? totalKcal / target : 0;
 
-  const totalMl = state.drinks.mlPerPerson;
-  const coffeeMl = Math.round(totalMl * (state.drinks.coffeePercent / 100));
-  const cocoaMl = Math.round(totalMl * (state.drinks.cocoaPercent / 100));
-  const teaMl = Math.round(totalMl * (state.drinks.teaPercent / 100));
-  const milkMl = Math.round(totalMilkMlPerPerson(state.drinks));
-  const hasDrinks = coffeeMl > 0 || cocoaMl > 0 || teaMl > 0 || milkMl > 0;
+  const hasDrinks = state.drinkRecipeIds.length > 0;
   const hasExtras = state.warmDishRecipeIds.length > 0 || Object.values(state.extraIngredients).some((g) => g > 0);
 
   useEffect(() => {
@@ -92,7 +96,7 @@ export default function StepCockpit({ wiz, catalog, normPortions, days, dayPartF
           </div>
           <p className="text-xs text-muted-foreground text-right">
             {Math.round(coverage * 100)}% des Tagesziels (× {dayPartFactor} Faktor)
-            {hasDrinks && ` · Getränke: +${Math.round(drinksKcal)} kcal extra`}
+            {hasDrinks && drinksKcal > 0 && ` · inkl. Getränke: +${Math.round(drinksKcal)} kcal`}
           </p>
         </div>
       </div>
@@ -194,7 +198,14 @@ export default function StepCockpit({ wiz, catalog, normPortions, days, dayPartF
 
           {/* ── Warme Gerichte & Extras ── */}
           {hasExtras && (
-            <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Warme Gerichte & Extras</div>
+            <>
+              <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Warme Gerichte & Extras</div>
+              <div className="px-4 py-1.5">
+                <p className="text-xs text-muted-foreground italic">
+                  Warme Gerichte und Gemüse sind nicht in der Kalorienanzeige eingerechnet.
+                </p>
+              </div>
+            </>
           )}
           {state.warmDishRecipeIds.map((recipeId) => {
             const recipe = catalog?.warm_meal_recipes.find((r) => r.id === recipeId);
@@ -232,40 +243,22 @@ export default function StepCockpit({ wiz, catalog, normPortions, days, dayPartF
           {hasDrinks && (
             <div className="border-t border-border">
               <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">
-                Getränke (separat, kein Einfluss auf Soll)
+                Getränke
               </div>
-              {coffeeMl > 0 && (
-                <div className="grid grid-cols-4 px-4 py-2">
-                  <span className="truncate">Kaffee</span>
-                  <span className="text-right">&times;{(coffeeMl / 200).toFixed(2).replace('.', ',')} Tasse</span>
-                  <span className="text-right">{Math.round(coffeeMl * 0.02)}</span>
-                  <span className="text-right">—</span>
-                </div>
-              )}
-              {cocoaMl > 0 && (
-                <div className="grid grid-cols-4 px-4 py-2">
-                  <span className="truncate">Kakao</span>
-                  <span className="text-right">&times;{(cocoaMl / 200).toFixed(2).replace('.', ',')} Tasse</span>
-                  <span className="text-right">{Math.round(cocoaMl * 0.8)}</span>
-                  <span className="text-right">—</span>
-                </div>
-              )}
-              {teaMl > 0 && (
-                <div className="grid grid-cols-4 px-4 py-2">
-                  <span className="truncate">Tee</span>
-                  <span className="text-right">&times;{(teaMl / 200).toFixed(2).replace('.', ',')} Tasse</span>
-                  <span className="text-right">0</span>
-                  <span className="text-right">—</span>
-                </div>
-              )}
-              {milkMl > 0 && (
-                <div className="grid grid-cols-4 px-4 py-2">
-                  <span className="truncate">Milch</span>
-                  <span className="text-right">&times;{(milkMl / 30).toFixed(2).replace('.', ',')} Schuss</span>
-                  <span className="text-right">{Math.round(milkMl * 0.65)}</span>
-                  <span className="text-right">—</span>
-                </div>
-              )}
+              {state.drinkRecipeIds.map((recipeId) => {
+                const recipe = catalog?.drink_recipes.find((r) => r.id === recipeId);
+                const factor = state.drinkFactors[String(recipeId)] ?? 1.0;
+                const name = state.drinkRecipeNames[String(recipeId)] || recipe?.title || `Rezept #${recipeId}`;
+                const kcal = recipe?.cached_energy_kcal ? recipe.cached_energy_kcal * factor : null;
+                return (
+                  <div key={`drink-${recipeId}`} className="grid grid-cols-4 px-4 py-2">
+                    <span className="truncate">{name}</span>
+                    <span className="text-right">&times;{factor}</span>
+                    <span className="text-right">{kcal != null ? Math.round(kcal) : '—'}</span>
+                    <span className="text-right">—</span>
+                  </div>
+                );
+              })}
               <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/20">
                 <span>Getränke gesamt</span>
                 <span className="text-right">—</span>

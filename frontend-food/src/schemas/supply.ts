@@ -142,8 +142,6 @@ export const PortionSchema = z.object({
   quantity: z.number(),
   weight_g: z.number().nullable(),
   rank: z.number(),
-  priority: z.number(),
-  is_default: z.boolean(),
   is_system: z.boolean(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string().nullable(),
@@ -369,7 +367,8 @@ export type PaginatedMaterialNames = z.infer<typeof PaginatedMaterialNamesSchema
 export const PortionSuggestionSchema = z.object({
   name: z.string(),
   weight_g: z.number(),
-  priority: z.number().int().default(0),
+  measuring_unit_name: z.string(),
+  rank: z.number().int().default(1),
 });
 export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
 
@@ -410,6 +409,8 @@ export const IngredientSuggestAllSchema = z.object({
   price_per_kg: z.number().nullable(),
 
   portions: z.array(PortionSuggestionSchema).default([]),
+  stueck_weight_g: z.number().nullable(),
+  packung_weight_g: z.number().nullable(),
   aliases: z.array(z.string()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
 });

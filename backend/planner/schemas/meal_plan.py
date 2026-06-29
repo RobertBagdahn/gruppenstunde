@@ -49,6 +49,9 @@ class MealItemOut(Schema):
     ingredient_tags: list[str] = []
     recipe_type: str = ""
     overrides: list[MealItemOverrideOut] = []
+    portion_display: str = ""
+    has_missing_weight: bool = False
+    is_per_norm_person: bool = True
 
     @staticmethod
     def resolve_recipe_title(obj) -> str:
@@ -116,6 +119,59 @@ class MealItemOut(Schema):
         return list(obj.overrides.all())
 
     @staticmethod
+    def resolve_portion_display(obj) -> str:
+        """Return the portion display string scaled per NormPerson."""
+        from supply.utils import build_portion_display, format_weight, _format_quantity
+
+        # Ingredient-based MealItem (single ingredient, not a recipe)
+        if obj.ingredient and obj.quantity and obj.measuring_unit:
+            norm_portions = obj.meal.meal_plan.norm_portions or 1
+            total_g = None
+
+            name_lower = obj.measuring_unit.name.lower()
+            if name_lower == "g":
+                total_g = float(obj.quantity)
+            elif name_lower == "ml":
+                density = getattr(obj.ingredient, "physical_density", 1.0) or 1.0
+                total_g = float(obj.quantity) * density
+            else:
+                portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
+                if portion and portion.weight_g:
+                    total_g = portion.weight_g * float(obj.quantity)
+
+            if total_g is not None:
+                per_person_g = total_g / norm_portions
+                ingredient_name = obj.ingredient.name or obj.ingredient.slug or ""
+                unit_name = obj.measuring_unit.name if obj.measuring_unit.name.lower() != "stück" else ""
+                qty_per_person = float(obj.quantity) / norm_portions
+                qty_str = _format_quantity(qty_per_person)
+                parts = [qty_str]
+                if unit_name:
+                    parts.append(unit_name)
+                if ingredient_name:
+                    parts.append(ingredient_name)
+                base = " ".join(parts)
+                return f"{base} ({format_weight(per_person_g)})"
+
+            ingredient_name = obj.ingredient.name or obj.ingredient.slug or ""
+            return ingredient_name
+
+        # Recipe-based MealItem — no per-item portion display
+        return ""
+
+    @staticmethod
+    def resolve_has_missing_weight(obj) -> bool:
+        """Return True if the ingredient has a portion-based unit but no weight_g."""
+        if obj.ingredient and obj.quantity and obj.measuring_unit:
+            name_lower = obj.measuring_unit.name.lower()
+            if name_lower in ("g", "ml"):
+                return False
+            portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
+            if portion is None or not portion.weight_g:
+                return True
+        return False
+
+    @staticmethod
     def resolve_ingredient_tags(obj) -> list[str]:
         if obj.ingredient:
             return list(obj.ingredient.tags.values_list("slug", flat=True))
@@ -141,7 +197,7 @@ class MealItemOut(Schema):
                 return portion.weight_g * float(obj.quantity)
 
             default_portions = obj.ingredient.portions.filter(
-                is_default=True, weight_g__isnull=False
+                rank=1, weight_g__isnull=False
             )
             if default_portions.exists():
                 return float(default_portions.first().weight_g) * float(obj.quantity)

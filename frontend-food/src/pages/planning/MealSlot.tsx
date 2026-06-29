@@ -361,13 +361,19 @@ export function MealSlot({
                           ) : isIng && !meal.is_synced ? (
                             // OLD format: raw unit, editable — show grams only
                             <span className="text-xs text-muted-foreground">{Math.round(it.quantity_g ?? 0)}g</span>
-                          ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
-                            // Portion-based, read-only
-                            <span>&times;{it.quantity?.toFixed(2).replace('.', ',')} {it.measuring_unit_name}</span>
-                          ) : isIng ? (
-                            // Raw unit, read-only
-                            <span className="text-xs">{Math.round(it.quantity_g ?? 0)}g</span>
-                          ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{it.factor.toFixed(2).replace('.', ',')}</span>)}
+                          ) : isIng && it.portion_display ? (
+                             // portion_display from backend (read-only)
+                             <span className={`text-xs ${it.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                               {it.portion_display}
+                               {it.is_per_norm_person && <span className="ml-1 text-[10px] text-muted-foreground/60">/ Person</span>}
+                             </span>
+                           ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
+                             // Portion-based, read-only fallback
+                             <span>&times;{it.quantity?.toFixed(2).replace('.', ',')} {it.measuring_unit_name}</span>
+                           ) : isIng ? (
+                             // Raw unit, read-only fallback
+                             <span className="text-xs">{Math.round(it.quantity_g ?? 0)}g</span>
+                           ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{it.factor.toFixed(2).replace('.', ',')}</span>)}
                         </div>
                       </div>
                       {canEdit && !meal.is_synced && <button onClick={() => onDeleteItem(it.id)} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"><X className="w-4 h-4" /></button>}

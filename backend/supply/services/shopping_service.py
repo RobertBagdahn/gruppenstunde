@@ -10,9 +10,12 @@ it belongs to the norm-portion calorie calculation only.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from planner.models import MealPlan
@@ -50,7 +53,7 @@ class ShoppingListItem:
 def generate_shopping_list(
     meal_plan: MealPlan,
     scaling_override: float | None = None,
-) -> list[ShoppingListItem]:
+) -> list[ShoppingListItem]:  # noqa: C901
     """Generate an aggregated shopping list for a meal plan.
 
     Collects all MealItems from all Meals of the plan,
@@ -66,12 +69,13 @@ def generate_shopping_list(
         Sorted list of ShoppingListItem grouped by retail section, then name
     """
     from planner.models import MealItem
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
     from supply.models import Portion
     from supply.services.price_service import get_portion_price
 
     scaling = scaling_override if scaling_override is not None else meal_plan.scaling_factor
 
-    # Collect all MealItems — prefetch recipe items and direct-ingredient portions upfront
+    # Collect all MealItems — prefetch recipe items, direct-ingredient portions, and overrides upfront
     meal_items = list(
         MealItem.objects.filter(
             meal__meal_plan=meal_plan,
@@ -85,22 +89,21 @@ def generate_shopping_list(
         )
         .prefetch_related(
             "recipe__recipe_items__portion__ingredient__retail_section",
+            "overrides",
         )
     )
 
-    # Batch-load portions for direct-ingredient MealItems to avoid N+1
-    direct_ingredient_pairs = [
-        (mi.ingredient_id, mi.measuring_unit_id) for mi in meal_items if mi.ingredient_id and mi.measuring_unit_id
-    ]
+    # Batch-load portions for direct-ingredient MealItems to avoid N+1.
+    # We load ALL portions for the relevant ingredients so the helper's
+    # default-portion fallback also works without extra DB queries.
+    direct_ingredient_ids = {mi.ingredient_id for mi in meal_items if mi.ingredient_id}
     portion_lookup: dict[tuple[int, int], Portion] = {}
-    if direct_ingredient_pairs:
-        ing_ids = {p[0] for p in direct_ingredient_pairs}
-        unit_ids = {p[1] for p in direct_ingredient_pairs}
+    if direct_ingredient_ids:
         for p in Portion.objects.filter(
-            ingredient_id__in=ing_ids,
-            measuring_unit_id__in=unit_ids,
+            ingredient_id__in=direct_ingredient_ids,
         ).select_related("measuring_unit"):
-            portion_lookup[(p.ingredient_id, p.measuring_unit_id)] = p
+            if p.measuring_unit_id is not None:
+                portion_lookup[(p.ingredient_id, p.measuring_unit_id)] = p
 
     # Batch-load ingredients for price estimation at the end
     ingredient_cache: dict[int, object] = {}
@@ -125,8 +128,17 @@ def generate_shopping_list(
 
         if mi.recipe:
             recipe = mi.recipe
+            if not getattr(recipe, "portions", None):
+                logger.warning(
+                    "Recipe %s '%s' has portions=0 or None, skipping in shopping_service",
+                    recipe.id, getattr(recipe, "title", str(recipe)),
+                )
+                continue
             recipe_items = list(recipe.recipe_items.all())
             active_ids = set(mi.active_recipe_item_ids or [])
+
+            # Build override lookup for this meal item
+            overrides_map = {o.recipe_item_id: o for o in mi.overrides.all()}
 
             for ri in recipe_items:
                 if not ri.portion:
@@ -141,9 +153,17 @@ def generate_shopping_list(
                     if ri.id not in active_ids:
                         continue
 
-                recipe_servings = getattr(recipe, "portions", 1) or 1
+                # MealItemOverride: excluded items are not purchased
+                override = overrides_map.get(ri.id)
+                if override and override.excluded:
+                    continue
+
+                # quantity_override replaces recipe item quantity for purchase amount
+                effective_quantity = float(override.quantity_override) if (override and override.quantity_override is not None) else float(ri.quantity)
+
+                recipe_servings = recipe.portions
                 weight_g = (
-                    ri.quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
+                    effective_quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
                 )
 
                 if not ri.portion.weight_g:
@@ -192,22 +212,14 @@ def generate_shopping_list(
         elif mi.ingredient:
             ing = mi.ingredient
             ingredient_cache[ing.id] = ing
-            # Direct ingredient case — use batch-loaded portion lookup
-            portion = portion_lookup.get((ing.id, mi.measuring_unit_id)) if mi.measuring_unit_id else None
 
-            portion_weight = None
-            if mi.measuring_unit:
-                unit_unit = (mi.measuring_unit.unit or "").lower()
-                unit_name = (mi.measuring_unit.name or "").lower()
-                if unit_unit == "g" or unit_name == "g":
-                    portion_weight = mi.measuring_unit.quantity
-            if portion_weight is None and portion:
-                portion_weight = portion.weight_g if portion else None
+            # Use canonical helper with pre-loaded portion cache (no N+1)
+            base_weight_g = _resolve_ingredient_weight_g(mi, portion_cache=portion_lookup)
+            weight_g = base_weight_g * mi.factor * meal_scaling
 
-            if portion_weight:
-                weight_g = float(mi.quantity or 0) * portion_weight * mi.factor * meal_scaling
-            else:
-                weight_g = 0.0
+            if base_weight_g <= 0:
+                # No weight resolved — track as raw quantity for display
+                portion = portion_lookup.get((ing.id, mi.measuring_unit_id)) if mi.measuring_unit_id else None
                 raw_qty = float(mi.quantity or 0) * mi.factor * meal_scaling
                 portion_name = portion.name if portion else (mi.measuring_unit.name if mi.measuring_unit else "")
                 if ing.id in raw_quantities:
@@ -406,7 +418,7 @@ def compute_portion_options(
             {
                 "name": p.name,
                 "display": display,
-                "is_default": p.is_default,
+                "is_default": p.rank == 1,
                 "weight_g": p.weight_g,
                 "count": round(count, 1),
             }
@@ -414,7 +426,7 @@ def compute_portion_options(
 
         # Find best portion (closest to 1 whole unit)
         diff = abs(count - 1.0)
-        if (p.is_default and diff <= 0.5) or diff < best_diff:
+        if (p.rank == 1 and diff <= 0.5) or diff < best_diff:
             best_diff = diff
             best_portion = p
 
@@ -470,7 +482,7 @@ def _enrich_display_fields(
         item.display_quantity = _format_weight(item.total_quantity_g)
 
         # Natural portions — compute best match and all options
-        portions = list(ing.portions.order_by("-priority", "rank", "name"))
+        portions = list(ing.portions.order_by("rank", "name"))
         if portions:
             best_display, options = compute_portion_options(item.total_quantity_g, portions)
             item.natural_portions = best_display

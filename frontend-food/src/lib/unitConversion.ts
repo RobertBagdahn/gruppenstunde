@@ -62,8 +62,18 @@ function formatNumber(value: number): string {
 
 /**
  * Convert grams to the most appropriate weight unit with smart rounding.
+ * Includes mg tier for values < 1g.
  */
 export function formatWeight(grams: number): FormattedQuantity {
+  // mg tier for very small amounts (< 1g)
+  if (grams > 0 && grams < 1) {
+    const mg = Math.round(grams * 1000);
+    return {
+      value: mg,
+      unit: 'g', // keep 'g' as base unit type; display uses 'mg'
+      display: `${mg}mg`,
+    };
+  }
   const rounded = smartRound(grams);
   if (rounded >= 1000) {
     const kg = rounded / 1000;

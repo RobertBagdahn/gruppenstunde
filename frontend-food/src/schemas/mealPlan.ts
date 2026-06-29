@@ -66,6 +66,9 @@ export const MealItemSchema = z.object({
   ingredient_tags: z.array(z.string()),
   recipe_type: z.string(),
   overrides: z.array(MealItemOverrideSchema),
+  portion_display: z.string().default(''),
+  has_missing_weight: z.boolean().default(false),
+  is_per_norm_person: z.boolean().default(true),
 });
 export type MealItem = z.infer<typeof MealItemSchema>;
 

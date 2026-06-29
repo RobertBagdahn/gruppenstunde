@@ -705,7 +705,10 @@ def test_embedding_updates_on_recipe_item_change(db):
 
     ingredient = Ingredient.objects.create(name="Zutat", slug="zutat")
     unit = MeasuringUnit.objects.create(name="g", quantity=1.0)
-    portion = Portion.objects.create(ingredient=ingredient, measuring_unit=unit, name="g", quantity=1, weight_g=100)
+    portion, _ = Portion.objects.get_or_create(
+        ingredient=ingredient, name="g",
+        defaults={"measuring_unit": unit, "quantity": 1, "weight_g": 100, "rank": 1},
+    )
 
     recipe = Recipe.objects.create(title="Test", status=ContentStatus.APPROVED)
 

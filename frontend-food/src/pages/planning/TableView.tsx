@@ -453,7 +453,12 @@ export default function TableView({
                                               </div>
 
                                               <div className="flex items-center gap-1 shrink-0">
-                                                {item.ingredient_id && !item.recipe_id && item.quantity != null ? (
+                                                {item.ingredient_id && !item.recipe_id && item.portion_display ? (
+                                                  <span className={`text-[9px] font-extrabold px-1 py-0.5 rounded bg-muted/60 ${item.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                                                    {item.portion_display}
+                                                    {item.is_per_norm_person && <span className="ml-0.5 text-muted-foreground/60">/ P.</span>}
+                                                  </span>
+                                                ) : item.ingredient_id && !item.recipe_id && item.quantity != null ? (
                                                   <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
                                                     &times;{item.quantity}
                                                     {item.measuring_unit_name ? ` ${item.measuring_unit_name}` : ''}

@@ -32,6 +32,7 @@ from supply.schemas import (
     PaginatedIngredientOut,
     PortionCreateIn,
     PortionOut,
+    PortionReorderIn,
     PortionUpdateIn,
 )
 
@@ -276,21 +277,28 @@ def list_portions(request, slug: str):
 
 @ingredient_router.post("/{slug}/portions/", response=PortionOut)
 def create_portion(request, slug: str, payload: PortionCreateIn):
-    """Create a portion for an ingredient."""
+    """Create a portion for an ingredient.
+    
+    Validates that portion name is unique per ingredient (case-insensitive).
+    Returns 422 if name already exists.
+    """
     require_auth(request)
 
     if not payload.name or not payload.name.strip():
         raise HttpError(422, "Portionsname darf nicht leer sein.")
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
+    name = payload.name.strip()
+    
+    # Check for duplicate names (case-insensitive, excluding soft-deleted)
+    if Portion.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
+        raise HttpError(422, f"Portionsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
 
     portion = Portion(
         ingredient=ingredient,
-        name=payload.name.strip(),
+        name=name,
         quantity=payload.quantity,
         rank=payload.rank,
-        priority=payload.priority,
-        is_default=payload.is_default,
         created_by=request.user,
     )
 
@@ -305,7 +313,10 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
 
 @ingredient_router.patch("/{slug}/portions/{portion_id}/", response=PortionOut)
 def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn):
-    """Update a portion."""
+    """Update a portion.
+    
+    If updating name, validates that new name is unique per ingredient (case-insensitive).
+    """
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
@@ -315,7 +326,17 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
     if "name" in data:
         if not payload.name or not payload.name.strip():
             raise HttpError(422, "Portionsname darf nicht leer sein.")
-        portion.name = payload.name.strip()
+        new_name = payload.name.strip()
+        
+        # Check for duplicate names (case-insensitive, excluding soft-deleted and self)
+        if Portion.objects.filter(
+            ingredient=ingredient,
+            name__iexact=new_name,
+            deleted_at__isnull=True
+        ).exclude(id=portion.id).exists():
+            raise HttpError(422, f"Portionsname '{new_name}' existiert bereits für diese Zutat (case-insensitive).")
+        
+        portion.name = new_name
         data.pop("name")
 
     unit_id = data.pop("measuring_unit_id", None)
@@ -356,9 +377,41 @@ def delete_portion(request, slug: str, portion_id: int):
     return {"success": True}
 
 
-@ingredient_router.post("/{slug}/portions/{portion_id}/move/", response=list[PortionOut])
+@ingredient_router.post("/{slug}/portions/reorder/", response=list[PortionOut])
+def reorder_portions(request, slug: str, payload: PortionReorderIn):
+    """Reorder multiple portions atomically.
+
+    Body: { orders: [{id: int, rank: int}, ...] }
+
+    Atomically updates all portion ranks. The 'g' portion must remain at rank 9999.
+    """
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    # Validate: 'g' portion (rank 9999) should never be moved
+    for order in payload.orders:
+        portion = Portion.objects.filter(id=order.id, ingredient=ingredient).first()
+        if portion and portion.name == "g" and order.rank != 9999:
+            raise HttpError(422, "Die 'g'-Portion muss immer rank=9999 haben und kann nicht verschoben werden.")
+
+    with transaction.atomic():
+        for order in payload.orders:
+            Portion.objects.filter(id=order.id, ingredient=ingredient).update(rank=order.rank)
+
+    # Return updated list sorted by rank
+    return list(
+        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+        .order_by("rank")
+        .select_related("measuring_unit")
+    )
+
+
+@ingredient_router.post("/{slug}/portions/{portion_id}/move/", response=list[PortionOut], deprecated=True)
 def move_portion_rank(request, slug: str, portion_id: int, direction: str):
-    """Move a portion up or down in rank order (▲/▼).
+    """DEPRECATED: Move a portion up or down in rank order (▲/▼).
+
+    Use POST /{slug}/portions/reorder/ instead.
 
     direction: 'up' or 'down'
     Swaps rank values with the adjacent portion. Returns updated list of portions.

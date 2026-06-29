@@ -140,8 +140,7 @@ def _ingredient_to_dict(ing: Ingredient) -> dict:
             "measuring_unit_id": p.measuring_unit_id,
             "quantity": float(p.quantity) if p.quantity is not None else None,
             "weight_g": float(p.weight_g) if p.weight_g is not None else None,
-            "is_default": p.is_default,
-            "priority": p.priority,
+            "is_default": p.rank == 1,
         }
         for p in ing.portions.all()
     ]

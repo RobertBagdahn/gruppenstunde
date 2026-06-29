@@ -115,7 +115,18 @@ class ShoppingListItemOut(Schema):
             if qty == int(qty):
                 qty = int(qty)
             return f"{qty} {obj.unit}"
-        return _format_weight(obj.quantity_g)
+
+        base = _format_weight(obj.quantity_g)
+
+        # Append package options when the ingredient has package portions
+        if obj.ingredient:
+            from supply.utils import build_package_display
+
+            pkg = build_package_display(obj.quantity_g, obj.ingredient)
+            if pkg:
+                return f"{base} · {pkg}"
+
+        return base
 
     @staticmethod
     def resolve_natural_portions(obj) -> str:
@@ -244,22 +255,10 @@ class ShoppingListDetailOut(Schema):
 
 
 def _format_weight(weight_g: float) -> str:
-    """Format weight with smart unit conversion (g->kg) and rounding."""
-    weight_g = round(weight_g, 2)
-    if weight_g >= 1000:
-        kg = weight_g / 1000
-        if kg == int(kg):
-            return f"{int(kg)} kg"
-        return f"{kg:.1f} kg"
-    if weight_g >= 100:
-        rounded = round(weight_g / 10) * 10
-        return f"{int(rounded)} g"
-    if weight_g >= 10:
-        rounded = round(weight_g / 5) * 5
-        return f"{int(rounded)} g"
-    if weight_g >= 1:
-        return f"{round(weight_g)} g"
-    return f"{weight_g:.1f} g"
+    """Thin wrapper — delegates to supply.utils.format_weight for consistency."""
+    from supply.utils import format_weight as _fw
+
+    return _fw(weight_g)
 
 
 class ShoppingListCreateIn(Schema):

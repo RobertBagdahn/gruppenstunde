@@ -1,7 +1,25 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, Clock, Plus } from 'lucide-react';
+import { ChefHat, Clock, Plus, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useCurrentUser } from '@/api/auth';
 import {
   useIngredient,
@@ -11,6 +29,7 @@ import {
   useUpdatePortion,
   useDeletePortion,
   useMovePortion,
+  useReorderPortions,
   useCreateAlias,
   useDeleteAlias,
   useAiSuggestIngredientAll,
@@ -23,6 +42,8 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
 import { IngredientBenchmarkSection } from '@/components/ingredient/IngredientBenchmarkSection';
+import { StandardPortionBadge } from '@/components/ingredients/StandardPortionBadge';
+import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -133,17 +154,9 @@ function CollapsibleNutritionGroup({
 function PortionCard({
   portion,
   slug,
-  isFirst,
-  isLast,
-  onMoveUp,
-  onMoveDown,
 }: {
   portion: Portion;
   slug: string;
-  isFirst: boolean;
-  isLast: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
 }) {
   const updatePortion = useUpdatePortion(slug);
   const deletePortion = useDeletePortion(slug);
@@ -279,22 +292,6 @@ function PortionCard({
 
         {!editing && (
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={onMoveUp}
-              disabled={isFirst}
-              className="text-muted-foreground hover:text-foreground rounded p-1 transition disabled:opacity-30 disabled:pointer-events-none"
-              title="Nach oben"
-            >
-              <span className="material-symbols-outlined text-sm">arrow_upward</span>
-            </button>
-            <button
-              onClick={onMoveDown}
-              disabled={isLast}
-              className="text-muted-foreground hover:text-foreground rounded p-1 transition disabled:opacity-30 disabled:pointer-events-none"
-              title="Nach unten"
-            >
-              <span className="material-symbols-outlined text-sm">arrow_downward</span>
-            </button>
             <button
               onClick={() => setEditing(true)}
               className="text-muted-foreground hover:text-foreground rounded p-1 transition"
@@ -452,6 +449,195 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PortionsSection with Drag & Drop
+// ---------------------------------------------------------------------------
+
+interface PortionsSectionProps {
+  ingredient: any;
+  canEdit: boolean;
+  showAddPortion: boolean;
+  setShowAddPortion: (show: boolean) => void;
+  newPortionName: string;
+  setNewPortionName: (name: string) => void;
+  newPortionQuantity: string;
+  setNewPortionQuantity: (qty: string) => void;
+  newPortionUnitId: string;
+  setNewPortionUnitId: (id: string) => void;
+  measuringUnits: any[];
+  onAddPortion: () => void;
+  isAddingPortion: boolean;
+}
+
+function PortionsSection({
+  ingredient,
+  canEdit,
+  showAddPortion,
+  setShowAddPortion,
+  newPortionName,
+  setNewPortionName,
+  newPortionQuantity,
+  setNewPortionQuantity,
+  newPortionUnitId,
+  setNewPortionUnitId,
+  measuringUnits,
+  onAddPortion,
+  isAddingPortion,
+}: PortionsSectionProps) {
+  const reorderPortions = useReorderPortions(ingredient.slug);
+  const [portions, setPortions] = useState(ingredient.portions);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { distance: 8 }),
+    useSensor(TouchSensor, { distance: 8 }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const sortedPortions = useMemo(() => {
+    return [...portions].sort((a, b) => a.rank - b.rank);
+  }, [portions]);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (!over || active.id === over.id) {
+        return;
+      }
+
+      const oldIndex = sortedPortions.findIndex((p) => p.id === active.id);
+      const newIndex = sortedPortions.findIndex((p) => p.id === over.id);
+
+      if (oldIndex === -1 || newIndex === -1) {
+        return;
+      }
+
+      // Rearrange locally first (optimistic update)
+      const newPortions = arrayMove(sortedPortions, oldIndex, newIndex);
+      const orders = newPortions.map((p, idx) => ({
+        id: p.id,
+        rank: idx + 1,
+      }));
+
+      setPortions(newPortions);
+
+      // Send to backend
+      reorderPortions.mutate(orders, {
+        onError: () => {
+          // Revert on error
+          setPortions(ingredient.portions);
+          toast.error('Fehler beim Speichern der Sortierung');
+        },
+        onSuccess: (updatedPortions) => {
+          // Update with server response
+          setPortions(updatedPortions);
+          toast.success('Portionen neu sortiert');
+        },
+      });
+    },
+    [sortedPortions, reorderPortions, ingredient.portions],
+  );
+
+  const portionIds = useMemo(() => sortedPortions.map((p) => p.id), [sortedPortions]);
+
+  // Check if Packung portion is missing weight
+  const packungPortion = sortedPortions.find((p) => p.name === 'Packung');
+  const packungHasWeight = packungPortion && packungPortion.weight_g && packungPortion.weight_g > 0;
+  const showPackungWarning = packungPortion && !packungHasWeight;
+
+  return (
+    <div className="mb-8">
+      {showPackungWarning && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+          <span className="material-symbols-outlined text-amber-600 text-lg shrink-0 mt-0.5">warning</span>
+          <div className="text-sm text-amber-800">
+            <strong>Packungsgewicht fehlt:</strong> Die Packung-Portion hat kein Gewicht. Bitte manuell eintragen, damit die Einkaufsliste korrekt berechnet wird.
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">scale</span>
+            Portionen
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1 ml-7">
+            Jede Portion hat einen Namen, eine Anzahl und eine Einheit. Das Gewicht in Gramm wird automatisch berechnet.
+            Ziehen Sie die Portionen zum Sortieren.
+          </p>
+        </div>
+        {canEdit && (
+          <button
+            onClick={() => setShowAddPortion(!showAddPortion)}
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <Plus className="h-4 w-4" />
+            Portion hinzufügen
+          </button>
+        )}
+      </div>
+
+      {showAddPortion && (
+        <div className="border border-border rounded-xl p-4 mb-4 bg-card shadow-soft">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              value={newPortionName}
+              onChange={(e) => setNewPortionName(e.target.value)}
+              placeholder="Portionsname (z.B. Stück, Tasse, EL)"
+              className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onAddPortion();
+              }}
+              autoFocus
+            />
+            <input
+              type="number"
+              value={newPortionQuantity}
+              onChange={(e) => setNewPortionQuantity(e.target.value)}
+              placeholder="Anzahl"
+              className="w-20 px-3 py-2 border rounded-md text-sm bg-background"
+            />
+            <select
+              value={newPortionUnitId}
+              onChange={(e) => setNewPortionUnitId(e.target.value)}
+              className="w-28 px-3 py-2 border rounded-md text-sm bg-background"
+            >
+              <option value="">Einheit…</option>
+              {measuringUnits?.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={onAddPortion}
+              disabled={!newPortionName.trim() || isAddingPortion}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
+            >
+              Hinzufügen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {ingredient.portions.length === 0 && <p className="text-sm text-muted-foreground italic">Keine Portionen definiert.</p>}
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={portionIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {sortedPortions.map((portion) => (
+              <SortablePortionItem key={portion.id} portion={portion}>
+                <PortionCard portion={portion} slug={ingredient.slug} />
+              </SortablePortionItem>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
@@ -979,91 +1165,21 @@ export default function IngredientDetailPage() {
       </div>
 
       {/* Portions Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">scale</span>
-              Portionen
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1 ml-7">
-              Jede Portion hat einen Namen, eine Anzahl und eine Einheit. Das Gewicht in Gramm wird automatisch berechnet.
-            </p>
-          </div>
-          {canEdit && (
-            <button
-              onClick={() => setShowAddPortion(!showAddPortion)}
-              className="flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              <span className="material-symbols-outlined text-lg">add</span>
-              Portion hinzufügen
-            </button>
-          )}
-        </div>
-
-        {showAddPortion && (
-          <div className="border border-border rounded-xl p-4 mb-4 bg-card shadow-soft">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                value={newPortionName}
-                onChange={(e) => setNewPortionName(e.target.value)}
-                placeholder="Portionsname (z.B. Stück, Tasse, EL)"
-                className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAddPortion(); }}
-                autoFocus
-              />
-              <input
-                type="number"
-                value={newPortionQuantity}
-                onChange={(e) => setNewPortionQuantity(e.target.value)}
-                placeholder="Anzahl"
-                className="w-20 px-3 py-2 border rounded-md text-sm bg-background"
-              />
-              <select
-                value={newPortionUnitId}
-                onChange={(e) => setNewPortionUnitId(e.target.value)}
-                className="w-28 px-3 py-2 border rounded-md text-sm bg-background"
-              >
-                <option value="">Einheit…</option>
-                {measuringUnits?.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleAddPortion}
-                disabled={!newPortionName.trim() || createPortion.isPending}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
-              >
-                Hinzufügen
-              </button>
-            </div>
-          </div>
-        )}
-
-        {ingredient.portions.length === 0 && (
-          <p className="text-sm text-muted-foreground italic">Keine Portionen definiert.</p>
-        )}
-
-        <div className="space-y-3">
-          {[...ingredient.portions]
-            .sort((a, b) => a.rank - b.rank)
-            .map((portion, index, sorted) => (
-              <PortionCard
-                key={portion.id}
-                portion={portion}
-                slug={ingredient.slug}
-                isFirst={index === 0}
-                isLast={index === sorted.length - 1}
-                onMoveUp={async () => {
-                  await movePortion.mutateAsync({ portionId: portion.id, direction: 'up' });
-                }}
-                onMoveDown={async () => {
-                  await movePortion.mutateAsync({ portionId: portion.id, direction: 'down' });
-                }}
-              />
-            ))}
-        </div>
-      </div>
+      <PortionsSection
+        ingredient={ingredient}
+        canEdit={canEdit}
+        showAddPortion={showAddPortion}
+        setShowAddPortion={setShowAddPortion}
+        newPortionName={newPortionName}
+        setNewPortionName={setNewPortionName}
+        newPortionQuantity={newPortionQuantity}
+        setNewPortionQuantity={setNewPortionQuantity}
+        newPortionUnitId={newPortionUnitId}
+        setNewPortionUnitId={setNewPortionUnitId}
+        measuringUnits={measuringUnits || []}
+        onAddPortion={handleAddPortion}
+        isAddingPortion={createPortion.isPending}
+      />
 
       {/* Aliases Section */}
       <div className="mb-8">
@@ -1344,13 +1460,13 @@ function buildIngredientSuggestionFields(
     });
   }
 
-  // Portions — sort by priority descending so highest-priority portions appear first
-  const suggestedPortions = (suggestions.portions as Array<{ name: string; weight_g: number; priority?: number }>) || [];
-  const sortedPortions = [...suggestedPortions].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+  // Portions — sort by rank ascending (rank=1 should be first)
+  const suggestedPortions = (suggestions.portions as Array<{ name: string; weight_g: number; rank?: number }>) || [];
+  const sortedPortions = [...suggestedPortions].sort((a, b) => (a.rank ?? 1) - (b.rank ?? 1));
   const existingNames = new Set(ingredient.portions.map((p) => p.name.toLowerCase()));
   sortedPortions.forEach((p, i) => {
     if (!existingNames.has(p.name.toLowerCase())) {
-      const priority = p.priority ?? 0;
+      const rank = p.rank ?? 1;
 
       fields.push({
         key: `portion_${i}`,
@@ -1359,10 +1475,35 @@ function buildIngredientSuggestionFields(
         currentValue: null,
         suggestedValue: p,
         type: 'list',
-        priority,
+        priority: rank === 1 ? 100 : 10, // Highlight standard portion (rank=1)
       });
     }
   });
+
+  // System portion weights (Stück and Packung)
+  const stueckWeightG = suggestions.stueck_weight_g as number | undefined;
+  if (stueckWeightG && stueckWeightG > 0) {
+    fields.push({
+      key: 'stueck_weight_g',
+      label: 'Stück-Gewicht (g)',
+      group: 'System-Portionen',
+      currentValue: null,
+      suggestedValue: stueckWeightG,
+      type: 'scalar',
+    });
+  }
+
+  const packungWeightG = suggestions.packung_weight_g as number | undefined;
+  if (packungWeightG && packungWeightG > 0) {
+    fields.push({
+      key: 'packung_weight_g',
+      label: 'Packung-Gewicht (g)',
+      group: 'System-Portionen',
+      currentValue: null,
+      suggestedValue: packungWeightG,
+      type: 'scalar',
+    });
+  }
 
   // Aliases
   const suggestedAliases = (suggestions.aliases as string[]) || [];

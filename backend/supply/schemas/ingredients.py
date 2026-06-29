@@ -30,8 +30,6 @@ class PortionOut(Schema):
     quantity: float
     weight_g: float | None
     rank: int
-    priority: int
-    is_default: bool
     is_system: bool = False
     measuring_unit_id: int | None
     measuring_unit_name: str | None = None
@@ -54,8 +52,6 @@ class PortionCreateIn(Schema):
     measuring_unit_id: int | None = None
     weight_g: float | None = None
     rank: int = 1
-    priority: int = 0
-    is_default: bool = False
 
 
 class PortionUpdateIn(Schema):
@@ -66,8 +62,19 @@ class PortionUpdateIn(Schema):
     measuring_unit_id: int | None = None
     weight_g: float | None = None
     rank: int | None = None
-    priority: int | None = None
-    is_default: bool | None = None
+
+
+class PortionReorderItem(Schema):
+    """Single item in reorder request."""
+
+    id: int
+    rank: int
+
+
+class PortionReorderIn(Schema):
+    """Input schema for reordering multiple portions."""
+
+    orders: list[PortionReorderItem]
 
 
 class IngredientListOut(Schema):
@@ -199,8 +206,7 @@ class IngredientDetailOut(Schema):
                 "quantity": p.quantity,
                 "weight_g": p.weight_g,
                 "rank": p.rank,
-                "priority": p.priority,
-                "is_default": p.is_default,
+                "is_default": p.rank == 1,
                 "is_system": p.is_system,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,

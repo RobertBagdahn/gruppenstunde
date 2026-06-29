@@ -192,7 +192,7 @@ export default function RefMealEditorPage() {
 
   const CATEGORY_ORDER = ['basis', 'belag', 'warm', 'extras', 'getraenke'] as const;
 
-  function getItemCategory(item: MealItem): string {
+  function getItemCategory(item: Pick<MealItem, 'ingredient_tags' | 'recipe_type' | 'recipe_id'>): string {
     const tags = item.ingredient_tags || [];
     if (tags.includes('breakfast-base')) return 'basis';
     if (tags.includes('breakfast-topping')) return 'belag';
@@ -207,7 +207,7 @@ export default function RefMealEditorPage() {
     for (const item of refMeal.items) {
       const cat = getItemCategory(item);
       if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(item);
+      groups[cat].push(item as MealItem);
     }
     return groups;
   }, [refMeal]);

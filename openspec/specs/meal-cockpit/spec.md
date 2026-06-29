@@ -48,13 +48,23 @@ The cockpit aggregation service SHALL calculate nutritional values in Normportio
 
 Die Aggregations-Services für Mahlzeit-, Tages- und Plan-Scope MUST Nährwerte und Preise in Normportion-Logik berechnen. Der Beitrag eines Rezepts zu einer Mahlzeit MUSS dem Normportionwert multipliziert mit `MealItem.factor` entsprechen. Es DARF KEINE Division durch `Recipe.servings` und KEINE Skalierung auf reale Personen-, Aktivitäts- oder Reservemengen (`norm_portions`, `activity_factor`, `reserve_factor`, `override_portions`) in der Regelauswertung erfolgen.
 
-Für gecachte per-100g-Nährwerte MUSS die Umrechnung auf die Normportion `Wert pro 100g × cached_weight_g / 100` lauten. Der Preisbeitrag MUSS `cached_price_total × MealItem.factor` lauten, da `cached_price_total` bereits der Normportionpreis ist.
+Wenn ein Rezept einen gültigen Cache hat (`cached_at` gesetzt), MUSS der Aggregations-Service die Nährwerte dennoch **Item-für-Item aus den `RecipeItem`-Zeilen recomputen**, um `MealItemOverride` korrekt anwenden zu können. Der `cached_price_total` bleibt als Preis-Referenz erhalten, da auf RecipeItem-Ebene kein Einzelpreis vorliegt.
+
+Für die Item-für-Item-Berechnung gilt: `weight_g = effective_quantity × portion.weight_g`, `nutrient_scale = weight_g / 100 × item.factor`.
 
 #### Scenario: Mahlzeitwert aus mehreren Rezepten
 
 - **WHEN** eine Mahlzeit ein Rezept A (protein_g = 10.0 je 100g, cached_weight_g = 300g, factor = 1.0) und ein Rezept B (protein_g = 5.0 je 100g, cached_weight_g = 200g, factor = 0.5) enthält
 - **THEN** beträgt der aggregierte Mahlzeit-Eiweißwert `(10.0 × 300/100 × 1.0) + (5.0 × 200/100 × 0.5) = 30.0 + 5.0 = 35.0g`
 - **AND** es erfolgt keine Division durch `servings`
+
+#### Scenario: MealItemOverride wird im Cockpit berücksichtigt
+
+- **GIVEN** ein Rezept mit Zutat A (50g, energy_kcal=200/100g) und Zutat B (100g, energy_kcal=300/100g)
+- **AND** ein `MealItemOverride` mit `excluded=True` für Zutat B
+- **WHEN** die Cockpit-Aggregation die Mahlzeit auswertet
+- **THEN** beträgt der Energiebeitrag nur `200/100 × 50 = 100 kcal` (ohne Zutat B)
+- **AND** Zutat B erscheint nicht in der Aggregation
 
 #### Scenario: Preis je Normportion mal Faktor
 

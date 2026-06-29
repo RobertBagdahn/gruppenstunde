@@ -14,15 +14,17 @@ if TYPE_CHECKING:
     from recipe.models import RecipeItem
 
 
-def _item_total_for_field(ri: RecipeItem, field: str) -> float:
+def _item_total_for_field(ri: RecipeItem, field: str, quantity_override: float | None = None) -> float:
     """Total contribution of one RecipeItem to a nutrition/price field.
 
     field: an Ingredient attribute per 100g (e.g. 'energy_kcal') or 'price'.
+    quantity_override: when set, replaces ri.quantity (same unit: portion count).
     """
     if not ri.portion or not ri.portion.ingredient:
         return 0.0
     ing = ri.portion.ingredient
-    weight_g = ri.quantity * (ri.portion.weight_g or 0)
+    effective_quantity = quantity_override if quantity_override is not None else float(ri.quantity)
+    weight_g = effective_quantity * (ri.portion.weight_g or 0)
     if field == "price":
         if ing.price_per_kg is None:
             return 0.0
@@ -45,44 +47,88 @@ def _active_items(meal_item: MealItem) -> list[RecipeItem]:
     )
 
 
+def _build_overrides_map(meal_item: MealItem) -> dict[int, object]:
+    """Build {recipe_item_id: override} from the meal item's prefetched overrides."""
+    return {o.recipe_item_id: o for o in meal_item.overrides.all()}
+
+
 def compute_variant_energy(meal_item: MealItem) -> float:
     """Energy basis for this variant (before factor × portions scaling).
 
-    Returns the cached total adjusted for the active recipe items:
-    base = cached_total (all default members + optionals included)
-    add deltas for active items that replace defaults
-    subtract deltas for default items that are excluded
+    Respects MealItemOverride: excluded items are excluded from the total,
+    quantity_override replaces the recipe item quantity.
     """
     if not meal_item.recipe or meal_item.recipe.cached_energy_total_kcal is None:
         return 0.0
 
+    overrides_map = _build_overrides_map(meal_item)
     base = float(meal_item.recipe.cached_energy_total_kcal)
     active_ids = set(meal_item.active_recipe_item_ids or [])
-    if not active_ids:
-        return base
 
     recipe_items = list(
         meal_item.recipe.recipe_items.select_related("portion__ingredient").all()
     )
+
+    # If there are overrides, recompute from scratch to correctly apply them
+    if overrides_map:
+        return _compute_total_with_overrides(recipe_items, active_ids, overrides_map, "energy_kcal")
+
+    if not active_ids:
+        return base
 
     return base + _compute_delta(recipe_items, active_ids, "energy_kcal")
 
 
 def compute_variant_cost(meal_item: MealItem) -> float:
-    """Cost basis for this variant (before factor × portions scaling)."""
+    """Cost basis for this variant (before factor × portions scaling).
+
+    Respects MealItemOverride: excluded items are excluded from the total,
+    quantity_override replaces the recipe item quantity.
+    """
     if not meal_item.recipe or meal_item.recipe.cached_price_total is None:
         return 0.0
 
+    overrides_map = _build_overrides_map(meal_item)
     base = float(meal_item.recipe.cached_price_total)
     active_ids = set(meal_item.active_recipe_item_ids or [])
-    if not active_ids:
-        return base
 
     recipe_items = list(
         meal_item.recipe.recipe_items.select_related("portion__ingredient").all()
     )
 
+    if overrides_map:
+        return _compute_total_with_overrides(recipe_items, active_ids, overrides_map, "price")
+
+    if not active_ids:
+        return base
+
     return base + _compute_delta(recipe_items, active_ids, "price")
+
+
+def _compute_total_with_overrides(
+    recipe_items: list[RecipeItem],
+    active_ids: set[int],
+    overrides_map: dict[int, object],
+    field: str,
+) -> float:
+    """Compute total from scratch, applying overrides (excluded + quantity_override).
+
+    Used when there are active MealItemOverrides so the cached total cannot be reused.
+    """
+    total = 0.0
+    for ri in recipe_items:
+        # Exchange/optional filtering same as standard path
+        if ri.exchange_group_id is not None or ri.is_optional:
+            if ri.id not in active_ids:
+                continue
+
+        override = overrides_map.get(ri.id)
+        if override and override.excluded:
+            continue
+
+        quantity_override = float(override.quantity_override) if (override and override.quantity_override is not None) else None
+        total += _item_total_for_field(ri, field, quantity_override=quantity_override)
+    return total
 
 
 def _compute_delta(

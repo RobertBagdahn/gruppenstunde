@@ -248,6 +248,22 @@ export function useMovePortion(slug: string) {
   });
 }
 
+export function useReorderPortions(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orders: Array<{ id: number; rank: number }>) =>
+      postJsonRaw(
+        `${INGREDIENT_BASE}/${slug}/portions/reorder/`,
+        { orders },
+        z.array(PortionSchema),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
 // ==========================================================================
 // Alias Hooks
 // ==========================================================================
