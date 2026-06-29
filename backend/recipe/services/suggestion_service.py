@@ -378,13 +378,17 @@ def _check_budget(meal_plan: MealPlan) -> list[SuggestionOut]:
     most_expensive_recipe = None
     most_expensive_cost = 0.0
     has_price_data = False
+    total_items = 0
+    items_with_price = 0
 
     items = MealItem.objects.filter(meal__meal_plan=meal_plan, recipe__isnull=False).select_related("recipe")
 
     for item in items:
         recipe = item.recipe
+        total_items += 1
         if recipe.cached_price_total:
             has_price_data = True
+            items_with_price += 1
             recipe_cost = float(recipe.cached_price_total) * item.factor
             total_cost += recipe_cost
 
@@ -396,7 +400,7 @@ def _check_budget(meal_plan: MealPlan) -> list[SuggestionOut]:
         return []
 
     cost_per_person_per_day = total_cost / norm_portions / num_days if num_days > 0 else 0
-    coverage_pct = 0.0  # TODO: calculate from cached data
+    coverage_pct = (items_with_price / total_items * 100) if total_items > 0 else 100.0
 
     # Evaluate
     if cost_per_person_per_day <= budget:

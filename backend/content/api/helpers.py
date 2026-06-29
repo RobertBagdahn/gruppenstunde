@@ -139,6 +139,25 @@ def create_comment(
 # View Helpers
 # ---------------------------------------------------------------------------
 
+def _require_auth(request):
+    """Require the user to be authenticated."""
+    if not request.user.is_authenticated:
+        from ninja.errors import HttpError
+        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+
+
+def _is_staff_or_admin(request) -> bool:
+    """Check if the user is staff or has a staff/admin profile role."""
+    if not request.user.is_authenticated:
+        return False
+    if request.user.is_staff:
+        return True
+    try:
+        return request.user.profile.role in ("staff", "admin")
+    except AttributeError:
+        return False
+
+
 BOT_PATTERNS = re.compile(
     r"(bot|crawl|spider|slurp|yahoo|bing|google|facebook|twitter|linkedin|"
     r"pinterest|whatsapp|telegram|slack|discord|curl|wget|python-requests|"

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NutritionalTagSchema } from './supply';
 
 export const PublicRecipeSchema = z.object({
   id: z.number(),
@@ -40,16 +41,6 @@ export const PublicUserFoodProfileSchema = z.object({
 export type PublicUserFoodProfile = z.infer<typeof PublicUserFoodProfileSchema>;
 
 // --- Own (editable) profile ---
-
-export const NutritionalTagSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  name_opposite: z.string(),
-  description: z.string(),
-  rank: z.number(),
-  is_dangerous: z.boolean(),
-});
-export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
 
 export const UserProfileSchema = z.object({
   id: z.number(),

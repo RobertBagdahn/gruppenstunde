@@ -1,18 +1,16 @@
-/**
- * Step 3 — Extras: Gemüse (Zutaten mit Mengen) + warme Gerichte (Rezeptauswahl + Faktor).
- */
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
+import type { BreakfastCatalog } from '@/schemas/breakfast';
 import RecipeSearchDialog from '../RecipeSearchDialog';
-import { FactorInput } from '../FactorInput';
 
 interface StepExtrasProps {
   wiz: UseWizardStateReturn;
   mealType?: string;
+  catalog?: BreakfastCatalog;
 }
 
-export default function StepExtras({ wiz, mealType = 'breakfast' }: StepExtrasProps) {
+export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: StepExtrasProps) {
   const {
     state,
     addWarmDish,
@@ -22,12 +20,19 @@ export default function StepExtras({ wiz, mealType = 'breakfast' }: StepExtrasPr
     removeExtraIngredient,
   } = wiz;
 
-  const [showRecipeSearch, setShowRecipeSearch] = useState(false);
+  const [showIngredientSearch, setShowIngredientSearch] = useState(false);
+  const [showAvailableDishes, setShowAvailableDishes] = useState(false);
 
   const extraEntries = Object.entries(state.extraIngredients).map(([id, g]) => ({
     id: Number(id),
     gramsPerPerson: g,
   }));
+
+  const availableWarmDishes = catalog?.warm_meal_recipes ?? [];
+  const selectedWarmDishIds = state.warmDishRecipeIds;
+  const unselectedWarmDishes = availableWarmDishes.filter(
+    (r) => !selectedWarmDishIds.includes(r.id),
+  );
 
   return (
     <div className="space-y-6">
@@ -36,36 +41,75 @@ export default function StepExtras({ wiz, mealType = 'breakfast' }: StepExtrasPr
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-display font-semibold text-base">Warme Gerichte</h3>
-            <p className="text-xs text-muted-foreground">Rührei, Pfannkuchen etc. (optional)</p>
+            <p className="text-xs text-muted-foreground">Rezepte als warme Komponente (optional)</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowRecipeSearch(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Gericht
-          </button>
+          {unselectedWarmDishes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAvailableDishes(!showAvailableDishes)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              {showAvailableDishes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              Verfügbare
+            </button>
+          )}
         </div>
 
-        {state.warmDishRecipeIds.length === 0 ? (
+        {selectedWarmDishIds.length === 0 && !showAvailableDishes ? (
           <p className="text-sm text-muted-foreground py-2">Keine warmen Gerichte geplant.</p>
-        ) : (
+        ) : null}
+
+        {/* Selected warm dishes */}
+        {selectedWarmDishIds.length > 0 && (
           <div className="divide-y divide-border">
-            {state.warmDishRecipeIds.map((id) => (
-              <div key={id} className="py-2 flex items-center gap-3">
-                <span className="flex-1 text-sm font-medium">Rezept #{id}</span>
-                <FactorInput
-                  value={state.warmDishFactors[String(id)] ?? 1.0}
-                  onChange={(f) => setWarmDishFactor(id, f)}
-                />
+            {selectedWarmDishIds.map((recipeId) => {
+              const recipe = availableWarmDishes.find((r) => r.id === recipeId);
+              const factor = state.warmDishFactors[String(recipeId)] ?? 1;
+              const name = state.warmDishRecipeNames[String(recipeId)] || recipe?.title || `Rezept #${recipeId}`;
+              return (
+                <div key={recipeId} className="py-2 flex items-center gap-3">
+                  <span className="flex-1 text-sm font-medium">{name}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">×</span>
+                    <input
+                      type="number"
+                      min={0.1}
+                      step={0.5}
+                      value={factor}
+                      onChange={(e) => setWarmDishFactor(recipeId, Math.max(0.1, Number(e.target.value)))}
+                      className="w-16 rounded border px-2 py-1 text-sm text-right"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeWarmDish(recipeId)}
+                    className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                    title="Entfernen"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Available warm dishes to add */}
+        {showAvailableDishes && unselectedWarmDishes.length > 0 && (
+          <div className="divide-y divide-border border-t border-border pt-2">
+            {unselectedWarmDishes.map((recipe) => (
+              <div key={recipe.id} className="py-2 flex items-center gap-3">
+                <span className="flex-1 text-sm">{recipe.title}</span>
                 <button
                   type="button"
-                  onClick={() => removeWarmDish(id)}
-                  className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
-                  title="Entfernen"
+                  onClick={() => {
+                    addWarmDish(recipe.id, recipe.title);
+                    setWarmDishFactor(recipe.id, 1);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
+                  Hinzufügen
                 </button>
               </div>
             ))}
@@ -73,7 +117,6 @@ export default function StepExtras({ wiz, mealType = 'breakfast' }: StepExtrasPr
         )}
       </div>
 
-      {/* Gemüse / Standalone Zutaten */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -82,7 +125,7 @@ export default function StepExtras({ wiz, mealType = 'breakfast' }: StepExtrasPr
           </div>
           <button
             type="button"
-            onClick={() => setShowRecipeSearch(true)}
+            onClick={() => setShowIngredientSearch(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -96,7 +139,7 @@ export default function StepExtras({ wiz, mealType = 'breakfast' }: StepExtrasPr
           <div className="divide-y divide-border">
             {extraEntries.map(({ id, gramsPerPerson }) => (
               <div key={id} className="py-2 flex items-center gap-3">
-                <span className="flex-1 text-sm font-medium">Zutat #{id}</span>
+                <span className="flex-1 text-sm font-medium">{state.extraIngredientNames[String(id)] ?? `Zutat #${id}`}</span>
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
@@ -122,18 +165,14 @@ export default function StepExtras({ wiz, mealType = 'breakfast' }: StepExtrasPr
         )}
       </div>
 
-      {/* Recipe search dialog (shared for warm dishes + ingredients) */}
       <RecipeSearchDialog
         mealType={mealType}
-        open={showRecipeSearch}
-        onOpenChange={setShowRecipeSearch}
-        onSelect={(recipeId) => {
-          addWarmDish(recipeId);
-          setShowRecipeSearch(false);
-        }}
-        onSelectIngredient={(ingredientId, _portionId, _measuringUnitId, quantity) => {
-          setExtraIngredient(ingredientId, quantity);
-          setShowRecipeSearch(false);
+        open={showIngredientSearch}
+        onOpenChange={setShowIngredientSearch}
+        ingredientOnly
+        onSelectIngredient={(ingredientId, _portionId, _measuringUnitId, quantity, ingredientName) => {
+          setExtraIngredient(ingredientId, quantity, ingredientName);
+          setShowIngredientSearch(false);
         }}
       />
     </div>

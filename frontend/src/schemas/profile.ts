@@ -9,6 +9,7 @@ import { NutritionalTagSchema } from './supply';
 
 export const UserProfileSchema = z.object({
   id: z.number(),
+  slug: z.string().nullable(),
   scout_name: z.string(),
   first_name: z.string(),
   last_name: z.string(),
@@ -16,7 +17,7 @@ export const UserProfileSchema = z.object({
   birthday: z.string().nullable(),
   about_me: z.string(),
   nutritional_tags: z.array(NutritionalTagSchema),
-  profile_picture_url: z.string().nullable().optional(),
+  profile_picture_url: z.string().nullable(),
   is_public: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),

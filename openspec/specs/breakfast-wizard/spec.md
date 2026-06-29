@@ -150,15 +150,28 @@ Das System SHALL beim Normalisieren auf das Soll Basis-BE, Belag-Portionen und G
 
 ### Requirement: Abschluss-Cockpit und Speichern
 
-Das System SHALL vor dem Speichern ein Cockpit mit allen Doppelchecks und einer vollständigen Transparenz-Tabelle anzeigen. Die Tabelle MUSS alle vier Komponentengruppen enthalten: Basis, Belag, warme Gerichte/Extras und Getränke — jeweils mit Position, Menge pro Person, kcal pro Person und prozentualem Anteil am Gesamt. Die Energieberechnung MUSS kcal aus allen Komponentengruppen summieren (nicht nur Basis und Belag). Die Hochrechnung (× Personen × Tage) sowie die Reste-Tabelle für Belag-Packungen bleiben erhalten.
+Das System SHALL vor dem Speichern ein Cockpit mit allen Doppelchecks und einer vollständigen Transparenz-Tabelle anzeigen. Die Tabelle MUSS alle vier Komponentengruppen enthalten: Basis, Belag, warme Gerichte/Extras und Getränke — jeweils mit Position, **Portionsmenge pro Person** (nicht Gramm), kcal pro Person und prozentualem Anteil am Gesamt (ohne Getränke).
+
+Brot-Items SHALL als `×{bePerPerson × sharePercent/100} Scheibe` angezeigt werden.
+Belag-Items SHALL als `×{bePerPerson × sharePercent/totalShare} Portion` angezeigt werden.
+
+Nach jeder Kategorie (Brot, Belag) SHALL eine Summenzeile stehen (z.B. "Brote gesamt: ×4,0 Scheiben").
+
+Der Begriff "BE" oder "Broteinheit" darf in der gesamten Cockpit-Anzeige nicht vorkommen.
+
+Die Energieberechnung MUSS kcal aus allen Komponentengruppen summieren (nicht nur Basis und Belag). Die Hochrechnung (× Personen × Tage) sowie die Reste-Tabelle für Belag-Packungen bleiben erhalten.
 
 Getränke werden als `recipe_id`-basierte Items (mit `recipe_type="drink"`) gespeichert, nicht als `display_name`-Items. Bei Bestätigung im RefMeal-Mode SHALL ein RefMeal erstellt und die Zusammenstellung als dessen MealItems gespeichert werden. Bei Bestätigung im DirectMeal-Mode SHALL die Zusammenstellung direkt als MealItems des Ziel-Meals gespeichert werden (bestehende Items werden ersetzt).
 
 Zutaten-Items (Basis, Belag, Extras) MÜSSEN mit `measuring_unit_id` der Einheit "Gramm" gespeichert werden, damit das Backend die Energie/Kosten korrekt berechnen kann.
 
-#### Scenario: Cockpit-Tabelle zeigt alle Komponentengruppen
-- **WHEN** der Nutzer im Cockpit ist und Getränke (Kaffee, Kakao, Tee, Milch), warme Gerichte und Extras konfiguriert hat
-- **THEN** zeigt die Transparenz-Tabelle Zeilen für Basis-Sorten, Belag-Sorten, warme Gerichte, Extras-Zutaten und Getränke mit ihren jeweiligen Mengen, kcal und Prozent-Anteilen
+#### Scenario: Cockpit zeigt Portionen statt Gramm
+- **WHEN** Brot mit bePerPerson=4, sharePercent=66% konfiguriert ist
+- **THEN** zeigt die Tabelle "×2,64 Scheibe" statt "175g"
+
+#### Scenario: Summenzeile nach Brot-Gruppe
+- **WHEN** zwei Brote mit 2,5 und 1,5 Scheiben
+- **THEN** erscheint "Brote gesamt: 4,0 Scheiben" als letzte Zeile der Brot-Gruppe
 
 #### Scenario: Energieberechnung summiert alle Komponenten
 - **WHEN** Basis 200 kcal, Belag 150 kcal und Getränke (Kakao+Milch) 80 kcal pro Person ergeben

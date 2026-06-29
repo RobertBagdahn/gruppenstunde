@@ -130,7 +130,10 @@ async function saveWizardRefMeal(payload: SaveWizardPayload): Promise<RefMeal> {
       },
       body: JSON.stringify({ items }),
     });
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`API error ${res.status}: ${body}`);
+    }
     return RefMealSchema.parse(await res.json());
   } else {
     // Create new RefMeal for breakfast
@@ -143,7 +146,10 @@ async function saveWizardRefMeal(payload: SaveWizardPayload): Promise<RefMeal> {
       },
       body: JSON.stringify({ meal_type: 'breakfast', items }),
     });
-    if (!createRes.ok) throw new Error(`API error: ${createRes.status}`);
+    if (!createRes.ok) {
+      const body = await createRes.text();
+      throw new Error(`API error ${createRes.status}: ${body}`);
+    }
     return RefMealSchema.parse(await createRes.json());
   }
 }
@@ -181,7 +187,10 @@ async function saveWizardDirectMeal(payload: SaveDirectMealPayload): Promise<Wiz
     },
     body: JSON.stringify({ items }),
   });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`API error ${res.status}: ${body}`);
+  }
   return WizardItemsResponseSchema.parse(await res.json());
 }
 

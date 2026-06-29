@@ -100,23 +100,28 @@ export function useWizardState(initialState?: Partial<WizardState>) {
 
   // ── Extras actions ─────────────────────────────────────────────────────────
 
-  const addWarmDish = useCallback((recipeId: number) => {
+  const addWarmDish = useCallback((recipeId: number, name?: string) => {
     setState((s) => ({
       ...s,
       warmDishRecipeIds: s.warmDishRecipeIds.includes(recipeId)
         ? s.warmDishRecipeIds
         : [...s.warmDishRecipeIds, recipeId],
       warmDishFactors: { ...s.warmDishFactors, [String(recipeId)]: s.warmDishFactors[String(recipeId)] ?? 1.0 },
+      warmDishRecipeNames: name
+        ? { ...s.warmDishRecipeNames, [String(recipeId)]: name }
+        : s.warmDishRecipeNames,
     }));
   }, []);
 
   const removeWarmDish = useCallback((recipeId: number) => {
     setState((s) => {
-      const { [String(recipeId)]: _removed, ...rest } = s.warmDishFactors;
+      const { [String(recipeId)]: _removedFactor, ...restFactors } = s.warmDishFactors;
+      const { [String(recipeId)]: _removedName, ...restNames } = s.warmDishRecipeNames;
       return {
         ...s,
         warmDishRecipeIds: s.warmDishRecipeIds.filter((id) => id !== recipeId),
-        warmDishFactors: rest,
+        warmDishFactors: restFactors,
+        warmDishRecipeNames: restNames,
       };
     });
   }, []);
@@ -128,10 +133,13 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     }));
   }, []);
 
-  const setExtraIngredient = useCallback((ingredientId: number, gramsPerPerson: number) => {
+  const setExtraIngredient = useCallback((ingredientId: number, gramsPerPerson: number, name?: string) => {
     setState((s) => ({
       ...s,
       extraIngredients: { ...s.extraIngredients, [String(ingredientId)]: gramsPerPerson },
+      extraIngredientNames: name
+        ? { ...s.extraIngredientNames, [String(ingredientId)]: name }
+        : s.extraIngredientNames,
     }));
   }, []);
 

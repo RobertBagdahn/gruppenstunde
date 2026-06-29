@@ -278,6 +278,8 @@ class TestIngredientCreate:
 @pytest.mark.django_db
 class TestIngredientUpdate:
     def test_update_ingredient(self, auth_client, ingredient):
+        ingredient.created_by = auth_client._user
+        ingredient.save()
         resp = auth_client.patch(
             f"/api/ingredients/{ingredient.slug}/",
             data=json.dumps({"name": "Weizenmehl Typ 405"}),
@@ -334,7 +336,7 @@ class TestMeasuringUnits:
 @pytest.mark.django_db
 class TestNutritionalTags:
     def test_list_nutritional_tags(self, api_client, nutritional_tag):
-        resp = api_client.get("/api/supplies/nutritional-tags/")
+        resp = api_client.get("/api/nutritional-tags/")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) >= 1

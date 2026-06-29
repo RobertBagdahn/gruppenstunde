@@ -1,58 +1,64 @@
-"""Tests for RecipeTypeStats: signal/service + API endpoint."""
+"""Tests for RecipeTypeStats: service + API endpoint."""
 
 import pytest
 from django.test import Client
 
 from content.choices import ContentStatus
 from recipe.models import RecipeTypeStats
+from recipe.services.type_stats_service import recalculate_type_stats
 from recipe.tests import make_recipe
 
 
 @pytest.mark.django_db
 class TestRecipeTypeStatsService:
-    def test_signal_creates_stats_on_save(self):
-        make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
-        for _ in range(9):
+    def test_creates_stats_on_10_recipes(self):
+        for _ in range(10):
             make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
+        recalculate_type_stats("warm_meal")
 
         stats = RecipeTypeStats.objects.filter(recipe_type="warm_meal").first()
         assert stats is not None
         assert stats.count >= 10
 
-    def test_signal_skips_fewer_than_10(self):
+    def test_skips_fewer_than_10(self):
         for _ in range(5):
             make_recipe(recipe_type="breakfast", status=ContentStatus.APPROVED, portions=4)
+        recalculate_type_stats("breakfast")
 
         stats = RecipeTypeStats.objects.filter(recipe_type="breakfast").first()
         assert stats is None
 
-    def test_signal_excludes_draft_recipes(self):
+    def test_excludes_draft_recipes(self):
         for _ in range(10):
             make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
         make_recipe(recipe_type="warm_meal", status=ContentStatus.DRAFT, portions=4)
+        recalculate_type_stats("warm_meal")
 
         stats = RecipeTypeStats.objects.get(recipe_type="warm_meal")
         assert stats.count == 10
 
-    def test_signal_excludes_recipes_without_portions(self):
+    def test_excludes_recipes_without_portions(self):
         for _ in range(10):
             make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
         make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=None)
+        recalculate_type_stats("warm_meal")
 
         stats = RecipeTypeStats.objects.get(recipe_type="warm_meal")
         assert stats.count == 10
 
-    def test_signal_recalculates_on_status_change(self, db):
+    def test_recalculates_on_status_change(self, db):
         for _ in range(9):
             make_recipe(recipe_type="dessert", status=ContentStatus.APPROVED, portions=4)
         draft = make_recipe(recipe_type="dessert", status=ContentStatus.DRAFT, portions=4)
+        recalculate_type_stats("dessert")
 
-        # No stats yet (<10)
+        # No stats yet (<10 approved)
         assert RecipeTypeStats.objects.filter(recipe_type="dessert").count() == 0
 
         # Publish the draft
         draft.status = ContentStatus.APPROVED
         draft.save()
+        recalculate_type_stats("dessert")
 
         stats = RecipeTypeStats.objects.get(recipe_type="dessert")
         assert stats.count == 10
@@ -62,12 +68,14 @@ class TestRecipeTypeStatsService:
         for _ in range(11):
             r = make_recipe(recipe_type="cold_meal", status=ContentStatus.APPROVED, portions=4)
             recipes.append(r)
+        recalculate_type_stats("cold_meal")
 
         stats = RecipeTypeStats.objects.get(recipe_type="cold_meal")
         assert stats.count == 11
 
         # Delete one recipe
         recipes[0].delete()
+        recalculate_type_stats("cold_meal")
 
         stats = RecipeTypeStats.objects.get(recipe_type="cold_meal")
         assert stats.count == 10
@@ -77,10 +85,12 @@ class TestRecipeTypeStatsService:
         for _ in range(10):
             r = make_recipe(recipe_type="recipe_part", status=ContentStatus.APPROVED, portions=4)
             recipes.append(r)
+        recalculate_type_stats("recipe_part")
 
         assert RecipeTypeStats.objects.filter(recipe_type="recipe_part").exists()
 
         recipes[0].delete()
+        recalculate_type_stats("recipe_part")
 
         assert not RecipeTypeStats.objects.filter(recipe_type="recipe_part").exists()
 
@@ -90,6 +100,7 @@ class TestRecipeTypeStatsAPI:
     def test_get_stats_returns_correct_structure(self):
         for _ in range(10):
             make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
+        recalculate_type_stats("warm_meal")
 
         client = Client()
         response = client.get("/api/recipes/type-stats/warm_meal/")
@@ -106,6 +117,7 @@ class TestRecipeTypeStatsAPI:
     def test_get_stats_without_10_returns_404(self):
         for _ in range(3):
             make_recipe(recipe_type="breakfast", status=ContentStatus.APPROVED, portions=4)
+        recalculate_type_stats("breakfast")
 
         client = Client()
         response = client.get("/api/recipes/type-stats/breakfast/")
@@ -115,6 +127,7 @@ class TestRecipeTypeStatsAPI:
         """Test that API response includes histogram buckets."""
         for _ in range(10):
             make_recipe(recipe_type="warm_meal", status=ContentStatus.APPROVED, portions=4)
+        recalculate_type_stats("warm_meal")
 
         client = Client()
         response = client.get("/api/recipes/type-stats/warm_meal/")

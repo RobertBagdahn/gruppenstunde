@@ -195,10 +195,14 @@ def generate_shopping_list(
             # Direct ingredient case — use batch-loaded portion lookup
             portion = portion_lookup.get((ing.id, mi.measuring_unit_id)) if mi.measuring_unit_id else None
 
-            portion_weight = portion.weight_g if portion else None
-            if not portion_weight and mi.measuring_unit:
-                if mi.measuring_unit.unit == "g":
+            portion_weight = None
+            if mi.measuring_unit:
+                unit_unit = (mi.measuring_unit.unit or "").lower()
+                unit_name = (mi.measuring_unit.name or "").lower()
+                if unit_unit == "g" or unit_name == "g":
                     portion_weight = mi.measuring_unit.quantity
+            if portion_weight is None and portion:
+                portion_weight = portion.weight_g if portion else None
 
             if portion_weight:
                 weight_g = float(mi.quantity or 0) * portion_weight * mi.factor * meal_scaling

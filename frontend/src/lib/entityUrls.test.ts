@@ -12,11 +12,11 @@ import { getEntityUrl, type EntityType } from './entityUrls';
 // ---------------------------------------------------------------------------
 
 describe('getEntityUrl — slug-based types', () => {
-  it('resolves recipe to /sessions/:slug', () => {
+  it('resolves session to /sessions/:slug', () => {
     expect(getEntityUrl('session', { slug: 'apfelmus' })).toBe('/sessions/apfelmus');
   });
 
-  it('resolves ingredient to /materials/:slug', () => {
+  it('resolves material to /materials/:slug', () => {
     expect(getEntityUrl('material', { slug: 'kartoffel' })).toBe('/materials/kartoffel');
   });
 

@@ -19,7 +19,6 @@ import StepCockpit from './StepCockpit';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import type { WizardItemIn } from '@/api/breakfast';
-import { toppingGramsPerPerson } from '@/lib/breakfastCalc';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
 
 export default function BreakfastWizardPage() {
@@ -72,31 +71,60 @@ export default function BreakfastWizardPage() {
     return map;
   }, [drinkRecipes]);
 
+  /**
+   * Build the list of items to save.
+   *
+   * New storage model (per-person portions, no normPortions in items):
+   * - quantity = BE count per person (sharePercent/100 × bePerPerson) in PORTIONS
+   * - measuring_unit = portion-based unit (Scheibe, Portion, Tasse, Schuss)
+   * - factor = 1.0 (always — backend multiplies by effectivePortions)
+   */
   function buildItems(): WizardItemIn[] {
-    const items: WizardItemIn[] = [];
     const gramUnitId = catalog?.gram_measuring_unit_id ?? null;
     const mlUnitId = catalog?.ml_measuring_unit_id ?? null;
+    const scheibeUnitId = catalog?.scheibe_measuring_unit_id ?? gramUnitId;
+    const portionUnitId = catalog?.portion_measuring_unit_id ?? gramUnitId;
+    const tasseUnitId = catalog?.tasse_measuring_unit_id ?? mlUnitId;
+    const schussUnitId = catalog?.schuss_measuring_unit_id ?? mlUnitId;
 
+    // Accumulate ingredient items in grams for dedup
+    const ingGrams: Record<number, number> = {};
+    const items: WizardItemIn[] = [];
+
+    // ── Basis (bread) ──
     for (const b of state.basis.filter((b) => b.sharePercent > 0)) {
       const beCount = state.bePerPerson * (b.sharePercent / 100);
       if (beCount <= 0) continue;
+      const grams = beCount * b.sliceWeightG;
+      ingGrams[b.ingredientId] = (ingGrams[b.ingredientId] ?? 0) + grams;
       items.push({
         ingredient_id: b.ingredientId,
-        quantity: Math.round(b.sliceWeightG * beCount * normPortions),
-        measuring_unit_id: gramUnitId,
+        quantity: beCount,
+        measuring_unit_id: scheibeUnitId,
+        factor: 1.0,
       });
     }
 
+    // ── Belag (toppings) ──
+    const totalToppingShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
     for (const t of state.toppings.filter((t) => t.sharePercent > 0)) {
-      const grams = toppingGramsPerPerson(state.bePerPerson, t, state.globalIntensity, state.toppings);
-      if (grams <= 0) continue;
+      if (totalToppingShare <= 0) continue;
+      const beForTopping = state.bePerPerson * (t.sharePercent / totalToppingShare);
+      if (beForTopping <= 0) continue;
+      const intensityName = { knapp: 'Belag knapp', normal: 'Belag normal', üppig: 'Belag üppig' }[state.globalIntensity];
+      const portion = t.portions.find((p) => p.name === intensityName);
+      const portionWeight = portion?.weight_g ?? 0;
+      const grams = beForTopping * portionWeight;
+      ingGrams[t.ingredientId] = (ingGrams[t.ingredientId] ?? 0) + grams;
       items.push({
         ingredient_id: t.ingredientId,
-        quantity: Math.round(grams * normPortions),
-        measuring_unit_id: gramUnitId,
+        quantity: beForTopping,
+        measuring_unit_id: portion?.measuring_unit_id ?? portionUnitId,
+        factor: 1.0,
       });
     }
 
+    // ── Warme Gerichte ──
     for (const recipeId of state.warmDishRecipeIds) {
       items.push({
         recipe_id: recipeId,
@@ -104,59 +132,111 @@ export default function BreakfastWizardPage() {
       });
     }
 
+    // ── Extras (vegetables, garnish) — may overlap with basis/topping ──
     for (const [ingId, grams] of Object.entries(state.extraIngredients)) {
       if (grams <= 0) continue;
-      items.push({
-        ingredient_id: Number(ingId),
-        quantity: Math.round(grams * normPortions),
-        measuring_unit_id: gramUnitId,
-      });
+      const id = Number(ingId);
+      ingGrams[id] = (ingGrams[id] ?? 0) + grams;
     }
 
+    // ── Getränke (drinks) ──
     const drinks = state.drinks;
     const drinkConfigs: { percent: number; drinkName: string }[] = [
       { percent: drinks.coffeePercent, drinkName: 'Kaffee' },
       { percent: drinks.cocoaPercent, drinkName: 'Kakao' },
       { percent: drinks.teaPercent, drinkName: 'Tee' },
     ];
+    const tasseMl = 200;
     for (const cfg of drinkConfigs) {
       if (cfg.percent <= 0) continue;
-      const totalMl = Math.round(drinks.mlPerPerson * (cfg.percent / 100) * normPortions);
+      const mlPerPerson = drinks.mlPerPerson * (cfg.percent / 100);
+      const tassenCount = mlPerPerson / tasseMl;
+      const totalMl = Math.round(mlPerPerson * normPortions);
       const recipeId = drinkNameToId[cfg.drinkName];
       if (recipeId) {
-        items.push({ recipe_id: recipeId, quantity: totalMl, measuring_unit_id: mlUnitId, factor: 1.0 });
+        items.push({
+          recipe_id: recipeId,
+          quantity: parseFloat(tassenCount.toFixed(2)),
+          measuring_unit_id: tasseUnitId,
+          factor: 1.0,
+          display_name: `${cfg.drinkName} (${totalMl}ml)`,
+        });
       } else {
         toast.warning(`Kein Rezept für "${cfg.drinkName}" gefunden — wird als Text gespeichert.`);
-        items.push({ display_name: cfg.drinkName, quantity: totalMl, measuring_unit_id: mlUnitId });
-      }
-    }
-    const totalMilkMl = drinks.coffeeMilkMlPerPerson + drinks.cocoaMilkMlPerPerson;
-    if (totalMilkMl > 0) {
-      const milkRecipeId = drinkNameToId['Milch'];
-      const totalMilk = Math.round(totalMilkMl * normPortions);
-      if (milkRecipeId) {
-        items.push({ recipe_id: milkRecipeId, quantity: totalMilk, measuring_unit_id: mlUnitId, factor: 1.0 });
-      } else {
-        items.push({ display_name: 'Milch', quantity: totalMilk, measuring_unit_id: mlUnitId });
+        items.push({
+          display_name: cfg.drinkName,
+          quantity: totalMl,
+          measuring_unit_id: mlUnitId,
+        });
       }
     }
 
-    return items;
+    // ── Milch ──
+    const totalMilkMl = drinks.coffeeMilkMlPerPerson + drinks.cocoaMilkMlPerPerson;
+    if (totalMilkMl > 0) {
+      const schussCount = totalMilkMl / 30;
+      const totalMilk = Math.round(totalMilkMl * normPortions);
+      const milkRecipeId = drinkNameToId['Milch'];
+      if (milkRecipeId) {
+        items.push({
+          recipe_id: milkRecipeId,
+          quantity: parseFloat(schussCount.toFixed(2)),
+          measuring_unit_id: schussUnitId,
+          factor: 1.0,
+          display_name: `Milch (${totalMilk}ml)`,
+        });
+      } else {
+        items.push({
+          display_name: `Milch (${totalMilk}ml)`,
+          quantity: totalMilk,
+          measuring_unit_id: mlUnitId,
+        });
+      }
+    }
+
+    // ── Post-process: merge duplicate ingredients into grams ──
+    const mergedIds = new Set<number>();
+    const out: WizardItemIn[] = [];
+    for (const item of items) {
+      if (item.ingredient_id != null) {
+        if (mergedIds.has(item.ingredient_id)) continue;
+        mergedIds.add(item.ingredient_id);
+        out.push({
+          ingredient_id: item.ingredient_id,
+          quantity: Math.round(ingGrams[item.ingredient_id] * 10) / 10,
+          measuring_unit_id: gramUnitId,
+          factor: 1.0,
+        });
+      } else {
+        out.push(item);
+      }
+    }
+    return out;
   }
 
   async function handleSave() {
-    const items = buildItems();
+    try {
+      const items = buildItems();
 
-    if (saveMode === 'directMeal' && mealId != null) {
-      await saveWizardDirectMeal.mutateAsync({ planId, mealId, items });
-      navigate(`/meal-plans/${planId}`);
-    } else {
-      await saveWizardRefMeal.mutateAsync({
-        planId,
-        refMealId: existingRefMeal?.id ?? null,
-        items,
-      });
-      navigate(`/meal-plans/${planId}/ref-meals/breakfast`);
+      if (items.length === 0) {
+        toast.error('Keine Artikel zum Speichern vorhanden.');
+        return;
+      }
+
+      if (saveMode === 'directMeal' && mealId != null) {
+        await saveWizardDirectMeal.mutateAsync({ planId, mealId, items });
+        navigate(`/meal-plans/${planId}`);
+      } else {
+        await saveWizardRefMeal.mutateAsync({
+          planId,
+          refMealId: existingRefMeal?.id ?? null,
+          items,
+        });
+        navigate(`/meal-plans/${planId}/ref-meals/breakfast`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler';
+      toast.error(`Speichern fehlgeschlagen: ${msg}`);
     }
   }
 
@@ -212,11 +292,12 @@ export default function BreakfastWizardPage() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {step === 'basis' && <StepBasis wiz={wiz} />}
         {step === 'belag' && <StepBelag wiz={wiz} />}
-        {step === 'extras' && <StepExtras wiz={wiz} />}
+        {step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
         {step === 'getraenke' && <StepGetraenke wiz={wiz} />}
         {step === 'cockpit' && (
           <StepCockpit
             wiz={wiz}
+            catalog={catalog}
             normPortions={normPortions}
             days={days}
             dayPartFactor={dayPartFactor}

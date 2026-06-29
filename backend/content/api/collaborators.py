@@ -2,7 +2,7 @@
 
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
-from ninja import Router, Schema
+from ninja import Router
 from ninja.errors import HttpError
 
 from content.api.helpers import (
@@ -10,37 +10,13 @@ from content.api.helpers import (
     _require_auth,
 )
 from content.models import ContentCollaborator, ContentCollaboratorRole
+from content.schemas.collaborator import (
+    ContentCollaboratorIn,
+    ContentCollaboratorOut,
+    ContentCollaboratorUpdateIn,
+)
 
 router = Router(tags=["content-collaborators"])
-
-
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
-
-class ContentCollaboratorIn(Schema):
-    content_type_app: str
-    content_type_model: str
-    object_id: int
-    user_id: int | None = None
-    group_id: int | None = None
-    role: str = "viewer"
-
-
-class ContentCollaboratorOut(Schema):
-    id: int
-    user_id: int | None = None
-    user_display_name: str | None = None
-    group_id: int | None = None
-    group_name: str | None = None
-    role: str
-    created_by_id: int | None = None
-    created_at: str
-
-
-class ContentCollaboratorUpdateIn(Schema):
-    role: str
 
 
 # ---------------------------------------------------------------------------

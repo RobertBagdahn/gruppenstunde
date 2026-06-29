@@ -4,7 +4,8 @@ import { ShieldCheck, ShieldAlert, AlertTriangle, Settings, ChevronDown, Chevron
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import { EntityLink } from '@/components/shared/EntityLink';
-import { type NutritionalTag, type NutritionalTagViolation } from '@/schemas/mealPlan';
+import { type NutritionalTag } from '@/schemas/supply';
+import { type NutritionalTagViolation } from '@/schemas/mealPlan';
 
 interface IngredientScanViewProps {
   mealPlanId: number;

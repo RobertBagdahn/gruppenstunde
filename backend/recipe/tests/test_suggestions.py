@@ -139,7 +139,7 @@ class TestGetSuggestions:
     @patch("recipe.services.suggestion_service.gemini_call")
     def test_returns_empty_when_no_client(self, mock_gemini_call, recipe_with_items, user):
         """When gemini_call() returns None → empty list."""
-        mock_gemini_call.return_value = None
+        mock_gemini_call.return_value = (None, None)
 
         result = get_suggestions(recipe_with_items, "mehr Protein", user)
         assert result == []
@@ -157,7 +157,7 @@ class TestGetSuggestions:
     @patch("recipe.services.suggestion_service.gemini_call")
     def test_calls_gemini_and_caches(self, mock_gemini_call, recipe_with_items, user):
         """Mock gemini_call returns structured JSON → suggestions returned and cached."""
-        mock_gemini_call.return_value = _mock_gemini_response()
+        mock_gemini_call.return_value = (_mock_gemini_response(), 1)
 
         objective = "mehr Ballaststoffe"
         result = get_suggestions(recipe_with_items, objective, user)

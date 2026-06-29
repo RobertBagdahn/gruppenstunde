@@ -33,6 +33,9 @@ import NovaProcessingTab from './tabs/NovaProcessingTab';
 // Outlier tab
 import OutlierDetectorTab from './tabs/OutlierDetectorTab';
 
+// Comparison tab
+import ComparisonTab from './tabs/ComparisonTab';
+
 type TabConfig = {
   id: string;
   label: string;
@@ -67,6 +70,9 @@ const TABS: TabConfig[] = [
   { id: 'nova-processing', label: 'NOVA-Grad', category: 'score', Component: NovaProcessingTab },
   // Outliers
   { id: 'outlier-detector', label: 'Ausreißer-Detektor', category: 'outlier', Component: OutlierDetectorTab },
+
+  // Comparison
+  { id: 'comparison', label: 'Vergleich', category: 'comparison', Component: ComparisonTab },
 ];
 
 const DEFAULT_TAB = 'sugar-extremes';
@@ -125,6 +131,7 @@ export default function IngredientStatisticsPage() {
           {activeTab.category === 'tag-list' && 'Tag-Liste'}
           {activeTab.category === 'score' && 'Score-Analyse'}
           {activeTab.category === 'outlier' && 'Ausreißer'}
+          {activeTab.category === 'comparison' && 'Vergleich'}
         </span>
       </div>
 

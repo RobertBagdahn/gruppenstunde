@@ -121,6 +121,10 @@ class BreakfastCatalogOut(Schema):
     warm_meal_recipes: list[WarmMealRecipeOut] = []
     gram_measuring_unit_id: int | None = None
     ml_measuring_unit_id: int | None = None
+    scheibe_measuring_unit_id: int | None = None
+    portion_measuring_unit_id: int | None = None
+    tasse_measuring_unit_id: int | None = None
+    schuss_measuring_unit_id: int | None = None
 
 
 # ============================================================================
@@ -229,6 +233,10 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
 
     gram_unit = MeasuringUnit.objects.filter(name="g").first()
     ml_unit = MeasuringUnit.objects.filter(name="ml").first()
+    scheibe_unit = MeasuringUnit.objects.filter(name="Scheibe").first()
+    portion_unit = MeasuringUnit.objects.filter(name="Portion").first()
+    tasse_unit = MeasuringUnit.objects.filter(name="Tasse (200ml)").first()
+    schuss_unit = MeasuringUnit.objects.filter(name="Schuss (30ml)").first()
 
     return {
         "base_ingredients": base_ingredients,
@@ -238,6 +246,10 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
         "warm_meal_recipes": warm_meal_recipes,
         "gram_measuring_unit_id": gram_unit.id if gram_unit else None,
         "ml_measuring_unit_id": ml_unit.id if ml_unit else None,
+        "scheibe_measuring_unit_id": scheibe_unit.id if scheibe_unit else None,
+        "portion_measuring_unit_id": portion_unit.id if portion_unit else None,
+        "tasse_measuring_unit_id": tasse_unit.id if tasse_unit else None,
+        "schuss_measuring_unit_id": schuss_unit.id if schuss_unit else None,
     }
 
 

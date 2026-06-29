@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 // Recipe pages
 import RecipeListPage from './pages/recipes/RecipeListPage';
 import MyRecipesPage from './pages/recipes/MyRecipesPage';
+import RecipeFoldersPage from './pages/recipes/RecipeFoldersPage';
 import CreateRecipePage from './pages/recipes/CreateRecipePage';
 import EditRecipePage from './pages/recipes/EditRecipePage';
 import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
@@ -83,6 +84,7 @@ export default function App() {
         {/* Recipes */}
         <Route path="/recipes" element={<RecipeListPage />} />
         <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
+        <Route path="/recipes/folders" element={<RecipeFoldersPage />} />
         <Route path="/recipes/import" element={<RecipeImportPage />} />
         <Route path="/recipes/new" element={<CreateRecipePage />} />
         <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
@@ -98,7 +100,7 @@ export default function App() {
         {/* Meal Plans */}
         <Route path="/meal-plans" element={<MealPlanLandingPage />} />
         <Route path="/meal-plans/app" element={<MealPlanListPage />} />
-        <Route path="/meal-plans/:id" element={<MealPlanDetailPage />} />
+        <Route path="/meal-plans/:id/*" element={<MealPlanDetailPage />} />
         <Route path="/meal-plans/:id/cooking-schedule" element={<CookingSchedulePage />} />
         <Route path="/meal-plans/:id/cooking-schedule/kitchen" element={<CookingScheduleKitchenPage />} />
         <Route path="/meal-plans/:id/ref-meals/:mealType" element={<RefMealEditorPage />} />

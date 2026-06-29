@@ -17,6 +17,7 @@ from event.schemas import (
     RegistrationOut,
 )
 from event.services.timeline import TimelineService
+from event.services.waitlist import WaitlistService
 
 from .events import event_router
 from .helpers import require_auth, require_event_manager
@@ -201,6 +202,9 @@ def remove_participant(request, event_slug: str, participant_id: int, payload: R
         registration.deleted_by = request.user
         registration.deleted_reason = reason
         registration.save()
+
+    # Notify waitlist that a spot opened up
+    WaitlistService.notify_next(event, participant.booking_option)
 
     return {"success": True, "message": "Teilnehmer entfernt"}
 

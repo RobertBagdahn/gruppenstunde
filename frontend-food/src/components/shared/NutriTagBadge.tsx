@@ -5,7 +5,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { type NutritionalTag } from '@/schemas/mealPlan';
+import { type NutritionalTag } from '@/schemas/supply';
 
 interface NutriTagBadgeProps {
   allergenTags?: NutritionalTag[];

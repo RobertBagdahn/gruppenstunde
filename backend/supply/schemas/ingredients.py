@@ -86,6 +86,7 @@ class IngredientListOut(Schema):
     retail_section_id: int | None
     retail_section_name: str | None = None
     quality_score: int | None = None
+    usage_count: int = 0
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
@@ -347,6 +348,7 @@ class PortionSuggestionOut(Schema):
 
     name: str
     weight_g: float
+    priority: int = 0
 
 
 class IngredientSuggestAllOut(Schema):

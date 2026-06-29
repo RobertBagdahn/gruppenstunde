@@ -219,9 +219,16 @@ export default function IngredientListPage() {
               setDeleteTarget(null);
               refetch();
             },
-            onError: (err) => {
-              toast.error('Fehler beim Loeschen', { description: err.message });
+            onError: (err: any) => {
               setDeleteTarget(null);
+              if (err.status === 409 && err.recipes?.length > 0) {
+                const recipeNames = err.recipes.map((r: any) => r.title).join(', ');
+                toast.error('Zutat wird noch verwendet', {
+                  description: `Entferne die Zutat zuerst aus folgenden Rezepten: ${recipeNames}`,
+                });
+              } else {
+                toast.error('Fehler beim Loeschen', { description: err.message });
+              }
             },
           });
         }}

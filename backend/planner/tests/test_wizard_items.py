@@ -211,9 +211,9 @@ class TestWizardItemsEndpoint:
         assert resp.status_code == 200, resp.content
         data = resp.json()
         item = data["items"][0]
-        # 250 kcal / 100g * 200g * 1.0 = 500 kcal
+        # 250 kcal / 100g * 200g * 1.0 * 10 effPortions = 5000 kcal
         assert item["energy_kcal"] is not None
-        assert item["energy_kcal"] == pytest.approx(500.0, rel=0.01)
+        assert item["energy_kcal"] == pytest.approx(5000.0, rel=0.01)
 
     def test_ingredient_energy_in_meal_total(self, client: Client):
         """Ingredient item energy contributes to the meal total."""
@@ -249,5 +249,5 @@ class TestWizardItemsEndpoint:
         assert detail_resp.status_code == 200
         detail = detail_resp.json()
         meal_data = next(m for m in detail["meals"] if m["id"] == meal.id)
-        # 250 kcal / 100g * 200g * 1.0 = 500 kcal
-        assert meal_data["total_energy_kcal"] == pytest.approx(500.0, rel=0.01)
+        # 250 kcal / 100g * 200g * 1.0 * 10 effPortions = 5000 kcal
+        assert meal_data["total_energy_kcal"] == pytest.approx(5000.0, rel=0.01)

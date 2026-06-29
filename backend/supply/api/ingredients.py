@@ -5,6 +5,7 @@ import math
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
 from ninja.errors import HttpError
@@ -58,7 +59,7 @@ def list_ingredients(
     nutritional_tag: int | None = None,
 ):
     """List ingredients with pagination, filters, and ordering."""
-    from django.db.models import F
+    from django.db.models import Count, F
 
     qs = Ingredient.objects.select_related("retail_section").all()
 
@@ -74,14 +75,20 @@ def list_ingredients(
     if nutritional_tag:
         qs = qs.filter(nutritional_tags__id=nutritional_tag)
 
+    qs = qs.annotate(usage_count=Count("portions__recipe_items", distinct=True))
+
     ordering_map = {
         "price_asc": F("price_per_kg").asc(nulls_last=True),
         "price_desc": F("price_per_kg").desc(nulls_last=True),
         "nutri_class_asc": F("nutri_class").asc(nulls_last=True),
         "energy_kcal_asc": F("energy_kcal").asc(nulls_last=True),
+        "popularity": "-usage_count",
     }
+
     if ordering in ordering_map:
         qs = qs.order_by(ordering_map[ordering])
+    else:
+        qs = qs.order_by("-usage_count")
 
     total = qs.count()
     total_pages = max(1, math.ceil(total / page_size))
@@ -234,8 +241,22 @@ def delete_ingredient(request, slug: str):
 
     from recipe.models import RecipeItem
 
-    if RecipeItem.objects.filter(ingredient=ingredient).exists():
-        raise HttpError(409, "Zutat wird in Rezepten verwendet und kann nicht gelöscht werden")
+    from recipe.models import Recipe
+
+    recipe_ids = list(
+        RecipeItem.objects.filter(portion__ingredient=ingredient)
+        .values_list("recipe_id", flat=True)
+        .distinct()
+    )
+    if recipe_ids:
+        recipes = list(Recipe.objects.filter(id__in=recipe_ids).values("id", "title", "slug"))
+        return JsonResponse(
+            {
+                "detail": "Zutat wird in Rezepten verwendet und kann nicht gelöscht werden",
+                "recipes": recipes,
+            },
+            status=409,
+        )
 
     ingredient.delete()
     return {"success": True}

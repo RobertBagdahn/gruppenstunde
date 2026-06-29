@@ -8,6 +8,7 @@ from django.contrib import admin
 
 from .models import (
     ApprovalLog,
+    ContentCollaborator,
     ContentComment,
     ContentEmotion,
     ContentLink,
@@ -231,3 +232,12 @@ class FeaturedContentAdmin(admin.ModelAdmin):
     ordering = ["-featured_from"]
     readonly_fields = ["created_by", "created_at"]
     search_fields = ["reason"]
+
+
+@admin.register(ContentCollaborator)
+class ContentCollaboratorAdmin(admin.ModelAdmin):
+    list_display = ["id", "content_type", "object_id", "user", "group", "role", "created_at"]
+    list_filter = ["role", "content_type", "created_at"]
+    ordering = ["-created_at"]
+    readonly_fields = ["content_type", "object_id", "user", "group", "role", "created_by", "created_at"]
+    search_fields = ["user__email", "group__name"]

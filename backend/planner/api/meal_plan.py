@@ -132,6 +132,24 @@ def _create_meal_item(**kwargs):
         raise HttpError(409, "Dieses Rezept oder diese Zutat ist bereits in dieser Mahlzeit enthalten")
 
 
+def _derive_portion_weight_g(ingredient, measuring_unit) -> float:
+    """Derive a sensible default weight_g for a Portion from ingredient data.
+
+    Falls back to standard_recipe_weight_g for base ingredients,
+    or 10g default if nothing available.
+    """
+    mu_name_lower = measuring_unit.name.lower()
+    if mu_name_lower == "scheibe" and ingredient.standard_recipe_weight_g:
+        return float(ingredient.standard_recipe_weight_g)
+    if "tasse" in mu_name_lower:
+        return 200.0
+    if "schuss" in mu_name_lower:
+        return 30.0
+    if ingredient.standard_recipe_weight_g:
+        return float(ingredient.standard_recipe_weight_g)
+    return 10.0
+
+
 def check_duplicates_in_input(items: list) -> dict[str, list[int]]:
     recipe_ids: list[int] = []
     ingredient_ids: list[int] = []
@@ -356,18 +374,42 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
         nutritional_tags_to_set = tags
 
     exclude_fields = {"nutritional_tag_ids"}
-    # is_template can only be set by admins
     if "is_template" in payload.dict(exclude_unset=True) and not request.user.is_staff:
         exclude_fields.add("is_template")
 
-    for field, value in payload.dict(exclude_unset=True, exclude=exclude_fields).items():
-        if field in ("start_datetime", "end_datetime") and value is not None and timezone.is_naive(value):
-            value = timezone.make_aware(value)
-        setattr(meal_plan, field, value)
-    meal_plan.save()
+    patch_data = payload.dict(exclude_unset=True, exclude=exclude_fields)
+    has_range_change = False
+    new_start = None
+    new_end = None
+
+    if "start_datetime" in patch_data or "end_datetime" in patch_data:
+        old_start = meal_plan.start_datetime
+        old_end = meal_plan.end_datetime
+        new_start_raw = patch_data.get("start_datetime", old_start)
+        new_end_raw = patch_data.get("end_datetime", old_end)
+        new_start = timezone.make_aware(new_start_raw) if timezone.is_naive(new_start_raw) else new_start_raw
+        new_end = timezone.make_aware(new_end_raw) if timezone.is_naive(new_end_raw) else new_end_raw
+        if old_start != new_start or old_end != new_end:
+            has_range_change = True
+
+    if has_range_change and new_start and new_end:
+        from planner.services.contiguity import smart_merge_days, validate_meal_plan_contiguity
+
+        smart_merge_days(meal_plan, new_start, new_end)
+    else:
+        for field, value in patch_data.items():
+            if field in ("start_datetime", "end_datetime") and value is not None and timezone.is_naive(value):
+                value = timezone.make_aware(value)
+            setattr(meal_plan, field, value)
+        meal_plan.save()
 
     if nutritional_tags_to_set is not None:
         meal_plan.nutritional_tags.set(nutritional_tags_to_set)
+
+    if has_range_change:
+        from planner.services.contiguity import validate_meal_plan_contiguity
+
+        validate_meal_plan_contiguity(meal_plan)
 
     return meal_plan
 
@@ -486,13 +528,30 @@ def add_day(request, meal_plan_id: int, payload: MealDayBulkCreateIn):
     if Meal.objects.filter(meal_plan=meal_plan, start_datetime__date=payload.date).exists():
         raise HttpError(400, "Dieser Tag existiert bereits im Essensplan")
 
+    # Auto-extend range if date is outside current range
+    if meal_plan.start_datetime and meal_plan.end_datetime:
+        if payload.date < meal_plan.start_datetime.date():
+            meal_plan.start_datetime = dt.datetime.combine(
+                payload.date, dt.time(0, 0)
+            ).replace(tzinfo=dt.timezone.utc)
+            meal_plan.save(update_fields=["start_datetime", "updated_at"])
+        elif payload.date > meal_plan.end_datetime.date():
+            meal_plan.end_datetime = dt.datetime.combine(
+                payload.date, dt.time(23, 59)
+            ).replace(tzinfo=dt.timezone.utc)
+            meal_plan.save(update_fields=["end_datetime", "updated_at"])
+
     meals = meal_plan.create_default_meals_for_date(payload.date)
+
+    from planner.services.contiguity import validate_meal_plan_contiguity
+
+    validate_meal_plan_contiguity(meal_plan)
     return meals
 
 
 @meal_plan_router.delete("/{meal_plan_id}/days/")
 def remove_day(request, meal_plan_id: int, date: dt.date):
-    """Remove all meals for a specific date."""
+    """Remove all meals for a specific date. Only edge days (first or last) can be deleted."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
@@ -501,7 +560,26 @@ def remove_day(request, meal_plan_id: int, date: dt.date):
     if not meals.exists():
         raise HttpError(404, "Keine Mahlzeiten für dieses Datum gefunden")
 
+    # Check if date is an edge day (first or last with meals)
+    if meal_plan.start_datetime and meal_plan.end_datetime:
+        existing_dates = list(
+            Meal.objects.filter(meal_plan=meal_plan)
+            .values_list("start_datetime__date", flat=True)
+            .distinct()
+            .order_by("start_datetime__date")
+        )
+        if date not in (existing_dates[0], existing_dates[-1]):
+            raise HttpError(
+                400,
+                "Dieser Tag liegt in der Mitte des Essensplans und kann nicht gelöscht werden",
+            )
+
     meals.delete()
+
+    from planner.services.contiguity import shrink_range_on_delete, validate_meal_plan_contiguity
+
+    shrink_range_on_delete(meal_plan, date)
+    validate_meal_plan_contiguity(meal_plan)
     return {"success": True}
 
 
@@ -689,6 +767,23 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
 
                 ingredient = get_object_or_404(Ingredient, id=item_in.ingredient_id)
 
+            # Auto-create Portion if it doesn't exist for this ingredient + measuring_unit
+            if ingredient and item_in.measuring_unit_id:
+                from supply.models import MeasuringUnit as MU
+                mu = MU.objects.filter(id=item_in.measuring_unit_id).first()
+                if mu and not ingredient.portions.filter(measuring_unit=mu).exists():
+                    weight_g = _derive_portion_weight_g(ingredient, mu)
+                    from supply.models import Portion as PT
+                    PT.objects.get_or_create(
+                        ingredient=ingredient,
+                        measuring_unit=mu,
+                        defaults={
+                            "name": mu.name,
+                            "quantity": 1,
+                            "weight_g": weight_g,
+                        },
+                    )
+
             created_items.append(
                 _create_meal_item(
                     meal=meal,
@@ -780,6 +875,9 @@ def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItem
     if payload.factor is not None:
         item.factor = payload.factor
         item.save(update_fields=["factor"])
+    if payload.quantity is not None:
+        item.quantity = payload.quantity
+        item.save(update_fields=["quantity"])
     return item
 
 
@@ -1138,21 +1236,22 @@ def cost_summary(request, meal_plan_id: int):
                 ing = item.ingredient
                 total_ingredients += 1
 
-                from supply.models import Portion
-
-                portion = (
-                    Portion.objects.filter(
-                        ingredient=ing,
-                        measuring_unit=item.measuring_unit,
-                    ).first()
-                    if item.measuring_unit
-                    else None
-                )
-
-                portion_weight = portion.weight_g if portion else None
-                if not portion_weight and item.measuring_unit:
-                    if item.measuring_unit.unit == "g":
+                portion_weight = None
+                if item.measuring_unit:
+                    unit_unit = (item.measuring_unit.unit or "").lower()
+                    if unit_unit == "g":
                         portion_weight = item.measuring_unit.quantity
+
+                if portion_weight is None and item.measuring_unit:
+                    from supply.models import Portion
+
+                    portion = (
+                        Portion.objects.filter(
+                            ingredient=ing,
+                            measuring_unit=item.measuring_unit,
+                        ).first()
+                    )
+                    portion_weight = portion.weight_g if portion else None
 
                 if portion_weight and item.quantity:
                     weight_g = float(item.quantity) * float(portion_weight) * item.factor * float(effective_portions)
@@ -1631,6 +1730,7 @@ def search_recipes(
     if parsed_types == ["ingredient"]:
         recipes_data: list[dict] = []
         from supply.models import Ingredient, Portion
+        from supply.models.reference import NutritionalTag
 
         ing_qs = Ingredient.objects.filter(is_standalone_food=True)
 
@@ -1647,10 +1747,42 @@ def search_recipes(
             if exclude_tag_ids:
                 ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
-        ing_list = list(ing_qs.values("id", "name", "slug")[:limit])
+        ing_qs = ing_qs.annotate(usage_count=Count("portions__recipe_items", distinct=True))
+
+        ing_list = list(
+            ing_qs.values(
+                "id",
+                "name",
+                "slug",
+                "energy_kcal",
+                "protein_g",
+                "fat_g",
+                "carbohydrate_g",
+                "nutri_class",
+                "price_per_kg",
+                "usage_count",
+                "description",
+                "status",
+            )[:limit]
+        )
 
         if ing_list:
             ing_ids = [i["id"] for i in ing_list]
+
+            # Nutritional tags
+            through_model = Ingredient.nutritional_tags.through
+            through_rows = through_model.objects.filter(ingredient_id__in=ing_ids).values_list(
+                "ingredient_id", "nutritionaltag_id"
+            )
+            tag_ids_all = set(tid for _, tid in through_rows)
+            tags_map: dict[int, str] = {}
+            if tag_ids_all:
+                for tag in NutritionalTag.objects.filter(id__in=tag_ids_all).values("id", "name"):
+                    tags_map[tag["id"]] = tag["name"]
+            nutritional_tags_by_ing: dict[int, list[dict]] = {}
+            for iid, tid in through_rows:
+                nutritional_tags_by_ing.setdefault(iid, []).append({"id": tid, "name": tags_map.get(tid, "")})
+
             portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
                 "measuring_unit"
             )
@@ -1668,6 +1800,7 @@ def search_recipes(
                 )
             for ing in ing_list:
                 ing["portions"] = portions_by_ing.get(ing["id"], [])
+                ing["nutritional_tags"] = nutritional_tags_by_ing.get(ing["id"], [])
 
         return {"recipes": recipes_data, "ingredients": ing_list, "fallback_applied": False}
 
@@ -1810,11 +1943,46 @@ def search_recipes(
         if exclude_tag_ids:
             ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
-    ing_list = list(ing_qs.values("id", "name", "slug")[:limit])
+    ing_qs = ing_qs.annotate(usage_count=Count("portions__recipe_items", distinct=True))
 
-    # Attach portions to each ingredient
+    ing_list = list(
+        ing_qs.values(
+            "id",
+            "name",
+            "slug",
+            "energy_kcal",
+            "protein_g",
+            "fat_g",
+            "carbohydrate_g",
+            "nutri_class",
+            "price_per_kg",
+            "usage_count",
+            "description",
+            "status",
+        )[:limit]
+    )
+
+    # Attach portions + nutritional tags to each ingredient
     if ing_list:
         ing_ids = [i["id"] for i in ing_list]
+
+        # Nutritional tags (same approach as recipes above)
+        from supply.models.reference import NutritionalTag
+
+        through_model = Ingredient.nutritional_tags.through
+        through_rows = through_model.objects.filter(ingredient_id__in=ing_ids).values_list(
+            "ingredient_id", "nutritionaltag_id"
+        )
+        tag_ids_all = set(tid for _, tid in through_rows)
+        tags_map: dict[int, str] = {}
+        if tag_ids_all:
+            for tag in NutritionalTag.objects.filter(id__in=tag_ids_all).values("id", "name"):
+                tags_map[tag["id"]] = tag["name"]
+        nutritional_tags_by_ing: dict[int, list[dict]] = {}
+        for iid, tid in through_rows:
+            nutritional_tags_by_ing.setdefault(iid, []).append({"id": tid, "name": tags_map.get(tid, "")})
+
+        # Portions
         portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
             "measuring_unit"
         )
@@ -1832,6 +2000,7 @@ def search_recipes(
             )
         for ing in ing_list:
             ing["portions"] = portions_by_ing.get(ing["id"], [])
+            ing["nutritional_tags"] = nutritional_tags_by_ing.get(ing["id"], [])
 
     return {"recipes": recipes, "ingredients": ing_list, "fallback_applied": fallback_applied}
 

@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, NavLink } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
 import {
@@ -90,8 +90,20 @@ export default function MealPlanDetailPage() {
 
   const scaleMealMutation = useScaleMealToTarget(mealPlanId);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'ingredient-scan'>('plan');
+  const navigate = useNavigate();
+
+  const TAB_KEYS = ['plan', 'table', 'nutrition', 'costs', 'shopping', 'suggestions', 'ingredient-scan'] as const;
+  type TabKey = typeof TAB_KEYS[number];
+
+  const tabPath = useParams()['*'] || '';
+
+  useEffect(() => {
+    if (!tabPath) {
+      navigate(`/meal-plans/${mealPlanId}/plan`, { replace: true });
+    }
+  }, [tabPath, navigate, mealPlanId]);
+
+  const activeTab = (TAB_KEYS.includes(tabPath as TabKey) ? tabPath : 'plan') as TabKey;
 
   // Variant dialog state
   const [variantDialog, setVariantDialog] = useState<{
@@ -124,17 +136,24 @@ export default function MealPlanDetailPage() {
     return groupMealsByDate(plan.meals);
   }, [plan]);
 
-  // Reset to the default tab if the active tab is no longer available
-  // (e.g. the allergens tab when all nutritional tags were removed).
   useEffect(() => {
     if (activeTab === 'ingredient-scan' && !(plan?.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)) {
-      setActiveTab('plan');
+      navigate(`/meal-plans/${mealPlanId}/plan`, { replace: true });
     }
-  }, [activeTab, plan?.nutritional_tag_ids]);
+  }, [activeTab, plan?.nutritional_tag_ids, navigate, mealPlanId]);
 
   const handleUpdateItemFactor = useCallback((itemId: number, factor: number) => {
     updateMealItemMutation.mutate(
       { itemId, factor },
+      {
+        onError: (err: { message: string }) => toast.error('Fehler', { description: err.message }),
+      },
+    );
+  }, [updateMealItemMutation]);
+
+  const handleUpdateItemQuantity = useCallback((itemId: number, quantity: number) => {
+    updateMealItemMutation.mutate(
+      { itemId, quantity },
       {
         onError: (err: { message: string }) => toast.error('Fehler', { description: err.message }),
       },
@@ -316,16 +335,6 @@ export default function MealPlanDetailPage() {
             <ChefHat className="w-4 h-4 text-primary" />
             Kochplan
           </a>
-          <a
-            href={`/meal-plans/${mealPlanId}/print`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
-            title="Druckansicht öffnen"
-          >
-            <span className="material-symbols-outlined text-[18px]">print</span>
-            Drucken
-          </a>
           <button
             onClick={() => setShowShare(!showShare)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
@@ -360,7 +369,7 @@ export default function MealPlanDetailPage() {
 
       {/* Tab Bar */}
       <div className="flex gap-1 border-b border-border overflow-x-auto">
-        {[
+        {([
           { key: 'plan' as const, label: 'Tagesplan' },
           { key: 'table' as const, label: 'Tabelle' },
           { key: 'nutrition' as const, label: 'Nährwerte' },
@@ -368,21 +377,23 @@ export default function MealPlanDetailPage() {
           { key: 'shopping' as const, label: 'Einkaufsliste' },
           { key: 'suggestions' as const, label: 'Vorschläge' },
           { key: 'ingredient-scan' as const, label: 'Zutaten-Radar' },
-        ].filter(tab => tab.key !== 'ingredient-scan' || (plan.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)).map((tab) => {
+        ] as const).filter(tab => tab.key !== 'ingredient-scan' || (plan.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)).map((tab) => {
           const IconComponent = TAB_ICONS[tab.key];
           return (
-            <button
+            <NavLink
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
-                activeTab === tab.key
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
-              }`}
+              to={`/meal-plans/${mealPlanId}/${tab.key}`}
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
+                }`
+              }
             >
               <IconComponent className="w-4 h-4" />
               {tab.label}
-            </button>
+            </NavLink>
           );
         })}
       </div>
@@ -407,6 +418,7 @@ export default function MealPlanDetailPage() {
           onAddIngredient={handleAddIngredient}
           onDeleteItem={setDeleteItemId}
           onUpdateItemFactor={handleUpdateItemFactor}
+          onUpdateItemQuantity={handleUpdateItemQuantity}
           onUpdateMeal={handleUpdateMeal}
           onScaleMeal={handleScaleMeal}
           onCopyFromPlan={setCopyDialogTargetMealId}
@@ -414,7 +426,7 @@ export default function MealPlanDetailPage() {
           nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
         />
       )}
-      {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} onSelectTab={setActiveTab} />}
+      {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
       {activeTab === 'table' && (
         <TableView
           meals={plan.meals}
@@ -435,7 +447,7 @@ export default function MealPlanDetailPage() {
           nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
         />
       )}
-       {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} meals={plan.meals} onSelectTab={setActiveTab} />}
+       {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
       {activeTab === 'suggestions' && <SuggestionDashboard mealPlanId={mealPlanId} />}
       {activeTab === 'ingredient-scan' && (

@@ -249,10 +249,10 @@ class TestMealWithIngredientItems:
             factor=1.0,
         )
 
-        # Check calculation: 250g × 18 kcal/100g = 45 kcal
+        # Check calculation: 250g × 18 kcal/100g × 10 portions = 450 kcal
         energy = MealOut.resolve_total_energy_kcal(meal)
-        assert energy == pytest.approx(45.0)
+        assert energy == pytest.approx(450.0)
 
-        # Check cost: 250g × 2€/kg = 0.5€
+        # Check cost: 250g × 2€/kg × 10 portions = 5€
         cost = MealOut.resolve_total_cost_eur(meal)
-        assert cost == pytest.approx(0.5)
+        assert cost == pytest.approx(5.0)

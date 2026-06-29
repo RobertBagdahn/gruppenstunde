@@ -10,6 +10,7 @@ from django.test import Client
 
 from planner.models import MealItem
 from planner.services.variant_service import (
+    compute_variant_cost,
     compute_variant_energy,
     compute_variant_contributions,
     _compute_delta,
@@ -407,6 +408,49 @@ class TestVariantNutrition:
         assert energy is not None
         # Energy should differ from base (different ingredient selected)
         assert energy != base
+
+    def test_variant_cost_exchange(self):
+        recipe = make_recipe(portions=1)
+        ing_normal = _make_ingredient("Nudeln", energy_kcal=350)
+        ing_normal.price_per_kg = 10.0
+        ing_normal.save()
+        ing_primary = _make_ingredient("Parmesan", energy_kcal=400)
+        ing_primary.price_per_kg = 15.0
+        ing_primary.save()
+        ing_alt = _make_ingredient("Hefeflocken", energy_kcal=300)
+        ing_alt.price_per_kg = 8.0
+        ing_alt.save()
+
+        normal = make_recipe_item(recipe=recipe, portion=_make_portion(ing_normal, 100), quantity=1)
+        primary = make_recipe_item(recipe=recipe, portion=_make_portion(ing_primary, 100), quantity=1)
+        alt = make_recipe_item(recipe=recipe, portion=_make_portion(ing_alt, 100), quantity=1)
+
+        group = RecipeItemExchangeGroup.objects.create(recipe=recipe)
+        primary.exchange_group = group
+        primary.exchange_position = 0
+        primary.save()
+        alt.exchange_group = group
+        alt.exchange_position = 1
+        alt.save()
+
+        from recipe.services.recipe_checks import recalculate_recipe_cache
+        recalculate_recipe_cache(recipe)
+        recipe.refresh_from_db()
+
+        # Cache should = normal (1.00) + primary (1.50) = 2.50 (alt excluded)
+        normal_cost = 10.0 * 100 / 1000
+        primary_cost = 15.0 * 100 / 1000
+        expected_cache = normal_cost + primary_cost
+        assert recipe.cached_price_total == pytest.approx(expected_cache, abs=0.01)
+
+        plan = make_meal_plan()
+        meal = make_meal(meal_plan=plan)
+        mi = make_meal_item(meal=meal, recipe=recipe, active_recipe_item_ids=[alt.id])
+
+        cost = compute_variant_cost(mi)
+        alt_cost = 8.0 * 100 / 1000
+        expected_cost = normal_cost + alt_cost
+        assert cost == pytest.approx(expected_cost, abs=0.01)
 
 
 # ---------------------------------------------------------------------------

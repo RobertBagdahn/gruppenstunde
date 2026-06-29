@@ -591,10 +591,11 @@ export default function IngredientDetailPage() {
       );
     }
 
+    setShowAiSuggest(false);
+
     Promise.all(promises)
       .then(() => {
         toast.success('Vorschläge übernommen');
-        setShowAiSuggest(false);
       })
       .catch((err) => {
         toast.error('Fehler', { description: (err as Error).message });
@@ -607,9 +608,16 @@ export default function IngredientDetailPage() {
         toast.success('Zutat gelöscht');
         navigate('/ingredients');
       },
-      onError: (err) => {
-        toast.error('Fehler beim Löschen', { description: err.message });
+      onError: (err: any) => {
         setShowDeleteConfirm(false);
+        if (err.status === 409 && err.recipes?.length > 0) {
+          const recipeNames = err.recipes.map((r: any) => r.title).join(', ');
+          toast.error('Zutat wird noch verwendet', {
+            description: `Entferne die Zutat zuerst aus folgenden Rezepten: ${recipeNames}`,
+          });
+        } else {
+          toast.error('Fehler beim Löschen', { description: err.message });
+        }
       },
     });
   };
@@ -1342,14 +1350,16 @@ function buildIngredientSuggestionFields(
   const existingNames = new Set(ingredient.portions.map((p) => p.name.toLowerCase()));
   sortedPortions.forEach((p, i) => {
     if (!existingNames.has(p.name.toLowerCase())) {
+      const priority = p.priority ?? 0;
+
       fields.push({
         key: `portion_${i}`,
-        label: `${p.name} (${p.weight_g}g)`,
+        label: p.name,
         group: 'Portionen',
         currentValue: null,
         suggestedValue: p,
         type: 'list',
-        priority: p.priority ?? 0,
+        priority,
       });
     }
   });

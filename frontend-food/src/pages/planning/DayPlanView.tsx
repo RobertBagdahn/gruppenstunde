@@ -25,6 +25,7 @@ export function DayPlanView({
   onAddIngredient,
   onDeleteItem,
   onUpdateItemFactor,
+  onUpdateItemQuantity,
   onUpdateMeal,
   onScaleMeal,
   onCopyFromPlan,
@@ -48,6 +49,7 @@ export function DayPlanView({
   onAddIngredient: (mealId: number, ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
   onDeleteItem: (id: number) => void;
   onUpdateItemFactor: (itemId: number, factor: number) => void;
+  onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
   onUpdateMeal: (mealId: number, data: {
     note?: string | null;
     override_portions?: number | null;
@@ -178,6 +180,7 @@ export function DayPlanView({
                     onAddIngredient={onAddIngredient}
                     onDeleteItem={onDeleteItem}
                     onUpdateItemFactor={onUpdateItemFactor}
+                    onUpdateItemQuantity={onUpdateItemQuantity}
                     onUpdateMeal={onUpdateMeal}
                     onScaleMeal={onScaleMeal}
                     onCopyFromPlan={onCopyFromPlan}
@@ -240,23 +243,23 @@ export function DayPlanView({
       )}
 
       {/* Recipe Search Dialog (after creating a new meal) */}
-      {searchDialogMeal && (
-        <RecipeSearchDialog
-          mealType={searchDialogMeal.meal_type}
-          open={!!searchDialogMeal}
-          onOpenChange={(open) => { if (!open) setSearchDialogMeal(null); }}
-          onSelect={(recipeId) => {
-            onAddRecipe(searchDialogMeal.id, recipeId);
-            setSearchDialogMeal(null);
-          }}
-          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
-            onAddIngredient(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
-            setSearchDialogMeal(null);
-          }}
-          nutritionalTagIds={nutritionalTagIds}
-          nutritionalTagNames={nutritionalTagNames}
-        />
-      )}
+      <RecipeSearchDialog
+        mealType={searchDialogMeal?.meal_type ?? 'snack'}
+        open={searchDialogMeal !== null}
+        onOpenChange={(open) => { if (!open) setSearchDialogMeal(null); }}
+        onSelect={(recipeId) => {
+          if (!searchDialogMeal) return;
+          onAddRecipe(searchDialogMeal.id, recipeId);
+          setSearchDialogMeal(null);
+        }}
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _ingredientName) => {
+          if (!searchDialogMeal) return;
+          onAddIngredient(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
+          setSearchDialogMeal(null);
+        }}
+        nutritionalTagIds={nutritionalTagIds}
+        nutritionalTagNames={nutritionalTagNames}
+      />
     </div>
   );
 }

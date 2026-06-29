@@ -3,7 +3,7 @@ import { useRecentlyUsedRecipes } from '@/api/mealPlans';
 import RecipeBadge from './RecipeBadge';
 
 interface RecentlyUsedSectionProps {
-  onSelect: (recipeId: number) => void;
+  onSelect: (recipeId: number, recipeTitle?: string) => void;
 }
 
 export default function RecentlyUsedSection({ onSelect }: RecentlyUsedSectionProps) {
@@ -25,7 +25,7 @@ export default function RecentlyUsedSection({ onSelect }: RecentlyUsedSectionPro
           return (
             <button
               key={r.id}
-              onClick={() => onSelect(r.id)}
+              onClick={() => onSelect(r.id, r.title)}
               className="px-2.5 py-1.5 text-sm rounded-lg border hover:bg-accent transition-colors flex items-center gap-1.5"
             >
               <RecipeBadge badge={r.recipe_badge ?? 'community'} />

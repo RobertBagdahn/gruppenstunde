@@ -45,9 +45,10 @@ function NutriscoreBadge({ nutriClass }: { nutriClass: number | null | undefined
 // Ordering options
 // ---------------------------------------------------------------------------
 
-type Ordering = 'relevance' | 'price_asc' | 'price_desc' | 'nutri_class_asc' | 'energy_kcal_asc';
+type Ordering = 'popularity' | 'relevance' | 'price_asc' | 'price_desc' | 'nutri_class_asc' | 'energy_kcal_asc';
 
 const ORDERING_OPTIONS: { value: Ordering; label: string }[] = [
+  { value: 'popularity', label: 'Beliebtheit' },
   { value: 'relevance', label: 'Relevanz' },
   { value: 'price_asc', label: 'Preis ↑' },
   { value: 'price_desc', label: 'Preis ↓' },
@@ -176,7 +177,7 @@ export default function IngredientDetailSearchDialog({
   const [query, setQuery] = useState('');
   const [selectedRetailSection, setSelectedRetailSection] = useState<number | null>(null);
   const [selectedNutritionalTags, setSelectedNutritionalTags] = useState<number[]>([]);
-  const [ordering, setOrdering] = useState<Ordering>('relevance');
+  const [ordering, setOrdering] = useState<Ordering>('popularity');
   const [page, setPage] = useState(1);
   const [quantityDialogIngredient, setQuantityDialogIngredient] = useState<SelectedIngredient | null>(null);
   const [loadingPortionsFor, setLoadingPortionsFor] = useState<string | null>(null);
@@ -203,7 +204,7 @@ export default function IngredientDetailSearchDialog({
       setQuery('');
       setSelectedRetailSection(null);
       setSelectedNutritionalTags([]);
-      setOrdering('relevance');
+      setOrdering('popularity');
       setPage(1);
       setQuantityDialogIngredient(null);
     }

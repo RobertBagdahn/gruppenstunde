@@ -7,7 +7,7 @@ import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { useBlocker } from '@/hooks/useBlocker';
 import { useCreateFromRecipe } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
-import { useAvailableConversions } from '@/api/supplies';
+import { useAvailableConversions } from '@/api/unitConversions';
 import {
   useRecipeBySlug,
   useRecipeComments,

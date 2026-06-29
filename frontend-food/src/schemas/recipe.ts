@@ -9,19 +9,7 @@ import {
   ContentListItemSchema,
   ContentDetailSchema,
 } from './content';
-import { PortionSchema } from './supply';
-
-// --- NutritionalTag (from supply) ---
-
-export const NutritionalTagSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  name_opposite: z.string(),
-  description: z.string(),
-  rank: z.number(),
-  is_dangerous: z.boolean(),
-});
-export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
+import { NutritionalTagSchema, PortionSchema } from './supply';
 
 // --- RecipeItem ---
 

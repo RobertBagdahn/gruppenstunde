@@ -12,6 +12,7 @@ from ninja import Router
 
 from .admin import router as admin_router
 from .ai import router as ai_router
+from .collaborators import router as collaborators_router
 from .content_links import router as content_links_router
 from .featured import router as featured_router
 from .search import router as search_router
@@ -46,6 +47,7 @@ router = Router(tags=["content"])
 router.add_router("", search_router)
 router.add_router("", ai_router)
 router.add_router("", admin_router)
+router.add_router("collaborators", collaborators_router)
 router.add_router("", content_links_router)
 router.add_router("", featured_router)
 

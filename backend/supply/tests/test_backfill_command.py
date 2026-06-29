@@ -15,6 +15,9 @@ class TestBackfillRetailSectionsCommand:
     @pytest.fixture(autouse=True)
     def setup_data(self):
         """Set up required retail sections and ingredients."""
+        from supply.services.retail_section_mapping import _get_retail_section_by_name
+
+        _get_retail_section_by_name.cache_clear()
         # Create retail sections
         self.rs_kaese = RetailSection.objects.get_or_create(name="Milchprodukte & Käse", defaults={"rank": 1})[0]
         self.rs_oele = RetailSection.objects.get_or_create(name="Öle & Soßen", defaults={"rank": 2})[0]

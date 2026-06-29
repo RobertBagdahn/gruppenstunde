@@ -79,6 +79,13 @@ from .content_links import (
     FeaturedContentDetailOut,
 )
 
+# Collaborator schemas
+from .collaborator import (
+    ContentCollaboratorIn,
+    ContentCollaboratorOut,
+    ContentCollaboratorUpdateIn,
+)
+
 # Search schemas (previously inline in api.py)
 from .search import (
     AutocompleteResultOut,

@@ -12,16 +12,16 @@ class TestMealTypeToRecipeTypes:
     """Test MEAL_TYPE_TO_RECIPE_TYPES mapping."""
 
     def test_breakfast_includes_correct_types(self):
-        assert set(MEAL_TYPE_TO_RECIPE_TYPES["breakfast"]) == {"breakfast"}
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["breakfast"]) == {"breakfast", "drink"}
 
     def test_lunch_includes_correct_types(self):
-        assert set(MEAL_TYPE_TO_RECIPE_TYPES["lunch"]) == {"warm_meal", "cold_meal"}
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["lunch"]) == {"warm_meal", "cold_meal", "drink"}
 
     def test_dinner_includes_correct_types(self):
-        assert set(MEAL_TYPE_TO_RECIPE_TYPES["dinner"]) == {"warm_meal", "cold_meal"}
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["dinner"]) == {"warm_meal", "cold_meal", "drink"}
 
     def test_snack_includes_correct_types(self):
-        assert set(MEAL_TYPE_TO_RECIPE_TYPES["snack"]) == {"snack"}
+        assert set(MEAL_TYPE_TO_RECIPE_TYPES["snack"]) == {"snack", "drink"}
 
 
 @pytest.mark.django_db

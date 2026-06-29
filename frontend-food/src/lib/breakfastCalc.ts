@@ -182,7 +182,7 @@ export function extrasKcalPerPerson(_state: WizardState): number {
 
 /**
  * Scale BE per person so that total kcal per person hits target.
- * Basis, toppings, and drinks are scaled; Extras (warm dishes, Gemüse) stay fixed.
+ * Only basis + toppings are scaled; drinks and extras (warm dishes, Gemüse) stay fixed.
  *
  * target = NORM_PERSON_DAILY_KCAL × dayPartFactor
  * extraKcal = kcal from warm dishes + Gemüse (not recalculated here, fixed)
@@ -204,8 +204,7 @@ export function normalizeBePerPerson(
     state.toppings,
     state.globalIntensity,
   );
-  const currentDrinks = drinksKcalPerPerson(state.drinks);
-  const currentTotal = currentBasis + currentTopping + currentDrinks;
+  const currentTotal = currentBasis + currentTopping;
   if (currentTotal <= 0) return state.bePerPerson;
 
   const scaleFactor = remaining / currentTotal;
@@ -256,13 +255,12 @@ export function rebalanceShares<T extends { sharePercent: number; locked: boolea
 // Summary helpers
 // ============================================================================
 
-/** Total kcal per person from basis + toppings + drinks + extras. */
+/** Total kcal per person from basis + toppings + extras (NO drinks). */
 export function totalKcalPerPerson(state: WizardState): number {
   const basis = basisKcalPerPerson(state.bePerPerson, state.basis);
   const topping = toppingKcalPerPerson(state.bePerPerson, state.toppings, state.globalIntensity);
-  const drinks = drinksKcalPerPerson(state.drinks);
   const extras = extrasKcalPerPerson(state);
-  return basis + topping + drinks + extras;
+  return basis + topping + extras;
 }
 
 /** Energy target per person for a given day_part_factor. */

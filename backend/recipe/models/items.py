@@ -9,8 +9,8 @@ class RecipeItemExchangeGroup(models.Model):
     """A group of interchangeable RecipeItems within a recipe.
 
     Members are regular RecipeItem rows linked via exchange_group; the member with
-    exchange_position=0 is the default/original. When planning a meal, the planner
-    splits portions across the members of a group (see planner.MealItemSplit).
+    exchange_position=0 is the default/original. When planning a meal, variants are
+    created by selecting active RecipeItems via MealItem.active_recipe_item_ids.
     """
 
     recipe = models.ForeignKey(

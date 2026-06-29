@@ -5,6 +5,7 @@ from ninja import Router
 from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup
+from supply.models import Portion
 from recipe.schemas import (
     AiIngredientApplyIn,
     AiIngredientSuggestionOut,
@@ -308,8 +309,23 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
         RecipeItem.objects.filter(recipe=recipe).order_by("-sort_order").values_list("sort_order", flat=True).first()
     ) or 0
 
+    # Filter out duplicates: skip ingredients already in the recipe
+    existing_ingredient_ids = set(
+        RecipeItem.objects.filter(recipe=recipe).values_list("portion__ingredient_id", flat=True)
+    )
+    portion_ids = [item.portion_id for item in payload]
+    portion_to_ingredient = {
+        p["id"]: p["ingredient_id"]
+        for p in Portion.objects.filter(id__in=portion_ids).values("id", "ingredient_id")
+    }
+    filtered_payload = [
+        item
+        for item in payload
+        if portion_to_ingredient.get(item.portion_id) not in existing_ingredient_ids
+    ]
+
     created_items = []
-    for i, item_in in enumerate(payload):
+    for i, item_in in enumerate(filtered_payload):
         item = RecipeItem.objects.create(
             recipe=recipe,
             portion_id=item_in.portion_id,

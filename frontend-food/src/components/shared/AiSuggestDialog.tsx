@@ -248,6 +248,12 @@ function formatValue(value: unknown): string {
 }
 
 function formatListValue(value: unknown): string {
+  if (value === null || value === undefined) return '\u2014';
+  // Handle single object (e.g. a portion suggestion)
+  if (typeof value === 'object' && !Array.isArray(value) && value !== null && 'name' in value) {
+    const obj = value as { name: string; weight_g?: number };
+    return obj.weight_g ? `${obj.name} (${obj.weight_g}g)` : obj.name;
+  }
   if (!Array.isArray(value)) return '\u2014';
   if (value.length === 0) return '\u2014';
   // Handle portion suggestions (objects with name)

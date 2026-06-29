@@ -87,7 +87,11 @@ async function deleteJsonRaw(url: string): Promise<void> {
     headers: { 'X-CSRFToken': getCsrfToken() },
   });
   if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    const errBody = await res.json().catch(() => ({}));
+    const err = new Error(errBody.detail || `API error: ${res.status}`);
+    (err as any).status = res.status;
+    (err as any).recipes = errBody.recipes || [];
+    throw err;
   }
 }
 
@@ -109,7 +113,7 @@ export interface IngredientSearchFilters {
   name?: string;
   retail_section?: number;
   nutritional_tag?: number;
-  ordering?: 'price_asc' | 'price_desc' | 'nutri_class_asc' | 'energy_kcal_asc';
+  ordering?: 'popularity' | 'price_asc' | 'price_desc' | 'nutri_class_asc' | 'energy_kcal_asc';
   page?: number;
   page_size?: number;
 }
@@ -316,76 +320,10 @@ export function useMeasuringUnits() {
 }
 
 // ==========================================================================
-// UNIT CONVERSIONS
-// ==========================================================================
-
-const UNIT_CONVERSION_BASE = `${API_BASE_URL}/api/unit-conversions`;
-
-export function useUnitConversions(params?: {
-  from_unit?: number;
-  to_unit?: number;
-  ingredient?: number;
-}) {
-  const searchParams = new URLSearchParams();
-  if (params?.from_unit) searchParams.set('from_unit', String(params.from_unit));
-  if (params?.to_unit) searchParams.set('to_unit', String(params.to_unit));
-  if (params?.ingredient) searchParams.set('ingredient', String(params.ingredient));
-
-  const qs = searchParams.toString();
-  const url = `${UNIT_CONVERSION_BASE}/${qs ? `?${qs}` : ''}`;
-
-  return useQuery({
-    queryKey: ['unit-conversions', params] as const,
-    queryFn: async () => {
-      const { UnitConversionSchema } = await import('@/schemas/supply');
-      return fetchJson(url, z.array(UnitConversionSchema));
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useConvertUnit() {
-  return useMutation({
-    mutationFn: async (params: {
-      from_unit: number;
-      to_unit: number;
-      quantity: number;
-      ingredient?: number;
-    }) => {
-      const searchParams = new URLSearchParams({
-        from_unit: String(params.from_unit),
-        to_unit: String(params.to_unit),
-        quantity: String(params.quantity),
-      });
-      if (params.ingredient) searchParams.set('ingredient', String(params.ingredient));
-
-      const { UnitConversionResultSchema } = await import('@/schemas/supply');
-      return fetchJson(
-        `${UNIT_CONVERSION_BASE}/convert/?${searchParams.toString()}`,
-        UnitConversionResultSchema
-      );
-    },
-  });
-}
-
-export function useAvailableConversions(
-  items: Array<{ ingredient_id: number; from_unit_id: number; quantity: number }>,
-  enabled = true,
-) {
-  return useQuery({
-    queryKey: ['available-conversions', items] as const,
-    queryFn: async () => {
-      const { AvailableConversionBatchSchema } = await import('@/schemas/supply');
-      return postJsonRaw(
-        `${UNIT_CONVERSION_BASE}/available/batch/`,
-        items,
-        AvailableConversionBatchSchema,
-      );
-    },
-    enabled: enabled && items.length > 0,
-    staleTime: 10 * 60 * 1000,
-  });
-}
+// UNIT CONVERSIONS — moved to @/api/unitConversions
+// Import useUnitConversions, useConvertUnit, useAvailableConversions from
+// @/api/unitConversions instead.
+// ===========================================================================
 
 // ===========================================================================
 // Ingredient Recipes (recipes that use this ingredient)

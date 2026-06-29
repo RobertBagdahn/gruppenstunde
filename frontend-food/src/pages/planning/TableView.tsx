@@ -711,7 +711,7 @@ export default function TableView({
             onAddRecipe?.(searchDialogMeal.id, recipeId);
             setSearchDialogMeal(null);
           }}
-          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
+          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _ingredientName) => {
             onAddIngredient?.(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
             setSearchDialogMeal(null);
           }}

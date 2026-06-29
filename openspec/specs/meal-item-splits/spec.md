@@ -1,4 +1,8 @@
-## ADDED Requirements
+## REMOVED Requirements
+
+> `MealItemSplit` und zugehörige API-Endpunkte (GET/PUT/DELETE splits/), Schemas (`MealItemSplitIn`, `MealItemSplitOut`), `split_service.py` und der `unique_recipe_per_meal`-Constraint wurden entfernt.
+> Ersetzt durch `MealItem.active_recipe_item_ids` + `variant_group_id` + Batch-API.
+> Siehe `openspec/changes/variant-items/`.
 
 ### Requirement: Planer konfiguriert Portionen-Split beim Einplanen
 

@@ -101,16 +101,15 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
             # Handle ingredient items
             weight_g = 0.0
             if item.quantity and item.measuring_unit:
-                # Find a portion with this measuring unit to get weight_g
-                portion = ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
-                if portion and portion.weight_g:
-                    weight_g = portion.weight_g * float(item.quantity)
-                elif item.measuring_unit.name.lower() == "g":
+                name_lower = item.measuring_unit.name.lower()
+                if name_lower == "g":
                     weight_g = float(item.quantity)
-                elif item.measuring_unit.name.lower() == "ml":
-                    # For ml, try to use density if available
-                    if ingredient.density is not None:
-                        weight_g = float(item.quantity) * ingredient.density
+                elif name_lower == "ml":
+                    weight_g = float(item.quantity) * (ingredient.density or 1.0)
+                else:
+                    portion = ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
+                    if portion and portion.weight_g:
+                        weight_g = portion.weight_g * float(item.quantity)
 
             if weight_g > 0:
                 nutrient_scale = weight_g / 100.0

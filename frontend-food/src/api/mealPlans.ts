@@ -325,8 +325,12 @@ export function useRemoveMealItem(mealPlanId: number) {
 export function useUpdateMealItem(mealPlanId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ itemId, factor }: { itemId: number; factor: number }) =>
-      patchJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/`, { factor }, MealItemSchema),
+    mutationFn: ({ itemId, factor, quantity }: { itemId: number; factor?: number; quantity?: number }) =>
+      patchJson(
+        `${API_BASE}/${mealPlanId}/meal-items/${itemId}/`,
+        { ...(factor !== undefined ? { factor } : {}), ...(quantity !== undefined ? { quantity } : {}) },
+        MealItemSchema,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
     },
@@ -422,7 +426,7 @@ export function useMealPlanCosts(mealPlanId: number) {
 // ==========================================================================
 
 export interface RecipeSearchParams {
-  q: string;
+  q?: string;
   meal_type?: string;
   recipe_types?: string[];
   recipe_badge?: 'verified' | 'community' | null;
@@ -452,7 +456,7 @@ export function useRecipeSearch(params: RecipeSearchParams) {
         `${API_BASE}/recipes/search/?${searchParams.toString()}`,
         UnifiedSearchResponseSchema,
       ),
-    enabled: q.length >= 2 || !!recipe_types?.length || !!recipe_badge || !!exclude_nutritional_tag_ids?.length || !!nutritional_tag_ids?.length || !!meal_type,
+    enabled: (q?.length ?? 0) >= 2 || !!recipe_types?.length || !!recipe_badge || !!exclude_nutritional_tag_ids?.length || !!nutritional_tag_ids?.length || !!meal_type,
   });
 }
 
@@ -488,6 +492,7 @@ export function useRecipeSuggestions(params: RecipeSuggestionsParams) {
         `${API_BASE}/recipes/suggestions/?${searchParams.toString()}`,
         RecipeSuggestionsResponseSchema,
       ),
+    enabled: (q?.length ?? 0) >= 2 || !!mealType || !!excludeNutritionalTagIds?.length || !!recipeTypes?.length,
   });
 }
 

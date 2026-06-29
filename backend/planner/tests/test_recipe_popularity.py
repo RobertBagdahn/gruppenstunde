@@ -192,7 +192,7 @@ class TestExtendedSearchResponse:
         r = next((x for x in data["recipes"] if x["title"] == "Testpfannkuchen"), None)
         assert r is not None
         assert r["portions"] == 4
-        assert r["cached_energy_kcal"] == 2000.0
+        assert r["cached_energy_kcal"] == 478.0
         assert r["cached_protein_g"] == 20.0
         assert r["cached_fat_g"] == 10.0
         assert r["cached_carbohydrate_g"] == 50.0

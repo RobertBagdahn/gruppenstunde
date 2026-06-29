@@ -39,8 +39,11 @@ def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
     Sums all RecipeItem contributions weighted by quantity and portion weight,
     then normalizes to per-100g values.  Includes macronutrients **and**
     micronutrients (vitamins / minerals).
+    Exchange alternatives (exchange_group set + position > 0) are excluded.
     """
-    items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
+    items = RecipeItem.objects.filter(recipe=recipe).exclude(
+        Q(exchange_group__isnull=False) & Q(exchange_position__gt=0)
+    ).select_related("portion", "portion__ingredient")
 
     total_weight_g = 0.0
 
@@ -372,8 +375,10 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
     _ns_total, ns_class = _calc_ns(agg)
     recipe.cached_nutri_class = ns_class
 
-    # Calculate total price
-    items = RecipeItem.objects.filter(recipe=recipe).select_related(
+    # Calculate total price (excluding exchange alternatives)
+    items = RecipeItem.objects.filter(recipe=recipe).exclude(
+        Q(exchange_group__isnull=False) & Q(exchange_position__gt=0)
+    ).select_related(
         "portion", "portion__ingredient", "portion__measuring_unit"
     )
     total_price = Decimal("0.00")

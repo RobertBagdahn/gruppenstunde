@@ -13,6 +13,7 @@ Features:
 """
 
 import io
+import uuid
 import logging
 import time
 from typing import Any

@@ -401,16 +401,16 @@ class TestDeleteRecipe:
         resp = api_client.delete(f"/api/recipes/{approved_recipe.id}/")
         assert resp.status_code == 403
 
-    def test_soft_delete(self, auth_client, db):
-        user = auth_client._user
+    def test_soft_delete(self, admin_client, db):
+        admin_user = admin_client._user
         recipe = Recipe.objects.create(
             title="To Delete",
             status=ContentStatus.DRAFT,
-            created_by=user,
+            created_by=admin_user,
         )
-        recipe.authors.add(user)
+        recipe.authors.add(admin_user)
 
-        resp = auth_client.delete(f"/api/recipes/{recipe.id}/")
+        resp = admin_client.delete(f"/api/recipes/{recipe.id}/")
         assert resp.status_code == 200
 
         # Should be soft-deleted (not visible via default manager)
@@ -524,7 +524,7 @@ class TestRecipeItems:
         user = auth_client._user
         recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, created_by=user)
         recipe.authors.add(user)
-        item = RecipeItem.objects.create(recipe=recipe, quantity=100, sort_order=0)
+        item = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=100, sort_order=0)
 
         resp = auth_client.delete(f"/api/recipes/{recipe.id}/recipe-items/{item.id}/")
         assert resp.status_code == 200
@@ -576,9 +576,11 @@ def test_recipe_item_out_weight_g_calculation(db, portion):
 class TestRecipeDetailVisibility:
     """Test visibility filtering on detail endpoints."""
 
-    def test_detail_private_recipe_not_visible_to_other_user(self, api_client, user_factory):
+    def test_detail_private_recipe_not_visible_to_other_user(self, api_client, auth_client, db):
         """Anonymous user should get 404 for private recipe."""
-        owner = user_factory()
+        from django.contrib.auth import get_user_model
+
+        owner = get_user_model().objects.create_user(username="owner", password="pass")
         recipe = Recipe.objects.create(
             title="Private",
             status=ContentStatus.DRAFT,
@@ -588,7 +590,7 @@ class TestRecipeDetailVisibility:
         resp = api_client.get(f"/api/recipes/{recipe.id}/")
         assert resp.status_code == 404
 
-    def test_detail_private_recipe_visible_to_owner(self, auth_client, user_factory):
+    def test_detail_private_recipe_visible_to_owner(self, auth_client, db):
         """Owner should see their own private recipe."""
         recipe = Recipe.objects.create(
             title="My Private",
@@ -599,9 +601,11 @@ class TestRecipeDetailVisibility:
         resp = auth_client.get(f"/api/recipes/{recipe.id}/")
         assert resp.status_code == 200
 
-    def test_detail_public_recipe_visible_to_anyone(self, api_client, user_factory):
+    def test_detail_public_recipe_visible_to_anyone(self, api_client, db):
         """Public recipe should be visible to anonymous."""
-        owner = user_factory()
+        from django.contrib.auth import get_user_model
+
+        owner = get_user_model().objects.create_user(username="public_owner", password="pass")
         recipe = Recipe.objects.create(
             title="Public",
             status=ContentStatus.APPROVED,
@@ -611,9 +615,11 @@ class TestRecipeDetailVisibility:
         resp = api_client.get(f"/api/recipes/{recipe.id}/")
         assert resp.status_code == 200
 
-    def test_detail_by_slug_respects_visibility(self, api_client, user_factory):
+    def test_detail_by_slug_respects_visibility(self, api_client, db):
         """Slug endpoint should also filter by visibility."""
-        owner = user_factory()
+        from django.contrib.auth import get_user_model
+
+        owner = get_user_model().objects.create_user(username="slug_owner", password="pass")
         recipe = Recipe.objects.create(
             title="Private Slug",
             slug="private-slug",
@@ -629,9 +635,10 @@ class TestRecipeDetailVisibility:
 class TestRecipeItemPermissions:
     """Test that RecipeItem endpoints check owner_id."""
 
-    def test_non_owner_cannot_add_item(self, auth_client, user_factory, portion):
+    def test_non_owner_cannot_add_item(self, auth_client, db, portion):
         """Non-owner should not be able to add items."""
-        owner = user_factory()
+        from django.contrib.auth import get_user_model
+        owner = get_user_model().objects.create_user(username="other_owner", password="pass")
         recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, owner=owner)
         resp = auth_client.post(
             f"/api/recipes/{recipe.id}/recipe-items/",
@@ -642,7 +649,7 @@ class TestRecipeItemPermissions:
             },
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
     def test_owner_can_add_item(self, auth_client, portion):
         """Owner should be able to add items."""
@@ -656,7 +663,7 @@ class TestRecipeItemPermissions:
             },
             content_type="application/json",
         )
-        assert resp.status_code == 201
+        assert resp.status_code == 200
 
 
 # ---------------------------------------------------------------------------

@@ -51,7 +51,7 @@ class TestMatchKeywords:
         assert _match_keywords("TK-PIZZA") == "Tiefkühl"
 
     def test_joghurt(self):
-        assert _match_keywords("FRUCHTJOGHURT EINWEG") == "Milchprodukte"
+        assert _match_keywords("FRUCHTJOGHURT EINWEG") == "Milchprodukte & Käse"
 
     def test_kaese(self):
         assert _match_keywords("KÄSE SCHEIBEN") == "Milchprodukte & Käse"
@@ -63,7 +63,7 @@ class TestMatchKeywords:
         assert _match_keywords("DAUERWURST SB") == "Fleisch & Wurst"
 
     def test_mehl(self):
-        assert _match_keywords("MEHL") == "Grundnahrungsmittel"
+        assert _match_keywords("MEHL") == "Brot & Backwaren"
 
     def test_empty_string(self):
         assert _match_keywords("") is None
@@ -126,8 +126,8 @@ class TestGetRetailSectionFromName:
         assert _match_keywords("PFLANZENÖL") == "Öle & Soßen"
 
     def test_muesli(self):
-        assert _match_keywords("MÜSLI") == "Grundnahrungsmittel"
-        assert _match_keywords("MUESLI") == "Grundnahrungsmittel"
+        assert _match_keywords("MÜSLI") == "Brot & Backwaren"
+        assert _match_keywords("MUESLI") == "Brot & Backwaren"
 
     def test_sojasosse(self):
         # "SOJASOSSE" contains "SAUCE"? No. Let's check
@@ -135,10 +135,10 @@ class TestGetRetailSectionFromName:
         assert _match_keywords("SOJASOSSE") == "Öle & Soßen"
 
     def test_weizenmehl(self):
-        assert _match_keywords("WEIZENMEHL") == "Grundnahrungsmittel"
+        assert _match_keywords("WEIZENMEHL") == "Brot & Backwaren"
 
     def test_trockenhefe(self):
-        assert _match_keywords("TROCKENHEFE") == "Grundnahrungsmittel"
+        assert _match_keywords("TROCKENHEFE") == "Brot & Backwaren"
 
     def test_fruehlingszwiebel(self):
         assert _match_keywords("FRÜHLINGSZWIEBEL") == "Gemüse"
@@ -170,7 +170,8 @@ class TestGetRetailSectionIntegration:
         self.rs_gemuese = RetailSection.objects.get_or_create(name="Gemüse", defaults={"rank": 2})[0]
         self.rs_nudeln = RetailSection.objects.get_or_create(name="Nudeln & Reis & Getreide", defaults={"rank": 3})[0]
         self.rs_suess = RetailSection.objects.get_or_create(name="Süßwaren & Snacks", defaults={"rank": 4})[0]
-        self.rs_grund = RetailSection.objects.get_or_create(name="Grundnahrungsmittel", defaults={"rank": 5})[0]
+        self.rs_backwaren = RetailSection.objects.get_or_create(name="Brot & Backwaren", defaults={"rank": 5})[0]
+        self.rs_grund = RetailSection.objects.get_or_create(name="Grundnahrungsmittel", defaults={"rank": 6})[0]
 
     def test_get_retail_section_from_description(self):
         desc = "Barilla Pesto - BARILLA - Pesto - PESTO"
@@ -192,4 +193,4 @@ class TestGetRetailSectionIntegration:
 
     def test_get_retail_section_mehl(self):
         result = get_retail_section("Weizenmehl", "")
-        assert result == self.rs_grund
+        assert result == self.rs_backwaren

@@ -66,12 +66,12 @@ class TestMealPlanCostSummaryAPI:
         meal = make_meal(meal_plan=plan)
         ing = make_ingredient(name="Butter", price_per_kg=Decimal("5.00"))
         mu = make_measuring_unit(unit="g", quantity=1.0)
-        portion = make_portion(ingredient=ing, measuring_unit=mu, weight_g=200.0, name="200g")
+        make_portion(ingredient=ing, measuring_unit=mu, weight_g=200.0, name="200g")
         # 0.2 kg per person * 10 persons * 5.00 EUR/kg = 10.00 EUR
         MealItem.objects.create(
             meal=meal,
             ingredient=ing,
-            quantity=1.0,
+            quantity=200.0,  # 200g per person
             measuring_unit=mu,
             factor=1.0,
         )
@@ -98,11 +98,12 @@ class TestMealPlanCostSummaryAPI:
         # Standalone ingredient
         ing2 = make_ingredient(name="Eier", price_per_kg=Decimal("4.00"))
         mu2 = make_measuring_unit(unit="g", quantity=1.0)
-        portion2 = make_portion(ingredient=ing2, measuring_unit=mu2, weight_g=60.0, name="1 Ei")
+        make_portion(ingredient=ing2, measuring_unit=mu2, weight_g=60.0, name="1 Ei")
+        # 12g per person * 10 persons * 1.15 reserve = 138g, 4.00 €/kg → 0.552 €
         MealItem.objects.create(
             meal=meal,
             ingredient=ing2,
-            quantity=2.0,
+            quantity=12.0,
             measuring_unit=mu2,
             factor=1.0,
         )

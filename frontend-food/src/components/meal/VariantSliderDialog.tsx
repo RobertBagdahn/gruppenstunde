@@ -223,6 +223,34 @@ export default function VariantSliderDialog({
   const displayGroups = groups.length > 0 ? groups : computed.groups;
   const displayOptionals = optionals.length > 0 ? optionals : computed.optionals;
 
+  const allGroupsValid = displayGroups.every((g) => {
+    const sum = g.members.reduce((s, m) => s + (g.portions[m.recipeItemId] ?? 0), 0);
+    return Math.abs(sum - effectivePortions) <= 1;
+  });
+
+  const handleSave = useCallback(async () => {
+    const variants = generateVariants(displayGroups, displayOptionals, effectivePortions);
+    if (variants.length === 0) {
+      toast.error('Keine Varianten erzeugt');
+      return;
+    }
+    const items: MealItemVariantIn[] = variants.map((v) => ({
+      recipe_id: recipeId,
+      factor: v.factor,
+      display_name: v.display_name,
+      active_recipe_item_ids: v.active_recipe_item_ids,
+    }));
+    try {
+      await batchCreate.mutateAsync(items);
+      toast.success(`${variants.length} Varianten erstellt`);
+      onClose();
+    } catch (err) {
+      toast.error('Fehler beim Erstellen der Varianten', {
+        description: (err as Error).message,
+      });
+    }
+  }, [displayGroups, displayOptionals, effectivePortions, recipeItems, batchCreate, onClose]);
+
   if (!open) return null;
 
   if (effectivePortions <= 0) {
@@ -293,34 +321,6 @@ export default function VariantSliderDialog({
       ),
     );
   };
-
-  const allGroupsValid = displayGroups.every((g) => {
-    const sum = g.members.reduce((s, m) => s + (g.portions[m.recipeItemId] ?? 0), 0);
-    return Math.abs(sum - effectivePortions) <= 1;
-  });
-
-  const handleSave = useCallback(async () => {
-    const variants = generateVariants(displayGroups, displayOptionals, effectivePortions);
-    if (variants.length === 0) {
-      toast.error('Keine Varianten erzeugt');
-      return;
-    }
-    const items: MealItemVariantIn[] = variants.map((v) => ({
-      recipe_id: recipeId,
-      factor: v.factor,
-      display_name: v.display_name,
-      active_recipe_item_ids: v.active_recipe_item_ids,
-    }));
-    try {
-      await batchCreate.mutateAsync(items);
-      toast.success(`${variants.length} Varianten erstellt`);
-      onClose();
-    } catch (err) {
-      toast.error('Fehler beim Erstellen der Varianten', {
-        description: (err as Error).message,
-      });
-    }
-  }, [displayGroups, displayOptionals, effectivePortions, recipeItems, batchCreate, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

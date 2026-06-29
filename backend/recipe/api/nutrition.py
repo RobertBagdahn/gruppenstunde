@@ -1,5 +1,6 @@
 """Nutrition-related endpoints (NutriScore, Breakdown, Hints, Improvements, Suggestions)."""
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
@@ -100,7 +101,9 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     so that ``dge_coverage`` percentages can be returned.
     """
     recipe = get_object_or_404(Recipe, id=recipe_id)
-    items = RecipeItem.objects.filter(recipe=recipe).select_related(
+    items = RecipeItem.objects.filter(recipe=recipe).exclude(
+        Q(exchange_group__isnull=False) & Q(exchange_position__gt=0)
+    ).select_related(
         "portion", "portion__ingredient", "portion__measuring_unit"
     )
 

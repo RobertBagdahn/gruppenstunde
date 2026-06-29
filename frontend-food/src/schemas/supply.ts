@@ -144,7 +144,7 @@ export const PortionSchema = z.object({
   rank: z.number(),
   priority: z.number(),
   is_default: z.boolean(),
-  is_system: z.boolean().default(false),
+  is_system: z.boolean(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string().nullable(),
 });
@@ -541,9 +541,17 @@ export const ScatterPointSchema = z.object({
 });
 export type ScatterPoint = z.infer<typeof ScatterPointSchema>;
 
+export const LinearFitSchema = z.object({
+  slope: z.number(),
+  intercept: z.number(),
+  r_squared: z.number(),
+});
+export type LinearFit = z.infer<typeof LinearFitSchema>;
+
 export const ScatterOutSchema = z.object({
   points: z.array(ScatterPointSchema),
   pearson_r: z.number().nullable(),
+  linear_fit: LinearFitSchema.nullable(),
   count: z.number(),
 });
 export type ScatterOut = z.infer<typeof ScatterOutSchema>;

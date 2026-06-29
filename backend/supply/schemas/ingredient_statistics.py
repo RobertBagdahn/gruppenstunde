@@ -82,9 +82,16 @@ class ScatterFilters(Schema):
     retail_section_id: str | None = None
 
 
+class LinearFit(Schema):
+    slope: float
+    intercept: float
+    r_squared: float
+
+
 class ScatterOut(Schema):
     points: list[ScatterPoint]
     pearson_r: float | None = None
+    linear_fit: LinearFit | None = None
     count: int
 
 

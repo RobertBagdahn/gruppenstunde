@@ -45,6 +45,7 @@ class MealItemOut(Schema):
     variant_group_id: str | None = None
     energy_kcal: float | None = None
     cost_eur: float | None = None
+    quantity_g: float | None = None
     ingredient_tags: list[str] = []
     recipe_type: str = ""
     overrides: list[MealItemOverrideOut] = []
@@ -93,11 +94,14 @@ class MealItemOut(Schema):
             total = compute_variant_energy(obj)
             return total * obj.factor * (effective_portions / servings)
         if obj.ingredient:
-            return resolve_ingredient_energy_kcal(obj)
+            return resolve_ingredient_energy_kcal(obj, effective_portions=obj.meal.effective_portions)
         return None
 
     @staticmethod
     def resolve_cost_eur(obj) -> float | None:
+        if obj.ingredient:
+            from planner.services.meal_item_helpers import resolve_ingredient_cost_eur as ric
+            return ric(obj, effective_portions=obj.meal.effective_portions)
         if not obj.recipe or obj.recipe.cached_price_total is None:
             return None
         servings = obj.recipe.portions or 1
@@ -120,6 +124,31 @@ class MealItemOut(Schema):
     @staticmethod
     def resolve_recipe_type(obj) -> str:
         return obj.recipe.recipe_type if obj.recipe else ""
+
+    @staticmethod
+    def resolve_quantity_g(obj) -> float | None:
+        """Per-person grams for ingredient items."""
+        if obj.ingredient and obj.quantity and obj.measuring_unit:
+            name_lower = obj.measuring_unit.name.lower()
+            if name_lower in ("g",):
+                return float(obj.quantity)
+            if name_lower in ("ml",):
+                if obj.ingredient.density:
+                    return float(obj.quantity) * obj.ingredient.density
+                return float(obj.quantity)
+            portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
+            if portion and portion.weight_g:
+                return portion.weight_g * float(obj.quantity)
+
+            default_portions = obj.ingredient.portions.filter(
+                is_default=True, weight_g__isnull=False
+            )
+            if default_portions.exists():
+                return float(default_portions.first().weight_g) * float(obj.quantity)
+
+            if obj.ingredient.standard_recipe_weight_g:
+                return float(obj.ingredient.standard_recipe_weight_g) * float(obj.quantity)
+        return None
 
 
 class MealItemVariantIn(Schema):
@@ -144,6 +173,7 @@ class MealItemCreateIn(Schema):
 
 class MealItemUpdateIn(Schema):
     factor: float | None = None
+    quantity: float | None = None
 
 
 class WizardItemsIn(Schema):
@@ -202,7 +232,7 @@ class MealOut(Schema):
                 servings = item.recipe.portions or 1
                 total += compute_variant_energy(item) * item.factor * (effective_portions / servings)
             elif item.ingredient:
-                kcal = resolve_ingredient_energy_kcal(item)
+                kcal = resolve_ingredient_energy_kcal(item, effective_portions=effective_portions)
                 if kcal is not None:
                     total += kcal
         return total
@@ -222,7 +252,7 @@ class MealOut(Schema):
                 servings = item.recipe.portions or 1
                 total += compute_variant_cost(item) * item.factor * (effective_portions / servings)
             elif item.ingredient:
-                cost = resolve_ingredient_cost_eur(item)
+                cost = resolve_ingredient_cost_eur(item, effective_portions=effective_portions)
                 if cost is not None:
                     total += cost
         return total

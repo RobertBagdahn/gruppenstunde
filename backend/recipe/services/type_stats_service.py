@@ -62,6 +62,7 @@ def recalculate_type_stats(recipe_type: str) -> dict | None:
     from recipe.models import Recipe, RecipeTypeStats
 
     recipes = Recipe.objects.filter(Q(recipe_type=recipe_type) & Q(status=ContentStatus.APPROVED))
+    recipes = recipes.exclude(portions__isnull=True)
 
     count = recipes.count()
     if count < 10:

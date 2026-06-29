@@ -23,7 +23,7 @@ from recipe.choices import (
     HintParameterChoices,
     RecipeObjectiveChoices,
 )
-from recipe.models import Recipe
+from recipe.models import Recipe, RecipeItemExchangeGroup
 from recipe.services.nutrition_aggregation import evaluate_day_cockpit
 from recipe.services.recipe_checks import (
     CACHED_MICRONUTRIENT_FIELDS,
@@ -425,6 +425,70 @@ class TestNutritionBreakdownAPI:
         data = resp.json()
         assert data["total_weight_g"] == 0.0
         assert data["items"] == []
+
+    def test_nutrition_breakdown_excludes_exchange_alternatives(self, auth_client: Client):
+        """Exchange alternatives (pos>0) are excluded from nutrition totals."""
+        recipe = make_recipe(portions=2)
+        ing_normal = make_ingredient(name="Normal", energy_kcal=100)
+        ing_primary = make_ingredient(name="Primary", energy_kcal=200)
+        ing_alt = make_ingredient(name="Alternative", energy_kcal=500)
+
+        portion_normal = make_portion(ingredient=ing_normal, weight_g=100.0)
+        portion_primary = make_portion(ingredient=ing_primary, weight_g=100.0)
+        portion_alt = make_portion(ingredient=ing_alt, weight_g=100.0)
+
+        normal = make_recipe_item(recipe=recipe, portion=portion_normal, quantity=1.0)
+        primary = make_recipe_item(recipe=recipe, portion=portion_primary, quantity=1.0)
+        alt = make_recipe_item(recipe=recipe, portion=portion_alt, quantity=1.0)
+
+        group = RecipeItemExchangeGroup.objects.create(recipe=recipe)
+        primary.exchange_group = group
+        primary.exchange_position = 0
+        primary.save()
+        alt.exchange_group = group
+        alt.exchange_position = 1
+        alt.save()
+
+        resp = auth_client.get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # Totals should include normal (100) + primary (200) = 300 kcal
+        # NOT alternative (500)
+        expected_energy = 100.0 + 200.0
+        assert data["total_energy_kcal"] == pytest.approx(expected_energy, abs=0.5)
+        # Item count should be 2 (normal + primary), not 3
+        assert len(data["items"]) == 2
+        item_names = [i["ingredient_name"] for i in data["items"]]
+        assert "Normal" in item_names
+        assert "Primary" in item_names
+        assert "Alternative" not in item_names
+
+    def test_nutrition_breakdown_includes_optional_items(self, auth_client: Client):
+        """Optional items are always included in nutrition totals."""
+        recipe = make_recipe(portions=2)
+        ing_normal = make_ingredient(name="Basis", energy_kcal=100)
+        ing_optional = make_ingredient(name="Extra", energy_kcal=300)
+
+        portion_normal = make_portion(ingredient=ing_normal, weight_g=100.0)
+        portion_optional = make_portion(ingredient=ing_optional, weight_g=100.0)
+
+        make_recipe_item(recipe=recipe, portion=portion_normal, quantity=1.0)
+        opt = make_recipe_item(recipe=recipe, portion=portion_optional, quantity=1.0)
+        opt.is_optional = True
+        opt.save()
+
+        resp = auth_client.get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # Both items should be included
+        expected_energy = 100.0 + 300.0
+        assert data["total_energy_kcal"] == pytest.approx(expected_energy, abs=0.5)
+        assert len(data["items"]) == 2
+        item_names = [i["ingredient_name"] for i in data["items"]]
+        assert "Basis" in item_names
+        assert "Extra" in item_names
 
 
 # ---------------------------------------------------------------------------

@@ -1,3 +1,7 @@
+> **⚠️ MODIFIED — Varianten statt Splits**
+> Exchange-Gruppen existieren weiterhin. Die Planung verwendet jetzt `MealItem.active_recipe_item_ids`
+> statt `MealItemSplit`. Siehe `openspec/changes/variant-items/`.
+
 ## ADDED Requirements
 
 ### Requirement: Rezeptautor kann Exchange-Gruppen anlegen
@@ -21,19 +25,19 @@ Eine Zutat MUST entweder `is_optional=True` ODER Teil einer Exchange-Gruppe sein
 - **WHEN** der Autor Parmesan (30g/Port.) durch Hefeflocken (20g/Port.) ersetzt
 - **THEN** speichert das Hefeflocken-`RecipeItem` eine eigene `quantity` und `portion` unabhängig vom Original
 
-#### Scenario: Exchange-Gruppe löschen ohne aktive Splits
+#### Scenario: Exchange-Gruppe löschen ohne aktive Varianten
 
-- **WHEN** der Autor eine Exchange-Gruppe löscht und kein `MealItemSplit` auf ihre Mitglieder zeigt
+- **WHEN** der Autor eine Exchange-Gruppe löscht und keine Varianten-Items (`MealItem.active_recipe_item_ids`) auf ihre Mitglieder verweisen
 - **THEN** löscht die API-Logik die Nicht-Default-Glieder (exchange_position > 0) und setzt das Original-RecipeItem (position 0) auf `exchange_group=NULL` zurück, sodass es als normale Zutat erhalten bleibt
 
-#### Scenario: Löschen eines Ketten-Glieds mit aktiven Splits blockiert
+#### Scenario: Löschen eines Ketten-Glieds mit aktiven Varianten blockiert
 
-- **WHEN** der Autor versucht, ein Ketten-Glied zu löschen, auf das ein aktiver `MealItemSplit` zeigt
-- **THEN** verhindert die DB-Beziehung `MealItemSplit → RecipeItem` (PROTECT) das Löschen; das Backend gibt HTTP 409 zurück mit Fehlermeldung "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden."
+- **WHEN** der Autor versucht, ein Ketten-Glied zu löschen, auf das aktive Varianten-Items (`MealItem.active_recipe_item_ids`) verweisen
+- **THEN** prüft das Backend, ob `MealItem.active_recipe_item_ids` auf dieses RecipeItem verweisen; falls ja, gibt es HTTP 409 zurück mit Fehlermeldung "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht gelöscht werden."
 
-#### Scenario: Rezept mit aktiven Splits nicht löschbar
+#### Scenario: Rezept mit aktiven Varianten nicht löschbar
 
-- **WHEN** ein Autor versucht, ein ganzes Rezept zu löschen, dessen RecipeItems aktive `MealItemSplit`-Einträge haben
+- **WHEN** ein Autor versucht, ein ganzes Rezept zu löschen, dessen RecipeItems in aktiven `MealItem.active_recipe_item_ids`-Listen referenziert werden
 - **THEN** wird das Löschen blockiert (HTTP 409) mit Fehlermeldung "Dieses Rezept wird in Essensplänen mit konfigurierten Varianten verwendet und kann nicht gelöscht werden."
 
 ### Requirement: Exchange-Gruppen in der Rezeptansicht anzeigen
@@ -68,7 +72,23 @@ Das System SHALL CRUD-Endpunkte für Exchange-Gruppen bereitstellen, zugänglich
 - **WHEN** ein authentifizierter Autor `POST /{recipe_id}/exchanges/` (recipe-Router) mit optionalem `name` aufruft
 - **THEN** wird eine neue `RecipeItemExchangeGroup` angelegt und mit HTTP 201 zurückgegeben
 
-#### Scenario: Exchange-Gruppe löschen (API) — aktive Splits blockieren
+#### Scenario: Exchange-Gruppe löschen (API) — aktive Varianten blockieren
 
-- **WHEN** `DELETE /{recipe_id}/exchanges/{group_id}/` aufgerufen wird und aktive Splits auf Glieder zeigen
+- **WHEN** `DELETE /{recipe_id}/exchanges/{group_id}/` aufgerufen wird und Varianten-Items auf Glieder verweisen
 - **THEN** antwortet das Backend mit HTTP 409 und einer deutschen Fehlermeldung
+
+## MODIFIED Requirements
+
+### Requirement: Delete-Protection über active_recipe_item_ids
+
+Die Delete-Protection für Exchange-Gruppen-Mitglieder und Rezepte wurde von `MealItemSplit`-FK (PROTECT) auf `MealItem.active_recipe_item_ids`-JSON-Contains-Query umgestellt.
+
+#### Scenario: RecipeItem-Edit mit aktiven Varianten blockiert
+
+- **WHEN** der Autor `is_optional` oder `exchange_group_id` eines RecipeItems ändern will, das in `active_recipe_item_ids` referenziert wird
+- **THEN** prüft das Backend `MealItem.objects.filter(active_recipe_item_ids__contains=[item.id]).exists()` und gibt HTTP 409 zurück mit Fehlermeldung "Diese Zutat wird in aktiven Essensplänen verwendet und kann nicht geändert werden."
+
+#### Scenario: Rezept löschen mit aktiven MealItems blockiert
+
+- **WHEN** ein Autor versucht, ein Rezept zu löschen, für das `MealItem.objects.filter(recipe=recipe).exists()` wahr ist
+- **THEN** gibt das Backend HTTP 409 zurück mit Fehlermeldung "Dieses Rezept wird in Essensplänen verwendet und kann nicht gelöscht werden."

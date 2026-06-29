@@ -51,8 +51,8 @@ class TestShoppingService:
         assert len(items) == 1
         item = items[0]
         assert item.ingredient_name == "Direct Mehl"
-        # Total weight: 5 (quantity) * 100g (weight) * 1.0 (factor) * 10.0 (scaling) = 5000g
-        assert item.total_quantity_g == 5000.0
+        # Total weight: 5 (quantity) * 1.0 (measuring_unit.quantity for "g") * 1.0 (factor) * 10.0 (scaling) = 50g
+        assert item.total_quantity_g == 50.0
 
     def test_portion_override_scaling(self):
         """Should use override_portions on a meal instead of global plan portions."""
@@ -90,8 +90,8 @@ class TestShoppingService:
         assert len(items) == 1
         item = items[0]
         assert item.ingredient_name == "Override Zucker"
-        # Total weight: 2 * 100g * 1.0 * 20 (override scaling) = 4000g (instead of 2000g if using global 10 portions)
-        assert item.total_quantity_g == 4000.0
+        # Total weight: 2 * 1.0 (measuring_unit.quantity for "g") * 1.0 * 20 (override scaling) = 40g
+        assert item.total_quantity_g == 40.0
 
     def test_scaling_uses_reserve_without_pal(self):
         """Shopping quantity scales by norm_portions * reserve_factor, no PAL."""

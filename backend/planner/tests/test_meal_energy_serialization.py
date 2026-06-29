@@ -196,13 +196,13 @@ class TestMealEnergySerialization:
             factor=1.0,
         )
 
-        # Ingredient meal energy: 300 kcal (150 kcal/100g × 200g)
+        # Ingredient meal energy: 3000 kcal (150 kcal/100g × 200g × 1.0 × 10 effPortions)
         ingredient_energy = MealOut.resolve_total_energy_kcal(meal)
-        assert ingredient_energy == pytest.approx(300.0)
+        assert ingredient_energy == pytest.approx(3000.0)
 
-        # Ingredient meal cost: 200g × 8€/kg = 1.6€
+        # Ingredient meal cost: 200g × 8€/kg × 10 effPortions = 16.0€
         ingredient_cost = MealOut.resolve_total_cost_eur(meal)
-        assert ingredient_cost == pytest.approx(1.6)
+        assert ingredient_cost == pytest.approx(16.0)
 
     def test_pure_ingredient_meal(self):
         """Test meal with only ingredient items."""

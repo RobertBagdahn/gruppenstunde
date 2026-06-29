@@ -303,7 +303,7 @@ def gemini_call(
             config=config,
         )
         duration = int((time.monotonic() - start) * 1000)
-        response_text = response.text if response else ""
+        response_text = (response.text or "") if response else ""
         _update_interaction(interaction, success=True, response_text=response_text, duration_ms=duration)
         return response, interaction_id
     except Exception as exc:
@@ -378,7 +378,7 @@ def gemini_image_call(
             config=config,
         )
         duration = int((time.monotonic() - start) * 1000)
-        response_text = response.text if response else ""
+        response_text = (response.text or "") if response else ""
         _update_interaction(interaction, success=True, response_text=response_text, duration_ms=duration)
         return response, interaction_id
     except Exception as exc:

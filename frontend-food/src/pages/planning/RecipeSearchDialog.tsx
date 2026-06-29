@@ -1,6 +1,5 @@
-import { useState, useDeferredValue, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple, X } from 'lucide-react';
 import { useNutritionalTags } from '@/api/supplies';
 import {
   Dialog,
@@ -15,16 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRecipeSearch } from '@/api/mealPlans';
+import { useRecipeSearch, useRecentlyUsedRecipes } from '@/api/mealPlans';
 import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } from '@/schemas/mealPlan';
 import RecipePreviewDialog from './RecipePreviewDialog';
 import CategoryPills from '@/components/recipe/CategoryPills';
-import RecipeSearchCard from '@/components/recipe/RecipeSearchCard';
+import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
 export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
-  breakfast: ['breakfast', 'drink'],
+  breakfast: ['breakfast', 'warm_meal', 'drink'],
   lunch: ['warm_meal', 'cold_meal', 'drink'],
   dinner: ['warm_meal', 'cold_meal', 'drink'],
   snack: ['snack', 'drink'],
@@ -59,14 +58,15 @@ function BadgePill({ value, selected, onChange, icon, label }: BadgePillProps) {
 
 interface RecipeSearchDialogProps {
   mealType: string;
-  onSelect: (recipeId: number) => void;
-  onSelectIngredient?: (ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number) => void;
+  onSelect?: (recipeId: number, recipeTitle?: string) => void;
+  onSelectIngredient?: (ingredientId: number, portionId: number | null, measuringUnitId: number | null, quantity: number, ingredientName: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nutritionalTagIds?: number[];
   nutritionalTagNames?: string[];
   excludedRecipeIds?: Set<number>;
   excludedIngredientIds?: Set<number>;
+  ingredientOnly?: boolean;
 }
 
 export default function RecipeSearchDialog({
@@ -79,18 +79,25 @@ export default function RecipeSearchDialog({
   nutritionalTagNames,
   excludedRecipeIds = new Set(),
   excludedIngredientIds = new Set(),
+  ingredientOnly = false,
 }: RecipeSearchDialogProps) {
-  const defaultTypes = MEAL_TYPE_DEFAULT_RECIPE_TYPES[mealType] ?? [];
+  const defaultTypes = ingredientOnly
+    ? ['ingredient']
+    : (MEAL_TYPE_DEFAULT_RECIPE_TYPES[mealType] ?? []);
 
-  const [query, setQuery] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set(defaultTypes));
   const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>('all');
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
   const [excludeDietaryTags, setExcludeDietaryTags] = useState(true);
   const [includeTagIds, setIncludeTagIds] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: allNutritionalTags = [] } = useNutritionalTags();
+  const { data: recentlyUsedData } = useRecentlyUsedRecipes(5);
 
   // Tags that make sense as quick filters (vegan, vegetarisch, laktosefrei, glutenfrei)
   const QUICK_FILTER_NAMES = ['vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei'];
@@ -98,12 +105,29 @@ export default function RecipeSearchDialog({
     (t) => QUICK_FILTER_NAMES.some((name) => t.name.toLowerCase().includes(name))
   );
 
-  const deferredQuery = useDeferredValue(query);
+  // Debounce search query: 300ms after last keystroke
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    if (searchQuery.length < 2) {
+      setDebouncedQuery('');
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const recipeTypesArray = selectedTypes.size > 0 ? Array.from(selectedTypes) : undefined;
 
   const { data: results } = useRecipeSearch({
-    q: deferredQuery,
+    q: debouncedQuery || undefined,
     meal_type: recipeTypesArray ? undefined : mealType, // meal_type nur als Fallback wenn kein expliziter Filter
     recipe_types: recipeTypesArray,
     recipe_badge: badgeFilter !== 'all' ? badgeFilter : null,
@@ -114,20 +138,28 @@ export default function RecipeSearchDialog({
 
   useEffect(() => {
     if (open) {
-      setQuery('');
       setSelectedTypes(new Set(defaultTypes));
       setBadgeFilter('all');
       setIngredientDialog(null);
       setPreviewRecipe(null);
+      setSearchQuery('');
+      setDebouncedQuery('');
     }
-  }, [open, mealType]); // defaultTypes is derived from mealType
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mealType, ingredientOnly]);
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setDebouncedQuery('');
+    searchInputRef.current?.focus();
+  };
 
   const handleSelect = (recipe: RecipeSearchResult) => {
     setPreviewRecipe(recipe);
   };
 
   const handlePreviewConfirm = (recipeId: number) => {
-    onSelect(recipeId);
+    onSelect?.(recipeId, previewRecipe?.title);
     setPreviewRecipe(null);
     onOpenChange(false);
   };
@@ -138,11 +170,13 @@ export default function RecipeSearchDialog({
     quantity: number,
   ) => {
     if (onSelectIngredient) {
+      const totalWeightG = portion?.weight_g ? quantity * portion.weight_g : null;
       onSelectIngredient(
         ingredientId,
         portion?.id ?? null,
         portion?.measuring_unit_id ?? null,
-        quantity,
+        totalWeightG ?? quantity,
+        ingredientDialog?.name ?? '',
       );
     }
     setIngredientDialog(null);
@@ -150,6 +184,10 @@ export default function RecipeSearchDialog({
   };
 
   const isIngredientMode = selectedTypes.has('ingredient');
+
+  const showRecentlyUsed = !ingredientOnly && !isIngredientMode
+    && debouncedQuery.length < 2 && searchQuery.length < 2
+    && (recentlyUsedData?.recipes?.length ?? 0) > 0;
 
   const recipes = results?.recipes ?? [];
   const ingredients = results?.ingredients ?? [];
@@ -168,7 +206,7 @@ export default function RecipeSearchDialog({
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-display">
-              {isIngredientMode ? (
+              {ingredientOnly || isIngredientMode ? (
                 <><Apple className="w-5 h-5 text-primary" /> Zutat hinzufügen</>
               ) : (
                 <><Search className="w-5 h-5 text-primary" /> Rezept für {mealTypeLabel} wählen</>
@@ -176,66 +214,64 @@ export default function RecipeSearchDialog({
             </DialogTitle>
           </DialogHeader>
 
-          {/* Suchfeld + Neu-Button */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          {/* Suchfeld — nur im Rezept-Modus */}
+          {!ingredientOnly && !isIngredientMode && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
+                ref={searchInputRef}
                 type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={isIngredientMode ? 'Zutat suchen...' : 'Rezept oder Zutat suchen...'}
-                autoFocus
-                className="w-full rounded-lg border pl-10 pr-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Suchen..."
+                className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
+              {searchQuery.length > 0 && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            {!isIngredientMode && (
-              <Link
-                to="/recipes/new"
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Neues Rezept
-              </Link>
-            )}
-          </div>
+          )}
 
-          {/* Filter-Zeile */}
-          <div className="space-y-2">
-            {/* Typ-Multi-Chips */}
-            <CategoryPills selected={selectedTypes} onChange={setSelectedTypes} />
-
-            {/* Badge-Filter */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground shrink-0">Quelle:</span>
-              <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
-                <BadgePill
-                  value="all"
-                  selected={badgeFilter}
-                  onChange={setBadgeFilter}
-                  icon={<LayoutGrid className="w-3 h-3" />}
-                  label="Alle"
-                />
-                <BadgePill
-                  value="verified"
-                  selected={badgeFilter}
-                  onChange={setBadgeFilter}
-                  icon={<ShieldCheck className="w-3 h-3" />}
-                  label="Verifiziert"
-                />
-                <BadgePill
-                  value="community"
-                  selected={badgeFilter}
-                  onChange={setBadgeFilter}
-                  icon={<Users className="w-3 h-3" />}
-                  label="Community"
-                />
+          {/* Filter-Zeile — nur im Rezept-Modus */}
+          {!ingredientOnly && (
+            <div className="space-y-2">
+              <CategoryPills selected={selectedTypes} onChange={setSelectedTypes} />
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground shrink-0">Quelle:</span>
+                <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+                  <BadgePill
+                    value="all"
+                    selected={badgeFilter}
+                    onChange={setBadgeFilter}
+                    icon={<LayoutGrid className="w-3 h-3" />}
+                    label="Alle"
+                  />
+                  <BadgePill
+                    value="verified"
+                    selected={badgeFilter}
+                    onChange={setBadgeFilter}
+                    icon={<ShieldCheck className="w-3 h-3" />}
+                    label="Verifiziert"
+                  />
+                  <BadgePill
+                    value="community"
+                    selected={badgeFilter}
+                    onChange={setBadgeFilter}
+                    icon={<Users className="w-3 h-3" />}
+                    label="Community"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Ernährungsweise-Filter (Vegan, Vegetarisch, etc.) */}
-          {quickFilterTags.length > 0 && (
+          {/* Ernährungsweise-Filter — nur im Rezept-Modus */}
+          {!ingredientOnly && quickFilterTags.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
                 <Leaf className="w-3 h-3" />
@@ -264,8 +300,8 @@ export default function RecipeSearchDialog({
             </div>
           )}
 
-          {/* Ernährungs-Ausschluss */}
-          {nutritionalTagIds && nutritionalTagIds.length > 0 && (
+          {/* Ernährungs-Ausschluss — nur im Rezept-Modus */}
+          {!ingredientOnly && nutritionalTagIds && nutritionalTagIds.length > 0 && (
             <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-muted-foreground select-none bg-muted/50 px-2.5 py-1.5 rounded-lg border border-border/50 w-fit">
               <input
                 type="checkbox"
@@ -277,9 +313,9 @@ export default function RecipeSearchDialog({
             </label>
           )}
 
-          {/* Kürzlich verwendet (nur im Rezept-Modus) */}
-          {!isIngredientMode && (
-            <RecentlyUsedSection onSelect={(recipeId) => { onSelect(recipeId); onOpenChange(false); }} />
+          {/* Kürzlich verwendet — nur wenn nicht gesucht wird */}
+          {showRecentlyUsed && (
+            <RecentlyUsedSection onSelect={(recipeId, title) => { onSelect?.(recipeId, title); onOpenChange(false); }} />
           )}
 
           {/* Fallback-Hinweis */}
@@ -291,41 +327,79 @@ export default function RecipeSearchDialog({
 
           {/* Ergebnisliste */}
           <div className="flex-1 overflow-y-auto rounded-lg border divide-y min-h-0">
-            {!isIngredientMode && recipes.length > 0 && (
+            {!ingredientOnly && !isIngredientMode && (recipes.length > 0 || ingredients.length > 0) && (
               <>
-                {ingredients.length > 0 && (
-                  <div className="px-3 py-1.5 bg-muted/50 text-sm font-semibold text-muted-foreground">
-                    Rezepte
-                  </div>
-                )}
-                {recipes.map((r) => {
-                  const isExcluded = excludedRecipeIds.has(r.id);
-                  return isExcluded ? (
-                    <div
-                      key={`recipe-${r.id}`}
-                      className="w-full text-left px-3 py-2.5 flex items-center gap-2.5 opacity-50 pointer-events-none bg-muted/30"
-                    >
-                      <span className="text-sm font-medium truncate flex-1">{r.title}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-                        Bereits enthalten
-                      </span>
-                    </div>
-                  ) : (
-                    <RecipeSearchCard
-                      key={`recipe-${r.id}`}
-                      recipe={r}
-                      onClick={() => handleSelect(r)}
-                    />
+                {/* Available items (mixed, sorted) */}
+                {(() => {
+                  const availableItems: Array<{
+                    kind: 'recipe' | 'ingredient';
+                    data: RecipeSearchResult | IngredientSearchResult;
+                    onClick: () => void;
+                  }> = [];
+
+                  for (const r of recipes) {
+                    if (!excludedRecipeIds.has(r.id)) {
+                      availableItems.push({
+                        kind: 'recipe',
+                        data: r,
+                        onClick: () => handleSelect(r),
+                      });
+                    }
+                  }
+
+                  for (const ing of ingredients) {
+                    if (!excludedIngredientIds.has(ing.id)) {
+                      availableItems.push({
+                        kind: 'ingredient',
+                        data: ing,
+                        onClick: () => setIngredientDialog(ing),
+                      });
+                    }
+                  }
+
+                  availableItems.sort(
+                    (a, b) => ((b.data as any).usage_count ?? 0) - ((a.data as any).usage_count ?? 0)
                   );
-                })}
+
+                  return availableItems.map((item) => (
+                    <SearchResultCard
+                      key={`${item.kind}-${item.data.id}`}
+                      result={item.data as any}
+                      onClick={item.onClick}
+                    />
+                  ));
+                })()}
+
+                {/* Excluded items (at the bottom) */}
+                {recipes.filter((r) => excludedRecipeIds.has(r.id)).map((r) => (
+                  <div
+                    key={`recipe-excluded-${r.id}`}
+                    className="w-full text-left px-3 py-2.5 flex items-center gap-2.5 opacity-50 pointer-events-none bg-muted/30"
+                  >
+                    <span className="text-sm font-medium truncate flex-1">{r.title}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                      Bereits enthalten
+                    </span>
+                  </div>
+                ))}
+                {ingredients.filter((i) => excludedIngredientIds.has(i.id)).map((ing) => (
+                  <div
+                    key={`ing-excluded-${ing.id}`}
+                    className="w-full text-left px-3 py-2.5 flex items-center gap-3 opacity-50 pointer-events-none bg-muted/30"
+                  >
+                    <Apple className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1">{ing.name}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                      Bereits enthalten
+                    </span>
+                  </div>
+                ))}
               </>
             )}
 
-            {ingredients.length > 0 && (
+            {/* Ingredient-only / Ingredient mode: keep original simple rendering */}
+            {(ingredientOnly || isIngredientMode) && ingredients.length > 0 && (
               <>
-                <div className="px-3 py-1.5 bg-muted/50 text-sm font-semibold text-muted-foreground">
-                  Zutaten
-                </div>
                 {ingredients.map((ing) => {
                   const isExcluded = excludedIngredientIds.has(ing.id);
                   return isExcluded ? (
@@ -356,13 +430,13 @@ export default function RecipeSearchDialog({
               </>
             )}
 
-            {((!isIngredientMode && recipes.length === 0 && ingredients.length === 0) ||
-             (isIngredientMode && ingredients.length === 0)) && (
+            {((!ingredientOnly && !isIngredientMode && recipes.length === 0 && ingredients.length === 0) ||
+             ((ingredientOnly || isIngredientMode) && ingredients.length === 0)) && (
               <div className="p-4 text-center space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Keine {isIngredientMode ? 'Zutaten' : 'Ergebnisse'} gefunden
+                  Keine {ingredientOnly || isIngredientMode ? 'Zutaten' : 'Ergebnisse'} gefunden
                 </p>
-                {!isIngredientMode && (
+                {!(ingredientOnly || isIngredientMode) && (
                   <a
                     href="/recipes/new"
                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline"

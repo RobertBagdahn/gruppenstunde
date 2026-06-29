@@ -3,16 +3,13 @@
  * MUST stay in sync with backend/planner/schemas.py (MealPlan section)
  */
 import { z } from 'zod';
+import { NutritionalTagSchema } from './supply';
 
-export const NutritionalTagSchema = z.object({
+// Lightweight nutritional tag schema for search results (backend only returns id+name)
+export const NutritionalTagPreviewSchema = z.object({
   id: z.number(),
   name: z.string(),
-  name_opposite: z.string(),
-  description: z.string(),
-  rank: z.number(),
-  is_dangerous: z.boolean(),
 });
-export type NutritionalTag = z.infer<typeof NutritionalTagSchema>;
 
 // ==========================================================================
 // Variant Item (batch input)
@@ -65,6 +62,7 @@ export const MealItemSchema = z.object({
   variant_group_id: z.string().nullable(),
   energy_kcal: z.number().nullable(),
   cost_eur: z.number().nullable(),
+  quantity_g: z.number().nullable(),
   ingredient_tags: z.array(z.string()),
   recipe_type: z.string(),
   overrides: z.array(MealItemOverrideSchema),
@@ -266,7 +264,7 @@ export const RecipeSearchResultSchema = z.object({
   cached_carbohydrate_g: z.number().nullable().optional(),
   cached_price_total: z.number().nullable().optional(),
   cached_nutri_class: z.number().nullable().optional(),
-  nutritional_tags: z.array(NutritionalTagSchema).optional(),
+  nutritional_tags: z.array(NutritionalTagPreviewSchema).optional(),
   usage_count: z.number().optional(),
   description: z.string().nullable().optional(),
   ingredients_preview: z.array(z.string()).optional(),
@@ -328,7 +326,7 @@ export const RecipeRecentlyUsedSchema = z.object({
   usage_count: z.number().optional(),
   recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
   price_per_serving: z.number().nullable().optional(),
-  nutritional_tags: z.array(NutritionalTagSchema).optional(),
+  nutritional_tags: z.array(NutritionalTagPreviewSchema).optional(),
 });
 export type RecipeRecentlyUsed = z.infer<typeof RecipeRecentlyUsedSchema>;
 
@@ -351,6 +349,16 @@ export const IngredientSearchResultSchema = z.object({
   id: z.number(),
   name: z.string(),
   slug: z.string(),
+  energy_kcal: z.number().nullable().optional(),
+  protein_g: z.number().nullable().optional(),
+  fat_g: z.number().nullable().optional(),
+  carbohydrate_g: z.number().nullable().optional(),
+  nutri_class: z.number().nullable().optional(),
+  price_per_kg: z.number().nullable().optional(),
+  usage_count: z.number().optional(),
+  description: z.string().nullable().optional(),
+  status: z.string().optional(),
+  nutritional_tags: z.array(NutritionalTagPreviewSchema).optional(),
   portions: z.array(IngredientPortionSchema),
 });
 export type IngredientSearchResult = z.infer<typeof IngredientSearchResultSchema>;

@@ -192,7 +192,6 @@ export function useMergeIngredients() {
     mutationFn: (data: MergeRequest) => postJson(`${ADMIN_DQ}/ingredients/merge/`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['merge-preview'] });
     },
   });
 }
@@ -220,7 +219,6 @@ export function useRecipeMerge() {
     mutationFn: (data: MergeRequest) => postJson(`${ADMIN_DQ}/recipes/merge/`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipe-duplicates'] });
-      queryClient.invalidateQueries({ queryKey: ['recipe-merge-preview'] });
     },
   });
 }

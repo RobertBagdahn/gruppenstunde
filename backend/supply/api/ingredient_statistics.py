@@ -12,6 +12,7 @@ from supply.schemas.ingredient_statistics import (
     DistributionOut,
     DistributionStats,
     FieldOutliers,
+    LinearFit,
     OutlierItem,
     OutliersOut,
     RankingItem,
@@ -233,6 +234,37 @@ def _compute_pearson_r(x_values: list[float], y_values: list[float]) -> float | 
     return round(cov / (std_x * std_y), 4)
 
 
+def _compute_linear_regression(x_values: list[float], y_values: list[float]):
+    """Compute linear regression y = slope * x + intercept. Returns (slope, intercept, r_squared) or None."""
+    n = len(x_values)
+    if n < 3:
+        return None
+
+    mean_x = sum(x_values) / n
+    mean_y = sum(y_values) / n
+
+    num = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, y_values, strict=False))
+    den = sum((x - mean_x) ** 2 for x in x_values)
+
+    if den == 0:
+        return None
+
+    slope = num / den
+    intercept = mean_y - slope * mean_x
+
+    # r² = squared pearson r
+    std_x = math.sqrt(den)
+    std_y = math.sqrt(sum((y - mean_y) ** 2 for y in y_values))
+
+    if std_x == 0 or std_y == 0:
+        r_squared = 0.0
+    else:
+        r = num / (std_x * std_y)
+        r_squared = r * r
+
+    return LinearFit(slope=round(slope, 4), intercept=round(intercept, 4), r_squared=round(r_squared, 4))
+
+
 def _get_retail_section_name(ing):
     """Get retail section name from an ingredient instance."""
     if ing.retail_section_id:
@@ -342,7 +374,8 @@ def ingredient_scatter(
         y_vals.append(y)
 
     pearson_r = _compute_pearson_r(x_vals, y_vals)
-    return ScatterOut(points=points, pearson_r=pearson_r, count=len(points))
+    linear_fit = _compute_linear_regression(x_vals, y_vals)
+    return ScatterOut(points=points, pearson_r=pearson_r, linear_fit=linear_fit, count=len(points))
 
 
 # =============================================================================

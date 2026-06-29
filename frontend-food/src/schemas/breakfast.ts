@@ -68,6 +68,10 @@ export const BreakfastCatalogSchema = z.object({
   warm_meal_recipes: z.array(WarmMealRecipeSchema),
   gram_measuring_unit_id: z.number().nullable(),
   ml_measuring_unit_id: z.number().nullable(),
+  scheibe_measuring_unit_id: z.number().nullable(),
+  portion_measuring_unit_id: z.number().nullable(),
+  tasse_measuring_unit_id: z.number().nullable(),
+  schuss_measuring_unit_id: z.number().nullable(),
 });
 export type BreakfastCatalog = z.infer<typeof BreakfastCatalogSchema>;
 
@@ -165,6 +169,10 @@ export const WizardStateSchema = z.object({
   warmDishFactors: z.record(z.string(), z.number()),
   /** Extra standalone ingredients (Gemüse etc.) — id → grams_per_person */
   extraIngredients: z.record(z.string(), z.number()),
+  /** Names of extra ingredients for display */
+  extraIngredientNames: z.record(z.string(), z.string()),
+  /** Names of warm-dish recipes for display */
+  warmDishRecipeNames: z.record(z.string(), z.string()),
 });
 export type WizardState = z.infer<typeof WizardStateSchema>;
 
@@ -195,6 +203,8 @@ export function defaultWizardState(): WizardState {
     },
     warmDishRecipeIds: [],
     warmDishFactors: {},
+    warmDishRecipeNames: {},
     extraIngredients: {},
+    extraIngredientNames: {},
   };
 }
