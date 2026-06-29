@@ -19,6 +19,7 @@ class Tag(models.Model):
         related_name="children",
     )
     icon = models.CharField(max_length=50, blank=True, default="")
+    group = models.CharField(max_length=50, default="general", blank=True)
     sort_order = models.IntegerField(default=0)
     is_approved = models.BooleanField(default=True)
     embedding = models.BinaryField(null=True, blank=True)

@@ -379,6 +379,100 @@ export type UnifiedSearchResponse = z.infer<typeof UnifiedSearchResponseSchema>;
 
 export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
+// ==========================================================================
+// AI Meal Plan Generation
+// ==========================================================================
+
+export const AiSuggestMealSchema = z.object({
+  meal_type: z.string(),
+  recipe_id: z.number(),
+  recipe_title: z.string(),
+});
+export type AiSuggestMeal = z.infer<typeof AiSuggestMealSchema>;
+
+export const AiSuggestDaySchema = z.object({
+  date: z.string(),
+  meals: z.array(AiSuggestMealSchema),
+});
+export type AiSuggestDay = z.infer<typeof AiSuggestDaySchema>;
+
+export const AiSuggestOutSchema = z.object({
+  days: z.array(AiSuggestDaySchema),
+});
+export type AiSuggestOut = z.infer<typeof AiSuggestOutSchema>;
+
+// ==========================================================================
+// Wizard State schemas
+// ==========================================================================
+
+export const MealPlanWizardStrategySchema = z.enum(['empty', 'reference', 'ai']);
+export type MealPlanWizardStrategy = z.infer<typeof MealPlanWizardStrategySchema>;
+
+export const MealPlanWizardStateSchema = z.object({
+  version: z.number().default(1),
+
+  name: z.string().default(''),
+  description: z.string().default(''),
+  norm_portions: z.number().default(10),
+  reserve_factor: z.number().default(1.1),
+  budget_per_person_per_day: z.number().nullable().default(null),
+  start_datetime: z.string().default(''),
+  end_datetime: z.string().default(''),
+  visibility: z.enum(['private', 'group', 'public', 'draft']).default('private'),
+  is_template: z.boolean().default(false),
+
+  day_part_factors: z.record(z.string(), z.number()).default({
+    breakfast: 0.25,
+    lunch: 0.35,
+    dinner: 0.30,
+    snack: 0.10,
+  }),
+  meal_default_times: z.record(z.string(), z.array(z.string())).default({
+    breakfast: ['08:00', '09:00'],
+    lunch: ['12:00', '13:00'],
+    dinner: ['18:00', '19:00'],
+    snack: ['15:00', '15:30'],
+  }),
+
+  nutritional_tag_ids: z.array(z.number()).default([]),
+
+  strategy: MealPlanWizardStrategySchema.default('empty'),
+  reference_plan_id: z.number().nullable().default(null),
+  reference_plan_name: z.string().default(''),
+  ai_prompt: z.string().default(''),
+  ai_suggestions: z.any().nullable().default(null),
+});
+
+export type MealPlanWizardState = z.infer<typeof MealPlanWizardStateSchema>;
+
+export function defaultWizardState(): MealPlanWizardState {
+  return {
+    version: 1,
+    name: '',
+    description: '',
+    norm_portions: 10,
+    reserve_factor: 1.1,
+    budget_per_person_per_day: null,
+    start_datetime: '',
+    end_datetime: '',
+    visibility: 'private',
+    is_template: false,
+    day_part_factors: { breakfast: 0.25, lunch: 0.35, dinner: 0.30, snack: 0.10 },
+    meal_default_times: {
+      breakfast: ['08:00', '09:00'],
+      lunch: ['12:00', '13:00'],
+      dinner: ['18:00', '19:00'],
+      snack: ['15:00', '15:30'],
+    },
+    nutritional_tag_ids: [],
+    strategy: 'empty',
+    reference_plan_id: null,
+    reference_plan_name: '',
+    ai_prompt: '',
+    ai_suggestions: null,
+  };
+}
+
 export const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
   lunch: 'Mittagessen',

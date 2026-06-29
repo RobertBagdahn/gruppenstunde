@@ -30,6 +30,7 @@ import CookingSchedulePrintPage from './pages/planning/CookingSchedulePrintPage'
 import CookingScheduleKitchenPage from './pages/planning/CookingScheduleKitchenPage';
 import RefMealEditorPage from './pages/planning/RefMealEditorPage';
 import BreakfastWizardPage from './pages/planning/breakfast/BreakfastWizardPage';
+import MealPlanWizardPage from './pages/planning/wizard/MealPlanWizardPage';
 
 // Print pages (no layout)
 import RecipePrintPage from './pages/recipes/RecipePrintPage';
@@ -99,6 +100,7 @@ export default function App() {
 
         {/* Meal Plans */}
         <Route path="/meal-plans" element={<MealPlanLandingPage />} />
+        <Route path="/meal-plans/new" element={<MealPlanWizardPage />} />
         <Route path="/meal-plans/app" element={<MealPlanListPage />} />
         <Route path="/meal-plans/:id/*" element={<MealPlanDetailPage />} />
         <Route path="/meal-plans/:id/cooking-schedule" element={<CookingSchedulePage />} />

@@ -1766,6 +1766,7 @@ def search_recipes(
     recipe_badge: str | None = None,
     nutritional_tag_ids: str | None = None,
     exclude_nutritional_tag_ids: str | None = None,
+    tag_ids: str | None = None,
     limit: int = 8,
 ):
     """Search for recipes and standalone ingredients to add to meals.
@@ -1901,6 +1902,12 @@ def search_recipes(
         exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
         if exclude_tag_ids:
             qs = qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
+
+    # Filter by content tags (e.g., breakfast day tags)
+    if tag_ids:
+        parsed_tag_ids = [int(t) for t in tag_ids.split(",") if t.strip().isdigit()]
+        for tid in parsed_tag_ids:
+            qs = qs.filter(tags=tid)
 
     if type_filter:
         primary_qs = qs.filter(recipe_type__in=type_filter)

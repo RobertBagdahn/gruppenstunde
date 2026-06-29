@@ -399,15 +399,15 @@ function MealPlanListPageInner() {
       </div>
 
       {/* Search Bar */}
-      <ListPageSearchBar
-        placeholder="Essensplan suchen..."
-        value={searchInput}
-        onChange={setSearchInput}
-        onSubmit={handleSearch}
-        createLabel="Neuer Essensplan"
-        onCreateClick={() => setShowCreate(true)}
-        gradientClasses=""
-      />
+              <ListPageSearchBar
+                placeholder="Essensplan suchen..."
+                value={searchInput}
+                onChange={setSearchInput}
+                onSubmit={handleSearch}
+                createLabel="Neuer Essensplan"
+                onCreateClick={() => navigate('/meal-plans/new')}
+                gradientClasses=""
+              />
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-8">
         {/* Filter Sidebar */}
@@ -456,7 +456,7 @@ function MealPlanListPageInner() {
                   : 'Erstelle deinen ersten Essensplan für eine Fahrt oder den Gruppenalltag.'
               }
               ctaLabel="Neuen Essensplan erstellen"
-              onCtaClick={() => setShowCreate(true)}
+              onCtaClick={() => navigate('/meal-plans/new')}
             />
           ) : (
             <>

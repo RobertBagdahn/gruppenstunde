@@ -21,6 +21,7 @@ interface IngredientListProps {
   /** Available unit conversions per ingredient (from batch API) */
   availableConversions?: AvailableConversionBatchItem[];
   className?: string;
+  showSearch?: boolean;
 }
 
 /** Short display names for measuring units */
@@ -61,6 +62,7 @@ export default function IngredientList({
   portionsMultiplier,
   availableConversions,
   className = '',
+  showSearch = true,
 }: IngredientListProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -127,17 +129,18 @@ export default function IngredientList({
 
   return (
     <div className={className}>
-      {/* Search filter */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Zutat suchen..."
-          className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-        />
-      </div>
+      {showSearch && (
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Zutat suchen..."
+            className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+      )}
 
       {/* Ingredient list */}
       <ul className="divide-y divide-border rounded-xl border bg-card overflow-hidden">

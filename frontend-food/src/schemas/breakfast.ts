@@ -116,7 +116,7 @@ export type BreakfastLeftoversOut = z.infer<typeof BreakfastLeftoversOutSchema>;
 /** Intensity level for topping portions */
 export type ToppingIntensity = 'knapp' | 'normal' | 'üppig';
 
-/** One basis bread type with share (0–100%) and BE/person */
+/** One basis bread type with share (0–100%) */
 export const BasisSelectionSchema = z.object({
   ingredientId: z.number(),
   name: z.string(),
@@ -176,6 +176,16 @@ export const WizardItemsResponseSchema = z.object({
   items: z.array(MealItemSchema),
 });
 export type WizardItemsResponse = z.infer<typeof WizardItemsResponseSchema>;
+
+/** Breakfast day tag */
+export const BreakfastDaySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  sort_order: z.number(),
+  recipe_count: z.number().optional(),
+});
+export type BreakfastDay = z.infer<typeof BreakfastDaySchema>;
 
 /** Default empty wizard state */
 export function defaultWizardState(): WizardState {

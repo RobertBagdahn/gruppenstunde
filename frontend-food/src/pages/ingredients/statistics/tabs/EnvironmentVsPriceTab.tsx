@@ -17,7 +17,12 @@ export default function EnvironmentVsPriceTab() {
       {isLoading ? (
         <div className="h-96 bg-muted/40 animate-pulse rounded-xl" />
       ) : data ? (
-        <HeatmapExplorer data={data} xLabel="Umweltfreundlichkeit" yLabel="Preis" xUnit="pts" yUnit="€" />
+        <HeatmapExplorer
+          data={data}
+          xLabel="Umweltfreundlichkeit" yLabel="Preis" xUnit="pts" yUnit="€"
+          formatX={(v) => v.toFixed(1)}
+          formatY={(v) => v < 1 ? `${(v * 100).toFixed(0)}ct` : `€${v.toFixed(2)}`}
+        />
       ) : null}
     </div>
   );

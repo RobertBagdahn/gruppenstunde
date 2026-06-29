@@ -13,9 +13,10 @@ export const TagSchema = z.object({
   name: z.string(),
   slug: z.string(),
   icon: z.string(),
+  group: z.string(),
   sort_order: z.number(),
   parent_id: z.number().nullable(),
-  parent_name: z.string().nullable().optional(),
+  parent_name: z.string().nullable(),
 });
 export type Tag = z.infer<typeof TagSchema>;
 

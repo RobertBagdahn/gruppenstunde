@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe } from '@/api/recipes';
 import { useTags, useScoutLevels } from '@/api/tags';
+import { useBreakfastDays } from '@/api/breakfast';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { ArrowLeft, Save } from 'lucide-react';
 import {
@@ -32,6 +33,7 @@ export default function EditRecipePage() {
 
   const { data: allTags } = useTags();
   const { data: scoutLevels } = useScoutLevels();
+  const { data: breakfastDays } = useBreakfastDays();
 
   // Pre-populate form when recipe loads
   useEffect(() => {
@@ -301,6 +303,35 @@ export default function EditRecipePage() {
             ))}
           </div>
         </div>
+
+        {/* Frühstückstage */}
+        {breakfastDays && breakfastDays.length > 0 && (
+          <div className="bg-card rounded-xl border p-5">
+            <label className="flex items-center gap-1.5 text-sm font-medium mb-3">
+              <span className="material-symbols-outlined text-[18px] text-primary">free_breakfast</span>
+              Frühstückstage
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {breakfastDays.map((day) => {
+                const isSelected = selectedTagIds.includes(day.id);
+                return (
+                  <button
+                    key={day.id}
+                    type="button"
+                    onClick={() => toggleTag(day.id)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background hover:bg-muted'
+                    }`}
+                  >
+                    {day.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Scout Levels */}
         {scoutLevels && (

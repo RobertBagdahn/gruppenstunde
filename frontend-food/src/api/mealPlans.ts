@@ -37,6 +37,8 @@ import {
   type CookingSchedule,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
+import { AiSuggestOutSchema } from '@/schemas/mealPlan';
+import type { AiSuggestOut } from '@/schemas/mealPlan';
 
 const API_BASE = `${API_BASE_URL}/api/meal-plans`;
 
@@ -161,6 +163,19 @@ export function useCreateMealPlan() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
     },
+  });
+}
+
+export function useAiMealPlanSuggest() {
+  return useMutation({
+    mutationFn: (body: {
+      prompt: string;
+      num_persons: number;
+      num_days: number;
+      start_date: string;
+      nutritional_tag_ids?: number[];
+      budget_per_person_per_day?: number;
+    }): Promise<AiSuggestOut> => postJson(`${API_BASE}/ai-suggest/`, body, AiSuggestOutSchema),
   });
 }
 
@@ -432,11 +447,12 @@ export interface RecipeSearchParams {
   recipe_badge?: 'verified' | 'community' | null;
   nutritional_tag_ids?: number[];
   exclude_nutritional_tag_ids?: number[];
+  tag_ids?: number[];
   limit?: number;
 }
 
 export function useRecipeSearch(params: RecipeSearchParams) {
-  const { q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, nutritional_tag_ids, limit } = params;
+  const { q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, nutritional_tag_ids, tag_ids, limit } = params;
 
   const searchParams = new URLSearchParams();
   if (q) searchParams.set('q', q);
@@ -447,10 +463,12 @@ export function useRecipeSearch(params: RecipeSearchParams) {
     searchParams.set('exclude_nutritional_tag_ids', exclude_nutritional_tag_ids.join(','));
   if (nutritional_tag_ids?.length)
     searchParams.set('nutritional_tag_ids', nutritional_tag_ids.join(','));
+  if (tag_ids?.length)
+    searchParams.set('tag_ids', tag_ids.join(','));
   if (limit) searchParams.set('limit', String(limit));
 
   return useQuery<UnifiedSearchResponse>({
-    queryKey: ['recipe-search', q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, nutritional_tag_ids, limit],
+    queryKey: ['recipe-search', q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, nutritional_tag_ids, tag_ids, limit],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/recipes/search/?${searchParams.toString()}`,

@@ -1,9 +1,8 @@
 /**
  * Convert saved RefMeal items back into WizardState for editing.
  *
- * This is inherently approximate — wizard state uses relative distributions (%)
- * while saved items use absolute quantities (grams). The result gives the user
- * a good starting point to adjust in the wizard.
+ * This reconstructs sharePercent values from gram quantities.
+ * The wizard will then derive absolute grams from the kcal target + distribution.
  */
 import type { MealItem } from '@/schemas/mealPlan';
 import type {
@@ -31,26 +30,25 @@ export function refMealItemsToWizardState(
   const basisItems = items.filter((i) => (i.ingredient_tags ?? []).includes('breakfast-base'));
   if (basisItems.length > 0) {
     const basisSelections: BasisSelection[] = [];
-    let totalBe = 0;
-    const bePerItem: { ingredientId: number; be: number; sliceWeightG: number }[] = [];
+    let totalGrams = 0;
+    const gramPerItem: { ingredientId: number; grams: number; sliceWeightG: number }[] = [];
 
     for (const item of basisItems) {
       if (!item.ingredient_id || !item.quantity) continue;
       const catalogIng = catalog.base_ingredients.find((b) => b.id === item.ingredient_id);
       const sliceWeightG = catalogIng?.standard_recipe_weight_g ?? 70;
-      const be = item.quantity / sliceWeightG;
-      bePerItem.push({ ingredientId: item.ingredient_id, be, sliceWeightG });
-      totalBe += be;
+      const grams = perPerson(item.quantity);
+      gramPerItem.push({ ingredientId: item.ingredient_id, grams, sliceWeightG });
+      totalGrams += grams;
     }
 
-    if (totalBe > 0) {
-      result.bePerPerson = Math.max(1, Math.round(totalBe / normPortions));
-      for (const { ingredientId, be, sliceWeightG } of bePerItem) {
+    if (totalGrams > 0) {
+      for (const { ingredientId, grams, sliceWeightG } of gramPerItem) {
         const catalogIng = catalog.base_ingredients.find((b) => b.id === ingredientId);
         basisSelections.push({
           ingredientId,
           name: catalogIng?.name ?? '',
-          sharePercent: Math.round((be / totalBe) * 100),
+          sharePercent: Math.round((grams / totalGrams) * 100),
           locked: false,
           sliceWeightG,
           energyKcal100g: catalogIng?.energy_kcal ?? null,
@@ -64,8 +62,8 @@ export function refMealItemsToWizardState(
   const toppingItems = items.filter((i) => (i.ingredient_tags ?? []).includes('breakfast-topping'));
   if (toppingItems.length > 0) {
     const toppingSelections: ToppingSelection[] = [];
-    let totalCoveredBe = 0;
-    const bePerTopping: { ingredientId: number; be: number }[] = [];
+    let totalGrams = 0;
+    const gramPerTopping: { ingredientId: number; grams: number }[] = [];
 
     // Determine intensity from avg grams per portion
     let globalIntensity: ToppingIntensity = 'normal';
@@ -99,28 +97,18 @@ export function refMealItemsToWizardState(
       if (!item.ingredient_id || !item.quantity) continue;
       const catIng = catalog.topping_ingredients.find((t) => t.id === item.ingredient_id);
       if (!catIng) continue;
-      const baseSelection: ToppingSelection = {
-        ingredientId: catIng.id,
-        name: catIng.name,
-        sharePercent: 100,
-        locked: false,
-        energyKcal100g: catIng.energy_kcal ?? null,
-        pricePerKg: catIng.price_per_kg ?? null,
-        portions: catIng.portions,
-      };
-      const portionWeight = toppingWeightForIntensity(baseSelection, globalIntensity);
-      const be = portionWeight > 0 ? item.quantity / portionWeight : 0;
-      bePerTopping.push({ ingredientId: item.ingredient_id, be });
-      totalCoveredBe += be;
+      const grams = perPerson(item.quantity);
+      gramPerTopping.push({ ingredientId: item.ingredient_id, grams });
+      totalGrams += grams;
     }
 
-    if (totalCoveredBe > 0) {
-      for (const { ingredientId, be } of bePerTopping) {
+    if (totalGrams > 0) {
+      for (const { ingredientId, grams } of gramPerTopping) {
         const catIng = catalog.topping_ingredients.find((t) => t.id === ingredientId);
         toppingSelections.push({
           ingredientId,
           name: catIng?.name ?? '',
-          sharePercent: Math.round((be / totalCoveredBe) * 100),
+          sharePercent: Math.round((grams / totalGrams) * 100),
           locked: false,
           energyKcal100g: catIng?.energy_kcal ?? null,
           pricePerKg: catIng?.price_per_kg ?? null,
@@ -155,6 +143,7 @@ export function refMealItemsToWizardState(
     if (item.recipe_title) {
       result.drinkRecipeNames[String(item.recipe_id)] = item.recipe_title;
     }
+  }
   }
 
   // ── 5. Extra ingredients ──────────────────────────────────────────────────

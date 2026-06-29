@@ -802,6 +802,7 @@ export default function RecipeDetailPage() {
             portions={isDirty ? (modifiedPortions ?? 1) : 1}
             portionsMultiplier={isDirty ? 1 : portionsMultiplier}
             availableConversions={availableConversions?.items}
+            showSearch={false}
           />
         )}
       </section>

@@ -7,6 +7,8 @@ interface HeatmapExplorerProps {
   yLabel: string;
   xUnit: string;
   yUnit: string;
+  formatX?: (v: number) => string;
+  formatY?: (v: number) => string;
 }
 
 interface Bin {
@@ -23,11 +25,11 @@ const Y_BINS = 12;
 const MARGIN = { top: 16, right: 16, bottom: 48, left: 56 };
 const CELL_GAP = 1;
 
-function formatEuro(v: number): string {
-  return v < 1 ? `${(v * 100).toFixed(0)}ct` : `€${v.toFixed(2)}`;
+function defaultFormat(v: number): string {
+  return v < 1 ? v.toFixed(2) : v.toFixed(1);
 }
 
-export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit }: HeatmapExplorerProps) {
+export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, formatX, formatY }: HeatmapExplorerProps) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; bin: Bin } | null>(null);
 
   const { bins, xMin, xMax, yMin, yMax, maxCount, width, height, plotW, plotH } = useMemo(() => {
@@ -191,11 +193,12 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit }: 
           {Array.from({ length: xTicks + 1 }, (_, i) => {
             const v = xMin + i * xStep;
             const px = toPlotX(v);
+            const fmt = formatX ?? defaultFormat;
             return (
               <g key={`xt-${i}`}>
                 <line x1={px} y1={MARGIN.top} x2={px} y2={MARGIN.top + plotH} stroke="hsl(var(--border))" strokeWidth={0.5} opacity={0.3} />
                 <text x={px} y={MARGIN.top + plotH + 18} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize={10}>
-                  {v.toFixed(1)}
+                  {fmt(v)}
                 </text>
               </g>
             );
@@ -204,11 +207,12 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit }: 
           {Array.from({ length: yTicks + 1 }, (_, i) => {
             const v = yMin + i * yStep;
             const py = toPlotY(v);
+            const fmt = formatY ?? defaultFormat;
             return (
               <g key={`yt-${i}`}>
                 <line x1={MARGIN.left} y1={py} x2={MARGIN.left + plotW} y2={py} stroke="hsl(var(--border))" strokeWidth={0.5} opacity={0.3} />
                 <text x={MARGIN.left - 8} y={py + 3} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize={10}>
-                  {formatEuro(v)}
+                  {fmt(v)}
                 </text>
               </g>
             );
@@ -242,7 +246,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit }: 
             }}
           >
             <div className="font-medium">
-              {tooltip.bin.xMin.toFixed(1)}–{tooltip.bin.xMax.toFixed(1)} {xUnit} × {formatEuro(tooltip.bin.yMin)}–{formatEuro(tooltip.bin.yMax)}
+              {(formatX ?? defaultFormat)(tooltip.bin.xMin)}–{(formatX ?? defaultFormat)(tooltip.bin.xMax)} {xUnit} × {(formatY ?? defaultFormat)(tooltip.bin.yMin)}–{(formatY ?? defaultFormat)(tooltip.bin.yMax)} {yUnit}
             </div>
             <div>{tooltip.bin.count} Zutat{tooltip.bin.count !== 1 ? 'en' : ''}</div>
             {tooltip.bin.points.length > 0 && (

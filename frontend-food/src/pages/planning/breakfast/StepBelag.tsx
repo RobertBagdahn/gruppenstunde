@@ -1,21 +1,20 @@
 /**
- * Step 2 — Belag: globaler Intensitäts-Schalter + Sortenverteilung + Deckungs-Check.
+ * Step 2 — Belag: globaler Intensitäts-Schalter + Sortenverteilung (kcal-basiert).
  */
 import { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import {
-  isBelagCovered,
-  toppingWeightForIntensity,
-  toppingKcalPerPerson,
-  toppingGramsPerPerson,
+  computeGroupKcal,
+  toppingItemGrams,
 } from '@/lib/breakfastCalc';
 import ShareSlider from './ShareSlider';
 import type { ToppingSelection, ToppingIntensity } from '@/schemas/breakfast';
 
 interface StepBelagProps {
   wiz: UseWizardStateReturn;
+  dayPartFactor: number;
 }
 
 const INTENSITY_LABELS: Record<ToppingIntensity, string> = {
@@ -24,7 +23,7 @@ const INTENSITY_LABELS: Record<ToppingIntensity, string> = {
   üppig: 'Üppig',
 };
 
-export default function StepBelag({ wiz }: StepBelagProps) {
+export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
   const {
     state,
     setToppingShare,
@@ -60,10 +59,9 @@ export default function StepBelag({ wiz }: StepBelagProps) {
     initToppings(items);
   }, [catalog, state.toppings.length, initToppings]);
 
-  const covered = isBelagCovered(state.toppings);
+  const { toppingKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, 0);
   const totalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
   const activeToppings = state.toppings.filter((t) => t.sharePercent > 0);
-  const totalKcal = toppingKcalPerPerson(state.bePerPerson, state.toppings, state.globalIntensity);
 
   return (
     <div className="space-y-6">
@@ -71,7 +69,7 @@ export default function StepBelag({ wiz }: StepBelagProps) {
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <h3 className="font-display font-semibold text-base">Belag-Intensität</h3>
         <p className="text-xs text-muted-foreground">
-          Wie viel Belag kommt auf jede Broteinheit?
+          Wie viel Belag pro Person?
         </p>
         <div className="flex gap-2">
           {(['knapp', 'normal', 'üppig'] as ToppingIntensity[]).map((level) => (
@@ -90,20 +88,9 @@ export default function StepBelag({ wiz }: StepBelagProps) {
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          Gesamt Belag: <span className="font-medium text-foreground">{Math.round(totalKcal)} kcal</span>/Person
+          Gesamt Belag: <span className="font-medium text-foreground">{Math.round(toppingKcal)} kcal</span>/Person
         </p>
       </div>
-
-      {/* Deckungs-Check */}
-      {!covered && activeToppings.length > 0 && (
-        <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-700 dark:text-amber-300">
-            Die Beläge decken nur {totalShare}% der Broteinheiten. Auf {100 - totalShare}% der
-            Scheiben kommt kein Belag.
-          </p>
-        </div>
-      )}
 
       {/* Sortenwarnung ab 4 Sorten */}
       {activeToppings.length >= 4 && (
@@ -120,18 +107,14 @@ export default function StepBelag({ wiz }: StepBelagProps) {
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-base">Sortenverteilung</h3>
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              covered ? 'bg-primary/10 text-primary' : 'bg-amber-100 text-amber-700'
-            }`}>
-              {totalShare}%
+            <span className="text-xs text-muted-foreground">
+              {Math.round(toppingKcal)} kcal/Person
             </span>
           </div>
           <div className="space-y-4">
             {state.toppings.map((t, i) => {
-              const grams = toppingGramsPerPerson(
-                state.bePerPerson, t, state.globalIntensity, state.toppings
-              );
-              const portionWeight = toppingWeightForIntensity(t, state.globalIntensity);
+              const grams = toppingItemGrams(t.sharePercent, totalShare, toppingKcal, t.energyKcal100g);
+              const kcal = t.energyKcal100g ? (t.energyKcal100g / 100) * grams : null;
               return (
                 <ShareSlider
                   key={t.ingredientId}
@@ -141,7 +124,7 @@ export default function StepBelag({ wiz }: StepBelagProps) {
                   onChange={(v) => setToppingShare(i, v)}
                   onToggleLock={() => setToppingLocked(i, !t.locked)}
                   detail={t.sharePercent > 0
-                    ? `${portionWeight}g/BE · ${Math.round(grams)}g ges.`
+                    ? `${Math.round(grams)}g · ${kcal ? `${Math.round(kcal)} kcal` : ''}`
                     : 'Nicht gewählt'
                   }
                 />

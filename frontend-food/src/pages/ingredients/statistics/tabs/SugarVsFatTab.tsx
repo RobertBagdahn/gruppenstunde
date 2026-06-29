@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { useIngredientScatter } from '@/api/supplies';
-import ScatterExplorer from '../components/ScatterExplorer';
+import HeatmapExplorer from '../components/HeatmapExplorer';
 import TabFilters from '../components/TabFilters';
 
 export default function SugarVsFatTab() {
@@ -11,13 +11,13 @@ export default function SugarVsFatTab() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Gibt es einen Zusammenhang zwischen Zucker- und Fettgehalt in verifizierten Zutaten?
+        Die Heatmap zeigt die Dichte der Zutaten nach Zucker- und Fettgehalt.
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
         <div className="h-96 bg-muted/40 animate-pulse rounded-xl" />
       ) : data ? (
-        <ScatterExplorer data={data} xLabel="Zucker" yLabel="Fett" xUnit="g" yUnit="g" />
+        <HeatmapExplorer data={data} xLabel="Zucker" yLabel="Fett" xUnit="g" yUnit="g" />
       ) : null}
     </div>
   );

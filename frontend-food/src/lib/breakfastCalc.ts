@@ -1,10 +1,8 @@
 /**
  * Breakfast Wizard calculation utilities.
  *
- * Conventions:
- *   1 BE (Broteinheit) = 1 belegbare Fläche
- *   1 Scheibe = 1 BE  |  ½ Brötchen = 1 BE  |  1 ganzes Brötchen = 2 BE
- *   1 Belag-Portion deckt genau 1 BE unabhängig von Intensität
+ * All gram amounts are derived from the kcal target (day_part_factor × NORM_PERSON_DAILY_KCAL)
+ * and the kcal density of each ingredient. No BE (Broteinheit) concept.
  *
  * Energy norm: NORM_PERSON_DAILY_KCAL (2335 kcal, kept in sync with backend constant)
  */
@@ -14,38 +12,64 @@ import type { BasisSelection, ToppingSelection, WizardState, ToppingIntensity } 
 export const NORM_PERSON_DAILY_KCAL = 2335;
 
 // ============================================================================
-// BE ↔ Gramm ↔ kcal
+// Kcal distribution between bread and toppings
 // ============================================================================
 
 /**
- * Total grams of bread per person for a given BE count, averaged over sorted
- * basis types weighted by their share.
+ * How much kcal is available for bread + toppings combined,
+ * after subtracting fixed kcal (extras, warm dishes).
  */
-export function beToGrams(bePerPerson: number, basis: BasisSelection[]): number {
-  if (basis.length === 0) return 0;
-  const totalShare = basis.reduce((s, b) => s + b.sharePercent, 0);
-  if (totalShare === 0) return 0;
-  // Weighted average of slice weights
-  const avgSliceG = basis.reduce(
-    (sum, b) => sum + b.sliceWeightG * (b.sharePercent / totalShare),
-    0,
-  );
-  return bePerPerson * avgSliceG;
+export function distributableKcal(dayPartFactor: number, fixKcal: number): number {
+  return Math.max(0, NORM_PERSON_DAILY_KCAL * dayPartFactor - fixKcal);
 }
 
 /**
- * Total kcal per person from basis bread items.
+ * Split distributable kcal between bread and topping groups
+ * proportional to their sharePercent sums.
  */
-export function basisKcalPerPerson(bePerPerson: number, basis: BasisSelection[]): number {
-  let kcal = 0;
-  const totalShare = basis.reduce((s, b) => s + b.sharePercent, 0);
-  if (totalShare === 0) return 0;
-  for (const b of basis) {
-    if (!b.energyKcal100g) continue;
-    const shareWeight = b.sliceWeightG * bePerPerson * (b.sharePercent / totalShare);
-    kcal += (b.energyKcal100g / 100) * shareWeight;
-  }
-  return kcal;
+export function computeGroupKcal(
+  basis: BasisSelection[],
+  toppings: ToppingSelection[],
+  dayPartFactor: number,
+  fixKcal: number,
+): { breadKcal: number; toppingKcal: number } {
+  const total = distributableKcal(dayPartFactor, fixKcal);
+  const brotAnteil = basis.reduce((s, b) => s + b.sharePercent, 0);
+  const belagAnteil = toppings.reduce((s, t) => s + t.sharePercent, 0);
+  const sum = brotAnteil + belagAnteil;
+  if (sum <= 0) return { breadKcal: 0, toppingKcal: 0 };
+  return {
+    breadKcal: total * (brotAnteil / sum),
+    toppingKcal: total * (belagAnteil / sum),
+  };
+}
+
+// ============================================================================
+// Per-item gram helpers
+// ============================================================================
+
+/** Grams for one bread item from its share and kcal density. */
+export function breadItemGrams(
+  sharePercent: number,
+  totalShare: number,
+  groupKcal: number,
+  energyKcal100g: number | null,
+): number {
+  if (!energyKcal100g || totalShare <= 0 || groupKcal <= 0) return 0;
+  const itemKcal = groupKcal * (sharePercent / totalShare);
+  return itemKcal / (energyKcal100g / 100);
+}
+
+/** Grams for one topping item from its share, intensity, and kcal density. */
+export function toppingItemGrams(
+  sharePercent: number,
+  totalShare: number,
+  groupKcal: number,
+  energyKcal100g: number | null,
+): number {
+  if (!energyKcal100g || totalShare <= 0 || groupKcal <= 0) return 0;
+  const itemKcal = groupKcal * (sharePercent / totalShare);
+  return itemKcal / (energyKcal100g / 100);
 }
 
 /**
@@ -69,58 +93,17 @@ export function toppingWeightForIntensity(
   return portion?.weight_g ?? 0;
 }
 
-/**
- * Total kcal per person from toppings.
- * Each topping covers bePerPerson BE, weighted by sharePercent.
- */
-export function toppingKcalPerPerson(
-  bePerPerson: number,
-  toppings: ToppingSelection[],
-  intensity: ToppingIntensity,
-): number {
-  let kcal = 0;
-  const totalShare = toppings.reduce((s, t) => s + t.sharePercent, 0);
-  if (totalShare === 0) return 0;
-  for (const t of toppings) {
-    if (!t.energyKcal100g) continue;
-    const beForTopping = bePerPerson * (t.sharePercent / totalShare);
-    const weightG = toppingWeightForIntensity(t, intensity) * beForTopping;
-    kcal += (t.energyKcal100g / 100) * weightG;
-  }
-  return kcal;
-}
-
-/**
- * Total grams per person of a topping (averaged over BE share).
- */
-export function toppingGramsPerPerson(
-  bePerPerson: number,
-  topping: ToppingSelection,
-  intensity: ToppingIntensity,
-  allToppings: ToppingSelection[],
-): number {
-  const totalShare = allToppings.reduce((s, t) => s + t.sharePercent, 0);
-  if (totalShare === 0) return 0;
-  const beForTopping = bePerPerson * (topping.sharePercent / totalShare);
-  return toppingWeightForIntensity(topping, intensity) * beForTopping;
-}
-
 // ============================================================================
-// Belag-Deckungs-Check
+// Kcal per person from drinks
 // ============================================================================
 
-/**
- * Returns the fraction of BE actually covered by toppings (0.0–1.0+).
- * Should be ~1.0 when topping shares sum to 100%.
- */
-export function belagCoverageRatio(toppings: ToppingSelection[]): number {
-  const total = toppings.reduce((s, t) => s + t.sharePercent, 0);
-  return total / 100;
-}
-
-/** True if toppings cover at least 95% of BE (allows minor rounding). */
-export function isBelagCovered(toppings: ToppingSelection[]): boolean {
-  return belagCoverageRatio(toppings) >= 0.95;
+/** Estimated kcal per person from selected drinks. */
+export function drinksKcalPerPerson(drinks: WizardState['drinks']): number {
+  return drinks.selected.reduce((sum, d) => {
+    if (!d.sharePercent || !d.recipeTitle) return sum;
+    return sum + 0;
+  }, 0);
+  // Future: look up cached_energy_kcal from catalog
 }
 
 // ============================================================================
@@ -157,49 +140,53 @@ export function drinkKcalFromRecipes(
   return kcal;
 }
 
-/**
- * Estimated kcal per person from Extras (warm dishes + Gemüse).
- * Currently returns 0 — wizard state lacks kcal data for recipes/extra-ingredients.
- * Kept as placeholder for when recipe-kcal data becomes available in wizard state.
- */
+/** Estimated kcal per person from Extras (warm dishes + Gemüse). */
 export function extrasKcalPerPerson(_state: WizardState): number {
   return 0;
 }
 
 // ============================================================================
-// Normalisieren (scale to target kcal)
+// Total kcal per person
+// ============================================================================
+
+/** Total kcal per person from basis + toppings + drinks + extras. */
+export function totalKcalPerPerson(
+  basis: BasisSelection[],
+  toppings: ToppingSelection[],
+  _drinks: WizardState['drinks'],
+  dayPartFactor: number,
+  fixKcal: number,
+): number {
+  const { breadKcal, toppingKcal } = computeGroupKcal(basis, toppings, dayPartFactor, fixKcal);
+  return breadKcal + toppingKcal + fixKcal;
+}
+
+/** Energy target per person for a given day_part_factor. */
+export function energyTargetKcal(dayPartFactor: number): number {
+  return NORM_PERSON_DAILY_KCAL * dayPartFactor;
+}
+
+// ============================================================================
+// Normalize — scale quantities to hit target
 // ============================================================================
 
 /**
- * Scale BE per person so that total kcal per person hits target.
- * Only basis + toppings are scaled; drinks and extras (warm dishes, Gemüse) stay fixed.
- *
- * target = NORM_PERSON_DAILY_KCAL × dayPartFactor
- * extraKcal = kcal from warm dishes + Gemüse (not recalculated here, fixed)
- *
- * Returns the new bePerPerson (rounded to 0.5).
+ * Compute a scale factor that, when applied to bread + topping quantities,
+ * brings total kcal to the target.
+ * Returns 1.0 if already at target or scale would be meaningless.
  */
-export function normalizeBePerPerson(
-  state: WizardState,
+export function normalizeScale(
+  basis: BasisSelection[],
+  toppings: ToppingSelection[],
   dayPartFactor: number,
-  extraKcalPerPerson: number = 0,
+  fixKcal: number,
 ): number {
-  const target = NORM_PERSON_DAILY_KCAL * dayPartFactor;
-  const remaining = target - extraKcalPerPerson;
-  if (remaining <= 0) return state.bePerPerson;
-
-  const currentBasis = basisKcalPerPerson(state.bePerPerson, state.basis);
-  const currentTopping = toppingKcalPerPerson(
-    state.bePerPerson,
-    state.toppings,
-    state.globalIntensity,
-  );
-  const currentTotal = currentBasis + currentTopping;
-  if (currentTotal <= 0) return state.bePerPerson;
-
-  const scaleFactor = remaining / currentTotal;
-  const rawBe = state.bePerPerson * scaleFactor;
-  return Math.max(1, Math.round(rawBe * 2) / 2);
+  const { breadKcal, toppingKcal } = computeGroupKcal(basis, toppings, dayPartFactor, fixKcal);
+  const currentTotal = breadKcal + toppingKcal;
+  if (currentTotal <= 0) return 1.0;
+  const target = NORM_PERSON_DAILY_KCAL * dayPartFactor - fixKcal;
+  if (target <= 0) return 1.0;
+  return Math.max(0.5, Math.min(2.0, target / currentTotal));
 }
 
 // ============================================================================
@@ -263,30 +250,4 @@ export function rebalanceShares<T extends { sharePercent: number; locked: boolea
     if (item.locked || i === changedIndex) return item;
     return { ...item, sharePercent: shareMap.get(i) ?? item.sharePercent };
   });
-}
-
-// ============================================================================
-// Summary helpers
-// ============================================================================
-
-/**
- * Total kcal per person from basis + toppings + drinks + extras.
- *
- * @param recipeDataMap  Optional map of recipe id → energy data for drink/extra recipes.
- *                       When omitted, drink kcal contribution is 0.
- */
-export function totalKcalPerPerson(
-  state: WizardState,
-  recipeDataMap?: Map<number, RecipeEnergyData>,
-): number {
-  const basis = basisKcalPerPerson(state.bePerPerson, state.basis);
-  const topping = toppingKcalPerPerson(state.bePerPerson, state.toppings, state.globalIntensity);
-  const drinks = recipeDataMap ? drinkKcalFromRecipes(state, recipeDataMap) : 0;
-  const extras = extrasKcalPerPerson(state);
-  return basis + topping + drinks + extras;
-}
-
-/** Energy target per person for a given day_part_factor. */
-export function energyTargetKcal(dayPartFactor: number): number {
-  return NORM_PERSON_DAILY_KCAL * dayPartFactor;
 }

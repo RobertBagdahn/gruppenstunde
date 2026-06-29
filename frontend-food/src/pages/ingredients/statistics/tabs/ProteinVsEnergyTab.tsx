@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { useIngredientScatter } from '@/api/supplies';
-import ScatterExplorer from '../components/ScatterExplorer';
+import HeatmapExplorer from '../components/HeatmapExplorer';
 import TabFilters from '../components/TabFilters';
 
 export default function ProteinVsEnergyTab() {
@@ -11,13 +11,13 @@ export default function ProteinVsEnergyTab() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Korrelation zwischen Proteingehalt und Kalorien – liefern proteinreiche Zutaten mehr Energie?
+        Die Heatmap zeigt die Dichte der Zutaten nach Protein- und Energiegehalt.
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
         <div className="h-96 bg-muted/40 animate-pulse rounded-xl" />
       ) : data ? (
-        <ScatterExplorer data={data} xLabel="Protein" yLabel="Energie" xUnit="g" yUnit="kcal" />
+        <HeatmapExplorer data={data} xLabel="Protein" yLabel="Energie" xUnit="g" yUnit="kcal" />
       ) : null}
     </div>
   );

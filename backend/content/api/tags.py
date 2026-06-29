@@ -14,9 +14,11 @@ scout_levels_router = Router(tags=["scout-levels"])
 
 
 @tags_router.get("/", response=list[TagOut])
-def list_tags(request):
-    """List all approved tags (flat list)."""
+def list_tags(request, group: str | None = None):
+    """List all approved tags (flat list). Optional group filter."""
     tags = Tag.objects.filter(is_approved=True)
+    if group:
+        tags = tags.filter(group=group)
     return list(tags)
 
 

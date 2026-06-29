@@ -20,6 +20,7 @@ import { useMemo } from 'react';
 import { toast } from 'sonner';
 import type { WizardItemIn } from '@/api/breakfast';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
+import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson } from '@/lib/breakfastCalc';
 
 export default function BreakfastWizardPage() {
   const { id, mealId: mealIdParam } = useParams<{ id: string; mealId?: string }>();
@@ -42,7 +43,6 @@ export default function BreakfastWizardPage() {
 
   const normPortions = plan?.norm_portions ?? 10;
   const dayPartFactor = existingRefMeal?.day_part_factor ?? 0.25;
-  const days = 1;
 
   // Compute initial wizard state from existing RefMeal (if any)
   const initialWizardState = useMemo(() => {
@@ -63,9 +63,9 @@ export default function BreakfastWizardPage() {
   /**
    * Build the list of items to save.
    *
-   * New storage model (per-person portions, no normPortions in items):
-   * - quantity = BE count per person (sharePercent/100 × bePerPerson) in PORTIONS
-   * - measuring_unit = portion-based unit (Scheibe, Portion, Tasse, Schuss)
+   * Storage model:
+   * - quantity = grams per person (derived from kcal target + kcal density)
+   * - measuring_unit = gram unit
    * - factor = 1.0 (always — backend multiplies by effectivePortions)
    */
   function buildItems(): WizardItemIn[] {
@@ -73,41 +73,28 @@ export default function BreakfastWizardPage() {
     const scheibeUnitId = catalog?.scheibe_measuring_unit_id ?? gramUnitId;
     const portionUnitId = catalog?.portion_measuring_unit_id ?? gramUnitId;
 
+    const fixKcal = extrasKcalPerPerson(state);
+    const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, fixKcal);
+    const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
+    const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
+
     // Accumulate ingredient items in grams for dedup
     const ingGrams: Record<number, number> = {};
     const items: WizardItemIn[] = [];
 
     // ── Basis (bread) ──
     for (const b of state.basis.filter((b) => b.sharePercent > 0)) {
-      const beCount = state.bePerPerson * (b.sharePercent / 100);
-      if (beCount <= 0) continue;
-      const grams = beCount * b.sliceWeightG;
+      const grams = breadItemGrams(b.sharePercent, basisTotalShare, breadKcal, b.energyKcal100g);
+      if (grams <= 0) continue;
       ingGrams[b.ingredientId] = (ingGrams[b.ingredientId] ?? 0) + grams;
-      items.push({
-        ingredient_id: b.ingredientId,
-        quantity: beCount,
-        measuring_unit_id: scheibeUnitId,
-        factor: 1.0,
-      });
     }
 
     // ── Belag (toppings) ──
-    const totalToppingShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
     for (const t of state.toppings.filter((t) => t.sharePercent > 0)) {
-      if (totalToppingShare <= 0) continue;
-      const beForTopping = state.bePerPerson * (t.sharePercent / totalToppingShare);
-      if (beForTopping <= 0) continue;
-      const intensityName = { knapp: 'Belag knapp', normal: 'Belag normal', üppig: 'Belag üppig' }[state.globalIntensity];
-      const portion = t.portions.find((p) => p.name === intensityName);
-      const portionWeight = portion?.weight_g ?? 0;
-      const grams = beForTopping * portionWeight;
+      if (toppingTotalShare <= 0) continue;
+      const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g);
+      if (grams <= 0) continue;
       ingGrams[t.ingredientId] = (ingGrams[t.ingredientId] ?? 0) + grams;
-      items.push({
-        ingredient_id: t.ingredientId,
-        quantity: beForTopping,
-        measuring_unit_id: portion?.measuring_unit_id ?? portionUnitId,
-        factor: 1.0,
-      });
     }
 
     // ── Warme Gerichte ──
@@ -136,17 +123,20 @@ export default function BreakfastWizardPage() {
     // ── Post-process: merge duplicate ingredients into grams ──
     const mergedIds = new Set<number>();
     const out: WizardItemIn[] = [];
+    for (const [ingIdStr, grams] of Object.entries(ingGrams)) {
+      if (grams <= 0) continue;
+      const ingId = Number(ingIdStr);
+      if (mergedIds.has(ingId)) continue;
+      mergedIds.add(ingId);
+      out.push({
+        ingredient_id: ingId,
+        quantity: Math.round(grams * 10) / 10,
+        measuring_unit_id: gramUnitId,
+        factor: 1.0,
+      });
+    }
     for (const item of items) {
-      if (item.ingredient_id != null) {
-        if (mergedIds.has(item.ingredient_id)) continue;
-        mergedIds.add(item.ingredient_id);
-        out.push({
-          ingredient_id: item.ingredient_id,
-          quantity: Math.round(ingGrams[item.ingredient_id] * 10) / 10,
-          measuring_unit_id: gramUnitId,
-          factor: 1.0,
-        });
-      } else {
+      if (item.ingredient_id == null) {
         out.push(item);
       }
     }
@@ -229,17 +219,18 @@ export default function BreakfastWizardPage() {
 
       {/* Step content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {step === 'basis' && <StepBasis wiz={wiz} />}
-        {step === 'belag' && <StepBelag wiz={wiz} />}
+        {step === 'basis' && <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />}
+        {step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
         {step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
         {step === 'getraenke' && <StepGetraenke wiz={wiz} />}
         {step === 'cockpit' && (
           <StepCockpit
             wiz={wiz}
             catalog={catalog}
-            normPortions={normPortions}
-            days={days}
             dayPartFactor={dayPartFactor}
+            saveMode={saveMode}
+            planId={planId}
+            mealId={mealId}
           />
         )}
       </div>

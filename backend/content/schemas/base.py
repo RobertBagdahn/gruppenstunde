@@ -21,6 +21,7 @@ class TagOut(Schema):
     name: str
     slug: str
     icon: str
+    group: str = "general"
     sort_order: int
     parent_id: int | None
     parent_name: str | None = None
@@ -37,6 +38,7 @@ class TagTreeOut(Schema):
     name: str
     slug: str
     icon: str
+    group: str = "general"
     sort_order: int
     parent_id: int | None
     content_count: int = 0

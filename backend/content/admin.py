@@ -84,8 +84,8 @@ class ContentApprovalMixin:
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ["name", "slug", "parent", "sort_order", "is_approved", "icon"]
-    list_filter = ["is_approved", "parent"]
+    list_display = ["name", "slug", "group", "parent", "sort_order", "is_approved", "icon"]
+    list_filter = ["is_approved", "group", "parent"]
     search_fields = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
     ordering = ["sort_order", "name"]

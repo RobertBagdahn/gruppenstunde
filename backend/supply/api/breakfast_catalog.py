@@ -162,7 +162,7 @@ def _ingredient_to_dict(ing: Ingredient) -> dict:
 
 
 @breakfast_catalog_router.get("/breakfast-catalog/", response=BreakfastCatalogOut)
-def get_breakfast_catalog(request) -> dict[str, Any]:
+def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]:
     from supply.models import MeasuringUnit
 
     base_tag = Tag.objects.filter(slug="breakfast-base").first()
@@ -193,10 +193,24 @@ def get_breakfast_catalog(request) -> dict[str, Any]:
     drink_recipes = []
     drink_ingredients = []
     if drink_tag:
+        # Parse optional tag_ids filter for breakfast day tags
+        parsed_tag_ids: list[int] = []
+        if tag_ids:
+            try:
+                parsed_tag_ids = [int(t) for t in tag_ids.split(",") if t.strip()]
+            except (ValueError, TypeError):
+                pass
+
         # Drink recipes (Kaffee, Kakao, Tee)
         drinks = Recipe.objects.filter(
             tags=drink_tag, recipe_type="drink", status="approved"
-        ).values("id", "title", "recipe_type", "cached_energy_total_kcal")
+        )
+        # Filter by breakfast day tags if provided
+        if parsed_tag_ids:
+            for tid in parsed_tag_ids:
+                drinks = drinks.filter(tags=tid)
+
+        drinks = drinks.values("id", "title", "recipe_type", "cached_energy_total_kcal")
         drink_recipes = [
             {
                 "id": d["id"],

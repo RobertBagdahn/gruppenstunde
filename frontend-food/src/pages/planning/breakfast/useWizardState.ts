@@ -52,10 +52,6 @@ export function useWizardState(initialState?: Partial<WizardState>) {
 
   // ── Basis actions ──────────────────────────────────────────────────────────
 
-  const setBePerPerson = useCallback((be: number) => {
-    setState((s) => ({ ...s, bePerPerson: Math.max(1, Math.min(10, be)) }));
-  }, []);
-
   const setBasisShare = useCallback((index: number, value: number) => {
     setState((s) => ({
       ...s,
@@ -185,6 +181,69 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     }));
   }, []);
 
+  const addDrink = useCallback((recipeId: number, recipeTitle: string) => {
+    setState((s) => {
+      if (s.drinks.selected.some((d) => d.recipeId === recipeId)) return s;
+      const count = s.drinks.selected.length + 1;
+      const share = Math.round(100 / count);
+      const remainder = 100 - share * count;
+      return {
+        ...s,
+        drinks: {
+          ...s.drinks,
+          selected: [
+            ...s.drinks.selected.map((d) => ({ ...d, sharePercent: share })),
+            { recipeId, recipeTitle, sharePercent: share + remainder },
+          ],
+        },
+      };
+    });
+  }, []);
+
+  const removeDrink = useCallback((recipeId: number) => {
+    setState((s) => {
+      const filtered = s.drinks.selected.filter((d) => d.recipeId !== recipeId);
+      if (filtered.length === 0) return { ...s, drinks: { ...s.drinks, selected: [] } };
+      const share = Math.round(100 / filtered.length);
+      const remainder = 100 - share * filtered.length;
+      return {
+        ...s,
+        drinks: {
+          ...s.drinks,
+          selected: filtered.map((d, i) => ({
+            ...d,
+            sharePercent: i === filtered.length - 1 ? share + remainder : share,
+          })),
+        },
+      };
+    });
+  }, []);
+
+  const setDrinkShare = useCallback((recipeId: number, value: number) => {
+    setState((s) => {
+      const clamped = Math.max(0, Math.min(100, value));
+      const updated = s.drinks.selected.map((d) =>
+        d.recipeId === recipeId ? { ...d, sharePercent: clamped } : d,
+      );
+      const lockedTotal = clamped;
+      const remaining = Math.max(0, 100 - lockedTotal);
+      const unlocked = updated.filter((d) => d.recipeId !== recipeId);
+      if (unlocked.length === 0) return { ...s, drinks: { ...s.drinks, selected: updated } };
+      const unlockedTotal = unlocked.reduce((sum, d) => sum + d.sharePercent, 0);
+      return {
+        ...s,
+        drinks: {
+          ...s.drinks,
+          selected: updated.map((d) => {
+            if (d.recipeId === recipeId) return d;
+            const proportion = unlockedTotal > 0 ? d.sharePercent / unlockedTotal : 1 / unlocked.length;
+            return { ...d, sharePercent: Math.round(proportion * remaining) };
+          }),
+        },
+      };
+    });
+  }, []);
+
   // ── Full state replace (for normalise / state-restore) ─────────────────────
 
   const replaceState = useCallback((next: WizardState) => {
@@ -201,7 +260,6 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     goNext,
     goPrev,
     // actions
-    setBePerPerson,
     setBasisShare,
     setBasisLocked,
     initBasis,

@@ -1,20 +1,20 @@
 /**
- * Step 1 — Basis: BE/Person + Brotsortenverteilung + Gramm/kcal-Anzeige.
+ * Step 1 — Basis: Brotsortenverteilung + Gramm/kcal-Anzeige.
  */
 import { useEffect } from 'react';
-import { Minus, Plus } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
-import { basisKcalPerPerson, beToGrams } from '@/lib/breakfastCalc';
+import { computeGroupKcal, breadItemGrams } from '@/lib/breakfastCalc';
 import ShareSlider from './ShareSlider';
 import type { BasisSelection } from '@/schemas/breakfast';
 
 interface StepBasisProps {
   wiz: UseWizardStateReturn;
+  dayPartFactor: number;
 }
 
-export default function StepBasis({ wiz }: StepBasisProps) {
-  const { state, setBePerPerson, setBasisShare, setBasisLocked, initBasis } = wiz;
+export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
+  const { state, setBasisShare, setBasisLocked, initBasis } = wiz;
   const { data: catalog, isPending, isError } = useBreakfastCatalog();
 
   // Initialise basis list from catalog on first load (if not yet set)
@@ -40,65 +40,26 @@ export default function StepBasis({ wiz }: StepBasisProps) {
     initBasis(initial);
   }, [catalog, state.basis.length, initBasis]);
 
-  const totalGrams = beToGrams(state.bePerPerson, state.basis);
-  const totalKcal = basisKcalPerPerson(state.bePerPerson, state.basis);
+  const { breadKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, 0);
+  const totalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
+  const totalGrams = state.basis.reduce((s, b) =>
+    s + breadItemGrams(b.sharePercent, totalShare, breadKcal, b.energyKcal100g), 0);
 
   return (
     <div className="space-y-6">
-      {/* BE per person */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="font-display font-semibold text-base">Broteinheiten pro Person</h3>
-        <p className="text-xs text-muted-foreground">
-          1 BE = 1 Scheibe Brot oder ½ Brötchen
-        </p>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => setBePerPerson(state.bePerPerson - 0.5)}
-            disabled={state.bePerPerson <= 1}
-            className="p-2 rounded-lg border hover:bg-muted disabled:opacity-40 transition-colors"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-          <span className="text-2xl font-display font-bold w-12 text-center">
-            {state.bePerPerson}
-          </span>
-          <button
-            type="button"
-            onClick={() => setBePerPerson(state.bePerPerson + 0.5)}
-            disabled={state.bePerPerson >= 10}
-            className="p-2 rounded-lg border hover:bg-muted disabled:opacity-40 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          <div className="ml-4 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{Math.round(totalGrams)}g</span>
-            {' · '}
-            <span className="font-medium text-foreground">{Math.round(totalKcal)} kcal</span>
-            {' '}pro Person
-          </div>
-        </div>
-      </div>
-
       {/* Sortenverteilung */}
       {state.basis.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-base">Sortenverteilung</h3>
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              Math.abs(state.basis.reduce((s, b) => s + b.sharePercent, 0) - 100) < 2
-                ? 'bg-primary/10 text-primary'
-                : 'bg-destructive/10 text-destructive'
-            }`}>
-              {state.basis.reduce((s, b) => s + b.sharePercent, 0)}%
+            <span className="text-xs text-muted-foreground">
+              {Math.round(totalGrams)}g · {Math.round(breadKcal)} kcal/Person
             </span>
           </div>
           <div className="space-y-4">
             {state.basis.map((b, i) => {
-              const gramsPer = b.sliceWeightG * state.bePerPerson * (b.sharePercent / 100);
-              const kcalPer = b.energyKcal100g
-                ? (b.energyKcal100g / 100) * gramsPer
-                : null;
+              const grams = breadItemGrams(b.sharePercent, totalShare, breadKcal, b.energyKcal100g);
+              const kcal = b.energyKcal100g ? (b.energyKcal100g / 100) * grams : null;
               return (
                 <ShareSlider
                   key={b.ingredientId}
@@ -108,8 +69,8 @@ export default function StepBasis({ wiz }: StepBasisProps) {
                   onChange={(v) => setBasisShare(i, v)}
                   onToggleLock={() => setBasisLocked(i, !b.locked)}
                   detail={[
-                    `${Math.round(gramsPer)}g`,
-                    kcalPer ? `${Math.round(kcalPer)} kcal` : null,
+                    `${Math.round(grams)}g`,
+                    kcal ? `${Math.round(kcal)} kcal` : null,
                   ].filter(Boolean).join(' · ')}
                 />
               );

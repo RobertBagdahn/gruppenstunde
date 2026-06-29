@@ -67,6 +67,7 @@ interface RecipeSearchDialogProps {
   excludedRecipeIds?: Set<number>;
   excludedIngredientIds?: Set<number>;
   ingredientOnly?: boolean;
+  breakfastDayTags?: Array<{ id: number; name: string }>;
 }
 
 export default function RecipeSearchDialog({
@@ -80,6 +81,7 @@ export default function RecipeSearchDialog({
   excludedRecipeIds = new Set(),
   excludedIngredientIds = new Set(),
   ingredientOnly = false,
+  breakfastDayTags,
 }: RecipeSearchDialogProps) {
   const defaultTypes = ingredientOnly
     ? ['ingredient']
@@ -91,6 +93,7 @@ export default function RecipeSearchDialog({
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
   const [excludeDietaryTags, setExcludeDietaryTags] = useState(true);
   const [includeTagIds, setIncludeTagIds] = useState<number[]>([]);
+  const [selectedBreakfastDayTagIds, setSelectedBreakfastDayTagIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -133,6 +136,7 @@ export default function RecipeSearchDialog({
     recipe_badge: badgeFilter !== 'all' ? badgeFilter : null,
     exclude_nutritional_tag_ids: excludeDietaryTags && nutritionalTagIds?.length ? nutritionalTagIds : undefined,
     nutritional_tag_ids: includeTagIds.length > 0 ? includeTagIds : undefined,
+    tag_ids: selectedBreakfastDayTagIds.size > 0 ? Array.from(selectedBreakfastDayTagIds) : undefined,
     limit: 20,
   });
 
@@ -144,6 +148,7 @@ export default function RecipeSearchDialog({
       setPreviewRecipe(null);
       setSearchQuery('');
       setDebouncedQuery('');
+      setSelectedBreakfastDayTagIds(new Set());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mealType, ingredientOnly]);
@@ -297,6 +302,48 @@ export default function RecipeSearchDialog({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Frühstückstag-Filter — nur im Rezept-Modus und wenn breakfastDayTags übergeben */}
+          {!ingredientOnly && breakfastDayTags && breakfastDayTags.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-muted-foreground shrink-0">Frühstückstag:</span>
+              {breakfastDayTags.map((tag) => {
+                const isSelected = selectedBreakfastDayTagIds.has(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      const next = new Set(selectedBreakfastDayTagIds);
+                      if (isSelected) {
+                        next.delete(tag.id);
+                      } else {
+                        next.add(tag.id);
+                      }
+                      setSelectedBreakfastDayTagIds(next);
+                    }}
+                    className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                    }`}
+                  >
+                    {tag.name}
+                    {isSelected && (
+                      <span className="ml-1">✕</span>
+                    )}
+                  </button>
+                );
+              })}
+              {selectedBreakfastDayTagIds.size > 0 && (
+                <button
+                  onClick={() => setSelectedBreakfastDayTagIds(new Set())}
+                  className="text-xs text-muted-foreground hover:text-foreground underline px-1"
+                >
+                  Alle
+                </button>
+              )}
             </div>
           )}
 

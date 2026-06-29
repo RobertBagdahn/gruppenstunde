@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { useIngredientScatter } from '@/api/supplies';
-import ScatterExplorer from '../components/ScatterExplorer';
+import HeatmapExplorer from '../components/HeatmapExplorer';
 import TabFilters from '../components/TabFilters';
 
 export default function ChildVsNutriTab() {
@@ -11,13 +11,13 @@ export default function ChildVsNutriTab() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Wie hängt der Child-Score mit dem Nutri-Score zusammen? Sind kindgerechte Zutaten automatisch ungesund?
+        Die Heatmap zeigt die Dichte der Zutaten nach Child-Score und Nutri-Score.
       </p>
       <TabFilters showRetailSection />
       {isLoading ? (
         <div className="h-96 bg-muted/40 animate-pulse rounded-xl" />
       ) : data ? (
-        <ScatterExplorer data={data} xLabel="Child-Score" yLabel="Nutri-Score" xUnit="pts" yUnit="pts" />
+        <HeatmapExplorer data={data} xLabel="Child-Score" yLabel="Nutri-Score" xUnit="pts" yUnit="pts" />
       ) : null}
     </div>
   );
