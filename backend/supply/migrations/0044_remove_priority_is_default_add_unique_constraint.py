@@ -7,7 +7,8 @@ from django.db import migrations, models
 
 def deduplicate_portions(apps, schema_editor):
     Portion = apps.get_model("supply", "Portion")
-    from django.db.models import Count, Min
+    from django.db.models import Count
+    from django.utils import timezone
 
     dupes = (
         Portion.objects.filter(deleted_at__isnull=True)
@@ -16,19 +17,20 @@ def deduplicate_portions(apps, schema_editor):
         .annotate(cnt=Count("id"))
         .filter(cnt__gt=1)
     )
+    now = timezone.now()
     for dupe in dupes:
-        ids = Portion.objects.filter(
-            deleted_at__isnull=True,
-            ingredient_id=dupe["ingredient_id"],
-        ).annotate(
-            name_lower=django.db.models.functions.text.Lower("name"),
-        ).filter(
-            name_lower=dupe["name_lower"],
-        ).order_by("id").values_list("id", flat=True)
-
-        keep_id = ids.first()
-        delete_ids = list(ids[1:])
-        Portion.objects.filter(id__in=delete_ids).delete()
+        ids = (
+            Portion.objects.filter(
+                deleted_at__isnull=True,
+                ingredient_id=dupe["ingredient_id"],
+            )
+            .annotate(name_lower=django.db.models.functions.text.Lower("name"))
+            .filter(name_lower=dupe["name_lower"])
+            .order_by("id")
+            .values_list("id", flat=True)
+        )
+        duplicate_ids = list(ids[1:])
+        Portion.objects.filter(id__in=duplicate_ids).update(deleted_at=now)
 
 
 class Migration(migrations.Migration):

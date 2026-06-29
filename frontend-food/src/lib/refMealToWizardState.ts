@@ -143,8 +143,7 @@ export function refMealItemsToWizardState(
     if (item.recipe_title) {
       result.drinkRecipeNames[String(item.recipe_id)] = item.recipe_title;
     }
-  }
-  }
+      }
 
   // ── 5. Extra ingredients ──────────────────────────────────────────────────
   const extraItems = items.filter(
