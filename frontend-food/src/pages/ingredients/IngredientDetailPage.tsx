@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, Clock, Plus, GripVertical } from 'lucide-react';
+import { ChefHat, Clock, Plus } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -16,10 +16,8 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useCurrentUser } from '@/api/auth';
 import {
   useIngredient,
@@ -28,7 +26,6 @@ import {
   useCreatePortion,
   useUpdatePortion,
   useDeletePortion,
-  useMovePortion,
   useReorderPortions,
   useCreateAlias,
   useDeleteAlias,
@@ -42,7 +39,7 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
 import { IngredientBenchmarkSection } from '@/components/ingredient/IngredientBenchmarkSection';
-import { StandardPortionBadge } from '@/components/ingredients/StandardPortionBadge';
+
 import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -492,8 +489,8 @@ function PortionsSection({
   const [portions, setPortions] = useState(ingredient.portions);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { distance: 8 }),
-    useSensor(TouchSensor, { distance: 8 }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -518,7 +515,7 @@ function PortionsSection({
 
       // Rearrange locally first (optimistic update)
       const newPortions = arrayMove(sortedPortions, oldIndex, newIndex);
-      const orders = newPortions.map((p, idx) => ({
+      const orders = newPortions.map((p: Portion, idx: number) => ({
         id: p.id,
         rank: idx + 1,
       }));
@@ -654,7 +651,7 @@ export default function IngredientDetailPage() {
   const updateIngredient = useUpdateIngredient(slug || '');
   const deleteIngredient = useDeleteIngredient();
   const createPortion = useCreatePortion(slug || '');
-  const movePortion = useMovePortion(slug || '');
+
   const createAlias = useCreateAlias(slug || '');
   const deleteAlias = useDeleteAlias(slug || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

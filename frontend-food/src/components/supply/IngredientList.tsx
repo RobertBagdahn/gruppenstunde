@@ -161,11 +161,11 @@ export default function IngredientList({
             ? calculateNaturalPortions(weightG, displayPortions)
             : [];
 
-          // Highest-priority non-gram portion (e.g. "Wrap", "Stück", "EL", "TL").
-          // is_default is allowed — priority DESC is the sole ranking criterion.
+          // Lowest-rank non-gram portion (e.g. "Wrap", "Stück", "EL", "TL").
+          // rank ASC is the sole ranking criterion (rank=1 = Normalportion).
           const highPrioPortion = displayPortions
             .filter((p) => (p.weight_g ?? 0) > 0)
-            .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0))[0];
+            .sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999))[0];
           const highPrioAmount = highPrioPortion?.weight_g
             ? weightG / highPrioPortion.weight_g
             : null;
@@ -191,7 +191,7 @@ export default function IngredientList({
           const allPortionsSorted = (item.ingredient_portions ?? [])
             .filter((p) => (p.weight_g ?? 0) > 0)
             .filter((p) => !isGramPortion(p.name, p.measuring_unit_name))
-            .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+            .sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
           const hasNonGramPrimary = highPrioDisplay !== null;
           const fallbackPortion = !hasNonGramPrimary
             ? allPortionsSorted[0]

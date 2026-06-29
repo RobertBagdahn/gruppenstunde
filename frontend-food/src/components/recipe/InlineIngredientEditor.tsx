@@ -36,7 +36,7 @@ interface EditableItem {
   is_optional: boolean;
   exchange_group_id: number | null;
   exchange_position: number | null;
-  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; priority?: number | null }[];
+  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; rank?: number | null }[];
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -104,7 +104,7 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
         weight_g: p.weight_g,
         measuring_unit_name: p.measuring_unit_name,
         is_default: p.is_default,
-        priority: p.priority,
+        rank: p.rank,
       })),
       is_optional: item.is_optional ?? false,
       exchange_group_id: item.exchange_group_id ?? null,
@@ -244,10 +244,10 @@ export default function InlineIngredientEditor({
         const res = await fetch(`/api/ingredients/${ingredient.slug}/portions/`, { credentials: 'include' });
         const portions = await res.json();
 
-        // Smart default: highest-priority portion with weight_g > 0 (4.1, 4.3)
+        // Smart default: lowest-rank portion with weight_g > 0 (4.1, 4.3)
         const bestPortion = [...portions]
           .filter((p: { weight_g: number | null }) => (p.weight_g ?? 0) > 0)
-          .sort((a: { priority?: number | null }, b: { priority?: number | null }) => (b.priority ?? 0) - (a.priority ?? 0))[0]
+          .sort((a: { rank?: number | null }, b: { rank?: number | null }) => (a.rank ?? 9999) - (b.rank ?? 9999))[0]
           ?? portions[0];
 
         if (!bestPortion) {
@@ -267,13 +267,13 @@ export default function InlineIngredientEditor({
             measuring_unit_name: bestPortion.measuring_unit_name || bestPortion.name || 'g', // (4.3)
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; priority?: number | null }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; is_default: boolean; rank?: number | null }) => ({
               id: p.id,
               name: p.name,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
               is_default: p.is_default,
-              priority: p.priority,
+              rank: p.rank,
             })),
             is_optional: false,
             exchange_group_id: null,

@@ -142,6 +142,7 @@ export const PortionSchema = z.object({
   quantity: z.number(),
   weight_g: z.number().nullable(),
   rank: z.number(),
+  is_default: z.boolean().default(false),
   is_system: z.boolean(),
   measuring_unit_id: z.number().nullable(),
   measuring_unit_name: z.string().nullable(),
