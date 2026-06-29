@@ -1,4 +1,4 @@
-# shopping-list Specification (Delta)
+# shopping-list Specification
 
 ## MODIFIED Requirements
 
