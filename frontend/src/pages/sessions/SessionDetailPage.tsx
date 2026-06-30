@@ -56,9 +56,10 @@ function InfoCard({
   icon: string;
   iconBg: string;
   iconColor: string;
-  label: string;
+  label: string | null;
   sublabel: string;
 }) {
+  if (label === null) return null;
   return (
     <div className="flex flex-col items-center text-center gap-2 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
       <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center`}>
@@ -123,7 +124,8 @@ export default function SessionDetailPage() {
   const timeLabel =
     EXECUTION_TIME_OPTIONS.find((t) => t.value === session.execution_time)?.label ??
     session.execution_time;
-  const costsLabel = null;
+  // costs_per_person is not yet implemented in the backend schema
+  const costsLabel: string | null = null;
   const sessionTypeLabel =
     SESSION_TYPE_OPTIONS.find((s) => s.value === session.session_type)?.label ??
     session.session_type;

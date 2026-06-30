@@ -4,11 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import {
-  ContentCollaboratorOutSchema,
-  ContentCollaboratorInSchema,
-  ContentCollaboratorUpdateInSchema,
-} from '@/schemas/collaborator';
+import { ContentCollaboratorOutSchema } from '@/schemas/collaborator';
 import type { ContentCollaboratorIn, ContentCollaboratorUpdateIn } from '@/schemas/collaborator';
 import { API_BASE_URL } from '@/lib/api';
 

@@ -153,8 +153,8 @@ export default function ParticipantsTab({ event }: Props) {
         </div>
       )}
 
-      {/* Attendance Section (visible during "running" phase or for managers) */}
-      {event.is_manager && (event.phase === 'running' || event.phase === 'post') && (
+      {/* Attendance Section (visible during "running" and "completed" phase for managers) */}
+      {event.is_manager && (event.phase === 'running' || event.phase === 'completed') && (
         <AttendanceSection event={event} />
       )}
 

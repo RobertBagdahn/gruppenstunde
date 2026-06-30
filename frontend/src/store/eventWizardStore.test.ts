@@ -82,9 +82,9 @@ describe('step data updates', () => {
     expect(useEventWizardStore.getState().data.icon).toBe('flame');
   });
 
-  it('updateStep2 sets group_id', () => {
-    useEventWizardStore.getState().updateStep2({ group_id: 42 });
-    expect(useEventWizardStore.getState().data.group_id).toBe(42);
+  it('updateStep2 sets invited_group_ids', () => {
+    useEventWizardStore.getState().updateStep2({ invited_group_ids: [42] });
+    expect(useEventWizardStore.getState().data.invited_group_ids).toEqual([42]);
   });
 
   it('updateStep3 sets dates', () => {
@@ -197,20 +197,20 @@ describe('getCreatePayload', () => {
 
   it('includes optional fields only when set', () => {
     useEventWizardStore.getState().updateStep1({ name: 'Camp', slug: 'camp-2026' });
-    useEventWizardStore.getState().updateStep2({ group_id: 5 });
+    useEventWizardStore.getState().updateStep2({ invited_group_ids: [5] });
     useEventWizardStore.getState().updateStep3({ start_date: '2026-07-01T10:00' });
 
     const payload = useEventWizardStore.getState().getCreatePayload();
     expect(payload.name).toBe('Camp');
     expect(payload.slug).toBe('camp-2026');
-    expect(payload.group_id).toBe(5);
+    expect(payload.invited_group_ids).toEqual([5]);
     expect(payload.start_date).toBe('2026-07-01T10:00');
   });
 
   it('omits null/empty optional fields', () => {
     const payload = useEventWizardStore.getState().getCreatePayload();
     expect(payload).not.toHaveProperty('slug');
-    expect(payload).not.toHaveProperty('group_id');
+    expect(payload).not.toHaveProperty('invited_group_ids');
     expect(payload).not.toHaveProperty('start_date');
     expect(payload).not.toHaveProperty('manual_phase');
     expect(payload).not.toHaveProperty('meal_plan_id');

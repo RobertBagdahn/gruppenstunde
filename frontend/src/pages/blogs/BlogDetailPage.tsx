@@ -91,9 +91,10 @@ function InfoCard({
   icon: string;
   iconBg: string;
   iconColor: string;
-  label: string;
+  label: string | null;
   sublabel: string;
 }) {
+  if (label === null) return null;
   return (
     <div className="flex flex-col items-center text-center gap-2 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
       <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center`}>

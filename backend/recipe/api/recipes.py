@@ -241,7 +241,13 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
     try:
         result = import_recipe_from_url(payload.url, request.user)
     except ValueError as e:
-        raise HttpError(422, str(e))
+        msg = str(e)
+        if "KI-Service" in msg or "verfügbar" in msg:
+            # AI unavailable → 503 so the frontend can show a retry hint
+            raise HttpError(503, "KI-Service vorübergehend nicht verfügbar. Bitte versuche es später erneut.")
+        if "nicht geladen" in msg or "URL" in msg:
+            raise HttpError(422, f"Seite konnte nicht geladen werden: {msg}")
+        raise HttpError(422, msg)
     except Exception as e:
         logger.exception("Enhanced recipe import failed for URL: %s", payload.url)
         raise HttpError(422, f"Import fehlgeschlagen: {e}")

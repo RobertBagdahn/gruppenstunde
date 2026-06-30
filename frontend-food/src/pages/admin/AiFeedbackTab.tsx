@@ -91,10 +91,10 @@ export default function AiFeedbackTab() {
                   <tr key={ctx.context} className="border-b last:border-0">
                     <td className="py-2 pr-4">{ctx.label}</td>
                     <td className="py-2 pr-4 text-right">{ctx.total}</td>
-                    <td className="py-2 pr-4 text-right text-green-600">{ctx.thumbs_up}</td>
-                    <td className="py-2 pr-4 text-right text-red-600">{ctx.thumbs_down}</td>
+                    <td className="py-2 pr-4 text-right text-primary">{ctx.thumbs_up}</td>
+                    <td className="py-2 pr-4 text-right text-destructive">{ctx.thumbs_down}</td>
                     <td className="py-2 pr-4 text-right">{ctx.vote_rate}%</td>
-                    <td className="py-2 pr-4 text-right text-red-600">{ctx.error_count}</td>
+                    <td className="py-2 pr-4 text-right text-destructive">{ctx.error_count}</td>
                   </tr>
                 ))}
               </tbody>
@@ -125,14 +125,14 @@ export default function AiFeedbackTab() {
                 </span>
                 <div className="flex items-center gap-1 flex-1">
                   <div
-                    className="h-3 bg-green-500 rounded-sm transition-all"
+                    className="h-3 bg-primary rounded-sm transition-all"
                     style={{
                       width: `${entry.total > 0 ? (entry.thumbs_up / entry.total) * 100 : 0}%`,
                       minWidth: entry.thumbs_up > 0 ? '4px' : '0',
                     }}
                   />
                   <div
-                    className="h-3 bg-red-500 rounded-sm transition-all"
+                    className="h-3 bg-destructive rounded-sm transition-all"
                     style={{
                       width: `${entry.total > 0 ? (entry.thumbs_down / entry.total) * 100 : 0}%`,
                       minWidth: entry.thumbs_down > 0 ? '4px' : '0',
@@ -145,10 +145,10 @@ export default function AiFeedbackTab() {
           </div>
           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="w-3 h-3 bg-green-500 rounded-sm" /> Positive
+              <span className="w-3 h-3 bg-primary rounded-sm" /> Positive
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-3 h-3 bg-red-500 rounded-sm" /> Negative
+              <span className="w-3 h-3 bg-destructive rounded-sm" /> Negative
             </span>
           </div>
         </CardContent>

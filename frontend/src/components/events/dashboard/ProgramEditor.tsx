@@ -537,7 +537,7 @@ function AddSlotForm({
         );
       }
     } catch {
-      // silently fail
+      toast.error('Suche fehlgeschlagen');
     }
     setIsSearching(false);
   };

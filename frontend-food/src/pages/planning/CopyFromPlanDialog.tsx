@@ -150,7 +150,7 @@ export function CopyFromPlanDialog({
           onOpenChange(false);
           resetState();
         },
-        onError: (err: any) => {
+        onError: (err: Error) => {
           toast.error('Fehler beim Kopieren', { description: err.message });
         },
       },

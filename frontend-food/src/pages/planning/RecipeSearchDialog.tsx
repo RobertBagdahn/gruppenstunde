@@ -405,13 +405,13 @@ export default function RecipeSearchDialog({
                   }
 
                   availableItems.sort(
-                    (a, b) => ((b.data as any).usage_count ?? 0) - ((a.data as any).usage_count ?? 0)
+                    (a, b) => ((b.data.usage_count ?? 0) - (a.data.usage_count ?? 0))
                   );
 
                   return availableItems.map((item) => (
                     <SearchResultCard
                       key={`${item.kind}-${item.data.id}`}
-                      result={item.data as any}
+                      result={item.data}
                       onClick={item.onClick}
                     />
                   ));

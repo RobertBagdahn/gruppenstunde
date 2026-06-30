@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import type { EventList } from '@/schemas/event';
 import { getColorBgClass } from '@/components/events/wizard/ColorPicker';
 import { cn } from '@/lib/utils';
-import { getMonthDays, getWeekDays, isSameDay, isToday, formatMonthYear } from '@/utils/calendarDateHelpers';
+import { getMonthDays, getWeekDays, isToday, formatMonthYear } from '@/utils/calendarDateHelpers';
 
 interface Props {
   events: EventList[];

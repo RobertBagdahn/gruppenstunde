@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
-import { useIngredients, useDeleteIngredient } from '@/api/supplies';
+import { useIngredients, useDeleteIngredient, ApiDeleteError } from '@/api/supplies';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import Pagination from '@/components/shared/Pagination';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -219,10 +219,10 @@ export default function IngredientListPage() {
               setDeleteTarget(null);
               refetch();
             },
-            onError: (err: any) => {
+            onError: (err: Error) => {
               setDeleteTarget(null);
-              if (err.status === 409 && err.recipes?.length > 0) {
-                const recipeNames = err.recipes.map((r: any) => r.title).join(', ');
+              if (err instanceof ApiDeleteError && err.status === 409 && err.recipes.length > 0) {
+                const recipeNames = err.recipes.map((r) => r.title).join(', ');
                 toast.error('Zutat wird noch verwendet', {
                   description: `Entferne die Zutat zuerst aus folgenden Rezepten: ${recipeNames}`,
                 });

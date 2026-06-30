@@ -34,7 +34,10 @@ import {
   useRecipesByIngredient,
 } from '@/api/supplies';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
-import type { Portion } from '@/schemas/supply';
+import type { Portion, MeasuringUnit } from '@/schemas/supply';
+// Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
+type IngredientDetail = NonNullable<ReturnType<typeof useIngredient>['data']>;
+import { ApiDeleteError } from '@/api/supplies';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
@@ -462,7 +465,7 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
 // ---------------------------------------------------------------------------
 
 interface PortionsSectionProps {
-  ingredient: any;
+  ingredient: IngredientDetail;
   canEdit: boolean;
   showAddPortion: boolean;
   setShowAddPortion: (show: boolean) => void;
@@ -472,7 +475,7 @@ interface PortionsSectionProps {
   setNewPortionQuantity: (qty: string) => void;
   newPortionUnitId: string;
   setNewPortionUnitId: (id: string) => void;
-  measuringUnits: any[];
+  measuringUnits: MeasuringUnit[];
   onAddPortion: () => void;
   isAddingPortion: boolean;
 }
@@ -835,10 +838,10 @@ export default function IngredientDetailPage() {
         toast.success('Zutat gelöscht');
         navigate('/ingredients');
       },
-      onError: (err: any) => {
+      onError: (err: Error) => {
         setShowDeleteConfirm(false);
-        if (err.status === 409 && err.recipes?.length > 0) {
-          const recipeNames = err.recipes.map((r: any) => r.title).join(', ');
+        if (err instanceof ApiDeleteError && err.status === 409 && err.recipes.length > 0) {
+          const recipeNames = err.recipes.map((r) => r.title).join(', ');
           toast.error('Zutat wird noch verwendet', {
             description: `Entferne die Zutat zuerst aus folgenden Rezepten: ${recipeNames}`,
           });

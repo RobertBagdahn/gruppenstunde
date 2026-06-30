@@ -21,7 +21,6 @@ interface Props {
 
 export default function RoomAssignmentView({ event }: Props) {
   const { data: rooms, isLoading } = useRooms(event.slug);
-  const createRoom = useCreateRoom(event.slug);
   const deleteRoom = useDeleteRoom(event.slug);
   const assignParticipant = useAssignParticipant(event.slug);
   const unassignParticipant = useUnassignParticipant(event.slug);

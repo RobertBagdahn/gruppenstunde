@@ -1,5 +1,5 @@
 import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { useState, useEffect, useMemo } from "react";
 
@@ -18,15 +18,18 @@ interface MapViewInnerProps {
   zoom?: number;
   className?: string;
   draggable?: boolean;
+  label?: string;
   onPositionChange?: (lat: number, lng: number) => void;
 }
 
 function DraggableMarker({
   position,
   onPositionChange,
+  label,
 }: {
   position: [number, number];
   onPositionChange?: (lat: number, lng: number) => void;
+  label?: string;
 }) {
   const [markerPosition, setMarkerPosition] = useState(position);
 
@@ -51,7 +54,9 @@ function DraggableMarker({
       position={markerPosition}
       draggable={!!onPositionChange}
       eventHandlers={eventHandlers}
-    />
+    >
+      {label && <Tooltip permanent>{label}</Tooltip>}
+    </Marker>
   );
 }
 
@@ -74,6 +79,7 @@ export default function MapViewInner({
   zoom = 13,
   className = "h-48 w-full rounded-md",
   draggable = false,
+  label,
   onPositionChange,
 }: MapViewInnerProps) {
   const center: [number, number] = [latitude, longitude];
@@ -89,7 +95,7 @@ export default function MapViewInner({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <DraggableMarker position={center} onPositionChange={draggable ? onPositionChange : undefined} />
+      <DraggableMarker position={center} onPositionChange={draggable ? onPositionChange : undefined} label={label} />
       {draggable && <ClickHandler onPositionChange={onPositionChange} />}
     </MapContainer>
   );

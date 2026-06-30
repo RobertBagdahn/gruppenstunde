@@ -58,7 +58,7 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
         recipe_id: int | None = options["recipe_id"]
 
-        qs = Recipe.objects.prefetch_related("recipe_items__ingredient", "recipe_items__measuring_unit")
+        qs = Recipe.objects.prefetch_related("recipe_items__portion__ingredient")
         if recipe_id:
             qs = qs.filter(id=recipe_id)
 
@@ -112,6 +112,14 @@ class Command(BaseCommand):
         changed = False
         for normalized in result.items:
             if normalized.index < 0 or normalized.index >= len(items):
+                continue
+            if normalized.quantity_g <= 0:
+                logger.warning(
+                    "Skipping non-positive quantity_g=%.1f for recipe %s index %d",
+                    normalized.quantity_g,
+                    recipe.title,
+                    normalized.index,
+                )
                 continue
             item = items[normalized.index]
             old_qty = item.quantity

@@ -27,7 +27,7 @@ export default function MyRecipesPage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="container py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="animate-pulse space-y-4 max-w-4xl mx-auto">
           <div className="h-8 bg-muted rounded w-48" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -42,7 +42,7 @@ export default function MyRecipesPage() {
 
   if (!currentUser) {
     return (
-      <div className="container py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="max-w-md mx-auto text-center space-y-4">
           <div className="flex justify-center">
             <Lock className="w-12 h-12 text-muted-foreground" />
@@ -64,7 +64,7 @@ export default function MyRecipesPage() {
 
   if (error) {
     return (
-      <div className="container py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <ErrorDisplay error={error} title="Fehler beim Laden" onRetry={() => refetch()} />
       </div>
     );

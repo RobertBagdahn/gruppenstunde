@@ -34,7 +34,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6">
       <h1 className="text-2xl font-bold font-display">Stammdaten</h1>
 
       {/* Tab Navigation */}

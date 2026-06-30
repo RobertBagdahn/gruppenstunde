@@ -202,12 +202,14 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "EISTEE": "Getränke ohne Alkohol",
     "SOFTDRINK": "Getränke ohne Alkohol",
     "NEKTAR": "Getränke ohne Alkohol",
-    # Alkoholische Getränke
-    "BIER": "Getränke ohne Alkohol",
-    "SPIRITUOSE": "Getränke ohne Alkohol",
-    "SEKT": "Getränke ohne Alkohol",
-    "LIKOER": "Getränke ohne Alkohol",
-    "LIKÖR": "Getränke ohne Alkohol",
+    # Alkoholische Getränke — separate Gruppe laut retail-sections-restructure Spec.
+    # Bis die Spec vollständig umgesetzt ist (neue RetailSection + Seed), wird auf die
+    # existierende Kategorie "Getränke" gemappt statt auf "Getränke ohne Alkohol".
+    "BIER": "Getränke",
+    "SPIRITUOSE": "Getränke",
+    "SEKT": "Getränke",
+    "LIKOER": "Getränke",
+    "LIKÖR": "Getränke",
     # Fertiggerichte
     "FERTIGGERICHT": "Tiefkühl",
     "PIZZA": "Tiefkühl",

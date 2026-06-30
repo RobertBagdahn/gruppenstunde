@@ -136,15 +136,26 @@ def _check_auth(user: AbstractBaseUser | None, *, bypass_limits: bool) -> None:
         raise GeminiAuthError()
 
 
+def _atomic_incr_and_check(key: str, limit: int, timeout: int) -> None:
+    """Atomically increment a counter and raise GeminiRateLimitError if over the limit.
+
+    Uses cache.add() to initialise the key (if absent) then cache.incr() which is
+    atomic in Redis/Memcache. This avoids the read-modify-write race in the previous
+    cache.get() + cache.set() pattern where concurrent requests could both read 0
+    and both proceed even when the limit was reached.
+    """
+    cache.add(key, 0, timeout=timeout)
+    count = cache.incr(key)
+    if count > limit:
+        raise GeminiRateLimitError()
+
+
 def _check_global_limit(*, bypass_limits: bool) -> None:
     """Enforce global rate limit (text/image calls). Fail-open if cache is unavailable."""
     if bypass_limits:
         return
     try:
-        count = cache.get(CACHE_KEY, 0)
-        if count >= GLOBAL_LIMIT:
-            raise GeminiRateLimitError()
-        cache.set(CACHE_KEY, count + 1, timeout=WINDOW_SECONDS)
+        _atomic_incr_and_check(CACHE_KEY, GLOBAL_LIMIT, WINDOW_SECONDS)
     except GeminiRateLimitError:
         raise
     except Exception:
@@ -156,10 +167,7 @@ def _check_embedding_limit(*, bypass_limits: bool) -> None:
     if bypass_limits:
         return
     try:
-        count = cache.get(EMBEDDING_CACHE_KEY, 0)
-        if count >= EMBEDDING_LIMIT:
-            raise GeminiRateLimitError()
-        cache.set(EMBEDDING_CACHE_KEY, count + 1, timeout=EMBEDDING_WINDOW_SECONDS)
+        _atomic_incr_and_check(EMBEDDING_CACHE_KEY, EMBEDDING_LIMIT, EMBEDDING_WINDOW_SECONDS)
     except GeminiRateLimitError:
         raise
     except Exception:

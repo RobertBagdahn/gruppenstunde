@@ -95,14 +95,14 @@ export default function MeineDatenPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DataField label="Pfadfindername" value={profile.scout_name} />
             {'first_name' in profile && <DataField label="Vorname" value={profile.first_name} />}
-            {'last_name' in profile && <DataField label="Nachname" value={('last_name' in profile) ? (profile as any).last_name : undefined} />}
+            {'last_name' in profile && <DataField label="Nachname" value={profile.last_name} />}
             {'gender' in profile && (
-              <DataField label="Geschlecht" value={GENDER_LABELS[(profile as any).gender ?? ''] ?? '–'} />
+              <DataField label="Geschlecht" value={GENDER_LABELS[profile.gender ?? ''] ?? '–'} />
             )}
-            {'birthday' in profile && (profile as any).birthday && (
+            {'birthday' in profile && profile.birthday && (
               <DataField
                 label="Geburtstag"
-                value={new Date((profile as any).birthday).toLocaleDateString('de-DE', {
+                value={new Date(profile.birthday).toLocaleDateString('de-DE', {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric',

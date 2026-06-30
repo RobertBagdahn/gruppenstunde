@@ -8,6 +8,7 @@ interface MapViewProps {
   zoom?: number;
   className?: string;
   draggable?: boolean;
+  label?: string;
   onPositionChange?: (lat: number, lng: number) => void;
 }
 

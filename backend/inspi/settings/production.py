@@ -2,7 +2,17 @@
 Production settings for GCP deployment.
 """
 
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F403
+
+# Fail fast if the production secret key was not set — the base.py default
+# ("change-me-in-production") must never reach a live deployment.
+if SECRET_KEY == "change-me-in-production":
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY is not configured. "
+        "Set the environment variable before deploying to production."
+    )
 
 DEBUG = env("DEBUG", default="False").lower() in ("true", "1")
 

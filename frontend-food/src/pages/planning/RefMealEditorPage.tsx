@@ -17,6 +17,8 @@ import { useMealPlan } from '@/api/mealPlans';
 import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealItem, RefMealItemIn } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
+import { BackButton } from '@/components/shared/BackButton';
+import { Card, CardContent } from '@/components/ui/card';
 
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
@@ -236,12 +238,7 @@ export default function RefMealEditorPage() {
     <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => window.history.back()}
-          className="p-2 hover:bg-accent rounded-md"
-        >
-          ←
-        </button>
+        <BackButton />
         <div>
           <h1 className="text-2xl font-bold">
             Referenz-Mahlzeit: {mealTypeLabel}
@@ -254,26 +251,28 @@ export default function RefMealEditorPage() {
 
       {/* No RefMeal yet — create one */}
       {!refMeal && (
-        <div className="border rounded-lg p-8 text-center space-y-4">
-          <p className="text-muted-foreground">
-            Noch keine Referenz-Mahlzeit für {mealTypeLabel} vorhanden.
-          </p>
-          {isBreakfast ? (
-            <button
-              onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Frühstücksassistent starten
-            </button>
-          ) : (
-            <button
-              onClick={handleCreateRefMeal}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Referenz-Mahlzeit erstellen
-            </button>
-          )}
-        </div>
+        <Card>
+          <CardContent className="p-8 text-center space-y-4">
+            <p className="text-muted-foreground">
+              Noch keine Referenz-Mahlzeit für {mealTypeLabel} vorhanden.
+            </p>
+            {isBreakfast ? (
+              <button
+                onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Frühstücksassistent starten
+              </button>
+            ) : (
+              <button
+                onClick={handleCreateRefMeal}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Referenz-Mahlzeit erstellen
+              </button>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Wizard button for existing breakfast RefMeal */}
@@ -295,51 +294,57 @@ export default function RefMealEditorPage() {
             const items = groupedItems[cat] || [];
             if (items.length === 0) return null;
             return (
-              <div key={cat} className="border rounded-lg p-4 space-y-2">
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                  {CATEGORY_LABELS[cat]}
-                </h3>
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="font-medium">
-                      {item.display_name || item.recipe_title || item.ingredient_name || 'Unbekannt'}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {item.quantity ? `${Math.round(item.quantity)} ${item.measuring_unit_name || 'g'}` : `×${item.factor}`}
-                      {item.energy_kcal != null && ` · ${Math.round(item.energy_kcal)} kcal`}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <Card key={cat}>
+                <CardContent className="p-4 space-y-2">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    {CATEGORY_LABELS[cat]}
+                  </h3>
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span className="font-medium">
+                        {item.display_name || item.recipe_title || item.ingredient_name || 'Unbekannt'}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {item.quantity ? `${Math.round(item.quantity)} ${item.measuring_unit_name || 'g'}` : `×${item.factor}`}
+                        {item.energy_kcal != null && ` · ${Math.round(item.energy_kcal)} kcal`}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             );
           })}
 
           {/* Energy split */}
-          <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
-            <h3 className="font-semibold text-sm">Energie pro Person</h3>
-            <div className="flex justify-between text-sm">
-              <span>Essen:</span>
-              <span className="font-mono">{Math.round(foodKcal)} kcal</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Getränke:</span>
-              <span className="font-mono">{Math.round(drinkKcal)} kcal</span>
-            </div>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-2 bg-muted/50">
+              <h3 className="font-semibold text-sm">Energie pro Person</h3>
+              <div className="flex justify-between text-sm">
+                <span>Essen:</span>
+                <span className="font-mono">{Math.round(foodKcal)} kcal</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Getränke:</span>
+                <span className="font-mono">{Math.round(drinkKcal)} kcal</span>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Sync info */}
-          <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
-            <h3 className="font-semibold text-sm">Verknüpfung</h3>
-            <p className="text-sm text-muted-foreground">
-              {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
-              {plan && (
-                <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
-              )}
-            </p>
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-2 bg-muted/50">
+              <h3 className="font-semibold text-sm">Verknüpfung</h3>
+              <p className="text-sm text-muted-foreground">
+                {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
+                {plan && (
+                  <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
+                )}
+              </p>
+            </CardContent>
+          </Card>
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2">
@@ -446,48 +451,52 @@ export default function RefMealEditorPage() {
             </div>
 
             {/* Energy overview */}
-            <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
-              <h3 className="font-semibold text-sm">Energie pro Person</h3>
-              <div className="flex justify-between text-sm">
-                <span>Ist:</span>
-                <span className="font-mono">{Math.round(totalEnergyKcal)} kcal</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Soll ({Math.round(dayPartFactor * 100)}% von {NORM_PERSON_DAILY_KCAL}):</span>
-                <span className="font-mono">{Math.round(targetKcal)} kcal</span>
-              </div>
-              <div className="flex justify-between text-sm font-medium">
-                <span>Abweichung:</span>
-                <span
-                  className={
-                    energyPercent > 120 || energyPercent < 80
-                      ? 'text-destructive'
-                      : 'text-green-600'
-                  }
-                >
-                  {energyPercent}%
-                </span>
-              </div>
-              {localItems.length > 0 && (
-                <button
-                  onClick={handleNormalize}
-                  className="w-full mt-2 px-3 py-1.5 text-sm border rounded-md hover:bg-background"
-                >
-                  Normalisieren auf {Math.round(targetKcal)} kcal
-                </button>
-              )}
-            </div>
+            <Card>
+              <CardContent className="p-4 space-y-2 bg-muted/50">
+                <h3 className="font-semibold text-sm">Energie pro Person</h3>
+                <div className="flex justify-between text-sm">
+                  <span>Ist:</span>
+                  <span className="font-mono">{Math.round(totalEnergyKcal)} kcal</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Soll ({Math.round(dayPartFactor * 100)}% von {NORM_PERSON_DAILY_KCAL}):</span>
+                  <span className="font-mono">{Math.round(targetKcal)} kcal</span>
+                </div>
+                <div className="flex justify-between text-sm font-medium">
+                  <span>Abweichung:</span>
+                  <span
+                    className={
+                      energyPercent > 120 || energyPercent < 80
+                        ? 'text-destructive'
+                        : 'text-primary'
+                    }
+                  >
+                    {energyPercent}%
+                  </span>
+                </div>
+                {localItems.length > 0 && (
+                  <button
+                    onClick={handleNormalize}
+                    className="w-full mt-2 px-3 py-1.5 text-sm border rounded-md hover:bg-background"
+                  >
+                    Normalisieren auf {Math.round(targetKcal)} kcal
+                  </button>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Sync info */}
-            <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
-              <h3 className="font-semibold text-sm">Verknüpfung</h3>
-              <p className="text-sm text-muted-foreground">
-                {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
-                {plan && (
-                  <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
-                )}
-              </p>
-            </div>
+            <Card>
+              <CardContent className="p-4 space-y-2 bg-muted/50">
+                <h3 className="font-semibold text-sm">Verknüpfung</h3>
+                <p className="text-sm text-muted-foreground">
+                  {refMeal.synced_meals_count}/{refMeal.total_meals_count} {mealTypeLabel} verknüpft
+                  {plan && (
+                    <> · {plan.norm_portions} Personen × {refMeal.synced_meals_count} Tage = {plan.norm_portions * refMeal.synced_meals_count} Portionen</>
+                  )}
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Action buttons */}
             <div className="flex flex-wrap gap-2">

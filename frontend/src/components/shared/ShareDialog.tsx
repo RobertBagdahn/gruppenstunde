@@ -10,7 +10,7 @@ import {
   useUpdateCollaborator,
   useRemoveCollaborator,
 } from '@/api/collaborators';
-import { useCurrentUser } from '@/api/auth';
+import { API_BASE_URL } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RoleSelect from './RoleSelect';
 
@@ -37,7 +37,6 @@ export default function ShareDialog({
   const addCollaborator = useAddCollaborator();
   const updateCollaborator = useUpdateCollaborator();
   const removeCollaborator = useRemoveCollaborator();
-  const { data: user } = useCurrentUser();
 
   const [addMode, setAddMode] = useState<'user' | 'group'>('user');
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,7 +51,7 @@ export default function ShareDialog({
     setIsSearching(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/users/search/?q=${encodeURIComponent(searchQuery)}`,
+        `${API_BASE_URL}/api/users/search/?q=${encodeURIComponent(searchQuery)}`,
         { credentials: 'include' },
       );
       if (res.ok) {

@@ -23,8 +23,8 @@ from game.api import router as game_router
 from packinglist.api import packing_list_router
 from planner.api import router as planner_router
 from planner.api.ai_generation import ai_suggest_router
+from planner.api.meal_plan import meal_plan_router
 from planner.api.ref_meal import ref_meal_router
-from planner.meal_plan_api import meal_plan_router
 from profiles.api import group_router, profile_router
 from recipe.api import folder_router as recipe_folder_router
 from recipe.api import router as recipe_router

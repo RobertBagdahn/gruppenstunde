@@ -80,6 +80,18 @@ async function patchJsonRaw<T>(url: string, body: unknown, schema: z.ZodSchema<T
   return schema.parse(data);
 }
 
+export class ApiDeleteError extends Error {
+  status: number;
+  recipes: Array<{ title: string }>;
+
+  constructor(message: string, status: number, recipes: Array<{ title: string }> = []) {
+    super(message);
+    this.name = 'ApiDeleteError';
+    this.status = status;
+    this.recipes = recipes;
+  }
+}
+
 async function deleteJsonRaw(url: string): Promise<void> {
   const res = await fetch(url, {
     method: 'DELETE',
@@ -88,10 +100,11 @@ async function deleteJsonRaw(url: string): Promise<void> {
   });
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    const err = new Error(errBody.detail || `API error: ${res.status}`);
-    (err as any).status = res.status;
-    (err as any).recipes = errBody.recipes || [];
-    throw err;
+    throw new ApiDeleteError(
+      errBody.detail || `API error: ${res.status}`,
+      res.status,
+      errBody.recipes || [],
+    );
   }
 }
 
