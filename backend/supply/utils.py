@@ -41,12 +41,13 @@ def format_weight(grams: float) -> str:
 def _format_quantity(quantity: float) -> str:
     """Format a portion quantity for German-locale display.
 
-    Whole numbers are shown without decimals; fractions use a comma.
+    Whole numbers are shown without decimals; fractions use a comma,
+    rounded to 1 decimal place.
     """
-    if quantity == int(quantity):
-        return str(int(quantity))
-    # Use German comma as decimal separator
-    return f"{quantity:.10g}".replace(".", ",")
+    rounded = round(quantity, 1)
+    if rounded == int(rounded):
+        return str(int(rounded))
+    return f"{rounded:.1f}".replace(".", ",")
 
 
 def build_portion_display(

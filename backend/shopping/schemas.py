@@ -132,7 +132,7 @@ class ShoppingListItemOut(Schema):
     def resolve_natural_portions(obj) -> str:
         if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0:
             return ""
-        portions = list(obj.ingredient.portions.order_by("-priority", "rank", "name"))
+        portions = list(obj.ingredient.portions.order_by("rank", "name"))
         if not portions:
             return ""
         from supply.services.shopping_service import compute_portion_options
@@ -144,7 +144,7 @@ class ShoppingListItemOut(Schema):
     def resolve_portion_options(obj) -> list[dict]:
         if not obj.ingredient or not obj.quantity_g or obj.quantity_g <= 0:
             return []
-        portions = list(obj.ingredient.portions.order_by("-priority", "rank", "name"))
+        portions = list(obj.ingredient.portions.order_by("rank", "name"))
         if not portions:
             return []
         from supply.services.shopping_service import compute_portion_options
