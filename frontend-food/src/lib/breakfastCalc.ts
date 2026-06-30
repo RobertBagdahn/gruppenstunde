@@ -94,19 +94,6 @@ export function toppingWeightForIntensity(
 }
 
 // ============================================================================
-// Kcal per person from drinks
-// ============================================================================
-
-/** Estimated kcal per person from selected drinks. */
-export function drinksKcalPerPerson(drinks: WizardState['drinks']): number {
-  return drinks.selected.reduce((sum, d) => {
-    if (!d.sharePercent || !d.recipeTitle) return sum;
-    return sum + 0;
-  }, 0);
-  // Future: look up cached_energy_kcal from catalog
-}
-
-// ============================================================================
 // Getränke-kcal (aus Rezept-Cache, nicht aus Konstanten)
 // ============================================================================
 
@@ -140,20 +127,60 @@ export function drinkKcalFromRecipes(
   return kcal;
 }
 
-/** Estimated kcal per person from Extras (warm dishes + Gemüse). */
-export function extrasKcalPerPerson(_state: WizardState): number {
-  return 0;
+/**
+ * Kcal per person from warm-dish recipes.
+ *
+ * `recipeDataMap` is keyed by recipe id and contains the energy data for each recipe.
+ * Each recipe's contribution is: cached_energy_kcal × factor.
+ */
+export function warmDishKcalFromRecipes(
+  state: WizardState,
+  recipeDataMap: Map<number, RecipeEnergyData>,
+): number {
+  let kcal = 0;
+  for (const id of state.warmDishRecipeIds) {
+    const data = recipeDataMap.get(id);
+    if (!data?.cached_energy_kcal) continue;
+    const factor = state.warmDishFactors[String(id)] ?? 1.0;
+    kcal += data.cached_energy_kcal * factor;
+  }
+  return kcal;
+}
+
+/**
+ * Kcal per person from extra ingredients (fetched from backend).
+ * `kcalMap` maps ingredient_id → energy_kcal (already scaled to quantity_g).
+ */
+export function extraIngredientsKcal(kcalMap: Map<number, number>): number {
+  let total = 0;
+  for (const kcal of kcalMap.values()) {
+    total += kcal;
+  }
+  return total;
+}
+
+/**
+ * Total kcal per person from Extras (warm dishes + Gemüse).
+ * Pass recipeDataMap for warm dishes and kcalMap for extra ingredients.
+ */
+export function extrasKcalPerPerson(
+  state: WizardState,
+  recipeDataMap?: Map<number, RecipeEnergyData>,
+  ingredientKcalMap?: Map<number, number>,
+): number {
+  const warmKcal = recipeDataMap ? warmDishKcalFromRecipes(state, recipeDataMap) : 0;
+  const extraKcal = ingredientKcalMap ? extraIngredientsKcal(ingredientKcalMap) : 0;
+  return warmKcal + extraKcal;
 }
 
 // ============================================================================
 // Total kcal per person
 // ============================================================================
 
-/** Total kcal per person from basis + toppings + drinks + extras. */
+/** Total kcal per person from basis + toppings + extras. */
 export function totalKcalPerPerson(
   basis: BasisSelection[],
   toppings: ToppingSelection[],
-  _drinks: WizardState['drinks'],
   dayPartFactor: number,
   fixKcal: number,
 ): number {

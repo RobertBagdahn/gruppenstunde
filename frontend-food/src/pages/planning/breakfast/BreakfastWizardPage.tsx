@@ -70,8 +70,6 @@ export default function BreakfastWizardPage() {
    */
   function buildItems(): WizardItemIn[] {
     const gramUnitId = catalog?.gram_measuring_unit_id ?? null;
-    const scheibeUnitId = catalog?.scheibe_measuring_unit_id ?? gramUnitId;
-    const portionUnitId = catalog?.portion_measuring_unit_id ?? gramUnitId;
 
     const fixKcal = extrasKcalPerPerson(state);
     const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, fixKcal);

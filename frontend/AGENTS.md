@@ -179,6 +179,29 @@ Toast-Notifications in Seiten-Komponenten (onSuccess/onError), NICHT in API-Hook
 | Pfadfinder | `bg-green-50` | `border-green-300` | `text-green-700` |
 | Rover | `bg-red-50` | `border-red-300` | `text-red-700` |
 
+## AI Vote Buttons Konvention
+
+Wenn ein KI-Call eine `ai_interaction_id` in der Response zurückliefert, soll die `AiVoteButtons`-Komponente angezeigt werden:
+
+- **Komponente**: `src/components/shared/AiVoteButtons.tsx` (Haupt-Frontend) / `src/components/shared/AiVoteButtons.tsx` (Food-Frontend)
+- **Props**: `interactionId: string` — die UUID aus der API-Response
+- **Platzierung**: Nach dem Laden der KI-Ergebnisse, neben dem "Verwerfen/Übernehmen"-Footer
+- **Pattern**:
+  ```tsx
+  const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
+  // Nach AI-Call:
+  setAiInteractionId(result.ai_interaction_id ?? null);
+  // Im JSX:
+  {aiInteractionId && (
+    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+      <span>Hilfreich?</span>
+      <AiVoteButtons interactionId={aiInteractionId} />
+    </div>
+  )}
+  ```
+- **API-Schemas**: Alle AI-Response-Schemas enthalten `ai_interaction_id: z.string().nullable().optional()`
+- **Integriert in**: `AiSuggestDialog` (via `interactionId?: string | null` prop), `InlineIngredientEditor`
+
 ## Qualitäts-Checkliste – Frontend
 
 - [ ] Zod Schemas synchron mit Backend Pydantic Schemas

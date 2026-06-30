@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
@@ -27,8 +27,6 @@ export default function MealPlanWizardPage() {
     state,
     step,
     currentStepIndex,
-    canGoNext,
-    canGoPrev,
     goNext,
     goPrev,
     updateState,
@@ -50,7 +48,6 @@ export default function MealPlanWizardPage() {
 
   const handleGenerate = async () => {
     const startDate = state.start_datetime ? state.start_datetime.slice(0, 10) : '';
-    const endDate = state.end_datetime ? state.end_datetime.slice(0, 10) : '';
     const start = new Date(state.start_datetime);
     const end = new Date(state.end_datetime);
     const numDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);

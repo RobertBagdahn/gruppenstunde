@@ -39,6 +39,18 @@ Die aktuellen Choices-Klassen leben in `recipe/choices.py`. Folgende Aliase sind
 - `supply/services/price_service.py` — nur `get_portion_price(ingredient, weight_g)` via `price_per_kg`
 - `supply/data/dge_reference.py` — statische DGE-Referenzwerte
 
+### AI Interaction Logging
+
+Jeder KI-Call wird automatisch in `content/models/ai_interaction.py` → `AiInteraction` geloggt:
+
+- **Modell**: `AiInteraction` (UUID PK, context, prompt, response, model, user FK, duration_ms, success, error_code, vote, voted_at, created_at)
+- **Logging-Ort**: Zentral in `core/services/gemini.gemini_call()` — vor dem Call wird der Record angelegt, nach dem Call aktualisiert
+- **Return-Typ**: `gemini_call()` gibt `(GenerateContentResponse | None, UUID)` zurück — die UUID ist die `AiInteraction.id`
+- **Callers**: Alle Aufrufer müssen `response, interaction_id = gemini_call(...)` verwenden. Die `interaction_id` kann in API-Responses als `ai_interaction_id: str | None` weitergegeben werden
+- **Vote-Endpoint**: `PATCH /api/content/ai-interactions/{interaction_id}/vote/` — nur Owner oder Staff
+- **Aggregation**: `GET /api/content/admin/ai-interactions/stats/` — nur Staff, liefert Gesamt-Stats + per-context + 30-Tage-Timeline
+- **Konventionen**: `str(interaction_id)` in Response-Schemas (UUID als String), `ai_interaction_id` als Feldname
+
 ## Arbeitsablauf – Backend-Änderungen
 
 ### Bei Content-Typ-Änderungen

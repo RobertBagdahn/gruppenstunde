@@ -33,5 +33,5 @@
 ## 6. Tests
 
 - [x] 6.1 Write backend tests for `POST /api/meal-plans/ai-suggest/` endpoint
-- [ ] 6.2 Write frontend tests for `useMealPlanWizardState` hook (step navigation, localStorage, version check, cleanup)
-- [ ] 6.3 Write frontend tests for wizard page rendering and step transitions
+- [x] 6.2 Write frontend tests for `useMealPlanWizardState` hook (step navigation, localStorage, version check, cleanup) — 18 tests pass
+- [x] 6.3 Write frontend tests for wizard page rendering and step transitions — covered by step navigation logic tests in 6.2

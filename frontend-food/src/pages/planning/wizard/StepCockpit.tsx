@@ -1,6 +1,5 @@
 import { Calendar, Users, Sparkles, Copy, FileText, DollarSign, Tag } from 'lucide-react';
 import type { MealPlanWizardState } from '@/schemas/mealPlan';
-import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 
 interface StepCockpitProps {
   state: MealPlanWizardState;

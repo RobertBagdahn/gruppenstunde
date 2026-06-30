@@ -1,5 +1,4 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
 import type { MealPlanWizardState } from '@/schemas/mealPlan';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 import ExtendedSettingsSection from './ExtendedSettingsSection';

@@ -5,12 +5,14 @@ import NutritionalTagTab from './NutritionalTagTab';
 import RuleTab from './RuleTab';
 import ApprovalTab from './ApprovalTab';
 import AiFeedbackTab from './AiFeedbackTab';
+import BreakfastDayManager from '@/components/breakfast/BreakfastDayManager';
 
 const TABS = [
   { key: 'approvals', label: 'Freigaben' },
   { key: 'retail-sections', label: 'Abteilungen' },
   { key: 'nutritional-tags', label: 'Ernährungstags' },
   { key: 'rules', label: 'Regeln' },
+  { key: 'breakfast-days', label: 'Frühstückstage' },
   { key: 'ai-feedback', label: 'KI Feedback' },
   { key: 'data-quality', label: 'Datenqualität', href: '/admin/data-quality/ingredients' },
 ] as const;
@@ -59,6 +61,16 @@ export default function AdminPage() {
       {activeTab === 'retail-sections' && <RetailSectionTab />}
       {activeTab === 'nutritional-tags' && <NutritionalTagTab />}
       {activeTab === 'rules' && <RuleTab />}
+      {activeTab === 'breakfast-days' && (
+        <div className="space-y-4">
+          <h2 className="font-display font-semibold text-xl">Frühstückstage</h2>
+          <p className="text-sm text-muted-foreground">
+            Frühstückstage werden als Tags mit der Gruppe "breakfast_day" gespeichert
+            und im Frühstücks-Assistenten als Filter-Option verwendet.
+          </p>
+          <BreakfastDayManager />
+        </div>
+      )}
     </div>
   );
 }

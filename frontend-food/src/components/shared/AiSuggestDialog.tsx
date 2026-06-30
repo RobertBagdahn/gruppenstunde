@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,6 +40,8 @@ interface AiSuggestDialogProps {
   onApply: (selectedKeys: string[]) => void;
   isApplying?: boolean;
   error?: string | null;
+  /** Optional AI interaction ID for thumbs-up/down feedback */
+  interactionId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +57,7 @@ export function AiSuggestDialog({
   onApply,
   isApplying = false,
   error = null,
+  interactionId = null,
 }: AiSuggestDialogProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -215,10 +219,18 @@ export function AiSuggestDialog({
         )}
 
         {relevantFields.length > 0 && !isLoading && (
-          <DialogFooter className="flex-row justify-between gap-2">
-            <Button variant="ghost" size="sm" onClick={toggleAll}>
-              {allSelected ? 'Keine auswählen' : 'Alle auswählen'}
-            </Button>
+          <DialogFooter className="flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={toggleAll}>
+                {allSelected ? 'Keine auswählen' : 'Alle auswählen'}
+              </Button>
+              {interactionId && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span>Hilfreich?</span>
+                  <AiVoteButtons interactionId={interactionId} />
+                </div>
+              )}
+            </div>
             <Button
               onClick={handleApply}
               disabled={selected.size === 0 || isApplying}

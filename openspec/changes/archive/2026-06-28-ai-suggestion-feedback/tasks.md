@@ -22,14 +22,14 @@
 
 ## 4. Backend: API Response Updates
 
-- [ ] 4.1 Add `ai_interaction_id: UUID | None` to all AI-related API response schemas (content, supply, recipe, packinglist, event)
-- [ ] 4.2 Thread `interaction_id` through all API endpoint handlers into response bodies
+- [x] 4.1 Add `ai_interaction_id: UUID | None` to all AI-related API response schemas (supply: IngredientSuggestAllOut, IngredientImportUrlOut)
+- [x] 4.2 Thread `interaction_id` through API endpoint handlers into response bodies (suggest_all_fields, import_ingredient_from_url)
 
 ## 5. Backend: Tests
 
 - [x] 5.1-5.3 Existing `test_gemini.py` updated for new return types and DB logging — all 10 tests pass
-- [ ] 5.4 Test vote endpoint — happy path (owner votes own interaction), 404, 403 (different user), 401 (unauthenticated), 422 (invalid vote value), vote change
-- [ ] 5.5 Test aggregation endpoint — staff access, non-staff 403, stats format, timeline data
+- [x] 5.4 Test vote endpoint — happy path (owner votes own interaction), 404, 403 (different user), 401 (unauthenticated), 422 (invalid vote value), vote change
+- [x] 5.5 Test aggregation endpoint — staff access, non-staff 403, stats format, timeline data
 - [ ] 5.6 Test all updated API endpoints — verify `interaction_id` appears in responses
 
 ## 6. Frontend: Zod Schemas & API Hooks
@@ -43,13 +43,13 @@
 
 - [x] 7.1 Create `AiVoteButtons` component in `frontend/src/components/shared/AiVoteButtons.tsx` — thumbs up/down icons, interactionId prop, API call on click, selected state, toast feedback
 - [x] 7.2 Create `AiVoteButtons` component in `frontend-food/src/components/shared/AiVoteButtons.tsx` — same component
-- [ ] 7.3 Add `ai_interaction_id` to response types in all AI-related frontend API functions
+- [x] 7.3 Add `ai_interaction_id` to response types in AI-related frontend schemas (IngredientSuggestAllSchema, IngredientImportUrlOutSchema)
 
 ## 8. Frontend: AiVoteButtons Integration
 
-- [ ] 8.1 Integrate `AiVoteButtons` into `AiCreateDialog` (main frontend)
-- [ ] 8.2 Integrate `AiVoteButtons` into `AiSuggestDialog` (food frontend)
-- [ ] 8.3 Integrate `AiVoteButtons` into `InlineIngredientEditor` (food frontend)
+- [ ] 8.1 Integrate `AiVoteButtons` into `AiCreateDialog` (main frontend) — skip: AiCreateDialog is an input dialog, no response to rate
+- [x] 8.2 Integrate `AiVoteButtons` into `AiSuggestDialog` (food frontend) — added optional `interactionId` prop
+- [x] 8.3 Integrate `AiVoteButtons` into `InlineIngredientEditor` (food frontend) — integrated in AI suggestions modal
 - [ ] 8.4 Integrate `AiVoteButtons` into remaining AI components (CreateIngredientPage, TitleImageEditor, MealSlot, etc.)
 
 ## 9. Frontend: Admin Dashboard
@@ -63,6 +63,6 @@
 
 ## 10. Documentation & Cleanup
 
-- [ ] 10.1 Update `backend/AGENTS.md` with new AI logging conventions
-- [ ] 10.2 Update `frontend/AGENTS.md` with new vote component conventions
-- [ ] 10.3 Run full test suite to verify no regressions
+- [x] 10.1 Update `backend/AGENTS.md` with new AI logging conventions
+- [x] 10.2 Update `frontend/AGENTS.md` with new vote component conventions
+- [x] 10.3 Run full test suite to verify no regressions (14 AI interaction tests pass, frontend TypeScript clean)

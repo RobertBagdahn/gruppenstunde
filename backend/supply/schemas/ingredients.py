@@ -359,6 +359,9 @@ class PortionSuggestionOut(Schema):
 class IngredientSuggestAllOut(Schema):
     """Response schema for AI-powered ingredient suggestions."""
 
+    # AI interaction tracking
+    ai_interaction_id: str | None = None
+
     # Nährwerte
     energy_kcal: float | None = None
     protein_g: float | None = None
@@ -446,6 +449,7 @@ class IngredientNutritionDraftOut(Schema):
 class IngredientImportUrlOut(Schema):
     """Response for URL-based ingredient import."""
 
+    ai_interaction_id: str | None = None
     ingredient_draft: IngredientDraftOut
     nutrition: IngredientNutritionDraftOut | None = None
 

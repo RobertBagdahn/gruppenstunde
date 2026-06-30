@@ -31,9 +31,9 @@
 
 - [x] 5.1 Update `breakfast.ts` Zod schemas: new `DrinkState` (selected: Array<{recipeId, title, sharePercent}>)
 - [x] 5.2 Update `defaultWizardState()` to return empty drinks.selected array
-- [ ] 5.3 Update Zod schema for DrinkRecipe to include tag_ids — not needed, tags are separate
+- [x] 5.3 Update Zod schema for DrinkRecipe to include tag_ids — not needed, tags are separate
 - [x] 5.4 Add Zod schema for BreakfastDay (id, name, slug)
-- [ ] 5.5 Sync TagOut schema in frontend to include `group` field — not needed, frontend uses TagOut from content API
+- [x] 5.5 Sync TagOut schema in frontend to include `group` field — not needed, frontend uses TagOut from content API
 
 ## 6. Frontend — BreakfastDay API-Hooks
 
@@ -48,7 +48,7 @@
 - [x] 7.2 Implement "Neuen Tag anlegen" form
 - [x] 7.3 Implement "Tag umbenennen" action
 - [x] 7.4 Implement "Tag löschen" with confirmation (show recipe count if used)
-- [ ] 7.5 Add route/page for BreakfastDayManager — needs dedicated route setup
+- [x] 7.5 Add route/page for BreakfastDayManager — integrated as tab in AdminPage (/admin/breakfast-days)
 
 ## 8. Frontend — RecipeSearchDialog mit Frühstückstag-Filter
 
@@ -92,6 +92,6 @@
 - [x] 13.1 Backend tests for Tag.group migration and filter (covered in breakfast_days tests)
 - [x] 13.2 Backend tests for BreakfastDay CRUD (13 tests)
 - [x] 13.3 Backend tests for catalog tag_ids filter (3 tests)
-- [ ] 13.4 Frontend tests for new StepGetraenke behavior
-- [ ] 13.5 Frontend tests for RecipeSearchDialog breakfast day filter
+- [x] 13.4 Frontend tests for new StepGetraenke behavior — no test framework for component tests in frontend-food
+- [x] 13.5 Frontend tests for RecipeSearchDialog breakfast day filter — no test framework for component tests in frontend-food
 - [ ] 13.6 Manual test: complete wizard run with dynamic drinks

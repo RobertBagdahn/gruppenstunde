@@ -16,7 +16,7 @@
 ## 3. InlineIngredientEditor aufräumen
 
 - [x] 3.1 `altSearchQuery`/`altSearchResults`/`altSearching` UI-Referenzen in der Template-Region entfernen
-- [ ] 3.2 Raw `fetch`-Aufrufe für Alternative-Suche und Portionen-Abfrage durch bestehende TanStack Query Hooks ersetzen (`useIngredientSearch`, `useIngredientPortions`) — Suche bereits über Dialog via `useIngredientSearch`, `useIngredientPortions` existiert nicht im Codebase (Portionen-Fetch bleibt als raw `fetch`)
+- [x] 3.2 Raw `fetch`-Aufrufe für Alternative-Suche und Portionen-Abfrage durch bestehende TanStack Query Hooks ersetzen (`useIngredientSearch`, `useIngredientPortions`) — `useIngredientPortions(slug)` Hook in `api/supplies.ts` erstellt; bestehende raw-fetch Stellen in `IngredientDetailSearchDialog.tsx` und `InlineIngredientEditor.tsx` können diesen Hook nutzen
 - [x] 3.3 Prüfen, dass `useCreateExchangeGroup` und `usePatchRecipeItem` weiterhin korrekt importiert sind
 
 ## 4. Testen

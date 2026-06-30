@@ -194,6 +194,23 @@ export function useDeleteIngredient() {
 }
 
 // ==========================================================================
+// Portion Query Hooks
+// ==========================================================================
+
+/**
+ * Fetch all portions for an ingredient by slug.
+ * Use this instead of raw fetch('/api/ingredients/{slug}/portions/').
+ */
+export function useIngredientPortions(slug: string) {
+  return useQuery({
+    queryKey: ['ingredient-portions', slug] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/portions/`, z.array(PortionSchema)),
+    enabled: !!slug,
+    staleTime: 60_000,
+  });
+}
+
+// ==========================================================================
 // Portion Mutation Hooks
 // ==========================================================================
 

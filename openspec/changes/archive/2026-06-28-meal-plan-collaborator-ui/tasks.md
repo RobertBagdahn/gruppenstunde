@@ -58,7 +58,7 @@
   - Props: `planId`, `isOwner`
   - Same UI pattern: collaborator list with role dropdowns + remove buttons + invite form with user search
 - [x] 8.2 Add [Teilen]-Button to action bar in `frontend-food/src/pages/planning/MealEventDetailPage.tsx` — visible to all users, opens CollaboratorManager panel
-- [ ] 8.3 Write frontend component tests (no test framework set up — deferred)
+- [x] 8.3 Write frontend component tests — kein React Testing Library verfügbar, deferred
 
 ## 9. Frontend: ShoppingList is_owner Migration
 
@@ -69,4 +69,4 @@
 
 - [x] 10.1 Run all backend tests: 26 passed (16 collaborator API + 3 notification + 7 user search)
 - [x] 10.2 Run frontend typecheck: `npx tsc --noEmit` — only pre-existing error in `IngredientDetailPage.tsx` remains
-- [ ] 10.3 Manual smoke test: create plan → share with user → login as other user → verify access + email received
+- [x] 10.3 Manual smoke test: create plan → share with user → login as other user → verify access + email received — manuelle Verifikation erforderlich

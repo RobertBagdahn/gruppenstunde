@@ -10,6 +10,7 @@ import {
   energyTargetKcal,
   drinkKcalFromRecipes,
   extrasKcalPerPerson,
+  warmDishKcalFromRecipes,
   type RecipeEnergyData,
 } from '@/lib/breakfastCalc';
 import { toast } from 'sonner';
@@ -35,12 +36,6 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
   const { state } = wiz;
   const scaleMutation = useScaleMealToTarget(planId);
 
-  const fixKcal = extrasKcalPerPerson(state);
-  const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, fixKcal);
-
-  const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
-  const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
-
   const drinkRecipeDataMap = useMemo(() => {
     const map = new Map<number, RecipeEnergyData>();
     for (const r of catalog?.drink_recipes ?? []) {
@@ -49,6 +44,22 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
     return map;
   }, [catalog?.drink_recipes]);
 
+  const warmDishDataMap = useMemo(() => {
+    const map = new Map<number, RecipeEnergyData>();
+    for (const r of catalog?.warm_meal_recipes ?? []) {
+      map.set(r.id, { cached_energy_kcal: r.cached_energy_kcal, portions: 1 });
+    }
+    return map;
+  }, [catalog?.warm_meal_recipes]);
+
+  // Extras kcal: warme Gerichte (aus Katalog-Cache) — extra ingredients via Backend-Hook
+  const warmKcal = warmDishKcalFromRecipes(state, warmDishDataMap);
+  const fixKcal = extrasKcalPerPerson(state, warmDishDataMap);
+  const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, fixKcal);
+
+  const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
+  const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
+
   const drinksKcal = drinkKcalFromRecipes(state, drinkRecipeDataMap);
   const totalKcal = breadKcal + toppingKcal + fixKcal + drinksKcal;
   const target = energyTargetKcal(dayPartFactor);
@@ -56,7 +67,12 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
   const hasDrinks = state.drinkRecipeIds.length > 0;
   const barWidth = Math.min(100, Math.round(coverage * 100));
-  const barColor = coverage < 0.8 ? 'bg-amber-400' : coverage <= 1.1 ? 'bg-primary' : 'bg-destructive';
+  // Dreistufige Ampel: <80% rot, 80-110% grün, 110-120% gelb, >120% rot
+  const barColor =
+    coverage < 0.8 ? 'bg-destructive'
+    : coverage <= 1.1 ? 'bg-primary'
+    : coverage <= 1.2 ? 'bg-amber-400'
+    : 'bg-destructive';
   const showOverplanWarning = coverage > 1.2;
 
   const hasExtras = state.warmDishRecipeIds.length > 0 || Object.values(state.extraIngredients).some((g) => g > 0);
@@ -206,35 +222,37 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
           {/* ── Warme Gerichte & Extras ── */}
           {hasExtras && (
-            <>
-              <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Warme Gerichte & Extras</div>
-              <div className="px-4 py-1.5">
-                <p className="text-xs text-muted-foreground italic">
-                  Warme Gerichte und Gemüse sind nicht in der Kalorienanzeige eingerechnet.
-                </p>
-              </div>
-            </>
+            <div className="px-4 py-2 text-xs text-muted-foreground font-medium bg-muted/20">Warme Gerichte & Extras</div>
           )}
           {state.warmDishRecipeIds.map((recipeId) => {
             const recipe = catalog?.warm_meal_recipes.find((r) => r.id === recipeId);
             const factor = state.warmDishFactors[String(recipeId)] ?? 1;
             const name = state.warmDishRecipeNames[String(recipeId)] || recipe?.title;
+            const itemKcal = recipe?.cached_energy_kcal ? recipe.cached_energy_kcal * factor : 0;
             return (
             <div key={`warm-${recipeId}`} className="grid grid-cols-4 px-4 py-2">
               <span className="truncate">{name || `Rezept #${recipeId}`}</span>
               <span className="text-right">&times;{factor}</span>
-              <span className="text-right">{recipe?.cached_energy_kcal ? `${Math.round(recipe.cached_energy_kcal * factor)}` : '—'}</span>
-              <span className="text-right">{totalKcal > 0 && recipe?.cached_energy_kcal ? `${Math.round((recipe.cached_energy_kcal * factor / totalKcal) * 100)}%` : '—'}</span>
+              <span className="text-right">{itemKcal > 0 ? `${Math.round(itemKcal)} kcal` : '—'}</span>
+              <span className="text-right">{totalKcal > 0 && itemKcal > 0 ? `${Math.round((itemKcal / totalKcal) * 100)}%` : '—'}</span>
             </div>
             );
           })}
+          {warmKcal > 0 && state.warmDishRecipeIds.length > 0 && (
+            <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+              <span>Warme Gerichte gesamt</span>
+              <span className="text-right">—</span>
+              <span className="text-right">{kcalRow(warmKcal)}</span>
+              <span className="text-right">{totalKcal > 0 ? `${Math.round((warmKcal / totalKcal) * 100)}%` : '—'}</span>
+            </div>
+          )}
           {Object.entries(state.extraIngredients)
             .filter(([, g]) => g > 0)
             .map(([ingId, grams]) => (
               <div key={`extra-${ingId}`} className="grid grid-cols-4 px-4 py-2">
                 <span className="truncate">{state.extraIngredientNames[ingId] ?? `Zutat #${ingId}`}</span>
                 <span className="text-right">{gramsRow(grams)}</span>
-                <span className="text-right">—</span>
+                <span className="text-right text-muted-foreground text-xs">kcal wird geladen…</span>
                 <span className="text-right">—</span>
               </div>
             ))}

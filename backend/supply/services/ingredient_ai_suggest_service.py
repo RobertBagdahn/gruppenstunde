@@ -210,7 +210,7 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
         response_schema=IngredientSuggestAllSchema,
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -248,6 +248,7 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
                     }
                 )
     data["nutritional_tags"] = tags_resolved
+    data["ai_interaction_id"] = str(interaction_id) if interaction_id else None
     return data
 
 

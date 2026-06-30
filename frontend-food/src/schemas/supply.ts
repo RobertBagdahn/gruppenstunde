@@ -373,6 +373,7 @@ export const PortionSuggestionSchema = z.object({
 export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
 
 export const IngredientSuggestAllSchema = z.object({
+  ai_interaction_id: z.string().nullable().optional(),
   name_suggestion: z.string().nullable(),
 
   energy_kcal: z.number().nullable(),
@@ -684,6 +685,7 @@ export const IngredientNutritionDraftSchema = z.object({
 export type IngredientNutritionDraft = z.infer<typeof IngredientNutritionDraftSchema>;
 
 export const IngredientImportUrlOutSchema = z.object({
+  ai_interaction_id: z.string().nullable().optional(),
   ingredient_draft: IngredientDraftSchema,
   nutrition: IngredientNutritionDraftSchema.nullable(),
 });

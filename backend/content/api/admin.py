@@ -377,7 +377,7 @@ def admin_ai_interaction_stats(request):
         by_context.append(
             {
                 "context": choice.value,
-                "label": choice.label,
+                "label": str(choice.label),
                 "total": total,
                 "success_count": success_count,
                 "error_count": error_count,

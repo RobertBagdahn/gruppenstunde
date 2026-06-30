@@ -17,6 +17,7 @@ import {
 } from '@/api/recipes';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 
@@ -147,6 +148,7 @@ export default function InlineIngredientEditor({
   const [isAiSuggesting, setIsAiSuggesting] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AiIngredientSuggestion[] | null>(null);
   const [selectedAiSuggestions, setSelectedAiSuggestions] = useState<Set<number>>(new Set());
+  const [aiSuggestInteractionId, setAiSuggestInteractionId] = useState<string | null>(null);
   const [detailSearchOpen, setDetailSearchOpen] = useState(false);
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [scaleFactorInput, setScaleFactorInput] = useState('1,0');
@@ -388,13 +390,18 @@ export default function InlineIngredientEditor({
 
   const handleAiSuggest = useCallback(async () => {
     setIsAiSuggesting(true);
+    setAiSuggestInteractionId(null);
     try {
       const suggestRes = await fetch(`/api/recipes/${recipeId}/ai-suggest-ingredients/`, {
         method: 'POST',
         credentials: 'include',
       });
       if (!suggestRes.ok) throw new Error('Vorschläge fehlgeschlagen');
-      const suggestions: AiIngredientSuggestion[] = await suggestRes.json();
+      const data = await suggestRes.json();
+
+      // Support both list response (legacy) and object response with interaction_id
+      const suggestions: AiIngredientSuggestion[] = Array.isArray(data) ? data : (data.suggestions ?? data);
+      const interactionId: string | null = !Array.isArray(data) ? (data.ai_interaction_id ?? null) : null;
 
       if (!suggestions || suggestions.length === 0) {
         toast.info('Keine weiteren Zutaten vorgeschlagen');
@@ -403,6 +410,7 @@ export default function InlineIngredientEditor({
 
       setAiSuggestions(suggestions);
       setSelectedAiSuggestions(new Set(suggestions.map((_, i) => i)));
+      setAiSuggestInteractionId(interactionId);
     } catch {
       toast.error('KI-Vorschläge konnten nicht generiert werden');
     } finally {
@@ -1081,25 +1089,34 @@ export default function InlineIngredientEditor({
                 ))}
               </tbody>
             </table>
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setAiSuggestions(null);
-                  setSelectedAiSuggestions(new Set());
-                }}
-                className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
-              >
-                Verwerfen
-              </button>
-              <button
-                type="button"
-                onClick={handleApplyAiSuggestions}
-                disabled={selectedAiSuggestions.size === 0}
-                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Übernehmen ({selectedAiSuggestions.size})
-              </button>
+            <div className="flex items-center justify-between mt-6">
+              {aiSuggestInteractionId && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span>Hilfreich?</span>
+                  <AiVoteButtons interactionId={aiSuggestInteractionId} />
+                </div>
+              )}
+              <div className="flex gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiSuggestions(null);
+                    setSelectedAiSuggestions(new Set());
+                    setAiSuggestInteractionId(null);
+                  }}
+                  className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
+                >
+                  Verwerfen
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyAiSuggestions}
+                  disabled={selectedAiSuggestions.size === 0}
+                  className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Übernehmen ({selectedAiSuggestions.size})
+                </button>
+              </div>
             </div>
           </div>
         </div>
