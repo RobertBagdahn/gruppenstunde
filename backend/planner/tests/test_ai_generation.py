@@ -3,17 +3,20 @@ API tests for POST /api/meal-plans/ai-suggest/ endpoint.
 
 Tests cover: happy path (mocked Gemini), auth, timeout, invalid JSON, missing recipe_ids.
 """
+
 import os
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inspi.settings.test")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
 import django
+
 django.setup()
 
 import json
 from unittest.mock import patch
 
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from model_bakery import baker
 
 from recipe.models import Recipe
@@ -42,18 +45,20 @@ class TestAiSuggestEndpoint(TestCase):
             "start_date": "2026-08-14",
         }
 
-        self.valid_gemini_response = json.dumps({
-            "days": [
-                {
-                    "date": "2026-08-14",
-                    "meals": [
-                        {"meal_type": "breakfast", "recipe_id": 42, "recipe_title": "Haferporridge"},
-                        {"meal_type": "lunch", "recipe_id": 128, "recipe_title": "Kartoffelsuppe"},
-                        {"meal_type": "dinner", "recipe_id": 256, "recipe_title": "Veganes Curry"},
-                    ],
-                }
-            ]
-        })
+        self.valid_gemini_response = json.dumps(
+            {
+                "days": [
+                    {
+                        "date": "2026-08-14",
+                        "meals": [
+                            {"meal_type": "breakfast", "recipe_id": 42, "recipe_title": "Haferporridge"},
+                            {"meal_type": "lunch", "recipe_id": 128, "recipe_title": "Kartoffelsuppe"},
+                            {"meal_type": "dinner", "recipe_id": 256, "recipe_title": "Veganes Curry"},
+                        ],
+                    }
+                ]
+            }
+        )
 
     def test_happy_path_returns_suggestions(self):
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:
@@ -89,16 +94,18 @@ class TestAiSuggestEndpoint(TestCase):
         self.assertEqual(response.status_code, 502)
 
     def test_missing_recipe_ids_filtered_out(self):
-        gemini_response = json.dumps({
-            "days": [
-                {
-                    "date": "2026-08-14",
-                    "meals": [
-                        {"meal_type": "breakfast", "recipe_id": 99999, "recipe_title": "Phantom Dish"},
-                    ],
-                }
-            ]
-        })
+        gemini_response = json.dumps(
+            {
+                "days": [
+                    {
+                        "date": "2026-08-14",
+                        "meals": [
+                            {"meal_type": "breakfast", "recipe_id": 99999, "recipe_title": "Phantom Dish"},
+                        ],
+                    }
+                ]
+            }
+        )
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:
             mock_gemini.return_value = (MockResponse(gemini_response), "interaction-uuid")
             response = self.client.post(

@@ -21,8 +21,7 @@ class Command(BaseCommand):
 
             # Group by lowercase name and count
             portion_groups = (
-                portions
-                .annotate(name_lower=Lower("name"))
+                portions.annotate(name_lower=Lower("name"))
                 .values("name_lower")
                 .annotate(count=Count("id"))
                 .filter(count__gt=1)
@@ -31,7 +30,9 @@ class Command(BaseCommand):
             if portion_groups.exists():
                 duplicates_found = True
                 self.stdout.write(
-                    self.style.WARNING(f"\n📌 Ingredient: {ingredient.name} (ID: {ingredient.id}, slug: {ingredient.slug})")
+                    self.style.WARNING(
+                        f"\n📌 Ingredient: {ingredient.name} (ID: {ingredient.id}, slug: {ingredient.slug})"
+                    )
                 )
 
                 for group in portion_groups:
@@ -64,7 +65,9 @@ class Command(BaseCommand):
                     .order_by("rank")[:5]
                 )
                 self.stdout.write(
-                    self.style.WARNING(f"\n📌 Ingredient: {ingredient.name} (ID: {ingredient.id}, slug: {ingredient.slug})")
+                    self.style.WARNING(
+                        f"\n📌 Ingredient: {ingredient.name} (ID: {ingredient.id}, slug: {ingredient.slug})"
+                    )
                 )
                 self.stdout.write(f"  No rank=1 portion! Existing portions: {portions_info}")
 

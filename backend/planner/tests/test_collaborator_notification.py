@@ -24,9 +24,7 @@ class TestCollaboratorNotification:
     def test_email_sent_on_add(self, client: Client):
         """Adding a collaborator sends an email notification."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
-        collab_user = User.objects.create_user(
-            username="collab", email="collab@test.de", password="pass"
-        )
+        collab_user = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
         plan = self._create_plan(owner)
 
         client.login(username="owner@test.de", password="pass")
@@ -47,13 +45,9 @@ class TestCollaboratorNotification:
     def test_email_not_sent_on_role_update(self, client: Client):
         """Updating a collaborator role does NOT send an email."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
-        collab_user = User.objects.create_user(
-            username="collab", email="collab@test.de", password="pass"
-        )
+        collab_user = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
         plan = self._create_plan(owner)
-        collab = MealPlanCollaborator.objects.create(
-            meal_plan=plan, user=collab_user, role="viewer"
-        )
+        collab = MealPlanCollaborator.objects.create(meal_plan=plan, user=collab_user, role="viewer")
 
         client.login(username="owner@test.de", password="pass")
 
@@ -69,9 +63,7 @@ class TestCollaboratorNotification:
     def test_graceful_failure_on_email_error(self, client: Client):
         """If email sending fails, the API still returns success."""
         owner = User.objects.create_user(username="owner", email="owner@test.de", password="pass")
-        collab_user = User.objects.create_user(
-            username="collab", email="collab@test.de", password="pass"
-        )
+        collab_user = User.objects.create_user(username="collab", email="collab@test.de", password="pass")
         plan = self._create_plan(owner)
 
         client.login(username="owner@test.de", password="pass")
@@ -86,6 +78,4 @@ class TestCollaboratorNotification:
             # API should still succeed despite email failure
             assert resp.status_code == 201
             # Collaborator should still be created
-            assert MealPlanCollaborator.objects.filter(
-                meal_plan=plan, user=collab_user
-            ).exists()
+            assert MealPlanCollaborator.objects.filter(meal_plan=plan, user=collab_user).exists()

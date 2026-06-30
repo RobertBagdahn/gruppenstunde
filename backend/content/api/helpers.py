@@ -139,10 +139,12 @@ def create_comment(
 # View Helpers
 # ---------------------------------------------------------------------------
 
+
 def _require_auth(request):
     """Require the user to be authenticated."""
     if not request.user.is_authenticated:
         from ninja.errors import HttpError
+
         raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
 
 
@@ -270,10 +272,18 @@ def enrich_list_with_permissions(request, items: list) -> None:
 # ---------------------------------------------------------------------------
 
 
+#: Hard upper bound for page_size to prevent unbounded querysets/serialization.
+MAX_PAGE_SIZE = 100
+
+
 def paginate_queryset(queryset, page: int = 1, page_size: int = 20) -> dict:
     """
     Paginate a queryset and return dict matching PaginatedContentOut schema.
+
+    ``page_size`` is clamped to ``[1, MAX_PAGE_SIZE]`` so a malicious/large value
+    cannot force loading the entire table.
     """
+    page_size = max(1, min(page_size, MAX_PAGE_SIZE))
     total = queryset.count()
     total_pages = max(1, math.ceil(total / page_size))
     page = max(1, min(page, total_pages))

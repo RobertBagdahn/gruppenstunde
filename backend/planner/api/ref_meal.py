@@ -19,6 +19,7 @@ from planner.schemas import (
     RefMealUpdateIn,
 )
 
+
 def _create_ref_meal_item(**kwargs):
     try:
         return MealItem.objects.create(**kwargs)

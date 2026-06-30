@@ -68,7 +68,5 @@ class Command(BaseCommand):
             self.stdout.write(f"  CREATED {drink['slug']}: {drink['title']}")
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Created {created_count} drink recipes, skipped {skipped_count} (already exist)."
-            )
+            self.style.SUCCESS(f"Created {created_count} drink recipes, skipped {skipped_count} (already exist).")
         )

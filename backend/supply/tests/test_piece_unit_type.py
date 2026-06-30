@@ -9,14 +9,13 @@ Abdeckung:
 
 import pytest
 from django.test import TestCase
-from ninja.testing import TestClient
 
 from supply.api.unit_conversions import _get_available_conversions
 from supply.choices import MeasuringUnitType
 from supply.models import MeasuringUnit
 from supply.services.shopping_service import _format_natural_portion
 
-from . import make_ingredient, make_measuring_unit, make_portion
+from . import make_ingredient, make_measuring_unit
 
 
 class TestMeasuringUnitTypePiece(TestCase):
@@ -160,9 +159,10 @@ class TestPortionReorderExcludesG(TestCase):
 
     def test_reorder_endpoint_rejects_g_portion_with_wrong_rank(self):
         """Backend lehnt Reorder mit g-Portion (rank != 9999) mit 422 ab."""
-        from supply.models import Portion
         from ninja.errors import HttpError
+
         from supply.api.ingredients import reorder_portions
+        from supply.models import Portion
         from supply.schemas.ingredients import PortionReorderIn, PortionReorderItem
 
         ingredient = make_ingredient(name="Birne Test Reorder")
@@ -172,11 +172,10 @@ class TestPortionReorderExcludesG(TestCase):
             self.skipTest("g-Portion fehlt")
 
         # Payload MIT g-Portion aber falscher Rank
-        payload = PortionReorderIn(
-            orders=[PortionReorderItem(id=p_g.id, rank=1)]
-        )
+        payload = PortionReorderIn(orders=[PortionReorderItem(id=p_g.id, rank=1)])
 
         from unittest.mock import MagicMock
+
         request = MagicMock()
         request.user.is_authenticated = True
 
@@ -188,10 +187,11 @@ class TestPortionReorderExcludesG(TestCase):
 
     def test_reorder_without_g_portion_updates_ranks(self):
         """Reorder-Payload ohne g-Portion aktualisiert Ränge korrekt."""
-        from supply.models import Portion
-        from supply.api.ingredients import reorder_portions
-        from supply.schemas.ingredients import PortionReorderIn, PortionReorderItem
         from unittest.mock import MagicMock
+
+        from supply.api.ingredients import reorder_portions
+        from supply.models import Portion
+        from supply.schemas.ingredients import PortionReorderIn, PortionReorderItem
 
         ingredient = make_ingredient(name="Kirsche Test Reorder")
 

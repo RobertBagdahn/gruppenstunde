@@ -5,8 +5,9 @@ New format: quantity=portions_per_person, factor=1.0, measuring_unit=portion_uni
 """
 
 from django.core.management.base import BaseCommand
-from supply.models import Ingredient, MeasuringUnit, Portion
+
 from planner.models import MealItem
+from supply.models import MeasuringUnit, Portion
 
 
 def _find_best_portion(ingredient, measuring_unit) -> Portion | None:
@@ -38,6 +39,7 @@ class Command(BaseCommand):
         raw_units = [u for u in [g_unit, ml_unit] if u]
 
         from django.db.models import Q
+
         query = Q(ingredient__isnull=False, factor__gt=1.0)
         if raw_units:
             query |= Q(ingredient__isnull=False, factor=1.0, measuring_unit__in=raw_units, quantity__gt=3)
@@ -70,7 +72,9 @@ class Command(BaseCommand):
 
             target_unit = MeasuringUnit.objects.filter(name=target_unit_name).first()
             if not target_unit:
-                errors.append(f"No measuring unit '{target_unit_name}' for ingredient #{ingredient.id} ({ingredient.name})")
+                errors.append(
+                    f"No measuring unit '{target_unit_name}' for ingredient #{ingredient.id} ({ingredient.name})"
+                )
                 skipped += 1
                 continue
 
@@ -105,7 +109,9 @@ class Command(BaseCommand):
                 item.factor = 1.0
                 item.save(update_fields=["quantity", "measuring_unit", "factor"])
                 updated += 1
-                self.stdout.write(f"  MIGRATED item #{item.id}: {ingredient.name} {old_quantity}{mu.name} → {new_quantity:.2f} {target_unit_name} (×1.0)")
+                self.stdout.write(
+                    f"  MIGRATED item #{item.id}: {ingredient.name} {old_quantity}{mu.name} → {new_quantity:.2f} {target_unit_name} (×1.0)"
+                )
             else:
                 # Can't convert — just set factor to 1.0 and keep grams
                 item.factor = 1.0

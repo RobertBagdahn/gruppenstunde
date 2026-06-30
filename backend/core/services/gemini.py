@@ -15,7 +15,6 @@ from django.core.cache import cache
 from ninja.errors import HttpError
 
 from content.models import AiInteraction
-from content.choices import AiContextChoices
 
 logger = logging.getLogger(__name__)
 
@@ -275,9 +274,7 @@ def gemini_call(
         GeminiUpstreamRateLimitError: If Google returns 429.
         GeminiUnavailableError: If Gemini is unreachable.
     """
-    interaction, interaction_id = _create_interaction(
-        user=user, model=model, contents=contents, context=context
-    )
+    interaction, interaction_id = _create_interaction(user=user, model=model, contents=contents, context=context)
 
     try:
         _check_auth(user, bypass_limits=bypass_limits)
@@ -350,9 +347,7 @@ def gemini_image_call(
     Returns:
         Tuple of (GenerateContentResponse | None, UUID).
     """
-    interaction, interaction_id = _create_interaction(
-        user=user, model=model, contents=contents, context=context
-    )
+    interaction, interaction_id = _create_interaction(user=user, model=model, contents=contents, context=context)
 
     try:
         _check_auth(user, bypass_limits=bypass_limits)

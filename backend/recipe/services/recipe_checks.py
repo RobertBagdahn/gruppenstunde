@@ -41,9 +41,11 @@ def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
     micronutrients (vitamins / minerals).
     Exchange alternatives (exchange_group set + position > 0) are excluded.
     """
-    items = RecipeItem.objects.filter(recipe=recipe).exclude(
-        Q(exchange_group__isnull=False) & Q(exchange_position__gt=0)
-    ).select_related("portion", "portion__ingredient")
+    items = (
+        RecipeItem.objects.filter(recipe=recipe)
+        .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
+        .select_related("portion", "portion__ingredient")
+    )
 
     total_weight_g = 0.0
 
@@ -243,7 +245,7 @@ def evaluate_recipe_rules(recipe: Recipe) -> dict:
         display_value = None
         unit = rule.unit
         if rule.parameter == "nutri_class":
-            display_value = nutri_letter_map.get(round(value_per_serving), None)
+            display_value = nutri_letter_map.get(round(value_per_serving))
             unit = ""
 
         threshold_direction = None
@@ -376,10 +378,10 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
     recipe.cached_nutri_class = ns_class
 
     # Calculate total price (excluding exchange alternatives)
-    items = RecipeItem.objects.filter(recipe=recipe).exclude(
-        Q(exchange_group__isnull=False) & Q(exchange_position__gt=0)
-    ).select_related(
-        "portion", "portion__ingredient", "portion__measuring_unit"
+    items = (
+        RecipeItem.objects.filter(recipe=recipe)
+        .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
+        .select_related("portion", "portion__ingredient", "portion__measuring_unit")
     )
     total_price = Decimal("0.00")
     total_weight_g = 0.0
@@ -442,6 +444,7 @@ def sync_recipe_nutritional_tags(recipe: Recipe) -> int:
     Returns the count of ingredient-derived tags synced.
     """
     from django.db.models import Count, Q
+
     from recipe.models import RecipeItem
     from supply.models.reference import NutritionalTag
 

@@ -34,36 +34,40 @@ def deduplicate_portions(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0043_reassign_portion_ranks'),
+        ("supply", "0043_reassign_portion_ranks"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='portion',
-            options={'ordering': ['rank'], 'verbose_name': 'Portion', 'verbose_name_plural': 'Portionen'},
+            name="portion",
+            options={"ordering": ["rank"], "verbose_name": "Portion", "verbose_name_plural": "Portionen"},
         ),
         migrations.RemoveField(
-            model_name='portion',
-            name='is_default',
+            model_name="portion",
+            name="is_default",
         ),
         migrations.RemoveField(
-            model_name='portion',
-            name='priority',
+            model_name="portion",
+            name="priority",
         ),
         migrations.AlterField(
-            model_name='portion',
-            name='rank',
-            field=models.IntegerField(default=1, verbose_name='Rang (1 = Normalportion)'),
+            model_name="portion",
+            name="rank",
+            field=models.IntegerField(default=1, verbose_name="Rang (1 = Normalportion)"),
         ),
         migrations.RunPython(
             deduplicate_portions,
             reverse_code=migrations.RunPython.noop,
         ),
         migrations.AddConstraint(
-            model_name='portion',
-            constraint=models.UniqueConstraint(django.db.models.functions.text.Lower('name'), models.F('ingredient_id'), condition=models.Q(('deleted_at__isnull', True)), name='unique_portion_name_per_ingredient'),
+            model_name="portion",
+            constraint=models.UniqueConstraint(
+                django.db.models.functions.text.Lower("name"),
+                models.F("ingredient_id"),
+                condition=models.Q(("deleted_at__isnull", True)),
+                name="unique_portion_name_per_ingredient",
+            ),
         ),
     ]

@@ -593,7 +593,9 @@ class TestAutoAccountCreation:
         user = User.objects.get(email=email)
         assert not user.has_usable_password()
 
-    def test_existing_email_reuses_user(self, guest_client, event_with_guest_reg):
+    def test_existing_real_account_not_hijacked(self, guest_client, event_with_guest_reg):
+        """A guest registration must NOT attach to an existing password-protected
+        account just because the email matches (account-hijack protection)."""
         event = event_with_guest_reg
         option = make_booking_option(event=event)
         email = "existing@example.com"
@@ -620,20 +622,54 @@ class TestAutoAccountCreation:
             content_type="application/json",
         )
         assert resp.status_code == 201
-        # No new user was created
-        assert User.objects.filter(email=email).count() == 1
-        # Registration was tied to existing user
+        # A separate guest account was created; the real account is untouched.
         reg = Registration.objects.get(event=event)
-        assert reg.user == existing_user
+        assert reg.user != existing_user
+        assert not reg.user.has_usable_password()
+        # The real, password-protected account has no registration attached.
+        assert not Registration.objects.filter(user=existing_user).exists()
 
-    def test_case_insensitive_email_lookup(self, guest_client, event_with_guest_reg):
+    def test_existing_guest_account_is_reused(self, guest_client, event_with_guest_reg):
+        """A prior guest account (no usable password) IS reused for the same email."""
         event = event_with_guest_reg
         option = make_booking_option(event=event)
-        User.objects.create_user(
-            username="upper",
-            email="Upper@Example.com",
-            password="test123",
+        email = "guest-return@example.com"
+        guest_user = User.objects.create_user(username=email, email=email, password=None)
+        guest_user.set_unusable_password()
+        guest_user.save()
+
+        resp = guest_client.post(
+            f"/api/events/{event.slug}/register-guest/",
+            data=json.dumps(
+                {
+                    "persons": [
+                        {
+                            "first_name": "Returning",
+                            "last_name": "Guest",
+                            "booking_option_id": option.id,
+                        }
+                    ],
+                    "email": email,
+                }
+            ),
+            content_type="application/json",
         )
+        assert resp.status_code == 201
+        assert User.objects.filter(email=email).count() == 1
+        reg = Registration.objects.get(event=event)
+        assert reg.user == guest_user
+
+    def test_case_insensitive_email_lookup(self, guest_client, event_with_guest_reg):
+        """Existing guest account is matched case-insensitively (and reused)."""
+        event = event_with_guest_reg
+        option = make_booking_option(event=event)
+        guest = User.objects.create_user(
+            username="Upper@Example.com",
+            email="Upper@Example.com",
+            password=None,
+        )
+        guest.set_unusable_password()
+        guest.save()
 
         resp = guest_client.post(
             f"/api/events/{event.slug}/register-guest/",
@@ -652,5 +688,5 @@ class TestAutoAccountCreation:
             content_type="application/json",
         )
         assert resp.status_code == 201
-        # Should NOT create a new user
+        # Should NOT create a new user — the existing guest account is reused.
         assert User.objects.filter(email__iexact="upper@example.com").count() == 1

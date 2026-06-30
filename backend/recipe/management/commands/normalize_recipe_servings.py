@@ -76,8 +76,7 @@ class Command(BaseCommand):
             portions = recipe.portions
 
             self.stdout.write(
-                f"\n{'[DRY-RUN] ' if dry_run else ''}"
-                f"{recipe.title} (id={recipe.id}, portions={portions}) → {category}"
+                f"\n{'[DRY-RUN] ' if dry_run else ''}{recipe.title} (id={recipe.id}, portions={portions}) → {category}"
             )
 
             if category == "already_normalized":

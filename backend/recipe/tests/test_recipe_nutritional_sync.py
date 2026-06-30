@@ -100,6 +100,7 @@ class TestRecipeNutritionalTagSync:
         recipe.refresh_from_db()
 
         from recipe.schemas.recipes import RecipeDetailOut
+
         resolved = RecipeDetailOut.resolve_nutritional_tags(recipe)
         resolved_ids = {t["id"] for t in resolved}
         assert tag_vegan.id in resolved_ids

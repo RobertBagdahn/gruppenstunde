@@ -35,6 +35,7 @@ class Command(BaseCommand):
 
             # Compute what tags would be synced (AND intersection — all ingredients must share the tag)
             from django.db.models import Count, Q
+
             from recipe.models import RecipeItem
             from supply.models.reference import NutritionalTag
 
@@ -47,7 +48,9 @@ class Command(BaseCommand):
                 new_tag_ids = set(
                     NutritionalTag.objects.filter(ingredients__id__in=ingredient_ids)
                     .annotate(
-                        ingredient_count=Count("ingredients", filter=Q(ingredients__id__in=ingredient_ids), distinct=True)
+                        ingredient_count=Count(
+                            "ingredients", filter=Q(ingredients__id__in=ingredient_ids), distinct=True
+                        )
                     )
                     .filter(ingredient_count=total)
                     .values_list("id", flat=True)
@@ -66,9 +69,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {i}/{total_recipes} done")
 
         if dry_run:
-            self.stdout.write(
-                self.style.SUCCESS(f"Dry-run complete. Would update {updated_recipes_count} recipes.")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Dry-run complete. Would update {updated_recipes_count} recipes."))
         else:
             self.stdout.write(
                 self.style.SUCCESS(

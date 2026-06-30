@@ -36,9 +36,8 @@ def reverse_stueck_packung_to_mass(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0045_add_piece_unit_type'),
+        ("supply", "0045_add_piece_unit_type"),
     ]
 
     operations = [

@@ -1,7 +1,6 @@
 """MealPlan, Meal, and MealItem models."""
 
 import datetime as dt
-import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError

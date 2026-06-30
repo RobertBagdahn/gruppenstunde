@@ -5,10 +5,9 @@ import json
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
-from django.utils import timezone
 from model_bakery import baker
 
-from planner.models import MealItem, MealPlan, MealTypeChoices
+from planner.models import MealItem, MealTypeChoices
 from planner.tests import make_meal, make_meal_plan
 from supply.models import MeasuringUnit
 
@@ -152,9 +151,7 @@ class TestWizardItemsEndpoint:
     def test_ingredient_items_with_measuring_unit(self, client: Client):
         """Ingredient items with measuring_unit_id are saved correctly."""
         user = self._login(client)
-        g_unit = MeasuringUnit.objects.get_or_create(
-            name="g", defaults={"quantity": 1.0, "unit": "g"}
-        )[0]
+        g_unit = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})[0]
         plan = make_meal_plan(created_by=user)
         meal = make_meal(meal_plan=plan, meal_type=MealTypeChoices.BREAKFAST)
         ingredient = baker.make("supply.Ingredient", energy_kcal=250.0)
@@ -185,9 +182,7 @@ class TestWizardItemsEndpoint:
     def test_ingredient_energy_kcal_in_response(self, client: Client):
         """Ingredient items have energy_kcal computed in the response."""
         user = self._login(client)
-        g_unit = MeasuringUnit.objects.get_or_create(
-            name="g", defaults={"quantity": 1.0, "unit": "g"}
-        )[0]
+        g_unit = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})[0]
         plan = make_meal_plan(created_by=user)
         meal = make_meal(meal_plan=plan)
         ingredient = baker.make("supply.Ingredient", energy_kcal=250.0)
@@ -218,9 +213,7 @@ class TestWizardItemsEndpoint:
     def test_ingredient_energy_in_meal_total(self, client: Client):
         """Ingredient item energy contributes to the meal total."""
         user = self._login(client)
-        g_unit = MeasuringUnit.objects.get_or_create(
-            name="g", defaults={"quantity": 1.0, "unit": "g"}
-        )[0]
+        g_unit = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})[0]
         plan = make_meal_plan(created_by=user)
         meal = make_meal(meal_plan=plan)
         ingredient = baker.make("supply.Ingredient", energy_kcal=250.0)

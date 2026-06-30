@@ -263,7 +263,7 @@ export function rebalanceShares<T extends { sharePercent: number; locked: boolea
 
   const floored = proportions.map((p) => ({ ...p, floor: Math.floor(p.exact), frac: p.exact - Math.floor(p.exact) }));
   const flooredSum = floored.reduce((s, p) => s + p.floor, 0);
-  let leftover = remaining - flooredSum;
+  const leftover = remaining - flooredSum;
 
   // Sort by descending fractional part to assign the leftover integers
   const sorted = [...floored].sort((a, b) => b.frac - a.frac);

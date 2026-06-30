@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -22,19 +23,37 @@ class GuestRegistrationService:
 
     @staticmethod
     def create_or_get_user(email: str) -> Any:
-        """Get existing user by email or create a new one with unusable password."""
+        """Resolve the user for an unauthenticated guest registration.
+
+        Security: a guest flow must never silently attach a registration to an
+        *existing real* account just because the email matches — that would allow
+        an unauthenticated attacker to register people under someone else's
+        account (account hijack) and to enumerate registered emails.
+
+        We therefore only reuse an account that was itself created as a guest
+        (no usable password). For any account with a usable password (a real,
+        password-protected user) we create a distinct guest account instead, so
+        the guest data never lands on the real user without authentication.
+        """
         email_lower = email.lower().strip()
-        try:
-            return User.objects.get(email__iexact=email_lower)
-        except User.DoesNotExist:
-            user = User.objects.create_user(
-                username=email_lower,
-                email=email_lower,
-                password=None,  # unusable password
-            )
-            user.set_unusable_password()
-            user.save()
-            return user
+        existing = User.objects.filter(email__iexact=email_lower).first()
+        if existing is not None and not existing.has_usable_password():
+            # Guest-only account from a previous guest registration → safe to reuse.
+            return existing
+
+        # No account, or a real password-protected account: create a separate
+        # guest account with an unusable password and a unique username.
+        username = email_lower
+        if User.objects.filter(username=username).exists():
+            username = f"guest+{uuid4().hex[:12]}@{email_lower}"
+        user = User.objects.create_user(
+            username=username,
+            email=email_lower,
+            password=None,  # unusable password
+        )
+        user.set_unusable_password()
+        user.save()
+        return user
 
     @staticmethod
     def validate_guest_registration(event: Event, persons_data: list[dict]) -> None:

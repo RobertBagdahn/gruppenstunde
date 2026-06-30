@@ -19,8 +19,7 @@ class Command(BaseCommand):
             if stats:
                 count += 1
                 self.stdout.write(
-                    f"✓ {recipe_type}: {stats['count']} recipes, "
-                    f"{len(stats.get('price_buckets', []))} price buckets"
+                    f"✓ {recipe_type}: {stats['count']} recipes, {len(stats.get('price_buckets', []))} price buckets"
                 )
             else:
                 self.stdout.write(f"⊘ {recipe_type}: fewer than 10 recipes (deleted stats)")

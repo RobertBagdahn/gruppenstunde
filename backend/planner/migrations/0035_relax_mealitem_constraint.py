@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0034_mealitemsplit"),
         ("recipe", "0045_recipeitem_exchange_position_recipeitem_is_optional_and_more"),

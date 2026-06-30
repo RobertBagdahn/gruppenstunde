@@ -52,8 +52,8 @@ def _format_quantity(quantity: float) -> str:
 
 def build_portion_display(
     quantity: float,
-    portion: "Portion",
-    ingredient: "Ingredient | None" = None,
+    portion: Portion,
+    ingredient: Ingredient | None = None,
 ) -> tuple[str, bool]:
     """Build the combined portion display string and missing-weight flag.
 
@@ -105,7 +105,7 @@ def build_portion_display(
     return base, has_missing_weight
 
 
-def get_shopping_portion(ingredient: "Ingredient") -> "Portion | None":
+def get_shopping_portion(ingredient: Ingredient) -> Portion | None:
     """Get the most suitable portion for shopping list display.
 
     Returns the portion with the smallest weight_g that:
@@ -118,8 +118,7 @@ def get_shopping_portion(ingredient: "Ingredient") -> "Portion | None":
     """
     try:
         portion = (
-            ingredient.portions
-            .filter(
+            ingredient.portions.filter(
                 deleted_at__isnull=True,
                 weight_g__gt=0,
                 is_system=False,
@@ -132,7 +131,7 @@ def get_shopping_portion(ingredient: "Ingredient") -> "Portion | None":
         return None
 
 
-def build_package_display(quantity_g: float, ingredient: "Ingredient") -> str:
+def build_package_display(quantity_g: float, ingredient: Ingredient) -> str:
     """Build the package options string for a shopping list item.
 
     Finds the best portion for shopping (smallest with weight_g > 0, excluding 'g'),

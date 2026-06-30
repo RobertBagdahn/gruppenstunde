@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0044_remove_priority_is_default_add_unique_constraint'),
+        ("supply", "0044_remove_priority_is_default_add_unique_constraint"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='measuringunit',
-            name='unit',
-            field=models.CharField(choices=[('ml', 'Milliliter'), ('g', 'Gramm'), ('stk', 'Stück')], default='g', max_length=3, verbose_name='Einheit'),
+            model_name="measuringunit",
+            name="unit",
+            field=models.CharField(
+                choices=[("ml", "Milliliter"), ("g", "Gramm"), ("stk", "Stück")],
+                default="g",
+                max_length=3,
+                verbose_name="Einheit",
+            ),
         ),
     ]

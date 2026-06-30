@@ -53,14 +53,14 @@ class Command(BaseCommand):
             self.stdout.write(f"Gefundene Abteilungen zum Löschen ({len(sections_to_delete)}):")
             for section in sections_to_delete:
                 count = section.ingredients.count()
-                self.stdout.write(f'  - "{section.name}" (ID={section.id}, rank={section.rank}, ' f"{count} Zutaten)")
+                self.stdout.write(f'  - "{section.name}" (ID={section.id}, rank={section.rank}, {count} Zutaten)')
 
             if not dry_run:
                 for section in sections_to_delete:
                     affected = section.ingredients.count()
                     section.delete()
                     self.stdout.write(
-                        self.style.SUCCESS(f'  Gelöscht: "{section.name}" ' f"({affected} Zutaten auf NULL gesetzt)")
+                        self.style.SUCCESS(f'  Gelöscht: "{section.name}" ({affected} Zutaten auf NULL gesetzt)')
                     )
             else:
                 self.stdout.write(self.style.WARNING("  (Trockenlauf — nichts gelöscht)"))
@@ -70,8 +70,7 @@ class Command(BaseCommand):
             try:
                 section = RetailSection.objects.get(name=old_name)
                 self.stdout.write(
-                    f'Umbenennen: "{old_name}" → "{new_name}" '
-                    f"(ID={section.id}, {section.ingredients.count()} Zutaten)"
+                    f'Umbenennen: "{old_name}" → "{new_name}" (ID={section.id}, {section.ingredients.count()} Zutaten)'
                 )
                 if not dry_run:
                     section.name = new_name

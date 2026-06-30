@@ -6,12 +6,12 @@ from typing import Literal
 
 from ninja import Schema
 
+from planner.services.meal_item_helpers import (
+    resolve_ingredient_cost_eur,
+    resolve_ingredient_energy_kcal,
+)
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 from supply.schemas.reference import NutritionalTagOut
-from planner.services.meal_item_helpers import (
-    resolve_ingredient_energy_kcal,
-    resolve_ingredient_cost_eur,
-)
 
 
 class MealItemOverrideOut(Schema):
@@ -104,6 +104,7 @@ class MealItemOut(Schema):
     def resolve_cost_eur(obj) -> float | None:
         if obj.ingredient:
             from planner.services.meal_item_helpers import resolve_ingredient_cost_eur as ric
+
             return ric(obj, effective_portions=obj.meal.effective_portions)
         if not obj.recipe or obj.recipe.cached_price_total is None:
             return None
@@ -121,7 +122,7 @@ class MealItemOut(Schema):
     @staticmethod
     def resolve_portion_display(obj) -> str:
         """Return the portion display string scaled per NormPerson."""
-        from supply.utils import build_portion_display, format_weight, _format_quantity
+        from supply.utils import _format_quantity, format_weight
 
         # Ingredient-based MealItem (single ingredient, not a recipe)
         if obj.ingredient and obj.quantity and obj.measuring_unit:
@@ -189,16 +190,13 @@ class MealItemOut(Schema):
             if name_lower in ("g",):
                 return float(obj.quantity)
             if name_lower in ("ml",):
-                if obj.ingredient.density:
-                    return float(obj.quantity) * obj.ingredient.density
-                return float(obj.quantity)
+                density = getattr(obj.ingredient, "physical_density", 1.0) or 1.0
+                return float(obj.quantity) * density
             portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
             if portion and portion.weight_g:
                 return portion.weight_g * float(obj.quantity)
 
-            default_portions = obj.ingredient.portions.filter(
-                rank=1, weight_g__isnull=False
-            )
+            default_portions = obj.ingredient.portions.filter(rank=1, weight_g__isnull=False)
             if default_portions.exists():
                 return float(default_portions.first().weight_g) * float(obj.quantity)
 
@@ -590,6 +588,8 @@ class ShoppingListItemOut(Schema):
     natural_portions: str = ""
     portion_options: list[ShoppingItemPortionOptionOut] = []
     sources: list[ShoppingItemSourceOut] = []
+
+
 # ==========================================================================
 # Cost Summary Schemas
 # ==========================================================================
@@ -768,10 +768,11 @@ class CookingScheduleMealOut(Schema):
 
 class CookingScheduleItemOut(Schema):
     """DEPRECATED: Use CookingScheduleVariantOut within CookingScheduleMealOut instead.
-    
+
     This schema is kept for backward compatibility with existing tests.
     New code should use the nested structure: CookingScheduleOut -> days -> meals -> recipe_blocks -> variants.
     """
+
     recipe_id: int
     recipe_title: str
     recipe_slug: str
@@ -817,15 +818,18 @@ class CookingScheduleOut(Schema):
 
 class CalculateIngredientKcalIn(Schema):
     """Request for calculating kcal for multiple ingredients."""
+
     items: list[dict] = []  # [{"ingredient_id": int, "quantity_g": float}, ...]
 
 
 class IngredientKcalItemOut(Schema):
     """Single ingredient kcal calculation result."""
+
     ingredient_id: int
     energy_kcal: float | None = None
 
 
 class CalculateIngredientKcalOut(Schema):
     """Response for ingredient kcal calculation."""
+
     items: list[IngredientKcalItemOut]

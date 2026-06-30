@@ -143,7 +143,7 @@ class TestCalculateIngredientKcal:
         client.force_login(user)
 
         resp = client.post(
-            f"/api/meal-plans/99999/calculate-ingredient-kcal/",
+            "/api/meal-plans/99999/calculate-ingredient-kcal/",
             data=json.dumps({"items": [{"ingredient_id": 1, "quantity_g": 50}]}),
             content_type="application/json",
         )

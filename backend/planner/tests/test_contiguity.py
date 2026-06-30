@@ -9,7 +9,7 @@ from django.test import Client
 from django.utils import timezone
 from model_bakery import baker
 
-from planner.models import Meal, MealPlan, MealTypeChoices
+from planner.models import Meal, MealTypeChoices
 from planner.services.contiguity import (
     shrink_range_on_delete,
     smart_merge_days,
@@ -31,12 +31,21 @@ class TestValidateContiguity:
             start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)))
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 11, 12, 0)))
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)))
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)),
+        )
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 11, 12, 0)),
+        )
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)),
+        )
 
         validate_meal_plan_contiguity(plan)
 
@@ -45,10 +54,16 @@ class TestValidateContiguity:
             start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)))
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)))
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)),
+        )
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)),
+        )
 
         with pytest.raises(Exception) as exc:
             validate_meal_plan_contiguity(plan)
@@ -82,8 +97,11 @@ class TestSmartMergeDays:
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
         for day in (10, 11, 12):
-            make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH,
-                      start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)))
+            make_meal(
+                meal_plan=self.plan,
+                meal_type=MealTypeChoices.LUNCH,
+                start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)),
+            )
 
     def test_extend_range_at_end(self):
         new_end = timezone.make_aware(dt.datetime(2026, 7, 14, 20, 0))
@@ -91,8 +109,7 @@ class TestSmartMergeDays:
 
         self.plan.refresh_from_db()
         assert self.plan.end_datetime == new_end
-        dates = set(Meal.objects.filter(meal_plan=self.plan)
-                    .values_list("start_datetime__date", flat=True).distinct())
+        dates = set(Meal.objects.filter(meal_plan=self.plan).values_list("start_datetime__date", flat=True).distinct())
         assert {dt.date(2026, 7, d) for d in (10, 11, 12, 13, 14)}.issubset(dates)
 
     def test_shrink_range_at_both_ends(self):
@@ -103,8 +120,7 @@ class TestSmartMergeDays:
         self.plan.refresh_from_db()
         assert self.plan.start_datetime == new_start
         assert self.plan.end_datetime == new_end
-        dates = set(Meal.objects.filter(meal_plan=self.plan)
-                    .values_list("start_datetime__date", flat=True).distinct())
+        dates = set(Meal.objects.filter(meal_plan=self.plan).values_list("start_datetime__date", flat=True).distinct())
         assert dt.date(2026, 7, 10) not in dates
         assert dt.date(2026, 7, 11) in dates
         assert dt.date(2026, 7, 12) in dates
@@ -117,8 +133,7 @@ class TestSmartMergeDays:
         self.plan.refresh_from_db()
         assert self.plan.start_datetime == new_start
         assert self.plan.end_datetime == new_end
-        dates = set(Meal.objects.filter(meal_plan=self.plan)
-                    .values_list("start_datetime__date", flat=True).distinct())
+        dates = set(Meal.objects.filter(meal_plan=self.plan).values_list("start_datetime__date", flat=True).distinct())
         assert dt.date(2026, 7, 10) not in dates
         assert dt.date(2026, 7, 22) in dates
 
@@ -144,12 +159,21 @@ class TestShrinkRangeOnDelete:
             start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)))
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 11, 12, 0)))
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)))
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)),
+        )
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 11, 12, 0)),
+        )
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)),
+        )
 
         Meal.objects.filter(meal_plan=plan, start_datetime__date=dt.date(2026, 7, 10)).delete()
         shrink_range_on_delete(plan, dt.date(2026, 7, 10))
@@ -162,12 +186,21 @@ class TestShrinkRangeOnDelete:
             start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)))
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 11, 12, 0)))
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)))
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)),
+        )
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 11, 12, 0)),
+        )
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 12, 0)),
+        )
 
         Meal.objects.filter(meal_plan=plan, start_datetime__date=dt.date(2026, 7, 12)).delete()
         shrink_range_on_delete(plan, dt.date(2026, 7, 12))
@@ -180,8 +213,11 @@ class TestShrinkRangeOnDelete:
             start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 20, 0)),
         )
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)))
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)),
+        )
 
         Meal.objects.filter(meal_plan=plan).delete()
         shrink_range_on_delete(plan, dt.date(2026, 7, 10))
@@ -208,8 +244,11 @@ class TestAddDayContiguity:
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
         for day in (10, 11, 12):
-            make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH,
-                      start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)))
+            make_meal(
+                meal_plan=self.plan,
+                meal_type=MealTypeChoices.LUNCH,
+                start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)),
+            )
 
     def _add_day(self, date: dt.date):
         return self.client.post(
@@ -261,8 +300,11 @@ class TestRemoveDayContiguity:
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
         for day in (10, 11, 12):
-            make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH,
-                      start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)))
+            make_meal(
+                meal_plan=self.plan,
+                meal_type=MealTypeChoices.LUNCH,
+                start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)),
+            )
 
     def test_delete_first_day_succeeds(self):
         resp = self.client.delete(f"/api/meal-plans/{self.plan.id}/days/?date=2026-07-10")
@@ -289,8 +331,11 @@ class TestRemoveDayContiguity:
             start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 20, 0)),
         )
-        make_meal(meal_plan=plan, meal_type=MealTypeChoices.LUNCH,
-                  start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)))
+        make_meal(
+            meal_plan=plan,
+            meal_type=MealTypeChoices.LUNCH,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 12, 0)),
+        )
 
         resp = self.client.delete(f"/api/meal-plans/{plan.id}/days/?date=2026-07-10")
         assert resp.status_code == 200
@@ -318,15 +363,20 @@ class TestUpdateMealPlanRangeChange:
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
         for day in (10, 11, 12):
-            make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH,
-                      start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)))
+            make_meal(
+                meal_plan=self.plan,
+                meal_type=MealTypeChoices.LUNCH,
+                start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)),
+            )
 
     def test_extend_end_triggers_smart_merge(self):
         resp = self.client.patch(
             f"/api/meal-plans/{self.plan.id}/",
-            data=json.dumps({
-                "end_datetime": "2026-07-14T20:00:00",
-            }),
+            data=json.dumps(
+                {
+                    "end_datetime": "2026-07-14T20:00:00",
+                }
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 200
@@ -334,17 +384,18 @@ class TestUpdateMealPlanRangeChange:
         self.plan.refresh_from_db()
         assert self.plan.end_datetime.date() == dt.date(2026, 7, 14)
 
-        dates = set(Meal.objects.filter(meal_plan=self.plan)
-                    .values_list("start_datetime__date", flat=True).distinct())
+        dates = set(Meal.objects.filter(meal_plan=self.plan).values_list("start_datetime__date", flat=True).distinct())
         assert dt.date(2026, 7, 13) in dates
         assert dt.date(2026, 7, 14) in dates
 
     def test_shrink_start_triggers_smart_merge(self):
         resp = self.client.patch(
             f"/api/meal-plans/{self.plan.id}/",
-            data=json.dumps({
-                "start_datetime": "2026-07-11T08:00:00",
-            }),
+            data=json.dumps(
+                {
+                    "start_datetime": "2026-07-11T08:00:00",
+                }
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 200
@@ -352,8 +403,7 @@ class TestUpdateMealPlanRangeChange:
         self.plan.refresh_from_db()
         assert self.plan.start_datetime.date() == dt.date(2026, 7, 11)
 
-        dates = set(Meal.objects.filter(meal_plan=self.plan)
-                    .values_list("start_datetime__date", flat=True).distinct())
+        dates = set(Meal.objects.filter(meal_plan=self.plan).values_list("start_datetime__date", flat=True).distinct())
         assert dt.date(2026, 7, 10) not in dates
 
     def test_noop_when_same_start_end(self):
@@ -373,10 +423,12 @@ class TestUpdateMealPlanRangeChange:
     def test_shift_range_entirely(self):
         resp = self.client.patch(
             f"/api/meal-plans/{self.plan.id}/",
-            data=json.dumps({
-                "start_datetime": "2026-08-01T08:00:00",
-                "end_datetime": "2026-08-03T20:00:00",
-            }),
+            data=json.dumps(
+                {
+                    "start_datetime": "2026-08-01T08:00:00",
+                    "end_datetime": "2026-08-03T20:00:00",
+                }
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 200
@@ -385,8 +437,7 @@ class TestUpdateMealPlanRangeChange:
         assert self.plan.start_datetime.date() == dt.date(2026, 8, 1)
         assert self.plan.end_datetime.date() == dt.date(2026, 8, 3)
 
-        dates = set(Meal.objects.filter(meal_plan=self.plan)
-                    .values_list("start_datetime__date", flat=True).distinct())
+        dates = set(Meal.objects.filter(meal_plan=self.plan).values_list("start_datetime__date", flat=True).distinct())
         assert dt.date(2026, 7, 10) not in dates
         assert dt.date(2026, 8, 1) in dates
 
@@ -408,8 +459,11 @@ class TestAddDayEdgeContiguity:
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
         for day in (10, 11, 12):
-            make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH,
-                      start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)))
+            make_meal(
+                meal_plan=self.plan,
+                meal_type=MealTypeChoices.LUNCH,
+                start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)),
+            )
 
     def test_add_day_before_shifts_start(self):
         old_start = self.plan.start_datetime.date()
@@ -452,8 +506,11 @@ class TestDayOperationsAuthorization:
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 12, 20, 0)),
         )
         for day in (10, 11, 12):
-            make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.LUNCH,
-                      start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)))
+            make_meal(
+                meal_plan=self.plan,
+                meal_type=MealTypeChoices.LUNCH,
+                start_datetime=timezone.make_aware(dt.datetime(2026, 7, day, 12, 0)),
+            )
 
     def test_unauthenticated_returns_403(self):
         resp = self.client.post(

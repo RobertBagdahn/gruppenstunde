@@ -1,8 +1,11 @@
 import datetime as dt
+from decimal import Decimal
 
 import pytest
 from django.utils import timezone
+from model_bakery import baker
 
+from planner.models import MealItem
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.services.nutrition_aggregation import (
     _aggregate_day_values,
@@ -12,7 +15,7 @@ from recipe.services.nutrition_aggregation import (
 from recipe.services.recipe_checks import recalculate_recipe_cache
 from recipe.services.suggestion_service import _evaluate_admin_rules
 from recipe.tests import make_recipe, make_recipe_item, make_rule
-from supply.tests import make_ingredient, make_portion
+from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
 @pytest.mark.django_db
@@ -167,6 +170,36 @@ class TestNutritionAggregationPortionScaling:
         assert totals_b["protein_g"] == 20.0
         assert totals_a["protein_g"] == totals_b["protein_g"]
         assert totals_a["weight_g"] == totals_b["weight_g"] == 200.0
+
+    def test_standalone_ingredient_ml_uses_physical_density(self):
+        """A direct ingredient with a 'ml' unit must convert via physical_density.
+
+        Regression guard: the field is ``physical_density`` (not ``density``); a
+        wrong attribute name raised AttributeError at runtime for every ml-unit
+        standalone ingredient. Also verifies the standalone branch aggregates the
+        nutrient correctly (per-normportion, scaled by factor only).
+        """
+        meal_plan = make_meal_plan(norm_portions=10, reserve_factor=1.1)
+        meal = make_meal(meal_plan=meal_plan)
+
+        ml_unit = make_measuring_unit(name="ml", unit="ml")
+        # 50 kcal/100g, density 0.8 g/ml → 200ml = 160g
+        ing = make_ingredient(name="Öl", energy_kcal=50.0, physical_density=0.8)
+
+        baker.make(
+            MealItem,
+            meal=meal,
+            recipe=None,
+            ingredient=ing,
+            quantity=Decimal("200"),
+            measuring_unit=ml_unit,
+            factor=1.0,
+        )
+
+        totals = _aggregate_meal_values(meal)
+
+        # weight_g = 200ml * 0.8 = 160g; energy = 50/100 * 160 * factor(1.0) = 80.0
+        assert totals["energy_kcal"] == pytest.approx(80.0)
 
     def test_meal_event_rule_uses_day_average_not_person_division(self):
         """meal_event-scope rules average the plan total over num_days only — no person division."""

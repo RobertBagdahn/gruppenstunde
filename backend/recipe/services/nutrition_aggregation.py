@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 from recipe.models import Rule
 from recipe.services.recipe_checks import (
     CACHED_MICRONUTRIENT_FIELDS,
-    get_recipe_nutritional_values,
-    get_recipe_total_weight_g,
 )
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 
@@ -48,11 +46,17 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
             totals["energy_kcal"] = NORM_PERSON_DAILY_KCAL * meal.day_part_factor
         return totals
 
-    items = MealItem.objects.filter(meal=meal).select_related(
-        "recipe", "ingredient", "measuring_unit",
-    ).prefetch_related(
-        "recipe__recipe_items__portion__ingredient",
-        "overrides",
+    items = (
+        MealItem.objects.filter(meal=meal)
+        .select_related(
+            "recipe",
+            "ingredient",
+            "measuring_unit",
+        )
+        .prefetch_related(
+            "recipe__recipe_items__portion__ingredient",
+            "overrides",
+        )
     )
     for item in items:
         recipe = item.recipe
@@ -64,7 +68,11 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
 
             # Handle recipe items
             if recipe.cached_at:
-                # Recompute using individual recipe items to honour overrides
+                # Recompute using individual recipe items to honour overrides.
+                # NOTE: aggregation is intentionally per-normportion — norm_portions/
+                # reserve_factor must NOT affect rule/ampel evaluation (see
+                # test_person_factors_do_not_affect_aggregation). This differs from the
+                # user-facing nutrition-summary endpoint, which reports totals.
                 recipe_servings = recipe.portions or 1
                 effective_portions = item.meal.effective_portions if hasattr(item, "meal") and item.meal else 1
                 active_ids = set(item.active_recipe_item_ids or [])
@@ -78,11 +86,24 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     override = overrides_map.get(ri.id)
                     if override and override.excluded:
                         continue
-                    effective_quantity = float(override.quantity_override) if (override and override.quantity_override is not None) else float(ri.quantity)
+                    effective_quantity = (
+                        float(override.quantity_override)
+                        if (override and override.quantity_override is not None)
+                        else float(ri.quantity)
+                    )
                     ing = ri.portion.ingredient
                     weight_g = effective_quantity * float(ri.portion.weight_g) if ri.portion.weight_g else 0.0
                     nutrient_scale = (weight_g / 100.0) * item.factor
-                    for key in ["energy_kcal", "protein_g", "fat_g", "fat_sat_g", "carbohydrate_g", "sugar_g", "fibre_g", "salt_g"]:
+                    for key in [
+                        "energy_kcal",
+                        "protein_g",
+                        "fat_g",
+                        "fat_sat_g",
+                        "carbohydrate_g",
+                        "sugar_g",
+                        "fibre_g",
+                        "salt_g",
+                    ]:
                         totals[key] += (getattr(ing, key, None) or 0.0) * nutrient_scale
                     totals["sodium_mg"] += (ing.sodium_mg or 0.0) * nutrient_scale
                     totals["weight_g"] += weight_g * item.factor
@@ -121,7 +142,8 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                 if name_lower == "g":
                     weight_g = float(item.quantity)
                 elif name_lower == "ml":
-                    weight_g = float(item.quantity) * (ingredient.density or 1.0)
+                    density = getattr(ingredient, "physical_density", 1.0) or 1.0
+                    weight_g = float(item.quantity) * density
                 else:
                     portion = ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
                     if portion and portion.weight_g:

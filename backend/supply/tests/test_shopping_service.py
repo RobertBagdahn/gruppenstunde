@@ -101,7 +101,8 @@ class TestShoppingService:
         # 300 g per portion modelled as quantity=300 on a weight_g=1.0 portion
         # Signal already creates "g" portion; update its weight_g to what we need
         p, _ = Portion.objects.get_or_create(
-            name="g", ingredient=ing,
+            name="g",
+            ingredient=ing,
             defaults={"measuring_unit": mu, "quantity": 1.0, "weight_g": 1.0, "rank": 9999},
         )
         if p.weight_g != 1.0:

@@ -1,20 +1,22 @@
 """
 API integration tests for meal-item PATCH and wizard-items endpoints.
 """
+
 import os
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inspi.settings.local")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
 import django
+
 django.setup()
 
-from django.test import TestCase, Client
-from django.urls import reverse
-from model_bakery import baker
 import json
 
-from planner.models import MealPlan, Meal, MealItem
-from planner.schemas.meal_plan import MealItemOut, MealItemUpdateIn
+from django.test import Client, TestCase
+from model_bakery import baker
+
+from planner.models import Meal, MealItem, MealPlan
 from supply.models import Ingredient, MeasuringUnit, Portion
 
 
@@ -144,47 +146,48 @@ class TestMealItemPatchEndpoint(TestCase):
             is_standalone_food=True,
         )
         # Verify no Scheibe portion exists
-        self.assertFalse(
-            Portion.objects.filter(
-                ingredient=toast, measuring_unit=self.scheibe_unit
-            ).exists()
-        )
+        self.assertFalse(Portion.objects.filter(ingredient=toast, measuring_unit=self.scheibe_unit).exists())
         # POST to wizard-items
         plan_id = self.plan.id
         meal_id = self.meal.id
         response = self.client.post(
             f"/api/meal-plans/{plan_id}/meals/{meal_id}/wizard-items/",
-            data=json.dumps({
-                "items": [{
-                    "ingredient_id": toast.id,
-                    "quantity": 0.14,
-                    "measuring_unit_id": self.scheibe_unit.id,
-                    "factor": 1.0,
-                }]
-            }),
+            data=json.dumps(
+                {
+                    "items": [
+                        {
+                            "ingredient_id": toast.id,
+                            "quantity": 0.14,
+                            "measuring_unit_id": self.scheibe_unit.id,
+                            "factor": 1.0,
+                        }
+                    ]
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
         # Portion should have been auto-created
-        self.assertTrue(
-            Portion.objects.filter(
-                ingredient=toast, measuring_unit=self.scheibe_unit
-            ).exists()
-        )
+        self.assertTrue(Portion.objects.filter(ingredient=toast, measuring_unit=self.scheibe_unit).exists())
+
     def test_wizard_items_returns_quantity_g(self):
         """POST /wizard-items/ response should include quantity_g"""
         plan_id = self.plan.id
         meal_id = self.meal.id
         response = self.client.post(
             f"/api/meal-plans/{plan_id}/meals/{meal_id}/wizard-items/",
-            data=json.dumps({
-                "items": [{
-                    "ingredient_id": self.bauernbrot.id,
-                    "quantity": 0.14,
-                    "measuring_unit_id": self.scheibe_unit.id,
-                    "factor": 1.0,
-                }]
-            }),
+            data=json.dumps(
+                {
+                    "items": [
+                        {
+                            "ingredient_id": self.bauernbrot.id,
+                            "quantity": 0.14,
+                            "measuring_unit_id": self.scheibe_unit.id,
+                            "factor": 1.0,
+                        }
+                    ]
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)

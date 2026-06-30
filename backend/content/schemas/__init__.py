@@ -73,17 +73,17 @@ from .base import (
     TagTreeOut,
 )
 
-# Content link detail schemas (previously inline in api.py)
-from .content_links import (
-    ContentLinkDetailOut,
-    FeaturedContentDetailOut,
-)
-
 # Collaborator schemas
 from .collaborator import (
     ContentCollaboratorIn,
     ContentCollaboratorOut,
     ContentCollaboratorUpdateIn,
+)
+
+# Content link detail schemas (previously inline in api.py)
+from .content_links import (
+    ContentLinkDetailOut,
+    FeaturedContentDetailOut,
 )
 
 # Search schemas (previously inline in api.py)

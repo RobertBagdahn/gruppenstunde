@@ -158,7 +158,12 @@ class ProfilePrivacyCollector(PrivacyDataCollector):
         }
 
     def anonymize(self, user: User) -> None:
-        from profiles.models import GroupJoinRequest, GroupMembership, UserProfile
+        from profiles.models import (
+            GroupJoinRequest,
+            GroupMembership,
+            UserPreference,
+            UserProfile,
+        )
 
         try:
             profile = user.profile
@@ -190,8 +195,13 @@ class ProfilePrivacyCollector(PrivacyDataCollector):
             pref.preferred_difficulty = ""
             pref.preferred_location = ""
             pref.save()
-        except Exception:
+        except UserPreference.DoesNotExist:
+            # No preferences to anonymize — nothing to do.
             pass
+        except Exception:
+            # A failed erasure must never pass silently (DSGVO): surface it.
+            logger.exception("Failed to anonymize UserPreference for user %s", user.pk)
+            raise
 
         GroupMembership.objects.filter(user=user).delete()
         GroupJoinRequest.objects.filter(user=user).delete()

@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from pgvector.django import VectorField
 
 from content.models import Tag
+
 from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, StorageTypeChoices
 from .reference import NutritionalTag, RetailSection
 

@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0038_remove_ingredient_standalone_type"),
     ]

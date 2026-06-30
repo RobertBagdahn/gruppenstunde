@@ -41,7 +41,7 @@ def resolve_ingredient_cost_eur(item, effective_portions: float = 1.0) -> float 
 
 def _resolve_ingredient_weight_g(
     item,
-    portion_cache: dict[tuple[int, int], "Portion"] | None = None,
+    portion_cache: dict[tuple[int, int], Portion] | None = None,
 ) -> float:
     """Resolve the total weight in grams for an ingredient-based MealItem.
 
@@ -71,9 +71,7 @@ def _resolve_ingredient_weight_g(
     if portion_cache is not None:
         portion = portion_cache.get((item.ingredient_id, item.measuring_unit_id))
     else:
-        portion = item.ingredient.portions.filter(
-            measuring_unit=item.measuring_unit
-        ).first()
+        portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
 
     if portion and portion.weight_g:
         return portion.weight_g * float(item.quantity)
@@ -82,16 +80,17 @@ def _resolve_ingredient_weight_g(
     if portion_cache is not None:
         # Look for any default portion for this ingredient in the cache
         default_portion = next(
-            (p for (ing_id, _), p in portion_cache.items()
-             if ing_id == item.ingredient_id and p.rank == 1 and p.weight_g),
+            (
+                p
+                for (ing_id, _), p in portion_cache.items()
+                if ing_id == item.ingredient_id and p.rank == 1 and p.weight_g
+            ),
             None,
         )
         if default_portion:
             return float(default_portion.weight_g) * float(item.quantity)
     else:
-        default_portions = item.ingredient.portions.filter(
-            rank=1, weight_g__isnull=False
-        )
+        default_portions = item.ingredient.portions.filter(rank=1, weight_g__isnull=False)
         if default_portions.exists():
             return float(default_portions.first().weight_g) * float(item.quantity)
 

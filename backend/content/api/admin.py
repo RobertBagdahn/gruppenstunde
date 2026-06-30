@@ -18,7 +18,7 @@ from content.schemas.admin import (
     PaginatedEmbeddingFeedbackOut,
     PaginatedEmbeddingStatusOut,
 )
-from content.schemas.ai_interaction import AiContextStatsOut, AiInteractionStatsOut, AiTimelineEntryOut
+from content.schemas.ai_interaction import AiInteractionStatsOut
 
 router = Router(tags=["content"])
 

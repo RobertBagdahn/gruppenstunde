@@ -25,8 +25,6 @@ from .meal_plan import (
     MealItemUpdateIn,
     MealItemVariantIn,
     MealOut,
-    WizardItemsIn,
-    WizardItemsOut,
     MealPlanCollaboratorCreateIn,
     MealPlanCollaboratorOut,
     MealPlanCollaboratorUpdateIn,
@@ -48,6 +46,8 @@ from .meal_plan import (
     RefMealOut,
     RefMealUpdateIn,
     ShoppingListItemOut,
+    WizardItemsIn,
+    WizardItemsOut,
 )
 from .planner import (
     CollaboratorOut,

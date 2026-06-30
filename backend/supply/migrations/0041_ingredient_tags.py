@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0010_hnsw_indexes"),
         ("supply", "0040_seed_system_portions"),

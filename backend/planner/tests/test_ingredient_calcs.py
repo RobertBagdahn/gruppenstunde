@@ -2,23 +2,26 @@
 Comprehensive test of the breakfast-wizard-mealplan-transfer changes.
 Uses model_bakery for test data creation.
 """
+
 import os
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inspi.settings.local")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
 import django
+
 django.setup()
 
 from django.test import TestCase
 from model_bakery import baker
 
-from planner.models import MealPlan, Meal, MealItem
+from planner.models import Meal, MealItem, MealPlan
 from planner.schemas.meal_plan import MealItemOut, MealItemUpdateIn
 from planner.services.meal_item_helpers import (
-    resolve_ingredient_energy_kcal,
     resolve_ingredient_cost_eur,
+    resolve_ingredient_energy_kcal,
 )
-from supply.models import Ingredient, MeasuringUnit, Portion, NutritionalTag
+from supply.models import Ingredient, MeasuringUnit, Portion
 
 
 class TestIngredientCalcs(TestCase):
@@ -193,6 +196,7 @@ class TestIngredientCalcs(TestCase):
             factor=1.0,
         )
         from planner.schemas.meal_plan import MealOut
+
         total = MealOut.resolve_total_energy_kcal(self.meal)
         self.assertGreater(total, 0)
         self.assertAlmostEqual(total, 662.5, places=1)
@@ -207,6 +211,7 @@ class TestIngredientCalcs(TestCase):
             factor=1.0,
         )
         from planner.schemas.meal_plan import MealOut
+
         total = MealOut.resolve_total_cost_eur(self.meal)
         self.assertGreater(float(total), 0)
         # 12 * (20*0.5) * 1.0 * 10 / 1000 = 1.20

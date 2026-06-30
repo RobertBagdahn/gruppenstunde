@@ -79,7 +79,6 @@ def seed_system_portions(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0039_add_portion_is_system"),
     ]

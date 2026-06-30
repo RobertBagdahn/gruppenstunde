@@ -61,7 +61,7 @@ class TestPortionUniqueConstraint:
         ing1 = make_ingredient(name="Mehl")
         ing2 = make_ingredient(name="Zucker")
         mu = make_measuring_unit()
-        
+
         p1 = make_portion(ing1, name="Tasse", measuring_unit=mu)
         p2 = make_portion(ing2, name="Tasse", measuring_unit=mu)
 
@@ -88,7 +88,7 @@ class TestPortionRankDefaults:
         """System portion 'g' should always be at rank 9999."""
         ing = make_ingredient()
         portions = list(Portion.objects.filter(ingredient=ing))
-        
+
         g_portion = next((p for p in portions if p.name == "g"), None)
         assert g_portion is not None
         assert g_portion.rank == 9999
@@ -126,7 +126,11 @@ class TestPortionReorderAPI:
             Portion.objects.filter(id=order["id"]).update(rank=order["rank"])
 
         # Verify new order (just check the three custom portions, ignore system portions)
-        custom_portions = Portion.objects.filter(ingredient=ing, id__in=[p1.id, p2.id, p3.id]).order_by("rank").values_list("id", flat=True)
+        custom_portions = (
+            Portion.objects.filter(ingredient=ing, id__in=[p1.id, p2.id, p3.id])
+            .order_by("rank")
+            .values_list("id", flat=True)
+        )
         assert list(custom_portions) == [p3.id, p1.id, p2.id]
 
 
@@ -147,7 +151,7 @@ class TestSystemPortionsPositioning:
     def test_system_portions_have_correct_ranks(self):
         """System portions should have correct ranks: g=9999, Packung=3, Stück=2."""
         ing = make_ingredient()
-        
+
         g = Portion.objects.get(ingredient=ing, name="g")
         packung = Portion.objects.get(ingredient=ing, name="Packung")
         stueck = Portion.objects.get(ingredient=ing, name="Stück")
@@ -166,13 +170,13 @@ class TestSystemPortionsPositioning:
         """'g' portion should be excluded from drag & drop (rank=9999 fixed)."""
         ing = make_ingredient()
         g = Portion.objects.get(ingredient=ing, name="g")
-        
+
         # Attempt to change rank should be prevented at UI level
         # (Backend doesn't prevent it, but frontend should exclude from DnD)
         g.rank = 5
         g.save()
         g.refresh_from_db()
-        
+
         # Rank was allowed to change, but UI shouldn't permit it
         assert g.rank == 5  # DB allows it, but UI prevents the change
 
@@ -185,11 +189,11 @@ class TestPortionMigrationData:
         """Ranks should be sequential (1, 2, 3...) per ingredient."""
         ing = make_ingredient()
         mu = make_measuring_unit()
-        
+
         # Create portions with non-sequential ranks initially
         p1 = make_portion(ing, name="A", rank=10, measuring_unit=mu)
         p2 = make_portion(ing, name="B", rank=20, measuring_unit=mu)
-        
+
         # In the migration, these would be renumbered
         # After migration: A=1, B=2, g=9999, Packung=3, Stück=2
         # But our test here just verifies the model allows any rank

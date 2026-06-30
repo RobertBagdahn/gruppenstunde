@@ -81,6 +81,10 @@ def unified_search(
         (items, total_count, type_counts) where items are dicts with result_type,
         and type_counts maps each type to its hit count.
     """
+    # Clamp pagination to sane bounds (defends against unbounded page_size).
+    page = max(1, page)
+    page_size = max(1, min(page_size, 100))
+
     # Anonymous users: ignore scope=mine
     effective_scope = scope
     if effective_scope == "mine" and (user is None or not user.is_authenticated):

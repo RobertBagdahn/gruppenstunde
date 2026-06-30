@@ -40,11 +40,7 @@ def _active_items(meal_item: MealItem) -> list[RecipeItem]:
     ids = list(meal_item.active_recipe_item_ids or [])
     if not ids or not meal_item.recipe:
         return []
-    return list(
-        meal_item.recipe.recipe_items.select_related("portion__ingredient").filter(
-            id__in=ids
-        )
-    )
+    return list(meal_item.recipe.recipe_items.select_related("portion__ingredient").filter(id__in=ids))
 
 
 def _build_overrides_map(meal_item: MealItem) -> dict[int, object]:
@@ -65,9 +61,7 @@ def compute_variant_energy(meal_item: MealItem) -> float:
     base = float(meal_item.recipe.cached_energy_total_kcal)
     active_ids = set(meal_item.active_recipe_item_ids or [])
 
-    recipe_items = list(
-        meal_item.recipe.recipe_items.select_related("portion__ingredient").all()
-    )
+    recipe_items = list(meal_item.recipe.recipe_items.select_related("portion__ingredient").all())
 
     # If there are overrides, recompute from scratch to correctly apply them
     if overrides_map:
@@ -92,9 +86,7 @@ def compute_variant_cost(meal_item: MealItem) -> float:
     base = float(meal_item.recipe.cached_price_total)
     active_ids = set(meal_item.active_recipe_item_ids or [])
 
-    recipe_items = list(
-        meal_item.recipe.recipe_items.select_related("portion__ingredient").all()
-    )
+    recipe_items = list(meal_item.recipe.recipe_items.select_related("portion__ingredient").all())
 
     if overrides_map:
         return _compute_total_with_overrides(recipe_items, active_ids, overrides_map, "price")
@@ -126,7 +118,9 @@ def _compute_total_with_overrides(
         if override and override.excluded:
             continue
 
-        quantity_override = float(override.quantity_override) if (override and override.quantity_override is not None) else None
+        quantity_override = (
+            float(override.quantity_override) if (override and override.quantity_override is not None) else None
+        )
         total += _item_total_for_field(ri, field, quantity_override=quantity_override)
     return total
 
@@ -160,9 +154,7 @@ def _compute_delta(
     active_value = 0.0
 
     for _group_id, members in exchange_groups.items():
-        default_member = next(
-            (m for m in members if (m.exchange_position or 0) == 0), None
-        )
+        default_member = next((m for m in members if (m.exchange_position or 0) == 0), None)
         if default_member:
             default_value += _item_total_for_field(default_member, field)
         for m in members:
@@ -194,15 +186,11 @@ def compute_variant_contributions(
     contributions: dict[int, float] = defaultdict(float)
 
     for meal in meal_plan.meals.all():
-        for item in meal.items.filter(recipe__isnull=False).select_related(
-            "recipe"
-        ):
+        for item in meal.items.filter(recipe__isnull=False).select_related("recipe"):
             active_ids = list(item.active_recipe_item_ids or [])
             if not active_ids:
                 continue
-            recipe_items = item.recipe.recipe_items.filter(
-                id__in=active_ids
-            ).select_related("portion__ingredient")
+            recipe_items = item.recipe.recipe_items.filter(id__in=active_ids).select_related("portion__ingredient")
             for ri in recipe_items:
                 weight_g = float(ri.quantity) * (float(ri.portion.weight_g) if ri.portion else 0)
                 contributions[ri.id] += weight_g * item.factor

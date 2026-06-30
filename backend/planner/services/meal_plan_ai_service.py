@@ -1,6 +1,5 @@
 """AI service for meal plan suggestion generation using Vertex AI Gemini."""
 
-import json
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser
@@ -34,7 +33,6 @@ class GeminiMealPlanSuggestion(BaseModel):
 
 
 class MealPlanAiService:
-
     def generate_suggestions(
         self,
         *,
@@ -70,7 +68,9 @@ class MealPlanAiService:
                 "Prefer affordable, cost-effective recipes."
             )
 
-        constraints_text = "\n".join(constraints_parts) if constraints_parts else "No specific dietary or budget constraints."
+        constraints_text = (
+            "\n".join(constraints_parts) if constraints_parts else "No specific dietary or budget constraints."
+        )
 
         system_prompt = (
             "You are a meal planning assistant for German Pfadfinder (scout) camps and events. "
@@ -111,8 +111,9 @@ class MealPlanAiService:
             raise GeminiInvalidResponseError("KI-Antwort konnte nicht verarbeitet werden.")
 
         valid_recipe_ids = set(
-            Recipe.objects.filter(id__in=[m.recipe_id for day in result.days for m in day.meals])
-            .values_list("id", flat=True)
+            Recipe.objects.filter(id__in=[m.recipe_id for day in result.days for m in day.meals]).values_list(
+                "id", flat=True
+            )
         )
 
         validated_days = []
@@ -127,12 +128,16 @@ class MealPlanAiService:
                 if m.recipe_id in valid_recipe_ids
             ]
             if validated_meals:
-                validated_days.append({
-                    "date": day.date,
-                    "meals": validated_meals,
-                })
+                validated_days.append(
+                    {
+                        "date": day.date,
+                        "meals": validated_meals,
+                    }
+                )
 
         if not validated_days:
-            raise GeminiInvalidResponseError("KI hat keine gültigen Rezepte vorgeschlagen. Bitte versuche es mit einem anderen Prompt.")
+            raise GeminiInvalidResponseError(
+                "KI hat keine gültigen Rezepte vorgeschlagen. Bitte versuche es mit einem anderen Prompt."
+            )
 
         return {"days": validated_days}

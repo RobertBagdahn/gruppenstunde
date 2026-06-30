@@ -107,7 +107,7 @@ class Command(BaseCommand):
         # Apply changes
         self.stdout.write(self.style.SUCCESS(f"\n=== {recipe.title} ==="))
         self.stdout.write(f"  {'Zutat':<30} {'Alt':>10} {'Neu':>10}")
-        self.stdout.write(f"  {'-'*30} {'-'*10} {'-'*10}")
+        self.stdout.write(f"  {'-' * 30} {'-' * 10} {'-' * 10}")
 
         changed = False
         for normalized in result.items:

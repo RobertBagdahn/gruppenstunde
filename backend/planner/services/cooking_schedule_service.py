@@ -55,6 +55,7 @@ class CookingScheduleIngredient:
 @dataclass
 class CookingScheduleVariant:
     """A single variant of a recipe within a meal."""
+
     variant_group_id: str | None
     display_name: str | None
     factor: float
@@ -77,6 +78,7 @@ class CookingScheduleVariant:
 @dataclass
 class CookingScheduleRecipeBlock:
     """A recipe with its variants grouped together."""
+
     recipe_id: int
     recipe_title: str
     recipe_slug: str
@@ -88,6 +90,7 @@ class CookingScheduleRecipeBlock:
 @dataclass
 class CookingScheduleMeal:
     """A meal (breakfast, lunch, etc.) with its recipe blocks."""
+
     meal_id: int
     meal_type: str
     display_name: str
@@ -101,9 +104,10 @@ class CookingScheduleMeal:
 @dataclass
 class CookingScheduleItem:
     """DEPRECATED: Use CookingScheduleVariant within CookingScheduleMealOut instead.
-    
+
     Kept for backward compatibility with existing tests.
     """
+
     recipe_id: int
     recipe_title: str
     recipe_slug: str
@@ -155,16 +159,16 @@ def parse_recipe_steps(markdown: str) -> list[CookingScheduleStep]:
 
     trimmed = markdown.strip()
 
-    heading_pattern = re.compile(r'^#{2,3}\s+', re.MULTILINE)
+    heading_pattern = re.compile(r"^#{2,3}\s+", re.MULTILINE)
     if heading_pattern.search(trimmed):
-        parts = re.split(r'^(?=#{2,3}\s+)', trimmed, flags=re.MULTILINE)
+        parts = re.split(r"^(?=#{2,3}\s+)", trimmed, flags=re.MULTILINE)
         steps = [p.strip() for p in parts if p.strip()]
         if len(steps) > 1:
             return [_step_from_text(s) for s in steps]
 
-    numbered_pattern = re.compile(r'^\d+\.\s+', re.MULTILINE)
+    numbered_pattern = re.compile(r"^\d+\.\s+", re.MULTILINE)
     if numbered_pattern.search(trimmed):
-        parts = re.split(r'^(?=\d+\.\s+)', trimmed, flags=re.MULTILINE)
+        parts = re.split(r"^(?=\d+\.\s+)", trimmed, flags=re.MULTILINE)
         steps = [p.strip() for p in parts if p.strip()]
         if len(steps) > 1:
             return [_step_from_text(s) for s in steps]
@@ -174,7 +178,7 @@ def parse_recipe_steps(markdown: str) -> list[CookingScheduleStep]:
 
 def _step_from_text(text: str) -> CookingScheduleStep:
     timer = None
-    timer_match = re.search(r'\[(?:Timer|timer|Zeit|zeit)\s*:\s*(\d+)\s*(?:min|Min|Minuten|minuten)?\]', text)
+    timer_match = re.search(r"\[(?:Timer|timer|Zeit|zeit)\s*:\s*(\d+)\s*(?:min|Min|Minuten|minuten)?\]", text)
     if timer_match:
         timer = int(timer_match.group(1))
     return CookingScheduleStep(text=text.strip(), timer=timer)
@@ -190,7 +194,7 @@ def _compute_scaled_ingredients(
     recipe, portions: int, factor: float, active_recipe_item_ids: list[int] | None = None
 ) -> list[CookingScheduleIngredient]:
     """Compute scaled ingredients for a recipe variant.
-    
+
     Args:
         recipe: The recipe object
         portions: Number of portions to cook for
@@ -198,26 +202,25 @@ def _compute_scaled_ingredients(
         active_recipe_item_ids: If set, only include recipe items with IDs in this list.
                                  Exchange group items not in this list are excluded.
                                  Items without exchange groups are always included unless optional.
-    
+
     Returns:
         List of scaled ingredients
     """
-    from recipe.models import RecipeItemExchangeGroup
-    
+
     recipe_portions = recipe.portions or 1
     scale = factor * (portions / recipe_portions)
     ingredients: list[CookingScheduleIngredient] = []
     active_ids_set = set(active_recipe_item_ids or [])
-    
+
     for ri in recipe.recipe_items.all():
         # Filter logic:
         # 1. If active_recipe_item_ids is set, apply variant filtering
         # 2. Items without exchange group: always include unless optional
         # 3. Items with exchange group: only include if in active_ids
         # 4. Optional items: include only if in active_ids
-        
-        has_exchange_group = hasattr(ri, 'recipe_item_exchange_group') and ri.recipe_item_exchange_group is not None
-        
+
+        has_exchange_group = hasattr(ri, "recipe_item_exchange_group") and ri.recipe_item_exchange_group is not None
+
         if active_ids_set:
             # Variant filtering is active
             if has_exchange_group:
@@ -229,18 +232,14 @@ def _compute_scaled_ingredients(
                 if ri.id not in active_ids_set:
                     continue
             # Non-optional items without exchange group are always included
-        
+
         portion = ri.portion
         if not portion:
             continue
         ingredient = portion.ingredient
         measuring_unit = portion.measuring_unit
         scaled_qty = round(ri.quantity * portion.quantity * scale, 2)
-        weight_g = (
-            round(ri.quantity * (portion.weight_g or 0) * scale, 1)
-            if portion.weight_g
-            else None
-        )
+        weight_g = round(ri.quantity * (portion.weight_g or 0) * scale, 1) if portion.weight_g else None
         ingredients.append(
             CookingScheduleIngredient(
                 name=ingredient.name if ingredient else portion.name,
@@ -256,34 +255,64 @@ def _compute_scaled_ingredients(
 
 def _collect_nutritional_tags(recipe) -> list[dict]:
     from django.db.models import Count, Q
+
     from supply.models.reference import NutritionalTag
 
     tags: list[dict] = []
 
     ingredient_ids = list(
-        recipe.recipe_items.filter(
-            portion__ingredient__isnull=False
-        ).values_list("portion__ingredient_id", flat=True).distinct()
+        recipe.recipe_items.filter(portion__ingredient__isnull=False)
+        .values_list("portion__ingredient_id", flat=True)
+        .distinct()
     )
 
     if ingredient_ids:
         total = len(ingredient_ids)
-        for tag in NutritionalTag.objects.filter(ingredients__id__in=ingredient_ids).annotate(
-            ingredient_count=Count("ingredients", filter=Q(ingredients__id__in=ingredient_ids), distinct=True)
-        ).filter(ingredient_count=total):
-            tags.append({"id": tag.id, "name": tag.name, "name_opposite": tag.name_opposite, "description": tag.description, "rank": tag.rank, "is_dangerous": tag.is_dangerous})
+        for tag in (
+            NutritionalTag.objects.filter(ingredients__id__in=ingredient_ids)
+            .annotate(
+                ingredient_count=Count("ingredients", filter=Q(ingredients__id__in=ingredient_ids), distinct=True)
+            )
+            .filter(ingredient_count=total)
+        ):
+            tags.append(
+                {
+                    "id": tag.id,
+                    "name": tag.name,
+                    "name_opposite": tag.name_opposite,
+                    "description": tag.description,
+                    "rank": tag.rank,
+                    "is_dangerous": tag.is_dangerous,
+                }
+            )
 
     seen_ids = {t["id"] for t in tags}
     for tag in recipe.nutritional_tags.all():
         if tag.id not in seen_ids:
-            tags.append({"id": tag.id, "name": tag.name, "name_opposite": tag.name_opposite, "description": tag.description, "rank": tag.rank, "is_dangerous": tag.is_dangerous})
+            tags.append(
+                {
+                    "id": tag.id,
+                    "name": tag.name,
+                    "name_opposite": tag.name_opposite,
+                    "description": tag.description,
+                    "rank": tag.rank,
+                    "is_dangerous": tag.is_dangerous,
+                }
+            )
 
     return tags
 
 
 def _collect_ingredient_tags(ingredient) -> list[dict]:
     return [
-        {"id": tag.id, "name": tag.name, "name_opposite": tag.name_opposite, "description": tag.description, "rank": tag.rank, "is_dangerous": tag.is_dangerous}
+        {
+            "id": tag.id,
+            "name": tag.name,
+            "name_opposite": tag.name_opposite,
+            "description": tag.description,
+            "rank": tag.rank,
+            "is_dangerous": tag.is_dangerous,
+        }
         for tag in ingredient.nutritional_tags.all()
     ]
 
@@ -296,6 +325,7 @@ def _compute_item_nutrition(item, meal_item, effective_portions: int) -> dict[st
     scale = meal_item.factor * (effective_portions / servings)
 
     from planner.services.variant_service import compute_variant_energy
+
     total_energy = compute_variant_energy(meal_item) * scale
 
     protein = 0.0
@@ -321,6 +351,7 @@ def _compute_item_cost(meal_item, effective_portions: int) -> float:
     scale = meal_item.factor * (effective_portions / servings)
 
     from planner.services.variant_service import compute_variant_cost
+
     return compute_variant_cost(meal_item) * scale
 
 
@@ -352,20 +383,20 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
 
         day = meal.start_datetime.date()
         meals_by_day.setdefault(day, []).append(meal)
-        
+
         # Group meal items by (recipe_id, variant_group_id) to form recipe blocks
         recipe_blocks_dict: dict[tuple[int, str | None], list] = {}
-        
+
         for meal_item in meal.items.all():
             recipe = meal_item.recipe
             if recipe is None:
                 continue
-            
+
             key = (recipe.id, meal_item.variant_group_id)
             if key not in recipe_blocks_dict:
                 recipe_blocks_dict[key] = []
             recipe_blocks_dict[key].append(meal_item)
-        
+
         meal_items_data[meal.id] = list(recipe_blocks_dict.items())
 
     # Build days with nested structure
@@ -376,41 +407,41 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
     for day, meals_for_day in sorted(meals_by_day.items()):
         # Sort meals by serving_time
         sorted_meals = sorted(meals_for_day, key=lambda m: m.start_datetime or dt.datetime.min)
-        
+
         # Build CookingScheduleMeal objects
         cooking_schedule_meals: list[CookingScheduleMeal] = []
-        
+
         for meal in sorted_meals:
             portions = meal.override_portions if meal.override_portions is not None else meal_plan.norm_portions
             serving_time = meal.start_datetime
-            
+
             # Build recipe blocks for this meal
             recipe_blocks: list[CookingScheduleRecipeBlock] = []
             variant_data_list = meal_items_data.get(meal.id, [])
-            
+
             # Skip meals with no recipe items
             if not variant_data_list:
                 continue
-            
+
             for (recipe_id, variant_group_id), meal_items in variant_data_list:
                 # Get the recipe from first meal_item (all have same recipe_id)
                 recipe = meal_items[0].recipe
-                
+
                 # Build variants for this recipe block
                 variants: list[CookingScheduleVariant] = []
                 for meal_item in meal_items:
                     lead_minutes = compute_recipe_lead_minutes(recipe)
                     start_time = serving_time - dt.timedelta(minutes=lead_minutes)
-                    
+
                     # Compute portions and ingredients with variant filtering
                     variant_portions = int(portions * meal_item.factor)
                     active_ids = meal_item.active_recipe_item_ids or []
                     ingredients = _compute_scaled_ingredients(recipe, portions, meal_item.factor, active_ids)
-                    
+
                     steps_parsed = parse_recipe_steps(recipe.description)
                     nutrition = _compute_item_nutrition(meal_item, meal_item, portions)
                     cost = _compute_item_cost(meal_item, portions)
-                    
+
                     variant = CookingScheduleVariant(
                         variant_group_id=str(variant_group_id) if variant_group_id else None,
                         display_name=meal_item.display_name,
@@ -431,10 +462,10 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                         meal_note=meal.note or "",
                     )
                     variants.append(variant)
-                
+
                 # Sort variants by start_time
                 variants.sort(key=lambda v: v.start_time)
-                
+
                 # Build recipe block
                 recipe_block = CookingScheduleRecipeBlock(
                     recipe_id=recipe.id,
@@ -445,10 +476,10 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                     variants=variants,
                 )
                 recipe_blocks.append(recipe_block)
-            
+
             # Sort recipe blocks by earliest variant start_time
             recipe_blocks.sort(key=lambda rb: min(v.start_time for v in rb.variants) if rb.variants else serving_time)
-            
+
             # Build meal
             cooking_meal = CookingScheduleMeal(
                 meal_id=meal.id,
@@ -461,12 +492,12 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                 recipe_blocks=recipe_blocks,
             )
             cooking_schedule_meals.append(cooking_meal)
-        
+
         # Compute day totals
         day_cost = 0.0
         day_energy = 0.0
         day_tags: dict[int, dict] = {}
-        
+
         for meal in cooking_schedule_meals:
             for recipe_block in meal.recipe_blocks:
                 for variant in recipe_block.variants:
@@ -475,17 +506,13 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                     for tag in variant.nutritional_tags:
                         if tag["id"] not in day_tags:
                             day_tags[tag["id"]] = tag
-        
+
         # Compute day timing
         first_start = min(
-            (v.start_time for m in cooking_schedule_meals for rb in m.recipe_blocks for v in rb.variants),
-            default=None
+            (v.start_time for m in cooking_schedule_meals for rb in m.recipe_blocks for v in rb.variants), default=None
         )
-        last_serving = max(
-            (m.serving_time for m in cooking_schedule_meals),
-            default=None
-        )
-        
+        last_serving = max((m.serving_time for m in cooking_schedule_meals), default=None)
+
         if first_start and last_serving:
             duration = int((last_serving - first_start).total_seconds() / 60)
             day_start = first_start.strftime("%H:%M")
@@ -494,7 +521,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
             duration = 0
             day_start = ""
             day_end = ""
-        
+
         # Build backward-compat items list (flattened variants)
         compat_items: list[CookingScheduleItem] = []
         for meal in cooking_schedule_meals:
@@ -521,27 +548,29 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                         meal_note=variant.meal_note,
                     )
                     compat_items.append(compat_item)
-        
+
         # Skip days with no meals
         if not cooking_schedule_meals:
             continue
-        
+
         # Sort compat items for consistency
         compat_items.sort(key=lambda x: (x.start_time, x.recipe_title))
-        
-        days.append(CookingScheduleDay(
-            date=day,
-            meals=cooking_schedule_meals,
-            items=compat_items,  # Keep for backward compat
-            day_start_time=day_start,
-            day_end_time=day_end,
-            day_duration_minutes=duration,
-            portions=meal_plan.norm_portions,
-            day_nutritional_tags=list(day_tags.values()),
-            total_cost_eur=day_cost,
-            total_energy_kcal=day_energy,
-        ))
-        
+
+        days.append(
+            CookingScheduleDay(
+                date=day,
+                meals=cooking_schedule_meals,
+                items=compat_items,  # Keep for backward compat
+                day_start_time=day_start,
+                day_end_time=day_end,
+                day_duration_minutes=duration,
+                portions=meal_plan.norm_portions,
+                day_nutritional_tags=list(day_tags.values()),
+                total_cost_eur=day_cost,
+                total_energy_kcal=day_energy,
+            )
+        )
+
         total_cost += day_cost
         total_energy += day_energy
 

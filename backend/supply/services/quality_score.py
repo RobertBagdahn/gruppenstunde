@@ -77,8 +77,9 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     from supply.models import Portion
 
     existing = set(
-        ingredient.portions.filter(deleted_at__isnull=True, name__in=Portion.system_portion_names() | {"ml"})
-        .values_list("name", flat=True)
+        ingredient.portions.filter(
+            deleted_at__isnull=True, name__in=Portion.system_portion_names() | {"ml"}
+        ).values_list("name", flat=True)
     )
     has_base = "g" in existing or "ml" in existing
     has_packung = "Packung" in existing

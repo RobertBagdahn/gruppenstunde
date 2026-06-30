@@ -13,7 +13,6 @@ the same effective_portions and reserve_factor.
 """
 
 import datetime as dt
-import json
 from decimal import Decimal
 
 import pytest
@@ -22,7 +21,7 @@ from django.test import Client
 from django.utils import timezone
 from model_bakery import baker
 
-from planner.models import Meal, MealItem, MealItemOverride, MealPlan, MealTypeChoices
+from planner.models import Meal, MealItem, MealItemOverride, MealTypeChoices
 from planner.schemas.meal_plan import MealOut
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.tests import make_recipe, make_recipe_item
@@ -36,6 +35,7 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 class TestNutritionAndShoppingConsistency:
@@ -496,6 +496,7 @@ class TestOverridePortionsConsistency:
 # Task 5.1: Direct ingredient weight consistency across all three areas
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestDirectIngredientWeightConsistency:
     """
@@ -543,6 +544,7 @@ class TestDirectIngredientWeightConsistency:
         )
         self.plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.1)
         import datetime as _dt
+
         today = _dt.date.today()
         self.meal = make_meal(
             meal_plan=self.plan,
@@ -594,6 +596,7 @@ class TestDirectIngredientWeightConsistency:
         make_portion(ingredient=ing2, weight_g=35.0, measuring_unit=mu_scheibe)
         plan2 = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.1)
         import datetime as _dt
+
         today = _dt.date.today()
         meal2 = make_meal(
             meal_plan=plan2,
@@ -630,6 +633,7 @@ class TestDirectIngredientWeightConsistency:
 # Task 5.2: Rezepte mit portions=0 werden in allen 3 Bereichen geskippt
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestPortionsZeroSkip:
     """
@@ -651,6 +655,7 @@ class TestPortionsZeroSkip:
 
         self.plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.1)
         import datetime as _dt
+
         today = _dt.date.today()
         self.meal = make_meal(
             meal_plan=self.plan,
@@ -695,6 +700,7 @@ class TestPortionsZeroSkip:
 # Task 5.3: Kein N+1 in nutrition_summary bei Direktzutaten
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestNutritionSummaryNoNPlusOne:
     """
@@ -710,6 +716,7 @@ class TestNutritionSummaryNoNPlusOne:
         self.mu_g = baker.make(MeasuringUnit, name="g", unit="g", quantity=1.0)
         self.plan = make_meal_plan(created_by=self.user, norm_portions=5, reserve_factor=1.0)
         import datetime as _dt
+
         today = _dt.date.today()
         self.meal = make_meal(
             meal_plan=self.plan,
@@ -742,14 +749,13 @@ class TestNutritionSummaryNoNPlusOne:
         assert resp.status_code == 200
         # Mit Prefetch: maximal ~10 Queries für 5 Zutaten (kein N+1)
         # Ohne Prefetch: ~5×2 extra Queries = ~15+ total
-        assert query_count < 15, (
-            f"Zu viele DB-Queries ({query_count}): Prefetch für ingredient__portions fehlt?"
-        )
+        assert query_count < 15, f"Zu viele DB-Queries ({query_count}): Prefetch für ingredient__portions fehlt?"
 
 
 # ---------------------------------------------------------------------------
 # Task 5.4: cost_summary Direktzutat-Konsistenz (ml + density)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 class TestCostSummaryDirectIngredientConsistency:
@@ -779,6 +785,7 @@ class TestCostSummaryDirectIngredientConsistency:
         )
         self.plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.1)
         import datetime as _dt
+
         today = _dt.date.today()
         self.meal = make_meal(
             meal_plan=self.plan,

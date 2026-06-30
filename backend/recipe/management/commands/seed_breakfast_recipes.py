@@ -30,10 +30,10 @@ TOPPING_TAG_SLUG = "breakfast-topping"
 # MeasuringUnits for portion-based wizard storage
 # Each is a named portion unit (weight comes from Portion.weight_g)
 PORTION_UNITS = [
-    ("Scheibe", False),       # bread slices
-    ("Portion", False),       # toppings
-    ("Tasse (200ml)", False), # drinks
-    ("Schuss (30ml)", False), # milk splash
+    ("Scheibe", False),  # bread slices
+    ("Portion", False),  # toppings
+    ("Tasse (200ml)", False),  # drinks
+    ("Schuss (30ml)", False),  # milk splash
 ]
 
 # (title, slug, recipe_type, items: [(ingredient_name, portion_name_or_none, quantity, weight_g_fallback)])
@@ -116,13 +116,23 @@ class Command(BaseCommand):
         # ── Step 1: Create MeasuringUnits for portion-based wizard storage ──
         gram_unit = MeasuringUnit.objects.filter(name="g").first()
         ml_unit = MeasuringUnit.objects.filter(name="ml").first()
-        scheibe_unit, _ = MeasuringUnit.objects.get_or_create(name="Scheibe", defaults={"description": "Brot-Scheibe für den Frühstücksassistenten"})
-        portion_unit, _ = MeasuringUnit.objects.get_or_create(name="Portion", defaults={"description": "Belag-Portion für den Frühstücksassistenten"})
-        tasse_unit, _ = MeasuringUnit.objects.get_or_create(name="Tasse (200ml)", defaults={"description": "Getränke-Tasse (200ml) für den Frühstücksassistenten"})
-        schuss_unit, _ = MeasuringUnit.objects.get_or_create(name="Schuss (30ml)", defaults={"description": "Milch-Schuss (30ml) für den Frühstücksassistenten"})
+        scheibe_unit, _ = MeasuringUnit.objects.get_or_create(
+            name="Scheibe", defaults={"description": "Brot-Scheibe für den Frühstücksassistenten"}
+        )
+        portion_unit, _ = MeasuringUnit.objects.get_or_create(
+            name="Portion", defaults={"description": "Belag-Portion für den Frühstücksassistenten"}
+        )
+        tasse_unit, _ = MeasuringUnit.objects.get_or_create(
+            name="Tasse (200ml)", defaults={"description": "Getränke-Tasse (200ml) für den Frühstücksassistenten"}
+        )
+        schuss_unit, _ = MeasuringUnit.objects.get_or_create(
+            name="Schuss (30ml)", defaults={"description": "Milch-Schuss (30ml) für den Frühstücksassistenten"}
+        )
 
         if not dry_run:
-            self.stdout.write(f"  MeasuringUnits: Scheibe={scheibe_unit.id}, Portion={portion_unit.id}, Tasse={tasse_unit.id}, Schuss={schuss_unit.id}")
+            self.stdout.write(
+                f"  MeasuringUnits: Scheibe={scheibe_unit.id}, Portion={portion_unit.id}, Tasse={tasse_unit.id}, Schuss={schuss_unit.id}"
+            )
 
         # ── Step 2: Create Portions for base (breakfast-base) ingredients ──
         base_tag = Tag.objects.filter(slug=BASE_TAG_SLUG).first()
@@ -155,7 +165,11 @@ class Command(BaseCommand):
             topping_portions_created = 0
             for ing in topping_ings:
                 portions = list(ing.portions.all())
-                for intensity_name, key in [("Belag knapp", "knapp"), ("Belag normal", "normal"), ("Belag üppig", "üppig")]:
+                for intensity_name, key in [
+                    ("Belag knapp", "knapp"),
+                    ("Belag normal", "normal"),
+                    ("Belag üppig", "üppig"),
+                ]:
                     if not any(p.name == intensity_name for p in portions):
                         weight_g = None
                         for p in portions:

@@ -545,7 +545,6 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded {created} new rules, updated {updated} existing rules. "
-                f"Total: {Rule.objects.count()} rules."
+                f"Seeded {created} new rules, updated {updated} existing rules. Total: {Rule.objects.count()} rules."
             )
         )

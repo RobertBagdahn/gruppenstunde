@@ -440,9 +440,7 @@ def _get_recipe_suggestions(recipe_type: str, limit: int = 3) -> list[RecipeSugg
     recipes = Recipe.objects.filter(
         recipe_type=recipe_type,
         status="approved",
-    ).order_by(
-        "-like_score"
-    )[:limit]
+    ).order_by("-like_score")[:limit]
 
     return [
         RecipeSuggestionOut(

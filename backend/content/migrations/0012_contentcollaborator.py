@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("content", "0011_alter_contentlink_link_type_aiinteraction"),
         ("contenttypes", "0002_remove_content_type_name"),

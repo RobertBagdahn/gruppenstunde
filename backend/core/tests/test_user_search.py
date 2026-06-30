@@ -3,7 +3,6 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
-from django.urls import reverse
 
 User = get_user_model()
 
@@ -45,9 +44,7 @@ class TestUserSearch:
     def test_pagination(self, client: Client):
         """Pagination works with page/page_size."""
         for i in range(5):
-            User.objects.create_user(
-                username=f"user{i:02d}", email=f"user{i:02d}@test.de", password="pass1234"
-            )
+            User.objects.create_user(username=f"user{i:02d}", email=f"user{i:02d}@test.de", password="pass1234")
 
         client.login(username="user00@test.de", password="pass1234")
         resp = self._search(client, page=1, page_size=2)
@@ -62,9 +59,7 @@ class TestUserSearch:
     def test_second_page(self, client: Client):
         """Second page returns remaining items."""
         for i in range(5):
-            User.objects.create_user(
-                username=f"user{i:02d}", email=f"user{i:02d}@test.de", password="pass1234"
-            )
+            User.objects.create_user(username=f"user{i:02d}", email=f"user{i:02d}@test.de", password="pass1234")
 
         client.login(username="user00@test.de", password="pass1234")
         resp = self._search(client, page=3, page_size=2)

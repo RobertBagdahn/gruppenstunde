@@ -188,9 +188,7 @@ def get_public_user_food_profile(request, slug: str):
     profile.shopping_lists = list(
         ShoppingList.objects.filter(
             owner_id=profile.user_id,
-        ).order_by(
-            "-created_at"
-        )[:20]
+        ).order_by("-created_at")[:20]
     )
 
     from planner.models.meal_plan import MealPlan
@@ -198,9 +196,7 @@ def get_public_user_food_profile(request, slug: str):
     profile.meal_plans = list(
         MealPlan.objects.filter(
             created_by_id=profile.user_id,
-        ).order_by(
-            "-created_at"
-        )[:20]
+        ).order_by("-created_at")[:20]
     )
 
     return profile

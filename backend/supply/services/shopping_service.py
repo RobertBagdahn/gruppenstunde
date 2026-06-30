@@ -53,7 +53,7 @@ class ShoppingListItem:
 def generate_shopping_list(
     meal_plan: MealPlan,
     scaling_override: float | None = None,
-) -> list[ShoppingListItem]:  # noqa: C901
+) -> list[ShoppingListItem]:
     """Generate an aggregated shopping list for a meal plan.
 
     Collects all MealItems from all Meals of the plan,
@@ -131,7 +131,8 @@ def generate_shopping_list(
             if not getattr(recipe, "portions", None):
                 logger.warning(
                     "Recipe %s '%s' has portions=0 or None, skipping in shopping_service",
-                    recipe.id, getattr(recipe, "title", str(recipe)),
+                    recipe.id,
+                    getattr(recipe, "title", str(recipe)),
                 )
                 continue
             recipe_items = list(recipe.recipe_items.all())
@@ -159,12 +160,14 @@ def generate_shopping_list(
                     continue
 
                 # quantity_override replaces recipe item quantity for purchase amount
-                effective_quantity = float(override.quantity_override) if (override and override.quantity_override is not None) else float(ri.quantity)
+                effective_quantity = (
+                    float(override.quantity_override)
+                    if (override and override.quantity_override is not None)
+                    else float(ri.quantity)
+                )
 
                 recipe_servings = recipe.portions
-                weight_g = (
-                    effective_quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
-                )
+                weight_g = effective_quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
 
                 if not ri.portion.weight_g:
                     raw_qty = ri.quantity * mi.factor * meal_scaling / recipe_servings
@@ -394,9 +397,7 @@ def _format_natural_portion(count: int | float, name: str) -> str:
     name_lower = name.lower()
 
     should_omit_x = (
-        first_word in units_without_x
-        or name_lower in units_without_x
-        or bool(_piece_name_re.match(name_lower))
+        first_word in units_without_x or name_lower in units_without_x or bool(_piece_name_re.match(name_lower))
     )
 
     if should_omit_x:

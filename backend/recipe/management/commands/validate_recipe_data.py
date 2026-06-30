@@ -24,10 +24,10 @@ class Command(BaseCommand):
         threshold = options["threshold"]
         mode = "FIX" if fix else "DRY-RUN"
 
-        self.stdout.write(f"\n{'='*60}")
+        self.stdout.write(f"\n{'=' * 60}")
         self.stdout.write(f"  Recipe Data Validation ({mode})")
         self.stdout.write(f"  Threshold: {threshold}g per person")
-        self.stdout.write(f"{'='*60}\n")
+        self.stdout.write(f"{'=' * 60}\n")
 
         flagged_recipes = self._find_problematic_recipes(threshold)
 
@@ -43,7 +43,7 @@ class Command(BaseCommand):
             if fix:
                 self._fix_recipe(recipe, total_weight)
 
-        self.stdout.write(f"\n{'='*60}")
+        self.stdout.write(f"\n{'=' * 60}")
         if fix:
             self.stdout.write(self.style.SUCCESS(f"Fixed {len(flagged_recipes)} recipe(s)."))
         else:

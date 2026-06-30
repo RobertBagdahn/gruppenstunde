@@ -43,8 +43,7 @@ class PortionSuggestion(BaseModel):
     rank: int = Field(
         default=1,
         description=(
-            "Rang (Sortierung): 1 = Standard/Normalportion, "
-            "2,3,... = weitere Portionen in Sortierreihenfolge"
+            "Rang (Sortierung): 1 = Standard/Normalportion, 2,3,... = weitere Portionen in Sortierreihenfolge"
         ),
     )
 
@@ -94,9 +93,15 @@ class IngredientSuggestAllSchema(BaseModel):
     price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg")
 
     # Portionen
-    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen (erste Portion = Normalportion/rank=1)")
-    stueck_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll, z.B. Salz)")
-    packung_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll, z.B. Wasser)")
+    portions: list[PortionSuggestion] = Field(
+        default_factory=list, description="Typische Portionsgrößen (erste Portion = Normalportion/rank=1)"
+    )
+    stueck_weight_g: float | None = Field(
+        None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll, z.B. Salz)"
+    )
+    packung_weight_g: float | None = Field(
+        None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll, z.B. Wasser)"
+    )
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Mind. 3 spezifische Aliase")
@@ -143,9 +148,15 @@ class IngredientAiCreateSchema(BaseModel):
     )
 
     # Portionen
-    portions: list[PortionSuggestion] = Field(default_factory=list, description="Typische Portionsgrößen (erste = Normalportion/rank=1)")
-    stueck_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll)")
-    packung_weight_g: float | None = Field(None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll)")
+    portions: list[PortionSuggestion] = Field(
+        default_factory=list, description="Typische Portionsgrößen (erste = Normalportion/rank=1)"
+    )
+    stueck_weight_g: float | None = Field(
+        None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll)"
+    )
+    packung_weight_g: float | None = Field(
+        None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll)"
+    )
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Alternative Bezeichnungen")
@@ -368,14 +379,14 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
     from supply.signals import _create_system_portions
 
     _create_system_portions(ingredient)
-    
+
     # Set weight_g for Stück and Packung system portions from AI suggestions
     if data.stueck_weight_g is not None and data.stueck_weight_g > 0:
         stueck_portion = Portion.objects.filter(ingredient=ingredient, name="Stück").first()
         if stueck_portion:
             stueck_portion.weight_g = data.stueck_weight_g
             stueck_portion.save(update_fields=["weight_g"])
-    
+
     if data.packung_weight_g is not None and data.packung_weight_g > 0:
         packung_portion = Portion.objects.filter(ingredient=ingredient, name="Packung").first()
         if packung_portion:

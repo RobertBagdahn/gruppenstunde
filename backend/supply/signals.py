@@ -19,7 +19,7 @@ def calculate_portion_weight_g(sender, instance: Portion, **kwargs):
 
 def _create_system_portions(ingredient: Ingredient):
     """Erstelle die drei System-Portionen (g, Packung, Stück) für eine Zutat.
-    
+
     - g: rank=9999 (immer am Ende, technischer Fallback)
     - Stück: rank=2 (sortierbar)
     - Packung: rank=3 (sortierbar)

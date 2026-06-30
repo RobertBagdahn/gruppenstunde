@@ -45,8 +45,8 @@ from content.schemas.data_quality import (
     QualityTrendOut,
     QualityTrendPointOut,
     RecipeDismissRequestIn,
-    RecipeMetadataCheckOut,
     RecipeMergePreviewOut,
+    RecipeMetadataCheckOut,
 )
 from content.services.audit_service import get_audit_log_queryset
 from supply.models import Ingredient
@@ -351,6 +351,7 @@ def recipe_duplicates(request):
 def recipe_dismiss_duplicate(request, body: RecipeDismissRequestIn):
     _require_staff(request)
     from recipe.models import Recipe
+
     ct = ContentType.objects.get_for_model(Recipe)
     a, b = sorted([body.recipe_a_id, body.recipe_b_id])
     DuplicateDismissal.objects.get_or_create(
@@ -367,6 +368,7 @@ def recipe_dismiss_duplicate(request, body: RecipeDismissRequestIn):
 def recipe_undismiss_duplicate(request, body: RecipeDismissRequestIn):
     _require_staff(request)
     from recipe.models import Recipe
+
     ct = ContentType.objects.get_for_model(Recipe)
     a, b = sorted([body.recipe_a_id, body.recipe_b_id])
     DuplicateDismissal.objects.filter(
@@ -382,6 +384,7 @@ def recipe_undismiss_duplicate(request, body: RecipeDismissRequestIn):
 def recipe_merge_preview(request, source_id: int, target_id: int):
     _require_staff(request)
     from recipe.models import Recipe
+
     try:
         source = Recipe.objects.get(id=source_id)
         target = Recipe.objects.get(id=target_id)
@@ -408,6 +411,7 @@ def recipe_merge_preview(request, source_id: int, target_id: int):
 def recipe_merge(request, body: MergeRequestIn):
     _require_staff(request)
     from recipe.models import Recipe
+
     if body.source_id == body.target_id:
         raise HttpError(400, "Quell- und Ziel-Rezept dürfen nicht identisch sein")
 

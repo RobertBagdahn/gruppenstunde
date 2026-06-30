@@ -1,6 +1,7 @@
 """Tests for breakfast catalog and leftovers endpoints."""
 
 import json
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -8,7 +9,7 @@ from model_bakery import baker
 
 from content.models import Tag
 from recipe.models import Recipe
-from supply.models import Ingredient, MeasuringUnit, Portion
+from supply.models import MeasuringUnit
 from supply.tests import make_ingredient, make_portion
 
 User = get_user_model()
@@ -22,9 +23,7 @@ def _client_with_user():
 
 
 def _g_unit() -> MeasuringUnit:
-    unit, _ = MeasuringUnit.objects.get_or_create(
-        name="g", defaults={"quantity": 1.0, "unit": "g"}
-    )
+    unit, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
     return unit
 
 

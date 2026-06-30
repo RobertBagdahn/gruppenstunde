@@ -1,7 +1,7 @@
 /**
  * usePermissions — Unified permission hook.
- * Reads the user role from useCurrentUser() and provides
- * helper functions for permission checks throughout the UI.
+ * Derives permission flags from the authenticated user (is_staff / is_superuser)
+ * and provides helper values for permission checks throughout the UI.
  */
 import { useCurrentUser } from '@/api/auth';
 
@@ -9,9 +9,9 @@ export function usePermissions() {
   const { data: user, isLoading } = useCurrentUser();
 
   const isAuthenticated = !!user;
-  const role = user?.role ?? 'user';
-  const isStaff = role === 'staff' || role === 'admin';
-  const isAdmin = role === 'admin';
+  const isStaff = !!user?.is_staff;
+  const isAdmin = !!user?.is_superuser;
+  const role: 'admin' | 'staff' | 'user' = isAdmin ? 'admin' : isStaff ? 'staff' : 'user';
   const isLoadingPermissions = isLoading;
 
   return {

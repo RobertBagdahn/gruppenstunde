@@ -240,14 +240,10 @@ def delete_ingredient(request, slug: str):
     if not request.user.is_staff and ingredient.created_by_id != request.user.id:
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat löschen")
 
-    from recipe.models import RecipeItem
-
-    from recipe.models import Recipe
+    from recipe.models import Recipe, RecipeItem
 
     recipe_ids = list(
-        RecipeItem.objects.filter(portion__ingredient=ingredient)
-        .values_list("recipe_id", flat=True)
-        .distinct()
+        RecipeItem.objects.filter(portion__ingredient=ingredient).values_list("recipe_id", flat=True).distinct()
     )
     if recipe_ids:
         recipes = list(Recipe.objects.filter(id__in=recipe_ids).values("id", "title", "slug"))
@@ -278,7 +274,7 @@ def list_portions(request, slug: str):
 @ingredient_router.post("/{slug}/portions/", response=PortionOut)
 def create_portion(request, slug: str, payload: PortionCreateIn):
     """Create a portion for an ingredient.
-    
+
     Validates that portion name is unique per ingredient (case-insensitive).
     Returns 422 if name already exists.
     """
@@ -289,7 +285,7 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
     name = payload.name.strip()
-    
+
     # Check for duplicate names (case-insensitive, excluding soft-deleted)
     if Portion.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
         raise HttpError(422, f"Portionsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
@@ -314,7 +310,7 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
 @ingredient_router.patch("/{slug}/portions/{portion_id}/", response=PortionOut)
 def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn):
     """Update a portion.
-    
+
     If updating name, validates that new name is unique per ingredient (case-insensitive).
     """
     require_auth(request)
@@ -327,15 +323,15 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
         if not payload.name or not payload.name.strip():
             raise HttpError(422, "Portionsname darf nicht leer sein.")
         new_name = payload.name.strip()
-        
+
         # Check for duplicate names (case-insensitive, excluding soft-deleted and self)
-        if Portion.objects.filter(
-            ingredient=ingredient,
-            name__iexact=new_name,
-            deleted_at__isnull=True
-        ).exclude(id=portion.id).exists():
+        if (
+            Portion.objects.filter(ingredient=ingredient, name__iexact=new_name, deleted_at__isnull=True)
+            .exclude(id=portion.id)
+            .exists()
+        ):
             raise HttpError(422, f"Portionsname '{new_name}' existiert bereits für diese Zutat (case-insensitive).")
-        
+
         portion.name = new_name
         data.pop("name")
 

@@ -241,7 +241,7 @@ class Command(BaseCommand):
             if i < len(urls):
                 time.sleep(delay)
 
-        self.stdout.write(f"\n{'='*50}")
+        self.stdout.write(f"\n{'=' * 50}")
         self.stdout.write(self.style.SUCCESS(f"Erfolgreich: {success_count}"))
         if error_count:
             self.stderr.write(self.style.ERROR(f"Fehler: {error_count}"))

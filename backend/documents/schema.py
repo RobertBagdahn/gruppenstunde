@@ -97,7 +97,7 @@ def resolve_packlist(
     presets = defaults.get("packlists", {})
     if value not in presets:
         available = ", ".join(sorted(presets.keys()))
-        raise ValueError(f"Unbekannter Packlisten-Preset: '{value}'. " f"Verfügbare Presets: {available}")
+        raise ValueError(f"Unbekannter Packlisten-Preset: '{value}'. Verfügbare Presets: {available}")
     return presets[value] + extra
 
 
@@ -112,7 +112,7 @@ def resolve_form_fields(
     presets = defaults.get("form_fields", {})
     if value not in presets:
         available = ", ".join(sorted(presets.keys()))
-        raise ValueError(f"Unbekannter Formularfeld-Preset: '{value}'. " f"Verfügbare Presets: {available}")
+        raise ValueError(f"Unbekannter Formularfeld-Preset: '{value}'. Verfügbare Presets: {available}")
     return [FormFieldConfig(**field) for field in presets[value]]
 
 

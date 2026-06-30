@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("planner", "0036_mealitem_unique_recipe_per_meal_and_more"),
     ]

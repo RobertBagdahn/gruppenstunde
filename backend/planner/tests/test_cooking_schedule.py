@@ -473,7 +473,13 @@ class TestNewFields:
         plan = make_meal_plan(norm_portions=4)
         serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
         meal = make_meal(meal_plan=plan, start_datetime=serving)
-        recipe = make_recipe(portions=4, cached_energy_total_kcal=2400.0, cached_protein_g=80.0, cached_fat_g=40.0, cached_carbohydrate_g=360.0)
+        recipe = make_recipe(
+            portions=4,
+            cached_energy_total_kcal=2400.0,
+            cached_protein_g=80.0,
+            cached_fat_g=40.0,
+            cached_carbohydrate_g=360.0,
+        )
         make_meal_item(meal=meal, recipe=recipe, factor=1.0)
 
         result = build_cooking_schedule(plan)

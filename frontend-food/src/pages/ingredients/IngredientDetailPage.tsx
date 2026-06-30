@@ -952,9 +952,6 @@ export default function IngredientDetailPage() {
               <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded font-medium">
                 <span className="material-symbols-outlined text-sm">check_circle</span>
                 Roh verzehrbar
-                {ingredient.standalone_type && (
-                  <span className="ml-0.5 text-muted-foreground">({ingredient.standalone_type})</span>
-                )}
               </span>
             )}
           </div>
@@ -1033,40 +1030,10 @@ export default function IngredientDetailPage() {
             <NutritionRow label="Lactose" value={ingredient.lactose_g} unit="g" />
           </div>
 
-          {/* Vitamins */}
-          {(ingredient.vitamin_a_mg != null || ingredient.vitamin_b1_mg != null || ingredient.vitamin_c_mg != null) && (
+          {/* Vitamins (only vitamin_c_mg is stored by the backend) */}
+          {ingredient.vitamin_c_mg != null && (
             <CollapsibleNutritionGroup title="Vitamine" icon="medication" iconColor="text-primary">
-              <NutritionRow label="Vitamin A" value={ingredient.vitamin_a_mg ?? null} unit="mg" />
-              <NutritionRow label="Vitamin B1" value={ingredient.vitamin_b1_mg ?? null} unit="mg" />
-              <NutritionRow label="Vitamin B2" value={ingredient.vitamin_b2_mg ?? null} unit="mg" />
-              <NutritionRow label="Vitamin B6" value={ingredient.vitamin_b6_mg ?? null} unit="mg" />
-              <NutritionRow label="Vitamin B12" value={ingredient.vitamin_b12_ug ?? null} unit={'\u00B5g'} />
               <NutritionRow label="Vitamin C" value={ingredient.vitamin_c_mg ?? null} unit="mg" />
-              <NutritionRow label="Vitamin D" value={ingredient.vitamin_d_ug ?? null} unit={'\u00B5g'} />
-              <NutritionRow label="Vitamin E" value={ingredient.vitamin_e_mg ?? null} unit="mg" />
-              <NutritionRow label="Vitamin K" value={ingredient.vitamin_k_ug ?? null} unit={'\u00B5g'} />
-              <NutritionRow label="Niacin" value={ingredient.niacin_mg ?? null} unit="mg" />
-              <NutritionRow label="Folat" value={ingredient.folate_ug ?? null} unit={'\u00B5g'} />
-              <NutritionRow label="Pantothensäure" value={ingredient.pantothenic_acid_mg ?? null} unit="mg" />
-              <NutritionRow label="Biotin" value={ingredient.biotin_ug ?? null} unit={'\u00B5g'} />
-            </CollapsibleNutritionGroup>
-          )}
-
-          {/* Minerals */}
-          {(ingredient.calcium_mg != null || ingredient.iron_mg != null || ingredient.magnesium_mg != null) && (
-            <CollapsibleNutritionGroup title="Mineralstoffe" icon="diamond" iconColor="text-[hsl(var(--chart-3))]">
-              <NutritionRow label="Calcium" value={ingredient.calcium_mg ?? null} unit="mg" />
-              <NutritionRow label="Eisen" value={ingredient.iron_mg ?? null} unit="mg" />
-              <NutritionRow label="Magnesium" value={ingredient.magnesium_mg ?? null} unit="mg" />
-              <NutritionRow label="Zink" value={ingredient.zinc_mg ?? null} unit="mg" />
-              <NutritionRow label="Kalium" value={ingredient.potassium_mg ?? null} unit="mg" />
-              <NutritionRow label="Phosphor" value={ingredient.phosphorus_mg ?? null} unit="mg" />
-              <NutritionRow label="Jod" value={ingredient.iodine_ug ?? null} unit={'\u00B5g'} />
-              <NutritionRow label="Selen" value={ingredient.selenium_ug ?? null} unit={'\u00B5g'} />
-              <NutritionRow label="Kupfer" value={ingredient.copper_mg ?? null} unit="mg" />
-              <NutritionRow label="Mangan" value={ingredient.manganese_mg ?? null} unit="mg" />
-              <NutritionRow label="Chrom" value={ingredient.chromium_ug ?? null} unit={'\u00B5g'} />
-              <NutritionRow label="Fluorid" value={ingredient.fluoride_mg ?? null} unit="mg" />
             </CollapsibleNutritionGroup>
           )}
         </div>

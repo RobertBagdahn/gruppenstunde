@@ -5,7 +5,6 @@ from ninja import Router
 from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup
-from supply.models import Portion
 from recipe.schemas import (
     AiIngredientApplyIn,
     AiIngredientSuggestionOut,
@@ -16,6 +15,7 @@ from recipe.schemas import (
     RecipeItemOut,
     RecipeItemUpdateIn,
 )
+from supply.models import Portion
 
 
 def _recipe_item_has_active_variants(item: RecipeItem) -> bool:
@@ -315,13 +315,10 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
     )
     portion_ids = [item.portion_id for item in payload]
     portion_to_ingredient = {
-        p["id"]: p["ingredient_id"]
-        for p in Portion.objects.filter(id__in=portion_ids).values("id", "ingredient_id")
+        p["id"]: p["ingredient_id"] for p in Portion.objects.filter(id__in=portion_ids).values("id", "ingredient_id")
     }
     filtered_payload = [
-        item
-        for item in payload
-        if portion_to_ingredient.get(item.portion_id) not in existing_ingredient_ids
+        item for item in payload if portion_to_ingredient.get(item.portion_id) not in existing_ingredient_ids
     ]
 
     created_items = []

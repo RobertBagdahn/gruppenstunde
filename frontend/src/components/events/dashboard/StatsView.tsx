@@ -1,6 +1,6 @@
 /**
  * StatsView — Event statistics dashboard with capacity, payment, demographics,
- * nutrition, and registration timeline visualizations.
+ * and registration timeline visualizations.
  * Can be embedded in OverviewTab or used standalone.
  */
 import type { Stats } from '@/schemas/event';
@@ -47,11 +47,6 @@ export default function StatsView({ slug, compact = false }: Props) {
 
       {/* Demographics */}
       {!compact && <DemographicsSection stats={stats} />}
-
-      {/* Nutrition */}
-      {!compact && stats.nutrition.nutritional_summary.length > 0 && (
-        <NutritionSection stats={stats} />
-      )}
 
       {/* Registration Timeline */}
       {!compact && stats.registration_timeline.length > 0 && (
@@ -250,34 +245,6 @@ function DemographicsSection({ stats }: { stats: Stats }) {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Nutrition Section
-// ---------------------------------------------------------------------------
-
-function NutritionSection({ stats }: { stats: Stats }) {
-  return (
-    <div className="rounded-xl border p-4">
-      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-        <span className="material-symbols-outlined text-[18px]">restaurant</span>
-        Ernaehrung
-      </h3>
-      <div className="flex flex-wrap gap-2">
-        {stats.nutrition.nutritional_summary.map((n) => (
-          <span
-            key={n.tag_name}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-sm rounded-lg bg-amber-50 text-amber-700 border border-amber-200"
-          >
-            {n.tag_name}
-            <span className="text-xs font-semibold bg-amber-100 px-1 rounded">
-              {n.count}
-            </span>
-          </span>
-        ))}
       </div>
     </div>
   );

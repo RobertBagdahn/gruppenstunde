@@ -166,6 +166,7 @@ export const IngredientListItemSchema = z.object({
   retail_section_id: z.number().nullable(),
   retail_section_name: z.string().nullable(),
   quality_score: z.number().int().nullable().optional(),
+  usage_count: z.number().int(),
 });
 export type IngredientListItem = z.infer<typeof IngredientListItemSchema>;
 
@@ -210,38 +211,11 @@ export const IngredientDetailSchema = z.object({
   nova_score: z.number().nullable(),
   fruit_factor: z.number().nullable(),
 
-  // Vitamins
-  vitamin_a_mg: z.number().nullable().optional(),
-  vitamin_b1_mg: z.number().nullable().optional(),
-  vitamin_b2_mg: z.number().nullable().optional(),
-  vitamin_b6_mg: z.number().nullable().optional(),
-  vitamin_b12_ug: z.number().nullable().optional(),
+  // Vitamins (only vitamin_c_mg is stored/returned by the backend)
   vitamin_c_mg: z.number().nullable().optional(),
-  vitamin_d_ug: z.number().nullable().optional(),
-  vitamin_e_mg: z.number().nullable().optional(),
-  vitamin_k_ug: z.number().nullable().optional(),
-  niacin_mg: z.number().nullable().optional(),
-  folate_ug: z.number().nullable().optional(),
-  pantothenic_acid_mg: z.number().nullable().optional(),
-  biotin_ug: z.number().nullable().optional(),
-
-  // Minerals
-  calcium_mg: z.number().nullable().optional(),
-  iron_mg: z.number().nullable().optional(),
-  magnesium_mg: z.number().nullable().optional(),
-  zinc_mg: z.number().nullable().optional(),
-  potassium_mg: z.number().nullable().optional(),
-  phosphorus_mg: z.number().nullable().optional(),
-  iodine_ug: z.number().nullable().optional(),
-  selenium_ug: z.number().nullable().optional(),
-  copper_mg: z.number().nullable().optional(),
-  manganese_mg: z.number().nullable().optional(),
-  chromium_ug: z.number().nullable().optional(),
-  fluoride_mg: z.number().nullable().optional(),
 
   // Standalone food
   is_standalone_food: z.boolean().default(false),
-  standalone_type: z.string().nullable().optional(),
   ingredient_ref_id: z.number().nullable().optional(),
 
   // Calculated
@@ -367,7 +341,8 @@ export type PaginatedMaterialNames = z.infer<typeof PaginatedMaterialNamesSchema
 export const PortionSuggestionSchema = z.object({
   name: z.string(),
   weight_g: z.number(),
-  measuring_unit_name: z.string(),
+  // Backend PortionSuggestionOut does not send this field; keep optional to avoid parse failures.
+  measuring_unit_name: z.string().optional(),
   rank: z.number().int().default(1),
 });
 export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;

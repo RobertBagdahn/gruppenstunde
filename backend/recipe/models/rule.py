@@ -13,6 +13,9 @@ Evaluation uses a range-based model with four optional thresholds:
 - Both set → value must be in range (e.g. energy)
 """
 
+from itertools import pairwise
+
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -136,6 +139,42 @@ class Rule(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.scope}/{self.parameter})"
+
+    def clean(self) -> None:
+        """Validate that the four thresholds are ordered consistently.
+
+        The ampel only behaves sensibly when, going from low to high values:
+        ``min_yellow ≤ min_green ≤ max_green ≤ max_yellow``. Without this guard an
+        admin can configure thresholds (e.g. only ``min_green`` + ``max_green``)
+        that make ``evaluate()`` produce misleadingly lenient verdicts. Only the
+        thresholds that are actually set are checked, so partial rules (min-only /
+        max-only) remain valid.
+        """
+        super().clean()
+        # Build the ordered chain of the thresholds that are set.
+        ordered = [
+            ("min_yellow", self.min_yellow),
+            ("min_green", self.min_green),
+            ("max_green", self.max_green),
+            ("max_yellow", self.max_yellow),
+        ]
+        present = [(name, val) for name, val in ordered if val is not None]
+        for (prev_name, prev_val), (cur_name, cur_val) in pairwise(present):
+            if prev_val > cur_val:
+                raise ValidationError(
+                    {
+                        cur_name: _(
+                            "Schwellen müssen aufsteigend sein: %(prev)s (%(prev_val)s) "
+                            "darf nicht größer als %(cur)s (%(cur_val)s) sein."
+                        )
+                        % {
+                            "prev": prev_name,
+                            "prev_val": prev_val,
+                            "cur": cur_name,
+                            "cur_val": cur_val,
+                        }
+                    }
+                )
 
     @property
     def min_max(self) -> str:

@@ -3,8 +3,8 @@
 CRUD for breakfast day Tags (content.Tag with group="breakfast_day").
 """
 
-from ninja import Router, Schema
 from django.shortcuts import get_object_or_404
+from ninja import Router, Schema
 
 from content.models import Tag
 from recipe.models import Recipe
@@ -74,6 +74,10 @@ def delete_breakfast_day(request, tag_id: int, force: bool = False):
     tag = get_object_or_404(Tag, id=tag_id, group="breakfast_day")
     recipe_count = Recipe.objects.filter(tags=tag).count()
     if recipe_count > 0 and not force:
-        return {"deleted": False, "recipe_count": recipe_count, "error": f"Tag wird von {recipe_count} Rezept(en) verwendet"}
+        return {
+            "deleted": False,
+            "recipe_count": recipe_count,
+            "error": f"Tag wird von {recipe_count} Rezept(en) verwendet",
+        }
     tag.delete()
     return {"deleted": True, "recipe_count": recipe_count}

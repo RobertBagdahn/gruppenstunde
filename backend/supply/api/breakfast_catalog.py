@@ -9,10 +9,10 @@ Also provides the breakfast-leftovers calculation endpoint.
 import math
 from typing import Any
 
+from django.http import JsonResponse
 from ninja import Router, Schema
 
 from content.models import Tag
-from django.http import JsonResponse
 from recipe.models import Recipe
 from supply.models import Ingredient, Portion
 
@@ -33,8 +33,7 @@ def debug_breakfast_catalog(request):
         qs = Ingredient.objects.filter(tags=base_tag, is_standalone_food=True)
         result["base_count"] = qs.count()
         result["sample_ingredients"] = [
-            {"id": i.id, "name": i.name, "standalone": i.is_standalone_food}
-            for i in qs[:5]
+            {"id": i.id, "name": i.name, "standalone": i.is_standalone_food} for i in qs[:5]
         ]
     return JsonResponse(result)
 
@@ -172,18 +171,22 @@ def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]
     topping_ingredients = []
 
     if base_tag:
-        bases = Ingredient.objects.filter(
-            tags=base_tag, is_standalone_food=True
-        ).order_by("name").prefetch_related("portions")
+        bases = (
+            Ingredient.objects.filter(tags=base_tag, is_standalone_food=True)
+            .order_by("name")
+            .prefetch_related("portions")
+        )
 
         for ing in bases:
             ing_dict = _ingredient_to_dict(ing)
             base_ingredients.append(ing_dict)
 
     if topping_tag:
-        toppings = Ingredient.objects.filter(
-            tags=topping_tag, is_standalone_food=True
-        ).order_by("name").prefetch_related("portions")
+        toppings = (
+            Ingredient.objects.filter(tags=topping_tag, is_standalone_food=True)
+            .order_by("name")
+            .prefetch_related("portions")
+        )
 
         for ing in toppings:
             ing_dict = _ingredient_to_dict(ing)
@@ -202,9 +205,7 @@ def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]
                 pass
 
         # Drink recipes (Kaffee, Kakao, Tee)
-        drinks = Recipe.objects.filter(
-            tags=drink_tag, recipe_type="drink", status="approved"
-        )
+        drinks = Recipe.objects.filter(tags=drink_tag, recipe_type="drink", status="approved")
         # Filter by breakfast day tags if provided
         if parsed_tag_ids:
             for tid in parsed_tag_ids:
@@ -221,9 +222,11 @@ def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]
             for d in drinks
         ]
         # Drink ingredients (Milch, Säfte, Hafermilch)
-        drink_ings = Ingredient.objects.filter(
-            tags=drink_tag, is_standalone_food=True
-        ).order_by("name").prefetch_related("portions")
+        drink_ings = (
+            Ingredient.objects.filter(tags=drink_tag, is_standalone_food=True)
+            .order_by("name")
+            .prefetch_related("portions")
+        )
         for ing in drink_ings:
             ing_dict = _ingredient_to_dict(ing)
             drink_ingredients.append(ing_dict)
@@ -231,9 +234,9 @@ def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]
     warm_tag = Tag.objects.filter(slug="breakfast-warm-meal").first()
     warm_meal_recipes = []
     if warm_tag:
-        warm = Recipe.objects.filter(
-            tags=warm_tag, recipe_type="breakfast", status="approved"
-        ).values("id", "title", "recipe_type", "cached_energy_total_kcal")
+        warm = Recipe.objects.filter(tags=warm_tag, recipe_type="breakfast", status="approved").values(
+            "id", "title", "recipe_type", "cached_energy_total_kcal"
+        )
         warm_meal_recipes = [
             {
                 "id": d["id"],

@@ -30,6 +30,28 @@ const RECIPE_TYPE_GROUPS: Record<string, string> = {
   ingredient: 'Zutat',
 };
 
+/** Category labels/order for breakfast-mode grouping */
+const CATEGORY_LABELS: Record<string, string> = {
+  basis: 'Brot',
+  belag: 'Belag',
+  warm: 'Warme Gerichte',
+  extras: 'Extras',
+  getraenke: 'Getränke',
+};
+
+const CATEGORY_ORDER = ['basis', 'belag', 'warm', 'extras', 'getraenke'] as const;
+
+function getItemCategory(
+  item: Pick<MealItem, 'ingredient_tags' | 'recipe_type' | 'recipe_id'>
+): string {
+  const tags = item.ingredient_tags || [];
+  if (tags.includes('breakfast-base')) return 'basis';
+  if (tags.includes('breakfast-topping')) return 'belag';
+  if (item.recipe_type === 'drink') return 'getraenke';
+  if (item.recipe_id) return 'warm';
+  return 'extras';
+}
+
 export default function RefMealEditorPage() {
   const { id, mealType } = useParams<{ id: string; mealType: string }>();
   const navigate = useNavigate();
@@ -90,6 +112,35 @@ export default function RefMealEditorPage() {
     }, 0);
   }, [refMeal]);
   const energyPercent = targetKcal > 0 ? Math.round((totalEnergyKcal / targetKcal) * 100) : 0;
+
+  // Category grouping (breakfast mode). Hooks must run unconditionally, so these
+  // memoised values live above the early returns below.
+  const drinkCategory = 'getraenke';
+
+  const groupedItems = useMemo(() => {
+    if (!refMeal) return {} as Record<string, MealItem[]>;
+    const groups: Record<string, MealItem[]> = {};
+    for (const item of refMeal.items) {
+      const cat = getItemCategory(item);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item as MealItem);
+    }
+    return groups;
+  }, [refMeal]);
+
+  const foodKcal = useMemo(() => {
+    if (!refMeal) return 0;
+    return refMeal.items
+      .filter((item) => getItemCategory(item) !== drinkCategory)
+      .reduce((sum, item) => sum + (item.energy_kcal || 0), 0);
+  }, [refMeal]);
+
+  const drinkKcal = useMemo(() => {
+    if (!refMeal) return 0;
+    return refMeal.items
+      .filter((item) => getItemCategory(item) === drinkCategory)
+      .reduce((sum, item) => sum + (item.energy_kcal || 0), 0);
+  }, [refMeal]);
 
   // Handlers
   const handleCreateRefMeal = async () => {
@@ -180,53 +231,6 @@ export default function RefMealEditorPage() {
   }
 
   const mealTypeLabel = MEAL_TYPE_LABELS[currentMealType] || currentMealType;
-
-  // Category grouping helpers for breakfast mode
-  const CATEGORY_LABELS: Record<string, string> = {
-    basis: 'Brot',
-    belag: 'Belag',
-    warm: 'Warme Gerichte',
-    extras: 'Extras',
-    getraenke: 'Getränke',
-  };
-
-  const CATEGORY_ORDER = ['basis', 'belag', 'warm', 'extras', 'getraenke'] as const;
-
-  function getItemCategory(item: Pick<MealItem, 'ingredient_tags' | 'recipe_type' | 'recipe_id'>): string {
-    const tags = item.ingredient_tags || [];
-    if (tags.includes('breakfast-base')) return 'basis';
-    if (tags.includes('breakfast-topping')) return 'belag';
-    if (item.recipe_type === 'drink') return 'getraenke';
-    if (item.recipe_id) return 'warm';
-    return 'extras';
-  }
-
-  const groupedItems = useMemo(() => {
-    if (!refMeal) return {} as Record<string, MealItem[]>;
-    const groups: Record<string, MealItem[]> = {};
-    for (const item of refMeal.items) {
-      const cat = getItemCategory(item);
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(item as MealItem);
-    }
-    return groups;
-  }, [refMeal]);
-
-  const drinkCategory = 'getraenke';
-
-  const foodKcal = useMemo(() => {
-    if (!refMeal) return 0;
-    return refMeal.items
-      .filter((item) => getItemCategory(item) !== drinkCategory)
-      .reduce((sum, item) => sum + (item.energy_kcal || 0), 0);
-  }, [refMeal]);
-
-  const drinkKcal = useMemo(() => {
-    if (!refMeal) return 0;
-    return refMeal.items
-      .filter((item) => getItemCategory(item) === drinkCategory)
-      .reduce((sum, item) => sum + (item.energy_kcal || 0), 0);
-  }, [refMeal]);
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">

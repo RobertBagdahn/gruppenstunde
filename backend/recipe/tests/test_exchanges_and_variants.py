@@ -10,11 +10,10 @@ from django.test import Client
 
 from planner.models import MealItem
 from planner.services.variant_service import (
-    compute_variant_cost,
-    compute_variant_energy,
-    compute_variant_contributions,
     _compute_delta,
     _item_total_for_field,
+    compute_variant_cost,
+    compute_variant_energy,
 )
 from planner.tests import make_meal, make_meal_item, make_meal_plan
 from recipe.models import RecipeItem, RecipeItemExchangeGroup
@@ -48,6 +47,7 @@ def _make_portion(ingredient: Ingredient, weight_g: float = 100.0) -> Portion:
 
 def _make_staff_client() -> tuple:
     from django.contrib.auth import get_user_model
+
     User = get_user_model()
     user = User.objects.create_user(username="staff_test", password="pass", is_staff=True)
     client = Client()
@@ -404,6 +404,7 @@ class TestVariantNutrition:
         mi = make_meal_item(meal=meal, recipe=recipe, active_recipe_item_ids=[item_b.id])
 
         from recipe.services.recipe_checks import recalculate_recipe_cache
+
         recalculate_recipe_cache(recipe)
 
         energy = compute_variant_energy(mi)
@@ -438,6 +439,7 @@ class TestVariantNutrition:
         alt.save()
 
         from recipe.services.recipe_checks import recalculate_recipe_cache
+
         recalculate_recipe_cache(recipe)
         recipe.refresh_from_db()
 
@@ -489,6 +491,7 @@ class TestForkCopiesExchangeGroups:
         fork_slug = resp.json()["slug"]
 
         from recipe.models import Recipe as RecipeModel
+
         fork = RecipeModel.objects.get(slug=fork_slug)
         assert fork.id != recipe.id
 

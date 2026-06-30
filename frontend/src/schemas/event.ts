@@ -450,17 +450,6 @@ export const DemographicsStatsSchema = z.object({
 });
 export type DemographicsStats = z.infer<typeof DemographicsStatsSchema>;
 
-export const NutritionalSummarySchema = z.object({
-  tag_name: z.string(),
-  count: z.number(),
-});
-export type NutritionalSummary = z.infer<typeof NutritionalSummarySchema>;
-
-export const NutritionStatsSchema = z.object({
-  nutritional_summary: z.array(NutritionalSummarySchema),
-});
-export type NutritionStats = z.infer<typeof NutritionStatsSchema>;
-
 export const RegistrationTimelinePointSchema = z.object({
   date: z.string(),
   cumulative_count: z.number(),
@@ -471,7 +460,6 @@ export const StatsSchema = z.object({
   capacity: CapacityStatsSchema,
   payment: PaymentStatsSchema,
   demographics: DemographicsStatsSchema,
-  nutrition: NutritionStatsSchema,
   registration_timeline: z.array(RegistrationTimelinePointSchema),
 });
 export type Stats = z.infer<typeof StatsSchema>;

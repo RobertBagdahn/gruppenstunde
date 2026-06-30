@@ -6,7 +6,6 @@ from model_bakery import baker
 from supply.models import Ingredient, MeasuringUnit, Portion
 from supply.utils import build_package_display, build_portion_display, format_weight
 
-
 # ---------------------------------------------------------------------------
 # format_weight
 # ---------------------------------------------------------------------------

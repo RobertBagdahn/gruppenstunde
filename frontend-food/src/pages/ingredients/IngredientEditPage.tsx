@@ -128,7 +128,6 @@ export default function IngredientEditPage() {
 
   // Standalone food
   const [isStandaloneFood, setIsStandaloneFood] = useState(false);
-  const [standaloneType, setStandaloneType] = useState('');
 
   // Price
   const [pricePerKg, setPricePerKg] = useState('');
@@ -184,7 +183,6 @@ export default function IngredientEditPage() {
     setFruitFactor(String(ingredient.fruit_factor ?? ''));
 
     setIsStandaloneFood(ingredient.is_standalone_food ?? false);
-    setStandaloneType(ingredient.standalone_type ?? '');
     setPricePerKg(String(ingredient.price_per_kg ?? ''));
     setVitaminCMg(String(ingredient.vitamin_c_mg ?? ''));
 
@@ -252,7 +250,6 @@ export default function IngredientEditPage() {
       fruit_factor: toNum(fruitFactor),
 
       is_standalone_food: isStandaloneFood,
-      standalone_type: standaloneType || null,
       price_per_kg: toNum(pricePerKg),
       vitamin_c_mg: toNum(vitaminCMg),
 
@@ -372,23 +369,6 @@ export default function IngredientEditPage() {
               </label>
             </Field>
           </div>
-          {isStandaloneFood && (
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Mahlzeittyp bei Rohverzehr">
-                <select value={standaloneType} onChange={(e) => setStandaloneType(e.target.value)} className={inputClass}>
-                  <option value="">Bitte wählen</option>
-                  <option value="breakfast">Frühstück</option>
-                  <option value="warm_meal">Warme Mahlzeit</option>
-                  <option value="cold_meal">Kalte Mahlzeit</option>
-                  <option value="dessert">Nachtisch</option>
-                  <option value="recipe_part">Rezeptteil</option>
-                  <option value="drink">Getränk</option>
-                  <option value="snack">Snack</option>
-                  <option value="ingredient">Zutat</option>
-                </select>
-              </Field>
-            </div>
-          )}
         </FormSection>
 
         {/* Nährwerte */}

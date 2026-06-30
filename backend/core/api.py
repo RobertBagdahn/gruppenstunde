@@ -10,10 +10,9 @@ from django.middleware.csrf import get_token
 from ninja import Query, Router, Schema
 from ninja.errors import HttpError
 
+from core.schemas import PaginatedUserOut, UserSimpleOut
 from profiles.schemas.privacy import DataOverviewSchema, DeleteAccountRequestSchema
 from profiles.services.privacy import PrivacyService
-
-from core.schemas import PaginatedUserOut, UserSimpleOut
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +42,7 @@ class UserOut(Schema):
     first_name: str
     last_name: str
     is_staff: bool
+    is_superuser: bool
 
 
 class MessageOut(Schema):

@@ -638,6 +638,7 @@ class TestRecipeItemPermissions:
     def test_non_owner_cannot_add_item(self, auth_client, db, portion):
         """Non-owner should not be able to add items."""
         from django.contrib.auth import get_user_model
+
         owner = get_user_model().objects.create_user(username="other_owner", password="pass")
         recipe = Recipe.objects.create(title="Test", status=ContentStatus.DRAFT, owner=owner)
         resp = auth_client.post(
@@ -706,7 +707,8 @@ def test_embedding_updates_on_recipe_item_change(db):
     ingredient = Ingredient.objects.create(name="Zutat", slug="zutat")
     unit = MeasuringUnit.objects.create(name="g", quantity=1.0)
     portion, _ = Portion.objects.get_or_create(
-        ingredient=ingredient, name="g",
+        ingredient=ingredient,
+        name="g",
         defaults={"measuring_unit": unit, "quantity": 1, "weight_g": 100, "rank": 1},
     )
 

@@ -477,7 +477,7 @@ def _call_gemini_for_matching(
     recipe_text = f"""Titel: {parsed.title}
 Beschreibung: {parsed.description}
 Portionen: {parsed.servings}
-Zutaten: {', '.join(f'{i.quantity} {i.unit} {i.name}' for i in parsed.ingredients)}
+Zutaten: {", ".join(f"{i.quantity} {i.unit} {i.name}" for i in parsed.ingredients)}
 Schritte: {chr(10).join(parsed.steps[:10])}"""
 
     prompt = f"""Du bist ein Ernährungsexperte. Analysiere dieses Rezept und ordne die Zutaten zu.

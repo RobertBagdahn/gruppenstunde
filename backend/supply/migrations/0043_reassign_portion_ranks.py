@@ -10,41 +10,43 @@ def reassign_portion_ranks(apps, schema_editor):
     2. All other portions → rank=2,3,... sorted by (priority desc, rank asc)
     3. Portion with name='g' → rank=9999
     """
-    Portion = apps.get_model('supply', 'Portion')
-    Ingredient = apps.get_model('supply', 'Ingredient')
-    
+    Portion = apps.get_model("supply", "Portion")
+    Ingredient = apps.get_model("supply", "Ingredient")
+
     for ingredient in Ingredient.objects.all():
-        portions = list(Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by('-priority', 'rank'))
-        
+        portions = list(
+            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("-priority", "rank")
+        )
+
         if not portions:
             continue
-        
+
         # Find the is_default portion (should be at most 1 due to data quality check)
         default_portion = None
         other_portions = []
-        
+
         for portion in portions:
             if portion.is_default:
                 default_portion = portion
             else:
                 other_portions.append(portion)
-        
+
         # Assign ranks
         new_rank = 1
-        
+
         if default_portion:
             default_portion.rank = new_rank
-            default_portion.save(update_fields=['rank'])
+            default_portion.save(update_fields=["rank"])
             new_rank += 1
-        
+
         # Assign ranks to other portions (excluding 'g' which gets 9999 later)
         for portion in other_portions:
-            if portion.name == 'g':
+            if portion.name == "g":
                 portion.rank = 9999
             else:
                 portion.rank = new_rank
                 new_rank += 1
-            portion.save(update_fields=['rank'])
+            portion.save(update_fields=["rank"])
 
 
 def reverse_reassign_portion_ranks(apps, schema_editor):
@@ -55,9 +57,8 @@ def reverse_reassign_portion_ranks(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0042_migrate_breakfast_tags'),
+        ("supply", "0042_migrate_breakfast_tags"),
     ]
 
     operations = [

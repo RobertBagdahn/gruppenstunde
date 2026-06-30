@@ -9,7 +9,6 @@ from model_bakery import baker
 
 from content.models import Tag
 from recipe.models import Recipe
-from supply.tests import make_ingredient
 
 User = get_user_model()
 
@@ -143,9 +142,7 @@ class TestBreakfastDaysDelete:
 class TestBreakfastCatalogTagFilter:
     def test_catalog_drink_filter_by_tag_id(self):
         drink_tag = Tag.objects.create(slug="breakfast-drink", name="breakfast-drink")
-        day_tag = Tag.objects.create(
-            slug="breakfast-day-1", name="Tag 1", group="breakfast_day"
-        )
+        day_tag = Tag.objects.create(slug="breakfast-day-1", name="Tag 1", group="breakfast_day")
         recipe1 = baker.make(Recipe, recipe_type="drink", status="approved")
         recipe1.tags.add(drink_tag)
         recipe1.tags.add(day_tag)

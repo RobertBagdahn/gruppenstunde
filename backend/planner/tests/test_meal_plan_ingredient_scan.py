@@ -258,9 +258,7 @@ class TestMealPlanIngredientScanner:
 
     def test_scanner_detects_ingredient_tags_via_recipe_sync(self):
         from planner.tests import make_meal, make_meal_item
-        from recipe.tests import make_recipe
-        from recipe.tests import make_recipe_item as make_item_helper
-        from recipe.tests import make_recipe_item
+        from recipe.tests import make_recipe, make_recipe_item
         from supply.tests import make_ingredient, make_portion
 
         plan = make_meal_plan()
@@ -279,6 +277,7 @@ class TestMealPlanIngredientScanner:
 
         # Sync should propagate ingredient tags to recipe
         from recipe.services.recipe_checks import sync_recipe_nutritional_tags
+
         sync_recipe_nutritional_tags(recipe)
         recipe.refresh_from_db()
         assert tag_vegan in recipe.nutritional_tags.all()

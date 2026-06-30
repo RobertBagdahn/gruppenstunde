@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   Coffee,
   Utensils,
@@ -286,7 +287,9 @@ export default function TableView({
                                             if (newMeal) {
                                               setSearchDialogMeal(newMeal);
                                             }
-                                          } catch (e) {} finally {
+                                          } catch {
+                                            toast.error('Mahlzeit konnte nicht angelegt werden');
+                                          } finally {
                                             setIsCreatingSlot(null);
                                           }
                                         }}
@@ -302,7 +305,9 @@ export default function TableView({
                                             if (newMeal) {
                                               setSearchDialogMeal(newMeal);
                                             }
-                                          } catch (e) {} finally {
+                                          } catch {
+                                            toast.error('Mahlzeit konnte nicht angelegt werden');
+                                          } finally {
                                             setIsCreatingSlot(null);
                                           }
                                         }}
@@ -319,7 +324,9 @@ export default function TableView({
                                               setEditingNoteMealId(newMeal.id);
                                               setLocalNoteValue('');
                                             }
-                                          } catch (e) {} finally {
+                                          } catch {
+                                            toast.error('Mahlzeit konnte nicht angelegt werden');
+                                          } finally {
                                             setIsCreatingSlot(null);
                                           }
                                         }}
@@ -614,15 +621,16 @@ export default function TableView({
                               <button
                                 onClick={async () => {
                                   setIsCreatingSlot(`${date}_${mealType}_add`);
-                                  try {
-                                    const newMeal = await onAddMealType?.(date, mealType);
-                                    if (newMeal) {
-                                      setSearchDialogMeal(newMeal);
-                                    }
-                                  } catch (e) {
-                                  } finally {
-                                    setIsCreatingSlot(null);
-                                  }
+                                   try {
+                                     const newMeal = await onAddMealType?.(date, mealType);
+                                     if (newMeal) {
+                                       setSearchDialogMeal(newMeal);
+                                     }
+                                   } catch {
+                                     toast.error('Snack konnte nicht angelegt werden');
+                                   } finally {
+                                     setIsCreatingSlot(null);
+                                   }
                                 }}
                                 disabled={isCreatingSlot !== null}
                                 className="text-[10px] font-semibold text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer shadow-none"

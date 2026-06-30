@@ -298,8 +298,7 @@ class FromRecipeIn(Schema):
     portions: int = 1
 
 
-from core.schemas import UserSimpleOut, PaginatedUserOut  # noqa: F401 — re-export for backward compat
-
+from core.schemas import PaginatedUserOut, UserSimpleOut  # noqa: F401 — re-export for backward compat
 
 # --- Pagination ---
 

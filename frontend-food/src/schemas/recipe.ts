@@ -65,6 +65,7 @@ export type RecipeItemExchangeGroup = z.infer<typeof RecipeItemExchangeGroupSche
 export const RecipeListItemSchema = ContentListItemSchema.extend({
   recipe_type: z.string(),
   portions: z.number().nullable(),
+  source_url: z.string().optional().default(''),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),

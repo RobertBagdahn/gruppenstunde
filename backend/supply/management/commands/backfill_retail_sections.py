@@ -51,7 +51,7 @@ class Command(BaseCommand):
                 assigned.append(ing)
                 if dry_run:
                     self.stdout.write(
-                        f"  Geplant: \"{ing.name}\" ({ing.description or 'keine Beschreibung'}) → \"{rs.name}\""
+                        f'  Geplant: "{ing.name}" ({ing.description or "keine Beschreibung"}) → "{rs.name}"'
                     )
             else:
                 no_match_names.append(ing.name)

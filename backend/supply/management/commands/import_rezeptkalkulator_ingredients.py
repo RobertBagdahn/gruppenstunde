@@ -462,8 +462,7 @@ class Command(BaseCommand):
             if matches.exists():
                 match = matches.first()
                 self.stdout.write(
-                    f"  [{i}/{start_at + total}] SKIP '{name}' "
-                    f"(similar: '{match.name}', score={match.similarity:.2f})"
+                    f"  [{i}/{start_at + total}] SKIP '{name}' (similar: '{match.name}', score={match.similarity:.2f})"
                 )
                 skipped += 1
                 continue
@@ -478,7 +477,7 @@ class Command(BaseCommand):
                 ingredient = ai_create_ingredient(name, bypass_limits=True)
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"  [{i}/{start_at + total}] CREATED '{ingredient.name}' " f"(slug={ingredient.slug})"
+                        f"  [{i}/{start_at + total}] CREATED '{ingredient.name}' (slug={ingredient.slug})"
                     )
                 )
                 created += 1

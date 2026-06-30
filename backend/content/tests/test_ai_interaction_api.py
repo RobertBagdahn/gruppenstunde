@@ -5,6 +5,7 @@ Covers:
 - PATCH /api/ai-interactions/{interaction_id}/vote/ (Task 5.4)
 - GET /api/admin/ai-interactions/stats/ (Task 5.5)
 """
+
 import uuid
 
 import pytest

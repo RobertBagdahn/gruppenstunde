@@ -98,9 +98,10 @@ function RecipeCharts() {
 
 
 function CostChart({ type }: { type: 'ingredients' | 'recipes' }) {
-  const { data, isLoading, error } = type === 'ingredients'
-    ? useIngredientCostDistribution()
-    : useRecipeCostDistribution();
+  // Hooks must run unconditionally; select the relevant result by type.
+  const ingredientQuery = useIngredientCostDistribution();
+  const recipeQuery = useRecipeCostDistribution();
+  const { data, isLoading, error } = type === 'ingredients' ? ingredientQuery : recipeQuery;
 
   if (isLoading) return <Loader2 className="animate-spin mx-auto" />;
   if (error || !data?.buckets.length) return <div className="text-muted-foreground text-sm py-8 text-center">Keine Daten</div>;
@@ -120,9 +121,10 @@ function CostChart({ type }: { type: 'ingredients' | 'recipes' }) {
 }
 
 function EnergyChart({ type }: { type: 'ingredients' | 'recipes' }) {
-  const { data, isLoading, error } = type === 'ingredients'
-    ? useIngredientEnergyDistribution()
-    : useRecipeCalorieDistribution();
+  // Hooks must run unconditionally; select the relevant result by type.
+  const ingredientQuery = useIngredientEnergyDistribution();
+  const recipeQuery = useRecipeCalorieDistribution();
+  const { data, isLoading, error } = type === 'ingredients' ? ingredientQuery : recipeQuery;
 
   if (isLoading) return <Loader2 className="animate-spin mx-auto" />;
   if (error || !data?.buckets.length) return <div className="text-muted-foreground text-sm py-8 text-center">Keine Daten</div>;

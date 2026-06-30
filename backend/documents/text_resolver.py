@@ -185,7 +185,7 @@ def generate_ai_text(
         prompt = f"""Du schreibst einen {block_label} für eine Pfadfinder-Anmeldung.
 
 Event: {config.event.name} in {config.event.location}
-Datum: {context['formatted_date_range']}
+Datum: {context["formatted_date_range"]}
 Teilnehmer: {config.participants.type}{theme_line}
 
 Schreibe 3-5 Sätze. Sachlich, freundlich, an Eltern und Pfadfinder gerichtet.
@@ -206,6 +206,6 @@ Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
         return text
 
     except ImportError:
-        raise RuntimeError("KI-Textgenerierung benötigt google-genai. " "Installiere es mit: uv add google-genai")
+        raise RuntimeError("KI-Textgenerierung benötigt google-genai. Installiere es mit: uv add google-genai")
     except Exception as e:
         raise RuntimeError(f"KI-Textgenerierung fehlgeschlagen: {e}") from e

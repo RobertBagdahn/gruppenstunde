@@ -193,20 +193,48 @@ class Command(BaseCommand):
                 if not dry_run:
                     knapp_g, normal_g, uppig_g = portions
                     Portion.objects.get_or_create(
-                        ingredient=ing, name="Belag knapp",
-                        defaults={"measuring_unit": g_unit, "quantity": knapp_g, "weight_g": knapp_g, "is_default": False, "priority": 1},
+                        ingredient=ing,
+                        name="Belag knapp",
+                        defaults={
+                            "measuring_unit": g_unit,
+                            "quantity": knapp_g,
+                            "weight_g": knapp_g,
+                            "is_default": False,
+                            "priority": 1,
+                        },
                     )
                     Portion.objects.get_or_create(
-                        ingredient=ing, name="Belag normal",
-                        defaults={"measuring_unit": g_unit, "quantity": normal_g, "weight_g": normal_g, "is_default": True, "priority": 2},
+                        ingredient=ing,
+                        name="Belag normal",
+                        defaults={
+                            "measuring_unit": g_unit,
+                            "quantity": normal_g,
+                            "weight_g": normal_g,
+                            "is_default": True,
+                            "priority": 2,
+                        },
                     )
                     Portion.objects.get_or_create(
-                        ingredient=ing, name="Belag üppig",
-                        defaults={"measuring_unit": g_unit, "quantity": uppig_g, "weight_g": uppig_g, "is_default": False, "priority": 3},
+                        ingredient=ing,
+                        name="Belag üppig",
+                        defaults={
+                            "measuring_unit": g_unit,
+                            "quantity": uppig_g,
+                            "weight_g": uppig_g,
+                            "is_default": False,
+                            "priority": 3,
+                        },
                     )
                     Portion.objects.get_or_create(
-                        ingredient=ing, name=f"Packung ({package_g}g)",
-                        defaults={"measuring_unit": g_unit, "quantity": package_g, "weight_g": package_g, "is_default": False, "priority": 10},
+                        ingredient=ing,
+                        name=f"Packung ({package_g}g)",
+                        defaults={
+                            "measuring_unit": g_unit,
+                            "quantity": package_g,
+                            "weight_g": package_g,
+                            "is_default": False,
+                            "priority": 10,
+                        },
                     )
 
             except Exception as e:
@@ -239,12 +267,26 @@ class Command(BaseCommand):
 
                 if not dry_run:
                     Portion.objects.get_or_create(
-                        ingredient=ing, name="1 Portion",
-                        defaults={"measuring_unit": ml_unit, "quantity": 200, "weight_g": 200, "is_default": True, "priority": 1},
+                        ingredient=ing,
+                        name="1 Portion",
+                        defaults={
+                            "measuring_unit": ml_unit,
+                            "quantity": 200,
+                            "weight_g": 200,
+                            "is_default": True,
+                            "priority": 1,
+                        },
                     )
                     Portion.objects.get_or_create(
-                        ingredient=ing, name="1 Liter",
-                        defaults={"measuring_unit": ml_unit, "quantity": 1000, "weight_g": 1000, "is_default": False, "priority": 2},
+                        ingredient=ing,
+                        name="1 Liter",
+                        defaults={
+                            "measuring_unit": ml_unit,
+                            "quantity": 1000,
+                            "weight_g": 1000,
+                            "is_default": False,
+                            "priority": 2,
+                        },
                     )
 
             except Exception as e:
@@ -280,11 +322,16 @@ class Command(BaseCommand):
                     recipe.tags.add(drink_tag)
 
                 if not dry_run:
-                    recipe.save(update_fields=[
-                        "cached_energy_total_kcal", "cached_energy_kcal",
-                        "cached_protein_g", "cached_carbohydrate_g",
-                        "cached_fat_g", "cached_sugar_g",
-                    ])
+                    recipe.save(
+                        update_fields=[
+                            "cached_energy_total_kcal",
+                            "cached_energy_kcal",
+                            "cached_protein_g",
+                            "cached_carbohydrate_g",
+                            "cached_fat_g",
+                            "cached_sugar_g",
+                        ]
+                    )
 
                 # Kakao gets RecipeItems (Kakaopulver + Milch)
                 if slug == "kakao" and created and not dry_run:
@@ -292,16 +339,22 @@ class Command(BaseCommand):
                     milch = Ingredient.objects.filter(name="Milch").first()
                     if kakaopulver:
                         portion, _ = Portion.objects.get_or_create(
-                            ingredient=kakaopulver, name="20g",
+                            ingredient=kakaopulver,
+                            name="20g",
                             defaults={"measuring_unit": g_unit, "quantity": 20, "weight_g": 20},
                         )
-                        RecipeItem.objects.create(recipe=recipe, ingredient=kakaopulver, portion=portion, quantity=1, sort_order=0)
+                        RecipeItem.objects.create(
+                            recipe=recipe, ingredient=kakaopulver, portion=portion, quantity=1, sort_order=0
+                        )
                     if milch:
                         portion, _ = Portion.objects.get_or_create(
-                            ingredient=milch, name="200ml",
+                            ingredient=milch,
+                            name="200ml",
                             defaults={"measuring_unit": ml_unit, "quantity": 200, "weight_g": 200},
                         )
-                        RecipeItem.objects.create(recipe=recipe, ingredient=milch, portion=portion, quantity=1, sort_order=1)
+                        RecipeItem.objects.create(
+                            recipe=recipe, ingredient=milch, portion=portion, quantity=1, sort_order=1
+                        )
 
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed drink recipe {title}: {e}"))

@@ -52,7 +52,7 @@ def build_embedding_text(content_obj) -> str:
         if tag_names:
             parts.append("Tags: " + ", ".join(tag_names))
     except Exception:
-        pass
+        logger.warning("Could not include tags in embedding text for content", exc_info=True)
 
     return " ".join(parts)
 
@@ -143,7 +143,7 @@ def build_ingredient_embedding_text(ingredient) -> str:
         if tag_names:
             parts.append("Tags: " + ", ".join(tag_names) + ".")
     except Exception:
-        pass
+        logger.warning("Could not include tags in embedding text for ingredient", exc_info=True)
 
     if ingredient.retail_section:
         parts.append(f"Abteilung: {ingredient.retail_section.name}.")
@@ -184,7 +184,7 @@ def build_recipe_embedding_text(recipe) -> str:
         if tag_names:
             parts.append("Tags: " + ", ".join(tag_names) + ".")
     except Exception:
-        pass
+        logger.warning("Could not include tags in embedding text for recipe", exc_info=True)
 
     # Nutritional summary from cache
     nutr = []
@@ -221,7 +221,7 @@ def build_recipe_embedding_text(recipe) -> str:
                 ingredient_parts.append(ing_text[:150])
             parts.append("Zutaten: " + "; ".join(ingredient_parts) + ".")
     except Exception:
-        pass
+        logger.warning("Could not include ingredients in embedding text for recipe", exc_info=True)
 
     return " ".join(parts)
 

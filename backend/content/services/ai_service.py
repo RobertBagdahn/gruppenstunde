@@ -13,9 +13,9 @@ Features:
 """
 
 import io
-import uuid
 import logging
 import time
+import uuid
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser

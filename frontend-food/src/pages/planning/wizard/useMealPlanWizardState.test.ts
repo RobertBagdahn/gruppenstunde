@@ -192,7 +192,7 @@ describe('step navigation logic', () => {
   it('skips ai-prompt step when strategy is not ai', () => {
     // Simulate goNext from 'strategy' when strategy !== 'ai'
     const strategy: string = 'empty';
-    let stepIndex = WIZARD_STEPS.indexOf('strategy');
+    const stepIndex = WIZARD_STEPS.indexOf('strategy');
     const nextStep = WIZARD_STEPS[stepIndex + 1];
     const resolvedNext = nextStep === 'ai-prompt' && strategy !== 'ai' ? 'cockpit' : nextStep;
     expect(resolvedNext).toBe('cockpit');
@@ -200,7 +200,7 @@ describe('step navigation logic', () => {
 
   it('goes to ai-prompt step when strategy is ai', () => {
     const strategy = 'ai';
-    let stepIndex = WIZARD_STEPS.indexOf('strategy');
+    const stepIndex = WIZARD_STEPS.indexOf('strategy');
     const nextStep = WIZARD_STEPS[stepIndex + 1];
     const resolvedNext = nextStep === 'ai-prompt' && strategy !== 'ai' ? 'cockpit' : nextStep;
     expect(resolvedNext).toBe('ai-prompt');

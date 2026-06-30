@@ -10,6 +10,7 @@ export const UserSchema = z.object({
   first_name: z.string(),
   last_name: z.string(),
   is_staff: z.boolean(),
+  is_superuser: z.boolean(),
 });
 export type User = z.infer<typeof UserSchema>;
 

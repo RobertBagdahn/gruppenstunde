@@ -2,7 +2,10 @@ from django.db import migrations
 
 BREAKFAST_TAGS = {
     "breakfast-base": {"name": "breakfast-base", "description": "Breakfast base ingredients (bread, rolls)"},
-    "breakfast-topping": {"name": "breakfast-topping", "description": "Breakfast topping ingredients (spreads, cheese, meat)"},
+    "breakfast-topping": {
+        "name": "breakfast-topping",
+        "description": "Breakfast topping ingredients (spreads, cheese, meat)",
+    },
     "breakfast-drink": {"name": "breakfast-drink", "description": "Breakfast drink recipes"},
     "breakfast-warm-meal": {"name": "breakfast-warm-meal", "description": "Warm breakfast meal recipes"},
 }
@@ -50,13 +53,12 @@ def migrate_tags_reverse(apps, schema_editor):
         tag = Tag.objects.filter(slug=slug).first()
         if tag:
             Ingredient.objects.filter(tags=tag).exclude(
-                nutritional_tags__name__in=[k for k in TAG_MAP.keys() if TAG_MAP[k] == slug]
+                nutritional_tags__name__in=[k for k in TAG_MAP if TAG_MAP[k] == slug]
             )
             tag.delete()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("supply", "0041_ingredient_tags"),
     ]

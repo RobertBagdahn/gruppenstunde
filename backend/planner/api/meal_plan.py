@@ -20,8 +20,6 @@ from planner.models import (
     MealPlanCollaboratorRole,
     MealPlanVisibility,
 )
-from planner.services.notification_service import notify_collaborator_added
-
 from planner.schemas import (
     CalculateIngredientKcalIn,
     CalculateIngredientKcalOut,
@@ -35,7 +33,6 @@ from planner.schemas import (
     MealItemOverrideIn,
     MealItemOverrideOut,
     MealItemUpdateIn,
-    MealItemVariantIn,
     MealOut,
     MealPlanCollaboratorCreateIn,
     MealPlanCollaboratorOut,
@@ -54,6 +51,7 @@ from planner.schemas import (
     WizardItemsIn,
     WizardItemsOut,
 )
+from planner.services.notification_service import notify_collaborator_added
 from recipe.models import Recipe, RecipeItem
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 
@@ -117,11 +115,13 @@ def raise_if_duplicate_meal_item(meal: Meal, recipe_id: int | None = None, ingre
     if recipe_id:
         if MealItem.objects.filter(meal=meal, recipe_id=recipe_id).exists():
             from recipe.models import Recipe
+
             recipe = Recipe.objects.get(id=recipe_id)
             raise HttpError(422, f"Rezept «{recipe.title}» ist bereits in dieser Mahlzeit enthalten")
     if ingredient_id:
         if MealItem.objects.filter(meal=meal, ingredient_id=ingredient_id).exists():
             from supply.models import Ingredient
+
             ingredient = Ingredient.objects.get(id=ingredient_id)
             raise HttpError(422, f"Zutat «{ingredient.name}» ist bereits in dieser Mahlzeit enthalten")
 
@@ -159,12 +159,14 @@ def check_duplicates_in_input(items: list) -> dict[str, list[int]]:
         if item.recipe_id:
             if item.recipe_id in recipe_ids:
                 from recipe.models import Recipe
+
                 recipe = Recipe.objects.get(id=item.recipe_id)
                 raise HttpError(422, f"Rezept «{recipe.title}» ist mehrfach angegeben")
             recipe_ids.append(item.recipe_id)
         if item.ingredient_id:
             if item.ingredient_id in ingredient_ids:
                 from supply.models import Ingredient
+
                 ingredient = Ingredient.objects.get(id=item.ingredient_id)
                 raise HttpError(422, f"Zutat «{ingredient.name}» ist mehrfach angegeben")
             ingredient_ids.append(item.ingredient_id)
@@ -343,8 +345,9 @@ def get_meal_plan(request, meal_plan_id: int):
         MealPlan.objects.select_related("event", "owner").prefetch_related(
             Prefetch(
                 "meals__items",
-                queryset=MealItem.objects.select_related("recipe", "meal__meal_plan")
-                .prefetch_related("recipe__recipe_items__portion__ingredient"),
+                queryset=MealItem.objects.select_related("recipe", "meal__meal_plan").prefetch_related(
+                    "recipe__recipe_items__portion__ingredient"
+                ),
             ),
             "meals__items__overrides",
             "nutritional_tags",
@@ -533,14 +536,10 @@ def add_day(request, meal_plan_id: int, payload: MealDayBulkCreateIn):
     # Auto-extend range if date is outside current range
     if meal_plan.start_datetime and meal_plan.end_datetime:
         if payload.date < meal_plan.start_datetime.date():
-            meal_plan.start_datetime = dt.datetime.combine(
-                payload.date, dt.time(0, 0)
-            ).replace(tzinfo=dt.timezone.utc)
+            meal_plan.start_datetime = dt.datetime.combine(payload.date, dt.time(0, 0)).replace(tzinfo=dt.UTC)
             meal_plan.save(update_fields=["start_datetime", "updated_at"])
         elif payload.date > meal_plan.end_datetime.date():
-            meal_plan.end_datetime = dt.datetime.combine(
-                payload.date, dt.time(23, 59)
-            ).replace(tzinfo=dt.timezone.utc)
+            meal_plan.end_datetime = dt.datetime.combine(payload.date, dt.time(23, 59)).replace(tzinfo=dt.UTC)
             meal_plan.save(update_fields=["end_datetime", "updated_at"])
 
     meals = meal_plan.create_default_meals_for_date(payload.date)
@@ -772,10 +771,12 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
             # Auto-create Portion if it doesn't exist for this ingredient + measuring_unit
             if ingredient and item_in.measuring_unit_id:
                 from supply.models import MeasuringUnit as MU
+
                 mu = MU.objects.filter(id=item_in.measuring_unit_id).first()
                 if mu and not ingredient.portions.filter(measuring_unit=mu).exists():
                     weight_g = _derive_portion_weight_g(ingredient, mu)
                     from supply.models import Portion as PT
+
                     PT.objects.get_or_create(
                         ingredient=ingredient,
                         measuring_unit=mu,
@@ -832,7 +833,9 @@ def batch_create_meal_items(request, meal_plan_id: int, meal_id: int, payload: M
 
         for variant in payload.items:
             if variant.factor < 0.01:
-                raise HttpError(422, f"Der Faktor muss mindestens 0,01 betragen: {variant.display_name or variant.recipe_id}")
+                raise HttpError(
+                    422, f"Der Faktor muss mindestens 0,01 betragen: {variant.display_name or variant.recipe_id}"
+                )
             item = MealItem.objects.create(
                 meal=meal,
                 recipe=recipe,
@@ -1086,7 +1089,6 @@ def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: l
 @meal_plan_router.get("/{meal_plan_id}/nutrition-summary/", response=NutritionSummaryOut)
 def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     """Get aggregated nutritional values for the entire meal plan, optionally filtered by date."""
-    from planner.models import MealItemOverride
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
 
     _require_auth(request)
@@ -1101,8 +1103,11 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
         meal_items_qs = meal_items_qs.filter(meal__start_datetime__date=date)
     meal_items = list(
         meal_items_qs.select_related(
-            "recipe", "meal", "meal__meal_plan",
-            "ingredient", "measuring_unit",
+            "recipe",
+            "meal",
+            "meal__meal_plan",
+            "ingredient",
+            "measuring_unit",
         ).prefetch_related(
             "recipe__recipe_items__portion__ingredient",
             "ingredient__portions",
@@ -1131,7 +1136,8 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
             if not mi.recipe.portions:
                 logger.warning(
                     "Recipe %s '%s' has portions=0 or None, skipping in nutrition_summary",
-                    mi.recipe.id, mi.recipe.title,
+                    mi.recipe.id,
+                    mi.recipe.title,
                 )
                 continue
             recipe_items = list(mi.recipe.recipe_items.all())
@@ -1157,7 +1163,11 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
                     continue
 
                 # quantity_override replaces the recipe item quantity (same unit: portion count)
-                effective_quantity = float(override.quantity_override) if (override and override.quantity_override is not None) else float(ri.quantity)
+                effective_quantity = (
+                    float(override.quantity_override)
+                    if (override and override.quantity_override is not None)
+                    else float(ri.quantity)
+                )
 
                 ing = ri.portion.ingredient
                 weight_g = effective_quantity * float(ri.portion.weight_g) if ri.portion.weight_g else 0
@@ -1248,7 +1258,8 @@ def cost_summary(request, meal_plan_id: int):
                 if not item.recipe.portions:
                     logger.warning(
                         "Recipe %s '%s' has portions=0 or None, skipping in cost_summary",
-                        item.recipe.id, item.recipe.title,
+                        item.recipe.id,
+                        item.recipe.title,
                     )
                     continue
                 recipe_servings = item.recipe.portions
@@ -1285,7 +1296,11 @@ def cost_summary(request, meal_plan_id: int):
                         continue
 
                     # quantity_override replaces recipe item quantity
-                    effective_quantity = float(override.quantity_override) if (override and override.quantity_override is not None) else float(ri.quantity)
+                    effective_quantity = (
+                        float(override.quantity_override)
+                        if (override and override.quantity_override is not None)
+                        else float(ri.quantity)
+                    )
 
                     total_ingredients += 1
                     recipe_costs[rid]["total_ingredients"] += 1
@@ -2271,11 +2286,7 @@ def get_ingredient_scan(request, meal_plan_id: int):
             for tag_id in tags_to_check:
                 if tag_id in plan_tag_ids:
                     tag = next(
-                        (
-                            t
-                            for t in meal_plan.nutritional_tags.all()
-                            if t.id == tag_id
-                        ),
+                        (t for t in meal_plan.nutritional_tags.all() if t.id == tag_id),
                         None,
                     )
                     if tag:
@@ -2285,7 +2296,9 @@ def get_ingredient_scan(request, meal_plan_id: int):
                                 "meal_type": meal.meal_type,
                                 "date": meal_date,
                                 "recipe_id": item.recipe.id if item.recipe else None,
-                                "recipe_title": item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "Unbekannt"),
+                                "recipe_title": item.recipe.title
+                                if item.recipe
+                                else (item.ingredient.name if item.ingredient else "Unbekannt"),
                                 "recipe_slug": item.recipe.slug if item.recipe else "",
                                 "nutritional_tag": tag,
                                 "source": "recipe_tag" if item.recipe else "ingredient_tag",
@@ -2353,10 +2366,7 @@ def calculate_ingredient_kcal(request, meal_plan_id: int, payload: CalculateIngr
         return {"items": []}
 
     # Fetch all ingredients at once
-    ingredients = {
-        ing.id: ing
-        for ing in Ingredient.objects.filter(id__in=ingredient_ids).only("id", "energy_kcal")
-    }
+    ingredients = {ing.id: ing for ing in Ingredient.objects.filter(id__in=ingredient_ids).only("id", "energy_kcal")}
 
     # Calculate kcal for each item
     result_items = []

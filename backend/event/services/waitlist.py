@@ -5,7 +5,6 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.urls import reverse
 from django.utils import timezone
 
 from event.models import WaitlistEntry

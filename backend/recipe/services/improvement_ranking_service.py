@@ -28,10 +28,10 @@ NOT_APPLICABLE_MESSAGE = (
     "auf die gesamte Mahlzeit angewandt — nicht auf das Einzelrezept."
 )
 NO_NUTRITION_DATA_MESSAGE = (
-    "Keine Nährwertdaten für die Zutaten hinterlegt – sobald " "Nährwerte erfasst sind, erscheinen hier Vorschläge."
+    "Keine Nährwertdaten für die Zutaten hinterlegt – sobald Nährwerte erfasst sind, erscheinen hier Vorschläge."
 )
 NOTHING_ACTIONABLE_MESSAGE = (
-    "Keine konkreten Verbesserungen gefunden – das Rezept liegt " "in allen bewerteten Dimensionen im Rahmen."
+    "Keine konkreten Verbesserungen gefunden – das Rezept liegt in allen bewerteten Dimensionen im Rahmen."
 )
 
 # Nutri-Score class boundaries (per-100g thresholds for a one-class improvement).
