@@ -59,10 +59,10 @@ function buildInitialState(): MealPlanWizardState {
 
   const weekend = getNextWeekend();
   return {
-    ...defaultWizardState,
+    ...defaultWizardState(),
     start_datetime: weekend.friday,
     end_datetime: weekend.sunday,
-  } as MealPlanWizardState;
+  };
 }
 
 export function useMealPlanWizardState() {
@@ -105,10 +105,10 @@ export function useMealPlanWizardState() {
     clearPersistedState();
     const weekend = getNextWeekend();
     setState({
-      ...defaultWizardState,
+      ...defaultWizardState(),
       start_datetime: weekend.friday,
       end_datetime: weekend.sunday,
-    } as MealPlanWizardState);
+    });
     setStep('basics');
     setExtendedVisible(false);
   }, []);
