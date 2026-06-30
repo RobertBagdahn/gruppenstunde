@@ -333,6 +333,9 @@ def _format_natural_portion(count: int | float, name: str) -> str:
 
     Omits "x" for known units (Stück, Scheibe, Packung, etc.)
     and handles leading numbers in portion names (e.g. "1 TL").
+
+    Tolerant matching for Stück-/Verpackungsnamen, auch zusammengesetzte
+    Namen wie "Stück (150g)" oder "Packung (500g)".
     """
     units_without_x = {
         "el",
@@ -370,6 +373,13 @@ def _format_natural_portion(count: int | float, name: str) -> str:
         "scheiben",
     }
 
+    # Regex-Muster für Stück-/Verpackungsnamen, die mit diesen Wörtern beginnen
+    # (inkl. zusammengesetzter Namen wie "Stück (150g)", "Packung (500g)")
+    _piece_name_re = re.compile(
+        r"^(stück|packung|packungen|stk|st\.|dose|dosen|beutel|becher|scheibe|scheiben)\b",
+        re.IGNORECASE,
+    )
+
     count = _clean_float_display(float(count))
 
     match = re.match(r"^(\d+(?:[.,]\d+)?)\s*(.*)$", name.strip())
@@ -381,7 +391,13 @@ def _format_natural_portion(count: int | float, name: str) -> str:
         return f"ca. {multiplied} {rest}" if rest else f"ca. {multiplied}"
 
     first_word = name.split()[0].lower().rstrip(".,")
-    should_omit_x = first_word in units_without_x or name.lower() in units_without_x
+    name_lower = name.lower()
+
+    should_omit_x = (
+        first_word in units_without_x
+        or name_lower in units_without_x
+        or bool(_piece_name_re.match(name_lower))
+    )
 
     if should_omit_x:
         return f"ca. {count} {name}"

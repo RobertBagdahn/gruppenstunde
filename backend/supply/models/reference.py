@@ -13,7 +13,7 @@ class MeasuringUnit(models.Model):
     description = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Beschreibung"))
     quantity = models.FloatField(default=1, verbose_name=_("Umrechnungsfaktor"))
     unit = models.CharField(
-        max_length=2,
+        max_length=3,
         choices=MeasuringUnitType.choices,
         default=MeasuringUnitType.MASS,
         verbose_name=_("Einheit"),

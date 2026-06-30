@@ -26,6 +26,7 @@ class PhysicalViscosityChoices(models.TextChoices):
 class MeasuringUnitType(models.TextChoices):
     VOLUME = "ml", _("Milliliter")
     MASS = "g", _("Gramm")
+    PIECE = "stk", _("Stück")
 
 
 class IngredientStatusChoices(models.TextChoices):

@@ -522,10 +522,14 @@ function PortionsSection({
 
       // Rearrange locally first (optimistic update)
       const newPortions = arrayMove(sortedPortions, oldIndex, newIndex);
-      const orders = newPortions.map((p: Portion, idx: number) => ({
-        id: p.id,
-        rank: idx + 1,
-      }));
+      // Die g-Portion (rank 9999) wird aus der Payload gefiltert — nur nicht-g-Portionen erhalten Ränge 1..N
+      let rankCounter = 1;
+      const orders = newPortions
+        .filter((p: Portion) => p.name !== 'g')
+        .map((p: Portion) => ({
+          id: p.id,
+          rank: rankCounter++,
+        }));
 
       setPortions(newPortions);
 

@@ -49,7 +49,7 @@ def _create_system_portions(ingredient: Ingredient):
     # Packung - rank=3, sortierbar
     mu_packung = MeasuringUnit.objects.filter(name__iexact="Packung").first()
     if not mu_packung:
-        mu_packung = MeasuringUnit.objects.create(name="Packung", quantity=1, unit=MeasuringUnitType.MASS)
+        mu_packung = MeasuringUnit.objects.create(name="Packung", quantity=1, unit=MeasuringUnitType.PIECE)
     Portion.objects.get_or_create(
         ingredient=ingredient,
         name="Packung",
@@ -64,7 +64,7 @@ def _create_system_portions(ingredient: Ingredient):
     # Stück - rank=2, sortierbar
     mu_stueck = MeasuringUnit.objects.filter(name__iexact="Stück").first()
     if not mu_stueck:
-        mu_stueck = MeasuringUnit.objects.create(name="Stück", quantity=1, unit=MeasuringUnitType.MASS)
+        mu_stueck = MeasuringUnit.objects.create(name="Stück", quantity=1, unit=MeasuringUnitType.PIECE)
     Portion.objects.get_or_create(
         ingredient=ingredient,
         name="Stück",
