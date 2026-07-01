@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { EntityLink } from '@/components/shared/EntityLink';
+import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { NutritionContributionPanel, PARAMETER_LABELS } from '@/components/recipe/NutritionContributionPanel';
 import type { RecipeItemNutrition } from '@/schemas/recipe';
 
@@ -196,7 +197,10 @@ export function CollapsibleContributions({ items }: { items: RecipeItemNutrition
 
   return (
     <div>
-      <h3 className="text-sm font-semibold mb-3">Zutaten-Beiträge pro Nährwert</h3>
+      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+        Zutaten-Beiträge pro Portion
+        <NutritionBaseBadge base="per_portion" />
+      </h3>
       <div className="border rounded-lg divide-y">
         {parameters.map((param) => {
           const isOpen = openParam === param;

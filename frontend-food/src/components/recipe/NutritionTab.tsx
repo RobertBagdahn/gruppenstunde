@@ -5,6 +5,7 @@ import {
   CollapsibleContributions,
   NutrientCard,
 } from '@/components/recipe/RecipeDetailHelpers';
+import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { RecipeCategoryBenchmark } from '@/components/recipe/RecipeCategoryBenchmark';
 import RecipeHistogram from '@/components/recipe/RecipeHistogram';
 import { useRecipeTypeStats } from '@/api/recipes';
@@ -23,8 +24,9 @@ export function NutritionTab({ nb, recipeType }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold mb-3">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
           Nährwerte pro 100g
+          <NutritionBaseBadge base="per_100g" />
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <NutrientCard
@@ -80,7 +82,10 @@ export function NutritionTab({ nb, recipeType }: Props) {
       )}
 
       <div>
-        <h3 className="text-sm font-semibold mb-3">Gesamtnährwerte (pro 100g)</h3>
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          Gesamtnährwerte
+          <NutritionBaseBadge base="total" />
+        </h3>
         {(Object.keys(nb.dge_reference).length > 0) && (
           <p className="text-[10px] text-muted-foreground mb-2">
             DGE-Referenzwerte (25 Jahre, männlich)

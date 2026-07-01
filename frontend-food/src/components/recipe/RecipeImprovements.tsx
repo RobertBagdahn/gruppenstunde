@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Info, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { useRecipeImprovements } from '@/api/recipes';
 import type { Improvement, RecipeItemNutrition } from '@/schemas/recipe';
 import HintDetailModal from './HintDetailModal';
@@ -129,6 +130,7 @@ export default function RecipeImprovements({ recipeId, breakdownItems, totalWeig
                     </span>
                     <span className="text-sm font-semibold">{imp.parameter_label}</span>
                     <span className={`text-xs font-medium ${dir.color}`}>{dir.label}</span>
+                    <NutritionBaseBadge base="per_portion" />
                     {imp.source === 'merged' && (
                       <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
                         Doppel-Treffer

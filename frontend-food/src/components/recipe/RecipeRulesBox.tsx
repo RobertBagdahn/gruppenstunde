@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { NutritionBaseBadge } from '@/components/recipe/NutritionBaseBadge';
 import { useRecipeRules } from '@/api/recipes';
 
 interface RecipeRulesBoxProps {
@@ -51,6 +52,7 @@ export default function RecipeRulesBox({ recipeId }: RecipeRulesBoxProps) {
         <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           <span className="material-symbols-outlined text-[18px] text-indigo-500">task_alt</span>
           Rezeptregeln
+          <NutritionBaseBadge base="per_portion" />
         </h2>
         <div className="flex items-center gap-3">
           {/* Zähler-Ampel */}
