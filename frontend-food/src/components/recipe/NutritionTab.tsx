@@ -25,13 +25,13 @@ export function NutritionTab({ nb, recipeType }: Props) {
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-          Nährwerte pro 100g
-          <NutritionBaseBadge base="per_100g" />
+          Inhaltsstoffe
+          <NutritionBaseBadge base="per_portion" />
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <NutrientCard
             label="Kalorien"
-            value={nb.per_100g_energy_kcal ?? 0}
+            value={nb.per_serving_energy_kcal ?? 0}
             unit="kcal"
             icon="local_fire_department"
             color="text-orange-600"
@@ -39,7 +39,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
           />
           <NutrientCard
             label="Protein"
-            value={nb.per_100g_protein_g ?? 0}
+            value={nb.per_serving_protein_g ?? 0}
             unit="g"
             icon="fitness_center"
             color="text-red-600"
@@ -47,7 +47,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
           />
           <NutrientCard
             label="Fett"
-            value={nb.per_100g_fat_g ?? 0}
+            value={nb.per_serving_fat_g ?? 0}
             unit="g"
             icon="water_drop"
             color="text-amber-600"
@@ -55,7 +55,7 @@ export function NutritionTab({ nb, recipeType }: Props) {
           />
           <NutrientCard
             label="Kohlenhydrate"
-            value={nb.per_100g_carbohydrate_g ?? 0}
+            value={nb.per_serving_carbohydrate_g ?? 0}
             unit="g"
             icon="grain"
             color="text-teal-600"
