@@ -147,7 +147,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
           <h3 className="font-display font-semibold text-base">Zusammenfassung</h3>
         </div>
         <div className="divide-y divide-border text-sm">
-          <div className="grid grid-cols-4 px-4 py-2 text-xs text-muted-foreground font-medium">
+          <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 text-xs text-muted-foreground font-medium">
             <span>Position</span>
             <span className="text-right">Menge/P</span>
             <span className="text-right">kcal/P</span>
@@ -162,7 +162,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
             const grams = breadItemGrams(b.sharePercent, basisTotalShare, breadKcal, b.energyKcal100g);
             const kcal = b.energyKcal100g ? (b.energyKcal100g / 100) * grams : 0;
             return (
-              <div key={b.ingredientId} className="grid grid-cols-4 px-4 py-2">
+              <div key={b.ingredientId} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{b.name}</span>
                 <span className="text-right">{gramsRow(grams)}</span>
                 <span className="text-right">{kcalRow(kcal)}</span>
@@ -178,7 +178,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
               return s + (b.energyKcal100g ? (b.energyKcal100g / 100) * g : 0);
             }, 0);
             return (
-              <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
                 <span>Brote gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsBasis)}</span>
                 <span className="text-right">{kcalRow(totalKcalBasis)}</span>
@@ -195,7 +195,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
             const grams = toppingItemGrams(t.sharePercent, toppingTotalShare, toppingKcal, t.energyKcal100g);
             const kcal = t.energyKcal100g ? (t.energyKcal100g / 100) * grams : 0;
             return (
-              <div key={t.ingredientId} className="grid grid-cols-4 px-4 py-2">
+              <div key={t.ingredientId} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{t.name}</span>
                 <span className="text-right">{gramsRow(grams)}</span>
                 <span className="text-right">{kcalRow(kcal)}</span>
@@ -211,7 +211,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
               return s + (t.energyKcal100g ? (t.energyKcal100g / 100) * g : 0);
             }, 0);
             return (
-              <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
                 <span>Belag gesamt</span>
                 <span className="text-right">{gramsRow(totalGramsTopping)}</span>
                 <span className="text-right">{kcalRow(totalKcalTopping)}</span>
@@ -230,7 +230,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
             const name = state.warmDishRecipeNames[String(recipeId)] || recipe?.title;
             const itemKcal = recipe?.cached_energy_kcal ? recipe.cached_energy_kcal * factor : 0;
             return (
-            <div key={`warm-${recipeId}`} className="grid grid-cols-4 px-4 py-2">
+            <div key={`warm-${recipeId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
               <span className="truncate">{name || `Rezept #${recipeId}`}</span>
               <span className="text-right">&times;{factor}</span>
               <span className="text-right">{itemKcal > 0 ? `${Math.round(itemKcal)} kcal` : '—'}</span>
@@ -239,7 +239,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
             );
           })}
           {warmKcal > 0 && state.warmDishRecipeIds.length > 0 && (
-            <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30 text-xs">
               <span>Warme Gerichte gesamt</span>
               <span className="text-right">—</span>
               <span className="text-right">{kcalRow(warmKcal)}</span>
@@ -249,7 +249,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
           {Object.entries(state.extraIngredients)
             .filter(([, g]) => g > 0)
             .map(([ingId, grams]) => (
-              <div key={`extra-${ingId}`} className="grid grid-cols-4 px-4 py-2">
+              <div key={`extra-${ingId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                 <span className="truncate">{state.extraIngredientNames[ingId] ?? `Zutat #${ingId}`}</span>
                 <span className="text-right">{gramsRow(grams)}</span>
                 <span className="text-right text-muted-foreground text-xs">kcal wird geladen…</span>
@@ -258,7 +258,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
             ))}
 
           {/* ── Total (Brot + Belag + Extras) ── */}
-          <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/30">
+          <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/30">
             <span>Gesamt (Brot + Belag + Extras)</span>
             <span className="text-right">—</span>
             <span className="text-right">{kcalRow(totalKcal)}</span>
@@ -277,7 +277,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
                 const name = state.drinkRecipeNames[String(recipeId)] || recipe?.title || `Rezept #${recipeId}`;
                 const kcal = recipe?.cached_energy_kcal ? recipe.cached_energy_kcal * factor : null;
                 return (
-                  <div key={`drink-${recipeId}`} className="grid grid-cols-4 px-4 py-2">
+                  <div key={`drink-${recipeId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
                     <span className="truncate">{name}</span>
                     <span className="text-right">&times;{factor}</span>
                     <span className="text-right">{kcal != null ? Math.round(kcal) : '—'}</span>
@@ -285,7 +285,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
                   </div>
                 );
               })}
-              <div className="grid grid-cols-4 px-4 py-2 font-semibold bg-muted/20">
+              <div className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2 font-semibold bg-muted/20">
                 <span>Getränke gesamt</span>
                 <span className="text-right">—</span>
                 <span className="text-right">{Math.round(drinksKcal)}</span>

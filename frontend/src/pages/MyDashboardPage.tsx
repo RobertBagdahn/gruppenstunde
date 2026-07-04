@@ -300,7 +300,7 @@ function EventRow({ event, badge }: { event: EventList; badge: string }) {
   return (
     <Link
       to="/events/app"
-      className="flex items-center justify-between py-2 text-sm hover:text-primary transition-colors gap-2"
+      className="flex items-center justify-between py-2 text-sm hover:text-primary transition-colors gap-2 min-w-0"
     >
       <span className="truncate font-medium">{event.name}</span>
       <div className="flex items-center gap-2 shrink-0">

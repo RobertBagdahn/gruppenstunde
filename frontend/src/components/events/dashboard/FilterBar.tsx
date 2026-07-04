@@ -170,7 +170,7 @@ export default function FilterBar({
       <div className="flex gap-2">
         {/* Search input */}
         {searchField && (
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
             <span className="material-symbols-outlined text-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               search
             </span>

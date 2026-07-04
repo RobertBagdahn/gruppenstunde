@@ -132,7 +132,7 @@ export default function TitleImageEditor({
                 className="fixed inset-0 z-10"
                 onClick={() => setShowMenu(false)}
               />
-              <div className="absolute right-0 top-12 z-20 min-w-[200px] rounded-xl border bg-card shadow-lg py-1">
+              <div className="absolute right-0 top-12 z-20 min-w-[200px] max-w-[calc(100vw-1rem)] rounded-xl border bg-card shadow-lg py-1">
                 <button
                   type="button"
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-left hover:bg-muted transition"

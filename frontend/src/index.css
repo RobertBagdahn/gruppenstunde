@@ -38,8 +38,10 @@
   }
   html {
     min-width: 320px;
+    overflow-x: hidden;
   }
   body {
+    overflow-x: hidden;
     @apply bg-background text-foreground;
     font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
