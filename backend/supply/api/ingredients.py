@@ -10,11 +10,13 @@ from django.shortcuts import get_object_or_404
 from ninja import Query, Router
 from ninja.errors import HttpError
 
+from content.services.search_service import log_search, log_search_structured
 from recipe.models import Recipe
 from recipe.schemas import PaginatedRecipeOut
 from supply.models import (
     Ingredient,
     IngredientAlias,
+    IngredientGroup,
     MeasuringUnit,
     Portion,
 )
@@ -58,14 +60,26 @@ def list_ingredients(
     status: str = "",
     ordering: str = "",
     nutritional_tag: int | None = None,
+    group: str = "",
 ):
     """List ingredients with pagination, filters, and ordering."""
     from django.db.models import Count, F
 
-    qs = Ingredient.objects.select_related("retail_section").all()
+    qs = (
+        Ingredient.objects.select_related("retail_section")
+        .prefetch_related("groups")
+        .all()
+    )
 
     if name:
-        qs = qs.filter(Q(name__icontains=name) | Q(aliases__name__icontains=name)).distinct()
+        qs = qs.filter(
+            Q(name__icontains=name)
+            | Q(aliases__name__icontains=name)
+            | Q(groups__name__icontains=name)
+        ).distinct()
+
+    if group:
+        qs = qs.filter(groups__slug=group)
 
     if retail_section:
         qs = qs.filter(retail_section_id=retail_section)
@@ -95,6 +109,11 @@ def list_ingredients(
     total_pages = max(1, math.ceil(total / page_size))
     offset = (page - 1) * page_size
     items = list(qs[offset : offset + page_size])
+
+    if name:
+        user = request.user if request.user.is_authenticated else None
+        log_search(name, total, user)
+        log_search_structured(name, total, "ingredient_list", user)
 
     return {
         "items": items,
@@ -160,6 +179,9 @@ def create_ingredient(request, payload: IngredientCreateIn):
     if payload.nutritional_tag_ids:
         ingredient.nutritional_tags.set(payload.nutritional_tag_ids)
 
+    if payload.group_ids:
+        ingredient.groups.set(payload.group_ids)
+
     # Calculate nutri-score if nutritional data is present
     if ingredient.energy_kcal is not None:
         try:
@@ -206,6 +228,7 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
     data = payload.dict(exclude_unset=True)
     tag_ids = data.pop("nutritional_tag_ids", None)
+    group_ids = data.pop("group_ids", None)
 
     for field, value in data.items():
         if field in nutritional_fields:
@@ -217,6 +240,9 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
     if tag_ids is not None:
         ingredient.nutritional_tags.set(tag_ids)
+
+    if group_ids is not None:
+        ingredient.groups.set(group_ids)
 
     if nutri_changed:
         try:

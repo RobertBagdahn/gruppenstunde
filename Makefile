@@ -214,25 +214,23 @@ build-backend: ## Build backend container image
 	gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
 
 build-frontend: ## Build frontend container image
-	BACKEND_URL=$$(gcloud run services describe inspi-backend --region=$(GCP_REGION) --project=$(GCP_PROJECT) --format='value(status.url)' 2>/dev/null); \
 	printf '%s\n' \
 		"steps:" \
 		"  - name: 'gcr.io/cloud-builders/docker'" \
-		"    args: ['build', '-t', '$(FRONTEND_IMAGE):latest', '-f', 'Dockerfile.frontend', '--build-arg', 'VITE_API_URL=$${BACKEND_URL}', '.']" \
+		"    args: ['build', '-t', '$(FRONTEND_IMAGE):latest', '-f', 'Dockerfile.frontend', '.']" \
 		"images:" \
 		"  - '$(FRONTEND_IMAGE):latest'" \
-		> /tmp/cloudbuild-frontend.yaml; \
+		> /tmp/cloudbuild-frontend.yaml
 	gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
 
 build-frontend-food: ## Build food frontend container image
-	BACKEND_URL=$$(gcloud run services describe inspi-backend --region=$(GCP_REGION) --project=$(GCP_PROJECT) --format='value(status.url)' 2>/dev/null); \
 	printf '%s\n' \
 		"steps:" \
 		"  - name: 'gcr.io/cloud-builders/docker'" \
-		"    args: ['build', '-t', '$(FRONTEND_FOOD_IMAGE):latest', '-f', 'Dockerfile.frontend-food', '--build-arg', 'VITE_API_URL=$${BACKEND_URL}', '.']" \
+		"    args: ['build', '-t', '$(FRONTEND_FOOD_IMAGE):latest', '-f', 'Dockerfile.frontend-food', '.']" \
 		"images:" \
 		"  - '$(FRONTEND_FOOD_IMAGE):latest'" \
-		> /tmp/cloudbuild-frontend-food.yaml; \
+		> /tmp/cloudbuild-frontend-food.yaml
 	gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=$(GCP_REGION) --project=$(GCP_PROJECT) .
 
 push-backend: build-backend ## Push backend image to Artifact Registry

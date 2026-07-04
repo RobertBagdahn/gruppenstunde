@@ -19,6 +19,7 @@ from content.base_api import (
 )
 from content.base_schemas import ContentCommentIn, ContentCommentOut, ContentEmotionIn
 from content.schemas import ImageFromUrlIn
+from content.services.search_service import log_search, log_search_structured
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import (
     ForkRecipeIn,
@@ -175,6 +176,10 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
 
     result = paginate_queryset(qs, filters.page, filters.page_size)
     enrich_list_with_permissions(request, result["items"])
+    if filters.q:
+        user = request.user if request.user.is_authenticated else None
+        log_search(filters.q, result["total"], user)
+        log_search_structured(filters.q, result["total"], "recipe_list", user)
     return result
 
 

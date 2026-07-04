@@ -4,7 +4,7 @@ from datetime import datetime
 
 from ninja import Schema
 
-from .reference import NutritionalTagOut
+from .reference import IngredientGroupOut, NutritionalTagOut
 
 
 class IngredientAliasOut(Schema):
@@ -94,12 +94,17 @@ class IngredientListOut(Schema):
     retail_section_name: str | None = None
     quality_score: int | None = None
     usage_count: int = 0
+    groups: list[IngredientGroupOut] = []
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
         if obj.retail_section:
             return obj.retail_section.name
         return None
+
+    @staticmethod
+    def resolve_groups(obj) -> list:
+        return [{"id": g.id, "name": g.name, "slug": g.slug} for g in obj.groups.all()]
 
 
 class IngredientDetailOut(Schema):
@@ -170,6 +175,7 @@ class IngredientDetailOut(Schema):
     nutritional_tags: list[NutritionalTagOut] = []
     portions: list[PortionOut] = []
     aliases: list[IngredientAliasOut] = []
+    groups: list[IngredientGroupOut] = []
 
     created_at: str = ""
     updated_at: str = ""
@@ -216,6 +222,10 @@ class IngredientDetailOut(Schema):
     @staticmethod
     def resolve_aliases(obj) -> list:
         return [{"id": a.id, "name": a.name, "rank": a.rank} for a in obj.aliases.all()]
+
+    @staticmethod
+    def resolve_groups(obj) -> list:
+        return [{"id": g.id, "name": g.name, "slug": g.slug} for g in obj.groups.all()]
 
     @staticmethod
     def resolve_created_at(obj) -> str:
@@ -280,6 +290,7 @@ class IngredientCreateIn(Schema):
     # Relations
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] = []
+    group_ids: list[int] = []
 
 
 class IngredientUpdateIn(Schema):
@@ -328,6 +339,7 @@ class IngredientUpdateIn(Schema):
     price_per_kg: float | None = None
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] | None = None
+    group_ids: list[int] | None = None
     status: str | None = None
     is_standalone_food: bool | None = None
     ingredient_ref_id: int | None = None

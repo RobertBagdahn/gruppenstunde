@@ -16,6 +16,30 @@ from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, Storage
 from .reference import NutritionalTag, RetailSection
 
 
+class IngredientGroup(models.Model):
+    """Simple grouping for ingredients (e.g. 'Nudeln', 'Reis', 'Kartoffeln').
+
+    Groups multiple ingredients under a common term for search purposes —
+    e.g. 'Spaghetti' and 'Fusilli' both in group 'Nudeln'.
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True)
+
+    class Meta:
+        verbose_name = _("Zutaten-Gruppe")
+        verbose_name_plural = _("Zutaten-Gruppen")
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name, allow_unicode=False)
+        super().save(*args, **kwargs)
+
+
 class Ingredient(models.Model):
     """
     Ingredient for recipes (Zutat).
@@ -152,6 +176,12 @@ class Ingredient(models.Model):
         blank=True,
         related_name="ingredients",
         verbose_name=_("Tags"),
+    )
+    groups = models.ManyToManyField(
+        IngredientGroup,
+        blank=True,
+        related_name="ingredients",
+        verbose_name=_("Zutaten-Gruppen"),
     )
     # Standalone food (can be consumed raw without a recipe)
     is_standalone_food = models.BooleanField(

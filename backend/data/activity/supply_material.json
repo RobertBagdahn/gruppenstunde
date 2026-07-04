@@ -1,0 +1,146 @@
+[
+  {
+    "model": "supply.material",
+    "pk": 33,
+    "fields": {
+      "deleted_at": null,
+      "name": "Seil (10m)",
+      "slug": "seil-10m",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:09.655427+00:00",
+      "updated_at": "2026-05-28T07:19:09.655437+00:00",
+      "material_category": "outdoor",
+      "is_consumable": false,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.material",
+    "pk": 34,
+    "fields": {
+      "deleted_at": null,
+      "name": "Schreibpapier",
+      "slug": "schreibpapier",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:09.734233+00:00",
+      "updated_at": "2026-05-28T07:19:09.734243+00:00",
+      "material_category": "stationery",
+      "is_consumable": true,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.material",
+    "pk": 35,
+    "fields": {
+      "deleted_at": null,
+      "name": "Buntstifte",
+      "slug": "buntstifte",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:09.810265+00:00",
+      "updated_at": "2026-05-28T07:19:09.810275+00:00",
+      "material_category": "stationery",
+      "is_consumable": false,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.material",
+    "pk": 36,
+    "fields": {
+      "deleted_at": null,
+      "name": "Taschenlampe",
+      "slug": "taschenlampe",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:09.889254+00:00",
+      "updated_at": "2026-05-28T07:19:09.889263+00:00",
+      "material_category": "outdoor",
+      "is_consumable": false,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.material",
+    "pk": 37,
+    "fields": {
+      "deleted_at": null,
+      "name": "Schere",
+      "slug": "schere",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:10.054179+00:00",
+      "updated_at": "2026-05-28T07:19:10.054189+00:00",
+      "material_category": "tools",
+      "is_consumable": false,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.material",
+    "pk": 38,
+    "fields": {
+      "deleted_at": null,
+      "name": "Klebeband",
+      "slug": "klebeband",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:10.135854+00:00",
+      "updated_at": "2026-05-28T07:19:10.135863+00:00",
+      "material_category": "crafting",
+      "is_consumable": true,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.material",
+    "pk": 39,
+    "fields": {
+      "deleted_at": null,
+      "name": "Kompass",
+      "slug": "kompass",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:10.214325+00:00",
+      "updated_at": "2026-05-28T07:19:10.214347+00:00",
+      "material_category": "outdoor",
+      "is_consumable": false,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.material",
+    "pk": 40,
+    "fields": {
+      "deleted_at": null,
+      "name": "Topografische Karte",
+      "slug": "topografische-karte",
+      "description": "",
+      "image": "",
+      "created_at": "2026-05-28T07:19:10.296355+00:00",
+      "updated_at": "2026-05-28T07:19:10.296364+00:00",
+      "material_category": "outdoor",
+      "is_consumable": false,
+      "purchase_links": [],
+      "created_by_id": null,
+      "updated_by_id": null
+    }
+  }
+]

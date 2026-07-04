@@ -1,0 +1,470 @@
+[
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 29,
+    "fields": {
+      "name": "vegan",
+      "name_opposite": "nicht vegan",
+      "description": "Enthält keine tierischen Produkte",
+      "rank": 1,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:19:11.779727+00:00",
+      "updated_at": "2026-05-28T07:19:11.779739+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 30,
+    "fields": {
+      "name": "vegetarisch",
+      "name_opposite": "nicht vegetarisch",
+      "description": "Enthält kein Fleisch oder Fisch",
+      "rank": 2,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:19:11.843828+00:00",
+      "updated_at": "2026-05-28T07:19:11.843840+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 31,
+    "fields": {
+      "name": "laktosefrei",
+      "name_opposite": "enthält Laktose",
+      "description": "Enthält keine Laktose",
+      "rank": 3,
+      "is_dangerous": true,
+      "created_at": "2026-05-28T07:19:11.907048+00:00",
+      "updated_at": "2026-05-28T07:19:11.907058+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 32,
+    "fields": {
+      "name": "glutenfrei",
+      "name_opposite": "enthält Gluten",
+      "description": "Enthält kein Gluten",
+      "rank": 4,
+      "is_dangerous": true,
+      "created_at": "2026-05-28T07:19:11.969999+00:00",
+      "updated_at": "2026-05-28T07:19:11.970009+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 33,
+    "fields": {
+      "name": "nussfrei",
+      "name_opposite": "enthält Nüsse",
+      "description": "Enthält keine Nüsse",
+      "rank": 5,
+      "is_dangerous": true,
+      "created_at": "2026-05-28T07:19:12.117303+00:00",
+      "updated_at": "2026-05-28T07:19:12.117314+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 34,
+    "fields": {
+      "name": "eifrei",
+      "name_opposite": "enthält Ei",
+      "description": "Enthält kein Hühnerei",
+      "rank": 6,
+      "is_dangerous": true,
+      "created_at": "2026-05-28T07:19:12.182554+00:00",
+      "updated_at": "2026-05-28T07:19:12.182566+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 35,
+    "fields": {
+      "name": "sojafrei",
+      "name_opposite": "enthält Soja",
+      "description": "Enthält kein Soja",
+      "rank": 7,
+      "is_dangerous": true,
+      "created_at": "2026-05-28T07:19:12.245860+00:00",
+      "updated_at": "2026-05-28T07:19:12.245871+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 65,
+    "fields": {
+      "name": "Tierbestandteile (nicht Vegetarisch)",
+      "name_opposite": "Vegetarisch",
+      "description": "Mit Fleisch und Fisch",
+      "rank": 1,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.193493+00:00",
+      "updated_at": "2026-05-28T07:21:12.193513+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 66,
+    "fields": {
+      "name": "Tierische Produkte (nicht Vegan)",
+      "name_opposite": "Vegan",
+      "description": "Mit tierische Produkte",
+      "rank": 2,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.254436+00:00",
+      "updated_at": "2026-05-28T07:21:12.254448+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 67,
+    "fields": {
+      "name": "Gluten (Zöliakie)",
+      "name_opposite": "kein Gluten (Zöliakie)",
+      "description": "Glutenunverträglichkeit, die extrem auf Gluten reagiert",
+      "rank": 3,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.314917+00:00",
+      "updated_at": "2026-05-28T07:21:12.314928+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 68,
+    "fields": {
+      "name": "Laktose",
+      "name_opposite": "keine Laktose",
+      "description": "Laktoseintoleranz",
+      "rank": 4,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.377958+00:00",
+      "updated_at": "2026-05-28T07:21:12.377970+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 69,
+    "fields": {
+      "name": "Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...",
+      "name_opposite": "keine Nüsse, Mandeln, Nußähnliches, Schalenfrüchte",
+      "description": "Nussallergie",
+      "rank": 5,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.439623+00:00",
+      "updated_at": "2026-05-28T07:21:12.439634+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 70,
+    "fields": {
+      "name": "Halal",
+      "name_opposite": "kein Halal",
+      "description": "Entspricht islamischen Speisevorschriften",
+      "rank": 6,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.502750+00:00",
+      "updated_at": "2026-05-28T07:21:12.502762+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 71,
+    "fields": {
+      "name": "Koscher",
+      "name_opposite": "kein Koscher",
+      "description": "Entspricht jüdischen Speisevorschriften",
+      "rank": 7,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.565586+00:00",
+      "updated_at": "2026-05-28T07:21:12.565598+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 72,
+    "fields": {
+      "name": "Gluten (nicht zöliakie)",
+      "name_opposite": "kein Gluten (nicht zöliakie)",
+      "description": "Glutenunverträglichkeit",
+      "rank": 8,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.715712+00:00",
+      "updated_at": "2026-05-28T07:21:12.715723+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 73,
+    "fields": {
+      "name": "Fisch",
+      "name_opposite": "kein Fisch",
+      "description": "Fischallergie",
+      "rank": 9,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.780673+00:00",
+      "updated_at": "2026-05-28T07:21:12.780684+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 74,
+    "fields": {
+      "name": "Soja, Sojaerzeugnisse",
+      "name_opposite": "kein Soja, Sojaerzeugnisse",
+      "description": "Sojaallergie",
+      "rank": 10,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.841249+00:00",
+      "updated_at": "2026-05-28T07:21:12.841261+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 75,
+    "fields": {
+      "name": "Erdnüsse",
+      "name_opposite": "keine Erdnüsse",
+      "description": "Erdnussallergie",
+      "rank": 11,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.903011+00:00",
+      "updated_at": "2026-05-28T07:21:12.903024+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 76,
+    "fields": {
+      "name": "Hülsenfrüchte",
+      "name_opposite": "keine Hülsenfrüchte",
+      "description": "Hülsenfruchtallergie",
+      "rank": 12,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:12.965190+00:00",
+      "updated_at": "2026-05-28T07:21:12.965201+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 77,
+    "fields": {
+      "name": "Fructose",
+      "name_opposite": "keine Fructose",
+      "description": "Fructoseintoleranz",
+      "rank": 13,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.025725+00:00",
+      "updated_at": "2026-05-28T07:21:13.025738+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 78,
+    "fields": {
+      "name": "Histamin",
+      "name_opposite": "kein Histamin",
+      "description": "Histaminintoleranz",
+      "rank": 14,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.086408+00:00",
+      "updated_at": "2026-05-28T07:21:13.086421+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 79,
+    "fields": {
+      "name": "Alkohol",
+      "name_opposite": "kein Alkohol",
+      "description": "Enthält Alkohol",
+      "rank": 15,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.236906+00:00",
+      "updated_at": "2026-05-28T07:21:13.236918+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 80,
+    "fields": {
+      "name": "Scharf",
+      "name_opposite": "kein Scharf",
+      "description": "Scharfes Essen",
+      "rank": 18,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.298900+00:00",
+      "updated_at": "2026-05-28T07:21:13.298913+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 81,
+    "fields": {
+      "name": "Knoblauch",
+      "name_opposite": "kein Knoblauch",
+      "description": "Enthält Knoblauch",
+      "rank": 19,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.360192+00:00",
+      "updated_at": "2026-05-28T07:21:13.360204+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 82,
+    "fields": {
+      "name": "Sellerie, Sellerieerzeugnisse",
+      "name_opposite": "kein Sellerie, Sellerieerzeugnisse",
+      "description": "Sellerieallergie",
+      "rank": 20,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.422631+00:00",
+      "updated_at": "2026-05-28T07:21:13.422642+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 83,
+    "fields": {
+      "name": "Sesam",
+      "name_opposite": "kein Sesam",
+      "description": "Sesamallergie",
+      "rank": 21,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.484871+00:00",
+      "updated_at": "2026-05-28T07:21:13.484886+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 84,
+    "fields": {
+      "name": "Senf",
+      "name_opposite": "kein Senf",
+      "description": "Senfallergie",
+      "rank": 22,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.545746+00:00",
+      "updated_at": "2026-05-28T07:21:13.545759+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 85,
+    "fields": {
+      "name": "Koffeinhaltig",
+      "name_opposite": "kein Koffeinhaltig",
+      "description": "Enthält Koffein",
+      "rank": 23,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.612189+00:00",
+      "updated_at": "2026-05-28T07:21:13.612200+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 86,
+    "fields": {
+      "name": "Weizen",
+      "name_opposite": "kein Weizen",
+      "description": "Weizenallergie",
+      "rank": 24,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.764023+00:00",
+      "updated_at": "2026-05-28T07:21:13.764033+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 87,
+    "fields": {
+      "name": "Roggen",
+      "name_opposite": "kein Roggen",
+      "description": "Roggenallergie",
+      "rank": 25,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.825683+00:00",
+      "updated_at": "2026-05-28T07:21:13.825694+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 88,
+    "fields": {
+      "name": "Gerste",
+      "name_opposite": "keine Gerste",
+      "description": "Gerstenallergie",
+      "rank": 26,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.889487+00:00",
+      "updated_at": "2026-05-28T07:21:13.889497+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 89,
+    "fields": {
+      "name": "Hafer",
+      "name_opposite": "kein Hafer",
+      "description": "Haferallergie",
+      "rank": 27,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:13.950985+00:00",
+      "updated_at": "2026-05-28T07:21:13.950997+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 90,
+    "fields": {
+      "name": "Dinkel",
+      "name_opposite": "kein Dinkel",
+      "description": "Dinkelallergie",
+      "rank": 28,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:14.011746+00:00",
+      "updated_at": "2026-05-28T07:21:14.011757+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 91,
+    "fields": {
+      "name": "Kamut",
+      "name_opposite": "kein Kamut",
+      "description": "Kamutallergie",
+      "rank": 29,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:14.071583+00:00",
+      "updated_at": "2026-05-28T07:21:14.071596+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 92,
+    "fields": {
+      "name": "Schwefeldioxid und Sulfide",
+      "name_opposite": "kein Schwefeldioxid und Sulfide",
+      "description": "Sulfitallergie",
+      "rank": 38,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:14.132630+00:00",
+      "updated_at": "2026-05-28T07:21:14.132642+00:00"
+    }
+  },
+  {
+    "model": "supply.nutritionaltag",
+    "pk": 93,
+    "fields": {
+      "name": "Lupinen",
+      "name_opposite": "keine Lupinen",
+      "description": "Lupinenallergie",
+      "rank": 39,
+      "is_dangerous": false,
+      "created_at": "2026-05-28T07:21:14.271557+00:00",
+      "updated_at": "2026-05-28T07:21:14.271568+00:00"
+    }
+  }
+]

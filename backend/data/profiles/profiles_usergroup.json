@@ -1,0 +1,38 @@
+[
+  {
+    "model": "profiles.usergroup",
+    "pk": 1,
+    "fields": {
+      "name": "Stamm Silberfüchse",
+      "slug": "stamm-silberfuchse",
+      "description": "Ein aktiver Stamm aus Marburg mit 50 Mitgliedern",
+      "is_visible": true,
+      "free_to_join": false,
+      "join_code": "",
+      "created_at": "2026-05-28T07:20:09.327121+00:00",
+      "updated_at": "2026-05-28T07:20:09.327133+00:00",
+      "is_deleted": false,
+      "date_deleted": null,
+      "created_by_id": null,
+      "parent_id": null
+    }
+  },
+  {
+    "model": "profiles.usergroup",
+    "pk": 2,
+    "fields": {
+      "name": "Stamm Waldläufer",
+      "slug": "stamm-waldlaufer",
+      "description": "Pfadfinderstamm aus Gießen",
+      "is_visible": true,
+      "free_to_join": true,
+      "join_code": "",
+      "created_at": "2026-05-28T07:20:09.407791+00:00",
+      "updated_at": "2026-05-28T07:20:09.407802+00:00",
+      "is_deleted": false,
+      "date_deleted": null,
+      "created_by_id": null,
+      "parent_id": null
+    }
+  }
+]

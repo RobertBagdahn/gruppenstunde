@@ -122,6 +122,17 @@ export const RetailSectionInSchema = z.object({
 export type RetailSectionIn = z.infer<typeof RetailSectionInSchema>;
 
 // ---------------------------------------------------------------------------
+// IngredientGroup
+// ---------------------------------------------------------------------------
+
+export const IngredientGroupSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+});
+export type IngredientGroup = z.infer<typeof IngredientGroupSchema>;
+
+// ---------------------------------------------------------------------------
 // Ingredient Alias
 // ---------------------------------------------------------------------------
 
@@ -167,6 +178,7 @@ export const IngredientListItemSchema = z.object({
   retail_section_name: z.string().nullable(),
   quality_score: z.number().int().nullable().optional(),
   usage_count: z.number().int(),
+  groups: z.array(IngredientGroupSchema),
 });
 export type IngredientListItem = z.infer<typeof IngredientListItemSchema>;
 
@@ -234,6 +246,7 @@ export const IngredientDetailSchema = z.object({
   nutritional_tags: z.array(NutritionalTagSchema),
   portions: z.array(PortionSchema),
   aliases: z.array(IngredientAliasSchema),
+  groups: z.array(IngredientGroupSchema),
 
   created_at: z.string(),
   updated_at: z.string(),

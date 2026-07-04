@@ -1,0 +1,1922 @@
+[
+  {
+    "model": "planner.mealitem",
+    "pk": 1,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 1,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 2,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 2,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 3,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 4,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 4,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 3,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 5,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 5,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 6,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 6,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 7,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 8,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 8,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 7,
+      "recipe_id": 53,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 9,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 9,
+      "recipe_id": 52,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 10,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 10,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 11,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 12,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 12,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 11,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 13,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 13,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 14,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 14,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 15,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 16,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 16,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 15,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 17,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 17,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 18,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 18,
+      "recipe_id": 53,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 19,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 20,
+      "recipe_id": 52,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 20,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 19,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 21,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 21,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 22,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 22,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 23,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 24,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 24,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 23,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 25,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 25,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 26,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 26,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 27,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 28,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 28,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 27,
+      "recipe_id": 53,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 29,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 29,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 30,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 30,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 31,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 32,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 32,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 31,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 33,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 33,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 34,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 34,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 35,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 36,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 36,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 35,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 37,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 37,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 38,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 38,
+      "recipe_id": 53,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 39,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 40,
+      "recipe_id": 52,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 40,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 39,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 41,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 41,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 42,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 42,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 43,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 44,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 44,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 43,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 45,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 58,
+      "recipe_id": 407,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 47,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 47,
+      "recipe_id": 390,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 48,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 48,
+      "recipe_id": 406,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 49,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 79,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 50,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 80,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 51,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 81,
+      "recipe_id": 204,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 52,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 83,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 53,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 82,
+      "recipe_id": 137,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 54,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 84,
+      "recipe_id": 49,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 55,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 85,
+      "recipe_id": 220,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 56,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 86,
+      "recipe_id": 424,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 57,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 87,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 58,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 88,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 59,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 90,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 60,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 89,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 61,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 91,
+      "recipe_id": 423,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 62,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 92,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 63,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 93,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 65,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 95,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 66,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 97,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 67,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 96,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 68,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 98,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 69,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 99,
+      "recipe_id": 422,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 70,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 100,
+      "recipe_id": 425,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 71,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 101,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 72,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 102,
+      "recipe_id": 421,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 73,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 104,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 74,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 103,
+      "recipe_id": 137,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 75,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 105,
+      "recipe_id": 49,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 76,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 106,
+      "recipe_id": 204,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 77,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 107,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 78,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 108,
+      "recipe_id": 49,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 79,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 109,
+      "recipe_id": 204,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 80,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 111,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 81,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 110,
+      "recipe_id": 424,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 82,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 112,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 83,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 113,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 84,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 114,
+      "recipe_id": 424,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 85,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 115,
+      "recipe_id": 423,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 86,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 116,
+      "recipe_id": 220,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 87,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 118,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 88,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 117,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 89,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 119,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 90,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 120,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 91,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 121,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 92,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 122,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 93,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 123,
+      "recipe_id": 422,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 94,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 125,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 95,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 124,
+      "recipe_id": 49,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 96,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 126,
+      "recipe_id": 54,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 97,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 127,
+      "recipe_id": 220,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 98,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 128,
+      "recipe_id": 425,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 99,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 129,
+      "recipe_id": 423,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 100,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 130,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 101,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 132,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 102,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 131,
+      "recipe_id": 137,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 103,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 133,
+      "recipe_id": 51,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 104,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 134,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 105,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 135,
+      "recipe_id": 424,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 107,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 137,
+      "recipe_id": 421,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 108,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 139,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 109,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 138,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 110,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 140,
+      "recipe_id": 49,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 111,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 141,
+      "recipe_id": 60,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 112,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 142,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 113,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 143,
+      "recipe_id": 423,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 114,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 144,
+      "recipe_id": 220,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 115,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 146,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 116,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 145,
+      "recipe_id": 57,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 117,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 147,
+      "recipe_id": 49,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 118,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 148,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 119,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 138,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 122,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 155,
+      "recipe_id": 423,
+      "display_name": "Porridge",
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 127,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 58,
+      "recipe_id": 59,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 123,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 155,
+      "recipe_id": 404,
+      "display_name": "Vanilleaufstrich",
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 124,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 155,
+      "recipe_id": 370,
+      "display_name": "Protein-Zwiebelbrötchen",
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 125,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 155,
+      "recipe_id": 347,
+      "display_name": "Erdnussbutter-Bananen Baked Oats",
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 128,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 151,
+      "recipe_id": 55,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 129,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 153,
+      "recipe_id": 58,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 130,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 152,
+      "recipe_id": 394,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 131,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 156,
+      "recipe_id": 56,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 132,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 136,
+      "recipe_id": 107,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 133,
+    "fields": {
+      "factor": 1.0,
+      "meal_id": 158,
+      "recipe_id": 204,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  },
+  {
+    "model": "planner.mealitem",
+    "pk": 64,
+    "fields": {
+      "factor": 2.0,
+      "meal_id": 94,
+      "recipe_id": 49,
+      "display_name": null,
+      "ingredient_id": null,
+      "measuring_unit_id": null,
+      "quantity": null,
+      "active_recipe_item_ids": [],
+      "variant_group_id": null
+    }
+  }
+]

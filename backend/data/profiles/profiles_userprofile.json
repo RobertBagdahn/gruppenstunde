@@ -1,0 +1,135 @@
+[
+  {
+    "model": "profiles.userprofile",
+    "pk": 1,
+    "fields": {
+      "scout_name": "Adler",
+      "first_name": "Pfadfinder1",
+      "last_name": "Nachname1",
+      "gender": "no_answer",
+      "birthday": null,
+      "about_me": "Pfadfinder seit 2015",
+      "profile_picture": "",
+      "is_public": true,
+      "created_at": "2026-05-28T07:20:09.261088+00:00",
+      "updated_at": "2026-05-28T07:20:09.261096+00:00",
+      "user_id": 5,
+      "slug": null,
+      "role": "user"
+    }
+  },
+  {
+    "model": "profiles.userprofile",
+    "pk": 3,
+    "fields": {
+      "scout_name": "Staffi",
+      "first_name": "Staff",
+      "last_name": "User",
+      "gender": "no_answer",
+      "birthday": null,
+      "about_me": "",
+      "profile_picture": "",
+      "is_public": false,
+      "created_at": "2026-05-28T11:19:22.865359+00:00",
+      "updated_at": "2026-05-28T11:19:22.865369+00:00",
+      "user_id": 7,
+      "slug": null,
+      "role": "user"
+    }
+  },
+  {
+    "model": "profiles.userprofile",
+    "pk": 4,
+    "fields": {
+      "scout_name": "Normalo",
+      "first_name": "Normal",
+      "last_name": "User",
+      "gender": "no_answer",
+      "birthday": null,
+      "about_me": "",
+      "profile_picture": "",
+      "is_public": false,
+      "created_at": "2026-05-28T11:19:23.102898+00:00",
+      "updated_at": "2026-05-28T11:19:23.102909+00:00",
+      "user_id": 8,
+      "slug": null,
+      "role": "user"
+    }
+  },
+  {
+    "model": "profiles.userprofile",
+    "pk": 5,
+    "fields": {
+      "scout_name": "Autor",
+      "first_name": "Author",
+      "last_name": "Eins",
+      "gender": "no_answer",
+      "birthday": null,
+      "about_me": "",
+      "profile_picture": "",
+      "is_public": false,
+      "created_at": "2026-05-28T11:19:23.393715+00:00",
+      "updated_at": "2026-05-28T11:19:23.393726+00:00",
+      "user_id": 9,
+      "slug": null,
+      "role": "user"
+    }
+  },
+  {
+    "model": "profiles.userprofile",
+    "pk": 6,
+    "fields": {
+      "scout_name": "Robert",
+      "first_name": "Robert",
+      "last_name": "Bagdahn",
+      "gender": "no_answer",
+      "birthday": null,
+      "about_me": "",
+      "profile_picture": "",
+      "is_public": false,
+      "created_at": "2026-05-28T11:19:23.636395+00:00",
+      "updated_at": "2026-05-28T11:19:23.636405+00:00",
+      "user_id": 10,
+      "slug": null,
+      "role": "user"
+    }
+  },
+  {
+    "model": "profiles.userprofile",
+    "pk": 7,
+    "fields": {
+      "scout_name": "Peter",
+      "first_name": "Peter",
+      "last_name": "Peter",
+      "gender": "no_answer",
+      "birthday": null,
+      "about_me": "",
+      "profile_picture": "",
+      "is_public": false,
+      "created_at": "2026-05-28T11:19:23.915472+00:00",
+      "updated_at": "2026-05-28T11:19:23.915482+00:00",
+      "user_id": 11,
+      "slug": null,
+      "role": "user"
+    }
+  },
+  {
+    "model": "profiles.userprofile",
+    "pk": 2,
+    "fields": {
+      "scout_name": "Admin",
+      "first_name": "Admin",
+      "last_name": "User",
+      "gender": "male",
+      "birthday": "1988-07-28",
+      "about_me": "",
+      "profile_picture": "",
+      "is_public": true,
+      "created_at": "2026-05-28T11:19:22.608055+00:00",
+      "updated_at": "2026-06-23T15:09:06.774812+00:00",
+      "user_id": 6,
+      "slug": null,
+      "role": "user"
+    }
+  }
+]

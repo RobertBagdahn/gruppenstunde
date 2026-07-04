@@ -69,6 +69,14 @@ class RetailSectionUpdateIn(Schema):
     rank: int | None = None
 
 
+class IngredientGroupOut(Schema):
+    """Output schema for an ingredient group."""
+
+    id: int
+    name: str
+    slug: str
+
+
 class DgeReferenceOut(Schema):
     """Output schema for a DGE reference value entry."""
 

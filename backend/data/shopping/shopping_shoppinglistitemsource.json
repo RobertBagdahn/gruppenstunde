@@ -1,0 +1,1822 @@
+[
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 1,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 1
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 2,
+    "fields": {
+      "quantity_g": 3.3000000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 2
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 3,
+    "fields": {
+      "quantity_g": 660.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 3
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 4,
+    "fields": {
+      "quantity_g": 6.6000000000000005,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 4
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 5,
+    "fields": {
+      "quantity_g": 330.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 5
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 6,
+    "fields": {
+      "quantity_g": 3960.0000000000005,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 6
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 7,
+    "fields": {
+      "quantity_g": 264.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 7
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 8,
+    "fields": {
+      "quantity_g": 52800.00000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 8
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 9,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 9
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 10,
+    "fields": {
+      "quantity_g": 550.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 10
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 11,
+    "fields": {
+      "quantity_g": 550.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 11
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 12,
+    "fields": {
+      "quantity_g": 550.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 12
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 13,
+    "fields": {
+      "quantity_g": 1320.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 13
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 14,
+    "fields": {
+      "quantity_g": 660.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 14
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 15,
+    "fields": {
+      "quantity_g": 880.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 15
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 16,
+    "fields": {
+      "quantity_g": 264.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 16
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 17,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 17
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 18,
+    "fields": {
+      "quantity_g": 528.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 18
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 19,
+    "fields": {
+      "quantity_g": 990.0000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 19
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 20,
+    "fields": {
+      "quantity_g": 528.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 20
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 21,
+    "fields": {
+      "quantity_g": 528.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 21
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 22,
+    "fields": {
+      "quantity_g": 220.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 22
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 23,
+    "fields": {
+      "quantity_g": 2.2,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 23
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 24,
+    "fields": {
+      "quantity_g": 33000.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 24
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 25,
+    "fields": {
+      "quantity_g": 7920.000000000001,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 25
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 26,
+    "fields": {
+      "quantity_g": 6.6000000000000005,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 26
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 27,
+    "fields": {
+      "quantity_g": 1320.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 27
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 28,
+    "fields": {
+      "quantity_g": 2.2,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 28
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 29,
+    "fields": {
+      "quantity_g": 2.2,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 29
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 30,
+    "fields": {
+      "quantity_g": 3.3000000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 29
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 31,
+    "fields": {
+      "quantity_g": 3.3000000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 30
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 32,
+    "fields": {
+      "quantity_g": 330.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 31
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 33,
+    "fields": {
+      "quantity_g": 1320.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 32
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 34,
+    "fields": {
+      "quantity_g": 66000.0,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 33
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 35,
+    "fields": {
+      "quantity_g": 2.2,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 34
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 36,
+    "fields": {
+      "quantity_g": 1100.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 35
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 37,
+    "fields": {
+      "quantity_g": 550.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 36
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 38,
+    "fields": {
+      "quantity_g": 3.3000000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 37
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 39,
+    "fields": {
+      "quantity_g": 3.3000000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 38
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 40,
+    "fields": {
+      "quantity_g": 22000.000000000004,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 39
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 41,
+    "fields": {
+      "quantity_g": 99000.00000000001,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 40
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 42,
+    "fields": {
+      "quantity_g": 66000.0,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 41
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 43,
+    "fields": {
+      "quantity_g": 550.0,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 42
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 44,
+    "fields": {
+      "quantity_g": 990.0000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 43
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 45,
+    "fields": {
+      "quantity_g": 3.3000000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 44
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 46,
+    "fields": {
+      "quantity_g": 1320.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 45
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 47,
+    "fields": {
+      "quantity_g": 1320.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 46
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 48,
+    "fields": {
+      "quantity_g": 39600.0,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 47
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 49,
+    "fields": {
+      "quantity_g": 231.00000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 48
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 50,
+    "fields": {
+      "quantity_g": 9.9,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 49
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 51,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 50
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 52,
+    "fields": {
+      "quantity_g": 6.6000000000000005,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 51
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 53,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 51
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 54,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 52
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 55,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 53
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 56,
+    "fields": {
+      "quantity_g": 990.0000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 54
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 57,
+    "fields": {
+      "quantity_g": 66.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 55
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 58,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 56
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 59,
+    "fields": {
+      "quantity_g": 1.6500000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 57
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 60,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 58
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 61,
+    "fields": {
+      "quantity_g": 528.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 59
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 62,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 60
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 63,
+    "fields": {
+      "quantity_g": 91.66666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 61
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 64,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 62
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 65,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 63
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 66,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 64
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 67,
+    "fields": {
+      "quantity_g": 3.3000000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 65
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 68,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 66
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 69,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 67
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 70,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 68
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 71,
+    "fields": {
+      "quantity_g": 528.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 69
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 72,
+    "fields": {
+      "quantity_g": 528.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 70
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 73,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 71
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 74,
+    "fields": {
+      "quantity_g": 528.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 72
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 75,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 73
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 76,
+    "fields": {
+      "quantity_g": 82.5,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 74
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 77,
+    "fields": {
+      "quantity_g": 7920.000000000001,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 75
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 78,
+    "fields": {
+      "quantity_g": 1.6500000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 76
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 79,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 77
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 80,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 78
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 81,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 79
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 82,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 80
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 83,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 81
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 84,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 81
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 85,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 82
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 86,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 83
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 87,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 84
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 88,
+    "fields": {
+      "quantity_g": 66000.0,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 85
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 89,
+    "fields": {
+      "quantity_g": 0.3666666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 86
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 90,
+    "fields": {
+      "quantity_g": 183.33333333333334,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 87
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 91,
+    "fields": {
+      "quantity_g": 247.50000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 88
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 92,
+    "fields": {
+      "quantity_g": 4.125,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 89
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 93,
+    "fields": {
+      "quantity_g": 0.8250000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 90
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 94,
+    "fields": {
+      "quantity_g": 36.66666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 91
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 95,
+    "fields": {
+      "quantity_g": 99000.00000000001,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 92
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 96,
+    "fields": {
+      "quantity_g": 66000.0,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 93
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 97,
+    "fields": {
+      "quantity_g": 91.66666666666667,
+      "recipe_name": "Peters Weltbester Nudelsalat",
+      "meal_label": "2026-05-29 – Mittagessen",
+      "recipe_slug": "peters-weltbester-nudelsalat-1",
+      "meal_id": null,
+      "recipe_id": 407,
+      "shopping_list_item_id": 94
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 98,
+    "fields": {
+      "quantity_g": 247.50000000000003,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 95
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 99,
+    "fields": {
+      "quantity_g": 330.0,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 96
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 100,
+    "fields": {
+      "quantity_g": 1320.0,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 97
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 101,
+    "fields": {
+      "quantity_g": 39600.0,
+      "recipe_name": "Overnight Oats",
+      "meal_label": "2026-05-29 – Frühstück",
+      "recipe_slug": "overnight-oats",
+      "meal_id": null,
+      "recipe_id": 54,
+      "shopping_list_item_id": 98
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 102,
+    "fields": {
+      "quantity_g": 57.75000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 99
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 103,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 100
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 104,
+    "fields": {
+      "quantity_g": 1.6500000000000001,
+      "recipe_name": "Vegane Bolognese",
+      "meal_label": "2026-05-29 – Abendessen",
+      "recipe_slug": "vegane-bolognese-1",
+      "meal_id": null,
+      "recipe_id": 390,
+      "shopping_list_item_id": 101
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 105,
+    "fields": {
+      "quantity_g": 13.200000000000001,
+      "recipe_name": "Mediterraner Nudelsalat, vegan",
+      "meal_label": "2026-05-29 – Snack",
+      "recipe_slug": "mediterraner-nudelsalat-vegan-1",
+      "meal_id": null,
+      "recipe_id": 406,
+      "shopping_list_item_id": 101
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 106,
+    "fields": {
+      "quantity_g": 110000.0,
+      "recipe_name": "Käsebrot-Platte",
+      "meal_label": "2026-10-23 – Abendessen",
+      "recipe_slug": "kasebrot-platte",
+      "meal_id": null,
+      "recipe_id": 58,
+      "shopping_list_item_id": 102
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 107,
+    "fields": {
+      "quantity_g": 1650.0,
+      "recipe_name": "Brotzeit",
+      "meal_label": "2026-10-24 – Abendessen",
+      "recipe_slug": "brotzeit",
+      "meal_id": null,
+      "recipe_id": 424,
+      "shopping_list_item_id": 102
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 108,
+    "fields": {
+      "quantity_g": 3235.216470588236,
+      "recipe_name": "Pfannkuchen",
+      "meal_label": "2026-10-24 – Frühstück",
+      "recipe_slug": "pfannkuchen",
+      "meal_id": null,
+      "recipe_id": 49,
+      "shopping_list_item_id": 103
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 109,
+    "fields": {
+      "quantity_g": 155.2903905882353,
+      "recipe_name": "Pfannkuchen",
+      "meal_label": "2026-10-24 – Frühstück",
+      "recipe_slug": "pfannkuchen",
+      "meal_id": null,
+      "recipe_id": 49,
+      "shopping_list_item_id": 104
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 110,
+    "fields": {
+      "quantity_g": 1320.0,
+      "recipe_name": "Obstsalat",
+      "meal_label": "2026-10-24 – Snack",
+      "recipe_slug": "obstsalat",
+      "meal_id": null,
+      "recipe_id": 56,
+      "shopping_list_item_id": 104
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 111,
+    "fields": {
+      "quantity_g": 1100.0,
+      "recipe_name": "Brotzeit",
+      "meal_label": "2026-10-24 – Abendessen",
+      "recipe_slug": "brotzeit",
+      "meal_id": null,
+      "recipe_id": 424,
+      "shopping_list_item_id": 105
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 112,
+    "fields": {
+      "quantity_g": 880.0,
+      "recipe_name": "Nudelauflauf mit Käse",
+      "meal_label": "2026-10-25 – Mittagessen",
+      "recipe_slug": "nudelauflauf-mit-kase",
+      "meal_id": null,
+      "recipe_id": 57,
+      "shopping_list_item_id": 106
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 113,
+    "fields": {
+      "quantity_g": 1100.0,
+      "recipe_name": "Brotzeit",
+      "meal_label": "2026-10-24 – Abendessen",
+      "recipe_slug": "brotzeit",
+      "meal_id": null,
+      "recipe_id": 424,
+      "shopping_list_item_id": 107
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 114,
+    "fields": {
+      "quantity_g": 22000.0,
+      "recipe_name": "Käsebrot-Platte",
+      "meal_label": "2026-10-23 – Abendessen",
+      "recipe_slug": "kasebrot-platte",
+      "meal_id": null,
+      "recipe_id": 58,
+      "shopping_list_item_id": 108
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 115,
+    "fields": {
+      "quantity_g": 132000.0,
+      "recipe_name": "Nudelauflauf mit Käse",
+      "meal_label": "2026-10-25 – Mittagessen",
+      "recipe_slug": "nudelauflauf-mit-kase",
+      "meal_id": null,
+      "recipe_id": 57,
+      "shopping_list_item_id": 109
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 116,
+    "fields": {
+      "quantity_g": 308.0,
+      "recipe_name": "Nudeln mit Tomatensoße",
+      "meal_label": "2026-10-24 – Mittagessen",
+      "recipe_slug": "nudeln-mit-tomatensoe-1",
+      "meal_id": null,
+      "recipe_id": 204,
+      "shopping_list_item_id": 110
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 117,
+    "fields": {
+      "quantity_g": 17600.0,
+      "recipe_name": "Nudelauflauf mit Käse",
+      "meal_label": "2026-10-25 – Mittagessen",
+      "recipe_slug": "nudelauflauf-mit-kase",
+      "meal_id": null,
+      "recipe_id": 57,
+      "shopping_list_item_id": 110
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 118,
+    "fields": {
+      "quantity_g": 4400.0,
+      "recipe_name": "Obstsalat",
+      "meal_label": "2026-10-24 – Snack",
+      "recipe_slug": "obstsalat",
+      "meal_id": null,
+      "recipe_id": 56,
+      "shopping_list_item_id": 111
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 119,
+    "fields": {
+      "quantity_g": 6600.0,
+      "recipe_name": "Müsli mit frischem Obst",
+      "meal_label": "2026-10-25 – Frühstück",
+      "recipe_slug": "musli-mit-frischem-obst",
+      "meal_id": null,
+      "recipe_id": 51,
+      "shopping_list_item_id": 111
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 120,
+    "fields": {
+      "quantity_g": 3.3,
+      "recipe_name": "Nudeln mit Tomatensoße",
+      "meal_label": "2026-10-24 – Mittagessen",
+      "recipe_slug": "nudeln-mit-tomatensoe-1",
+      "meal_id": null,
+      "recipe_id": 204,
+      "shopping_list_item_id": 112
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 121,
+    "fields": {
+      "quantity_g": 11.0,
+      "recipe_name": "Nudeln mit Tomatensoße",
+      "meal_label": "2026-10-24 – Mittagessen",
+      "recipe_slug": "nudeln-mit-tomatensoe-1",
+      "meal_id": null,
+      "recipe_id": 204,
+      "shopping_list_item_id": 113
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 122,
+    "fields": {
+      "quantity_g": 9.705649411764707,
+      "recipe_name": "Pfannkuchen",
+      "meal_label": "2026-10-24 – Frühstück",
+      "recipe_slug": "pfannkuchen",
+      "meal_id": null,
+      "recipe_id": 49,
+      "shopping_list_item_id": 114
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 123,
+    "fields": {
+      "quantity_g": 550.0,
+      "recipe_name": "Nudelauflauf mit Käse",
+      "meal_label": "2026-10-25 – Mittagessen",
+      "recipe_slug": "nudelauflauf-mit-kase",
+      "meal_id": null,
+      "recipe_id": 57,
+      "shopping_list_item_id": 114
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 124,
+    "fields": {
+      "quantity_g": 1876.4255529411766,
+      "recipe_name": "Pfannkuchen",
+      "meal_label": "2026-10-24 – Frühstück",
+      "recipe_slug": "pfannkuchen",
+      "meal_id": null,
+      "recipe_id": 49,
+      "shopping_list_item_id": 115
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 125,
+    "fields": {
+      "quantity_g": 55000.0,
+      "recipe_name": "Müsli mit frischem Obst",
+      "meal_label": "2026-10-25 – Frühstück",
+      "recipe_slug": "musli-mit-frischem-obst",
+      "meal_id": null,
+      "recipe_id": 51,
+      "shopping_list_item_id": 116
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 126,
+    "fields": {
+      "quantity_g": 165000.0,
+      "recipe_name": "Nudelauflauf mit Käse",
+      "meal_label": "2026-10-25 – Mittagessen",
+      "recipe_slug": "nudelauflauf-mit-kase",
+      "meal_id": null,
+      "recipe_id": 57,
+      "shopping_list_item_id": 117
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 127,
+    "fields": {
+      "quantity_g": 26.400000000000006,
+      "recipe_name": "Nudeln mit Tomatensoße",
+      "meal_label": "2026-10-24 – Mittagessen",
+      "recipe_slug": "nudeln-mit-tomatensoe-1",
+      "meal_id": null,
+      "recipe_id": 204,
+      "shopping_list_item_id": 118
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 128,
+    "fields": {
+      "quantity_g": 2420.0000000000005,
+      "recipe_name": "Nudelauflauf mit Käse",
+      "meal_label": "2026-10-25 – Mittagessen",
+      "recipe_slug": "nudelauflauf-mit-kase",
+      "meal_id": null,
+      "recipe_id": 57,
+      "shopping_list_item_id": 118
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 129,
+    "fields": {
+      "quantity_g": 1650.0,
+      "recipe_name": "Nudeln mit Tomatensoße",
+      "meal_label": "2026-10-24 – Mittagessen",
+      "recipe_slug": "nudeln-mit-tomatensoe-1",
+      "meal_id": null,
+      "recipe_id": 204,
+      "shopping_list_item_id": 119
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 130,
+    "fields": {
+      "quantity_g": 13750.0,
+      "recipe_name": "Käsebrot-Platte",
+      "meal_label": "2026-10-23 – Abendessen",
+      "recipe_slug": "kasebrot-platte",
+      "meal_id": null,
+      "recipe_id": 58,
+      "shopping_list_item_id": 120
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 131,
+    "fields": {
+      "quantity_g": 323.51,
+      "recipe_name": "Pfannkuchen",
+      "meal_label": "2026-10-24 – Frühstück",
+      "recipe_slug": "pfannkuchen",
+      "meal_id": null,
+      "recipe_id": 49,
+      "shopping_list_item_id": 120
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 132,
+    "fields": {
+      "quantity_g": 110.0,
+      "recipe_name": "Brotzeit",
+      "meal_label": "2026-10-24 – Abendessen",
+      "recipe_slug": "brotzeit",
+      "meal_id": null,
+      "recipe_id": 424,
+      "shopping_list_item_id": 120
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 133,
+    "fields": {
+      "quantity_g": 55000.0,
+      "recipe_name": "Käsebrot-Platte",
+      "meal_label": "2026-10-23 – Abendessen",
+      "recipe_slug": "kasebrot-platte",
+      "meal_id": null,
+      "recipe_id": 58,
+      "shopping_list_item_id": 121
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 134,
+    "fields": {
+      "quantity_g": 550.0,
+      "recipe_name": "Brotzeit",
+      "meal_label": "2026-10-24 – Abendessen",
+      "recipe_slug": "brotzeit",
+      "meal_id": null,
+      "recipe_id": 424,
+      "shopping_list_item_id": 121
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 135,
+    "fields": {
+      "quantity_g": 44000.0,
+      "recipe_name": "Nudelauflauf mit Käse",
+      "meal_label": "2026-10-25 – Mittagessen",
+      "recipe_slug": "nudelauflauf-mit-kase",
+      "meal_id": null,
+      "recipe_id": 57,
+      "shopping_list_item_id": 121
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 136,
+    "fields": {
+      "quantity_g": 4852.824705882354,
+      "recipe_name": "Pfannkuchen",
+      "meal_label": "2026-10-24 – Frühstück",
+      "recipe_slug": "pfannkuchen",
+      "meal_id": null,
+      "recipe_id": 49,
+      "shopping_list_item_id": 122
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 137,
+    "fields": {
+      "quantity_g": 110000.0,
+      "recipe_name": "Müsli mit frischem Obst",
+      "meal_label": "2026-10-25 – Frühstück",
+      "recipe_slug": "musli-mit-frischem-obst",
+      "meal_id": null,
+      "recipe_id": 51,
+      "shopping_list_item_id": 122
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 138,
+    "fields": {
+      "quantity_g": 1430.0,
+      "recipe_name": "Nudeln mit Tomatensoße",
+      "meal_label": "2026-10-24 – Mittagessen",
+      "recipe_slug": "nudeln-mit-tomatensoe-1",
+      "meal_id": null,
+      "recipe_id": 204,
+      "shopping_list_item_id": 123
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 139,
+    "fields": {
+      "quantity_g": 66000.0,
+      "recipe_name": "Obstsalat",
+      "meal_label": "2026-10-24 – Snack",
+      "recipe_slug": "obstsalat",
+      "meal_id": null,
+      "recipe_id": 56,
+      "shopping_list_item_id": 124
+    }
+  },
+  {
+    "model": "shopping.shoppinglistitemsource",
+    "pk": 140,
+    "fields": {
+      "quantity_g": 49500.0,
+      "recipe_name": "Müsli mit frischem Obst",
+      "meal_label": "2026-10-25 – Frühstück",
+      "recipe_slug": "musli-mit-frischem-obst",
+      "meal_id": null,
+      "recipe_id": 51,
+      "shopping_list_item_id": 124
+    }
+  }
+]

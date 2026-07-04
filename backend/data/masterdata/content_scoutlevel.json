@@ -1,0 +1,38 @@
+[
+  {
+    "model": "content.scoutlevel",
+    "pk": 17,
+    "fields": {
+      "name": "Wölflinge",
+      "sorting": 1,
+      "icon": "pets"
+    }
+  },
+  {
+    "model": "content.scoutlevel",
+    "pk": 18,
+    "fields": {
+      "name": "Jungpfadfinder",
+      "sorting": 2,
+      "icon": "explore"
+    }
+  },
+  {
+    "model": "content.scoutlevel",
+    "pk": 19,
+    "fields": {
+      "name": "Pfadfinder",
+      "sorting": 3,
+      "icon": "camping"
+    }
+  },
+  {
+    "model": "content.scoutlevel",
+    "pk": 20,
+    "fields": {
+      "name": "Rover",
+      "sorting": 4,
+      "icon": "landscape"
+    }
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "model": "profiles.groupmembership",
+    "pk": 1,
+    "fields": {
+      "role": "admin",
+      "date_joined": "2026-05-28T07:20:09.456588+00:00",
+      "is_active": true,
+      "user_id": 5,
+      "group_id": 1
+    }
+  },
+  {
+    "model": "profiles.groupmembership",
+    "pk": 2,
+    "fields": {
+      "role": "member",
+      "date_joined": "2026-05-31T20:04:20.484139+00:00",
+      "is_active": true,
+      "user_id": 7,
+      "group_id": 1
+    }
+  },
+  {
+    "model": "profiles.groupmembership",
+    "pk": 3,
+    "fields": {
+      "role": "member",
+      "date_joined": "2026-05-31T20:04:20.518430+00:00",
+      "is_active": true,
+      "user_id": 8,
+      "group_id": 1
+    }
+  }
+]

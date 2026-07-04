@@ -1,0 +1,38 @@
+[
+  {
+    "model": "shopping.shoppinglist",
+    "pk": 2,
+    "fields": {
+      "name": "Einkaufsliste: Sifü-Planungstreffen",
+      "source_type": "meal_event",
+      "source_id": 3,
+      "created_at": "2026-05-31T08:31:42.272800+00:00",
+      "updated_at": "2026-05-31T08:31:42.272820+00:00",
+      "owner_id": 6
+    }
+  },
+  {
+    "model": "shopping.shoppinglist",
+    "pk": 3,
+    "fields": {
+      "name": "Einkaufsliste: Sifü-Planungstreffen",
+      "source_type": "meal_event",
+      "source_id": 3,
+      "created_at": "2026-06-03T18:34:17.985570+00:00",
+      "updated_at": "2026-06-03T18:34:17.985587+00:00",
+      "owner_id": 6
+    }
+  },
+  {
+    "model": "shopping.shoppinglist",
+    "pk": 4,
+    "fields": {
+      "name": "Einkaufsliste: Wölflinge Hütte",
+      "source_type": "meal_event",
+      "source_id": 8,
+      "created_at": "2026-06-04T17:25:32.568167+00:00",
+      "updated_at": "2026-06-04T17:25:32.568183+00:00",
+      "owner_id": 10
+    }
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "model": "supply.contentmaterialitem",
+    "pk": 17,
+    "fields": {
+      "object_id": 21,
+      "quantity": "1",
+      "sort_order": 0,
+      "content_type_id": 37,
+      "material_id": 34
+    }
+  },
+  {
+    "model": "supply.contentmaterialitem",
+    "pk": 18,
+    "fields": {
+      "object_id": 21,
+      "quantity": "1",
+      "sort_order": 1,
+      "content_type_id": 37,
+      "material_id": 35
+    }
+  },
+  {
+    "model": "supply.contentmaterialitem",
+    "pk": 19,
+    "fields": {
+      "object_id": 22,
+      "quantity": "1",
+      "sort_order": 0,
+      "content_type_id": 37,
+      "material_id": 33
+    }
+  },
+  {
+    "model": "supply.contentmaterialitem",
+    "pk": 20,
+    "fields": {
+      "object_id": 23,
+      "quantity": "1",
+      "sort_order": 0,
+      "content_type_id": 37,
+      "material_id": 36
+    }
+  }
+]

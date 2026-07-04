@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useIngredientSearch } from '@/api/supplies';
-import { useRetailSections, useNutritionalTags } from '@/api/supplies';
+import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/api/supplies';
 import type { Portion } from '@/schemas/supply';
 import IngredientQuantityDialog from './IngredientQuantityDialog';
 
@@ -89,6 +89,7 @@ function FilterPill({ label, active, onClick }: FilterPillProps) {
 interface IngredientRowProps {
   name: string;
   retailSectionName: string | null;
+  groupNames: string[];
   energyKcal: number | null;
   proteinG: number | null;
   fatG: number | null;
@@ -105,6 +106,7 @@ function formatNum(v: number | null): string {
 function IngredientRow({
   name,
   retailSectionName,
+  groupNames,
   energyKcal,
   proteinG,
   fatG,
@@ -122,9 +124,9 @@ function IngredientRow({
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{name}</p>
-        {retailSectionName && (
-          <p className="text-xs text-muted-foreground truncate">{retailSectionName}</p>
-        )}
+        <p className="text-xs text-muted-foreground truncate">
+          {[retailSectionName, ...groupNames].filter(Boolean).join(' · ') || '\u00a0'}
+        </p>
       </div>
 
       <div className="hidden sm:flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
@@ -176,6 +178,7 @@ export default function IngredientDetailSearchDialog({
 }: IngredientDetailSearchDialogProps) {
   const [query, setQuery] = useState('');
   const [selectedRetailSection, setSelectedRetailSection] = useState<number | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [selectedNutritionalTags, setSelectedNutritionalTags] = useState<number[]>([]);
   const [ordering, setOrdering] = useState<Ordering>('popularity');
   const [page, setPage] = useState(1);
@@ -186,11 +189,13 @@ export default function IngredientDetailSearchDialog({
 
   const { data: retailSections = [] } = useRetailSections();
   const { data: nutritionalTags = [] } = useNutritionalTags();
+  const { data: ingredientGroups = [] } = useIngredientGroups();
 
   // Only pass ordering to API if not 'relevance' (relevance = default backend ordering)
   const { data: results, isFetching } = useIngredientSearch({
     name: deferredQuery || undefined,
     retail_section: selectedRetailSection ?? undefined,
+    group: selectedGroup ?? undefined,
     // AND-logic: use first selected tag (multi-tag AND requires multiple queries; single tag covers common case)
     nutritional_tag: selectedNutritionalTags.length > 0 ? selectedNutritionalTags[0] : undefined,
     ordering: ordering !== 'relevance' ? ordering : undefined,
@@ -203,6 +208,7 @@ export default function IngredientDetailSearchDialog({
     if (open) {
       setQuery('');
       setSelectedRetailSection(null);
+      setSelectedGroup(null);
       setSelectedNutritionalTags([]);
       setOrdering('popularity');
       setPage(1);
@@ -213,7 +219,7 @@ export default function IngredientDetailSearchDialog({
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [deferredQuery, selectedRetailSection, selectedNutritionalTags, ordering]);
+  }, [deferredQuery, selectedRetailSection, selectedGroup, selectedNutritionalTags, ordering]);
 
   const toggleNutritionalTag = (tagId: number) => {
     setSelectedNutritionalTags((prev) =>
@@ -308,6 +314,30 @@ export default function IngredientDetailSearchDialog({
             </div>
           )}
 
+          {/* Gruppen-Filter */}
+          {ingredientGroups.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground shrink-0">Gruppe:</span>
+              <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+                <FilterPill
+                  label="Alle"
+                  active={selectedGroup === null}
+                  onClick={() => setSelectedGroup(null)}
+                />
+                {ingredientGroups.map((g) => (
+                  <FilterPill
+                    key={g.id}
+                    label={g.name}
+                    active={selectedGroup === g.slug}
+                    onClick={() =>
+                      setSelectedGroup(selectedGroup === g.slug ? null : g.slug)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Diät-Tag-Filter */}
           {nutritionalTags.length > 0 && (
             <div className="flex items-center gap-1.5">
@@ -380,6 +410,7 @@ export default function IngredientDetailSearchDialog({
                 key={ingredient.id}
                 name={ingredient.name}
                 retailSectionName={ingredient.retail_section_name}
+                groupNames={ingredient.groups?.map((g) => g.name) ?? []}
                 energyKcal={ingredient.energy_kcal}
                 proteinG={ingredient.protein_g}
                 fatG={ingredient.fat_g}

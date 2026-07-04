@@ -1,0 +1,242 @@
+[
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 1,
+    "fields": {
+      "name": "Spülmittel",
+      "sort_order": 0,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.508210+00:00",
+      "suggested_by_id": null,
+      "category_id": 1
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 2,
+    "fields": {
+      "name": "Spülschwämme",
+      "sort_order": 1,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.527637+00:00",
+      "suggested_by_id": null,
+      "category_id": 1
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 3,
+    "fields": {
+      "name": "Küchenrolle",
+      "sort_order": 2,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.543419+00:00",
+      "suggested_by_id": null,
+      "category_id": 1
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 4,
+    "fields": {
+      "name": "Geschirrtücher",
+      "sort_order": 3,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.559381+00:00",
+      "suggested_by_id": null,
+      "category_id": 1
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 5,
+    "fields": {
+      "name": "Schwammtücher / Lappen",
+      "sort_order": 4,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.574988+00:00",
+      "suggested_by_id": null,
+      "category_id": 1
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 6,
+    "fields": {
+      "name": "Spültabs",
+      "sort_order": 5,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.590826+00:00",
+      "suggested_by_id": null,
+      "category_id": 1
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 7,
+    "fields": {
+      "name": "Klopapier",
+      "sort_order": 0,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.621803+00:00",
+      "suggested_by_id": null,
+      "category_id": 2
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 8,
+    "fields": {
+      "name": "Taschentücher",
+      "sort_order": 1,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.638211+00:00",
+      "suggested_by_id": null,
+      "category_id": 2
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 9,
+    "fields": {
+      "name": "Handseife",
+      "sort_order": 2,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.655696+00:00",
+      "suggested_by_id": null,
+      "category_id": 2
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 10,
+    "fields": {
+      "name": "Desinfektionsmittel",
+      "sort_order": 3,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.671854+00:00",
+      "suggested_by_id": null,
+      "category_id": 2
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 11,
+    "fields": {
+      "name": "Handschuhe (Einweg)",
+      "sort_order": 4,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.687442+00:00",
+      "suggested_by_id": null,
+      "category_id": 2
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 12,
+    "fields": {
+      "name": "Gasflasche",
+      "sort_order": 0,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.721697+00:00",
+      "suggested_by_id": null,
+      "category_id": 3
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 13,
+    "fields": {
+      "name": "Alufolie",
+      "sort_order": 1,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.818015+00:00",
+      "suggested_by_id": null,
+      "category_id": 3
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 14,
+    "fields": {
+      "name": "Backpapier",
+      "sort_order": 2,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.833895+00:00",
+      "suggested_by_id": null,
+      "category_id": 3
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 15,
+    "fields": {
+      "name": "Feuerzeug / Streichhölzer",
+      "sort_order": 3,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.849100+00:00",
+      "suggested_by_id": null,
+      "category_id": 3
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 16,
+    "fields": {
+      "name": "Grillkohle / Grillanzünder",
+      "sort_order": 4,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.864388+00:00",
+      "suggested_by_id": null,
+      "category_id": 3
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 17,
+    "fields": {
+      "name": "Frischhaltefolie",
+      "sort_order": 0,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.894953+00:00",
+      "suggested_by_id": null,
+      "category_id": 4
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 18,
+    "fields": {
+      "name": "Gefrierbeutel / Zip-Beutel",
+      "sort_order": 1,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.910981+00:00",
+      "suggested_by_id": null,
+      "category_id": 4
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 19,
+    "fields": {
+      "name": "Müllbeutel (groß)",
+      "sort_order": 0,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.942528+00:00",
+      "suggested_by_id": null,
+      "category_id": 5
+    }
+  },
+  {
+    "model": "shopping.kitchenreminder",
+    "pk": 20,
+    "fields": {
+      "name": "Müllbeutel (klein)",
+      "sort_order": 1,
+      "is_published": true,
+      "created_at": "2026-05-31T15:42:44.958159+00:00",
+      "suggested_by_id": null,
+      "category_id": 5
+    }
+  }
+]

@@ -23,7 +23,8 @@ Die aktuellen Choices-Klassen leben in `recipe/choices.py`. Folgende Aliase sind
 - `RecipeStatusChoices` → Alias für `ContentStatus`. Bitte direkt `ContentStatus` verwenden.
 
 ### Supply App
-- **`Ingredient`**: 30+ Felder inkl. Nährwerte, Scores, `price_per_kg`. Kein separates Price-Model mehr.
+- **`Ingredient`**: 30+ Felder inkl. Nährwerte, Scores, `price_per_kg`. Kein separates Price-Model mehr. M2M `groups` → `IngredientGroup` für Such-Gruppierung.
+- **`IngredientGroup`**: name, slug. Einfache Gruppierung von Zutaten für die Suche (z.B. "Nudeln" → Fusilli + Spaghetti). API unter `/api/ingredient-groups/`. Filter `?group=` auf `GET /api/ingredients/`.
 - **`Portion`**: name, measuring_unit FK, ingredient FK, quantity, weight_g.
 
 ### PackingList App

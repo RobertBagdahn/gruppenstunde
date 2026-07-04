@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   IngredientDetailSchema,
+  IngredientGroupSchema,
   IngredientSimilarSchema,
   NutritionalTagSchema,
   RetailSectionSchema,
@@ -29,6 +30,7 @@ import { PaginatedRecipesSchema } from '@/schemas/recipe';
 
 const INGREDIENT_BASE = `${API_BASE_URL}/api/ingredients`;
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
+const INGREDIENT_GROUP_BASE = `${API_BASE_URL}/api/ingredient-groups`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -126,6 +128,7 @@ export interface IngredientSearchFilters {
   name?: string;
   retail_section?: number;
   nutritional_tag?: number;
+  group?: string;
   ordering?: 'popularity' | 'price_asc' | 'price_desc' | 'nutri_class_asc' | 'energy_kcal_asc';
   page?: number;
   page_size?: number;
@@ -136,6 +139,7 @@ export function useIngredientSearch(filters: IngredientSearchFilters = {}) {
   if (filters.name) params.set('name', filters.name);
   if (filters.retail_section) params.set('retail_section', String(filters.retail_section));
   if (filters.nutritional_tag) params.set('nutritional_tag', String(filters.nutritional_tag));
+  if (filters.group) params.set('group', filters.group);
   if (filters.ordering) params.set('ordering', filters.ordering);
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
@@ -339,6 +343,14 @@ export function useRetailSections() {
   return useQuery({
     queryKey: ['retail-sections'] as const,
     queryFn: () => fetchJson(`${RETAIL_SECTION_BASE}/`, z.array(RetailSectionSchema)),
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useIngredientGroups() {
+  return useQuery({
+    queryKey: ['ingredient-groups'] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_GROUP_BASE}/`, z.array(IngredientGroupSchema)),
     staleTime: 10 * 60 * 1000,
   });
 }

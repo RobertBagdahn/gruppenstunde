@@ -1,0 +1,254 @@
+[
+  {
+    "model": "content.tag",
+    "pk": 60,
+    "fields": {
+      "name": "Lagerfeuer",
+      "slug": "lagerfeuer",
+      "icon": "",
+      "sort_order": 1,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 57,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 61,
+    "fields": {
+      "name": "Wanderproviant",
+      "slug": "wanderproviant",
+      "icon": "",
+      "sort_order": 2,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 57,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 62,
+    "fields": {
+      "name": "Gruppenkochen",
+      "slug": "gruppenkochen",
+      "icon": "",
+      "sort_order": 3,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 57,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 63,
+    "fields": {
+      "name": "Schnell & Einfach",
+      "slug": "schnell-einfach",
+      "icon": "",
+      "sort_order": 4,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 57,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 64,
+    "fields": {
+      "name": "Frühstück",
+      "slug": "fruehstueck",
+      "icon": "",
+      "sort_order": 1,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 58,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 65,
+    "fields": {
+      "name": "Mittagessen",
+      "slug": "mittagessen",
+      "icon": "",
+      "sort_order": 2,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 58,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 66,
+    "fields": {
+      "name": "Abendessen",
+      "slug": "abendessen",
+      "icon": "",
+      "sort_order": 3,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 58,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 67,
+    "fields": {
+      "name": "Dessert & Snack",
+      "slug": "dessert-snack",
+      "icon": "",
+      "sort_order": 4,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 58,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 68,
+    "fields": {
+      "name": "Gesund",
+      "slug": "gesund",
+      "icon": "",
+      "sort_order": 1,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 59,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 69,
+    "fields": {
+      "name": "Vegetarisch",
+      "slug": "vegetarisch",
+      "icon": "",
+      "sort_order": 2,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 59,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 70,
+    "fields": {
+      "name": "Vegan",
+      "slug": "vegan",
+      "icon": "",
+      "sort_order": 3,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": 59,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 57,
+    "fields": {
+      "name": "Kochen",
+      "slug": "kochen",
+      "icon": "restaurant",
+      "sort_order": 1,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": null,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 58,
+    "fields": {
+      "name": "Anlass",
+      "slug": "anlass",
+      "icon": "calendar_month",
+      "sort_order": 2,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": null,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 59,
+    "fields": {
+      "name": "Ernährung",
+      "slug": "ernaehrung",
+      "icon": "favorite",
+      "sort_order": 3,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": null,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 71,
+    "fields": {
+      "name": "breakfast-base",
+      "slug": "breakfast-base",
+      "icon": "",
+      "sort_order": 0,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": null,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 72,
+    "fields": {
+      "name": "breakfast-topping",
+      "slug": "breakfast-topping",
+      "icon": "",
+      "sort_order": 0,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": null,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 73,
+    "fields": {
+      "name": "breakfast-drink",
+      "slug": "breakfast-drink",
+      "icon": "",
+      "sort_order": 0,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": null,
+      "group": "general"
+    }
+  },
+  {
+    "model": "content.tag",
+    "pk": 74,
+    "fields": {
+      "name": "breakfast-warm-meal",
+      "slug": "breakfast-warm-meal",
+      "icon": "",
+      "sort_order": 0,
+      "is_approved": true,
+      "embedding": null,
+      "parent_id": null,
+      "group": "general"
+    }
+  }
+]

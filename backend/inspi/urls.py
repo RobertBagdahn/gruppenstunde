@@ -36,6 +36,7 @@ from supply.api import (
     breakfast_catalog_router,
     breakfast_days_router,
     dge_reference_router,
+    ingredient_group_router,
     ingredient_router,
     ingredient_statistics_router,
     norm_person_router,
@@ -75,6 +76,7 @@ api.add_router("/shopping-lists/", shopping_router)
 api.add_router("/kitchen-reminders/", kitchen_reminder_router)
 api.add_router("/ingredients/", ingredient_router)
 api.add_router("/retail-sections/", retail_section_router)
+api.add_router("/ingredient-groups/", ingredient_group_router)
 api.add_router("/nutritional-tags/", nutritional_tag_router)
 api.add_router("/unit-conversions/", unit_conversion_router)
 api.add_router("/recipes/", recipe_router)

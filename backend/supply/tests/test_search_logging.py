@@ -1,0 +1,73 @@
+"""Tests for ingredient search logging (SearchLog + structured JSON log)."""
+
+import json
+
+import pytest
+
+from content.models import SearchLog
+from supply.models import Ingredient
+
+
+@pytest.mark.django_db
+class TestIngredientSearchLogging:
+    def test_search_logs_query(self, api_client, db):
+        Ingredient.objects.create(
+            name="Weizenmehl",
+            slug="weizenmehl",
+            status="approved",
+        )
+        resp = api_client.get("/api/ingredients/", {"name": "Weizenmehl"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+
+        log = SearchLog.objects.first()
+        assert log is not None
+        assert log.query == "Weizenmehl"
+        assert log.results_count == 1
+        assert log.user is None
+
+    def test_empty_name_does_not_log(self, api_client, db):
+        Ingredient.objects.create(
+            name="Weizenmehl",
+            slug="weizenmehl",
+            status="approved",
+        )
+        resp = api_client.get("/api/ingredients/")
+        assert resp.status_code == 200
+        assert SearchLog.objects.count() == 0
+
+    def test_authenticated_search_logs_user(self, auth_client, db):
+        Ingredient.objects.create(
+            name="Weizenmehl",
+            slug="weizenmehl",
+            status="approved",
+        )
+        resp = auth_client.get("/api/ingredients/", {"name": "Weizenmehl"})
+        assert resp.status_code == 200
+
+        log = SearchLog.objects.first()
+        assert log is not None
+        assert log.user == auth_client._user
+
+    def test_structured_json_log_output(self, api_client, db, caplog):
+        import logging
+
+        caplog.set_level(logging.INFO)
+        Ingredient.objects.create(
+            name="Weizenmehl",
+            slug="weizenmehl",
+            status="approved",
+        )
+        resp = api_client.get("/api/ingredients/", {"name": "Weizenmehl"})
+        assert resp.status_code == 200
+
+        json_lines = [
+            json.loads(r.msg) for r in caplog.records if r.name == "content.services.search_service"
+        ]
+        assert len(json_lines) == 1
+        assert json_lines[0]["event"] == "ingredient_list_search"
+        assert json_lines[0]["query"] == "Weizenmehl"
+        assert json_lines[0]["source"] == "ingredient_list"
+        assert json_lines[0]["results_count"] == 1
+        assert json_lines[0]["user_id"] is None

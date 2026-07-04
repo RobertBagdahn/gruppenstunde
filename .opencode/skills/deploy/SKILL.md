@@ -70,16 +70,16 @@ gcloud run deploy inspi-backend \
 
 Only add explicit flags when you need to **change** configuration. Using all flags risks overwriting secrets or env vars.
 
-### Frontend: NO nginx proxy — direct CORS
+### Frontend: nginx reverse proxy for API
 
-Frontends call the backend directly via CORS (no nginx reverse proxy). The `VITE_API_URL` is baked in at build time:
+Frontends call the backend through nginx reverse proxy (same origin). The `VITE_API_URL` is intentionally empty:
 
-- `Dockerfile.frontend` and `Dockerfile.frontend-food` accept `--build-arg VITE_API_URL=...`
-- Frontend code uses `API_BASE_URL` from `@/lib/api` which reads `import.meta.env.VITE_API_URL`
-- Backend has CORS enabled for frontend origins in `inspi/settings/production.py`
-- nginx serves only static files + SPA fallback (no proxy_pass, no envsubst, no resolver)
+- `Dockerfile.frontend` and `Dockerfile.frontend-food` use default `VITE_API_URL=""`
+- Frontend code uses relative URLs (`/api/...`) through nginx proxy_pass
+- Backend has CORS enabled for frontend origins in `inspi/settings/production.py` (fallback)
+- nginx proxies `/api/` to the backend Cloud Run service
 
-**Why no proxy:** nginx DNS resolution inside Cloud Run adds 3-5s latency per request. Direct CORS calls are ~0.4s.
+**Why proxy:** iOS WebKit blocks cross-origin cookies. Same-origin proxying fixes iOS login.
 
 ### .gcloudignore
 
@@ -99,14 +99,16 @@ node_modules/
 docker-compose.yml
 ```
 
-### DB Password & Email Password via Secret Manager
+### DJANGO_SECRET_KEY & other secrets via Secret Manager
 
-Use `--set-secrets` instead of plain env vars for secrets:
+Use `--set-secrets` instead of plain env vars for all secrets:
 
 ```bash
 gcloud run deploy inspi-backend \
-  --set-secrets "DB_PASSWORD=prod_db_password:latest,EMAIL_HOST_PASSWORD=gmail_app_password:latest"
+  --set-secrets "DJANGO_SECRET_KEY=prod_django_secret_key:latest,DB_PASSWORD=prod_db_password:latest,EMAIL_HOST_PASSWORD=gmail_app_password:latest"
 ```
+
+**Critical:** Without `DJANGO_SECRET_KEY`, Gunicorn fails to boot with `ImproperlyConfigured: DJANGO_SECRET_KEY is not configured`. This secret (`prod_django_secret_key`) must always be included when using `--set-secrets`. If you only use `--image` and `--region` (minimal deploy), existing secrets are preserved — but any use of `--set-secrets` requires listing ALL secrets, as it overwrites the entire secrets configuration.
 
 ### GOOGLE_CLOUD_PROJECT must be set
 
@@ -247,7 +249,7 @@ gcloud run deploy inspi-backend \
   --cpu 1 --memory 512Mi \
   --min-instances 0 --max-instances 10 \
   --set-env-vars "DJANGO_SETTINGS_MODULE=inspi.settings.production,GOOGLE_CLOUD_PROJECT=inspi-441320,GCS_BUCKET_NAME=inspi-media,DB_HOST=${DB_HOST},DB_NAME=inspi,DB_USER=inspi,DB_PORT=5432" \
-  --set-secrets "DB_PASSWORD=prod_db_password:latest,EMAIL_HOST_PASSWORD=gmail_app_password:latest" \
+  --set-secrets "DJANGO_SECRET_KEY=prod_django_secret_key:latest,DB_PASSWORD=prod_db_password:latest,EMAIL_HOST_PASSWORD=gmail_app_password:latest" \
   --allow-unauthenticated
 ```
 
@@ -333,13 +335,11 @@ For existing prod databases where `seed_all --if-empty` already ran before seed_
 Ask: "Frontend deployen? (build + push + deploy)" — proceed only on confirmation.
 
 ```bash
-# 7.1 Build via Cloud Build with VITE_API_URL baked in
-BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
-
+# 7.1 Build (no VITE_API_URL — API calls go through nginx proxy)
 cat > /tmp/cloudbuild-frontend.yaml <<EOF
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest', '-f', 'Dockerfile.frontend', '--build-arg', 'VITE_API_URL=${BACKEND_URL}', '.']
+    args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest', '-f', 'Dockerfile.frontend', '.']
 images:
   - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest'
 EOF
@@ -362,13 +362,11 @@ Expected: HTTP 200.
 Ask: "Food Frontend deployen? (build + push + deploy)" — proceed only on confirmation.
 
 ```bash
-# 8.1 Build via Cloud Build with VITE_API_URL baked in
-BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
-
+# 8.1 Build (no VITE_API_URL — API calls go through nginx proxy)
 cat > /tmp/cloudbuild-frontend-food.yaml <<EOF
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest', '-f', 'Dockerfile.frontend-food', '--build-arg', 'VITE_API_URL=${BACKEND_URL}', '.']
+    args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest', '-f', 'Dockerfile.frontend-food', '.']
 images:
   - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest'
 EOF

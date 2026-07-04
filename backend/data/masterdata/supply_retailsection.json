@@ -1,0 +1,137 @@
+[
+  {
+    "model": "supply.retailsection",
+    "pk": 1,
+    "fields": {
+      "name": "Konserven & Gläser",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 2,
+    "fields": {
+      "name": "Gemüse",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 4,
+    "fields": {
+      "name": "Obst",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 5,
+    "fields": {
+      "name": "Fleisch & Fisch",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 6,
+    "fields": {
+      "name": "Milchprodukte & Käse",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 7,
+    "fields": {
+      "name": "Brot & Backwaren",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 8,
+    "fields": {
+      "name": "Gewürze & Kräuter",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 9,
+    "fields": {
+      "name": "Nudeln & Reis & Getreide",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 10,
+    "fields": {
+      "name": "Getränke",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 11,
+    "fields": {
+      "name": "Öle & Soßen",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 12,
+    "fields": {
+      "name": "Tiefkühl",
+      "description": "",
+      "rank": 0
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 111,
+    "fields": {
+      "name": "Fleisch & Wurst",
+      "description": "Frisches Fleisch und Wurstwaren",
+      "rank": 3
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 116,
+    "fields": {
+      "name": "Süßwaren & Snacks",
+      "description": "Schokolade, Kekse, Chips",
+      "rank": 10
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 118,
+    "fields": {
+      "name": "Hülsenfrüchte & Nüsse",
+      "description": "Linsen, Bohnen, Mandeln, Walnüsse",
+      "rank": 12
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 114,
+    "fields": {
+      "name": "Gewürze",
+      "description": "Gewürze, Kräuter, Speiseöle",
+      "rank": 6
+    }
+  }
+]

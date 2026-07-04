@@ -144,3 +144,45 @@ uv run pytest recipe/tests/test_api.py -xvs
 cd backend
 uv run python manage.py shell
 ```
+
+## ⚠️ WICHTIG: Prod Data Workflow (Export/Import)
+
+A data workflow exists to download prod data as Django fixture JSON files, import locally for development, and push changes back.
+
+### Export from Prod
+```bash
+# 1. Start Cloud SQL Proxy (separate terminal, keep running)
+cloud-sql-proxy inspi-ee315714:europe-west1:inspi --port 5433 &
+
+# 2. Export all data
+cd backend
+uv run python bin/export_prod_data.py
+```
+- Connects to prod via localhost:5433
+- Writes fixture JSON files to `backend/data/<domain>/<model>.json`
+- Handles column filtering (skips fields like `energy_kj` not in local models)
+- Patches `quantity=0` → 0.1 for RecipeItem (check constraint)
+- **47 files, ~24.7k entries** (5719 ingredients, 14647 portions, 355 recipes, etc.)
+
+### Import to Local
+```bash
+# Full flush+import (wipes local DB, imports everything)
+uv run python manage.py import_prod_data --flush
+
+# Import only food group (idempotent, adds to existing data)
+uv run python manage.py import_prod_data --only food
+```
+- Loads files in FK-safe dependency order (9 groups, ~24.7k entries)
+- **Signals are automatically silenced** (pre_save/post_save/post_delete) to prevent:
+  - Connection exhaustion from embedding threads (`update_ingredient_embedding_and_score`)
+  - N+1 query storms from recipe cache invalidation
+- **Portion unique index** (`unique_portion_name_per_ingredient`) is dropped before food import and recreated after, with automatic deduplication of `(LOWER(name), ingredient_id)` combos
+
+### Key Files
+- `backend/bin/export_prod_data.py` — raw psycopg export (not `dumpdata`, which hangs on large datasets)
+- `backend/core/management/commands/import_prod_data.py` — ordered import with signal silencing
+- `backend/data/` — per-domain subdirectories with per-model fixture JSON files
+
+### DB Connections
+- **Prod DB**: localhost:5433 (via Cloud SQL Proxy)
+- **Local DB**: localhost:5432 (podman, pgvector/pgvector:pg15)

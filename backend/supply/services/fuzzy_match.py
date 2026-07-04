@@ -1,8 +1,9 @@
 """Fuzzy matching service for ingredients using pg_trgm similarity."""
 
 from django.contrib.postgres.search import TrigramSimilarity
+from django.db.models import FloatField, Value
 
-from supply.models import Ingredient, IngredientAlias
+from supply.models import Ingredient, IngredientAlias, IngredientGroup
 
 
 def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> list[dict]:
@@ -22,6 +23,14 @@ def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> l
         .filter(similarity__gt=threshold)
         .values("id", "name", "slug", "similarity")
         .order_by("-similarity")[:limit]
+    )
+
+    # Search in group names
+    group_matches = (
+        Ingredient.objects.filter(groups__name__icontains=query)
+        .annotate(similarity=Value(0.31, output_field=FloatField()))
+        .distinct()
+        .values("id", "name", "slug", "similarity")
     )
 
     # Search in aliases
@@ -67,6 +76,17 @@ def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> l
                 "slug": m["ingredient__slug"],
                 "similarity": float(m["similarity"]),
                 "matched_via": m["name"],
+            }
+        )
+
+    for m in group_matches:
+        all_matches.append(
+            {
+                "id": m["id"],
+                "name": m["name"],
+                "slug": m["slug"],
+                "similarity": float(m["similarity"]),
+                "matched_via": None,
             }
         )
 

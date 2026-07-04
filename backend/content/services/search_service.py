@@ -8,7 +8,9 @@ Uses PostgreSQL full-text search + trigram similarity for ranking.
 Falls back to icontains queries on SQLite (test environment).
 """
 
+import json
 import logging
+from datetime import datetime, timezone
 from typing import Literal
 
 from django.db import connection
@@ -157,6 +159,26 @@ def log_search(q: str, results_count: int, user=None) -> None:
         query=q,
         results_count=results_count,
         user=user if user and user.is_authenticated else None,
+    )
+
+
+def log_search_structured(
+    q: str, results_count: int, source: str, user=None
+) -> None:
+    """Write a structured JSON log line to stdout for Cloud Logging."""
+    if not q:
+        return
+    logger.info(
+        json.dumps(
+            {
+                "event": f"{source}_search",
+                "query": q,
+                "results_count": results_count,
+                "user_id": user.pk if user and user.is_authenticated else None,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": source,
+            }
+        )
     )
 
 
