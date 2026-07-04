@@ -37,6 +37,7 @@ def _create_system_portions(ingredient: Ingredient):
     Portion.objects.get_or_create(
         ingredient=ingredient,
         name="g",
+        deleted_at__isnull=True,
         defaults={
             "measuring_unit": mu,
             "quantity": 1,
@@ -50,9 +51,10 @@ def _create_system_portions(ingredient: Ingredient):
     mu_packung = MeasuringUnit.objects.filter(name__iexact="Packung").first()
     if not mu_packung:
         mu_packung = MeasuringUnit.objects.create(name="Packung", quantity=1, unit=MeasuringUnitType.PIECE)
-    Portion.objects.get_or_create(
+    packung, packung_created = Portion.objects.get_or_create(
         ingredient=ingredient,
         name="Packung",
+        deleted_at__isnull=True,
         defaults={
             "measuring_unit": mu_packung,
             "quantity": 1,
@@ -60,14 +62,19 @@ def _create_system_portions(ingredient: Ingredient):
             "is_system": True,
         },
     )
+    # weight_g ist unbekannt bis eine echte Packungsgröße gepflegt wird — der
+    # pre_save-Hook errechnet sonst fälschlich 1g aus quantity=1 × Einheit=1.
+    if packung_created and packung.weight_g is not None:
+        Portion.objects.filter(pk=packung.pk).update(weight_g=None)
 
     # Stück - rank=2, sortierbar
     mu_stueck = MeasuringUnit.objects.filter(name__iexact="Stück").first()
     if not mu_stueck:
         mu_stueck = MeasuringUnit.objects.create(name="Stück", quantity=1, unit=MeasuringUnitType.PIECE)
-    Portion.objects.get_or_create(
+    stueck, stueck_created = Portion.objects.get_or_create(
         ingredient=ingredient,
         name="Stück",
+        deleted_at__isnull=True,
         defaults={
             "measuring_unit": mu_stueck,
             "quantity": 1,
@@ -75,6 +82,9 @@ def _create_system_portions(ingredient: Ingredient):
             "is_system": True,
         },
     )
+    # weight_g ist unbekannt bis ein echtes Stück-Gewicht gepflegt wird (siehe oben).
+    if stueck_created and stueck.weight_g is not None:
+        Portion.objects.filter(pk=stueck.pk).update(weight_g=None)
 
 
 @receiver(post_save, sender=Ingredient, dispatch_uid="supply.create_base_portion_for_ingredient")
@@ -128,9 +138,11 @@ def update_ingredient_embedding_and_score(sender, instance: Ingredient, created:
 def _embedding_fields_changed(instance, created: bool) -> bool:
     """Check if fields relevant to ingredient embedding have changed.
 
-    Uses _old_values (set by capture_ingredient_old_values pre_save signal)
-    to determine if any embedding-relevant field changed. Falls back to True
-    (conservative) when old values are not available.
+    The embedding text is built from name, description, and retail_section only
+    (see build_ingredient_embedding_text) — so only these fields are considered
+    "relevant" here. Uses _old_values (set by capture_ingredient_old_values
+    pre_save signal) to determine if any embedding-relevant field changed.
+    Falls back to True (conservative) when old values are not available.
     """
     if created:
         return True
@@ -143,28 +155,6 @@ def _embedding_fields_changed(instance, created: bool) -> bool:
         "name",
         "description",
         "retail_section_id",
-        "season_start",
-        "season_end",
-        "energy_kcal",
-        "protein_g",
-        "fat_g",
-        "carbohydrate_g",
-        "sugar_g",
-        "fibre_g",
-        "salt_g",
-        "fat_sat_g",
-        "vitamin_c_mg",
-        "child_score",
-        "scout_score",
-        "environmental_score",
-        "child_fave",
-        "scout_fave",
-        "is_vegetarian",
-        "is_vegan",
-        "is_gluten_free",
-        "is_lactose_free",
-        "price_per_kg",
-        "status",
     }
     for field in relevant:
         old_val = old_values.get(field)

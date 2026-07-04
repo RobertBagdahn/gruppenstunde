@@ -206,5 +206,1526 @@
       "ingredient_id": 3591,
       "updated_by_id": null
     }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 20,
+    "fields": {
+      "name": "Nudeln",
+      "rank": 5,
+      "created_at": "2026-07-04T10:00:00.000000+00:00",
+      "updated_at": "2026-07-04T10:00:00.000000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 186,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 21,
+    "fields": {
+      "name": "Fusilli",
+      "rank": 6,
+      "created_at": "2026-07-04T10:00:00.070000+00:00",
+      "updated_at": "2026-07-04T10:00:00.070000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 186,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 22,
+    "fields": {
+      "name": "Salz",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.140000+00:00",
+      "updated_at": "2026-07-04T10:00:00.140000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 145,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 23,
+    "fields": {
+      "name": "Jodsalz",
+      "rank": 2,
+      "created_at": "2026-07-04T10:00:00.210000+00:00",
+      "updated_at": "2026-07-04T10:00:00.210000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 145,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 24,
+    "fields": {
+      "name": "Weizenmehl Type 405",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.280000+00:00",
+      "updated_at": "2026-07-04T10:00:00.280000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 116,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 25,
+    "fields": {
+      "name": "Kristallzucker",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.350000+00:00",
+      "updated_at": "2026-07-04T10:00:00.350000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 120,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 26,
+    "fields": {
+      "name": "Basmatireis",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.420000+00:00",
+      "updated_at": "2026-07-04T10:00:00.420000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 185,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 27,
+    "fields": {
+      "name": "Süßrahmbutter",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.490000+00:00",
+      "updated_at": "2026-07-04T10:00:00.490000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 94,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 28,
+    "fields": {
+      "name": "Vollmilch 3,5%",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.560000+00:00",
+      "updated_at": "2026-07-04T10:00:00.560000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 288,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 29,
+    "fields": {
+      "name": "Hühnerei",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.630000+00:00",
+      "updated_at": "2026-07-04T10:00:00.630000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6682,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 30,
+    "fields": {
+      "name": "Speisezwiebel",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.700000+00:00",
+      "updated_at": "2026-07-04T10:00:00.700000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 38,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 31,
+    "fields": {
+      "name": "Knoblauchzehe",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.770000+00:00",
+      "updated_at": "2026-07-04T10:00:00.770000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 37,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 32,
+    "fields": {
+      "name": "Branntweinessig",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.840000+00:00",
+      "updated_at": "2026-07-04T10:00:00.840000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 208,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 33,
+    "fields": {
+      "name": "Schwarzer Pfeffer, gemahlen",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.910000+00:00",
+      "updated_at": "2026-07-04T10:00:00.910000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 146,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 34,
+    "fields": {
+      "name": "Rispentomaten",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:00.980000+00:00",
+      "updated_at": "2026-07-04T10:00:00.980000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6925,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 35,
+    "fields": {
+      "name": "Speisekartoffeln",
+      "rank": 1,
+      "created_at": "2026-07-04T10:00:01.050000+00:00",
+      "updated_at": "2026-07-04T10:00:01.050000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 291,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 36,
+    "fields": {
+      "name": "Öl",
+      "rank": 4,
+      "created_at": "2026-07-04T10:00:01.120000+00:00",
+      "updated_at": "2026-07-04T10:00:01.120000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 167,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 37,
+    "fields": {
+      "name": "Gemüsepaprika",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00+00:00",
+      "updated_at": "2026-07-04T12:00:00+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 293,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 38,
+    "fields": {
+      "name": "Bundmöhren",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.070000+00:00",
+      "updated_at": "2026-07-04T12:00:00.070000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 7076,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 39,
+    "fields": {
+      "name": "Mohrrüben",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.140000+00:00",
+      "updated_at": "2026-07-04T12:00:00.140000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 297,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 40,
+    "fields": {
+      "name": "Porree",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.210000+00:00",
+      "updated_at": "2026-07-04T12:00:00.210000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 9,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 41,
+    "fields": {
+      "name": "Zuchtchampignons",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.280000+00:00",
+      "updated_at": "2026-07-04T12:00:00.280000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 11,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 42,
+    "fields": {
+      "name": "Blattspinat",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.350000+00:00",
+      "updated_at": "2026-07-04T12:00:00.350000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 4,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 43,
+    "fields": {
+      "name": "Broccoli",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.420000+00:00",
+      "updated_at": "2026-07-04T12:00:00.420000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 10,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 44,
+    "fields": {
+      "name": "Karfiol",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.490000+00:00",
+      "updated_at": "2026-07-04T12:00:00.490000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 17,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 45,
+    "fields": {
+      "name": "Zucchetti",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.560000+00:00",
+      "updated_at": "2026-07-04T12:00:00.560000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 15,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 46,
+    "fields": {
+      "name": "Melanzani",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.630000+00:00",
+      "updated_at": "2026-07-04T12:00:00.630000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 16,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 47,
+    "fields": {
+      "name": "Schlangengurke",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.700000+00:00",
+      "updated_at": "2026-07-04T12:00:00.700000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 299,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 48,
+    "fields": {
+      "name": "Kohlrabiknolle",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.770000+00:00",
+      "updated_at": "2026-07-04T12:00:00.770000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 19,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 49,
+    "fields": {
+      "name": "Weißkraut",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.840000+00:00",
+      "updated_at": "2026-07-04T12:00:00.840000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 28,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 50,
+    "fields": {
+      "name": "Blaukraut",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.910000+00:00",
+      "updated_at": "2026-07-04T12:00:00.910000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 29,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 51,
+    "fields": {
+      "name": "Weinkraut",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:00.980000+00:00",
+      "updated_at": "2026-07-04T12:00:00.980000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 3996,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 52,
+    "fields": {
+      "name": "Grüne Bohnen",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.050000+00:00",
+      "updated_at": "2026-07-04T12:00:01.050000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6718,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 53,
+    "fields": {
+      "name": "Kichererbsen aus der Dose",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.120000+00:00",
+      "updated_at": "2026-07-04T12:00:01.120000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6651,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 54,
+    "fields": {
+      "name": "Zuckermais",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.190000+00:00",
+      "updated_at": "2026-07-04T12:00:01.190000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6801,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 55,
+    "fields": {
+      "name": "Ingwerknolle",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.260000+00:00",
+      "updated_at": "2026-07-04T12:00:01.260000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 2,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 56,
+    "fields": {
+      "name": "Frisches Basilikum",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.330000+00:00",
+      "updated_at": "2026-07-04T12:00:01.330000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6897,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 57,
+    "fields": {
+      "name": "Glatte Petersilie",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.400000+00:00",
+      "updated_at": "2026-07-04T12:00:01.400000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 161,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 58,
+    "fields": {
+      "name": "Frischer Schnittlauch",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.470000+00:00",
+      "updated_at": "2026-07-04T12:00:01.470000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 44,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 59,
+    "fields": {
+      "name": "Frischer Dill",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.540000+00:00",
+      "updated_at": "2026-07-04T12:00:01.540000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6922,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 60,
+    "fields": {
+      "name": "Frischer Rosmarin",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.610000+00:00",
+      "updated_at": "2026-07-04T12:00:01.610000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6884,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 61,
+    "fields": {
+      "name": "Frischer Thymian",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.680000+00:00",
+      "updated_at": "2026-07-04T12:00:01.680000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6885,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 62,
+    "fields": {
+      "name": "Getrockneter Oregano",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.750000+00:00",
+      "updated_at": "2026-07-04T12:00:01.750000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 154,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 63,
+    "fields": {
+      "name": "Lorbeerblätter",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.820000+00:00",
+      "updated_at": "2026-07-04T12:00:01.820000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 163,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 64,
+    "fields": {
+      "name": "Mittelscharfer Senf",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.890000+00:00",
+      "updated_at": "2026-07-04T12:00:01.890000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 176,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 65,
+    "fields": {
+      "name": "Tomatenketchup",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:01.960000+00:00",
+      "updated_at": "2026-07-04T12:00:01.960000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 177,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 66,
+    "fields": {
+      "name": "Salatmayonnaise",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.030000+00:00",
+      "updated_at": "2026-07-04T12:00:02.030000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6674,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 67,
+    "fields": {
+      "name": "Sojasoße",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.100000+00:00",
+      "updated_at": "2026-07-04T12:00:02.100000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 175,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 68,
+    "fields": {
+      "name": "Blütenhonig",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.170000+00:00",
+      "updated_at": "2026-07-04T12:00:02.170000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 160,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 69,
+    "fields": {
+      "name": "Doppelrahmfrischkäse",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.240000+00:00",
+      "updated_at": "2026-07-04T12:00:02.240000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 3,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 70,
+    "fields": {
+      "name": "Kaffeesahne",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.310000+00:00",
+      "updated_at": "2026-07-04T12:00:02.310000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 95,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 71,
+    "fields": {
+      "name": "Schlagobers",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.380000+00:00",
+      "updated_at": "2026-07-04T12:00:02.380000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 5893,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 72,
+    "fields": {
+      "name": "Saure Sahne",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.450000+00:00",
+      "updated_at": "2026-07-04T12:00:02.450000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 96,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 73,
+    "fields": {
+      "name": "Creme fraiche",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.520000+00:00",
+      "updated_at": "2026-07-04T12:00:02.520000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6343,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 74,
+    "fields": {
+      "name": "Speisequark",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.590000+00:00",
+      "updated_at": "2026-07-04T12:00:02.590000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 7239,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 75,
+    "fields": {
+      "name": "Naturjoghurt",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.660000+00:00",
+      "updated_at": "2026-07-04T12:00:02.660000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 98,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 76,
+    "fields": {
+      "name": "Gouda jung",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.730000+00:00",
+      "updated_at": "2026-07-04T12:00:02.730000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 105,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 77,
+    "fields": {
+      "name": "Emmentaler Käse",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.800000+00:00",
+      "updated_at": "2026-07-04T12:00:02.800000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 107,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 78,
+    "fields": {
+      "name": "Parmesankäse",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.870000+00:00",
+      "updated_at": "2026-07-04T12:00:02.870000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 8,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 79,
+    "fields": {
+      "name": "Mozzarella-Kugeln",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:02.940000+00:00",
+      "updated_at": "2026-07-04T12:00:02.940000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 5,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 80,
+    "fields": {
+      "name": "Schafskäse",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.010000+00:00",
+      "updated_at": "2026-07-04T12:00:03.010000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 104,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 81,
+    "fields": {
+      "name": "Gemischtes Hackfleisch",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.080000+00:00",
+      "updated_at": "2026-07-04T12:00:03.080000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6893,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 82,
+    "fields": {
+      "name": "Rinderfilet",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.150000+00:00",
+      "updated_at": "2026-07-04T12:00:03.150000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6739,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 83,
+    "fields": {
+      "name": "Hähnchenbrust",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.220000+00:00",
+      "updated_at": "2026-07-04T12:00:03.220000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6961,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 84,
+    "fields": {
+      "name": "Lachsfilet",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.290000+00:00",
+      "updated_at": "2026-07-04T12:00:03.290000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 7077,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 85,
+    "fields": {
+      "name": "Thunfisch aus der Dose",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.360000+00:00",
+      "updated_at": "2026-07-04T12:00:03.360000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 2499,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 86,
+    "fields": {
+      "name": "Kochschinken",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.430000+00:00",
+      "updated_at": "2026-07-04T12:00:03.430000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 88,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 87,
+    "fields": {
+      "name": "Frühstücksspeck",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.500000+00:00",
+      "updated_at": "2026-07-04T12:00:03.500000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 90,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 88,
+    "fields": {
+      "name": "Naturtofu",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.570000+00:00",
+      "updated_at": "2026-07-04T12:00:03.570000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 110,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 89,
+    "fields": {
+      "name": "Weinstein-Backpulver",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.640000+00:00",
+      "updated_at": "2026-07-04T12:00:03.640000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 118,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 90,
+    "fields": {
+      "name": "Bourbon-Vanillezucker",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.710000+00:00",
+      "updated_at": "2026-07-04T12:00:03.710000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 122,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 91,
+    "fields": {
+      "name": "Zartbitterschokolade",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.780000+00:00",
+      "updated_at": "2026-07-04T12:00:03.780000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 505,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 92,
+    "fields": {
+      "name": "Kernige Haferflocken",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.850000+00:00",
+      "updated_at": "2026-07-04T12:00:03.850000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 184,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 93,
+    "fields": {
+      "name": "Corn Flakes",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.920000+00:00",
+      "updated_at": "2026-07-04T12:00:03.920000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 598,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 94,
+    "fields": {
+      "name": "Basismüsli",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:03.990000+00:00",
+      "updated_at": "2026-07-04T12:00:03.990000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 340,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 95,
+    "fields": {
+      "name": "Semmeln",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.060000+00:00",
+      "updated_at": "2026-07-04T12:00:04.060000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 139,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 96,
+    "fields": {
+      "name": "Baguettebrot",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.130000+00:00",
+      "updated_at": "2026-07-04T12:00:04.130000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 142,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 97,
+    "fields": {
+      "name": "Kartoffel-Gnocchi",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.200000+00:00",
+      "updated_at": "2026-07-04T12:00:04.200000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 1886,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 98,
+    "fields": {
+      "name": "Vollkorn-Couscous",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.270000+00:00",
+      "updated_at": "2026-07-04T12:00:04.270000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 187,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 99,
+    "fields": {
+      "name": "Bulgurweizen",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.340000+00:00",
+      "updated_at": "2026-07-04T12:00:04.340000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 194,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 100,
+    "fields": {
+      "name": "Bio-Quinoa",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.410000+00:00",
+      "updated_at": "2026-07-04T12:00:04.410000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 193,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 101,
+    "fields": {
+      "name": "Cashewnüsse",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.480000+00:00",
+      "updated_at": "2026-07-04T12:00:04.480000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 391,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 102,
+    "fields": {
+      "name": "Mandelkerne",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.550000+00:00",
+      "updated_at": "2026-07-04T12:00:04.550000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 125,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 103,
+    "fields": {
+      "name": "Walnusskerne",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.620000+00:00",
+      "updated_at": "2026-07-04T12:00:04.620000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 126,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 104,
+    "fields": {
+      "name": "Erdnusskerne",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.690000+00:00",
+      "updated_at": "2026-07-04T12:00:04.690000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 686,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 105,
+    "fields": {
+      "name": "Sesamsamen",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.760000+00:00",
+      "updated_at": "2026-07-04T12:00:04.760000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 131,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 106,
+    "fields": {
+      "name": "Kokosnussmilch",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.830000+00:00",
+      "updated_at": "2026-07-04T12:00:04.830000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 302,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 107,
+    "fields": {
+      "name": "Kokosflocken",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.900000+00:00",
+      "updated_at": "2026-07-04T12:00:04.900000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 134,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 108,
+    "fields": {
+      "name": "Bio-Zitrone",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:04.970000+00:00",
+      "updated_at": "2026-07-04T12:00:04.970000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 61,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 109,
+    "fields": {
+      "name": "Limone",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.040000+00:00",
+      "updated_at": "2026-07-04T12:00:05.040000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 62,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 110,
+    "fields": {
+      "name": "Tafeläpfel",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.110000+00:00",
+      "updated_at": "2026-07-04T12:00:05.110000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 57,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 111,
+    "fields": {
+      "name": "Bio-Banane",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.180000+00:00",
+      "updated_at": "2026-07-04T12:00:05.180000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 58,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 112,
+    "fields": {
+      "name": "Tafelorange",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.250000+00:00",
+      "updated_at": "2026-07-04T12:00:05.250000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 60,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 113,
+    "fields": {
+      "name": "Frische Erdbeeren",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.320000+00:00",
+      "updated_at": "2026-07-04T12:00:05.320000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 66,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 114,
+    "fields": {
+      "name": "Heidelbeeren",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.390000+00:00",
+      "updated_at": "2026-07-04T12:00:05.390000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 68,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 115,
+    "fields": {
+      "name": "Sultaninen",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.460000+00:00",
+      "updated_at": "2026-07-04T12:00:05.460000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 135,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 116,
+    "fields": {
+      "name": "Grüne Oliven",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.530000+00:00",
+      "updated_at": "2026-07-04T12:00:05.530000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 191,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 117,
+    "fields": {
+      "name": "Kapernbeeren",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.600000+00:00",
+      "updated_at": "2026-07-04T12:00:05.600000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 2400,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 118,
+    "fields": {
+      "name": "Natives Olivenöl Extra",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.670000+00:00",
+      "updated_at": "2026-07-04T12:00:05.670000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 166,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 119,
+    "fields": {
+      "name": "Raffiniertes Sonnenblumenöl",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.740000+00:00",
+      "updated_at": "2026-07-04T12:00:05.740000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 168,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 120,
+    "fields": {
+      "name": "Pflanzenmargarine",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.810000+00:00",
+      "updated_at": "2026-07-04T12:00:05.810000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 1875,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 121,
+    "fields": {
+      "name": "Frische Buttermilch",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.880000+00:00",
+      "updated_at": "2026-07-04T12:00:05.880000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 113,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 122,
+    "fields": {
+      "name": "Eiklar",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:05.950000+00:00",
+      "updated_at": "2026-07-04T12:00:05.950000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 7282,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 123,
+    "fields": {
+      "name": "Eidotter",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.020000+00:00",
+      "updated_at": "2026-07-04T12:00:06.020000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6972,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 124,
+    "fields": {
+      "name": "Staubzucker",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.090000+00:00",
+      "updated_at": "2026-07-04T12:00:06.090000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 121,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 125,
+    "fields": {
+      "name": "Kartoffelstärke",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.160000+00:00",
+      "updated_at": "2026-07-04T12:00:06.160000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 123,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 126,
+    "fields": {
+      "name": "Bröselmehl",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.230000+00:00",
+      "updated_at": "2026-07-04T12:00:06.230000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 5501,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 127,
+    "fields": {
+      "name": "Semmelbröseln",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.300000+00:00",
+      "updated_at": "2026-07-04T12:00:06.300000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 7281,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 128,
+    "fields": {
+      "name": "Currygewürz",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.370000+00:00",
+      "updated_at": "2026-07-04T12:00:06.370000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6980,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 129,
+    "fields": {
+      "name": "Edelsüßes Paprikapulver",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.440000+00:00",
+      "updated_at": "2026-07-04T12:00:06.440000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 6860,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 130,
+    "fields": {
+      "name": "Ceylon-Zimt",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.510000+00:00",
+      "updated_at": "2026-07-04T12:00:06.510000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 152,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 131,
+    "fields": {
+      "name": "Geriebene Muskatnuss",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.580000+00:00",
+      "updated_at": "2026-07-04T12:00:06.580000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 153,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 132,
+    "fields": {
+      "name": "Cumin",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.650000+00:00",
+      "updated_at": "2026-07-04T12:00:06.650000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 150,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 133,
+    "fields": {
+      "name": "Landgurke",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.720000+00:00",
+      "updated_at": "2026-07-04T12:00:06.720000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 7249,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 134,
+    "fields": {
+      "name": "Rote Rüben",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.790000+00:00",
+      "updated_at": "2026-07-04T12:00:06.790000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 22,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 135,
+    "fields": {
+      "name": "Rauke",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.860000+00:00",
+      "updated_at": "2026-07-04T12:00:06.860000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 32,
+      "updated_by_id": null
+    }
+  },
+  {
+    "model": "supply.ingredientalias",
+    "pk": 136,
+    "fields": {
+      "name": "Vogerlsalat",
+      "rank": 1,
+      "created_at": "2026-07-04T12:00:06.930000+00:00",
+      "updated_at": "2026-07-04T12:00:06.930000+00:00",
+      "created_by_id": 6,
+      "ingredient_id": 31,
+      "updated_by_id": null
+    }
   }
 ]

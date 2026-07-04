@@ -10,13 +10,15 @@ PODMAN := podman compose
 
 # GCP settings – override via environment or .env
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
-GCP_REGION ?= europe-west3
+GCP_REGION ?= europe-west3                # Artifact Registry + Cloud Build region
+GCP_RUN_REGION ?= europe-west1            # Cloud Run deployment region (west1, was west3)
 GCP_FOOD_REGION ?= europe-west1
 BACKEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/backend
 FRONTEND_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend
 FRONTEND_FOOD_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/inspi/frontend-food
 VPC_CONNECTOR ?= inspi-connector
-CLOUD_SQL_INSTANCE ?= inspi-db
+CLOUD_SQL_INSTANCE ?= inspi-db-west1
+CLOUD_SQL_CONNECTION_NAME ?= $(GCP_PROJECT):$(GCP_RUN_REGION):$(CLOUD_SQL_INSTANCE)
 DB_PASSWORD ?= changeme
 GCS_BUCKET_NAME ?= inspi-media
 
@@ -242,25 +244,26 @@ push-frontend: build-frontend ## Push frontend image to Artifact Registry
 push-frontend-food: build-frontend-food ## Push food frontend image to Artifact Registry
 	@echo "Food frontend image was pushed by Cloud Build."
 
-deploy-backend: push-backend ## Deploy backend to Cloud Run
+deploy-backend: push-backend ## Deploy backend to Cloud Run (west1)
 	gcloud run deploy inspi-backend \
 		--image $(BACKEND_IMAGE):latest \
-		--region $(GCP_REGION) \
+		--region $(GCP_RUN_REGION) \
+		--add-cloudsql-instances $(CLOUD_SQL_CONNECTION_NAME) \
 		--project $(GCP_PROJECT)
 
-migrate-cloud: ## Run Django migrations via Cloud Run job
-	gcloud run jobs execute inspi-migrate --region $(GCP_REGION) --wait
+migrate-cloud: ## Run Django migrations via Cloud Run job (west3, connects to west1 DB)
+	gcloud run jobs execute inspi-migrate --region europe-west3 --wait
 
-deploy-frontend: push-frontend ## Deploy frontend to Cloud Run
+deploy-frontend: push-frontend ## Deploy frontend to Cloud Run (west1)
 	gcloud run deploy inspi-frontend \
 		--image $(FRONTEND_IMAGE):latest \
-		--region $(GCP_REGION) \
+		--region $(GCP_RUN_REGION) \
 		--project $(GCP_PROJECT)
 
-deploy-frontend-food: push-frontend-food ## Deploy food frontend to Cloud Run in europe-west1
+deploy-frontend-food: push-frontend-food ## Deploy food frontend to Cloud Run (west1)
 	gcloud run deploy inspi-frontend-food \
 		--image $(FRONTEND_FOOD_IMAGE):latest \
-		--region $(GCP_FOOD_REGION) \
+		--region $(GCP_RUN_REGION) \
 		--project $(GCP_PROJECT)
 
 deploy: deploy-backend migrate-cloud deploy-frontend deploy-frontend-food ## Deploy everything (backend first, migrations, then frontends)

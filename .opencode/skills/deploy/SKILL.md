@@ -20,20 +20,20 @@ Interactive, step-by-step deployment for the Inspi platform to Google Cloud Run.
 | Key | Value |
 |-----|-------|
 | Project ID | `inspi-441320` |
-| Region | `europe-west3` |
-| Food Frontend Region | `europe-west1` |
+| Artifact Registry / Cloud Build Region | `europe-west3` |
+| Cloud Run Region (alle Services) | `europe-west1` |
 | Artifact Registry | `europe-west3-docker.pkg.dev/inspi-441320/inspi` |
 | Backend Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest` |
 | Frontend Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest` |
 | Frontend Food Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest` |
-| Cloud SQL Instance | `inspi-db` |
-| Cloud SQL Connection | `inspi-441320:europe-west3:inspi-db` |
+| Cloud SQL Instance | `inspi-db-west1` |
+| Cloud SQL Connection | `inspi-441320:europe-west1:inspi-db-west1` |
 | Backend Service | `inspi-backend` |
-| Backend URL | `https://inspi-backend-148679246533.europe-west3.run.app` |
+| Backend URL | `https://inspi-backend-24xnoearra-ew.a.run.app` |
 | Frontend Service | `inspi-frontend` |
 | Frontend Food Service | `inspi-frontend-food` |
 
-**Region split:** Backend and main frontend run in `europe-west3`. The Food Frontend runs in `europe-west1`.
+**Alle Services laufen in `europe-west1`.** Images werden in `europe-west3` Artifact Registry gebaut und gespeichert.
 
 ---
 
@@ -65,7 +65,7 @@ When deploying a new image to an existing service, use **only `--image` and `--r
 ```bash
 gcloud run deploy inspi-backend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
-  --region europe-west3
+  --region europe-west1
 ```
 
 Only add explicit flags when you need to **change** configuration. Using all flags risks overwriting secrets or env vars.
@@ -139,7 +139,7 @@ gcloud config get-value project
 gcloud artifacts repositories describe inspi --location=europe-west3 --format="value(name)"
 
 # 1.4 Cloud SQL instance exists and running?
-gcloud sql instances describe inspi-db --format="value(state)"
+gcloud sql instances describe inspi-db-west1 --format="value(state)"
 
 # 1.5 Cloud Run services exist?
 gcloud run services list --format="table(SERVICE,REGION,URL,LAST_DEPLOYED)"
@@ -151,7 +151,7 @@ Pre-Flight Results:
 [x] gcloud authenticated as: <email>
 [x] Project: inspi-441320
 [x] Artifact Registry: inspi (europe-west3)
-[x] Cloud SQL: inspi-db (RUNNABLE)
+[x] Cloud SQL: inspi-db-west1 (RUNNABLE)
 [x] Cloud Run services: inspi-backend, inspi-frontend, inspi-frontend-food
 ```
 
@@ -188,10 +188,10 @@ If the user declines, skip apply and continue with the plan visible.
 
 ```bash
 # 3.1 Check Cloud SQL connectivity
-gcloud sql instances describe inspi-db --format="value(ipAddresses[0].ipAddress)"
+gcloud sql instances describe inspi-db-west1 --format="value(ipAddresses[0].ipAddress)"
 
 # 3.2 Check backend API is reachable
-BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
+BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 ```
 
@@ -232,19 +232,19 @@ gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=europe-west3
 # 3.2 Deploy (minimal flags — preserves existing env/secrets/scaling)
 gcloud run deploy inspi-backend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
-  --region europe-west3
+  --region europe-west1
 
 # 3.3 Verify
-BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west3 --format="value(status.url)")
+BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 ```
 
 **First-time setup only** (when service config needs to be set):
 ```bash
-DB_HOST=$(gcloud sql instances describe inspi-db --format="value(ipAddresses[0].ipAddress)")
+DB_HOST=$(gcloud sql instances describe inspi-db-west1 --format="value(ipAddresses[0].ipAddress)")
 gcloud run deploy inspi-backend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
-  --region europe-west3 \
+  --region europe-west1 \
   --port 8000 \
   --cpu 1 --memory 512Mi \
   --min-instances 0 --max-instances 10 \
@@ -263,7 +263,7 @@ Ask: "Django Migrations auf dem Backend ausführen?"
 
 ```bash
 # Start proxy if not running
-cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
+cloud-sql-proxy inspi-441320:europe-west1:inspi-db-west1 --port 5444 &
 
 # Run migrations
 DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py migrate --noinput
@@ -279,7 +279,7 @@ Uses the `add_users --if-empty` management command to create initial users. Requ
 
 ```bash
 # Start proxy if not running (if not already running)
-cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
+cloud-sql-proxy inspi-441320:europe-west1:inspi-db-west1 --port 5444 &
 
 # Run add_users
 DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py add_users --if-empty
@@ -305,7 +305,7 @@ Uses the `seed_all --if-empty` management command to seed initial/test data. Req
 
 ```bash
 # Start proxy if not running (if not already running)
-cloud-sql-proxy inspi-441320:europe-west3:inspi-db --port 5433 &
+cloud-sql-proxy inspi-441320:europe-west1:inspi-db-west1 --port 5444 &
 
 # Run seed_all
 DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python manage.py seed_all --if-empty
@@ -348,10 +348,10 @@ gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=europe-west
 # 7.2 Deploy (minimal flags)
 gcloud run deploy inspi-frontend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest \
-  --region europe-west3
+  --region europe-west1
 
 # 7.3 Verify
-FRONTEND_URL=$(gcloud run services describe inspi-frontend --region=europe-west3 --format="value(status.url)")
+FRONTEND_URL=$(gcloud run services describe inspi-frontend --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_URL}/"
 ```
 
@@ -396,7 +396,7 @@ Deployment Complete:
   Backend:       <url> (HTTP <status>)
   Frontend:      <url> (HTTP <status>)
   Frontend Food: <url> (HTTP <status>)
-  DB:            inspi-db (<state>)
+  DB:            inspi-db-west1 (<state>)
 ```
 
 ---

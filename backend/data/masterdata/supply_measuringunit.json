@@ -145,18 +145,6 @@
   },
   {
     "model": "supply.measuringunit",
-    "pk": 73,
-    "fields": {
-      "name": "Portion",
-      "description": "Eine Portion",
-      "quantity": 100.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:13.692365+00:00",
-      "updated_at": "2026-05-28T07:19:13.692375+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
     "pk": 74,
     "fields": {
       "name": "Glas",
@@ -207,24 +195,12 @@
     "model": "supply.measuringunit",
     "pk": 101,
     "fields": {
-      "name": "g",
-      "description": "Gramm",
+      "name": "Packung",
+      "description": "",
       "quantity": 1.0,
-      "unit": "g",
-      "created_at": "2026-06-07T13:14:29.807708+00:00",
-      "updated_at": "2026-06-07T13:14:29.807723+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 102,
-    "fields": {
-      "name": "ml",
-      "description": "Milliliter",
-      "quantity": 1.0,
-      "unit": "ml",
-      "created_at": "2026-06-07T13:14:29.877539+00:00",
-      "updated_at": "2026-06-07T13:14:29.877553+00:00"
+      "unit": "stk",
+      "created_at": "2026-07-04T21:50:49.334516+00:00",
+      "updated_at": "2026-07-04T21:50:49.334516+00:00"
     }
   }
 ]

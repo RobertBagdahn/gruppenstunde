@@ -3,9 +3,9 @@
     "model": "supply.retailsection",
     "pk": 1,
     "fields": {
-      "name": "Konserven & Gläser",
+      "name": "Obst",
       "description": "",
-      "rank": 0
+      "rank": 1
     }
   },
   {
@@ -14,25 +14,34 @@
     "fields": {
       "name": "Gemüse",
       "description": "",
-      "rank": 0
+      "rank": 2
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 3,
+    "fields": {
+      "name": "Brot & Backwaren",
+      "description": "",
+      "rank": 3
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 4,
     "fields": {
-      "name": "Obst",
+      "name": "Fleisch & Wurst",
       "description": "",
-      "rank": 0
+      "rank": 4
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 5,
     "fields": {
-      "name": "Fleisch & Fisch",
+      "name": "Fisch",
       "description": "",
-      "rank": 0
+      "rank": 5
     }
   },
   {
@@ -41,97 +50,124 @@
     "fields": {
       "name": "Milchprodukte & Käse",
       "description": "",
-      "rank": 0
+      "rank": 6
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 7,
     "fields": {
-      "name": "Brot & Backwaren",
+      "name": "Gekühlt",
       "description": "",
-      "rank": 0
+      "rank": 7
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 8,
     "fields": {
-      "name": "Gewürze & Kräuter",
+      "name": "Nudeln & Reis & Getreide",
       "description": "",
-      "rank": 0
+      "rank": 8
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 9,
     "fields": {
-      "name": "Nudeln & Reis & Getreide",
+      "name": "Konserven & Gläser",
       "description": "",
-      "rank": 0
+      "rank": 9
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 10,
     "fields": {
-      "name": "Getränke",
+      "name": "Öle & Soßen",
       "description": "",
-      "rank": 0
+      "rank": 10
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 11,
     "fields": {
-      "name": "Öle & Soßen",
+      "name": "Gewürze & Kräuter",
       "description": "",
-      "rank": 0
+      "rank": 11
     }
   },
   {
     "model": "supply.retailsection",
     "pk": 12,
     "fields": {
-      "name": "Tiefkühl",
-      "description": "",
-      "rank": 0
-    }
-  },
-  {
-    "model": "supply.retailsection",
-    "pk": 111,
-    "fields": {
-      "name": "Fleisch & Wurst",
-      "description": "Frisches Fleisch und Wurstwaren",
-      "rank": 3
-    }
-  },
-  {
-    "model": "supply.retailsection",
-    "pk": 116,
-    "fields": {
-      "name": "Süßwaren & Snacks",
-      "description": "Schokolade, Kekse, Chips",
-      "rank": 10
-    }
-  },
-  {
-    "model": "supply.retailsection",
-    "pk": 118,
-    "fields": {
       "name": "Hülsenfrüchte & Nüsse",
-      "description": "Linsen, Bohnen, Mandeln, Walnüsse",
+      "description": "",
       "rank": 12
     }
   },
   {
     "model": "supply.retailsection",
-    "pk": 114,
+    "pk": 13,
     "fields": {
-      "name": "Gewürze",
-      "description": "Gewürze, Kräuter, Speiseöle",
-      "rank": 6
+      "name": "Salzige Snacks",
+      "description": "",
+      "rank": 13
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 14,
+    "fields": {
+      "name": "Süßwaren",
+      "description": "",
+      "rank": 14
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 15,
+    "fields": {
+      "name": "Kaffee und Tee",
+      "description": "",
+      "rank": 15
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 16,
+    "fields": {
+      "name": "Alkoholfreie Getränke",
+      "description": "",
+      "rank": 16
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 17,
+    "fields": {
+      "name": "Alkoholische Getränke",
+      "description": "",
+      "rank": 17
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 18,
+    "fields": {
+      "name": "TK Obst & Gemüse",
+      "description": "",
+      "rank": 18
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 19,
+    "fields": {
+      "name": "TK Fleisch & Fisch",
+      "description": "",
+      "rank": 19
     }
   }
 ]

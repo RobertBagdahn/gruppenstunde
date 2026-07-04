@@ -3,8 +3,8 @@
     "model": "supply.nutritionaltag",
     "pk": 29,
     "fields": {
-      "name": "vegan",
-      "name_opposite": "nicht vegan",
+      "name": "Tierische Produkte",
+      "name_opposite": "vegan",
       "description": "Enthält keine tierischen Produkte",
       "rank": 1,
       "is_dangerous": false,
@@ -16,8 +16,8 @@
     "model": "supply.nutritionaltag",
     "pk": 30,
     "fields": {
-      "name": "vegetarisch",
-      "name_opposite": "nicht vegetarisch",
+      "name": "Fleisch oder Fisch",
+      "name_opposite": "vegetarisch",
       "description": "Enthält kein Fleisch oder Fisch",
       "rank": 2,
       "is_dangerous": false,
@@ -29,8 +29,8 @@
     "model": "supply.nutritionaltag",
     "pk": 31,
     "fields": {
-      "name": "laktosefrei",
-      "name_opposite": "enthält Laktose",
+      "name": "Laktose",
+      "name_opposite": "laktosefrei",
       "description": "Enthält keine Laktose",
       "rank": 3,
       "is_dangerous": true,
@@ -42,8 +42,8 @@
     "model": "supply.nutritionaltag",
     "pk": 32,
     "fields": {
-      "name": "glutenfrei",
-      "name_opposite": "enthält Gluten",
+      "name": "Gluten",
+      "name_opposite": "glutenfrei",
       "description": "Enthält kein Gluten",
       "rank": 4,
       "is_dangerous": true,
@@ -55,8 +55,8 @@
     "model": "supply.nutritionaltag",
     "pk": 33,
     "fields": {
-      "name": "nussfrei",
-      "name_opposite": "enthält Nüsse",
+      "name": "Nüsse",
+      "name_opposite": "nussfrei",
       "description": "Enthält keine Nüsse",
       "rank": 5,
       "is_dangerous": true,
@@ -68,8 +68,8 @@
     "model": "supply.nutritionaltag",
     "pk": 34,
     "fields": {
-      "name": "eifrei",
-      "name_opposite": "enthält Ei",
+      "name": "Ei",
+      "name_opposite": "eifrei",
       "description": "Enthält kein Hühnerei",
       "rank": 6,
       "is_dangerous": true,
@@ -81,39 +81,13 @@
     "model": "supply.nutritionaltag",
     "pk": 35,
     "fields": {
-      "name": "sojafrei",
-      "name_opposite": "enthält Soja",
+      "name": "Soja",
+      "name_opposite": "sojafrei",
       "description": "Enthält kein Soja",
       "rank": 7,
       "is_dangerous": true,
       "created_at": "2026-05-28T07:19:12.245860+00:00",
       "updated_at": "2026-05-28T07:19:12.245871+00:00"
-    }
-  },
-  {
-    "model": "supply.nutritionaltag",
-    "pk": 65,
-    "fields": {
-      "name": "Tierbestandteile (nicht Vegetarisch)",
-      "name_opposite": "Vegetarisch",
-      "description": "Mit Fleisch und Fisch",
-      "rank": 1,
-      "is_dangerous": false,
-      "created_at": "2026-05-28T07:21:12.193493+00:00",
-      "updated_at": "2026-05-28T07:21:12.193513+00:00"
-    }
-  },
-  {
-    "model": "supply.nutritionaltag",
-    "pk": 66,
-    "fields": {
-      "name": "Tierische Produkte (nicht Vegan)",
-      "name_opposite": "Vegan",
-      "description": "Mit tierische Produkte",
-      "rank": 2,
-      "is_dangerous": false,
-      "created_at": "2026-05-28T07:21:12.254436+00:00",
-      "updated_at": "2026-05-28T07:21:12.254448+00:00"
     }
   },
   {
@@ -131,23 +105,10 @@
   },
   {
     "model": "supply.nutritionaltag",
-    "pk": 68,
-    "fields": {
-      "name": "Laktose",
-      "name_opposite": "keine Laktose",
-      "description": "Laktoseintoleranz",
-      "rank": 4,
-      "is_dangerous": false,
-      "created_at": "2026-05-28T07:21:12.377958+00:00",
-      "updated_at": "2026-05-28T07:21:12.377970+00:00"
-    }
-  },
-  {
-    "model": "supply.nutritionaltag",
     "pk": 69,
     "fields": {
-      "name": "Schalenfrüchte, Nüsse, Mandeln, Nußähnliches, ...",
-      "name_opposite": "keine Nüsse, Mandeln, Nußähnliches, Schalenfrüchte",
+      "name": "Schalenfrüchte",
+      "name_opposite": "keine Schalenfrüchte",
       "description": "Nussallergie",
       "rank": 5,
       "is_dangerous": false,
@@ -157,36 +118,10 @@
   },
   {
     "model": "supply.nutritionaltag",
-    "pk": 70,
-    "fields": {
-      "name": "Halal",
-      "name_opposite": "kein Halal",
-      "description": "Entspricht islamischen Speisevorschriften",
-      "rank": 6,
-      "is_dangerous": false,
-      "created_at": "2026-05-28T07:21:12.502750+00:00",
-      "updated_at": "2026-05-28T07:21:12.502762+00:00"
-    }
-  },
-  {
-    "model": "supply.nutritionaltag",
-    "pk": 71,
-    "fields": {
-      "name": "Koscher",
-      "name_opposite": "kein Koscher",
-      "description": "Entspricht jüdischen Speisevorschriften",
-      "rank": 7,
-      "is_dangerous": false,
-      "created_at": "2026-05-28T07:21:12.565586+00:00",
-      "updated_at": "2026-05-28T07:21:12.565598+00:00"
-    }
-  },
-  {
-    "model": "supply.nutritionaltag",
     "pk": 72,
     "fields": {
-      "name": "Gluten (nicht zöliakie)",
-      "name_opposite": "kein Gluten (nicht zöliakie)",
+      "name": "Gluten (nicht Zöliakie)",
+      "name_opposite": "kein Gluten (nicht Zöliakie)",
       "description": "Glutenunverträglichkeit",
       "rank": 8,
       "is_dangerous": false,
@@ -218,19 +153,6 @@
       "is_dangerous": false,
       "created_at": "2026-05-28T07:21:12.841249+00:00",
       "updated_at": "2026-05-28T07:21:12.841261+00:00"
-    }
-  },
-  {
-    "model": "supply.nutritionaltag",
-    "pk": 75,
-    "fields": {
-      "name": "Erdnüsse",
-      "name_opposite": "keine Erdnüsse",
-      "description": "Erdnussallergie",
-      "rank": 11,
-      "is_dangerous": false,
-      "created_at": "2026-05-28T07:21:12.903011+00:00",
-      "updated_at": "2026-05-28T07:21:12.903024+00:00"
     }
   },
   {
@@ -426,19 +348,6 @@
       "is_dangerous": false,
       "created_at": "2026-05-28T07:21:14.011746+00:00",
       "updated_at": "2026-05-28T07:21:14.011757+00:00"
-    }
-  },
-  {
-    "model": "supply.nutritionaltag",
-    "pk": 91,
-    "fields": {
-      "name": "Kamut",
-      "name_opposite": "kein Kamut",
-      "description": "Kamutallergie",
-      "rank": 29,
-      "is_dangerous": false,
-      "created_at": "2026-05-28T07:21:14.071583+00:00",
-      "updated_at": "2026-05-28T07:21:14.071596+00:00"
     }
   },
   {
