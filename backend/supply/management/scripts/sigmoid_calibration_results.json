@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-07-05 20:52:09.935731",
+  "num_pairs": 9,
+  "sigmoid_parameters": {
+    "steepness": 5.555555555555555,
+    "midpoint": 0.7055555555555556
+  },
+  "fit_quality": {
+    "r_squared": 0.23757084122323757,
+    "accuracy_direction": 44.44444444444444
+  },
+  "ground_truth_pairs": [
+    {
+      "ing_a_name": "Schweinebauch",
+      "ing_b_name": "Bacon",
+      "cosine_sim": 0.844084060389067,
+      "should_be_similar": false,
+      "target_pct": 30.0
+    },
+    {
+      "ing_a_name": "Schweinebauch",
+      "ing_b_name": "Linseneintopf mit Schweinefleisch (Dose)",
+      "cosine_sim": 0.7296756488062097,
+      "should_be_similar": false,
+      "target_pct": 30.0
+    },
+    {
+      "ing_a_name": "Rote Zwiebel",
+      "ing_b_name": "Babybrei Karotten-Kartoffeln mit Rind Bio",
+      "cosine_sim": 0.6304402049879451,
+      "should_be_similar": false,
+      "target_pct": 30.0
+    },
+    {
+      "ing_a_name": "Baguette Kr\u00e4uterbutter (TK)",
+      "ing_b_name": "Artischockenherzen in \u00d6l",
+      "cosine_sim": 0.6731779209825222,
+      "should_be_similar": false,
+      "target_pct": 30.0
+    },
+    {
+      "ing_a_name": "Alpenmilch",
+      "ing_b_name": "Bonbons Wassermelone",
+      "cosine_sim": 0.627895772607093,
+      "should_be_similar": false,
+      "target_pct": 30.0
+    },
+    {
+      "ing_a_name": "Erbsen und M\u00f6hren (Dose)",
+      "ing_b_name": "Babybrei Karotten-Kartoffeln mit Rind Bio",
+      "cosine_sim": 0.6997676060297376,
+      "should_be_similar": true,
+      "target_pct": 85.0
+    },
+    {
+      "ing_a_name": "Antipasti Zwiebeln",
+      "ing_b_name": "Rote Zwiebel",
+      "cosine_sim": 0.7687784005063425,
+      "should_be_similar": true,
+      "target_pct": 85.0
+    },
+    {
+      "ing_a_name": "Babybrei Karotten-Kartoffeln mit Rind Bio",
+      "ing_b_name": "Babybrei Karotten-Kartoffeln mit Rind Bio",
+      "cosine_sim": 1.0,
+      "should_be_similar": true,
+      "target_pct": 85.0
+    },
+    {
+      "ing_a_name": "Aioli (Knoblauchcreme)",
+      "ing_b_name": "Knoblauchzehe",
+      "cosine_sim": 0.7661088539635197,
+      "should_be_similar": true,
+      "target_pct": 85.0
+    }
+  ]
+}

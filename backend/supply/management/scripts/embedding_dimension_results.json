@@ -1,0 +1,72 @@
+{
+  "baseline_dim": 3072,
+  "num_ingredients": 20,
+  "methods": {
+    "first_n_slice": {
+      "768": {
+        "overlap": 1.0,
+        "size_ratio": 0.25
+      },
+      "384": {
+        "overlap": 1.0,
+        "size_ratio": 0.125
+      },
+      "256": {
+        "overlap": 0.8949999999999999,
+        "size_ratio": 0.08333333333333333
+      },
+      "128": {
+        "overlap": 0.82,
+        "size_ratio": 0.041666666666666664
+      },
+      "64": {
+        "overlap": 0.775,
+        "size_ratio": 0.020833333333333332
+      }
+    },
+    "last_n_slice": {
+      "768": {
+        "overlap": 1.0,
+        "size_ratio": 0.25
+      },
+      "384": {
+        "overlap": 1.0,
+        "size_ratio": 0.125
+      },
+      "256": {
+        "overlap": 0.8950000000000001,
+        "size_ratio": 0.08333333333333333
+      },
+      "128": {
+        "overlap": 0.8150000000000001,
+        "size_ratio": 0.041666666666666664
+      },
+      "64": {
+        "overlap": 0.8,
+        "size_ratio": 0.020833333333333332
+      }
+    },
+    "svd": {
+      "768": {
+        "overlap": 1.0,
+        "size_ratio": 0.25
+      },
+      "384": {
+        "overlap": 1.0,
+        "size_ratio": 0.125
+      },
+      "256": {
+        "overlap": 1.0,
+        "size_ratio": 0.08333333333333333
+      },
+      "128": {
+        "overlap": 1.0,
+        "size_ratio": 0.041666666666666664
+      },
+      "64": {
+        "overlap": 1.0,
+        "size_ratio": 0.020833333333333332
+      }
+    }
+  }
+}

@@ -141,6 +141,12 @@ class Content(SoftDeleteModel):
     search_vector = SearchVectorField(null=True, blank=True)
     embedding = VectorField(dimensions=768, null=True, blank=True)
     embedding_updated_at = models.DateTimeField(null=True, blank=True)
+    embedding_text_hash = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        help_text="SHA-256 hash of the embedding text. Used to detect changes and avoid unnecessary regeneration.",
+    )
 
     # --- Analytics ---
     view_count = models.IntegerField(default=0)

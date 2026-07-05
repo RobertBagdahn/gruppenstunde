@@ -58,25 +58,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 6,
-    "fields": {
-      "name": "gehackte Tomaten",
-      "quantity_g": 3960.0000000000005,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 5,
-      "note": "",
-      "created_at": "2026-05-31T08:31:42.471010+00:00",
-      "updated_at": "2026-05-31T08:31:42.471026+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7177,
-      "retail_section_id": 5,
-      "shopping_list_id": 2
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 7,
     "fields": {
       "name": "gehackte Walnüsse",
@@ -109,25 +90,6 @@
       "updated_at": "2026-05-31T08:31:42.518707+00:00",
       "checked_by_id": null,
       "ingredient_id": 16,
-      "retail_section_id": 2,
-      "shopping_list_id": 2
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
-    "pk": 9,
-    "fields": {
-      "name": "Basilikum",
-      "quantity_g": 13.200000000000001,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 8,
-      "note": "",
-      "created_at": "2026-05-31T08:31:42.539244+00:00",
-      "updated_at": "2026-05-31T08:31:42.539259+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 6897,
       "retail_section_id": 2,
       "shopping_list_id": 2
     }
@@ -172,25 +134,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 12,
-    "fields": {
-      "name": "Gewürzgurkenwasser",
-      "quantity_g": 550.0,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 11,
-      "note": "",
-      "created_at": "2026-05-31T08:31:42.610170+00:00",
-      "updated_at": "2026-05-31T08:31:42.610193+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7021,
-      "retail_section_id": 2,
-      "shopping_list_id": 2
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 13,
     "fields": {
       "name": "Karotten (geraspelt)",
@@ -229,25 +172,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 15,
-    "fields": {
-      "name": "Mais",
-      "quantity_g": 880.0,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 14,
-      "note": "",
-      "created_at": "2026-05-31T08:31:42.689884+00:00",
-      "updated_at": "2026-05-31T08:31:42.689901+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 6801,
-      "retail_section_id": 2,
-      "shopping_list_id": 2
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 16,
     "fields": {
       "name": "Paprikamark",
@@ -261,25 +185,6 @@
       "updated_at": "2026-05-31T08:31:42.713714+00:00",
       "checked_by_id": null,
       "ingredient_id": 7260,
-      "retail_section_id": 2,
-      "shopping_list_id": 2
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
-    "pk": 18,
-    "fields": {
-      "name": "Paprikaschoten",
-      "quantity_g": 528.0,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 17,
-      "note": "",
-      "created_at": "2026-05-31T08:31:42.757433+00:00",
-      "updated_at": "2026-05-31T08:31:42.757449+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7262,
       "retail_section_id": 2,
       "shopping_list_id": 2
     }
@@ -590,25 +495,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 40,
-    "fields": {
-      "name": "Joghurt (Natur)",
-      "quantity_g": 99000.00000000001,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 39,
-      "note": "",
-      "created_at": "2026-05-31T08:31:43.278393+00:00",
-      "updated_at": "2026-05-31T08:31:43.278409+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 296,
-      "retail_section_id": 6,
-      "shopping_list_id": 2
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 41,
     "fields": {
       "name": "Milch",
@@ -622,25 +508,6 @@
       "updated_at": "2026-05-31T08:31:43.302271+00:00",
       "checked_by_id": null,
       "ingredient_id": 288,
-      "retail_section_id": 6,
-      "shopping_list_id": 2
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
-    "pk": 42,
-    "fields": {
-      "name": "Mozzarella-Minikugeln",
-      "quantity_g": 550.0,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 41,
-      "note": "",
-      "created_at": "2026-05-31T08:31:43.324083+00:00",
-      "updated_at": "2026-05-31T08:31:43.324101+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7266,
       "retail_section_id": 6,
       "shopping_list_id": 2
     }
@@ -735,7 +602,7 @@
       "created_at": "2026-05-31T08:31:43.459941+00:00",
       "updated_at": "2026-05-31T08:31:43.459958+00:00",
       "checked_by_id": null,
-      "ingredient_id": 7170,
+      "ingredient_id": 1703,
       "retail_section_id": 11,
       "shopping_list_id": 2
     }
@@ -989,25 +856,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 54,
-    "fields": {
-      "name": "Gehackte Tomaten",
-      "quantity_g": 990.0000000000001,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 2,
-      "note": "",
-      "created_at": "2026-06-03T18:34:18.075896+00:00",
-      "updated_at": "2026-06-03T18:34:18.075914+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7177,
-      "retail_section_id": 5,
-      "shopping_list_id": 3
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 55,
     "fields": {
       "name": "Gehackte Walnüsse",
@@ -1103,25 +951,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 60,
-    "fields": {
-      "name": "Basilikum",
-      "quantity_g": 13.200000000000001,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 8,
-      "note": "",
-      "created_at": "2026-06-03T18:34:18.215691+00:00",
-      "updated_at": "2026-06-03T18:34:18.215707+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 6897,
-      "retail_section_id": 2,
-      "shopping_list_id": 3
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 61,
     "fields": {
       "name": "Cocktailtomaten",
@@ -1179,25 +1008,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 64,
-    "fields": {
-      "name": "Gewürzgurkenwasser",
-      "quantity_g": 0.3666666666666667,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 12,
-      "note": "",
-      "created_at": "2026-06-03T18:34:18.317602+00:00",
-      "updated_at": "2026-06-03T18:34:18.317617+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7021,
-      "retail_section_id": 2,
-      "shopping_list_id": 3
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 65,
     "fields": {
       "name": "Karotten geraspelt",
@@ -1236,25 +1046,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 67,
-    "fields": {
-      "name": "Mais",
-      "quantity_g": 0.3666666666666667,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 15,
-      "note": "",
-      "created_at": "2026-06-03T18:34:18.385537+00:00",
-      "updated_at": "2026-06-03T18:34:18.385551+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 6801,
-      "retail_section_id": 2,
-      "shopping_list_id": 3
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 68,
     "fields": {
       "name": "Paprikamark",
@@ -1268,25 +1059,6 @@
       "updated_at": "2026-06-03T18:34:18.407969+00:00",
       "checked_by_id": null,
       "ingredient_id": 7260,
-      "retail_section_id": 2,
-      "shopping_list_id": 3
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
-    "pk": 69,
-    "fields": {
-      "name": "Paprikaschoten",
-      "quantity_g": 528.0,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 17,
-      "note": "",
-      "created_at": "2026-06-03T18:34:18.429412+00:00",
-      "updated_at": "2026-06-03T18:34:18.429427+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7262,
       "retail_section_id": 2,
       "shopping_list_id": 3
     }
@@ -1692,25 +1464,6 @@
   },
   {
     "model": "shopping.shoppinglistitem",
-    "pk": 92,
-    "fields": {
-      "name": "Joghurt (Natur)",
-      "quantity_g": 99000.00000000001,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 40,
-      "note": "",
-      "created_at": "2026-06-03T18:34:18.957626+00:00",
-      "updated_at": "2026-06-03T18:34:18.957642+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 296,
-      "retail_section_id": 6,
-      "shopping_list_id": 3
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
     "pk": 93,
     "fields": {
       "name": "Milch",
@@ -1724,25 +1477,6 @@
       "updated_at": "2026-06-03T18:34:18.978459+00:00",
       "checked_by_id": null,
       "ingredient_id": 288,
-      "retail_section_id": 6,
-      "shopping_list_id": 3
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
-    "pk": 94,
-    "fields": {
-      "name": "Mozzarella-Minikugeln",
-      "quantity_g": 91.66666666666667,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 42,
-      "note": "",
-      "created_at": "2026-06-03T18:34:19.000483+00:00",
-      "updated_at": "2026-06-03T18:34:19.000499+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 7266,
       "retail_section_id": 6,
       "shopping_list_id": 3
     }
@@ -1837,7 +1571,7 @@
       "created_at": "2026-06-03T18:34:19.113323+00:00",
       "updated_at": "2026-06-03T18:34:19.113338+00:00",
       "checked_by_id": null,
-      "ingredient_id": 7170,
+      "ingredient_id": 1703,
       "retail_section_id": 11,
       "shopping_list_id": 3
     }
@@ -1914,25 +1648,6 @@
       "updated_at": "2026-06-04T17:25:32.766825+00:00",
       "checked_by_id": null,
       "ingredient_id": 297,
-      "retail_section_id": 2,
-      "shopping_list_id": 4
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
-    "pk": 109,
-    "fields": {
-      "name": "Tomaten (Dose)",
-      "quantity_g": 132000.0,
-      "unit": "g",
-      "is_checked": false,
-      "checked_at": null,
-      "sort_order": 7,
-      "note": "",
-      "created_at": "2026-06-04T17:25:32.798407+00:00",
-      "updated_at": "2026-06-04T17:25:32.798422+00:00",
-      "checked_by_id": null,
-      "ingredient_id": 289,
       "retail_section_id": 2,
       "shopping_list_id": 4
     }
@@ -2219,25 +1934,6 @@
       "checked_by_id": 10,
       "ingredient_id": null,
       "retail_section_id": null,
-      "shopping_list_id": 4
-    }
-  },
-  {
-    "model": "shopping.shoppinglistitem",
-    "pk": 102,
-    "fields": {
-      "name": "Brot (Vollkorn)",
-      "quantity_g": 111650.0,
-      "unit": "g",
-      "is_checked": true,
-      "checked_at": "2026-06-04T17:28:42.709693+00:00",
-      "sort_order": 0,
-      "note": "",
-      "created_at": "2026-06-04T17:25:32.582591+00:00",
-      "updated_at": "2026-06-04T17:28:42.709806+00:00",
-      "checked_by_id": 10,
-      "ingredient_id": 294,
-      "retail_section_id": 7,
       "shopping_list_id": 4
     }
   },

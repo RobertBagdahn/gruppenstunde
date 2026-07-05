@@ -1,7 +1,6 @@
 """Ingredient models — Ingredient, IngredientAlias, Portion."""
 
 from django.conf import settings
-from django.contrib.postgres.search import SearchVectorField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
@@ -254,9 +253,14 @@ class Ingredient(models.Model):
     )
 
     # Search & AI
-    search_vector = SearchVectorField(null=True, blank=True)
     embedding = VectorField(dimensions=768, null=True, blank=True)
     embedding_updated_at = models.DateTimeField(null=True, blank=True)
+    embedding_text_hash = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        help_text="SHA-256 hash of the simplified embedding text (name+description+retail_section). Used to detect changes.",
+    )
 
     # Data quality
     quality_score = models.IntegerField(

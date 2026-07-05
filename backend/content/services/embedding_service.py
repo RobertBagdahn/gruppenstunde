@@ -17,13 +17,53 @@ from pgvector.django import CosineDistance
 
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "text-embedding-004"
-EMBEDDING_DIMENSIONS = 768
+EMBEDDING_MODEL = "gemini-embedding-001"
+# Output dimensionality for Vertex AI embeddings
+# Validated via embedding_dimension_experiment: 384-dim achieves ~100% top-10 overlap
+# while reducing size to 12.5% of original (3072 -> 384)
+EMBEDDING_OUTPUT_DIM = 384
+EMBEDDING_DIMENSIONS = 384  # VectorField dimensions for PostgreSQL pgvector
 
 
 def _text_hash(text: str) -> str:
     """Create a SHA-256 hash of the text to detect changes."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def similarity_to_pct(cosine_similarity: float, steepness: float = 10.0, midpoint: float = 0.6) -> float:
+    """
+    Convert cosine similarity (0-1) to percentage similarity (0-100) using sigmoid calibration.
+    
+    This function applies a sigmoid curve that:
+    - Maps low similarities (< midpoint) to low percentages
+    - Maps high similarities (> midpoint) to high percentages
+    - Uses steepness to control the transition sharpness
+    
+    Args:
+        cosine_similarity: Raw cosine similarity value (0.0 to 1.0)
+        steepness: Sigmoid steepness parameter (higher = sharper transition, default 10.0)
+        midpoint: Cosine similarity value that maps to 50% (default 0.6, can be fitted to ground truth)
+    
+    Returns:
+        Percentage similarity (0.0 to 100.0)
+    
+    Note: These parameters should be fitted to ground-truth ingredient pairs (task 3.2).
+          For now, using reasonable defaults based on typical cosine similarity distributions.
+    """
+    import math
+    
+    # Ensure input is in valid range
+    cos_sim = max(0.0, min(1.0, cosine_similarity))
+    
+    # Sigmoid function: 1 / (1 + e^(-steepness * (x - midpoint)))
+    try:
+        sigmoid_value = 1.0 / (1.0 + math.exp(-steepness * (cos_sim - midpoint)))
+    except OverflowError:
+        # Handle extreme values
+        sigmoid_value = 1.0 if cos_sim > midpoint else 0.0
+    
+    # Scale to 0-100 percentage
+    return sigmoid_value * 100.0
 
 
 def _fmt(val, suffix="", decimals=1) -> str:
@@ -59,95 +99,26 @@ def build_embedding_text(content_obj) -> str:
 
 def build_ingredient_embedding_text(ingredient) -> str:
     """
-    Build a human-readable full-field serialization of an Ingredient.
-    Includes all nutritional values, scores, price, storage, season, tags, and retail section.
+    Build simplified embedding text for ingredient semantic similarity.
+    
+    Only includes name, description, and retail section.
+    This focuses on actual ingredient similarity (what it is, where it's sold)
+    rather than nutritional metadata.
     """
-    parts = [f"Zutat: {ingredient.name}."]
-
+    parts = []
+    
+    # Name (required)
+    if ingredient.name:
+        parts.append(ingredient.name)
+    
+    # Description (if available, first 2000 chars)
     if ingredient.description:
         parts.append(ingredient.description[:2000])
-
-    # Nutritional values per 100g
-    nutr = []
-    if ingredient.energy_kcal is not None:
-        nutr.append(f"{ingredient.energy_kcal:.0f} kcal")
-    if ingredient.protein_g is not None:
-        nutr.append(f"{ingredient.protein_g:.1f}g Eiweiß")
-    if ingredient.fat_g is not None:
-        nutr.append(f"{ingredient.fat_g:.1f}g Fett")
-    if ingredient.fat_sat_g is not None:
-        nutr.append(f"{ingredient.fat_sat_g:.1f}g gesättigte Fettsäuren")
-    if ingredient.carbohydrate_g is not None:
-        nutr.append(f"{ingredient.carbohydrate_g:.1f}g Kohlenhydrate")
-    if ingredient.sugar_g is not None:
-        nutr.append(f"{ingredient.sugar_g:.1f}g Zucker")
-    if ingredient.fibre_g is not None:
-        nutr.append(f"{ingredient.fibre_g:.1f}g Ballaststoffe")
-    if ingredient.salt_g is not None:
-        nutr.append(f"{ingredient.salt_g:.2f}g Salz")
-    if ingredient.sodium_mg is not None:
-        nutr.append(f"{ingredient.sodium_mg:.0f}mg Natrium")
-    if ingredient.fructose_g is not None:
-        nutr.append(f"{ingredient.fructose_g:.1f}g Fructose")
-    if ingredient.lactose_g is not None:
-        nutr.append(f"{ingredient.lactose_g:.1f}g Lactose")
-    if ingredient.vitamin_c_mg is not None:
-        nutr.append(f"{ingredient.vitamin_c_mg:.1f}mg Vitamin C")
-    if nutr:
-        parts.append("Pro 100g: " + ", ".join(nutr) + ".")
-
-    # Scores
-    scores = []
-    if ingredient.nutri_class is not None:
-        scores.append(f"Nutri-Score: {ingredient.nutri_class}")
-    if ingredient.child_score is not None:
-        scores.append(f"Kind-Score: {ingredient.child_score}/10")
-    if ingredient.scout_score is not None:
-        scores.append(f"Pfadfinder-Score: {ingredient.scout_score}/10")
-    if ingredient.environmental_score is not None:
-        scores.append(f"Umwelt-Score: {ingredient.environmental_score}/10")
-    if ingredient.nova_score is not None:
-        scores.append(f"NOVA: {ingredient.nova_score}")
-    if scores:
-        parts.append(" ".join(scores))
-
-    # Price
-    if ingredient.price_per_kg is not None:
-        parts.append(f"Preis: {ingredient.price_per_kg:.2f}EUR/kg.")
-
-    # Physical / storage
-    phys = []
-    if ingredient.physical_density and ingredient.physical_density != 1.0:
-        phys.append(f"Dichte: {ingredient.physical_density:.2f}g/ml")
-    if ingredient.physical_viscosity:
-        phys.append(f"Konsistenz: {ingredient.physical_viscosity}")
-    if ingredient.storage_type:
-        phys.append(f"Lagerung: {ingredient.storage_type}")
-    if ingredient.durability_in_days:
-        phys.append(f"Haltbar: {ingredient.durability_in_days} Tage")
-    if ingredient.cooking_factor and ingredient.cooking_factor != 1.0:
-        phys.append(f"Gar-Faktor: {ingredient.cooking_factor}")
-    if ingredient.camp_suitable:
-        phys.append("Lager-geeignet")
-    if phys:
-        parts.append(". ".join(phys) + ".")
-
-    # Season
-    if ingredient.season_start and ingredient.season_end:
-        parts.append(f"Saison: Monat {ingredient.season_start} bis {ingredient.season_end}.")
-
-    # Tags and retail section
-    try:
-        tags = ingredient.nutritional_tags.all()
-        tag_names = [t.name for t in tags]
-        if tag_names:
-            parts.append("Tags: " + ", ".join(tag_names) + ".")
-    except Exception:
-        logger.warning("Could not include tags in embedding text for ingredient", exc_info=True)
-
+    
+    # Retail section (if available)
     if ingredient.retail_section:
-        parts.append(f"Abteilung: {ingredient.retail_section.name}.")
-
+        parts.append(f"Abteilung: {ingredient.retail_section.name}")
+    
     return " ".join(parts)
 
 
@@ -226,30 +197,30 @@ def build_recipe_embedding_text(recipe) -> str:
     return " ".join(parts)
 
 
-def create_embedding(text: str) -> list[float] | None:
+def create_embedding(text: str, output_dimensionality: int | None = None) -> list[float] | None:
     """
-    Create a text embedding using Cloud SQL native embedding() SQL function.
-    Falls back to Gemini Python SDK if google_ml_integration extension is not available.
+    Create a text embedding using Vertex AI Gemini model.
+    
+    This directly uses the Vertex AI client via gemini_embed().
+    The cloud-sql-based embedding() SQL function is no longer used.
+    
+    Args:
+        text: Text to embed
+        output_dimensionality: Optional output dimension for the embedding.
+                             If None, uses EMBEDDING_OUTPUT_DIM constant.
+    
+    Returns: List of floats or None if unavailable.
     """
-    from django.db import connection
-
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT embedding(%s, %s)",
-                [EMBEDDING_MODEL, text],
-            )
-            row = cursor.fetchone()
-            if row and row[0] is not None:
-                return list(row[0])
-        return None
-    except Exception:
-        logger.debug("Cloud SQL embedding() not available, falling back to Gemini SDK")
-
-    # Fallback: Gemini SDK
     from core.services.gemini import gemini_embed
 
-    return gemini_embed(user=None, model=EMBEDDING_MODEL, contents=text, bypass_limits=False)
+    dim = output_dimensionality or EMBEDDING_OUTPUT_DIM
+    return gemini_embed(
+        user=None,
+        model=EMBEDDING_MODEL,
+        contents=text,
+        output_dimensionality=dim,
+        bypass_limits=False,
+    )
 
 
 def update_content_embedding(content_obj, force: bool = False) -> bool:
@@ -267,10 +238,12 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
     if not text.strip():
         return False
 
-    if not force and content_obj.embedding is not None and content_obj.embedding_updated_at:
-        if content_obj.embedding_updated_at >= content_obj.updated_at:
+    # Hash-based change detection
+    current_hash = _text_hash(text)
+    if not force and content_obj.embedding is not None:
+        if current_hash == content_obj.embedding_text_hash:
             logger.debug(
-                "Skipping embedding update for %s #%d — already up to date",
+                "Skipping embedding update for %s #%d — text hash unchanged",
                 type(content_obj).__name__,
                 content_obj.pk,
             )
@@ -282,7 +255,8 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
 
     content_obj.embedding = embedding
     content_obj.embedding_updated_at = timezone.now()
-    content_obj.save(update_fields=["embedding", "embedding_updated_at"])
+    content_obj.embedding_text_hash = current_hash
+    content_obj.save(update_fields=["embedding", "embedding_updated_at", "embedding_text_hash"])
 
     logger.info(
         "Updated embedding for %s #%d (%d dims)",
@@ -296,62 +270,88 @@ def update_content_embedding(content_obj, force: bool = False) -> bool:
 def update_ingredient_embedding(ingredient, force: bool = False) -> bool:
     """
     Update the embedding for an Ingredient.
+    Uses hash-based change detection to avoid unnecessary regeneration.
     Returns True if embedding was updated, False otherwise.
+    
+    Note: Uses raw SQL to bypass signal handlers that try to access Recipe table.
     """
+    from django.db import connection
+    
     text = build_ingredient_embedding_text(ingredient)
     if not text.strip():
         return False
 
-    if not force and ingredient.embedding is not None and ingredient.embedding_updated_at:
-        if ingredient.embedding_updated_at >= ingredient.updated_at:
-            logger.debug("Skipping embedding update for Ingredient #%d — already up to date", ingredient.pk)
+    # Hash-based change detection
+    current_hash = _text_hash(text)
+    if not force and ingredient.embedding is not None:
+        if current_hash == ingredient.embedding_text_hash:
+            logger.debug("Skipping embedding update for Ingredient #%d — text hash unchanged", ingredient.pk)
             return False
 
     embedding = create_embedding(text)
     if embedding is None:
         return False
 
-    ingredient.embedding = embedding
-    ingredient.embedding_updated_at = timezone.now()
-    ingredient.save(update_fields=["embedding", "embedding_updated_at"])
+    # Use raw SQL to bypass signal handlers
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE supply_ingredient 
+            SET embedding = %s, 
+                embedding_updated_at = %s, 
+                embedding_text_hash = %s 
+            WHERE id = %s
+            """,
+            [embedding, timezone.now(), current_hash, ingredient.pk]
+        )
 
     logger.info("Updated embedding for Ingredient #%d (%d dims)", ingredient.pk, len(embedding))
     return True
 
 
-def find_similar_ingredients(ingredient, threshold: float = 0.05, limit: int = 20) -> list[dict[str, Any]]:
+def find_similar_ingredients(ingredient, similarity_threshold_pct: float = 50.0, limit: int = 20) -> list[dict[str, Any]]:
     """
-    Find similar ingredients using pgvector cosine distance.
+    Find similar ingredients using pgvector cosine distance with calibrated similarity percentage.
 
     Args:
         ingredient: The source Ingredient instance
-        threshold: Maximum cosine distance (0 = identical, 2 = opposite)
+        similarity_threshold_pct: Minimum similarity percentage to return (0-100, default 50%)
         limit: Maximum number of results
 
-    Returns list of {id, name, slug, distance} dicts.
+    Returns list of {id, name, slug, similarity_pct} dicts.
     """
     from supply.models import Ingredient
 
     if ingredient.embedding is None:
         return []
 
+    # Query using cosine distance
+    # pgvector's CosineDistance returns distance (0=identical, 2=opposite)
+    # We convert to cosine_similarity by: cosine_similarity = 1 - distance
     results = (
         Ingredient.objects.exclude(pk=ingredient.pk)
         .exclude(embedding__isnull=True)
         .annotate(distance=CosineDistance("embedding", ingredient.embedding))
-        .filter(distance__lt=threshold)
+        .filter(distance__lt=1.0)  # Filter to valid cosine distances (0-2, but we only care about 0-1 range)
         .order_by("distance")[:limit]
     )
 
-    return [
-        {
-            "id": item.id,
-            "name": item.name,
-            "slug": item.slug,
-            "distance": round(float(item.distance), 4),
-        }
-        for item in results
-    ]
+    similar = []
+    for item in results:
+        # Convert distance to cosine similarity
+        cosine_sim = 1.0 - float(item.distance)
+        # Convert to percentage using sigmoid calibration
+        similarity_pct = similarity_to_pct(cosine_sim)
+        
+        if similarity_pct >= similarity_threshold_pct:
+            similar.append({
+                "id": item.id,
+                "name": item.name,
+                "slug": item.slug,
+                "similarity_pct": round(similarity_pct, 1),
+            })
+    
+    return similar
 
 
 def get_embedding_vector(content_obj) -> list[float] | None:

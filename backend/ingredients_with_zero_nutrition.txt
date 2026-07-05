@@ -1,0 +1,1806 @@
+Found 451 ingredients with all nutrition values = 0.0
+
+PK: 116
+Name: Mehl
+Description: Mehl ist ein aus Getreidekörnern gemahlenes Pulver, das als wichtigste Grundlage für Backwaren dient.
+
+PK: 6877
+Name: Oregano gerebelt
+Description: Getrocknete und zerkleinerte Blätter des Oreganos mit würzig-herbem Aroma, das vor allem in der mediterranen Küche verbreitet ist.
+
+PK: 115
+Name: Salami
+Description: Salami ist eine luftgetrocknete oder geräucherte Rohwurst mit würzigem Geschmack.
+
+PK: 94
+Name: Butter
+Description: Streichfett aus konzentriertem Rahm, das als Brotaufstrich oder zum Kochen und Backen verwendet wird.
+
+PK: 114
+Name: Bacon
+Description: Bacon ist gepökelter und meist geräucherter Bauchspeck vom Schwein, der knusprig gebraten wird.
+
+PK: 185
+Name: Reis
+Description: Samen der Reispflanze, ein weltweit verbreitetes Grundnahrungsmittel in verschiedenen Kornformen.
+
+PK: 105
+Name: Gouda
+Description: Gouda ist ein milder, schnittfester Käse aus Kuhmilch mit einer elastischen Konsistenz.
+
+PK: 189
+Name: Eier
+Description: Vielseitiges tierisches Grundnahrungsmittel, das in der Küche zum Backen, Braten oder Kochen dient.
+
+PK: 90
+Name: Speck
+Description: Durchwachsenes, gepökeltes und meist geräuchertes Bauch- oder Rückenfleisch vom Schwein mit kräftigem Geschmack.
+
+PK: 6853
+Name: Geräucherter Tofu
+Description: Tofu, der durch Räuchern ein kräftiges, herzhaftes Aroma erhält und als pflanzliche Fleischalternative dient.
+
+PK: 99
+Name: Griechischer Joghurt
+Description: Cremiger, besonders proteinreicher Joghurt nach griechischer Art mit fester Konsistenz und mildem Aroma.
+
+PK: 20
+Name: Fenchel
+Description: Gemüse mit charakteristischem, leicht anisartigem Geschmack und essbarer Knolle.
+
+PK: 144
+Name: Knäckebrot
+Description: Flaches, trockenes und knuspriges Brot, das meist aus Vollkorngetreide hergestellt wird und eine lange Haltbarkeit besitzt.
+
+PK: 107
+Name: Emmentaler
+Description: Emmentaler ist ein hartkäse aus Kuhmilch, der für seine typischen Löcher und ein nussiges Aroma bekannt ist.
+
+PK: 108
+Name: Halloumi
+Description: Halloumi ist ein fester Grillkäse aus Zypern, der durch seine Struktur beim Erhitzen nicht schmilzt.
+
+PK: 6894
+Name: Gehackte Tomaten (Dose)
+Description: In Stücke geschnittene Tomaten, konserviert in eigenem Saft, vielseitig verwendbar für Saucen und Schmorgerichte.
+
+PK: 6870
+Name: Frische Kräuter
+Description: Verschiedene aromatische Pflanzenblätter, die frisch geerntet zur geschmacklichen Verfeinerung von Speisen verwendet werden.
+
+PK: 6868
+Name: Geräuchertes Paprikapulver
+Description: Über Eichenholz geräuchertes und gemahlenes Paprikapulver mit intensivem, rauchigem Aroma, das Speisen eine würzige Tiefe verleiht.
+
+PK: 6903
+Name: Gemüsezwiebeln
+Description: Besonders große Zwiebelsorte mit mildem bis würzigem Aroma, geeignet für Salate, zum Braten oder Schmoren.
+
+PK: 6857
+Name: Baked Beans
+Description: Gekochte weiße Bohnen in einer würzigen Tomatensoße, oft als herzhafte Beilage oder Hauptzutat serviert.
+
+PK: 6859
+Name: Cheddar gerieben
+Description: Kuhmilchkäse mit fester Konsistenz und würzigem Geschmack, bereits zerkleinert zum Überbacken oder Verfeinern.
+
+PK: 6861
+Name: Jalapeño eingelegt
+Description: Scharfe Chili-Sorte, die durch Einlegen in Essig oder Lake haltbar gemacht wurde.
+
+PK: 6865
+Name: Kümmelsamen
+Description: Getrocknete Früchte der Kümmelpflanze mit kräftigem, würzigem Aroma, die häufig zum Verfeinern von Backwaren und deftigen Gerichten verwendet werden.
+
+PK: 6864
+Name: Öl
+Description: Pflanzliches oder tierisches Fett in flüssiger Form, das als Basis zum Braten, Kochen oder für Dressings dient.
+
+PK: 6851
+Name: Sesamöl
+Description: Pflanzliches Speiseöl, das aus Sesamsamen gewonnen wird und ein kräftiges, nussiges Aroma aufweist.
+
+PK: 6875
+Name: Basilikum, getrocknet
+Description: Getrocknete Blätter des Basilikums, die durch ihr typisch süßlich-würziges Aroma mediterrane Gerichte verfeinern.
+
+PK: 6883
+Name: Gemüsezwiebel
+Description: Große Zwiebelsorte mit mildem bis würzigem Aroma, die sich aufgrund ihrer Größe besonders gut zur Zubereitung in Pfannen- oder Schmorgerichten eignet.
+
+PK: 6872
+Name: Nudeln, vegan
+Description: Teigwaren aus Getreide oder Hülsenfrüchten, die frei von tierischen Inhaltsstoffen sind und als Basis für verschiedene Gerichte dienen.
+
+PK: 86
+Name: Garnelen
+Description: Krebstiere mit festem Fleisch, die eine beliebte Zutat für Meeresfrüchtegerichte, Salate oder Pasta sind.
+
+PK: 87
+Name: Thunfisch (Dose)
+Description: Konserviertes Thunfischfleisch in Öl oder eigenem Saft, das mild und aromatisch im Geschmack ist.
+
+PK: 88
+Name: Schinken
+Description: Gepökeltes und meist geräuchertes Schweinefleisch aus der Keule, das herzhaft im Geschmack ist.
+
+PK: 89
+Name: Kochschinken
+Description: Gekochter Schinken aus der Schweinekeule, der ein mildes, saftiges Aroma aufweist.
+
+PK: 6912
+Name: Sojajogurt
+Description: Fermentiertes Sojaprodukt mit joghurtähnlicher Konsistenz als rein pflanzliche Alternative zu Milchprodukten.
+
+PK: 6931
+Name: Reismilch
+Description: Pflanzliches Getränk auf Reisbasis, das als milchfreier Milchersatz verwendet wird.
+
+PK: 100
+Name: Skyr
+Description: Ein traditionelles isländisches Milchprodukt, das eine joghurtähnliche Konsistenz hat, aber besonders fettarm und proteinreich ist.
+
+PK: 204
+Name: Weißwein
+Description: Aus hellen Weintrauben hergestellter Wein, der durch ein meist spritziges und fruchtiges Aroma charakterisiert ist.
+
+PK: 102
+Name: Mascarpone
+Description: Mascarpone ist ein italienischer Frischkäse mit hohem Fettgehalt und einer milden, sahnigen Konsistenz.
+
+PK: 103
+Name: Ricotta
+Description: Ricotta ist ein milder, italienischer Molkenkäse mit einer körnigen, weichen Textur.
+
+PK: 104
+Name: Feta
+Description: Feta ist ein würziger, salziger Salzlakenkäse aus Schafs- und Ziegenmilch mit krümeliger Struktur.
+
+PK: 106
+Name: Cheddar
+Description: Cheddar ist ein fester Käse aus Kuhmilch mit einem charakteristischen, würzigen bis kräftigen Geschmack.
+
+PK: 205
+Name: Bier
+Description: Alkoholhaltiges Getränk, das durch Gärung von Getreidemalz und Hopfen gewonnen wird.
+
+PK: 173
+Name: Mais (Dose)
+Description: Gegarte Körner des Zuckermais mit süßlichem Aroma, vielseitig einsetzbar in Salaten und als Beilage.
+
+PK: 110
+Name: Tofu
+Description: Tofu ist ein aus Sojabohnen hergestelltes, proteinreiches Lebensmittel mit neutralem Geschmack und fester Konsistenz.
+
+PK: 6860
+Name: Paprikapulver
+Description: Getrocknete und fein gemahlene Paprikafrüchte, die als würzige, intensiv rote Zutat für Speisen dienen.
+
+PK: 6684
+Name: Öl, Raps
+Description: Pflanzliches Speiseöl aus Rapssaat mit neutralem Geschmack und vielseitigen Anwendungsmöglichkeiten beim Braten und Backen.
+
+PK: 6944
+Name: Knoblauchgewürz
+Description: Trockenes Würzmittel aus gemahlenem oder granuliertem Knoblauch, das Speisen ein intensives Aroma verleiht.
+
+PK: 111
+Name: Räuchertofu
+Description: Räuchertofu ist festes Soja-Eiweiß, das durch Räuchern ein herzhaftes, rauchiges Aroma erhält.
+
+PK: 112
+Name: Hafermilch
+Description: Hafermilch ist eine pflanzliche Alternative zu Kuhmilch, hergestellt aus eingeweichtem und gemahlenem Hafer.
+
+PK: 113
+Name: Buttermilch
+Description: Buttermilch ist ein säuerliches Nebenprodukt der Butterherstellung mit einer erfrischenden und dickflüssigen Textur.
+
+PK: 3
+Name: Frischkäse
+Description: Streichfähiger, milder Frischkäse aus Kuhmilch, der vielseitig für Aufstriche oder zum Kochen genutzt wird.
+
+PK: 2
+Name: Ingwer
+Description: Wurzelstock mit scharfem, würzigem Aroma, der als Gewürz in der Küche oder für Heißgetränke verwendet wird.
+
+PK: 4
+Name: Spinat
+Description: Blattgemüse mit mildem Geschmack, das gedünstet oder roh in Salaten verzehrt werden kann.
+
+PK: 7
+Name: Frühlingszwiebeln
+Description: Junge Zwiebelpflanze mit mildem Aroma, bei der sowohl das weiße Ende als auch das grüne Laub essbar sind.
+
+PK: 9
+Name: Lauch
+Description: Stangengemüse aus der Familie der Lauchgewächse mit mild-würzigem Geschmack.
+
+PK: 10
+Name: Brokkoli
+Description: Kohlgemüse bestehend aus kleinen Röschen, das vielseitig gedünstet oder gebraten werden kann.
+
+PK: 11
+Name: Champignons
+Description: Speisepilz mit mildem Geschmack und fleischiger Konsistenz, geeignet für Pfannengerichte und Salate.
+
+PK: 12
+Name: Paprika (rot)
+Description: Rote Frucht mit süßlichem, mildem Aroma, die zur Familie der Nachtschattengewächse zählt.
+
+PK: 13
+Name: Paprika (gelb)
+Description: Gelbe Frucht mit mildem, leicht süßlichem Geschmack, vielseitig in der Küche einsetzbar.
+
+PK: 14
+Name: Paprika (grün)
+Description: Grüne, unreife Frucht mit einem würzigen, leicht herben Geschmack.
+
+PK: 16
+Name: Aubergine
+Description: Gemüse mit dunkler, glänzender Schale und festem, weißem Fleisch, das gegart einen milden Geschmack entwickelt.
+
+PK: 17
+Name: Blumenkohl
+Description: Kohlgemüse mit festem, weißem Blütenstand, das gedünstet, gebraten oder gratiniert genossen wird.
+
+PK: 18
+Name: Süßkartoffel
+Description: Wurzelgemüse mit süßlichem Geschmack und orangefarbenem Fruchtfleisch, ähnlich wie eine Kartoffel verwendbar.
+
+PK: 19
+Name: Kohlrabi
+Description: Wurzelgemüse mit mildem, leicht nussigem Geschmack, das meist roh oder gegart verzehrt wird.
+
+PK: 21
+Name: Sellerie (Knolle)
+Description: Wurzelgemüse mit festem, hellen Fruchtfleisch und würzigem, kräftigem Aroma, häufig als Suppengrün verwendet.
+
+PK: 22
+Name: Rote Bete
+Description: Erdig schmeckende, intensiv rote Knolle, die gegart oder roh verzehrt werden kann.
+
+PK: 23
+Name: Kürbis (Hokkaido)
+Description: Kürbissorte mit essbarer Schale und nussigem, orangefarbenem Fruchtfleisch.
+
+PK: 24
+Name: Kürbis (Butternut)
+Description: Birnenförmiger Kürbis mit hellbeiger Schale und süßlichem, feinem Fruchtfleisch.
+
+PK: 25
+Name: Chinakohl
+Description: Länglicher Kohl mit hellgrünen, milden Blättern und knackiger Struktur.
+
+PK: 26
+Name: Pak Choi
+Description: Asiatischer Blätterkohl mit grünen Blättern und weißen, saftigen Stielen, mild im Geschmack.
+
+PK: 27
+Name: Wirsing
+Description: Kohlart mit krausen, dunkelgrünen Blättern und mildem, herzhaftem Aroma.
+
+PK: 28
+Name: Weißkohl
+Description: Kompakter Kohlkopf mit festen, hellen Blättern, vielseitig verwendbar in Rohkost oder als Kochgemüse.
+
+PK: 29
+Name: Rotkohl
+Description: Kohlart mit festen, dunkelroten Blättern, die beim Kochen ihr kräftiges Aroma entfaltet.
+
+PK: 30
+Name: Eisbergsalat
+Description: Kopfsalat mit besonders festen, knackigen und wasserreichen Blättern.
+
+PK: 31
+Name: Feldsalat
+Description: Kleiner Blattsalat mit dunkelgrünen, nussig schmeckenden Blättern.
+
+PK: 32
+Name: Rucola
+Description: Würzig-scharfer Blattsalat mit charakteristischem, leicht nussigem Aroma.
+
+PK: 33
+Name: Babyspinat
+Description: Jung geerntete Spinatblätter mit zarter Textur und mildem, leicht grasigem Geschmack.
+
+PK: 34
+Name: Radieschen
+Description: Kleine, rote Wurzel mit weißem Fruchtfleisch und einer pikanten, leicht scharfen Note.
+
+PK: 35
+Name: Gurken
+Description: Längliche Frucht mit wasserreichem, knackigem Fruchtfleisch und mildem Geschmack.
+
+PK: 36
+Name: Kirschtomaten
+Description: Kleine, aromatische Tomaten mit süßem Geschmack und fester Schale.
+
+PK: 38
+Name: Zwiebel
+Description: Speisezwiebel mit gelber oder brauner Schale und scharfem, würzigem Aroma.
+
+PK: 39
+Name: Zwiebel (rot)
+Description: Rote Speisezwiebel mit mildem, leicht süßlichem Geschmack und dekorativer Farbe.
+
+PK: 40
+Name: Schalotten
+Description: Kleine Zwiebelart mit feinem, mildem Geschmack, ideal für Saucen und Vinaigrettes.
+
+PK: 41
+Name: Karotte
+Description: Wurzelgemüse mit orangefarbenem Fleisch, knackiger Textur und süßlichem Geschmack.
+
+PK: 42
+Name: Möhre
+Description: Wurzelgemüse aus der Familie der Doldenblütler, geschätzt für seinen süßen Geschmack und seine vielseitige Verwendung in der Küche.
+
+PK: 43
+Name: Pastinake
+Description: Wurzelgemüse mit weißer Färbung, das durch seinen fein-süßlichen, leicht nussigen Geschmack überzeugt.
+
+PK: 44
+Name: Schnittlauch
+Description: Küchenkraut mit röhrenförmigen Blättern und mildem, zwiebelartigem Aroma.
+
+PK: 45
+Name: Basilikum (frisch)
+Description: Aromatisches Küchenkraut mit großen, grünen Blättern und einer leicht pfeffrigen, süßlichen Note, typisch für mediterrane Gerichte.
+
+PK: 46
+Name: Petersilie (frisch)
+Description: Vielseitig verwendbares Küchenkraut mit glatten oder krausen Blättern und würzigem, frischem Geschmack.
+
+PK: 47
+Name: Rosmarin (frisch)
+Description: Immergrüner Halbstrauch mit nadelartigen Blättern und einem kräftigen, harzigen Aroma, ideal zum Würzen von Fleischgerichten.
+
+PK: 48
+Name: Thymian (frisch)
+Description: Kleinstrauch mit kleinen, graugrünen Blättern und intensivem, herb-würzigem Aroma.
+
+PK: 49
+Name: Dill (frisch)
+Description: Küchenkraut mit feinen, fiederartigen Blättern und einem charakteristischen, frischen und leicht süßlichen Geschmack.
+
+PK: 50
+Name: Chili (frisch)
+Description: Fruchtgemüse der Gattung Capsicum mit ausgeprägter Schärfe, die je nach Sorte variieren kann.
+
+PK: 51
+Name: Kartoffel (Festkochend)
+Description: Festkochende Speisekartoffel mit einer stabilen Zellstruktur, die auch nach dem Kochen ihre Form behält.
+
+PK: 52
+Name: Kartoffel (Mehligkochend)
+Description: Mehligkochende Speisekartoffel mit einem hohen Stärkegehalt, die beim Garen zerfällt und sich ideal für Pürees eignet.
+
+PK: 53
+Name: Spargel (grün)
+Description: Über der Erde gewachsener grüner Spargel mit kräftigem Aroma und bissfester Konsistenz.
+
+PK: 54
+Name: Spargel (weiß)
+Description: Unter der Erde gewachsener weißer Stangenspargel mit mildem, feinem Geschmack.
+
+PK: 55
+Name: Zuckerschoten
+Description: Junge Hülsenfrüchte, die komplett mit der Schale gegessen werden können und einen süßlichen Geschmack haben.
+
+PK: 56
+Name: Maiskolben
+Description: Der Fruchtstand der Maispflanze mit saftigen, süß schmeckenden Körnern am Kolben.
+
+PK: 57
+Name: Apfel
+Description: Kernobst mit einer knackigen Schale und saftigem Fruchtfleisch, das je nach Sorte von süß bis säuerlich schmeckt.
+
+PK: 58
+Name: Banane
+Description: Tropische Beerenfrucht mit weichem, cremeweißem Fleisch und süßem Geschmack.
+
+PK: 59
+Name: Birne
+Description: Kernobst mit einer meist weicheren Textur und einem süß-aromatischen Geschmacksprofil.
+
+PK: 60
+Name: Orange
+Description: Zitrusfrucht mit einer leuchtend orangen Schale und saftigem, süß-säuerlichem Fruchtfleisch.
+
+PK: 62
+Name: Limette
+Description: Kleine, grüne Zitrusfrucht mit intensiv saurem, aromatischem Saft.
+
+PK: 63
+Name: Mango
+Description: Tropische Steinfrucht mit saftigem, süßem, orangegelbem Fruchtfleisch.
+
+PK: 64
+Name: Ananas
+Description: Tropische Frucht mit gelbem, saftigem Fleisch und charakteristisch süß-säuerlichem Aroma.
+
+PK: 65
+Name: Avocado
+Description: Frucht mit butterartigem, grünem bis gelblichem Fruchtfleisch und hohem Fettgehalt.
+
+PK: 66
+Name: Erdbeeren
+Description: Rote Sammelnussfrucht mit intensivem, süßem Aroma.
+
+PK: 67
+Name: Himbeeren
+Description: Kleine, rote, weiche Beerenfrucht mit säuerlich-süßem Geschmack.
+
+PK: 68
+Name: Blaubeeren
+Description: Kleine, blaue Beeren mit festem Fruchtfleisch und mild-süßem Aroma.
+
+PK: 69
+Name: Brombeeren
+Description: Dunkelviolette bis schwarze Beerenfrucht mit säuerlich-fruchtigem Geschmack.
+
+PK: 70
+Name: Kirschen
+Description: Kleine, runde Steinfrucht, meist dunkelrot, mit saftigem, süßem bis säuerlichem Geschmack.
+
+PK: 71
+Name: Trauben
+Description: Kleine, runde oder ovale Beeren, die in Clustern wachsen und süß bis säuerlich schmecken.
+
+PK: 6902
+Name: TK-Brokkoli
+Description: Brokkoliröschen, die durch Tiefkühlen konserviert wurden, um Frische, Nährstoffe und Textur zu bewahren.
+
+PK: 72
+Name: Kiwi
+Description: Frucht mit brauner, pelziger Schale und grünem, saftig-süßem Fruchtfleisch.
+
+PK: 73
+Name: Nektarine
+Description: Glattschalige Steinfrucht mit aromatischem, süßem, gelbem bis rötlichem Fruchtfleisch.
+
+PK: 74
+Name: Granatapfel
+Description: Frucht mit ledriger Schale, die im Inneren zahlreiche saftige, säuerlich-süße Samenkerne enthält.
+
+PK: 75
+Name: Grapefruit
+Description: Große Zitrusfrucht mit herb-säuerlichem Fruchtfleisch.
+
+PK: 76
+Name: Pflaumen
+Description: Runde Steinfrucht mit süßem, saftigem Fruchtfleisch und einer glatten Haut.
+
+PK: 79
+Name: Schweinefilet
+Description: Besonders zartes und mageres Teilstück aus dem Lendenbereich des Schweins.
+
+PK: 80
+Name: Schweinebauch
+Description: Fettreicheres Teilstück vom Schwein, das sich durch seine würzige Struktur auszeichnet.
+
+PK: 81
+Name: Rinderhackfleisch
+Description: Zerkleinertes Rindfleisch, das vielseitig als Grundlage für Fleischgerichte wie Frikadellen oder Saucen dient.
+
+PK: 82
+Name: Schweinehackfleisch
+Description: Zerkleinertes Schweinefleisch mit mittlerem Fettgehalt, das häufig für Pfannengerichte oder Füllungen verwendet wird.
+
+PK: 84
+Name: Lachsfilet (frisch)
+Description: Frisches Filetstück vom Lachs mit zartem, fettreichem Fleisch, das sich zum Braten, Grillen oder Dünsten eignet.
+
+PK: 152
+Name: Zimt
+Description: Getrocknete Baumrinde mit süßlich-warmem Duft und Aroma, die sowohl in der Backstube als auch in herzhaften Gerichten Verwendung findet.
+
+PK: 85
+Name: Räucherlachs
+Description: In Scheiben geschnittenes Lachsfilet, das durch Räuchern ein würziges Aroma und eine feste Konsistenz erhalten hat.
+
+PK: 37
+Name: Knoblauch
+Description: Aromatische Knolle, die aus mehreren Zehen besteht und als kräftiges Würzmittel dient.
+
+PK: 91
+Name: Chorizo
+Description: Würzige, grob gekörnte Rohwurst aus Schweinefleisch, die durch Paprika und Knoblauch ihre charakteristische rote Farbe und Schärfe erhält.
+
+PK: 92
+Name: Wiener Würstchen
+Description: Dünne, meist leicht geräucherte Brühwurst, die heiß oder kalt verzehrt wird.
+
+PK: 93
+Name: Bratwurst (frisch)
+Description: Frische Rohwurst aus Schweinefleisch zum Braten oder Grillen, die meist kräftig gewürzt ist.
+
+PK: 1
+Name: Tomaten-Passata
+Description: Passierte Tomaten, die durch das Sieben von gekochtem Tomatenfleisch entstehen, ideal als Basis für Saucen und Suppen.
+
+PK: 166
+Name: Olivenöl
+Description: Pflanzenöl aus gepressten Oliven, bekannt für seinen charakteristischen Geschmack und eine zentrale Zutat der mediterranen Küche.
+
+PK: 101
+Name: Quark (Magerquark)
+Description: Frischer Magerquark ist ein sehr proteinreiches, säuerliches Milchprodukt mit fester, cremiger Konsistenz.
+
+PK: 117
+Name: Dinkelmehl
+Description: Dinkelmehl ist ein aus Dinkel gewonnenes Backmehl, das sich durch ein nussiges Aroma und gute Backeigenschaften auszeichnet.
+
+PK: 5
+Name: Mozzarella
+Description: Italienischer Weichkäse aus Kuh- oder Büffelmilch mit mildem Geschmack und elastischer Konsistenz.
+
+PK: 121
+Name: Puderzucker
+Description: Sehr fein gemahlener, weißer Haushaltszucker mit pudriger Konsistenz, vorwiegend zum Bestäuben von Gebäck oder für Glasuren verwendet.
+
+PK: 122
+Name: Vanillezucker
+Description: Zucker, der mit natürlichem Vanilleextrakt oder Vanillearoma versetzt ist und zum Aromatisieren von Backwaren und Desserts dient.
+
+PK: 8
+Name: Parmesan
+Description: Hartkäse mit kräftigem, würzigem Aroma, der traditionell gerieben zum Verfeinern von Speisen dient.
+
+PK: 96
+Name: Schmand
+Description: Stichfestes oder cremiges Milcherzeugnis mit säuerlichem Geschmack, das zum Verfeinern von Saucen und Suppen dient.
+
+PK: 97
+Name: Creme Fraiche
+Description: Ein säuerliches, stichfestes Milchprodukt mit hohem Fettgehalt, das beim Kochen nicht ausflockt.
+
+PK: 98
+Name: Joghurt
+Description: Durch Fermentation von Milch mit Milchsäurebakterien entstandenes Produkt mit mild-säuerlichem Geschmack.
+
+PK: 123
+Name: Speisestärke
+Description: Ein geschmacksneutrales Bindemittel auf Basis von Mais- oder Weizenstärke, das zum Andicken von Saucen, Suppen und für Backwaren genutzt wird.
+
+PK: 124
+Name: Backkakao
+Description: Kakaopulver ohne Zuckerzusatz mit herbem Geschmack, das als Grundlage für Schokoladengebäck und Heißgetränke dient.
+
+PK: 125
+Name: Mandeln
+Description: Samen des Mandelbaums, die einen nussigen Geschmack aufweisen und vielseitig beim Backen oder als Dekoration verwendet werden.
+
+PK: 127
+Name: Haselnusskerne
+Description: Samen der Haselnuss, die ein intensives, aromatisches Nussaroma besitzen und häufig in gerösteter Form verarbeitet werden.
+
+PK: 128
+Name: Pinienkerne
+Description: Essbare Samen von Kiefernarten, die einen milden, mandelartigen Geschmack haben und oft kurz angeröstet werden.
+
+PK: 129
+Name: Sonnenblumenkerne
+Description: Samen der Sonnenblume mit mild-nussigem Geschmack, die roh, geröstet oder als Backzutat verwendet werden.
+
+PK: 130
+Name: Kürbiskerne
+Description: Dunkelgrüne, kernige Samen des Ölkürbisses mit kräftigem, nussigem Aroma, die sich als Topping oder Backzutat eignen.
+
+PK: 131
+Name: Sesam
+Description: Kleine Samen der Sesam-Pflanze mit mild-nussigem Aroma, die oft zum Bestreuen von Brot oder in der asiatischen Küche eingesetzt werden.
+
+PK: 132
+Name: Leinsamen
+Description: Kleine, braune Samen des Flachses, die einen leicht nussigen Geschmack besitzen und aufgrund ihrer Quellfähigkeit als Zutat geschätzt werden.
+
+PK: 133
+Name: Chiasamen
+Description: Samen der Chia-Pflanze, die durch ihre starke Quellfähigkeit zur Bindung von Flüssigkeiten oder als nährstoffreiches Topping dienen.
+
+PK: 134
+Name: Kokosraspeln
+Description: Getrocknetes und geraspeltes Fruchtfleisch der Kokosnuss mit typisch exotischem Aroma, ideal für Backwaren und Desserts.
+
+PK: 184
+Name: Haferflocken
+Description: Vollkornprodukt aus gewalzten Haferkernen, mild im Geschmack und vielseitig verwendbar.
+
+PK: 139
+Name: Brötchen
+Description: Portionsweise gebackenes Kleingebäck aus Teig, meist auf Basis von Weizenmehl, mit knuspriger Kruste und weicher Krume.
+
+PK: 140
+Name: Wraps
+Description: Dünne, weiche Fladen aus Weizenteig, die als Hülle für herzhafte Füllungen dienen und gerollt verzehrt werden.
+
+PK: 141
+Name: Naan
+Description: Flaches, traditionell im Ofen gebackenes Fladenbrot aus Hefeteig, das vor allem zur indischen Küche gereicht wird.
+
+PK: 142
+Name: Baguette
+Description: Langes, französisches Stangenbrot aus Weizenmehl mit knuspriger Kruste und lockerer Krume.
+
+PK: 143
+Name: Burger Buns
+Description: Weiche, meist leicht süßliche Brötchen, die speziell zur Zubereitung von Hamburgern verwendet werden.
+
+PK: 147
+Name: Paprikapulver edelsüß
+Description: Mildes, fein gemahlenes Gewürzpulver aus getrockneten, süßen Paprikafrüchten mit kräftiger roter Farbe.
+
+PK: 148
+Name: Paprikapulver geräuchert
+Description: Über Buchenholz geräuchertes und gemahlenes Paprikapulver, das Speisen eine würzige Rauchnote verleiht.
+
+PK: 149
+Name: Currypulver
+Description: Vielseitige Gewürzmischung aus verschiedenen Komponenten wie Kurkuma, Koriander und Kreuzkümmel, typisch für asiatische Gerichte.
+
+PK: 151
+Name: Kurkuma (Pulver)
+Description: Wurzelgewürz, das für seine intensiv gelbe Farbe und ein mildes, erd-würziges Aroma geschätzt wird.
+
+PK: 153
+Name: Muskatnuss
+Description: Samen des Muskatbaums, der fein gerieben ein intensives, warm-würziges Aroma abgibt.
+
+PK: 154
+Name: Oregano
+Description: Getrocknetes Würzkraut mit kräftigem, aromatischem Geschmack, das vor allem in mediterranen Gerichten eingesetzt wird.
+
+PK: 156
+Name: Chiliflocken
+Description: Grob zerkleinerte, getrocknete Chilischoten, die eine kräftige Schärfe und eine dekorative Optik bieten.
+
+PK: 157
+Name: Knoblauchpulver
+Description: Getrockneter und vermahlener Knoblauch, der als bequeme Alternative zu frischem Knoblauch zum Würzen dient.
+
+PK: 158
+Name: Zwiebelpulver
+Description: Getrocknete und vermahlene Zwiebeln, die Speisen ein mildes, zwiebelartiges Aroma verleihen.
+
+PK: 159
+Name: Ingwerpulver
+Description: Fein gemahlene getrocknete Ingwerwurzel mit zitronig-scharfem, wärmendem Geschmack.
+
+PK: 162
+Name: Minze
+Description: Aromatisches Kraut mit erfrischendem, mentholhaltigem Geschmack, ideal für Getränke, Desserts und orientalische Gerichte.
+
+PK: 6926
+Name: Hirtenkäse light
+Description: Würziger Salzlakenkäse mit reduziertem Fettgehalt, typisch für mediterrane Salate.
+
+PK: 163
+Name: Lorbeerblatt
+Description: Getrocknetes Blatt des Echten Lorbeers, würzig-herb im Geschmack, vor allem als Gewürz in Schmorgerichten und Suppen genutzt.
+
+PK: 164
+Name: Kardamom
+Description: Samenkapsel eines Ingwergewächses mit intensiv-würzigem, leicht süßlichem Aroma, oft in Backwaren und Currys verwendet.
+
+PK: 165
+Name: Kümmel
+Description: Getrocknete Früchte des Wiesenkümmels mit ausgeprägt herbem, würzigem Aroma, besonders gebräuchlich in Brot und schweren Speisen.
+
+PK: 169
+Name: Passierte Tomaten
+Description: Püriertes Fruchtfleisch von Tomaten ohne Schale und Kerne, dient als Basis für Saucen und Suppen.
+
+PK: 170
+Name: Tomaten (stückig, Dose)
+Description: In Stücke geschnittene, geschälte Tomaten, oft in eigenem Saft konserviert für Eintöpfe und Saucen.
+
+PK: 171
+Name: Kidneybohnen
+Description: Dunkelrote Hülsenfrucht mit fester Konsistenz und nussigem Geschmack, beliebt in Salaten, Eintöpfen und vegetarischen Gerichten.
+
+PK: 172
+Name: Kichererbsen (Dose)
+Description: Hülsenfrucht mit leicht nussigem Aroma und fester Konsistenz, essenzieller Bestandteil für Hummus oder orientalische Eintöpfe.
+
+PK: 174
+Name: Kokosmilch (Dose)
+Description: Cremiges Extrakt aus Kokosnussfleisch, essenziell für die asiatische Küche und zur Verfeinerung von Currys.
+
+PK: 178
+Name: Balsamicoessig
+Description: Dunkler Essig aus eingekochtem Traubenmost, bekannt für seine süß-saure Komplexität und Verwendung in Salaten oder Saucen.
+
+PK: 179
+Name: Apfelessig
+Description: Essig aus vergorenem Apfelwein mit mild-fruchtiger Säure, ideal für Dressings und zum Verfeinern von Speisen.
+
+PK: 180
+Name: Ahornsirup
+Description: Eingedickter Saft des Ahornbaums mit ausgeprägter Karamellnote, dient als natürliches Süßungsmittel.
+
+PK: 181
+Name: Erdnussbutter
+Description: Cremiger oder stückiger Aufstrich aus gerösteten Erdnüssen mit nussig-würzigem Aroma.
+
+PK: 183
+Name: Sambal Oelek
+Description: Scharfe indonesische Würzsauce aus zerstoßenen Chilischoten, Salz und Essig.
+
+PK: 187
+Name: Couscous
+Description: Aus Hartweizengrieß hergestelltes nordafrikanisches Grundnahrungsmittel mit körniger Struktur.
+
+PK: 190
+Name: H-Milch
+Description: Durch Kurzzeiterhitzung länger haltbargemachte Kuhmilch für den täglichen Verzehr.
+
+PK: 191
+Name: Oliven
+Description: Frucht des Ölbaums, die in Salzlake eingelegt als würzige Beilage oder Zutat dient.
+
+PK: 176
+Name: Senf
+Description: Würzige Paste aus gemahlenen Senfsaaten, in verschiedenen Schärfegraden erhältlich und vielseitig als Würzmittel verwendet.
+
+PK: 192
+Name: Blätterteig
+Description: Mehrschichtiger Teig aus Mehl und Fett, der beim Backen eine knusprige Textur entwickelt.
+
+PK: 193
+Name: Quinoa
+Description: Glutenfreies Pseudogetreide mit nussigem Aroma und hoher Nährstoffdichte.
+
+PK: 194
+Name: Bulgur
+Description: Vorgekochter und getrockneter, zerkleinerter Hartweizen, der als Beilage serviert wird.
+
+PK: 195
+Name: Reisnudeln
+Description: Feine Nudeln aus Reismehl, die eine zarte Konsistenz aufweisen und schnell garen.
+
+PK: 196
+Name: Glasnudeln
+Description: Durchsichtige Nudeln aus Mungobohnenstärke oder Kartoffelstärke, die beim Garen transparent werden.
+
+PK: 197
+Name: Risottoreis
+Description: Kurzkörniger Reis mit hohem Stärkegehalt, der bei der Zubereitung eine cremige Textur annimmt.
+
+PK: 203
+Name: Rotwein
+Description: Aus dunklen Weintrauben gewonnener Wein mit ausgeprägter Farbe und tanninhaltigem Geschmack.
+
+PK: 206
+Name: Worcestersauce
+Description: Würzige, dunkle Soße auf Essigbasis mit komplexem, pikantem Aroma, die zum Verfeinern von Gerichten dient.
+
+PK: 207
+Name: Kokosöl
+Description: Pflanzliches Fett, das aus dem Fruchtfleisch der Kokosnuss gewonnen wird und bei niedrigen Temperaturen fest ist.
+
+PK: 208
+Name: Essig
+Description: Säuerliche, durch Essigsäuregärung entstandene Flüssigkeit, die zum Würzen und Konservieren verwendet wird.
+
+PK: 209
+Name: Balsamico-Creme
+Description: Eingedickte, süß-saure Soße auf Basis von Balsamico-Essig mit sirupartiger Konsistenz.
+
+PK: 210
+Name: Tiefkühlspinat
+Description: Blattgemüse, das nach der Ernte schockgefrostet wurde, um Nährstoffe und Frische zu bewahren.
+
+PK: 211
+Name: Erbsen (Tiefkühl)
+Description: Gefrorene, grüne Erbsen, die ihre natürliche Farbe und Textur durch das Tiefkühlen behalten.
+
+PK: 6908
+Name: Gewürzmischung Italienisch
+Description: Zusammenstellung typisch italienischer Kräuter wie Oregano, Thymian und Rosmarin zum Würzen mediterraner Speisen.
+
+PK: 6954
+Name: Blattspinat
+Description: Blattgemüse mit mildem, leicht erdigem Geschmack, das gedünstet oder als Basis für Salate verwendet wird.
+
+PK: 6901
+Name: Frische Spätzle
+Description: Frische Teigwaren aus Mehl und Ei, die typischerweise als Beilage oder Hauptgericht serviert werden.
+
+PK: 6980
+Name: Curry
+Description: Gewürzmischung mit kräftigem Aroma, die meist eine Kombination aus Kurkuma, Koriander, Kreuzkümmel und Bockshornklee enthält.
+
+PK: 6920
+Name: Knoblauch gepresst
+Description: Frischer Knoblauch in ausgepresster Form zum Würzen von Speisen.
+
+PK: 7210
+Name: Hafersahne
+Description: Pflanzliche Kochcreme auf Basis von Hafer, die als vegane Alternative zu Sahne verwendet wird.
+
+PK: 7106
+Name: Knoblauchzehe klein
+Description: Einzelnes Segment einer Knoblauchknolle mit würzigem, intensivem Aroma.
+
+PK: 15
+Name: Zucchini
+Description: Sommerkürbis mit zarter Schale und mildem Geschmack, der gut gebraten oder gedünstet schmeckt.
+
+PK: 7190
+Name: Blumenkohl groß
+Description: Kohlart mit festem, weißem oder farbigem Blütenstand, der gedünstet, gebraten oder gebacken wird.
+
+PK: 6930
+Name: Proteinpulver
+Description: Konzentriertes Eiweißpulver zur Nahrungsergänzung, oft in verschiedenen Geschmacksrichtungen erhältlich.
+
+PK: 109
+Name: Hefe (frisch)
+Description: Frische Hefe ist ein lebendes Backtriebmittel, das Teige durch Gärprozesse aufgehen lässt.
+
+PK: 7251
+Name: Gelbe Paprikaschote groß
+Description: Große, fleischige Frucht der Paprikapflanze mit süßlichem Aroma und gelber Schale.
+
+PK: 95
+Name: Sahne
+Description: Flüssiges Molkereiprodukt mit hohem Fettgehalt, das zum Verfeinern von Saucen oder zum Aufschlagen verwendet wird.
+
+PK: 7261
+Name: Kräuter der Provence
+Description: Eine aromatische Gewürzmischung aus getrockneten Mittelmeerkräutern wie Thymian, Rosmarin, Oregano und Basilikum.
+
+PK: 7228
+Name: Kümmelsaat
+Description: Getrocknete Samen des Wiesen-Kümmels mit herbem, kräftigem Aroma, oft zum Würzen von Brot oder Kohlgerichten.
+
+PK: 7223
+Name: Leinöl
+Description: Pflanzenöl aus Leinsamen mit nussigem Geschmack, bekannt für seinen hohen Gehalt an Omega-Fettsäuren.
+
+PK: 7197
+Name: Majoran
+Description: Aromatisches Küchenkraut mit leicht süßlichem, würzigem Geschmack, oft für deftige Fleischgerichte genutzt.
+
+PK: 6847
+Name: Knoblauchzehe
+Description: Einzelnes Segment der Knoblauchknolle mit intensiver Würzkraft, zentraler Bestandteil vieler herzhafter Speisen.
+
+PK: 6887
+Name: Meersalz
+Description: Natürliches Salz, das durch Verdunstung von Meerwasser gewonnen wird und als universelles Würzmittel dient.
+
+PK: 7060
+Name: Öl von getrockneten Tomaten
+Description: Aromatisches Öl, das durch das Einlegen von getrockneten Tomaten deren Geschmack angenommen hat.
+
+PK: 7073
+Name: Sahne light
+Description: Sahne mit reduziertem Fettgehalt, die zum Verfeinern von Suppen, Saucen und Desserts genutzt wird.
+
+PK: 7100
+Name: Magerquark ausgedrückt
+Description: Frischkäse mit geringem Fettgehalt und fester Konsistenz, vielseitig in der Küche verwendbar.
+
+PK: 7230
+Name: Rote Chili getrocknet
+Description: Getrocknete scharfe Schoten, die zur Schärfung und Aromatisierung von Speisen verwendet werden.
+
+PK: 7248
+Name: Rote Peperoni
+Description: Mild scharfe, rote Frucht der Paprikapflanze, die in der Küche als Gemüse oder Gewürz Verwendung findet.
+
+PK: 7281
+Name: Semmelbrösel
+Description: Getrocknete und gemahlene Brotstücke, die zum Panieren oder Binden von Speisen verwendet werden.
+
+PK: 7205
+Name: Soja Geschnetzeltes
+Description: Fleischersatzprodukt auf Sojabasis mit fleischähnlicher Textur, vielseitig in der herzhaften Küche einsetzbar.
+
+PK: 6873
+Name: Sojasahne (Sojacreme Cuisine)
+Description: Cremige, pflanzliche Kochalternative auf Sojabasis mit neutralem Geschmack, die zum Verfeinern von warmen und kalten Saucen sowie Suppen geeignet ist.
+
+PK: 6856
+Name: Speckwürfel
+Description: In kleine Stücke geschnittener, meist gepökelter und geräucherter Schweinebauch zum Anbraten.
+
+PK: 7272
+Name: Spekulatius Kekse
+Description: Mürbes Gebäck mit charakteristischer Gewürznote wie Zimt, Nelken und Kardamom.
+
+PK: 6854
+Name: Spitzkohl
+Description: Kohlart mit spitz zulaufendem Kopf, feinen Blättern und mildem, leicht süßlichem Geschmack.
+
+PK: 6974
+Name: Teriyaki-Sauce
+Description: Japanische Würzsauce auf Sojasaucenbasis, die durch eine süßliche und salzige Note charakterisiert ist.
+
+PK: 6958
+Name: Tomatenketchup light
+Description: Würzige Tomatensauce mit reduzierter Zuckermenge, dient als Basis für Dips und zum Verfeinern von Speisen.
+
+PK: 83
+Name: Hackfleisch (gemischt)
+Description: Eine Mischung aus zerkleinertem Rind- und Schweinefleisch, die eine ideale Konsistenz für herzhafte Fleischspeisen bietet.
+
+PK: 6996
+Name: Vanilleextrakt
+Description: Konzentrierter Auszug aus Vanilleschoten, der für ein intensives Vanillearoma sorgt.
+
+PK: 7275
+Name: Kakaopulver ungezuckert
+Description: Feines, nicht gesüßtes Pulver aus Kakaobohnen mit herbem, intensivem Schokoladengeschmack.
+
+PK: 77
+Name: Hähnchenbrust
+Description: Mageres, helles Fleisch aus dem Brustbereich des Huhns, das vielseitig zubereitet werden kann.
+
+PK: 188
+Name: Linsen (rot)
+Description: Geschälte und halbierte Linsen, die schnell gar kochen und eine weiche Konsistenz erhalten.
+
+PK: 6899
+Name: Crèmefine 7 %
+Description: Ein flüssiges Kochprodukt auf Basis von Pflanzenfetten und Magermilch, das als Alternative zu Sahne verwendet wird.
+
+PK: 6898
+Name: Erythrit
+Description: Zuckerersatzstoff aus der Gruppe der Zuckeralkohole, der eine süße Note bietet, ohne den Blutzuckerspiegel maßgeblich zu beeinflussen.
+
+PK: 6886
+Name: Salbei
+Description: Aromatische Blätter mit herb-würzigem Geschmack, die klassisch zum Würzen von Fleischgerichten oder in der vegetarischen Küche verwendet werden.
+
+PK: 6890
+Name: Getrocknete Lavendelblüten
+Description: Getrocknete Blüten des Lavendels, bekannt für ihr intensives, blumiges Aroma und vielseitig als Gewürz oder zur Aromatisierung einsetzbar.
+
+PK: 6896
+Name: Vegeta
+Description: Eine universelle Würzmischung aus getrocknetem Gemüse und Salz, die Suppen, Saucen und Fleischgerichten Tiefe verleiht.
+
+PK: 7249
+Name: Salatgurke
+Description: Lange, grüne Gemüsegurke mit hohem Wassergehalt und erfrischendem Geschmack.
+
+PK: 168
+Name: Sonnenblumenöl
+Description: Mildes, goldgelbes Speiseöl aus Sonnenblumenkernen, ideal für die warme und kalte Küche.
+
+PK: 6
+Name: Tomatenmark
+Description: Hochkonzentriertes Tomatenmark mit intensivem, kräftigem Geschmack, das als Würzmittel für Saucen dient.
+
+PK: 146
+Name: Pfeffer
+Description: Getrocknete Früchte des Pfefferstrauchs, die als scharfes und aromatisches Grundgewürz verwendet werden.
+
+PK: 126
+Name: Walnüsse
+Description: Kern der Walnussfrucht mit kräftigem, leicht herben Aroma, beliebt in herzhaften und süßen Speisen.
+
+PK: 135
+Name: Rosinen
+Description: Getrocknete Weinbeeren mit intensivem, süßem Geschmack, die als Zutat in Backwaren und Müsli verwendet werden.
+
+PK: 6866
+Name: Gelbe Linsen
+Description: Getrocknete, geschälte Hülsenfrüchte mit mildem Geschmack, die sich durch eine kurze Kochzeit auszeichnen und vielseitig für Eintöpfe oder Salate einsetzbar sind.
+
+PK: 136
+Name: Schokolade (Zartbitter)
+Description: Schokolade mit hohem Kakaoanteil und geringem Zuckergehalt, die ein kräftiges, herbes Aroma aufweist.
+
+PK: 6932
+Name: Schokoraspeln
+Description: Kleine, dünne Schokoladenstückchen, die primär als Dekoration für Gebäck und Desserts dienen.
+
+PK: 150
+Name: Kreuzkümmel
+Description: Getrocknete Samen des Kreuzkümmels mit einem charakteristisch kräftigen, leicht herben Aroma.
+
+PK: 155
+Name: Chilipulver
+Description: Fein gemahlenes Gewürz aus getrockneten Chilischoten, das Speisen eine ausgeprägte Schärfe verleiht.
+
+PK: 6955
+Name: Gewürzgurke
+Description: In Essig-Kräuter-Sud eingelegte Gurke, die durch ihren säuerlich-würzigen Geschmack als Beilage dient.
+
+PK: 6934
+Name: Cocktailtomaten
+Description: Kleine, meist süße Tomatensorte, die ideal für den Rohverzehr oder in Salaten geeignet ist.
+
+PK: 7220
+Name: Limettenspalten
+Description: In Segmente geschnittene Limetten, die zum Verfeinern von Getränken oder Speisen mit frischer Säure dienen.
+
+PK: 6936
+Name: Chilisauce
+Description: Scharfe Würzsauce auf Basis von zerkleinerten Chilis, häufig mit Essig, Salz und weiteren Gewürzen verfeinert.
+
+PK: 7053
+Name: Zitronenabrieb Bio
+Description: Fein abgeriebene, aromatische Schale von Bio-Zitronen, ideal zum Backen und Verfeinern.
+
+PK: 7225
+Name: Meerrettich
+Description: Wurzelgemüse mit scharfem, beißendem Geschmack, das meist fein gerieben als Würzmittel verwendet wird.
+
+PK: 6943
+Name: Fettreduziertes Rinderhack
+Description: Zerkleinertes Rindfleisch mit geringem Fettanteil, das sich für die Zubereitung von gebratenen Fleischgerichten eignet.
+
+PK: 7198
+Name: BBQ-Soße
+Description: Würzige, meist leicht süßliche und rauchige Soße, die primär zu gegrilltem Fleisch serviert wird.
+
+PK: 6928
+Name: Apfelmark
+Description: Püriertes Fruchtmark aus Äpfeln ohne Zusatz von Zucker, dient oft als Backzutat oder Dessertbasis.
+
+PK: 7014
+Name: Essiggurken
+Description: In Essig eingelegte Gurken mit würzig-saurem Geschmack, die als Beilage oder Zutat dienen.
+
+PK: 7071
+Name: Gemüsebrühepulver
+Description: Konzentriertes Pulver aus eingedampftem Gemüse, Kräutern und Gewürzen zur Zubereitung einer herzhaften Flüssigkeitsgrundlage.
+
+PK: 7183
+Name: Gemüsebrühe ungesalzen
+Description: Extrakt aus verschiedenen Gemüsesorten als Grundlage für Suppen und Saucen, ohne zusätzlichen Salzgehalt.
+
+PK: 6941
+Name: Mandelsplitter
+Description: In schmale Stifte oder Splitter geschnittene Mandelkerne, die sich zum Backen, Verzieren oder für Desserts eignen.
+
+PK: 6994
+Name: Mandelmus
+Description: Cremiges Mus aus fein gemahlenen Mandeln, vielseitig als Brotaufstrich oder Backzutat verwendbar.
+
+PK: 6895
+Name: Paprika edelsüß
+Description: Gemahlenes Gewürz aus getrockneten Gemüsepaprika, das Speisen eine milde Süße und eine kräftige rote Farbe verleiht.
+
+PK: 6892
+Name: Pizzatomaten
+Description: Klein geschnittene oder passierte Tomaten, die speziell als Basis für Pizzasaucen und mediterrane Gerichte zubereitet wurden.
+
+PK: 6900
+Name: Protein Sahne
+Description: Sahne mit einem erhöhten Proteingehalt, die für eine proteinreichere Ernährung beim Kochen und Backen genutzt wird.
+
+PK: 7236
+Name: Tomatenketchup
+Description: Würzsoße auf Basis von Tomatenmark, Essig und Gewürzen mit süß-säuerlichem Geschmack.
+
+PK: 7250
+Name: Rote Paprikaschote groß
+Description: Große, fleischige Frucht der Paprikapflanze mit süßlichem Aroma und roter Schale.
+
+PK: 7244
+Name: Veganer Quark
+Description: Pflanzliche Alternative zu Quark auf Basis von Soja, Mandeln oder anderen Leguminosen mit cremiger Textur.
+
+PK: 6918
+Name: Knoblauchzehe gehackt
+Description: Fein zerkleinerte Knoblauchzehen als würzige Basis für herzhafte Gerichte.
+
+PK: 6973
+Name: Gekochter Reis
+Description: Bereits gegartes Getreidekorn, das als sättigende Beilage zu verschiedenen Gerichten serviert wird.
+
+PK: 7255
+Name: Gemahlener Kreuzkümmel
+Description: Fein gemahlenes Gewürz aus Kreuzkümmelsamen mit einem kräftigen, erdigen und leicht herben Aroma.
+
+PK: 7137
+Name: Kreuzkümmelpulver
+Description: Pulver aus den getrockneten Samen des Kreuzkümmels mit kräftig-würzigem, leicht bitterem Aroma.
+
+PK: 6978
+Name: Lauchzwiebeln
+Description: Frühlingszwiebeln mit mildem Zwiebelaroma, deren grünes und weißes Ende gleichermaßen verzehrbar sind.
+
+PK: 6946
+Name: Curry Ketchup light
+Description: Würzige Tomatensauce mit Currygeschmack und reduziertem Zucker- oder Fettgehalt, klassisch als Beilage zu Fleisch.
+
+PK: 6758
+Name: Öl, Sonnenblumen
+Description: Pflanzliches Speiseöl aus Sonnenblumenkernen, das durch einen milden Geschmack und hohe Hitzebeständigkeit überzeugt.
+
+PK: 7193
+Name: Weizenmehl Typ 550
+Description: Helles Weizenmehl mit mittlerem Mineralstoffgehalt, vielseitig verwendbar für Teige, Saucen und Backwaren.
+
+PK: 7159
+Name: Granatapfelkerne
+Description: Essbare, süß-säuerliche Samen des Granatapfels mit saftiger Konsistenz.
+
+PK: 7164
+Name: Helle Sojasauce
+Description: Fermentierte Würzsoße auf Basis von Sojabohnen, salzig im Geschmack und dünnflüssig.
+
+PK: 7171
+Name: Hähnchengewürzmischung
+Description: Kombination verschiedener Gewürze zur geschmacklichen Abstimmung von Geflügelgerichten.
+
+PK: 6988
+Name: High Protein Wrap
+Description: Flaches Fladenbrot mit erhöhtem Eiweißgehalt, geeignet zum Rollen und Füllen.
+
+PK: 6961
+Name: Hähnchen
+Description: Vielseitig verwendbares Geflügelfleisch, das als proteinreiche Basis für zahlreiche Fleischgerichte dient.
+
+PK: 6983
+Name: Magerquark
+Description: Fettarmer Frischkäse mit fester Konsistenz, der eine hohe Proteindichte aufweist und vielseitig einsetzbar ist.
+
+PK: 6971
+Name: Nachos
+Description: Knusprige Tortilla-Chips aus Maismehl, die traditionell als Snack mit Dips serviert werden.
+
+PK: 6987
+Name: Schoko-Chunks
+Description: Kleine Stückchen aus Schokolade, fest in der Konsistenz und ideal zum Backen.
+
+PK: 6964
+Name: Knoblauchzehe gepresst
+Description: Zerkleinerte Zehen der Knoblauchknolle, die als würzige Zutat mit intensivem Aroma in der Küche genutzt werden.
+
+PK: 6984
+Name: Erythrit Geschmackspulver
+Description: Zuckerersatzstoff auf Basis von Erythrit, kalorienfrei mit neutralem, süßem Geschmack.
+
+PK: 6997
+Name: Zartbitterschokolade gehackt
+Description: Kleine Stücke aus dunkler Schokolade mit hohem Kakaogehalt und herber Note.
+
+PK: 7004
+Name: Crème fine zum Aufschlagen
+Description: Sahneähnliches Produkt auf pflanzlicher oder tierischer Basis, das sich zu einer stabilen Masse aufschlagen lässt.
+
+PK: 7018
+Name: Eier gekocht
+Description: Gekochte und konservierte Hühnereier, die direkt für kalte Speisen oder Salate genutzt werden können.
+
+PK: 7022
+Name: Gewürze nach Wahl
+Description: Eine Auswahl verschiedener getrockneter Kräuter und Gewürze zur geschmacklichen Verfeinerung von Speisen.
+
+PK: 7023
+Name: Hühnerei
+Description: Vielseitig verwendbares Hühnerei, das als Grundnahrungsmittel in der Küche dient.
+
+PK: 7024
+Name: Milch fettarm 0,2%
+Description: Kuhmilch mit reduziertem Fettgehalt, die als nährstoffreiches Getränk oder Zutat dient.
+
+PK: 7058
+Name: Cherrytomaten
+Description: Kleine, aromatische Tomatensorte mit süßlichem Geschmack und festem Fruchtfleisch.
+
+PK: 7049
+Name: Dijon-Senf
+Description: Würziger, scharfer Senf aus braunen Senfkörnern, traditionell mit Weißwein hergestellt.
+
+PK: 7038
+Name: Erythrit-Stevia-Mix
+Description: Mischung aus den Süßungsmitteln Erythrit und Stevia als kalorienfreie Alternative zu herkömmlichem Zucker.
+
+PK: 7052
+Name: Gemahlene Vanille
+Description: Fein vermahlene Fruchtkapseln der Vanillepflanze, reich an ätherischen Ölen und intensivem Aroma.
+
+PK: 7092
+Name: Dinkelmehl Type 630
+Description: Ein helles, feines Mehl aus Dinkel, das sich hervorragend zum Backen von Brot, Brötchen und Gebäck eignet.
+
+PK: 7079
+Name: Zitronenhälfte
+Description: Eine Hälfte einer Zitrone, deren saurer Saft und Schale zum Würzen und Aromatisieren von Speisen und Getränken dienen.
+
+PK: 7084
+Name: Zucchini frisch
+Description: Sommerkürbis mit mildem Aroma und zarter Schale, der vielseitig als Gemüsebeilage oder Zutat dient.
+
+PK: 7086
+Name: Hühnereier
+Description: Eier vom Huhn, die als vielseitiges Grundnahrungsmittel zum Kochen und Backen dienen.
+
+PK: 7088
+Name: Oregano getrocknet
+Description: Getrocknete Kräuter mit herbem, aromatischem Geschmack, die besonders in der mediterranen Küche Verwendung finden.
+
+PK: 7099
+Name: Frische Hefe
+Description: Frische Backhefe aus Hefepilzkulturen, dient als natürliches Triebmittel für Teige.
+
+PK: 7093
+Name: Haferflocken fein
+Description: Zerkleinerte Getreideflocken aus Hafer mit weicher Konsistenz, ideal für Müslis oder als Backzutat.
+
+PK: 7113
+Name: Süße nach Wahl
+Description: Beliebiges Süßungsmittel zur geschmacklichen Abrundung von Speisen.
+
+PK: 7123
+Name: Brühpulver
+Description: Konzentriertes Pulver aus Gewürzen und Extrakten zur Herstellung von Brühen und Suppen.
+
+PK: 7115
+Name: Nüsse
+Description: Essbare Kerne mit harter Schale, reich an ungesättigten Fettsäuren und Proteinen.
+
+PK: 7147
+Name: Fleischtomaten
+Description: Große, fleischige Tomatensorte mit festem Fruchtfleisch, ideal für Salate und Saucen.
+
+PK: 7117
+Name: Käse gerieben
+Description: Milchprodukt aus Kuhmilch, das in zerkleinerter Form zum Überbacken oder Verfeinern genutzt wird.
+
+PK: 7122
+Name: Zwiebel gehackt
+Description: Zwiebelknolle in zerkleinerter Form, dient als würzige Basis für herzhafte Gerichte.
+
+PK: 7125
+Name: Knoblauchzehen geraspelt
+Description: In feine Streifen oder Stücke geschnittene Zehen der Knoblauchpflanze mit intensivem Aroma.
+
+PK: 7114
+Name: Schokodrops
+Description: Kleine Stückchen aus Schokolade, die als Backzutat oder Garnierung dienen.
+
+PK: 7153
+Name: Grüne Paprika entkernt
+Description: Frische grüne Paprikaschoten ohne Kerngehäuse, knackig und leicht herb im Geschmack.
+
+PK: 7160
+Name: Koriander frisch
+Description: Frische Blätter der Korianderpflanze mit kräftigem, charakteristischem Aroma.
+
+PK: 7180
+Name: Spaghetti gekocht
+Description: Gekochte Teigwaren aus Hartweizengrieß, die direkt weiterverarbeitet werden können.
+
+PK: 7181
+Name: Veganer Parmesan
+Description: Pflanzliche Alternative zu italienischem Hartkäse, meist auf Basis von Nüssen oder Hefeflocken mit würzigem Aroma.
+
+PK: 7168
+Name: Dunkler Balsamicoessig
+Description: Dunkler Essig aus eingekochtem Traubenmost, süß-säuerlich und aromatisch.
+
+PK: 7188
+Name: Frischer Thymian
+Description: Frisches, krautiges Gewürz mit ätherischen Ölen, das für seine aromatische Wirkung in mediterranen Gerichten bekannt ist.
+
+PK: 7176
+Name: Gehackte Walnüsse
+Description: Zerkleinerte Walnusskerne mit herbem, nussigem Aroma.
+
+PK: 7218
+Name: Dunkler Rohrzucker
+Description: Unraffinierter Zucker aus Zuckerrohr mit natürlichem Melassegehalt, der für eine malzige Note und dunkle Farbe sorgt.
+
+PK: 7202
+Name: Geschrotete Leinsamen
+Description: Zerkleinerte Leinsamen, die reich an Ballaststoffen sind und als Zutat für Backwaren oder als Bindemittel dienen.
+
+PK: 7212
+Name: Getrockneter Thymian
+Description: Getrocknete Blätter des Thymianstrauchs mit aromatischem, leicht herbem Geschmack, typisch für mediterrane Gerichte.
+
+PK: 7242
+Name: Italienische Kräuter getrocknet
+Description: Kombination getrockneter Kräuter wie Oregano, Basilikum und Thymian, typisch für die mediterrane Küche.
+
+PK: 7243
+Name: Rosmarin-Zweig
+Description: Nadelartiger Zweig des Rosmarinstrauchs mit kräftigem, harzigem Aroma.
+
+PK: 7263
+Name: Mini-Maccheroni
+Description: Kurze, röhrenförmige Nudeln in kleinerer Ausführung, die besonders gut Soßen aufnehmen.
+
+PK: 7267
+Name: Gewürzgurken Chili
+Description: In Essig und Gewürzen eingelegte Gurken mit einer pikanten Schärfe durch beigefügte Chilischoten.
+
+PK: 7256
+Name: Gemahlener Pfeffer
+Description: Fein gemahlene Pfefferkörner mit scharfem, würzigem Aroma zur vielseitigen Verwendung in der Küche.
+
+PK: 7265
+Name: Getrockneter Basilikum
+Description: Getrocknete Basilikumblätter mit einem würzigen, leicht süßlich-pfeffrigen Aroma.
+
+PK: 7253
+Name: Glatte Petersilie
+Description: Aromatische Gartenpflanze mit glatten Blättern, die als frisches Würzkraut vielfältig in der Küche eingesetzt wird.
+
+PK: 7274
+Name: Butter geschmolzen
+Description: Durch Erwärmen verflüssigtes Milchfett, das als Zutat beim Backen oder zur Geschmacksverfeinerung dient.
+
+PK: 7283
+Name: Schokolade gerieben
+Description: Zerkleinerte Stücke von Kakaomasse und Zucker, geeignet zum Backen oder Dekorieren.
+
+PK: 7290
+Name: Backmalz enzymaktiv
+Description: Aktiv wirkendes Malzmehl zur Förderung der Hefeaktivität und zur Verbesserung der Krustenbildung bei Brot.
+
+PK: 7291
+Name: Schokodrops backfest
+Description: Kleine Schokoladenstückchen, die beim Backen ihre Form behalten und nicht zerfließen.
+
+PK: 7282
+Name: Eiweiß
+Description: Die klare, eiweißhaltige Flüssigkeit aus dem Hühnerei, die zum Aufschlagen oder als Bindemittel genutzt wird.
+
+PK: 7277
+Name: Rum
+Description: Destillierte Spirituose aus Zuckerrohr, die durch Gärung und Destillation gewonnen wird und als aromatisierende Zutat dient.
+
+PK: 7273
+Name: Gebrannte Mandeln
+Description: Mandeln, die in einer karamellisierten Zuckerschicht geröstet wurden.
+
+PK: 7276
+Name: Gehackte Mandeln
+Description: Zerkleinerte Mandelsplitter, die vielseitig als Backzutat oder Topping verwendet werden können.
+
+PK: 7297
+Name: Gemahlene Mandeln
+Description: Zerkleinerte, geschälte Mandeln, die vor allem zum Backen oder zur Verfeinerung von Desserts dienen.
+
+PK: 7279
+Name: Glattes Mehl
+Description: Fein gemahlenes Mehl ohne Schalenbestandteile, ideal für feine Backwaren und Teige.
+
+PK: 7112
+Name: Sweet-Chili-Sauce
+Description: Würzsoße auf Basis von Chilis und Zucker, süß-scharf im Geschmack.
+
+PK: 6937
+Name: Cayennepfeffer
+Description: Scharfes Gewürz aus gemahlenen getrockneten Chilischoten, das Speisen eine kräftige Schärfe und rötliche Farbe verleiht.
+
+PK: 7207
+Name: Gemüsezwiebeln groß
+Description: Besonders große Speisezwiebel mit mildem, süßlichem Geschmack, ideal zum Schmoren oder für Zwiebelgerichte.
+
+PK: 7041
+Name: Tomate
+Description: Frische Frucht mit saftigem Fruchtfleisch, die sowohl roh als auch gekocht vielseitig in der Küche verwendet wird.
+
+PK: 7182
+Name: Schalotte groß
+Description: Milde Speisezwiebel mit feinerem Geschmack, die in der Küche vielseitig für Saucen oder zum Dünsten verwendet wird.
+
+PK: 7046
+Name: Vanilleeis
+Description: Süße, gefrorene Speise auf Milchbasis mit feinem Aroma echter Vanille.
+
+PK: 7163
+Name: Kleine Auberginen
+Description: Kleine Exemplare der Aubergine mit weichem, mildem Fruchtfleisch.
+
+PK: 7229
+Name: Kardamomsamen
+Description: Aromatische Samen des Kardamoms mit süß-würzigem Geschmack, intensiv in der Verwendung für Süßspeisen oder Gewürzmischungen.
+
+PK: 7076
+Name: Karotten
+Description: Wurzelgemüse mit knackiger Textur und leicht süßlichem Geschmack, das roh oder gegart verzehrt werden kann.
+
+PK: 7146
+Name: Kartoffeln geviertelt
+Description: In vier Stücke geschnittene Kartoffeln, geeignet für verschiedene Garverfahren.
+
+PK: 7173
+Name: Karotten geraspelt
+Description: In feine Streifen geraspelte Wurzeln der Karotte, knackig und leicht süßlich.
+
+PK: 6968
+Name: Ketchup light
+Description: Würzige Tomatensauce mit reduziertem Energiegehalt, die als Beilage oder Würzmittel dient.
+
+PK: 7204
+Name: Kichererbsenmehl
+Description: Mehl aus gemahlenen Kichererbsen, glutenfrei und oft als proteinreiche Zutat für Teige oder als Bindemittel eingesetzt.
+
+PK: 7241
+Name: Kleine Zwiebel
+Description: Kleine Speisezwiebel mit würzigem Aroma, die als Basis für viele warme und kalte Gerichte dient.
+
+PK: 7287
+Name: Milch kalt
+Description: Frische Kuhmilch, die gekühlt gelagert wird und als Grundzutat für viele Speisen und Getränke dient.
+
+PK: 7211
+Name: Knoblauchgranulat
+Description: Getrockneter und fein vermahlener Knoblauch, der als Gewürz zum Verfeinern von Speisen dient.
+
+PK: 7238
+Name: Kräuter
+Description: Aromatische Pflanzenbestandteile, die frisch oder getrocknet zum Würzen und Verfeinern von Gerichten genutzt werden.
+
+PK: 7237
+Name: Knoblauchpfeffer
+Description: Gewürzmischung aus Knoblauch und Pfeffer, die Speisen eine würzige und pikante Note verleiht.
+
+PK: 7128
+Name: Auberginen
+Description: Dunkelviolettes Nachtschattengewächs mit mildem Geschmack und schwammartiger Konsistenz, meist gegart verzehrt.
+
+PK: 7292
+Name: Schokoladenteig
+Description: Vorbereitete Mischung aus Mehl, Kakao, Fett und Zucker zur Herstellung von Gebäck.
+
+PK: 7155
+Name: Koriander gemahlen
+Description: Pulverisierte Samen der Korianderpflanze mit würzigem, leicht zitrusartigem Aroma.
+
+PK: 7144
+Name: Tomatenpaste
+Description: Konzentriertes Mus aus eingekochten Tomaten mit intensivem Geschmack.
+
+PK: 6942
+Name: Proteinpudding Vanille
+Description: Proteinreicher Milchpudding mit Vanillegeschmack, der eine cremige Konsistenz besitzt und als Zwischenmahlzeit dient.
+
+PK: 7254
+Name: Weißer Balsamicoessig
+Description: Heller Essig aus Weinessig, der durch seine milde Säure und fruchtige Note überzeugt.
+
+PK: 7032
+Name: Kekse
+Description: Kleines, gebackenes Dauergebäck, meist süß und von fester Konsistenz.
+
+PK: 7062
+Name: Kochsahne light 7%
+Description: Zum Kochen geeignete Sahne mit reduziertem Fettgehalt, die Saucen und Suppen sämig bindet.
+
+PK: 7094
+Name: Kernige Haferflocken
+Description: Haferflocken aus dem ganzen Korn mit festem Biss, die eine kernige Struktur in Speisen bringen.
+
+PK: 7110
+Name: Jalapeños
+Description: Scharfe Chili-Sorte, die frisch oder eingelegt für pikante Würze sorgt.
+
+PK: 7142
+Name: Knoblauchzehen gehackt
+Description: Zerkleinerte Knoblauchzehen, die als aromatischer Geschmacksgeber in vielen Speisen dienen.
+
+PK: 7179
+Name: Muskat
+Description: Gewürz aus dem Samen der Muskatnuss mit warmem, süßlich-würzigem Geschmack.
+
+PK: 7187
+Name: Nelken
+Description: Getrocknete Blütenknospen des Gewürznelkenbaums mit intensiv-würzigem und leicht betäubendem Aroma.
+
+PK: 7222
+Name: Neutrales Öl
+Description: Geschmacksneutrales Speiseöl, das vielseitig zum Kochen, Braten und Backen einsetzbar ist.
+
+PK: 7072
+Name: Ölspray
+Description: Pflanzliches Speiseöl in einem Sprühbehälter zur gleichmäßigen Fettverteilung beim Kochen oder Braten.
+
+PK: 7260
+Name: Paprikamark
+Description: Konzentriertes Mark aus pürierten Paprikaschoten, das zum Würzen und Färben von Gerichten verwendet wird.
+
+PK: 6927
+Name: Reife Banane
+Description: Voll ausgereifte, süße Frucht mit weicher Textur.
+
+PK: 7039
+Name: Pesto
+Description: Würzige Paste aus Kräutern, Öl, Käse und Nüssen, die typischerweise als Beilage zu Nudelgerichten dient.
+
+PK: 7087
+Name: Pizza Gewürz
+Description: Eine abgestimmte Gewürzmischung aus mediterranen Kräutern zur geschmacklichen Verfeinerung von Pizzagerichten.
+
+PK: 6951
+Name: Rinderhackfleisch fettreduziert
+Description: Mageres, gehacktes Rindfleisch, das vielseitig für Pfannengerichte, Saucen oder als Füllung eingesetzt wird.
+
+PK: 6953
+Name: Kochsahne light
+Description: Flüssiges Sahneerzeugnis mit reduziertem Fettgehalt, das zum Verfeinern von Saucen und Suppen dient.
+
+PK: 6972
+Name: Eigelb
+Description: Der gelbe Teil des Hühnereis, der reich an Fett und Proteinen ist und als Emulgator oder Bindemittel dient.
+
+PK: 6956
+Name: Salatcreme leicht
+Description: Cremige, kalte Sauce auf Basis von Öl, Essig und meist Eigelb, in einer fettreduzierten Rezeptur für Salate.
+
+PK: 7006
+Name: Himbeeren (TK) gesüßt
+Description: Tiefgekühlte Himbeeren, die zusätzlich mit Zucker gesüßt wurden.
+
+PK: 7016
+Name: Gemüsebrühenpulver
+Description: Trockenes Pulver aus konzentriertem Gemüseextrakt und Gewürzen zur Herstellung von flüssiger Gemüsebrühe.
+
+PK: 7009
+Name: Spekulatiusbrösel
+Description: Zerkleinerte Kekse mit weihnachtlicher Gewürzmischung, oft als Boden für Kuchen verwendet.
+
+PK: 7008
+Name: Frische Himbeeren
+Description: Frische Beerenfrüchte des Himbeerstrauchs, aromatisch und weich.
+
+PK: 7119
+Name: Babykartoffeln
+Description: Kleine, junge Speisekartoffeln mit dünner Schale und feinem Aroma.
+
+PK: 7139
+Name: Dunkle Sojasauce
+Description: Würzsauce auf Basis fermentierter Sojabohnen, die Speisen Farbe und eine salzige Umami-Note verleiht.
+
+PK: 7131
+Name: Petersilie frisch gehackt
+Description: Frisch zerkleinerte Blätter der Petersilie, verwendet als aromatisches Küchenkraut.
+
+PK: 7149
+Name: Frischer Koriander
+Description: Frisches Kraut mit charakteristisch zitrusartigem Aroma, häufig in der asiatischen und orientalischen Küche verwendet.
+
+PK: 7151
+Name: Datteln entkernt
+Description: Getrocknete Früchte der Dattelpalme mit süßem, karamellartigem Geschmack, ohne Stein.
+
+PK: 7226
+Name: Soja Joghurt
+Description: Fermentiertes pflanzliches Lebensmittel auf Sojabasis mit cremiger Konsistenz als Joghurt-Alternative.
+
+PK: 7156
+Name: Brühe
+Description: Würzflüssigkeit, hergestellt durch das Auskochen von Fleisch, Gemüse oder Kräutern.
+
+PK: 7199
+Name: Gemüsebrühe heiß
+Description: Bereits erhitzte, flüssige Gemüsebrühe als fertige Basis für Suppen oder zum Ablöschen.
+
+PK: 7216
+Name: Erdnussöl
+Description: Pflanzenöl aus Erdnüssen mit neutralem bis leicht nussigem Geschmack, geeignet zum Braten und für Dressings.
+
+PK: 7221
+Name: Flüssigrauch
+Description: Kondensat aus echtem Rauch, das Speisen ein intensives Räucheraroma verleiht.
+
+PK: 7231
+Name: Grüne Chili (Ringe)
+Description: Scharfe, grüne Chilis in Ringe geschnitten, vielseitig verwendbar zum Würzen von Speisen.
+
+PK: 7109
+Name: BBQ-Sauce light
+Description: Würzsoße mit rauchig-süßlicher Note, verfeinert gegrillte Speisen bei reduziertem Kaloriengehalt.
+
+PK: 7213
+Name: Tiefkühl Erbsen
+Description: Frisch geerntete Erbsen, die durch Tiefkühlen konserviert wurden, um ihren süßlichen Geschmack und ihre Farbe zu bewahren.
+
+PK: 6993
+Name: Haferflocken zart
+Description: Fein verarbeitete Haferflocken, die schnell aufquellen und eine zarte Textur aufweisen.
+
+PK: 7066
+Name: Vanillepuddingpulver
+Description: Mischung aus Stärke und Aromen zur schnellen Zubereitung von cremigem Vanillepudding.
+
+PK: 6986
+Name: Zarte Haferflocken
+Description: Zu Flocken gewalzter Hafer mit weicher Konsistenz, ideal als Basis für Müslis oder Brei.
+
+PK: 6967
+Name: Kartoffeln festkochend
+Description: Speisekartoffeln mit festem Fleisch, die nach dem Kochen ihre Struktur behalten und ideal für Salate oder Gratins sind.
+
+PK: 7050
+Name: Worcestershiresauce
+Description: Würzig-fermentierte Würzsoße mit komplexem Aroma, die Speisen eine herzhafte Tiefe verleiht.
+
+PK: 7278
+Name: Kristallzucker
+Description: Raffinierter, weißer Zucker in kristalliner Form, dient als neutrales Süßungsmittel in der Küche.
+
+PK: 7186
+Name: Lorbeerblätter
+Description: Getrocknete aromatische Blätter des Lorbeerbaums, die zum Würzen von Schmorgerichten und Suppen verwendet werden.
+
+PK: 6952
+Name: Schinkenwürfel mager
+Description: In kleine Würfel geschnittener, magerer Schinken, der sich zum Anbraten in herzhaften Gerichten eignet.
+
+PK: 6957
+Name: Senf mild
+Description: Würzig-milde Würzpaste aus Senfsaaten, vielseitig als Beilage oder zum Verfeinern von Gerichten verwendbar.
+
+PK: 7048
+Name: Mayonnaise light
+Description: Cremige Emulsion aus Öl, Eigelb und Essig, zubereitet mit reduziertem Fettgehalt.
+
+PK: 7067
+Name: Pflanzenmilch
+Description: Pflanzliche Alternative zu Kuhmilch, gewonnen aus Getreide, Nüssen oder Hülsenfrüchten.
+
+PK: 7098
+Name: Mandelmilch lauwarm
+Description: Pflanzliches Getränk aus gemahlenen Mandeln und Wasser, mild im Geschmack.
+
+PK: 7126
+Name: Korianderpulver
+Description: Gemahlene getrocknete Samen des Echten Korianders mit herb-würzigem Geschmack.
+
+PK: 7145
+Name: Limettenabrieb
+Description: Die abgeriebene, aromatische äußere Schale der Limette, reich an ätherischen Ölen.
+
+PK: 7077
+Name: Lachs
+Description: Fetter Speisefisch mit kräftigem Geschmack und zartem, rosafarbenem Fleisch, reich an wertvollen Fettsäuren.
+
+PK: 7300
+Name: Espressopulver löslich
+Description: Konzentriertes Kaffeepulver, das sich in heißem Wasser schnell auflöst und als Kaffeegetränk dient.
+
+PK: 6852
+Name: Sternanis
+Description: Sternförmige Samenkapsel mit lakritzartigem Aroma, die als Gewürz in der asiatischen Küche und beim Backen verwendet wird.
+
+PK: 6945
+Name: Protein-Wraps
+Description: Flache Teigfladen mit erhöhtem Eiweißgehalt, die als Basis für gefüllte Rollen verwendet werden.
+
+PK: 7141
+Name: Rote Zwiebel gehackt
+Description: Zerkleinerte Stücke einer roten Zwiebel, die eine mildere und süßliche Schärfe besitzen.
+
+PK: 6915
+Name: Seitanfix
+Description: Pulver auf Weizenglutenbasis zur Herstellung von fleischähnlichem, proteinreichem Seitan.
+
+PK: 7245
+Name: Natives Olivenöl Extra
+Description: Hochwertiges Öl aus Oliven, das durch mechanische Pressung gewonnen wird und einen fruchtigen Geschmack aufweist.
+
+PK: 7136
+Name: Natur Tofu
+Description: Geronnene Sojamilch in fester Form, ein neutral schmeckendes, proteinreiches Grundnahrungsmittel.
+
+PK: 6999
+Name: Protein-Sahne
+Description: Sahneerzeugnis, das mit zusätzlichem Protein angereichert wurde und aufschlagbar ist.
+
+PK: 7028
+Name: Puddingpulver
+Description: Stärkehaltige Trockenmischung zur Zubereitung eines cremigen Puddings durch Aufkochen mit Milch.
+
+PK: 6977
+Name: Minigurken
+Description: Kleine, knackige Gurkensorte, die roh verzehrt oder eingelegt werden kann.
+
+PK: 7069
+Name: Mini Penne
+Description: Kleine, röhrenförmige Nudelsorte aus Hartweizengrieß, die Saucen besonders gut aufnimmt.
+
+PK: 6985
+Name: Whey-Protein Vanille
+Description: Eiweißpulver aus Molke mit Vanillearoma, zur Anreicherung von Speisen oder Getränken.
+
+PK: 7017
+Name: Rohe Kartoffeln
+Description: Frische, ungegarte Speisekartoffeln, die vielseitig als Grundlage für herzhafte Gerichte verwendet werden.
+
+PK: 7201
+Name: Rauchpaprikapulver
+Description: Pulver aus getrockneten, geräucherten Paprikaschoten mit einer charakteristischen rauchig-süßen Note.
+
+PK: 6991
+Name: Reibekäse
+Description: Käse in geraspelter Form, der sich durch seine Schmelzeigenschaften gut zum Überbacken eignet.
+
+PK: 7064
+Name: Reibekäse light
+Description: Geraspelter Schnittkäse mit reduziertem Fettgehalt, der leicht schmilzt und sich gut zum Überbacken eignet.
+
+PK: 7235
+Name: Reiswaffeln
+Description: Leichte, knusprige Waffeln aus gepufftem Reis, die oft als glutenfreie Alternative zu Brot dienen.
+
+PK: 6888
+Name: Schwarzer Pfeffer
+Description: Getrocknete Früchte des Pfefferstrauchs mit einem scharfen, aromatischen Geschmack, die als Gewürz in der Küche verwendet werden.
+
+PK: 6910
+Name: Sojadrink
+Description: Pflanzliches Getränk aus Sojabohnen, dient als milchfreier Milchersatz.
+
+PK: 6913
+Name: Schwarze Bohnen Dose (abgetropft)
+Description: Gekochte, dunkle Hülsenfrucht mit fester Konsistenz und kräftigem Aroma, vielseitig in der Küche verwendbar.
+
+PK: 7232
+Name: Schwarze Pfefferkörner
+Description: Ganze getrocknete Früchte des Pfefferstrauchs mit kräftig-würzigem, scharfem Aroma.
+
+PK: 6970
+Name: Salsa-Sauce
+Description: Mexikanische Würzsauce auf Basis von Tomaten, Zwiebeln und Chilis, die meist fruchtig-scharf schmeckt.
+
+PK: 7005
+Name: Sofortgelatine
+Description: Gelatine in leicht löslicher Form, die zum Binden von kalten und warmen Speisen verwendet wird.
+
+PK: 7057
+Name: Zitronenabrieb
+Description: Frisch abgeriebene, aromatische äußere Schale der Zitrone, reich an ätherischen Ölen.
+
+PK: 6965
+Name: Worcestershire Sauce
+Description: Würzige, fermentierte Sauce mit komplexem Aroma aus Essig, Melasse, Tamarinde und Gewürzen.
+
+PK: 7010
+Name: Süßungsmittel
+Description: Zuckerersatz oder kalorienreduziertes Süßungsmittel zum Süßen von Speisen und Getränken.
+
+PK: 7101
+Name: Butter weich
+Description: Streichfähiges Speisefett aus Kuhmilchrahm, ein Grundnahrungsmittel beim Kochen und Backen.
+
+PK: 7121
+Name: Champignons weiß (Scheiben)
+Description: In Scheiben geschnittene Speisepilze mit mildem, erdigem Aroma.
+
+PK: 7150
+Name: Walnüsse gehackt
+Description: Kernfrüchte des Walnussbaums, zerkleinert, mit herbem, nussigem Aroma.
+
+PK: 7152
+Name: Getrocknete Tomaten in Öl
+Description: In Öl eingelegte, getrocknete Tomaten mit intensivem, würzigem Aroma.
+
+PK: 7258
+Name: Vollkornpenne
+Description: Nudeln aus Vollkornweizen in Stiftform, die sich durch einen höheren Ballaststoffgehalt und nussigen Geschmack auszeichnen.
+
+PK: 7259
+Name: Walnussöl
+Description: Kaltgepresstes Pflanzenöl aus Walnüssen mit einem charakteristischen, intensiv nussigen Geschmack.
+
+PK: 7284
+Name: Weizenmehl 550
+Description: Helles Weizenmehl mit mittlerem Mineralstoffgehalt, vielseitig einsetzbar für Brot, Kuchen und Gebäck.
+
+PK: 7215
+Name: Zitronengras
+Description: Tropische Pflanze mit holzigen Halmen und frischem, zitronigem Aroma, häufig in der asiatischen Küche verwendet.
+
+PK: 7257
+Name: Zitronenspalte
+Description: Ein Segment einer frischen Zitrone, das für seinen säuerlichen Saft und ein frisches Aroma geschätzt wird.
+
+PK: 7104
+Name: Zuckeralternative
+Description: Ersatzprodukt für Haushaltszucker, dient zur Süßung von Speisen und Getränken.
+

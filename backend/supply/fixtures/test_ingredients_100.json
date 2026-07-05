@@ -1,0 +1,602 @@
+[
+  {
+    "id": 7,
+    "name": "Frühlingszwiebeln",
+    "description": "Junge Zwiebelpflanze mit mildem Aroma, bei der sowohl das weiße Ende als auch das grüne Laub essbar sind.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 12,
+    "name": "Paprika (rot)",
+    "description": "Rote Frucht mit süßlichem, mildem Aroma, die zur Familie der Nachtschattengewächse zählt.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 21,
+    "name": "Sellerie (Knolle)",
+    "description": "Wurzelgemüse mit festem, hellen Fruchtfleisch und würzigem, kräftigem Aroma, häufig als Suppengrün verwendet.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 46,
+    "name": "Petersilie (frisch)",
+    "description": "Vielseitig verwendbares Küchenkraut mit glatten oder krausen Blättern und würzigem, frischem Geschmack.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 48,
+    "name": "Thymian (frisch)",
+    "description": "Kleinstrauch mit kleinen, graugrünen Blättern und intensivem, herb-würzigem Aroma.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 54,
+    "name": "Spargel (weiß)",
+    "description": "Unter der Erde gewachsener weißer Stangenspargel mit mildem, feinem Geschmack.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 77,
+    "name": "Hähnchenbrust",
+    "description": "Mageres, helles Fleisch aus dem Brustbereich des Huhns, das vielseitig zubereitet werden kann.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 80,
+    "name": "Schweinebauch",
+    "description": "Fettreicheres Teilstück vom Schwein, das sich durch seine würzige Struktur auszeichnet.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 81,
+    "name": "Rinderhackfleisch",
+    "description": "Zerkleinertes Rindfleisch, das vielseitig als Grundlage für Fleischgerichte wie Frikadellen oder Saucen dient.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 82,
+    "name": "Schweinehackfleisch",
+    "description": "Zerkleinertes Schweinefleisch mit mittlerem Fettgehalt, das häufig für Pfannengerichte oder Füllungen verwendet wird.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 84,
+    "name": "Lachsfilet (frisch)",
+    "description": "Frisches Filetstück vom Lachs mit zartem, fettreichem Fleisch, das sich zum Braten, Grillen oder Dünsten eignet.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 114,
+    "name": "Bacon",
+    "description": "Bacon ist gepökelter und meist geräucherter Bauchspeck vom Schwein, der knusprig gebraten wird.",
+    "retail_section": "Fleisch & Wurst"
+  },
+  {
+    "id": 205,
+    "name": "Bier",
+    "description": "Alkoholhaltiges Getränk, das durch Gärung von Getreidemalz und Hopfen gewonnen wird.",
+    "retail_section": "Getränke"
+  },
+  {
+    "id": 294,
+    "name": "Brot (Vollkorn)",
+    "description": "Brot, das aus dem gesamten Korn hergestellt wird und einen hohen Ballaststoffgehalt aufweist.",
+    "retail_section": "Brot & Backwaren"
+  },
+  {
+    "id": 297,
+    "name": "Möhren",
+    "description": "Wurzelgemüse mit knackiger Textur und süßlichem Geschmack, vielseitig verwendbar.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 303,
+    "name": "Gemüsebrühe",
+    "description": "Konzentriertes Pulver aus getrocknetem Gemüse und Gewürzen zur Herstellung einer würzigen Flüssigkeit.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 322,
+    "name": "Stollen",
+    "description": "Traditionelles deutsches Hefegebäck mit Trockenfrüchten und Gewürzen, oft mit einer Zuckerhülle bestäubt.",
+    "retail_section": "Brot & Backwaren"
+  },
+  {
+    "id": 345,
+    "name": "Proteinshake vegan",
+    "description": "Flüssiges, veganes Proteinkonzentrat zur Nahrungsergänzung auf pflanzlicher Basis.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 457,
+    "name": "Lachsforellenfilet",
+    "description": "Filet der Lachsforelle mit Haut, zartes Fischfleisch mit charakteristischer Farbe.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 501,
+    "name": "Apfel-Walnuss-Kuchen (TK)",
+    "description": "Kuchen auf Mürbeteigbasis, belegt mit Äpfeln und knackigen Walnüssen.",
+    "retail_section": "Obst"
+  },
+  {
+    "id": 526,
+    "name": "Gefüllte Lebkuchen",
+    "description": "Lebkuchengebäck mit einer süßen Frucht- oder Konfitürenfüllung, oft mit Schokolade überzogen.",
+    "retail_section": "Brot & Backwaren"
+  },
+  {
+    "id": 770,
+    "name": "Mehl glutenfrei",
+    "description": "Mehlmischung ohne glutenhaltige Bestandteile, die speziell für das Backen von Brot und Gebäck konzipiert ist.",
+    "retail_section": "Brot & Backwaren"
+  },
+  {
+    "id": 874,
+    "name": "Croissants (TK)",
+    "description": "Teigwaren in Croissantform, die als tiefgekühltes Backwerk zum Fertigbacken dienen.",
+    "retail_section": "Brot & Backwaren"
+  },
+  {
+    "id": 884,
+    "name": "Nudeln aus Edamame",
+    "description": "Teigwaren, die aus Edamame-Bohnenmehl hergestellt werden und eine glutenfreie Alternative zu Weizennudeln bieten.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 968,
+    "name": "Bergbauernkäse",
+    "description": "Cremiger Schnittkäse aus Bergmilch mit fein-würzigem Geschmack.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 1036,
+    "name": "Vegane Bratwürstchen",
+    "description": "Vegetarische Bratwürstchen auf pflanzlicher Basis, die eine Alternative zu Fleischprodukten darstellen.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 1048,
+    "name": "Schokolade Nuss-Nougat",
+    "description": "Vollmilchschokolade mit einer cremigen Füllung aus gerösteten Nüssen und Nougat.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 1077,
+    "name": "Schokoladenkugeln weiß",
+    "description": "Kleine, knusprige Kugeln aus weißer Schokolade.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 1119,
+    "name": "Walnusskerne Bio",
+    "description": "Naturbelassene Walnusskerne aus kontrolliert biologischem Anbau.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 1131,
+    "name": "Waffeln Vanillecreme",
+    "description": "Knuspriges Waffelgebäck mit einer cremigen Füllung mit Vanillegeschmack.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 1133,
+    "name": "Überraschungsei",
+    "description": "Hohler Schokoladenkörper mit einer innenliegenden Überraschung.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 1230,
+    "name": "Veganer Heringssalat",
+    "description": "Pflanzliche Alternative zu Heringssalat, basierend auf vegetarischen Zutaten mit maritimem Geschmacksprofil.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 1364,
+    "name": "Aprikosen getrocknet ungeschwefelt",
+    "description": "Getrocknete Aprikosen ohne Zusatz von Schwefel, mit natürlichem Fruchtaroma und fester Konsistenz.",
+    "retail_section": "Obst"
+  },
+  {
+    "id": 1440,
+    "name": "Antipasti Zwiebeln",
+    "description": "Eingelegte Borettane-Zwiebeln als würzige Vorspeise oder Beilage.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 1507,
+    "name": "Bunte Karotten (TK)",
+    "description": "Tiefgekühlte, in Stücke geschnittene Karotten verschiedener Sorten.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 1521,
+    "name": "Veganer Backfisch (TK)",
+    "description": "Vegane Fischalternative auf Basis pflanzlicher Proteine, die in ihrer Struktur und Panade an klassischen Backfisch erinnert.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 1688,
+    "name": "Pflaumen rot",
+    "description": "Rote Frucht der Pflaume mit saftigem, süßem Fruchtfleisch.",
+    "retail_section": "Obst"
+  },
+  {
+    "id": 1734,
+    "name": "Cheeseburger",
+    "description": "Fertiggericht bestehend aus einem Brötchen, einer Fleischfrikadelle und einer Scheibe Käse.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 1766,
+    "name": "Haselnüsse ganz",
+    "description": "Ganze Kerne der Haselnuss, ideal für Backwaren oder als Snack.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 2080,
+    "name": "Zartbitterschokolade 78%",
+    "description": "Dunkle Schokolade mit einem hohen Kakaoanteil für ein herbes Aroma.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 2146,
+    "name": "Konfitüre Erdbeere Granola",
+    "description": "Fruchtaufstrich aus Erdbeeren, ergänzt durch eine knusprige Granola-Komponente.",
+    "retail_section": "Obst"
+  },
+  {
+    "id": 2270,
+    "name": "Pastasauce Napoletana",
+    "description": "Klassische italienische Pastasauce auf Basis sonnengereifter Tomaten und Kräuter.",
+    "retail_section": "Nudeln & Reis & Getreide"
+  },
+  {
+    "id": 2336,
+    "name": "Proteinriegel Erdnuss weiß",
+    "description": "Proteinriegel mit Erdnussgeschmack und einem Überzug aus weißer Schokolade.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 2372,
+    "name": "Grüner Spargel (Glas)",
+    "description": "Konservierter grüner Stangenspargel, der sich durch ein kräftigeres Aroma als weißer Spargel auszeichnet.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 2388,
+    "name": "Konfitüre Erdbeere-Kirsche",
+    "description": "Süßer Fruchtaufstrich aus einer Kombination von Erdbeeren und Kirschen.",
+    "retail_section": "Obst"
+  },
+  {
+    "id": 2418,
+    "name": "Paella Chorizo-Gemüse",
+    "description": "Vorgekochte Reis-Fertigspeise mit Chorizo-Wurststücken und Gemüse.",
+    "retail_section": "Nudeln & Reis & Getreide"
+  },
+  {
+    "id": 2466,
+    "name": "Protein-Lachs",
+    "description": "Lachsfilet mit erhöhtem Proteingehalt, veredelt durch ein Räucherverfahren.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 2516,
+    "name": "Brotaufstrich Scharfer Grieche",
+    "description": "Pikanter, würzig-scharfer Brotaufstrich auf Basis mediterraner Zutaten.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 2519,
+    "name": "Vollmilchschokolade 32%",
+    "description": "Feine Vollmilchschokolade mit hohem Kakaogehalt für einen besonders zarten Schmelz.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 2626,
+    "name": "Chips Paprika Soja",
+    "description": "Knusprige Chips auf Kartoffel- und Sojabasis mit herzhaftem Paprika-Aroma.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 2812,
+    "name": "Tofu Rosso Bio",
+    "description": "Pflanzlicher Proteinlieferant auf Sojabasis, würzig mariniert und fest in der Konsistenz.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 2838,
+    "name": "Erdnüsse extra geröstet gesalzen",
+    "description": "Geröstete Erdnüsse, veredelt mit einer feinen Salznote.",
+    "retail_section": "Gewürze & Kräuter"
+  },
+  {
+    "id": 2914,
+    "name": "Veganes Gyros Bio",
+    "description": "Pflanzliche Fleischalternative, die als Gyros-Streifen gewürzt und zubereitet ist.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 2940,
+    "name": "Teewurst",
+    "description": "Streichfähige Rohwurst mit würzigem, fein-deftigem Geschmack.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 2942,
+    "name": "Früchtetee Waldbeere",
+    "description": "Früchtetee mit dem intensiven Aroma verschiedener Waldbeeren.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 2943,
+    "name": "Fruchtaufstrich Orange",
+    "description": "Fruchtaufstrich aus Orangen mit typisch fruchtig-herber Note.",
+    "retail_section": "Obst"
+  },
+  {
+    "id": 3045,
+    "name": "Mohnstrudel",
+    "description": "Gebäckrolle aus Hefeteig oder Strudelteig mit einer reichhaltigen, süßen Füllung aus gemahlenem Mohn.",
+    "retail_section": "Öle & Soßen"
+  },
+  {
+    "id": 3080,
+    "name": "Haselnusspralinen",
+    "description": "Kleine runde Pralinen mit einer Füllung aus Haselnusscreme, umhüllt von einer knusprigen Waffel.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 3506,
+    "name": "Vegetarische Maultaschen",
+    "description": "Teigtaschen mit vegetarischer Füllung, die traditionell als Einlage in Suppen oder gebraten serviert werden.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 3538,
+    "name": "Kirschgrütze vegan",
+    "description": "Vegane Süßspeise auf Basis von Kirschen und Bindemitteln, typischerweise serviert mit Vanillesoße.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 3572,
+    "name": "Knoblauchbrot vegan (TK)",
+    "description": "Veganes Weißbrot mit einer würzigen Knoblauchfüllung, vorbereitet für das Aufbacken im Ofen.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 3676,
+    "name": "Sojajoghurt Ananas-Passionsfrucht ohne Zucker",
+    "description": "Fermentierte Soja-Alternative zu Joghurt mit Ananas und Passionsfrucht ohne Zuckerzusatz.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 3711,
+    "name": "Mignon-Waffeln",
+    "description": "Zarte, gebackene Waffeln mit einer feinen Cremefüllung.",
+    "retail_section": "Brot & Backwaren"
+  },
+  {
+    "id": 3740,
+    "name": "Brotaufstrich Joghurt Tomate-Basilikum",
+    "description": "Cremiger Brotaufstrich auf Joghurtbasis, verfeinert mit Tomaten und Basilikum.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 3771,
+    "name": "Thunfischcreme",
+    "description": "Cremige Fischzubereitung auf Basis von Thunfisch, als Brotaufstrich oder Dip geeignet.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 3826,
+    "name": "Sardinenfilets in Öl",
+    "description": "Zarte Filets vom Hering, in Öl eingelegt und konserviert.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 3910,
+    "name": "Joghurtalternative pflanzlich Hafer",
+    "description": "Pflanzliche Joghurtalternative auf Basis von Hafer mit cremiger Konsistenz.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 3927,
+    "name": "Teigtaschen Weißkohl-Paprika (TK)",
+    "description": "Teigtaschen mit einer herzhaften Füllung aus Weißkohl und Paprika.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 3928,
+    "name": "Dessert pflanzlich Kokos-Schoko",
+    "description": "Cremiges Dessert auf pflanzlicher Basis mit einer Kombination aus Kokosnuss und Schokolade.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 4330,
+    "name": "Feines Buttergebäck",
+    "description": "Mürbes Feingebäck, das sich durch einen hohen Butteranteil auszeichnet.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 4352,
+    "name": "Proteindrink Vanille-Cookie",
+    "description": "Proteinreiches Milchgetränk mit einer aromatischen Kombination aus Vanille und Keksgeschmack.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 4361,
+    "name": "Dunkle Schokolade 70% Kakao-Nibs Bio",
+    "description": "Dunkle Schokolade mit hohem Kakaogehalt, veredelt mit knackigen Kakaobohnenstücken.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 4621,
+    "name": "Feta cremig",
+    "description": "Weichkäse aus Schafs- und Ziegenmilch, der sich durch eine besonders cremige Konsistenz auszeichnet.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 4661,
+    "name": "Fruchtaufstrich Erdbeere (Agavendicksaft)",
+    "description": "Fruchtaufstrich aus Erdbeeren, gesüßt mit Agavendicksaft anstelle von Zucker.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 4721,
+    "name": "Korinthen",
+    "description": "Getrocknete, kernlose Weintrauben mit süßem Aroma, ideal zum Backen.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 4993,
+    "name": "Leberpastete mit Kalbfleisch",
+    "description": "Feine Leberpastete, verfeinert mit zartem Kalbfleisch.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 5171,
+    "name": "Pflanzenschmalz Knoblauch-Kräuter",
+    "description": "Streichfett auf pflanzlicher Basis, aromatisiert mit herzhaftem Knoblauch und Kräutern.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 5492,
+    "name": "Seitan-Aufschnitt klassisch vegan",
+    "description": "Pflanzlicher Aufschnitt auf Seitanbasis, der als vegane Alternative zu Wurstwaren dient.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 5589,
+    "name": "Croutons Kräuter",
+    "description": "Knusprig geröstete Brotwürfel, die mit verschiedenen Kräutern gewürzt sind und als Beilage zu Salaten oder Suppen dienen.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 5592,
+    "name": "Leberpastete Hirsch",
+    "description": "Würzige Pastete aus Hirschfleisch und Leber, als feiner Brotaufstrich oder zu festlichen Anlässen geeignet.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 5656,
+    "name": "Speisequark Magerstufe laktosefrei",
+    "description": "Laktosefreier Magerquark mit cremiger Konsistenz, vielseitig in der Küche verwendbar.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 5760,
+    "name": "Fix Hähnchen Zwiebel-Sahne",
+    "description": "Gewürzmischung zur Zubereitung einer cremigen Zwiebel-Sahne-Soße für Hähnchenfleisch.",
+    "retail_section": "Fleisch & Fisch"
+  },
+  {
+    "id": 5918,
+    "name": "Pudding Double Toffee",
+    "description": "Cremiges Dessert aus Milchpudding mit einer intensiven Toffee-Note.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 6055,
+    "name": "Tonka-Zucker mit Vanille",
+    "description": "Feiner Zucker verfeinert mit aromatischem Tonkabohnenextrakt und echter Vanille.",
+    "retail_section": "Gewürze & Kräuter"
+  },
+  {
+    "id": 6065,
+    "name": "Schmand Bio",
+    "description": "Säuerliches Milchprodukt aus Bio-Milch mit einem hohen Fettgehalt, das Speisen eine cremige Konsistenz verleiht.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 6201,
+    "name": "Ziegenjoghurt Bio",
+    "description": "Naturjoghurt aus Ziegenmilch, der sich durch einen charakteristischen, leicht würzigen Geschmack auszeichnet.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 6223,
+    "name": "Fruchtgummi Squiggles",
+    "description": "Weiches Fruchtgummi in gewundener Form mit ausgeprägtem Fruchtgeschmack.",
+    "retail_section": "Konserven & Gläser"
+  },
+  {
+    "id": 6350,
+    "name": "Rote Zwiebeln",
+    "description": "Küchenzwiebel mit violetter Schale und mildem bis würzigem Geschmack, ideal für Rohkost und Salate.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 6391,
+    "name": "Saucenbinder hell",
+    "description": "Bindemittel auf Stärkebasis zum Andicken von hellen Saucen und Suppen.",
+    "retail_section": "Öle & Soßen"
+  },
+  {
+    "id": 6501,
+    "name": "Fix Spaghetti Tomate-Mozzarella",
+    "description": "Würzmittel zur Zubereitung einer cremigen Tomaten-Mozzarella-Sauce für Nudelgerichte.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 6592,
+    "name": "Fruchtjoghurt Kiwi-Stachelbeere",
+    "description": "Fruchtjoghurt mit der säuerlich-süßen Kombination aus Kiwi und Stachelbeere.",
+    "retail_section": "Obst"
+  },
+  {
+    "id": 6643,
+    "name": "Holunderblütesirup",
+    "description": "Konzentrierter Sirup aus den Blüten des Holunderstrauchs, süß und blumig im Aroma.",
+    "retail_section": "Getränke"
+  },
+  {
+    "id": 6689,
+    "name": "Rote Zwiebel",
+    "description": "Gemüseart mit kräftiger, violett-roter Schale und einem würzig-milden Geschmack.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 6760,
+    "name": "Mehl, Mais",
+    "description": "Fein gemahlenes Pulver aus getrockneten Maiskörnern, glutenfrei und gelblich in der Farbe.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 6777,
+    "name": "Reis, Wild",
+    "description": "Dunkle, nussig schmeckende Reissorte mit bissfester Konsistenz.",
+    "retail_section": "Nudeln & Reis & Getreide"
+  },
+  {
+    "id": 6876,
+    "name": "Rote Paprika",
+    "description": "Rote Frucht des Paprikagewächses mit knackiger Konsistenz und einem süß-milden Geschmacksprofil.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 6905,
+    "name": "Tomatenmark (2-Fach konzentriert)",
+    "description": "Eingedicktes Tomatenmark mit intensivem Aroma, das Saucen und Suppen einen konzentrierten Tomatengeschmack verleiht.",
+    "retail_section": "Gemüse"
+  },
+  {
+    "id": 6996,
+    "name": "Vanilleextrakt",
+    "description": "Konzentrierter Auszug aus Vanilleschoten, der für ein intensives Vanillearoma sorgt.",
+    "retail_section": "Gewürze & Kräuter"
+  },
+  {
+    "id": 7073,
+    "name": "Sahne light",
+    "description": "Sahne mit reduziertem Fettgehalt, die zum Verfeinern von Suppen, Saucen und Desserts genutzt wird.",
+    "retail_section": "Milchprodukte & Käse"
+  },
+  {
+    "id": 7149,
+    "name": "Frischer Koriander",
+    "description": "Frisches Kraut mit charakteristisch zitrusartigem Aroma, häufig in der asiatischen und orientalischen Küche verwendet.",
+    "retail_section": "Konserven & Gläser"
+  }
+]

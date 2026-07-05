@@ -232,6 +232,7 @@ def ingredient_duplicates(request):
     _require_staff(request)
 
     from django.db import connection
+    from content.services.embedding_service import similarity_to_pct
 
     dismissed = set(
         DuplicateDismissal.objects.filter(
@@ -275,11 +276,13 @@ def ingredient_duplicates(request):
         if pair_key in seen or pair_key in dismissed:
             continue
         seen.add(pair_key)
+        # Convert cosine similarity to percentage using sigmoid calibration
+        sim_pct = similarity_to_pct(sim)
         pairs.append(
             {
                 "ingredient_a": {"id": id_a, "name": name_a, "slug": slug_a},
                 "ingredient_b": {"id": id_b, "name": name_b, "slug": slug_b},
-                "similarity": round(sim, 4),
+                "similarity": round(sim_pct, 1),
             }
         )
 

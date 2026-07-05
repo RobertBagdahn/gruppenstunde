@@ -394,12 +394,20 @@ def gemini_image_call(
 def gemini_embed(
     *,
     user: AbstractBaseUser | None = None,
-    model: str = "text-embedding-004",
+    model: str = "gemini-embedding-001",
     contents: str,
+    output_dimensionality: int | None = None,
     bypass_limits: bool = False,
 ):
     """
-    Create a text embedding. Separate rate limit from text/image.
+    Create a text embedding via Vertex AI.
+
+    Args:
+        user: Optional user for analytics
+        model: Model name (default: "gemini-embedding-001" for Vertex AI)
+        contents: Text to embed
+        output_dimensionality: Optional output dimension (supported: 768, 384, 256, 128, 64)
+        bypass_limits: Whether to bypass rate limiting (for tests/scripts)
 
     Returns list of floats or None if unavailable.
     """
@@ -410,10 +418,28 @@ def gemini_embed(
         return None
 
     try:
-        response = client.models.embed_content(
-            model=model,
-            contents=contents,
-        )
+        from google import genai
+        
+        # Build config with output_dimensionality if specified
+        embed_config = None
+        if output_dimensionality is not None:
+            embed_config = genai.types.EmbedContentConfig(
+                output_dimensionality=output_dimensionality
+            )
+        
+        # Call embed_content with optional config
+        if embed_config:
+            response = client.models.embed_content(
+                model=model,
+                contents=contents,
+                config=embed_config,
+            )
+        else:
+            response = client.models.embed_content(
+                model=model,
+                contents=contents,
+            )
+        
         if response.embeddings:
             return response.embeddings[0].values
     except Exception:

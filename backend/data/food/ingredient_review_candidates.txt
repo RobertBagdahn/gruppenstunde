@@ -1,0 +1,85 @@
+Zutaten-Review für Pfadfinderlager – Kandidaten zum manuellen Prüfen/Löschen
+Erstellt: 2026-07-05
+Quelle: backend/data/food/supply_ingredient.json (3914 Zutaten)
+
+Hinweis: Fast alle Einträge stammen aus einem regulären Supermarkt-Sortiment
+(REWE-Artikelnummern vorhanden), daher gibt es kaum "völlig unbrauchbare"
+Zutaten. Auffällig sind vor allem Duplikate und einige wenige exotische bzw.
+alkoholhaltige Produkte. Bitte Zeile für Zeile prüfen, nichts wurde automatisch
+gelöscht.
+
+===========================================================
+1) DUPLIKATE — ERLEDIGT (2026-07-05)
+===========================================================
+Alle 32 Gruppen (34 doppelte Einträge, z.B. auch "Zwiebeln"/"Zwiebeln" und
+"Möhren"/"Möhren" mit gleichem Namen aber unterschiedlicher pk) wurden
+zusammengeführt:
+- Behalten wurde jeweils der Eintrag mit status="verified" (sonst die kleinste
+  pk).
+- Alle supply.Portion-Einträge der gelöschten Zutat wurden entweder mit einer
+  gleichnamigen Portion der behaltenen Zutat zusammengeführt (135 Stück,
+  9 recipe.RecipeItem-Referenzen umgehängt, 3x fehlenden weight_g-Wert von der
+  gelöschten Portion übernommen) oder direkt auf die behaltene Zutat
+  umgehängt (25 Stück, keine gleichnamige Portion vorhanden).
+- shopping.ShoppingListItem (2x) wurden auf die behaltene Zutat umgehängt.
+- Für 21 gelöschte Namen wurde ein supply.IngredientAlias auf die behaltene
+  Zutat angelegt, damit die Suche unter dem alten Namen weiter funktioniert
+  (bei identischem Namen war kein Alias nötig).
+- Ergebnis: supply_ingredient.json 3914 -> 3880 Einträge.
+
+Betroffene Dateien: supply_ingredient.json, supply_portion.json,
+supply_ingredientalias.json, recipe_recipeitem.json,
+shopping_shoppinglistitem.json, planner_mealitem.json.
+
+Weitere mögliche Nah-Duplikate (nicht automatisch zusammengeführt, bitte
+manuell prüfen, da Namen nicht exakt gleich normalisierbar sind):
+- Käse-Gruppe: 4980 Käse cremig Scheiben / 5070 Käse Scheiben / 5014 Käse würzig Scheiben
+- 6300er "Fix ..." Fertiggerichte teils sehr ähnlich benannt (z.B. 6483 Fix Geschnetzeltes Zürcher Art / 6536 Fix Rahm-Geschnetzeltes)
+
+===========================================================
+2) ALKOHOLHALTIGE PRODUKTE — ERLEDIGT (2026-07-05)
+===========================================================
+Auf Wunsch behalten (als reguläre Koch-/Back-Zutaten):
+205	Bier
+203	Rotwein
+204	Weißwein
+7277	Rum
+
+Alle anderen 29 Einträge wurden gelöscht:
+7063 Metaxa, 307 Kirschpralinen, 319 Diva Schmuckschatulle, 1128 Pralinen mit
+Alkohol, 1157 Schokolade Schwarzwälder Kirsch, 1466 Schokolade Gin,
+1487 Pralinen Trüffel dunkel, 1812 Schokolade Cognac, 1180 Pralinen Kirsch,
+3153 Walnusspastetchen Schokolade, 3300 Schokoladenpralinen Schwarzwälder
+Kirsch, 3792 Schokolade Marille (mit Alkohol), 5262 Eierlikör-Eier (Oster),
+482 Eierlikörpralinen, 2582 Baumkuchenspitzen Eierlikör, 6014 Pudding
+Eierlikör, 4615 Pralinen Cognac-Sahne, 825 Rum-Elisenlebkuchen, 3658
+Rum-Rosinen, 954 Schokolade Pflaume-Rum, 5824 Schokolade Kirsch-Likör, 5826
+Schokolade Maracuja-Likör, 4840 Vollmilchschokolade Rum-Rosinen-Haselnuss.
+
+Sonderfall 7124 "Weisswein": statt hart gelöscht wurde es (wie in Kategorie 1)
+in die behaltene Zutat 204 "Weißwein" zusammengeführt (Portionen gemerged,
+Alias "Weisswein" auf 204 angelegt), da es sich nur um eine alternative
+Schreibweise handelt und Rezept 382 diese Zutat verwendet hat.
+
+Aufräumung der Referenzen für die 29 hart gelöschten Einträge:
+- 168 supply.Portion-Einträge gelöscht.
+- 3 recipe.RecipeItem-Zeilen entfernt (Rezepte 364 [Metaxa], 391 [Tamari],
+  396 [Kaffirlimettenblätter] – jeweils nur eine von 12-19 Zutaten, Rezepte
+  bleiben sonst unverändert funktionsfähig).
+- Keine betroffenen ShoppingListItem/MealItem/IngredientAlias-Einträge.
+- Ergebnis: supply_ingredient.json 3880 -> 3847 Einträge.
+
+===========================================================
+3) EXOTISCHE / IM NORMALEN SUPERMARKT KAUM ERHÄLTLICHE ZUTATEN — ERLEDIGT (2026-07-05)
+===========================================================
+Alle 7 Einträge gelöscht (inkl. Portionen/Referenzen bereinigt, siehe oben):
+7219 Kaffirlimettenblätter, 2113 Tamarindenpaste, 2864 Salep (Milchgetränk mit
+Zimt), 1801 Adschika-Paste, 2454 Gochujang-Paste, 5396 Sambal Oelek Trassi,
+7185 Tamari.
+
+===========================================================
+4) SONSTIGES — ERLEDIGT (2026-07-05)
+===========================================================
+Beide Einträge gelöscht:
+3513 Magnesium+Kalium (Nahrungsergänzung), 863 Zink-Nahrungsergänzung.
+(319 Diva Schmuckschatulle war bereits Teil von Kategorie 2.)
