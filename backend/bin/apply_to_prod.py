@@ -126,6 +126,15 @@ def _truncate_tables(tables: list[str]) -> None:
     print(f"  → {len(tables)} Tabellen geleert")
 
 
+_M2M_MODELS = {"recipe.recipe"}
+
+
+def _set_defaults(obj):
+    for field in obj._meta.concrete_fields:
+        if getattr(obj, field.attname) is None and not field.null and field.has_default():
+            setattr(obj, field.attname, field.get_default())
+
+
 def apply_fixture(fixture_path: Path) -> int:
     with open(fixture_path, encoding="utf-8") as f:
         entries = json.load(f)
@@ -135,9 +144,32 @@ def apply_fixture(fixture_path: Path) -> int:
     count = len(entries)
     print(f"  → {name}: {count} Einträge importieren...", end=" ")
     sys.stdout.flush()
-    with transaction.atomic():
-        for obj in serializers.deserialize("json", json.dumps(entries)):
-            obj.save(force_insert=True)
+
+    objs = list(serializers.deserialize("json", json.dumps(entries)))
+    if not objs:
+        print("✓ (leer)")
+        return 0
+
+    label = objs[0].object._meta.label_lower
+
+    if label in _M2M_MODELS:
+        # Save one by one to handle M2M relations
+        for dobj in objs:
+            _set_defaults(dobj.object)
+            dobj.save()
+    else:
+        BATCH = 500
+        cls = objs[0].object.__class__
+        batch = []
+        for dobj in objs:
+            _set_defaults(dobj.object)
+            batch.append(dobj.object)
+            if len(batch) >= BATCH:
+                cls.objects.bulk_create(batch, ignore_conflicts=False)
+                batch = []
+        if batch:
+            cls.objects.bulk_create(batch, ignore_conflicts=False)
+
     print("✓")
     return count
 

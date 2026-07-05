@@ -66,6 +66,7 @@ DATABASES = {
         "PASSWORD": env("DB_PASSWORD", default=""),
         "HOST": env("DB_HOST", default=""),
         "PORT": env("DB_PORT", default="5432"),
+        "CONN_MAX_AGE": 60,
     }
 }
 

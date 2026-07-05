@@ -152,7 +152,7 @@ A data workflow exists to download prod data as Django fixture JSON files, impor
 ### Export from Prod
 ```bash
 # 1. Start Cloud SQL Proxy (separate terminal, keep running)
-cloud-sql-proxy inspi-ee315714:europe-west1:inspi --port 5433 &
+cloud-sql-proxy inspi-441320:europe-west1:inspi-db-west1 --port 5433 &
 
 # 2. Export all data
 cd backend

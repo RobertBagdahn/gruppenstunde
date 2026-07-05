@@ -20,7 +20,7 @@ class AliasCreateIn(Schema):
     """Input schema for creating an ingredient alias."""
 
     name: str
-    rank: int = 1
+    rank: int | None = None
     is_generic: bool = False
 
 

@@ -110,7 +110,7 @@
     "fields": {
       "name": "Energie",
       "description": "",
-      "parameter": "energy_kj",
+      "parameter": "energy_kcal",
       "scope": "day",
       "rule_type": "nutrition",
       "min_green": 1912.0,
@@ -425,7 +425,7 @@
     "fields": {
       "name": "Energie (Mahlzeit)",
       "description": "",
-      "parameter": "energy_kj",
+      "parameter": "energy_kcal",
       "scope": "meal",
       "rule_type": "nutrition",
       "min_green": 478.0,
@@ -761,7 +761,7 @@
     "fields": {
       "name": "Energie (Durchschnitt)",
       "description": "",
-      "parameter": "energy_kj",
+      "parameter": "energy_kcal",
       "scope": "meal_plan",
       "rule_type": "nutrition",
       "min_green": 1912.0,
@@ -803,7 +803,7 @@
     "fields": {
       "name": "Energie (Rezept)",
       "description": "",
-      "parameter": "energy_kj",
+      "parameter": "energy_kcal",
       "scope": "recipe",
       "rule_type": "nutrition",
       "min_green": 430.0,

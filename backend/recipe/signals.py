@@ -14,12 +14,11 @@ on next read (requires updating all consumers that assume cached_* is always
 current, e.g. list views, cockpit).
 """
 
-import threading
-
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
+from core.services.background import run_in_background
 from recipe.models import Recipe, RecipeItem
 from supply.models import Ingredient, MeasuringUnit, Portion
 
@@ -273,11 +272,7 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, update_fiel
 
     from django.db import transaction
 
-    transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())
-
-
-@receiver(post_save, sender=RecipeItem, dispatch_uid="recipe_item_embedding_update_save")
-@receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe_item_embedding_update_delete")
+    transaction.on_commit(lambda: run_in_background(_do_update))
 def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
     """When a RecipeItem changes, invalidate the recipe embedding."""
     try:
@@ -304,7 +299,7 @@ def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
 
     from django.db import transaction
 
-    transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())
+    transaction.on_commit(lambda: run_in_background(_do_update))
 
 
 # ---------------------------------------------------------------------------
@@ -327,4 +322,4 @@ def update_type_stats_on_recipe_change(sender, instance: Recipe, **kwargs):
 
             logging.getLogger(__name__).warning("Failed to update type stats for recipe_type=%s", instance.recipe_type)
 
-    transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())
+    transaction.on_commit(lambda: run_in_background(_do_update))

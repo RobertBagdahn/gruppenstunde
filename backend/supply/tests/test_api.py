@@ -403,3 +403,33 @@ class TestIngredientAliases:
         resp = auth_client.delete(f"/api/ingredients/{ingredient.slug}/aliases/{alias.id}/")
         assert resp.status_code == 200
         assert IngredientAlias.objects.filter(id=alias.id).count() == 0
+
+    def test_create_alias_race_condition_safe(self, auth_client, ingredient):
+        """
+        Test that duplicate alias detection is atomic (inside select_for_update block).
+        Sequential simulation: first request creates alias, second request should get 409.
+        In production, concurrent requests are protected by select_for_update locking.
+        """
+        concurrent_name = "Mehl Type 405"
+
+        # First request creates the alias
+        resp1 = auth_client.post(
+            f"/api/ingredients/{ingredient.slug}/aliases/",
+            data=json.dumps({"name": concurrent_name}),
+            content_type="application/json",
+        )
+        assert resp1.status_code == 200
+        assert resp1.json()["name"] == concurrent_name
+
+        # Second request (simulating concurrent attempt) should get 409
+        resp2 = auth_client.post(
+            f"/api/ingredients/{ingredient.slug}/aliases/",
+            data=json.dumps({"name": concurrent_name}),
+            content_type="application/json",
+        )
+        assert resp2.status_code == 409
+        assert "existiert bereits" in resp2.json()["detail"]
+
+        # Verify exactly one alias was created
+        aliases = IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=concurrent_name)
+        assert aliases.count() == 1

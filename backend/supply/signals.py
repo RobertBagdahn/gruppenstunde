@@ -1,12 +1,11 @@
 """Signals for supply app — Portion weight_g calculation, Ingredient base portion,
 embedding generation, quality score calculation, and audit logging."""
 
-import threading
-
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
+from core.services.background import run_in_background
 from .choices import MeasuringUnitType, PhysicalViscosityChoices
 from .models.ingredient import Ingredient, Portion
 
@@ -132,7 +131,7 @@ def update_ingredient_embedding_and_score(sender, instance: Ingredient, created:
             if hasattr(instance, "_updating_embedding"):
                 delattr(instance, "_updating_embedding")
 
-    transaction.on_commit(lambda: threading.Thread(target=_do_update, daemon=True).start())
+    transaction.on_commit(lambda: run_in_background(_do_update))
 
 
 def _embedding_fields_changed(instance, created: bool) -> bool:

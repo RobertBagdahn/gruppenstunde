@@ -609,15 +609,6 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
     if not name:
         raise HttpError(400, "Alias-Name darf nicht leer sein.")
 
-    # Reject duplicate alias names (case-insensitive)
-    if IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=name).exists():
-        raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
-
-    # Non-generic aliases must be globally unique (across all ingredients).
-    # Generic aliases (e.g. "Salz", "Pfeffer") are exempt and may be reused.
-    if not payload.is_generic and IngredientAlias.objects.filter(name__iexact=name, is_generic=False).exists():
-        raise HttpError(409, f"Alias '{name}' wird bereits für eine andere Zutat verwendet.")
-
     # Also reject if alias matches the ingredient name itself
     if ingredient.name.lower() == name.lower():
         raise HttpError(409, "Alias darf nicht identisch mit dem Zutatennamen sein.")
@@ -628,16 +619,28 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
     for attempt in range(max_attempts):
         try:
             with transaction.atomic():
+                # Lock the ingredient to prevent concurrent alias creation
+                locked_ingredient = Ingredient.objects.select_for_update().get(id=ingredient.id)
+
+                # All duplicate checks now inside atomic block (race-condition safe)
+                # 1. Per-ingredient duplicate check
+                if IngredientAlias.objects.filter(ingredient=locked_ingredient, name__iexact=name).exists():
+                    raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
+
+                # 2. Non-generic aliases must be globally unique (across all ingredients)
+                if not payload.is_generic and IngredientAlias.objects.filter(name__iexact=name, is_generic=False).exists():
+                    raise HttpError(409, f"Alias '{name}' wird bereits für eine andere Zutat verwendet.")
+
+                # Calculate rank
                 existing_ranks = set(
-                    IngredientAlias.objects.filter(ingredient=ingredient)
-                    .select_for_update()
+                    IngredientAlias.objects.filter(ingredient=locked_ingredient)
                     .values_list("rank", flat=True)
                 )
                 if rank is None or rank in existing_ranks:
                     rank = max(existing_ranks) + 1 if existing_ranks else 1
 
                 alias = IngredientAlias(
-                    ingredient=ingredient,
+                    ingredient=locked_ingredient,
                     name=name,
                     rank=rank,
                     is_generic=payload.is_generic,
@@ -645,14 +648,20 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
                 )
                 alias.save()
                 return alias
-        except IntegrityError:
-            # Check if name became duplicate during concurrent requests
-            if IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=name).exists():
-                raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
-            if not payload.is_generic and IngredientAlias.objects.filter(name__iexact=name, is_generic=False).exists():
-                raise HttpError(409, f"Alias '{name}' wird bereits für eine andere Zutat verwendet.")
-
+        except HttpError:
+            # Re-raise HttpError as-is (e.g., 409 Conflict)
+            raise
+        except IntegrityError as e:
+            # Handle unexpected IntegrityError (should be rare with proper checks)
+            # Check which constraint failed
+            error_msg = str(e)
+            if "unique_alias_name_per_ingredient" in error_msg or "unique_alias_name_when_not_generic" in error_msg:
+                # Name constraint violation despite our checks (should be very rare in production)
+                raise HttpError(409, f"Alias '{name}' konnte nicht erstellt werden – wahrscheinlich bereits als Duplikat vorhanden.")
+            
+            # Unexpected integrity error (e.g. rank constraint)
             if attempt == max_attempts - 1:
+                logger.exception(f"Unexpected IntegrityError creating alias for {ingredient.slug}: {e}")
                 raise HttpError(500, "Konnte Alias nicht erstellen – bitte erneut versuchen.")
             rank = None
 

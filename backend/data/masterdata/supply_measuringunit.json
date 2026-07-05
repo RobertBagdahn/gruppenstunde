@@ -1,206 +1,242 @@
 [
-  {
-    "model": "supply.measuringunit",
-    "pk": 61,
-    "fields": {
-      "name": "Gramm",
-      "description": "Gewichtseinheit",
-      "quantity": 1.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:12.309171+00:00",
-      "updated_at": "2026-05-28T07:19:12.309182+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 62,
-    "fields": {
-      "name": "Kilogramm",
-      "description": "1000 Gramm",
-      "quantity": 1000.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:12.406978+00:00",
-      "updated_at": "2026-05-28T07:19:12.406988+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 63,
-    "fields": {
-      "name": "Milliliter",
-      "description": "Volumeneinheit",
-      "quantity": 1.0,
-      "unit": "ml",
-      "created_at": "2026-05-28T07:19:12.498309+00:00",
-      "updated_at": "2026-05-28T07:19:12.498320+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 64,
-    "fields": {
-      "name": "Liter",
-      "description": "1000 Milliliter",
-      "quantity": 1000.0,
-      "unit": "ml",
-      "created_at": "2026-05-28T07:19:12.673669+00:00",
-      "updated_at": "2026-05-28T07:19:12.673680+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 65,
-    "fields": {
-      "name": "Stück",
-      "description": "Einzelnes Stück",
-      "quantity": 1.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:12.769134+00:00",
-      "updated_at": "2026-05-28T07:19:12.769144+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 66,
-    "fields": {
-      "name": "Teelöffel",
-      "description": "ca. 5ml / 5g",
-      "quantity": 5.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:12.864165+00:00",
-      "updated_at": "2026-05-28T07:19:12.864177+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 67,
-    "fields": {
-      "name": "Esslöffel",
-      "description": "ca. 15ml / 10-15g",
-      "quantity": 10.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:12.959207+00:00",
-      "updated_at": "2026-05-28T07:19:12.959218+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 68,
-    "fields": {
-      "name": "Tasse",
-      "description": "ca. 250ml / 125-200g",
-      "quantity": 150.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:13.054547+00:00",
-      "updated_at": "2026-05-28T07:19:13.054558+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 69,
-    "fields": {
-      "name": "Prise",
-      "description": "Kleine Menge",
-      "quantity": 0.3,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:13.229023+00:00",
-      "updated_at": "2026-05-28T07:19:13.229034+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 70,
-    "fields": {
-      "name": "Dose",
-      "description": "Standarddose 400g",
-      "quantity": 400.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:13.323575+00:00",
-      "updated_at": "2026-05-28T07:19:13.323586+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 71,
-    "fields": {
-      "name": "Becher",
-      "description": "Standardbecher 150-200g",
-      "quantity": 150.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:13.418766+00:00",
-      "updated_at": "2026-05-28T07:19:13.418777+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 72,
-    "fields": {
-      "name": "Scheibe",
-      "description": "Eine Scheibe",
-      "quantity": 25.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:13.511231+00:00",
-      "updated_at": "2026-05-28T07:19:13.511243+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 74,
-    "fields": {
-      "name": "Glas",
-      "description": "Ein Glas ca. 200ml",
-      "quantity": 200.0,
-      "unit": "ml",
-      "created_at": "2026-05-28T07:19:13.791997+00:00",
-      "updated_at": "2026-05-28T07:19:13.792007+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 75,
-    "fields": {
-      "name": "Bund",
-      "description": "Ein Bund Kräuter",
-      "quantity": 30.0,
-      "unit": "g",
-      "created_at": "2026-05-28T07:19:13.886398+00:00",
-      "updated_at": "2026-05-28T07:19:13.886409+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 97,
-    "fields": {
-      "name": "Sp",
-      "description": "Spitzer",
-      "quantity": 10.0,
-      "unit": "ml",
-      "created_at": "2026-05-28T07:21:10.259491+00:00",
-      "updated_at": "2026-05-28T07:21:10.259503+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 100,
-    "fields": {
-      "name": "Messerspitze",
-      "description": "",
-      "quantity": 1.0,
-      "unit": "g",
-      "created_at": "2026-06-04T17:19:26.323625+00:00",
-      "updated_at": "2026-06-04T17:19:26.323641+00:00"
-    }
-  },
-  {
-    "model": "supply.measuringunit",
-    "pk": 101,
-    "fields": {
-      "name": "Packung",
-      "description": "",
-      "quantity": 1.0,
-      "unit": "stk",
-      "created_at": "2026-07-04T21:50:49.334516+00:00",
-      "updated_at": "2026-07-04T21:50:49.334516+00:00"
-    }
+{
+  "model": "supply.measuringunit",
+  "pk": 61,
+  "fields": {
+    "name": "Gramm",
+    "description": "Gewichtseinheit",
+    "quantity": 1.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:12.309Z",
+    "updated_at": "2026-05-28T07:19:12.309Z"
   }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 62,
+  "fields": {
+    "name": "Kilogramm",
+    "description": "1000 Gramm",
+    "quantity": 1000.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:12.406Z",
+    "updated_at": "2026-05-28T07:19:12.406Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 63,
+  "fields": {
+    "name": "Milliliter",
+    "description": "Volumeneinheit",
+    "quantity": 1.0,
+    "unit": "ml",
+    "created_at": "2026-05-28T07:19:12.498Z",
+    "updated_at": "2026-05-28T07:19:12.498Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 64,
+  "fields": {
+    "name": "Liter",
+    "description": "1000 Milliliter",
+    "quantity": 1000.0,
+    "unit": "ml",
+    "created_at": "2026-05-28T07:19:12.673Z",
+    "updated_at": "2026-05-28T07:19:12.673Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 65,
+  "fields": {
+    "name": "Stück",
+    "description": "Einzelnes Stück",
+    "quantity": 1.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:12.769Z",
+    "updated_at": "2026-05-28T07:19:12.769Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 66,
+  "fields": {
+    "name": "Teelöffel",
+    "description": "ca. 5ml / 5g",
+    "quantity": 5.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:12.864Z",
+    "updated_at": "2026-05-28T07:19:12.864Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 67,
+  "fields": {
+    "name": "Esslöffel",
+    "description": "ca. 15ml / 10-15g",
+    "quantity": 10.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:12.959Z",
+    "updated_at": "2026-05-28T07:19:12.959Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 68,
+  "fields": {
+    "name": "Tasse",
+    "description": "ca. 250ml / 125-200g",
+    "quantity": 150.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:13.054Z",
+    "updated_at": "2026-05-28T07:19:13.054Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 69,
+  "fields": {
+    "name": "Prise",
+    "description": "Kleine Menge",
+    "quantity": 0.3,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:13.229Z",
+    "updated_at": "2026-05-28T07:19:13.229Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 70,
+  "fields": {
+    "name": "Dose",
+    "description": "Standarddose 400g",
+    "quantity": 400.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:13.323Z",
+    "updated_at": "2026-05-28T07:19:13.323Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 71,
+  "fields": {
+    "name": "Becher",
+    "description": "Standardbecher 150-200g",
+    "quantity": 150.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:13.418Z",
+    "updated_at": "2026-05-28T07:19:13.418Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 72,
+  "fields": {
+    "name": "Scheibe",
+    "description": "Eine Scheibe",
+    "quantity": 25.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:13.511Z",
+    "updated_at": "2026-05-28T07:19:13.511Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 73,
+  "fields": {
+    "name": "Portion",
+    "description": "Eine Portion",
+    "quantity": 100.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:13.692Z",
+    "updated_at": "2026-05-28T07:19:13.692Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 74,
+  "fields": {
+    "name": "Glas",
+    "description": "Ein Glas ca. 200ml",
+    "quantity": 200.0,
+    "unit": "ml",
+    "created_at": "2026-05-28T07:19:13.791Z",
+    "updated_at": "2026-05-28T07:19:13.792Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 75,
+  "fields": {
+    "name": "Bund",
+    "description": "Ein Bund Kräuter",
+    "quantity": 30.0,
+    "unit": "g",
+    "created_at": "2026-05-28T07:19:13.886Z",
+    "updated_at": "2026-05-28T07:19:13.886Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 97,
+  "fields": {
+    "name": "Sp",
+    "description": "Spitzer",
+    "quantity": 10.0,
+    "unit": "ml",
+    "created_at": "2026-05-28T07:21:10.259Z",
+    "updated_at": "2026-05-28T07:21:10.259Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 100,
+  "fields": {
+    "name": "Messerspitze",
+    "description": "",
+    "quantity": 1.0,
+    "unit": "g",
+    "created_at": "2026-06-04T17:19:26.323Z",
+    "updated_at": "2026-06-04T17:19:26.323Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 101,
+  "fields": {
+    "name": "g",
+    "description": "Gramm",
+    "quantity": 1.0,
+    "unit": "g",
+    "created_at": "2026-06-07T13:14:29.807Z",
+    "updated_at": "2026-06-07T13:14:29.807Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 102,
+  "fields": {
+    "name": "ml",
+    "description": "Milliliter",
+    "quantity": 1.0,
+    "unit": "ml",
+    "created_at": "2026-06-07T13:14:29.877Z",
+    "updated_at": "2026-06-07T13:14:29.877Z"
+  }
+},
+{
+  "model": "supply.measuringunit",
+  "pk": 105,
+  "fields": {
+    "name": "Packung",
+    "description": "",
+    "quantity": 1.0,
+    "unit": "stk",
+    "created_at": "2026-07-04T21:12:03.537Z",
+    "updated_at": "2026-07-04T21:12:03.537Z"
+  }
+}
 ]

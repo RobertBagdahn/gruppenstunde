@@ -338,6 +338,11 @@ class IngredientAlias(models.Model):
         constraints = [
             models.UniqueConstraint(
                 Lower("name"),
+                "ingredient",
+                name="unique_alias_name_per_ingredient",
+            ),
+            models.UniqueConstraint(
+                Lower("name"),
                 name="unique_alias_name_when_not_generic",
                 condition=Q(is_generic=False),
             ),
