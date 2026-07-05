@@ -1,5 +1,5 @@
 """
-API tests for POST /api/meal-plans/ai-suggest/ endpoint.
+API tests for POST /api/meal-plans/ai/suggest/ endpoint.
 
 Tests cover: happy path (mocked Gemini), auth, timeout, invalid JSON, missing recipe_ids.
 """
@@ -64,7 +64,7 @@ class TestAiSuggestEndpoint(TestCase):
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:
             mock_gemini.return_value = (MockResponse(self.valid_gemini_response), "interaction-uuid")
             response = self.client.post(
-                "/api/meal-plans/ai-suggest/",
+                "/api/meal-plans/ai/suggest/",
                 data=json.dumps(self.valid_payload),
                 content_type="application/json",
             )
@@ -77,7 +77,7 @@ class TestAiSuggestEndpoint(TestCase):
     def test_unauthenticated_returns_403(self):
         self.client.logout()
         response = self.client.post(
-            "/api/meal-plans/ai-suggest/",
+            "/api/meal-plans/ai/suggest/",
             data=json.dumps(self.valid_payload),
             content_type="application/json",
         )
@@ -87,7 +87,7 @@ class TestAiSuggestEndpoint(TestCase):
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:
             mock_gemini.return_value = (MockResponse("not valid json"), "interaction-uuid")
             response = self.client.post(
-                "/api/meal-plans/ai-suggest/",
+                "/api/meal-plans/ai/suggest/",
                 data=json.dumps(self.valid_payload),
                 content_type="application/json",
             )
@@ -109,7 +109,7 @@ class TestAiSuggestEndpoint(TestCase):
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:
             mock_gemini.return_value = (MockResponse(gemini_response), "interaction-uuid")
             response = self.client.post(
-                "/api/meal-plans/ai-suggest/",
+                "/api/meal-plans/ai/suggest/",
                 data=json.dumps(self.valid_payload),
                 content_type="application/json",
             )
@@ -119,7 +119,7 @@ class TestAiSuggestEndpoint(TestCase):
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:
             mock_gemini.return_value = (None, "interaction-uuid")
             response = self.client.post(
-                "/api/meal-plans/ai-suggest/",
+                "/api/meal-plans/ai/suggest/",
                 data=json.dumps(self.valid_payload),
                 content_type="application/json",
             )
@@ -131,7 +131,7 @@ class TestAiSuggestEndpoint(TestCase):
         with patch("planner.services.meal_plan_ai_service.gemini_call") as mock_gemini:
             mock_gemini.return_value = (MockResponse(self.valid_gemini_response), "interaction-uuid")
             response = self.client.post(
-                "/api/meal-plans/ai-suggest/",
+                "/api/meal-plans/ai/suggest/",
                 data=json.dumps(payload),
                 content_type="application/json",
             )

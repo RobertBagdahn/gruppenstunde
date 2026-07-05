@@ -127,3 +127,100 @@ class TestShoppingService:
         assert len(items) == 1
         # 300 * 18 * 1.2 = 6480 g (no PAL factor applied)
         assert items[0].total_quantity_g == pytest.approx(6480.0)
+
+    def _make_single_item_plan(self, *, norm_portions, reserve_factor, quantity):
+        """Helper: build a meal plan with a single direct-ingredient MealItem (grams unit)."""
+        from model_bakery import baker
+
+        from planner.models import MealItem
+
+        meal_plan = make_meal_plan(norm_portions=norm_portions, reserve_factor=reserve_factor)
+        meal = make_meal(meal_plan=meal_plan)
+        mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        ing = make_ingredient(name="Reserve-Test Zutat")
+        baker.make(
+            MealItem,
+            meal=meal,
+            recipe=None,
+            ingredient=ing,
+            quantity=Decimal(str(quantity)),
+            measuring_unit=mu,
+            factor=1.0,
+        )
+        return meal_plan
+
+    def test_reserve_breakdown_with_reserve_factor_1_1(self):
+        """reserve_factor=1.1 -> net/reserve split correctly, sum equals total."""
+        meal_plan = self._make_single_item_plan(norm_portions=10, reserve_factor=1.1, quantity=100.0)
+        items = generate_shopping_list(meal_plan)
+        assert len(items) == 1
+        item = items[0]
+        # total = 100g (quantity) * 1.0 (factor) * (10 * 1.1) = 1100g
+        assert item.total_quantity_g == pytest.approx(1100.0)
+        assert item.net_quantity_g == pytest.approx(1000.0, abs=0.5)
+        assert item.reserve_quantity_g == pytest.approx(100.0, abs=0.5)
+        assert item.net_quantity_g + item.reserve_quantity_g == pytest.approx(item.total_quantity_g)
+
+    def test_reserve_breakdown_with_reserve_factor_1_0(self):
+        """reserve_factor=1.0 -> reserve_quantity_g == 0, net == total."""
+        meal_plan = self._make_single_item_plan(norm_portions=10, reserve_factor=1.0, quantity=100.0)
+        items = generate_shopping_list(meal_plan)
+        item = items[0]
+        assert item.total_quantity_g == pytest.approx(1000.0)
+        assert item.reserve_quantity_g == 0.0
+        assert item.net_quantity_g == pytest.approx(item.total_quantity_g)
+
+    def test_reserve_breakdown_with_reserve_factor_1_15(self):
+        """reserve_factor=1.15 -> correct split."""
+        meal_plan = self._make_single_item_plan(norm_portions=10, reserve_factor=1.15, quantity=100.0)
+        items = generate_shopping_list(meal_plan)
+        item = items[0]
+        # total = 100g * (10 * 1.15) = 1150g
+        assert item.total_quantity_g == pytest.approx(1150.0)
+        assert item.net_quantity_g == pytest.approx(1000.0, abs=0.5)
+        assert item.reserve_quantity_g == pytest.approx(150.0, abs=0.5)
+        assert item.net_quantity_g + item.reserve_quantity_g == pytest.approx(item.total_quantity_g)
+
+
+@pytest.mark.django_db
+class TestShoppingListRankOrdering:
+    """5.1 — Shopping list groups follow RetailSection rank (Laden-Rundgang), not alphabetical name."""
+
+    def test_sorted_by_retail_section_rank_not_name(self):
+        from model_bakery import baker
+
+        from planner.models import MealItem
+        from supply.models import RetailSection
+
+        meal_plan = make_meal_plan(norm_portions=1, reserve_factor=1.0)
+        meal = make_meal(meal_plan=meal_plan)
+        mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+
+        # "Sonstiges" (rank 22, alphabetically first) vs. "Obst" (rank 1, alphabetically last
+        # among these two) — a name-based sort would put Sonstiges before Obst; rank-based
+        # sort must put Obst first.
+        rs_obst = RetailSection.objects.create(name="Obst", rank=1)
+        rs_sonstiges = RetailSection.objects.create(name="Sonstiges", rank=22)
+
+        ing_obst = make_ingredient(name="Zzz Apfel", retail_section=rs_obst)
+        ing_sonstiges = make_ingredient(name="Aaa Sonstige Zutat", retail_section=rs_sonstiges)
+
+        for ing in (ing_obst, ing_sonstiges):
+            Portion.objects.get_or_create(
+                name="100g",
+                ingredient=ing,
+                defaults={"measuring_unit": mu, "quantity": 1.0, "weight_g": 100.0, "rank": 1},
+            )
+            baker.make(
+                MealItem,
+                meal=meal,
+                recipe=None,
+                ingredient=ing,
+                quantity=Decimal("1.0"),
+                measuring_unit=mu,
+                factor=1.0,
+            )
+
+        items = generate_shopping_list(meal_plan)
+        names_in_order = [item.ingredient_name for item in items]
+        assert names_in_order == ["Zzz Apfel", "Aaa Sonstige Zutat"]

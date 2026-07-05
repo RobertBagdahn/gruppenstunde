@@ -195,6 +195,7 @@ function MealPlanListPageInner() {
           id: copySourceId,
           name: createName.trim() + ' (Kopie)',
           start_datetime: createStartDatetime + ':00',
+          end_datetime: createEndDatetime + ':00',
           norm_portions: createPortions,
         },
         {
@@ -317,23 +318,25 @@ function MealPlanListPageInner() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
-              <DropdownMenuItem
-                className="font-semibold text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const w = getNextWeekend();
-                  setCreateName('Neuer Essensplan');
-                  setCreateStartDatetime(w.friday);
-                  setCreateEndDatetime(w.sunday);
-                  setCreatePortions(10);
-                  setCopyEnabled(true);
-                  setCopySourceId(plan.id);
-                  setShowCreate(true);
-                }}
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Als Vorlage verwenden
-              </DropdownMenuItem>
+              {plan.start_datetime && plan.end_datetime && (
+                <DropdownMenuItem
+                  className="font-semibold text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const w = getNextWeekend();
+                    setCreateName('Neuer Essensplan');
+                    setCreateStartDatetime(w.friday);
+                    setCreateEndDatetime(w.sunday);
+                    setCreatePortions(10);
+                    setCopyEnabled(true);
+                    setCopySourceId(plan.id);
+                    setShowCreate(true);
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Als Vorlage verwenden
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();

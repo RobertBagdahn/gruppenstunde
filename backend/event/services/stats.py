@@ -36,7 +36,7 @@ class StatsService:
         total_capacity = 0
         total_registered = len(participants)
 
-        for opt in event.booking_options.all():
+        for opt in event.booking_options.filter(is_system=False):
             count = sum(1 for p in participants if p.booking_option_id == opt.id)
             max_p = opt.max_participants
             fill_pct = round((count / max_p * 100), 1) if max_p > 0 else 0

@@ -70,18 +70,19 @@ class TestValidateContiguity:
         assert "Lücke" in str(exc.value)
         assert "11.07.2026" in str(exc.value)
 
-    def test_no_range_skips_validation(self):
-        plan = make_meal_plan(start_datetime=None, end_datetime=None)
-        validate_meal_plan_contiguity(plan)
-
-    def test_no_meals_at_all_raises(self):
+    def test_no_meals_skips_validation(self):
         plan = make_meal_plan(
             start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
             end_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 20, 0)),
         )
-        with pytest.raises(Exception) as exc:
-            validate_meal_plan_contiguity(plan)
-        assert "Lücke" in str(exc.value)
+        validate_meal_plan_contiguity(plan)
+
+    def test_no_meals_at_all_is_valid(self):
+        plan = make_meal_plan(
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
+            end_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 20, 0)),
+        )
+        validate_meal_plan_contiguity(plan)
 
 
 # ---------------------------------------------------------------------------
@@ -223,8 +224,8 @@ class TestShrinkRangeOnDelete:
         shrink_range_on_delete(plan, dt.date(2026, 7, 10))
 
         plan.refresh_from_db()
-        assert plan.start_datetime is None
-        assert plan.end_datetime is None
+        assert plan.start_datetime == dt.datetime(2026, 7, 10, 0, 0).replace(tzinfo=dt.UTC)
+        assert plan.end_datetime == dt.datetime(2026, 7, 10, 0, 0).replace(tzinfo=dt.UTC)
 
 
 # ---------------------------------------------------------------------------
@@ -341,8 +342,8 @@ class TestRemoveDayContiguity:
         assert resp.status_code == 200
 
         plan.refresh_from_db()
-        assert plan.start_datetime is None
-        assert plan.end_datetime is None
+        assert plan.start_datetime == dt.datetime(2026, 7, 10, 0, 0).replace(tzinfo=dt.UTC)
+        assert plan.end_datetime == dt.datetime(2026, 7, 10, 0, 0).replace(tzinfo=dt.UTC)
 
 
 # ---------------------------------------------------------------------------

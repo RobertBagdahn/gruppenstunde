@@ -81,7 +81,13 @@ class WhatsAppClientManager:
         return cls._instance
 
     def _acquire_advisory_lock(self, user_id: int) -> bool:
-        """Try to acquire a PostgreSQL advisory lock for this user's client."""
+        """Try to acquire a PostgreSQL advisory lock for this user's client.
+
+        No-op (always succeeds) on non-PostgreSQL backends (e.g. sqlite in tests),
+        since advisory locks are a PostgreSQL-specific feature.
+        """
+        if django_connection.vendor != "postgresql":
+            return True
         lock_id = _advisory_lock_id(user_id)
         with django_connection.cursor() as cursor:
             cursor.execute("SELECT pg_try_advisory_lock(%s)", [lock_id])
@@ -89,7 +95,12 @@ class WhatsAppClientManager:
             return result[0] if result else False
 
     def _release_advisory_lock(self, user_id: int) -> None:
-        """Release the PostgreSQL advisory lock for this user's client."""
+        """Release the PostgreSQL advisory lock for this user's client.
+
+        No-op on non-PostgreSQL backends (e.g. sqlite in tests).
+        """
+        if django_connection.vendor != "postgresql":
+            return
         lock_id = _advisory_lock_id(user_id)
         with django_connection.cursor() as cursor:
             cursor.execute("SELECT pg_advisory_unlock(%s)", [lock_id])

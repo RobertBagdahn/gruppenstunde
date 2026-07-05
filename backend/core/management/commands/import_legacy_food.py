@@ -297,19 +297,27 @@ class Command(BaseCommand):
         )
 
         # RetailSections
+        # Katalog (Single Source of Truth) zuerst sicherstellen, dann Legacy-
+        # Fixture-Einträge auf Katalognamen mappen statt sie roh zu übernehmen
+        # (Legacy-Namen wie "Obst & Gemüse" existieren im Katalog nicht mehr,
+        # siehe retail-sections-restructure).
         self.stdout.write("  RetailSections...")
+        from supply.data.retail_sections import RETAIL_SECTIONS
+        from supply.services.retail_section_mapping import get_retail_section
+
+        for rs_data in RETAIL_SECTIONS:
+            RetailSection.objects.get_or_create(name=rs_data["name"], defaults={"rank": rs_data["rank"]})
+
+        sonstiges = RetailSection.objects.get(name="Sonstiges")
         for entry in grouped.get("food.retailsection", []):
             pk = entry["pk"]
             fields = entry["fields"]
-            obj, created = RetailSection.objects.get_or_create(
-                name=fields["name"],
-                defaults={
-                    "description": fields.get("description", ""),
-                    "rank": int(fields.get("rank", 0)),
-                },
-            )
+            legacy_name = fields["name"]
+            obj = RetailSection.objects.filter(name=legacy_name).first()
+            if obj is None:
+                obj = get_retail_section(legacy_name) or sonstiges
             self.pk_map.add("retail_section", pk, obj.pk)
-            self._count("RetailSection", "created" if created else "skipped")
+            self._count("RetailSection", "skipped")
 
         self.stdout.write(
             f"    {self.counters['RetailSection']['created']} erstellt, "
@@ -411,7 +419,7 @@ class Command(BaseCommand):
                 physical_viscosity=fields.get("physical_viscosity", "solid"),
                 status=IngredientStatusChoices.USER_CONTENT,
                 # Nutritional data from metainfo
-                energy_kcal=self._safe_float(meta.get("energy_kcal")),
+                energy_kcal=self._safe_float(meta.get("energy_kj")),
                 protein_g=self._safe_float(meta.get("protein_g")),
                 fat_g=self._safe_float(meta.get("fat_g")),
                 fat_sat_g=self._safe_float(meta.get("fat_sat_g")),

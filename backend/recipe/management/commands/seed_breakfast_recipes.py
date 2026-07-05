@@ -179,7 +179,7 @@ class Command(BaseCommand):
                                     break
                         if weight_g is None and intensity_name == "Belag normal":
                             for p in portions:
-                                if p.is_default:
+                                if p.rank == 1:
                                     weight_g = p.weight_g
                                     break
                         if weight_g is None:

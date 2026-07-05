@@ -93,6 +93,10 @@ def make_meal_plan(created_by=None, **kwargs) -> MealPlan:
         "reserve_factor": 1.1,
     }
     defaults.update(kwargs)
+    # MealPlan has no `status` field — it uses `visibility` (which includes
+    # "draft"). Accept `status` as a convenience alias for readability in tests.
+    if "status" in defaults:
+        defaults["visibility"] = defaults.pop("status")
     return baker.make(MealPlan, created_by=created_by, **defaults)
 
 

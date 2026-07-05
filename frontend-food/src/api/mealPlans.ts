@@ -175,7 +175,7 @@ export function useAiMealPlanSuggest() {
       start_date: string;
       nutritional_tag_ids?: number[];
       budget_per_person_per_day?: number;
-    }): Promise<AiSuggestOut> => postJson(`${API_BASE}/ai-suggest/`, body, AiSuggestOutSchema),
+    }): Promise<AiSuggestOut> => postJson(`${API_BASE}/ai/suggest/`, body, AiSuggestOutSchema),
   });
 }
 
@@ -214,7 +214,7 @@ export function useDeleteMealPlan() {
 export function useDuplicateMealPlan() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: number; name: string; start_datetime: string; norm_portions: number }) =>
+    mutationFn: ({ id, ...body }: { id: number; name: string; start_datetime: string; end_datetime: string; norm_portions: number }) =>
       postJson(`${API_BASE}/${id}/duplicate/`, body, MealPlanSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans'] });

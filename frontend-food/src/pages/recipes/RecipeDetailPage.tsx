@@ -141,6 +141,14 @@ export default function RecipeDetailPage() {
   );
   const [scaleDialogOpen, setScaleDialogOpen] = useState(false);
 
+  // Personenzahl für die Bearbeitung in Kochmengen (Einstiegspunkt), entkoppelt
+  // von der Anzeige-Skalierung (`portionsMultiplier`). Default = aktuelle
+  // Anzeige-Personenzahl, solange der Editor nicht offen ist.
+  const [editPortionsChoice, setEditPortionsChoice] = useState(portionsMultiplier);
+  useEffect(() => {
+    if (!isInlineEditMode) setEditPortionsChoice(portionsMultiplier);
+  }, [portionsMultiplier, isInlineEditMode]);
+
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [cloneTitle, setCloneTitle] = useState('');
 
@@ -757,15 +765,33 @@ export default function RecipeDetailPage() {
           {!isInlineEditMode && (
             <div className="flex items-center gap-2">
               {recipe.can_edit && (
-                <button
-                  type="button"
-                  onClick={() => setIsInlineEditMode(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
-                  title="Zutaten bearbeiten"
-                >
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
-                  Bearbeiten
-                </button>
+                <>
+                  <label className="sr-only" htmlFor="edit-portions-choice">
+                    Für wie viele Personen bearbeiten
+                  </label>
+                  <select
+                    id="edit-portions-choice"
+                    value={editPortionsChoice}
+                    onChange={(e) => setEditPortionsChoice(parseInt(e.target.value, 10))}
+                    className="text-xs font-medium border rounded-lg px-2 py-1.5 bg-background"
+                    title="Personenzahl für die Bearbeitung wählen"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
+                      <option key={n} value={n}>
+                        {n} {n === 1 ? 'Person' : 'Personen'}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsInlineEditMode(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+                    title="Für mehrere Personen bearbeiten"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                    Bearbeiten
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -776,7 +802,7 @@ export default function RecipeDetailPage() {
             recipeId={recipe.id}
             items={recipe.recipe_items ?? []}
             portions={recipe.portions}
-            displayPortions={portionsMultiplier > 1 ? portionsMultiplier : undefined}
+            initialEditPortions={editPortionsChoice}
             onClose={() => {
               setIsInlineEditMode(false);
               const next = new URLSearchParams(searchParams);

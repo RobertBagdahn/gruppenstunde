@@ -99,9 +99,9 @@ export default function App() {
         {/* Meal Plans */}
         <Route path="/meal-plans" element={<MealPlanLandingPage />} />
         <Route path="/meal-plans/new" element={<MealPlanWizardPage />} />
-         <Route path="/meal-plans/app" element={<MealPlanListPage />} />
-         <Route path="/meal-plans/:id/*" element={<MealPlanDetailPage />} />
-         <Route path="/meal-plans/:id/ref-meals/:mealType" element={<RefMealEditorPage />} />
+        <Route path="/meal-plans/app" element={<MealPlanListPage />} />
+        <Route path="/meal-plans/:id/*" element={<MealPlanDetailPage />} />
+        <Route path="/meal-plans/:id/ref-meals/:mealType" element={<RefMealEditorPage />} />
         <Route path="/meal-plans/:id/ref-meals/breakfast/wizard" element={<BreakfastWizardPage />} />
         <Route path="/meal-plans/:id/meals/:mealId/breakfast-wizard" element={<BreakfastWizardPage />} />
         <Route path="/meal-events/*" element={<Navigate to="/meal-plans" replace />} />

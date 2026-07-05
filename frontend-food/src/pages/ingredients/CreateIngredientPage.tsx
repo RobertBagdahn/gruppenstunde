@@ -20,6 +20,7 @@ import {
   useRetailSections,
   useAiCreateIngredient,
   useIngredientImportUrl,
+  useGenericTerms,
 } from '@/api/supplies';
 import UnauthGate from '@/components/shared/UnauthGate';
 
@@ -195,6 +196,7 @@ export default function CreateIngredientPage() {
   const updateIngredient = useUpdateIngredient(createdSlug);
   const aiCreate = useAiCreateIngredient();
   const importUrl = useIngredientImportUrl();
+  const { data: genericTerms } = useGenericTerms();
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<IngredientFormData>(EMPTY_FORM);
@@ -347,6 +349,8 @@ export default function CreateIngredientPage() {
   }
 
   const isSaving = createIngredient.isPending || updateIngredient.isPending;
+  const isNameTooGeneric =
+    genericTerms?.some((term) => term.toLowerCase() === formData.name.trim().toLowerCase()) ?? false;
 
   // -------------------------------------------------------------------------
   // Render
@@ -535,6 +539,13 @@ export default function CreateIngredientPage() {
               placeholder="Name der Zutat"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
+            {isNameTooGeneric && (
+              <p className="mt-2 text-xs text-amber-600 flex items-start gap-1">
+                <span className="material-symbols-outlined text-[16px]">warning</span>
+                „{formData.name.trim()}“ ist zu generisch — bitte konkretisieren, z.B. mit einer
+                Zustandsform („Fusilli trocken“, „Jodsalz“).
+              </p>
+            )}
           </div>
 
           {/* Beschreibung */}

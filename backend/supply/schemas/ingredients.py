@@ -13,6 +13,7 @@ class IngredientAliasOut(Schema):
     id: int
     name: str
     rank: int
+    is_generic: bool = False
 
 
 class AliasCreateIn(Schema):
@@ -20,6 +21,7 @@ class AliasCreateIn(Schema):
 
     name: str
     rank: int = 1
+    is_generic: bool = False
 
 
 class PortionOut(Schema):
@@ -115,6 +117,7 @@ class IngredientDetailOut(Schema):
     slug: str
     description: str
     status: str
+    name_warning: str | None = None
 
     # Physical
     physical_density: float
@@ -221,7 +224,13 @@ class IngredientDetailOut(Schema):
 
     @staticmethod
     def resolve_aliases(obj) -> list:
-        return [{"id": a.id, "name": a.name, "rank": a.rank} for a in obj.aliases.all()]
+        return [{"id": a.id, "name": a.name, "rank": a.rank, "is_generic": a.is_generic} for a in obj.aliases.all()]
+
+    @staticmethod
+    def resolve_name_warning(obj) -> str | None:
+        from supply.services.generic_terms import generic_name_warning
+
+        return generic_name_warning(obj.name)
 
     @staticmethod
     def resolve_groups(obj) -> list:

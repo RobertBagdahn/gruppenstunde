@@ -38,6 +38,10 @@ Die aktuellen Choices-Klassen leben in `recipe/choices.py`. Folgende Aliase sind
 - `recipe/services/recipe_checks.py` — enthält `recalculate_recipe_cache(recipe)`
 - `recipe/signals.py` — Cache-Invalidierung bei RecipeItem/Ingredient Änderungen
 - `supply/services/price_service.py` — nur `get_portion_price(ingredient, weight_g)` via `price_per_kg`
+
+### Router-Reihenfolge (django-ninja)
+- Router, die unter demselben Präfix registriert werden (z.B. mehrere `add_router("/meal-plans/", ...)`), werden in Registrierungsreihenfolge geprüft. Ein catch-all-Router mit parametrisierten Pfaden wie `/{meal_plan_id}/` matched sonst Literalpfade (z.B. `/ai-suggest/`) fälschlich als ID → 405 statt der erwarteten Antwort.
+- **Regel:** Spezifische/literale Routen (z.B. `ai_suggest_router`, `ref_meal_router`) immer **vor** dem generischen `meal_plan_router` registrieren (siehe `inspi/urls.py`).
 - `supply/data/dge_reference.py` — statische DGE-Referenzwerte
 
 ### AI Interaction Logging

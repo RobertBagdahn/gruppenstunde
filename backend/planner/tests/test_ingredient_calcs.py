@@ -3,6 +3,7 @@ Comprehensive test of the breakfast-wizard-mealplan-transfer changes.
 Uses model_bakery for test data creation.
 """
 
+import datetime as dt
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inspi.settings.local")
@@ -13,6 +14,7 @@ import django
 django.setup()
 
 from django.test import TestCase
+from django.utils import timezone
 from model_bakery import baker
 
 from planner.models import Meal, MealItem, MealPlan
@@ -32,6 +34,7 @@ class TestIngredientCalcs(TestCase):
             norm_portions=10,
             created_by=self.user,
             owner=self.user,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
         )
         self.meal = Meal.objects.create(
             meal_plan=self.plan,

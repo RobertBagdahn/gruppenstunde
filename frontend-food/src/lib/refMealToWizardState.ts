@@ -42,22 +42,22 @@ export function refMealItemsToWizardState(
       totalGrams += grams;
     }
 
-     if (totalGrams > 0) {
-       for (const { ingredientId, grams, sliceWeightG } of gramPerItem) {
-         const catalogIng = catalog.base_ingredients.find((b) => b.id === ingredientId);
-         basisSelections.push({
-           ingredientId,
-           name: catalogIng?.name ?? '',
-           sharePercent: Math.round((grams / totalGrams) * 100),
-           locked: false,
-           sliceWeightG,
-           energyKcal100g: catalogIng?.energy_kcal ?? null,
-         });
-       }
-       result.basis = basisSelections;
-       // Set gramsPerPerson from total basis grams
-       result.gramsPerPerson = Math.round(totalGrams);
-     }
+    if (totalGrams > 0) {
+      for (const { ingredientId, grams, sliceWeightG } of gramPerItem) {
+        const catalogIng = catalog.base_ingredients.find((b) => b.id === ingredientId);
+        basisSelections.push({
+          ingredientId,
+          name: catalogIng?.name ?? '',
+          sharePercent: Math.round((grams / totalGrams) * 100),
+          locked: false,
+          sliceWeightG,
+          energyKcal100g: catalogIng?.energy_kcal ?? null,
+        });
+      }
+      result.basis = basisSelections;
+      // Set gramsPerPerson from total basis grams
+      result.gramsPerPerson = Math.round(totalGrams);
+    }
   }
 
   // ── 2. Topping items ──────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ export function refMealItemsToWizardState(
     if (item.recipe_title) {
       result.drinkRecipeNames[String(item.recipe_id)] = item.recipe_title;
     }
-      }
+  }
 
   // ── 5. Extra ingredients ──────────────────────────────────────────────────
   const extraItems = items.filter(

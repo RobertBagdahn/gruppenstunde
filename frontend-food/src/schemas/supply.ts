@@ -140,6 +140,7 @@ export const IngredientAliasSchema = z.object({
   id: z.number(),
   name: z.string(),
   rank: z.number(),
+  is_generic: z.boolean().default(false),
 });
 export type IngredientAlias = z.infer<typeof IngredientAliasSchema>;
 
@@ -188,6 +189,7 @@ export const IngredientDetailSchema = z.object({
   slug: z.string(),
   description: z.string(),
   status: z.string(),
+  name_warning: z.string().nullable().optional(),
 
   // Physical
   physical_density: z.number(),

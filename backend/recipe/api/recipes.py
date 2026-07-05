@@ -1,9 +1,11 @@
 """Recipe CRUD, image upload, similar recipes, comments, and emotions."""
 
+import json
 import logging
 import time
 
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from ninja import Query, Router
 from ninja.errors import HttpError
@@ -114,6 +116,15 @@ def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = Fal
     if recipe is None:
         raise HttpError(404, "Rezept nicht gefunden")
     return recipe
+
+
+def _is_transitively_visible_recipe(recipe: Recipe, request) -> bool:
+    """Whether `recipe` is visible to the requesting user via a shared MealPlan."""
+    if not request.user.is_authenticated:
+        return False
+    from content.services.transitive_visibility import recipe_visible_transitively
+
+    return recipe_visible_transitively(recipe, request.user)
 
 
 # ==========================================================================
@@ -241,21 +252,47 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
     """Import a recipe from URL with Gemini-based ingredient matching and creation."""
     _require_auth(request)
 
+    from core.services.gemini import GeminiAuthError, GeminiUnavailableError
+    from recipe.services.exceptions import NoRecipeFoundError, SourceUnreachableError
     from recipe.services.url_import_service import import_recipe_from_url
+
+    def _error_response(status: int, error_code: str, detail: str) -> HttpResponse:
+        return HttpResponse(
+            json.dumps({"error_code": error_code, "detail": detail}),
+            status=status,
+            content_type="application/json",
+        )
 
     try:
         result = import_recipe_from_url(payload.url, request.user)
-    except ValueError as e:
-        msg = str(e)
-        if "KI-Service" in msg or "verfügbar" in msg:
-            # AI unavailable → 503 so the frontend can show a retry hint
-            raise HttpError(503, "KI-Service vorübergehend nicht verfügbar. Bitte versuche es später erneut.")
-        if "nicht geladen" in msg or "URL" in msg:
-            raise HttpError(422, f"Seite konnte nicht geladen werden: {msg}")
-        raise HttpError(422, msg)
-    except Exception as e:
+    except SourceUnreachableError:
+        return _error_response(
+            422,
+            "IMPORT_SOURCE_UNREACHABLE",
+            "Die Seite konnte nicht geladen werden. Manche Rezeptseiten blockieren den automatischen Abruf — "
+            "bitte kopiere die Zutaten manuell oder versuche eine andere Quelle.",
+        )
+    except (GeminiUnavailableError, GeminiAuthError):
+        return _error_response(
+            503,
+            "IMPORT_AI_UNAVAILABLE",
+            "Der KI-Dienst ist gerade nicht erreichbar. Bitte versuche es in ein paar Minuten erneut.",
+        )
+    except NoRecipeFoundError:
+        return _error_response(
+            422,
+            "IMPORT_NO_RECIPE_FOUND",
+            "Auf der Seite wurden keine Rezeptdaten gefunden. Bitte prüfe den Link oder gib das Rezept manuell ein.",
+        )
+    except HttpError:
+        raise
+    except Exception:
         logger.exception("Enhanced recipe import failed for URL: %s", payload.url)
-        raise HttpError(422, f"Import fehlgeschlagen: {e}")
+        return _error_response(
+            500,
+            "INTERNAL_ERROR",
+            "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+        )
 
     return RecipeImportUrlResponseOut(
         recipe_draft={
@@ -318,23 +355,27 @@ def ai_create(request, payload: RecipeAiCreateIn):
 @router.get("/{recipe_id}/", response=RecipeDetailOut)
 def get_recipe(request, recipe_id: int):
     """Get recipe detail by ID."""
-    recipe = get_object_or_404(
-        _get_visible_recipes_qs(request).prefetch_related(
-            "scout_levels",
-            "tags__parent",
-            "nutritional_tags",
-            "recipe_items__portion__ingredient__retail_section",
-            "recipe_items__portion__ingredient__portions__measuring_unit",
-            "recipe_items__portion__measuring_unit",
-            "authors__profile",
-        ),
-        id=recipe_id,
+    prefetches = (
+        "scout_levels",
+        "tags__parent",
+        "nutritional_tags",
+        "recipe_items__portion__ingredient__retail_section",
+        "recipe_items__portion__ingredient__portions__measuring_unit",
+        "recipe_items__portion__measuring_unit",
+        "authors__profile",
     )
+    recipe = _get_visible_recipes_qs(request).prefetch_related(*prefetches).filter(id=recipe_id).first()
+    transitive = False
+    if recipe is None:
+        recipe = Recipe.objects.prefetch_related(*prefetches).filter(id=recipe_id).first()
+        if recipe is None or not _is_transitively_visible_recipe(recipe, request):
+            raise HttpError(404, "Rezept nicht gefunden")
+        transitive = True
 
     enrich_content_with_interactions(request, recipe, Recipe)
     record_view(Recipe, recipe.id, request)
-    recipe.can_edit = _can_edit_recipe(request, recipe)
-    recipe.can_delete = request.user.is_authenticated and request.user.is_staff
+    recipe.can_edit = False if transitive else _can_edit_recipe(request, recipe)
+    recipe.can_delete = False if transitive else (request.user.is_authenticated and request.user.is_staff)
     recipe.is_owner = (
         request.user.is_authenticated and recipe.owner_id is not None and recipe.owner_id == request.user.id
     )

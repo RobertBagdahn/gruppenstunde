@@ -41,8 +41,8 @@ export default function BreakfastWizardPage() {
     [saveMode, refMeals],
   );
 
-   const normPortions = plan?.norm_portions ?? 10;
-   const dayPartFactor = existingRefMeal?.day_part_factor ?? 0.30;
+  const normPortions = plan?.norm_portions ?? 10;
+  const dayPartFactor = existingRefMeal?.day_part_factor ?? 0.25;
 
   // Compute initial wizard state from existing RefMeal (if any)
   const initialWizardState = useMemo(() => {
@@ -118,7 +118,7 @@ export default function BreakfastWizardPage() {
       });
     }
 
-    // ── Post-process: merge duplicate ingredients into grams ──
+    // ── Post-process: push accumulated ingredients (in grams) + recipe items ──
     const mergedIds = new Set<number>();
     const out: WizardItemIn[] = [];
     for (const [ingIdStr, grams] of Object.entries(ingGrams)) {

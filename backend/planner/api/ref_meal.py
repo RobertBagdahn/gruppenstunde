@@ -150,7 +150,7 @@ def get_ref_meal(request, plan_id: int, ref_meal_id: int):
 @ref_meal_router.put(
     "/{plan_id}/ref-meals/{ref_meal_id}/",
     response=RefMealOut,
-    summary="RefMeal aktualisieren (Items ersetzen)",
+    summary="RefMeal aktualisieren (Items ersetzen, verlinkte Mahlzeiten automatisch synchronisieren)",
 )
 @transaction.atomic
 def update_ref_meal(request, plan_id: int, ref_meal_id: int, payload: RefMealUpdateIn):
@@ -179,6 +179,11 @@ def update_ref_meal(request, plan_id: int, ref_meal_id: int, payload: RefMealUpd
             )
 
     ref_meal.refresh_from_db()
+
+    # Auto-sync verlinkte (is_synced=true) Mahlzeiten mit der aktualisierten Vorlage.
+    _validate_ref_meal_items(ref_meal)
+    synced_meal_count = _sync_ref_meal_to_targets(ref_meal)
+    ref_meal.synced_meal_count = synced_meal_count
     return ref_meal
 
 

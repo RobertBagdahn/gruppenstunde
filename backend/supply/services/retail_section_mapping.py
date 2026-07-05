@@ -17,20 +17,20 @@ if TYPE_CHECKING:
 # The name is resolved to a RetailSection object at runtime.
 
 KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
-    # Süßigkeiten / Süßwaren & Snacks
-    "SCHOKOLADE": "Süßwaren & Snacks",
-    "SCHOKORIEGEL": "Süßwaren & Snacks",
-    "PRALIN": "Süßwaren & Snacks",
-    "FRUCHTGUMMI": "Süßwaren & Snacks",
-    "WAFFELN": "Süßwaren & Snacks",
-    "BONBON": "Süßwaren & Snacks",
-    "LAKRITZ": "Süßwaren & Snacks",
-    "DRAGEE": "Süßwaren & Snacks",
-    "KAUGUMMI": "Süßwaren & Snacks",
-    "MARZIPAN": "Süßwaren & Snacks",
-    "MONOPRALIN": "Süßwaren & Snacks",
-    "SPEZIALI./KANDIERTE": "Süßwaren & Snacks",
-    "TAFELSCHOKOLADE": "Süßwaren & Snacks",
+    # Süßigkeiten / Süßwaren
+    "SCHOKOLADE": "Süßwaren",
+    "SCHOKORIEGEL": "Süßwaren",
+    "PRALIN": "Süßwaren",
+    "FRUCHTGUMMI": "Süßwaren",
+    "WAFFELN": "Süßwaren",
+    "BONBON": "Süßwaren",
+    "LAKRITZ": "Süßwaren",
+    "DRAGEE": "Süßwaren",
+    "KAUGUMMI": "Süßwaren",
+    "MARZIPAN": "Süßwaren",
+    "MONOPRALIN": "Süßwaren",
+    "SPEZIALI./KANDIERTE": "Süßwaren",
+    "TAFELSCHOKOLADE": "Süßwaren",
     # Nudeln & Reis & Getreide
     "TEIGWAREN": "Nudeln & Reis & Getreide",
     "NUDEL": "Nudeln & Reis & Getreide",
@@ -58,10 +58,10 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "MOZZARELLA": "Milchprodukte & Käse",
     "PARMESAN": "Milchprodukte & Käse",
     "GOUDA": "Milchprodukte & Käse",
-    # Tiefkühl
-    "TK-": "Tiefkühl",
-    "TIEFKUEHL": "Tiefkühl",
-    "TIEFKÜHL": "Tiefkühl",
+    # Tiefkühl (mehrdeutige Konvenienzprodukte -> eigene Gruppe statt Rateentscheidung, siehe D7)
+    "TK-": "TK Fertiggerichte",
+    "TIEFKUEHL": "TK Fertiggerichte",
+    "TIEFKÜHL": "TK Fertiggerichte",
     # Kaffee und Tee
     "TEE BEUTEL": "Kaffee und Tee",
     "TEE ": "Kaffee und Tee",
@@ -143,18 +143,18 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "ZITRONE": "Obst",
     "ORANGE": "Obst",
     "ANANAS": "Obst",
-    # Fleisch und Fisch
-    "FLEISCH": "Fleisch & Fisch",
-    "FISCH": "Fleisch & Fisch",
-    "LACHS": "Fleisch & Fisch",
-    "THUNFISCH": "Fleisch & Fisch",
-    "HAEHNCHEN": "Fleisch & Fisch",
-    "HÄHNCHEN": "Fleisch & Fisch",
-    "HUHN": "Fleisch & Fisch",
-    "RIND": "Fleisch & Fisch",
-    "SCHWEIN": "Fleisch & Fisch",
-    "GEFLÜGEL": "Fleisch & Fisch",
-    "GEFLUEGEL": "Fleisch & Fisch",
+    # Fleisch und Fisch (getrennte Gruppen, D7)
+    "FLEISCH": "Fleisch & Wurst",
+    "FISCH": "Fisch",
+    "LACHS": "Fisch",
+    "THUNFISCH": "Fisch",
+    "HAEHNCHEN": "Fleisch & Wurst",
+    "HÄHNCHEN": "Fleisch & Wurst",
+    "HUHN": "Fleisch & Wurst",
+    "RIND": "Fleisch & Wurst",
+    "SCHWEIN": "Fleisch & Wurst",
+    "GEFLÜGEL": "Fleisch & Wurst",
+    "GEFLUEGEL": "Fleisch & Wurst",
     # Wurst
     "WURST": "Fleisch & Wurst",
     "SALAMI": "Fleisch & Wurst",
@@ -171,9 +171,9 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "MANDEL": "Hülsenfrüchte & Nüsse",
     "LINSEN": "Hülsenfrüchte & Nüsse",
     # Salzige Snacks
-    "CHIPS": "Süßwaren & Snacks",
-    "CRACKER": "Süßwaren & Snacks",
-    "SALZSTANGEN": "Süßwaren & Snacks",
+    "CHIPS": "Salzige Snacks",
+    "CRACKER": "Salzige Snacks",
+    "SALZSTANGEN": "Salzige Snacks",
     # Öl und Essig
     "OEL": "Öle & Soßen",
     "ÖL": "Öle & Soßen",
@@ -192,28 +192,26 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "CORNFLAKES": "Brot & Backwaren",
     # Kartoffelprodukte
     "KARTOFFEL": "Gemüse",
-    "POMMES": "Tiefkühl",
+    "POMMES": "TK Obst & Gemüse",
     "KLOESSE": "Gemüse",
     "KLÖSSE": "Gemüse",
     # Getränke
-    "SAFT": "Getränke ohne Alkohol",
-    "WASSER": "Getränke ohne Alkohol",
-    "LIMONADE": "Getränke ohne Alkohol",
-    "EISTEE": "Getränke ohne Alkohol",
-    "SOFTDRINK": "Getränke ohne Alkohol",
-    "NEKTAR": "Getränke ohne Alkohol",
-    # Alkoholische Getränke — separate Gruppe laut retail-sections-restructure Spec.
-    # Bis die Spec vollständig umgesetzt ist (neue RetailSection + Seed), wird auf die
-    # existierende Kategorie "Getränke" gemappt statt auf "Getränke ohne Alkohol".
-    "BIER": "Getränke",
-    "SPIRITUOSE": "Getränke",
-    "SEKT": "Getränke",
-    "LIKOER": "Getränke",
-    "LIKÖR": "Getränke",
-    # Fertiggerichte
-    "FERTIGGERICHT": "Tiefkühl",
-    "PIZZA": "Tiefkühl",
-    "FLAMMKUCHEN": "Tiefkühl",
+    "SAFT": "Alkoholfreie Getränke",
+    "WASSER": "Alkoholfreie Getränke",
+    "LIMONADE": "Alkoholfreie Getränke",
+    "EISTEE": "Alkoholfreie Getränke",
+    "SOFTDRINK": "Alkoholfreie Getränke",
+    "NEKTAR": "Alkoholfreie Getränke",
+    # Alkoholische Getränke — eigene Gruppe (retail-sections-restructure D3).
+    "BIER": "Alkoholische Getränke",
+    "SPIRITUOSE": "Alkoholische Getränke",
+    "SEKT": "Alkoholische Getränke",
+    "LIKOER": "Alkoholische Getränke",
+    "LIKÖR": "Alkoholische Getränke",
+    # Fertiggerichte (mehrdeutig zwischen TK Obst & Gemüse / TK Fleisch & Fisch -> eigene Gruppe, D7)
+    "FERTIGGERICHT": "TK Fertiggerichte",
+    "PIZZA": "TK Fertiggerichte",
+    "FLAMMKUCHEN": "TK Fertiggerichte",
     # Eier
     "EIER": "Milchprodukte & Käse",
     "EI": "Milchprodukte & Käse",
@@ -225,10 +223,10 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "MASCARPONE": "Milchprodukte & Käse",
     "RICOTTA": "Milchprodukte & Käse",
     "BUTTER": "Milchprodukte & Käse",
-    # Fleischersatz
-    "TOFU": "Fleisch & Fisch",
-    "SEITAN": "Fleisch & Fisch",
-    "TEMPEH": "Fleisch & Fisch",
+    # Fleischersatz (eigene Gruppe statt Fleisch & Fisch, D7)
+    "TOFU": "Fleischersatz",
+    "SEITAN": "Fleischersatz",
+    "TEMPEH": "Fleischersatz",
     # Aufstriche/Dips
     "HUMMUS": "Öle & Soßen",
     "GUACAMOLE": "Öle & Soßen",
@@ -238,9 +236,9 @@ KEYWORD_TO_RETAIL_SECTION_NAME: dict[str, str] = {
     "BAMBUS": "Gemüse",
     "CAPPELLETTI": "Nudeln & Reis & Getreide",
     # Internationale Küche
-    "ASIA": "Gewürze",
-    "MEXIKAN": "Gewürze",
-    "SUSHI": "Fleisch & Fisch",
+    "ASIA": "Gewürze & Kräuter",
+    "MEXIKAN": "Gewürze & Kräuter",
+    "SUSHI": "Fisch",
     # Brotaufstriche (vegetarisch)
     "VEGETARI. AUFSTRICH": "Öle & Soßen",
     "FEINKOST BROTAUFSTRICH": "Öle & Soßen",

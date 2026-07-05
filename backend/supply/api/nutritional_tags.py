@@ -10,8 +10,16 @@ nutritional_tag_router = Router(tags=["nutritional-tags"])
 
 
 def _require_staff(request):
-    if not request.user.is_authenticated or not request.user.is_staff:
+    if not request.user.is_authenticated:
         raise HttpError(403, "Nur Admins")
+    if request.user.is_staff:
+        return
+    try:
+        if request.user.profile.role in ("staff", "admin"):
+            return
+    except AttributeError:
+        pass
+    raise HttpError(403, "Nur Admins")
 
 
 @nutritional_tag_router.get("/", response=list[NutritionalTagOut])

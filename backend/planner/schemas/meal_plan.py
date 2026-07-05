@@ -363,6 +363,9 @@ class MealPlanOut(Schema):
     is_template: bool = False
     is_owner: bool = False
     collaborators_count: int = 0
+    meals_copied: int = 0
+    items_copied: int = 0
+    overrides_copied: int = 0
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -411,6 +414,7 @@ class MealPlanOut(Schema):
 class MealPlanDuplicateIn(Schema):
     name: str
     start_datetime: dt.datetime
+    end_datetime: dt.datetime
     norm_portions: int
 
 
@@ -508,6 +512,9 @@ class MealPlanDetailOut(Schema):
     nutritional_tag_ids: list[int] = []
     nutritional_tags: list[NutritionalTagOut] = []
     is_template: bool = False
+    meals_copied: int = 0
+    items_copied: int = 0
+    overrides_copied: int = 0
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -580,6 +587,8 @@ class ShoppingListItemOut(Schema):
     ingredient_name: str
     ingredient_slug: str = ""
     total_quantity_g: float
+    net_quantity_g: float = 0.0
+    reserve_quantity_g: float = 0.0
     unit: str = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
@@ -662,6 +671,7 @@ class RefMealOut(Schema):
     items: list[MealItemOut] = []
     synced_meals_count: int = 0
     total_meals_count: int = 0
+    synced_meal_count: int | None = None
 
     @staticmethod
     def resolve_synced_meals_count(obj) -> int:
@@ -670,6 +680,10 @@ class RefMealOut(Schema):
     @staticmethod
     def resolve_total_meals_count(obj) -> int:
         return obj.meal_plan.meals.filter(meal_type=obj.meal_type, is_reference=False).count()
+
+    @staticmethod
+    def resolve_synced_meal_count(obj) -> int | None:
+        return getattr(obj, "synced_meal_count", None)
 
 
 class LinkMealIn(Schema):

@@ -1,0 +1,98 @@
+"""Seed initial generic ingredient terms as generic aliases.
+
+Generic terms (e.g. "Salz", "Pfeffer", "Nudeln") are represented as
+`IngredientAlias` rows with `is_generic=True`. They are attached to a
+concrete representative ingredient (creating one if none exists yet) so
+that `get_generic_terms()` has a working single source of truth from the
+very first deploy.
+
+Usage:
+    uv run python manage.py seed_generic_terms
+    uv run python manage.py seed_generic_terms --dry-run
+"""
+
+from django.core.management.base import BaseCommand
+
+from supply.choices import IngredientStatusChoices
+from supply.models import Ingredient, IngredientAlias
+
+# term -> concrete representative ingredient name (created if missing)
+GENERIC_TERMS = {
+    "Salz": "Jodsalz",
+    "Pfeffer": "Schwarzer Pfeffer gemahlen",
+    "Nudeln": "Fusilli trocken",
+    "Wasser": "Leitungswasser",
+    "Öl": "Sonnenblumenöl",
+    "Mehl": "Weizenmehl 405",
+}
+
+
+class Command(BaseCommand):
+    help = "Seed initial generic ingredient terms as generic aliases"
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Show what would be created without making changes",
+        )
+
+    def handle(self, *args, **options):
+        dry_run = options["dry_run"]
+        created_count = 0
+        skipped_count = 0
+
+        for term, representative_name in GENERIC_TERMS.items():
+            ingredient = Ingredient.objects.filter(name__iexact=representative_name).first()
+            if not ingredient:
+                ingredient = (
+                    Ingredient.objects.filter(name__istartswith=term)
+                    .exclude(name__iexact=term)
+                    .order_by("name")
+                    .first()
+                )
+
+            if not ingredient:
+                if dry_run:
+                    self.stdout.write(f"[DRY-RUN] Would create ingredient '{representative_name}' for term '{term}'")
+                else:
+                    ingredient = Ingredient.objects.create(
+                        name=representative_name,
+                        status=IngredientStatusChoices.DRAFT,
+                    )
+                    self.stdout.write(f"Created ingredient '{representative_name}' for term '{term}'")
+
+            if not ingredient:
+                # Only happens in dry-run mode where no ingredient was created above.
+                skipped_count += 1
+                continue
+
+            existing = IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=term).exists()
+            if existing:
+                skipped_count += 1
+                continue
+
+            if dry_run:
+                self.stdout.write(f"[DRY-RUN] Would add generic alias '{term}' → '{ingredient.name}'")
+            else:
+                existing_ranks = set(ingredient.aliases.values_list("rank", flat=True))
+                rank = max(existing_ranks) + 1 if existing_ranks else 1
+                IngredientAlias.objects.create(
+                    ingredient=ingredient,
+                    name=term,
+                    rank=rank,
+                    is_generic=True,
+                )
+                self.stdout.write(f"Added generic alias '{term}' → '{ingredient.name}'")
+            created_count += 1
+
+        if dry_run:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Dry run complete. Would create {created_count} generic aliases, skip {skipped_count} existing."
+                )
+            )
+        else:
+            self.stdout.write(
+                self.style.SUCCESS(f"Created {created_count} generic aliases, skipped {skipped_count} existing.")
+            )

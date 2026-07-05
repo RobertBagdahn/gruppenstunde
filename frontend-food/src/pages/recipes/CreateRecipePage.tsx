@@ -102,9 +102,20 @@ export default function CreateRecipePage() {
         toast.success('Rezept importiert!', {
           description: `${validItems.length} Zutaten erkannt${data.created_ingredients.length > 0 ? `, ${data.created_ingredients.length} neu angelegt` : ''}. Sie werden mit dem Rezept gespeichert.`,
         });
+
+        const genericWarnings = data.created_ingredients.filter((ci) => ci.name_warning);
+        if (genericWarnings.length > 0) {
+          toast.warning('Zu generische Zutatennamen erkannt', {
+            description: genericWarnings.map((ci) => ci.name_warning).join(' '),
+            duration: 10000,
+          });
+        }
       },
       onError: (err: Error) => {
-        toast.error('Import fehlgeschlagen', { description: err.message });
+        toast.error('Import fehlgeschlagen', {
+          description: err.message,
+          // User stays in the URL input dialog to correct the source or cancel.
+        });
       },
     });
   }

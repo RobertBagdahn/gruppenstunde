@@ -29,6 +29,7 @@ class TestMealPlanNutritionalTags:
                 "description": "Ein cooler Plan",
                 "norm_portions": 15,
                 "reserve_factor": 1.2,
+                "start_datetime": "2026-07-10T08:00:00",
                 "nutritional_tag_ids": [tag_peanuts.id, tag_vegan.id],
             },
             content_type="application/json",
@@ -54,6 +55,7 @@ class TestMealPlanNutritionalTags:
             "/api/meal-plans/",
             {
                 "name": "Veganer Plan",
+                "start_datetime": "2026-07-10T08:00:00",
                 "nutritional_tag_ids": [tag_vegan.id],
             },
             content_type="application/json",

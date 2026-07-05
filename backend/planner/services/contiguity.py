@@ -8,15 +8,15 @@ from planner.models import Meal, MealPlan
 
 
 def validate_meal_plan_contiguity(meal_plan: MealPlan) -> None:
-    if not meal_plan.start_datetime or not meal_plan.end_datetime:
-        return
-
     start_date = meal_plan.start_datetime.date()
     end_date = meal_plan.end_datetime.date()
 
     existing_dates = set(
         Meal.objects.filter(meal_plan=meal_plan).values_list("start_datetime__date", flat=True).distinct()
     )
+
+    if not existing_dates:
+        return
 
     current = start_date
     while current <= end_date:
@@ -66,8 +66,9 @@ def smart_merge_days(meal_plan: MealPlan, new_start: dt.datetime, new_end: dt.da
 
 def shrink_range_on_delete(meal_plan: MealPlan, deleted_date: dt.date) -> None:
     if not meal_plan.start_datetime or not meal_plan.end_datetime:
-        meal_plan.start_datetime = None
-        meal_plan.end_datetime = None
+        fallback = dt.datetime.combine(deleted_date, dt.time(0, 0)).replace(tzinfo=dt.UTC)
+        meal_plan.start_datetime = fallback
+        meal_plan.end_datetime = fallback
         meal_plan.save(update_fields=["start_datetime", "end_datetime", "updated_at"])
         return
 
@@ -75,19 +76,19 @@ def shrink_range_on_delete(meal_plan: MealPlan, deleted_date: dt.date) -> None:
     end_date = meal_plan.end_datetime.date()
 
     if deleted_date == start_date:
-        # Find next day with meals
         next_date = _next_date_with_meals(meal_plan, start_date, end_date)
         if next_date is None:
-            meal_plan.start_datetime = None
-            meal_plan.end_datetime = None
+            fallback = dt.datetime.combine(deleted_date, dt.time(0, 0)).replace(tzinfo=dt.UTC)
+            meal_plan.start_datetime = fallback
+            meal_plan.end_datetime = fallback
         else:
             meal_plan.start_datetime = dt.datetime.combine(next_date, dt.time(0, 0)).replace(tzinfo=dt.UTC)
     elif deleted_date == end_date:
-        # Find previous day with meals
         prev_date = _prev_date_with_meals(meal_plan, end_date, start_date)
         if prev_date is None:
-            meal_plan.start_datetime = None
-            meal_plan.end_datetime = None
+            fallback = dt.datetime.combine(deleted_date, dt.time(0, 0)).replace(tzinfo=dt.UTC)
+            meal_plan.start_datetime = fallback
+            meal_plan.end_datetime = fallback
         else:
             meal_plan.end_datetime = dt.datetime.combine(prev_date, dt.time(23, 59)).replace(tzinfo=dt.UTC)
 

@@ -125,11 +125,25 @@ class RecipeAiIngredientsService:
 
         Returns list of (suggestion, ingredient_id, is_new) tuples.
         Creates missing ingredients with status='draft'.
+
+        Match order: exact name/slug/alias always has priority. As an
+        additional (never sole) path, a normalized (stemmed) comparison is
+        used so that singular/plural variants (e.g. "Zwiebel"/"Zwiebeln")
+        resolve to the same ingredient instead of creating a duplicate.
         """
         from supply.choices import IngredientStatusChoices
         from supply.models import Ingredient, IngredientAlias
+        from supply.services.term_normalization import normalize_term
 
         results: list[tuple[AiIngredientSuggestion, int, bool]] = []
+
+        # Build a normalized-name -> ingredient_id map once, used as a
+        # fallback match path (never the sole criterion for exact matches).
+        normalized_index: dict[str, int] = {}
+        for ing_id, ing_name in Ingredient.objects.values_list("id", "name"):
+            normalized_index.setdefault(normalize_term(ing_name), ing_id)
+        for alias_ing_id, alias_name in IngredientAlias.objects.values_list("ingredient_id", "name"):
+            normalized_index.setdefault(normalize_term(alias_name), alias_ing_id)
 
         for suggestion in suggestions:
             name_lower = suggestion.name.strip().lower()
@@ -151,6 +165,15 @@ class RecipeAiIngredientsService:
             # Try contains match as fallback
             if not ingredient:
                 ingredient = Ingredient.objects.filter(name__icontains=name_lower).first()
+
+            # Normalized (stemmed) match — additional path, never sole/automatic
+            # for ambiguous cases, but safe here since it still requires an
+            # exact stem match (e.g. protects "Tomate" vs "Tomatenmark").
+            if not ingredient:
+                normalized = normalize_term(suggestion.name)
+                matched_id = normalized_index.get(normalized) if normalized else None
+                if matched_id:
+                    ingredient = Ingredient.objects.filter(id=matched_id).first()
 
             if ingredient:
                 results.append((suggestion, ingredient.id, False))
@@ -283,8 +306,10 @@ class RecipeAiIngredientsService:
             "aus der Dose, eingelegt, gemahlen, gerieben, geröstet\n"
             "- Richtig: 'Zwiebel frisch', 'Erdbeere TK', 'Fusilli trocken', 'Tomaten aus der Dose'\n"
             "- FALSCH: 'Nudeln', 'Erdbeere', 'Zwiebel' (zu generisch)\n"
-            "- VERBOTEN: Zutaten mit 'und' im Namen (nie 'Salz und Pfeffer')\n"
-            "- WEGLASSEN: Salz, Pfeffer, Wasser (Grundausstattung, nicht einkaufen)\n"
+            "- VERBOTEN: Zutaten mit 'und' im Namen (nie 'Salz und Pfeffer' — stattdessen zwei "
+            "getrennte Zutaten)\n"
+            "- Salz, Pfeffer, Wasser NICHT weglassen, sondern konkretisieren und regulär mit "
+            "Menge angeben: 'Jodsalz', 'Schwarzer Pfeffer gemahlen', 'Leitungswasser'\n"
             "Gib nur die Zutaten zurück, keine Anleitung."
         )
 

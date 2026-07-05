@@ -85,7 +85,7 @@ class MealPlan(models.Model):
         related_name="meal_plans",
         verbose_name=_("Event"),
     )
-    start_datetime = models.DateTimeField(null=True, blank=True, verbose_name=_("Startdatum/-zeit"))
+    start_datetime = models.DateTimeField(verbose_name=_("Startdatum/-zeit"))
     end_datetime = models.DateTimeField(null=True, blank=True, verbose_name=_("Enddatum/-zeit"))
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -200,6 +200,24 @@ class MealPlan(models.Model):
             meals.append(meal)
         return meals
 
+    def _meal_times_for_type(self, meal_type: str) -> tuple[dt.time, dt.time]:
+        """Return (start_time, end_time) for a meal type from `meal_default_times`.
+
+        Falls back to the hardcoded `MEAL_TYPE_DEFAULT_TIMES` if `meal_default_times`
+        has no entry (or an invalid entry) for this meal type, keeping the backend
+        skip logic consistent with the frontend's `getMealDefaultTimes`.
+        """
+        raw_times = (self.meal_default_times or {}).get(meal_type)
+        if raw_times and len(raw_times) == 2:
+            try:
+                start_h, start_m = (int(part) for part in raw_times[0].split(":"))
+                end_h, end_m = (int(part) for part in raw_times[1].split(":"))
+                return dt.time(start_h, start_m), dt.time(end_h, end_m)
+            except (ValueError, AttributeError):
+                pass
+        times = MEAL_TYPE_DEFAULT_TIMES.get(meal_type, ((12, 0), (13, 0)))
+        return dt.time(times[0][0], times[0][1]), dt.time(times[1][0], times[1][1])
+
     def create_meals_for_date_timeaware(
         self, date: dt.date, is_first: bool = False, is_last: bool = False
     ) -> list["Meal"]:
@@ -217,9 +235,7 @@ class MealPlan(models.Model):
         )
 
         for meal_type in DEFAULT_MEAL_TYPES:
-            times = MEAL_TYPE_DEFAULT_TIMES.get(meal_type, ((12, 0), (13, 0)))
-            mt_start = dt.time(times[0][0], times[0][1])
-            mt_end = dt.time(times[1][0], times[1][1])
+            mt_start, mt_end = self._meal_times_for_type(meal_type)
 
             if is_first and mt_start < start_time:
                 continue

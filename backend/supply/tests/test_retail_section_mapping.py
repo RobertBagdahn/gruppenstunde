@@ -13,7 +13,7 @@ class TestMatchKeywords:
     """Test the keyword matching logic (no DB needed)."""
 
     def test_exact_match(self):
-        assert _match_keywords("SCHOKOLADE BIS 100 G") == "Süßwaren & Snacks"
+        assert _match_keywords("SCHOKOLADE BIS 100 G") == "Süßwaren"
 
     def test_substring_match(self):
         assert _match_keywords("ITALIENISCHE TEIGWAREN") == "Nudeln & Reis & Getreide"
@@ -48,7 +48,7 @@ class TestMatchKeywords:
         assert _match_keywords("GEMUESE DOSE") == "Gemüse"
 
     def test_tk(self):
-        assert _match_keywords("TK-PIZZA") == "Tiefkühl"
+        assert _match_keywords("TK-PIZZA") == "TK Fertiggerichte"
 
     def test_joghurt(self):
         assert _match_keywords("FRUCHTJOGHURT EINWEG") == "Milchprodukte & Käse"
@@ -57,7 +57,7 @@ class TestMatchKeywords:
         assert _match_keywords("KÄSE SCHEIBEN") == "Milchprodukte & Käse"
 
     def test_fleisch(self):
-        assert _match_keywords("HÄHNCHEN FILET") == "Fleisch & Fisch"
+        assert _match_keywords("HÄHNCHEN FILET") == "Fleisch & Wurst"
 
     def test_wurst(self):
         assert _match_keywords("DAUERWURST SB") == "Fleisch & Wurst"
@@ -84,7 +84,7 @@ class TestGetRetailSectionFromDescription:
     def test_rewe_description_chocolate(self):
         desc = "Ritter Sport - RITTER SPORT - Nuss Klasse - SCHOKOLADE UEBER 100 G"
         parts = desc.split(" - ")
-        assert _match_keywords(parts[-1].upper()) == "Süßwaren & Snacks"
+        assert _match_keywords(parts[-1].upper()) == "Süßwaren"
 
     def test_rewe_description_nudeln(self):
         desc = "Barilla Spaghetti 500g - BARILLA - Spaghetti - ITALIENISCHE TEIGWAREN"
@@ -98,7 +98,7 @@ class TestGetRetailSectionFromDescription:
 
     def test_no_dash_separator(self):
         # Single segment — tries full text
-        assert _match_keywords("SCHOKOLADE") == "Süßwaren & Snacks"
+        assert _match_keywords("SCHOKOLADE") == "Süßwaren"
 
 
 class TestGetRetailSectionFromName:
@@ -111,7 +111,7 @@ class TestGetRetailSectionFromName:
         assert _match_keywords("NUDELN, ROH") == "Nudeln & Reis & Getreide"
 
     def test_haehnchenfleisch(self):
-        assert _match_keywords("HÄHNCHENFLEISCH") == "Fleisch & Fisch"
+        assert _match_keywords("HÄHNCHENFLEISCH") == "Fleisch & Wurst"
 
     def test_cocktail_tomate(self):
         # "TOMATE" matches now (singular)
@@ -169,7 +169,7 @@ class TestGetRetailSectionIntegration:
         self.rs_oele = RetailSection.objects.get_or_create(name="Öle & Soßen", defaults={"rank": 1})[0]
         self.rs_gemuese = RetailSection.objects.get_or_create(name="Gemüse", defaults={"rank": 2})[0]
         self.rs_nudeln = RetailSection.objects.get_or_create(name="Nudeln & Reis & Getreide", defaults={"rank": 3})[0]
-        self.rs_suess = RetailSection.objects.get_or_create(name="Süßwaren & Snacks", defaults={"rank": 4})[0]
+        self.rs_suess = RetailSection.objects.get_or_create(name="Süßwaren", defaults={"rank": 4})[0]
         self.rs_backwaren = RetailSection.objects.get_or_create(name="Brot & Backwaren", defaults={"rank": 5})[0]
         self.rs_grund = RetailSection.objects.get_or_create(name="Grundnahrungsmittel", defaults={"rank": 6})[0]
 

@@ -7,6 +7,7 @@ from ninja import NinjaAPI
 from blog.api import router as blog_router
 from content.admin_api import router as admin_router
 from content.api import router as content_router
+from content.api.collaborators import router as content_collaborators_router
 from content.api.data_quality import admin_router as dq_admin_router
 from content.api.data_quality import public_router as dq_public_router
 from content.tags_api import scout_levels_router, tags_router
@@ -60,9 +61,9 @@ api.add_router("/admin/", admin_router)
 api.add_router("/admin/data-quality/", dq_admin_router)
 api.add_router("/data-quality/", dq_public_router)
 api.add_router("/planner/", planner_router)
-api.add_router("/meal-plans/", meal_plan_router)
-api.add_router("/meal-plans/", ref_meal_router)
 api.add_router("/meal-plans/", ai_suggest_router)
+api.add_router("/meal-plans/", ref_meal_router)
+api.add_router("/meal-plans/", meal_plan_router)
 api.add_router("/profile/", profile_router)
 api.add_router("/groups/", group_router)
 api.add_router("/events/", event_router)
@@ -96,6 +97,7 @@ api.add_router("/tags/", tags_router)
 api.add_router("/scout-levels/", scout_levels_router)
 api.add_router("/ingredient-statistics/", ingredient_statistics_router)
 api.add_router("/content/", content_router)
+api.add_router("/content-collaborators/", content_collaborators_router)
 
 
 def sitemap_xml(request):

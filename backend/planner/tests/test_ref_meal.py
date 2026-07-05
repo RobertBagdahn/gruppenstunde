@@ -288,3 +288,79 @@ class TestRefMealAPI:
         meal.refresh_from_db()
         assert meal.ref_meal is None
         assert meal.is_synced is False
+
+
+@pytest.mark.django_db
+class TestUpdateRefMealAutoSync:
+    def setup_method(self):
+        self.user = baker.make(User)
+        self.client = Client()
+        self.client.force_login(self.user)
+        self.plan = make_meal_plan(created_by=self.user)
+
+    def test_update_auto_syncs_linked_meals(self):
+        from recipe.tests import make_recipe
+
+        ref = _make_ref_meal(self.plan)
+        recipe = make_recipe()
+
+        synced_meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST)
+        synced_meal.ref_meal = ref
+        synced_meal.is_synced = True
+        synced_meal.save()
+
+        resp = self.client.put(
+            f"/api/meal-plans/{self.plan.id}/ref-meals/{ref.id}/",
+            data={"items": [{"recipe_id": recipe.id, "factor": 1.0}]},
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["synced_meal_count"] == 1
+
+        synced_meal.refresh_from_db()
+        items = list(synced_meal.items.all())
+        assert len(items) == 1
+        assert items[0].recipe_id == recipe.id
+
+    def test_update_leaves_unsynced_meal_untouched(self):
+        from recipe.tests import make_recipe
+
+        ref = _make_ref_meal(self.plan)
+        recipe = make_recipe()
+        other_recipe = make_recipe()
+
+        unsynced_meal = make_meal(meal_plan=self.plan, meal_type=MealTypeChoices.BREAKFAST)
+        unsynced_meal.ref_meal = ref
+        unsynced_meal.is_synced = False
+        unsynced_meal.save()
+        MealItem.objects.create(meal=unsynced_meal, recipe=other_recipe, factor=1.0)
+
+        resp = self.client.put(
+            f"/api/meal-plans/{self.plan.id}/ref-meals/{ref.id}/",
+            data={"items": [{"recipe_id": recipe.id, "factor": 1.0}]},
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.json()["synced_meal_count"] == 0
+
+        unsynced_meal.refresh_from_db()
+        items = list(unsynced_meal.items.all())
+        assert len(items) == 1
+        assert items[0].recipe_id == other_recipe.id
+
+    def test_update_without_edit_permission_returns_403(self):
+        ref = _make_ref_meal(self.plan)
+        viewer = baker.make(User)
+        from planner.models import MealPlanCollaborator
+
+        MealPlanCollaborator.objects.create(meal_plan=self.plan, user=viewer, role="viewer")
+
+        client = Client()
+        client.force_login(viewer)
+        resp = client.put(
+            f"/api/meal-plans/{self.plan.id}/ref-meals/{ref.id}/",
+            data={"items": []},
+            content_type="application/json",
+        )
+        assert resp.status_code == 403

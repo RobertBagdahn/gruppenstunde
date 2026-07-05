@@ -169,5 +169,32 @@
       "description": "",
       "rank": 19
     }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 20,
+    "fields": {
+      "name": "TK Fertiggerichte",
+      "description": "",
+      "rank": 20
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 21,
+    "fields": {
+      "name": "Fleischersatz",
+      "description": "",
+      "rank": 21
+    }
+  },
+  {
+    "model": "supply.retailsection",
+    "pk": 22,
+    "fields": {
+      "name": "Sonstiges",
+      "description": "",
+      "rank": 22
+    }
   }
 ]

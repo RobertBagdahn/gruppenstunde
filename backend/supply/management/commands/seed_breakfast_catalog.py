@@ -158,7 +158,7 @@ class Command(BaseCommand):
                         ingredient=ing,
                         measuring_unit=g_unit,
                         name=f"Scheibe ({weight_g}g)",
-                        defaults={"quantity": weight_g, "weight_g": weight_g, "is_default": True, "priority": 1},
+                        defaults={"quantity": weight_g, "weight_g": weight_g, "rank": 1},
                     )
 
             except Exception as e:
@@ -199,8 +199,7 @@ class Command(BaseCommand):
                             "measuring_unit": g_unit,
                             "quantity": knapp_g,
                             "weight_g": knapp_g,
-                            "is_default": False,
-                            "priority": 1,
+                            "rank": 2,
                         },
                     )
                     Portion.objects.get_or_create(
@@ -210,8 +209,7 @@ class Command(BaseCommand):
                             "measuring_unit": g_unit,
                             "quantity": normal_g,
                             "weight_g": normal_g,
-                            "is_default": True,
-                            "priority": 2,
+                            "rank": 1,
                         },
                     )
                     Portion.objects.get_or_create(
@@ -221,8 +219,7 @@ class Command(BaseCommand):
                             "measuring_unit": g_unit,
                             "quantity": uppig_g,
                             "weight_g": uppig_g,
-                            "is_default": False,
-                            "priority": 3,
+                            "rank": 3,
                         },
                     )
                     Portion.objects.get_or_create(
@@ -232,8 +229,7 @@ class Command(BaseCommand):
                             "measuring_unit": g_unit,
                             "quantity": package_g,
                             "weight_g": package_g,
-                            "is_default": False,
-                            "priority": 10,
+                            "rank": 4,
                         },
                     )
 
@@ -273,8 +269,7 @@ class Command(BaseCommand):
                             "measuring_unit": ml_unit,
                             "quantity": 200,
                             "weight_g": 200,
-                            "is_default": True,
-                            "priority": 1,
+                            "rank": 1,
                         },
                     )
                     Portion.objects.get_or_create(
@@ -284,8 +279,7 @@ class Command(BaseCommand):
                             "measuring_unit": ml_unit,
                             "quantity": 1000,
                             "weight_g": 1000,
-                            "is_default": False,
-                            "priority": 2,
+                            "rank": 2,
                         },
                     )
 

@@ -682,6 +682,7 @@ export default function IngredientDetailPage() {
   // Alias add
   const [showAddAlias, setShowAddAlias] = useState(false);
   const [newAliasName, setNewAliasName] = useState('');
+  const [newAliasIsGeneric, setNewAliasIsGeneric] = useState(false);
 
   // AI Suggest
   const [showAiSuggest, setShowAiSuggest] = useState(false);
@@ -881,11 +882,12 @@ export default function IngredientDetailPage() {
     const trimmed = newAliasName.trim();
     if (!trimmed) return;
     createAlias.mutate(
-      { name: trimmed },
+      { name: trimmed, is_generic: newAliasIsGeneric },
       {
         onSuccess: () => {
           toast.success('Alias hinzugefügt');
           setNewAliasName('');
+          setNewAliasIsGeneric(false);
           setShowAddAlias(false);
         },
         onError: (err) => toast.error('Fehler', { description: err.message }),
@@ -1211,22 +1213,32 @@ export default function IngredientDetailPage() {
         </div>
 
         {showAddAlias && (
-          <div className="flex gap-2 mb-4">
-            <input
-              value={newAliasName}
-              onChange={(e) => setNewAliasName(e.target.value)}
-              placeholder="Alternativer Name..."
-              className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAddAlias(); }}
-              autoFocus
-            />
-            <button
-              onClick={handleAddAlias}
-              disabled={!newAliasName.trim() || createAlias.isPending}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
-            >
-              Hinzufügen
-            </button>
+          <div className="flex flex-col gap-2 mb-4">
+            <div className="flex gap-2">
+              <input
+                value={newAliasName}
+                onChange={(e) => setNewAliasName(e.target.value)}
+                placeholder="Alternativer Name..."
+                className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddAlias(); }}
+                autoFocus
+              />
+              <button
+                onClick={handleAddAlias}
+                disabled={!newAliasName.trim() || createAlias.isPending}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
+              >
+                Hinzufügen
+              </button>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={newAliasIsGeneric}
+                onChange={(e) => setNewAliasIsGeneric(e.target.checked)}
+              />
+              Generischer Begriff (darf an mehreren Zutaten hängen, z.B. „Salz", „Pfeffer")
+            </label>
           </div>
         )}
 
@@ -1242,6 +1254,9 @@ export default function IngredientDetailPage() {
                 className="flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full text-sm group"
               >
                 {alias.name}
+                {alias.is_generic && (
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">generisch</span>
+                )}
                 {canEdit && (
                   <button
                     onClick={() => setDeleteAliasId(alias.id)}

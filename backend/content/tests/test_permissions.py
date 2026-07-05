@@ -240,7 +240,7 @@ class TestPortionPermissions:
 
         resp = client.post(
             f"/api/ingredients/{ing.slug}/portions/",
-            data=json.dumps({"name": "Stück", "measuring_unit_id": mu.id, "quantity": 1}),
+            data=json.dumps({"name": "Extra-Portion", "measuring_unit_id": mu.id, "quantity": 1}),
             content_type="application/json",
         )
         assert resp.status_code == 200

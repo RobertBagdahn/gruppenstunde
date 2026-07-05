@@ -21,6 +21,13 @@ if TYPE_CHECKING:
     from planner.models import MealPlan
 
 
+def _retail_section_rank_map() -> dict[str, int]:
+    """Name -> rank lookup for sorting the shopping list in store-walkthrough order."""
+    from supply.data.retail_sections import RETAIL_SECTIONS
+
+    return {entry["name"]: entry["rank"] for entry in RETAIL_SECTIONS}
+
+
 @dataclass
 class ShoppingItemSource:
     """Tracks where a portion of an ingredient came from."""
@@ -40,6 +47,8 @@ class ShoppingListItem:
     ingredient_name: str
     ingredient_slug: str = ""
     total_quantity_g: float = 0.0
+    net_quantity_g: float = 0.0
+    reserve_quantity_g: float = 0.0
     unit: str = "g"
     retail_section: str = ""
     estimated_price_eur: float | None = None
@@ -287,8 +296,12 @@ def generate_shopping_list(
             item.estimated_price_eur = float(price)
 
     # Round quantities to avoid floating point artifacts
+    reserve_factor = meal_plan.reserve_factor or 1.0
     for item in aggregated.values():
         item.total_quantity_g = round(item.total_quantity_g, 2)
+        # Net/reserve breakdown: total is rounding-authoritative, reserve = total - net
+        item.net_quantity_g = round(item.total_quantity_g / reserve_factor, 2)
+        item.reserve_quantity_g = round(item.total_quantity_g - item.net_quantity_g, 2)
         if item.sources:
             for source in item.sources:
                 source.quantity_g = round(source.quantity_g, 2)
@@ -296,10 +309,11 @@ def generate_shopping_list(
     # Add display_quantity and natural_portions
     _enrich_display_fields(aggregated, raw_quantities)
 
-    # Sort by retail section, then name
+    # Sort by retail section rank (Laden-Rundgang), then name
+    rank_by_name = _retail_section_rank_map()
     result = sorted(
         aggregated.values(),
-        key=lambda x: (x.retail_section, x.ingredient_name),
+        key=lambda x: (rank_by_name.get(x.retail_section, 999), x.retail_section, x.ingredient_name),
     )
     return result
 

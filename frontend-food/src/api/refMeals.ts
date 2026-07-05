@@ -106,8 +106,10 @@ export function useCreateRefMeal(planId: number) {
 export function useUpdateRefMeal(planId: number, refMealId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: RefMealUpdateIn) =>
-      putJson(`${API_BASE}/${planId}/ref-meals/${refMealId}/`, data),
+    mutationFn: async (data: RefMealUpdateIn) => {
+      const result = await putJson(`${API_BASE}/${planId}/ref-meals/${refMealId}/`, data);
+      return RefMealSchema.parse(result);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
       queryClient.invalidateQueries({ queryKey: ['refMeal', planId, refMealId] });

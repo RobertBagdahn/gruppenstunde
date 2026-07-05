@@ -19,6 +19,8 @@ interface TransientShoppingItem {
   ingredient_name: string;
   ingredient_slug?: string;
   total_quantity_g: number;
+  net_quantity_g?: number;
+  reserve_quantity_g?: number;
   unit: string;
   retail_section: string;
   estimated_price_eur: number | null;
@@ -29,7 +31,15 @@ interface TransientShoppingItem {
   sources?: Array<{ recipe_id?: number | null; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
 }
 
-function ShoppingItemWithSources({ item, violations }: { item: TransientShoppingItem; violations: NutritionalTagViolation[] }) {
+function ShoppingItemWithSources({
+  item,
+  violations,
+  showReserve,
+}: {
+  item: TransientShoppingItem;
+  violations: NutritionalTagViolation[];
+  showReserve: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [portionsExpanded, setPortionsExpanded] = useState(false);
   const hasSources = item.sources && item.sources.length > 0;
@@ -72,7 +82,14 @@ function ShoppingItemWithSources({ item, violations }: { item: TransientShopping
           )}
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
-          <span>{item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g || 0)} ${item.unit}`}</span>
+          <span>
+            {item.display_quantity || item.display_text || `${Math.round(item.total_quantity_g || 0)} ${item.unit}`}
+            {showReserve && (item.reserve_quantity_g || 0) > 0 && (
+              <span className="text-xs text-muted-foreground/70">
+                {' '}(inkl. Reserve {Math.round(item.reserve_quantity_g || 0)} {item.unit})
+              </span>
+            )}
+          </span>
           {item.natural_portions && (
             <button
               type="button"
@@ -155,6 +172,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
   const { data, error, isLoading, refetch } = useShoppingList(mealPlanId);
   const { data: scanData } = useIngredientScan(mealPlanId);
   const createFromMealPlan = useCreateFromMealPlan();
+  const [showReserve, setShowReserve] = useState(false);
 
   if (error) return <ErrorDisplay error={error} variant="inline" onRetry={() => refetch()} />;
   if (isLoading) return <div className="h-48 bg-muted rounded-xl animate-pulse" />;
@@ -180,6 +198,17 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
 
   return (
     <div className="space-y-4">
+      {/* Reserve breakdown toggle */}
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => setShowReserve(!showReserve)}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+        >
+          {showReserve ? 'Reserve-Anteil ausblenden' : 'Reserve-Anteil anzeigen'}
+        </button>
+      </div>
+
       {/* Export to persistent shopping list */}
       {currentUser && (
         <button
@@ -218,7 +247,7 @@ export default function ShoppingView({ mealPlanId }: { mealPlanId: number }) {
           </div>
           <div className="divide-y">
             {items.map((item, idx) => (
-              <ShoppingItemWithSources key={idx} item={item} violations={scanData?.violations || []} />
+              <ShoppingItemWithSources key={idx} item={item} violations={scanData?.violations || []} showReserve={showReserve} />
             ))}
           </div>
         </div>

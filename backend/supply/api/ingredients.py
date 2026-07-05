@@ -45,6 +45,114 @@ logger = logging.getLogger(__name__)
 ingredient_router = Router(tags=["ingredients"])
 
 
+def _is_staff_or_admin_user(user) -> bool:
+    """Check if user is Django-staff or has a staff/admin profile role."""
+    if not user.is_authenticated:
+        return False
+    if user.is_staff:
+        return True
+    try:
+        return user.profile.role in ("staff", "admin")
+    except AttributeError:
+        return False
+
+
+def _shared_ingredient_ids(user) -> list[int]:
+    """IDs of ingredients shared with `user` via ContentCollaborator (any role)."""
+    if not user.is_authenticated:
+        return []
+    from django.contrib.contenttypes.models import ContentType
+
+    from content.models import ContentCollaborator
+
+    ct = ContentType.objects.get_for_model(Ingredient)
+    return list(
+        ContentCollaborator.objects.filter(content_type=ct, user=user).values_list("object_id", flat=True)
+    )
+
+
+def _can_view_ingredient(ingredient: Ingredient, request) -> bool:
+    """Whether the requesting user may see this ingredient (incl. transitive access)."""
+    if ingredient.status != "draft":
+        return True
+    user = request.user
+    if not user.is_authenticated:
+        return False
+    if _is_staff_or_admin_user(user):
+        return True
+    if ingredient.created_by_id == user.id:
+        return True
+    if ingredient.id in _shared_ingredient_ids(user):
+        return True
+    from content.services.transitive_visibility import ingredient_visible_transitively
+
+    return ingredient_visible_transitively(ingredient, request.user)
+
+
+def _has_editor_collab_access(ingredient: Ingredient, user) -> bool:
+    """Whether `user` has an editor/admin ContentCollaborator role on `ingredient`."""
+    from django.contrib.contenttypes.models import ContentType
+
+    from content.models import ContentCollaborator, ContentCollaboratorRole
+
+    ct = ContentType.objects.get_for_model(Ingredient)
+    return ContentCollaborator.objects.filter(
+        content_type=ct,
+        object_id=ingredient.id,
+        user=user,
+        role__in=[ContentCollaboratorRole.EDITOR, ContentCollaboratorRole.ADMIN],
+    ).exists()
+
+
+def _can_edit_ingredient(ingredient: Ingredient, user) -> bool:
+    """Whether `user` may edit/delete this ingredient's own fields."""
+    if not user.is_authenticated:
+        return False
+    if _is_staff_or_admin_user(user):
+        return True
+    if ingredient.status == "verified":
+        return False
+    if ingredient.created_by_id == user.id:
+        return True
+    return _has_editor_collab_access(ingredient, user)
+
+
+def _can_edit_portions(ingredient: Ingredient, user) -> bool:
+    """Whether `user` may add/edit portions on this ingredient.
+
+    Drafts are owner/collaborator-only; verified ingredients are locked to
+    staff; any other status (e.g. community-submitted) is open to any
+    authenticated user, consistent with crowd-sourced portion sizes.
+    """
+    if not user.is_authenticated:
+        return False
+    if _is_staff_or_admin_user(user):
+        return True
+    if ingredient.status == "verified":
+        return False
+    if ingredient.status == "draft":
+        if ingredient.created_by_id == user.id:
+            return True
+        return _has_editor_collab_access(ingredient, user)
+    return True
+
+
+def _visible_ingredients_qs(request):
+    """Base queryset of ingredients visible to the requesting user (hides drafts)."""
+    qs = Ingredient.objects.select_related("retail_section").prefetch_related("groups")
+    user = request.user
+    if user.is_authenticated and _is_staff_or_admin_user(user):
+        return qs
+
+    not_draft_q = ~Q(status="draft")
+    if not user.is_authenticated:
+        return qs.filter(not_draft_q)
+
+    own_q = Q(created_by_id=user.id)
+    shared_q = Q(id__in=_shared_ingredient_ids(user))
+    return qs.filter(not_draft_q | own_q | shared_q).distinct()
+
+
 # ===========================================================================
 # Ingredient CRUD
 # ===========================================================================
@@ -65,11 +173,7 @@ def list_ingredients(
     """List ingredients with pagination, filters, and ordering."""
     from django.db.models import Count, F
 
-    qs = (
-        Ingredient.objects.select_related("retail_section")
-        .prefetch_related("groups")
-        .all()
-    )
+    qs = _visible_ingredients_qs(request)
 
     if name:
         qs = qs.filter(
@@ -133,6 +237,17 @@ def suggest_ingredients(request, q: str = "", limit: int = Query(default=5, le=5
     return do_suggest(query=q, limit=limit)
 
 
+@ingredient_router.get("/generic-terms/", response=list[str])
+def list_generic_terms(request):
+    """List all generic ingredient terms (e.g. 'Salz', 'Pfeffer', 'Nudeln').
+
+    Used by the frontend to warn users when a name they enter is too generic.
+    """
+    from supply.services.generic_terms import get_generic_terms
+
+    return sorted(get_generic_terms())
+
+
 @ingredient_router.post("/ai-create/", response=IngredientDetailOut)
 def ai_create(request, payload: IngredientAiCreateIn):
     """Create a complete ingredient from just a name using AI."""
@@ -153,6 +268,8 @@ def get_ingredient(request, slug: str):
         ),
         slug=slug,
     )
+    if not _can_view_ingredient(ingredient, request):
+        raise HttpError(404, "Zutat nicht gefunden")
     return ingredient
 
 
@@ -161,7 +278,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
     """Create a new ingredient."""
     require_auth(request)
 
-    data = payload.dict(exclude={"nutritional_tag_ids"})
+    data = payload.dict(exclude={"nutritional_tag_ids", "group_ids"})
     data["retail_section_id"] = data.pop("retail_section_id", None)
 
     if not data["retail_section_id"]:
@@ -203,11 +320,11 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
 
-    if not request.user.is_staff and ingredient.created_by_id != request.user.id:
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat bearbeiten")
 
     data_preview = payload.dict(exclude_unset=True)
-    if data_preview.get("status") == "verified" and not request.user.is_staff:
+    if data_preview.get("status") == "verified" and not _is_staff_or_admin_user(request.user):
         raise HttpError(403, "Nur Admins können den Status auf 'verified' setzen")
 
     nutritional_fields = {
@@ -263,7 +380,7 @@ def delete_ingredient(request, slug: str):
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
 
-    if not request.user.is_staff and ingredient.created_by_id != request.user.id:
+    if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat löschen")
 
     from recipe.models import Recipe, RecipeItem
@@ -312,6 +429,9 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     ingredient = get_object_or_404(Ingredient, slug=slug)
     name = payload.name.strip()
 
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat anzulegen")
+
     # Check for duplicate names (case-insensitive, excluding soft-deleted)
     if Portion.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
         raise HttpError(422, f"Portionsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
@@ -343,6 +463,9 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
+
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, diese Portion zu bearbeiten")
 
     data = payload.dict(exclude_unset=True)
     if "name" in data:
@@ -490,6 +613,11 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
     if IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=name).exists():
         raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
 
+    # Non-generic aliases must be globally unique (across all ingredients).
+    # Generic aliases (e.g. "Salz", "Pfeffer") are exempt and may be reused.
+    if not payload.is_generic and IngredientAlias.objects.filter(name__iexact=name, is_generic=False).exists():
+        raise HttpError(409, f"Alias '{name}' wird bereits für eine andere Zutat verwendet.")
+
     # Also reject if alias matches the ingredient name itself
     if ingredient.name.lower() == name.lower():
         raise HttpError(409, "Alias darf nicht identisch mit dem Zutatennamen sein.")
@@ -512,6 +640,7 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
                     ingredient=ingredient,
                     name=name,
                     rank=rank,
+                    is_generic=payload.is_generic,
                     created_by=request.user,
                 )
                 alias.save()
@@ -520,6 +649,8 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
             # Check if name became duplicate during concurrent requests
             if IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=name).exists():
                 raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
+            if not payload.is_generic and IngredientAlias.objects.filter(name__iexact=name, is_generic=False).exists():
+                raise HttpError(409, f"Alias '{name}' wird bereits für eine andere Zutat verwendet.")
 
             if attempt == max_attempts - 1:
                 raise HttpError(500, "Konnte Alias nicht erstellen – bitte erneut versuchen.")

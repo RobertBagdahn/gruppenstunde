@@ -303,6 +303,14 @@ class IngredientAlias(models.Model):
         help_text=_("Alternativer Name für die Zutat"),
     )
     rank = models.IntegerField(default=1)
+    is_generic = models.BooleanField(
+        default=False,
+        verbose_name=_("Generisch"),
+        help_text=_(
+            "Generische Aliase (z.B. 'Salz', 'Pfeffer', 'Nudeln') dürfen an mehreren Zutaten hängen "
+            "und unterliegen keiner Namens-Eindeutigkeit."
+        ),
+    )
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -330,8 +338,8 @@ class IngredientAlias(models.Model):
         constraints = [
             models.UniqueConstraint(
                 Lower("name"),
-                "ingredient",
-                name="unique_alias_name_per_ingredient",
+                name="unique_alias_name_when_not_generic",
+                condition=Q(is_generic=False),
             ),
         ]
 

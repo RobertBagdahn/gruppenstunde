@@ -258,7 +258,8 @@ def ai_suggest_ingredients(request, recipe_id: int):
         raise HttpError(403, "Keine Berechtigung")
 
     from recipe.services.ai_ingredients_service import RecipeAiIngredientsService
-    from supply.models import IngredientAlias
+    from supply.models import Ingredient, IngredientAlias
+    from supply.services.term_normalization import normalize_term
 
     service = RecipeAiIngredientsService()
     results = service.get_full_suggestions(recipe, user=request.user)
@@ -280,7 +281,19 @@ def ai_suggest_ingredients(request, recipe_id: int):
     )
     all_excluded_ids = existing_ingredient_ids | alias_ingredient_ids
 
-    filtered = [r for r in results if r.ingredient_id not in all_excluded_ids]
+    # Also exclude via normalized (stemmed) name comparison, so plural/singular
+    # variants without a maintained alias (e.g. "Zwiebeln" vs "Zwiebel") are not
+    # suggested again as a duplicate.
+    existing_normalized_names = {
+        normalize_term(name)
+        for name in Ingredient.objects.filter(id__in=existing_ingredient_ids).values_list("name", flat=True)
+    }
+
+    filtered = [
+        r
+        for r in results
+        if r.ingredient_id not in all_excluded_ids and normalize_term(r.ingredient_name) not in existing_normalized_names
+    ]
 
     return [
         {

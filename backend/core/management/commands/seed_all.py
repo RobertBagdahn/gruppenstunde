@@ -376,29 +376,18 @@ class Command(BaseCommand):
             )
 
         # --- RetailSections ---
+        from supply.data.retail_sections import RETAIL_SECTIONS
         from supply.models import NutritionalTag, RetailSection
 
-        retail_sections_data = [
-            {"name": "Obst & Gemüse", "description": "Frisches Obst und Gemüse", "rank": 1},
-            {"name": "Milchprodukte", "description": "Milch, Käse, Joghurt, Butter", "rank": 2},
-            {"name": "Fleisch & Wurst", "description": "Frisches Fleisch und Wurstwaren", "rank": 3},
-            {"name": "Backwaren", "description": "Brot, Brötchen, Kuchen", "rank": 4},
-            {"name": "Getreide & Teigwaren", "description": "Mehl, Nudeln, Reis, Haferflocken", "rank": 5},
-            {"name": "Gewürze & Öle", "description": "Gewürze, Kräuter, Speiseöle", "rank": 6},
-            {"name": "Getränke", "description": "Wasser, Säfte, Tee", "rank": 7},
-            {"name": "Tiefkühl", "description": "Tiefgekühlte Lebensmittel", "rank": 8},
-            {"name": "Konserven", "description": "Dosenware, eingelegtes Gemüse", "rank": 9},
-            {"name": "Süßwaren & Snacks", "description": "Schokolade, Kekse, Chips", "rank": 10},
-            {"name": "Grundnahrungsmittel", "description": "Zucker, Salz, Hefe, Backpulver", "rank": 11},
-            {"name": "Hülsenfrüchte & Nüsse", "description": "Linsen, Bohnen, Mandeln, Walnüsse", "rank": 12},
-        ]
-
         retail_section_map = {}
-        for rs_data in retail_sections_data:
+        for rs_data in RETAIL_SECTIONS:
             rs = RetailSection.objects.filter(name=rs_data["name"]).first()
             if not rs:
                 rs = RetailSection.objects.create(**rs_data)
                 self.stdout.write(f"  + RetailSection: {rs_data['name']}")
+            elif rs.rank != rs_data["rank"]:
+                rs.rank = rs_data["rank"]
+                rs.save(update_fields=["rank"])
             retail_section_map[rs_data["name"]] = rs
 
         # --- NutritionalTags ---
@@ -477,7 +466,7 @@ class Command(BaseCommand):
                 "fibre_g": 3.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("0.89"),
-                "retail_section": "Getreide & Teigwaren",
+                "retail_section": "Nudeln & Reis & Getreide",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
             # Butter was removed from seed_all; created by seed_breakfast_catalog
@@ -494,7 +483,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.11,
                 "price_per_kg": Decimal("1.09"),
-                "retail_section": "Milchprodukte",
+                "retail_section": "Milchprodukte & Käse",
                 "tags": ["vegetarisch", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -510,7 +499,7 @@ class Command(BaseCommand):
                 "fibre_g": 1.4,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.98"),
-                "retail_section": "Getreide & Teigwaren",
+                "retail_section": "Nudeln & Reis & Getreide",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -526,7 +515,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.37,
                 "price_per_kg": Decimal("3.45"),
-                "retail_section": "Milchprodukte",
+                "retail_section": "Milchprodukte & Käse",
                 "tags": ["vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "sojafrei"],
             },
             {
@@ -542,7 +531,7 @@ class Command(BaseCommand):
                 "fibre_g": 3.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.38"),
-                "retail_section": "Getreide & Teigwaren",
+                "retail_section": "Nudeln & Reis & Getreide",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "sojafrei"],
             },
             {
@@ -558,7 +547,7 @@ class Command(BaseCommand):
                 "fibre_g": 1.0,
                 "salt_g": 0.05,
                 "price_per_kg": Decimal("1.73"),
-                "retail_section": "Konserven",
+                "retail_section": "Konserven & Gläser",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -574,7 +563,7 @@ class Command(BaseCommand):
                 "fibre_g": 1.4,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.49"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -590,7 +579,7 @@ class Command(BaseCommand):
                 "fibre_g": 2.1,
                 "salt_g": 0.02,
                 "price_per_kg": Decimal("7.90"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -606,7 +595,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.0,
                 "price_per_kg": Decimal("7.98"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Öle & Soßen",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -622,7 +611,7 @@ class Command(BaseCommand):
                 "fibre_g": 2.1,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.29"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -638,7 +627,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 2.0,
                 "price_per_kg": Decimal("8.90"),
-                "retail_section": "Milchprodukte",
+                "retail_section": "Milchprodukte & Käse",
                 "tags": ["vegetarisch", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -654,7 +643,7 @@ class Command(BaseCommand):
                 "fibre_g": 10.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.78"),
-                "retail_section": "Getreide & Teigwaren",
+                "retail_section": "Nudeln & Reis & Getreide",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -670,7 +659,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.0,
                 "price_per_kg": Decimal("1.15"),
-                "retail_section": "Grundnahrungsmittel",
+                "retail_section": "Brot & Backwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -686,7 +675,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 100.0,
                 "price_per_kg": Decimal("0.49"),
-                "retail_section": "Grundnahrungsmittel",
+                "retail_section": "Gewürze & Kräuter",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -702,7 +691,7 @@ class Command(BaseCommand):
                 "fibre_g": 1.7,
                 "salt_g": 0.0,
                 "price_per_kg": Decimal("3.99"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -718,7 +707,7 @@ class Command(BaseCommand):
                 "fibre_g": 7.0,
                 "salt_g": 1.2,
                 "price_per_kg": Decimal("2.78"),
-                "retail_section": "Backwaren",
+                "retail_section": "Brot & Backwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -735,7 +724,7 @@ class Command(BaseCommand):
                 "salt_g": 0.0,
                 "fruit_factor": 1.0,
                 "price_per_kg": Decimal("2.49"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Obst",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             # Honig was removed from seed_all; created by seed_breakfast_catalog
@@ -752,7 +741,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.13,
                 "price_per_kg": Decimal("1.58"),
-                "retail_section": "Milchprodukte",
+                "retail_section": "Milchprodukte & Käse",
                 "tags": ["vegetarisch", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             # --- 30 additional ingredients ---
@@ -770,7 +759,7 @@ class Command(BaseCommand):
                 "salt_g": 0.08,
                 "fruit_factor": 0.0,
                 "price_per_kg": Decimal("1.29"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -786,7 +775,7 @@ class Command(BaseCommand):
                 "fibre_g": 1.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("2.49"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -803,7 +792,7 @@ class Command(BaseCommand):
                 "salt_g": 0.0,
                 "fruit_factor": 1.0,
                 "price_per_kg": Decimal("1.49"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Obst",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -819,7 +808,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.7,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.59"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -835,7 +824,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.07,
                 "price_per_kg": Decimal("3.98"),
-                "retail_section": "Milchprodukte",
+                "retail_section": "Milchprodukte & Käse",
                 "tags": ["vegetarisch", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -851,7 +840,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.7,
                 "price_per_kg": Decimal("4.95"),
-                "retail_section": "Milchprodukte",
+                "retail_section": "Milchprodukte & Käse",
                 "tags": ["vegetarisch", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -931,7 +920,7 @@ class Command(BaseCommand):
                 "fibre_g": 6.0,
                 "salt_g": 0.6,
                 "price_per_kg": Decimal("2.38"),
-                "retail_section": "Konserven",
+                "retail_section": "Konserven & Gläser",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -947,7 +936,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.03,
                 "price_per_kg": Decimal("3.48"),
-                "retail_section": "Konserven",
+                "retail_section": "Konserven & Gläser",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -963,7 +952,7 @@ class Command(BaseCommand):
                 "fibre_g": 2.0,
                 "salt_g": 0.4,
                 "price_per_kg": Decimal("2.49"),
-                "retail_section": "Konserven",
+                "retail_section": "Konserven & Gläser",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -979,7 +968,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.0,
                 "price_per_kg": Decimal("2.29"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Öle & Soßen",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -995,7 +984,7 @@ class Command(BaseCommand):
                 "fibre_g": 4.0,
                 "salt_g": 1.5,
                 "price_per_kg": Decimal("5.53"),
-                "retail_section": "Konserven",
+                "retail_section": "Konserven & Gläser",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1011,7 +1000,7 @@ class Command(BaseCommand):
                 "fibre_g": 25.0,
                 "salt_g": 0.04,
                 "price_per_kg": Decimal("19.80"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Gewürze & Kräuter",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1027,7 +1016,7 @@ class Command(BaseCommand):
                 "fibre_g": 53.0,
                 "salt_g": 0.03,
                 "price_per_kg": Decimal("15.80"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Gewürze & Kräuter",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1043,7 +1032,7 @@ class Command(BaseCommand):
                 "fibre_g": 8.0,
                 "salt_g": 0.05,
                 "price_per_kg": Decimal("2.33"),
-                "retail_section": "Milchprodukte",
+                "retail_section": "Brot & Backwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1059,7 +1048,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 28.0,
                 "price_per_kg": Decimal("6.60"),
-                "retail_section": "Grundnahrungsmittel",
+                "retail_section": "Brot & Backwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1108,7 +1097,7 @@ class Command(BaseCommand):
                 "fibre_g": 10.0,
                 "salt_g": 0.02,
                 "price_per_kg": Decimal("7.90"),
-                "retail_section": "Süßwaren & Snacks",
+                "retail_section": "Süßwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei"],
             },
             {
@@ -1124,7 +1113,7 @@ class Command(BaseCommand):
                 "fibre_g": 4.0,
                 "salt_g": 4.5,
                 "price_per_kg": Decimal("3.60"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Öle & Soßen",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1140,7 +1129,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.8,
                 "salt_g": 2.5,
                 "price_per_kg": Decimal("2.98"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Öle & Soßen",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1156,7 +1145,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.5,
                 "salt_g": 48.0,
                 "price_per_kg": Decimal("11.80"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Gewürze & Kräuter",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei"],
             },
             {
@@ -1172,7 +1161,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 15.0,
                 "price_per_kg": Decimal("5.90"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Öle & Soßen",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei"],
             },
             {
@@ -1189,7 +1178,7 @@ class Command(BaseCommand):
                 "salt_g": 0.0,
                 "fruit_factor": 1.0,
                 "price_per_kg": Decimal("3.98"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Obst",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1205,7 +1194,7 @@ class Command(BaseCommand):
                 "fibre_g": 5.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.89"),
-                "retail_section": "Tiefkühl",
+                "retail_section": "TK Obst & Gemüse",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1221,7 +1210,7 @@ class Command(BaseCommand):
                 "fibre_g": 2.5,
                 "salt_g": 1.2,
                 "price_per_kg": Decimal("4.50"),
-                "retail_section": "Backwaren",
+                "retail_section": "Brot & Backwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1237,7 +1226,7 @@ class Command(BaseCommand):
                 "fibre_g": 9.0,
                 "salt_g": 0.03,
                 "price_per_kg": Decimal("3.98"),
-                "retail_section": "Getreide & Teigwaren",
+                "retail_section": "Nudeln & Reis & Getreide",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "eifrei", "sojafrei"],
             },
             {
@@ -1253,7 +1242,7 @@ class Command(BaseCommand):
                 "fibre_g": 20.0,
                 "salt_g": 0.08,
                 "price_per_kg": Decimal("15.00"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Gewürze & Kräuter",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1269,7 +1258,7 @@ class Command(BaseCommand):
                 "fibre_g": 10.5,
                 "salt_g": 0.17,
                 "price_per_kg": Decimal("18.00"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Gewürze & Kräuter",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1285,7 +1274,7 @@ class Command(BaseCommand):
                 "fibre_g": 27.0,
                 "salt_g": 0.08,
                 "price_per_kg": Decimal("20.00"),
-                "retail_section": "Gewürze & Öle",
+                "retail_section": "Gewürze & Kräuter",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1301,7 +1290,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.2,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("1.29"),
-                "retail_section": "Getränke",
+                "retail_section": "Alkoholfreie Getränke",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1317,7 +1306,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("15.00"),
-                "retail_section": "Getränke",
+                "retail_section": "Kaffee und Tee",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1333,7 +1322,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("0.35"),
-                "retail_section": "Getränke",
+                "retail_section": "Alkoholfreie Getränke",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             # --- Breakfast-specific ingredients (created by seed_breakfast_catalog) ---
@@ -1353,7 +1342,7 @@ class Command(BaseCommand):
                 "fibre_g": 0.0,
                 "salt_g": 2.5,
                 "price_per_kg": Decimal("35.00"),
-                "retail_section": "Fleisch & Wurst",
+                "retail_section": "Fisch",
                 "tags": ["glutenfrei", "laktosefrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1369,7 +1358,7 @@ class Command(BaseCommand):
                 "fibre_g": 3.0,
                 "salt_g": 1.1,
                 "price_per_kg": Decimal("2.80"),
-                "retail_section": "Backwaren",
+                "retail_section": "Brot & Backwaren",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
             {
@@ -1385,7 +1374,7 @@ class Command(BaseCommand):
                 "fibre_g": 2.0,
                 "salt_g": 0.01,
                 "price_per_kg": Decimal("2.50"),
-                "retail_section": "Obst & Gemüse",
+                "retail_section": "Obst",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
                 "fruit_factor": 1.0,
             },
@@ -1402,7 +1391,7 @@ class Command(BaseCommand):
                 "fibre_g": 33.0,
                 "salt_g": 0.02,
                 "price_per_kg": Decimal("7.50"),
-                "retail_section": "Süßwaren & Snacks",
+                "retail_section": "Kaffee und Tee",
                 "tags": ["vegan", "vegetarisch", "laktosefrei", "glutenfrei", "nussfrei", "eifrei", "sojafrei"],
             },
         ]

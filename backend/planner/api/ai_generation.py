@@ -24,7 +24,7 @@ ai_service = MealPlanAiService()
 
 
 @ai_suggest_router.post(
-    "/ai-suggest/",
+    "/ai/suggest/",
     response={200: AiSuggestOut},
     summary="Generate AI meal plan suggestions",
     description="Takes a free-text prompt and parameters, returns structured meal plan suggestions using existing recipes.",

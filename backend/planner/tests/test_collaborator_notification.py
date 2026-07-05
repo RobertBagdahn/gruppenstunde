@@ -1,10 +1,12 @@
 """Tests for collaborator email notification."""
 
+import datetime as dt
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.utils import timezone
 
 from planner.models import MealPlan, MealPlanCollaborator
 
@@ -19,6 +21,7 @@ class TestCollaboratorNotification:
             slug="testplan",
             norm_portions=10,
             created_by=owner,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
         )
 
     def test_email_sent_on_add(self, client: Client):

@@ -18,7 +18,8 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.db.models import Q
 from pydantic import BaseModel, Field
 
-from core.services.gemini import gemini_call
+from core.services.gemini import GeminiUnavailableError, gemini_call
+from recipe.services.exceptions import NoRecipeFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -220,22 +221,24 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
     from recipe.services.import_service import import_from_url
 
     # Step 1: Fetch and parse (schema.org / fallback)
-    try:
-        parsed = import_from_url(url)
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"URL konnte nicht geladen werden: {e}")
+    # `import_from_url` raises `SourceUnreachableError`/`NoRecipeFoundError`
+    # directly; let them propagate to the API layer unchanged.
+    parsed = import_from_url(url)
 
     # Step 2: Pre-filter ingredients via text search
     ingredient_candidates = _get_ingredient_candidates(parsed.ingredients)
 
     # Step 3: Gemini call for matching + enrichment
+    # `GeminiUnavailableError`/`GeminiAuthError` propagate unchanged from
+    # `_call_gemini_for_matching` (via `gemini_call`).
     gemini_result = _call_gemini_for_matching(
         parsed=parsed,
         candidates=ingredient_candidates,
         user=user,
     )
+
+    if not (gemini_result.title or parsed.title) and not gemini_result.ingredients and not parsed.ingredients:
+        raise NoRecipeFoundError("Keine verwertbaren Rezeptdaten gefunden")
 
     # Step 4: Create new ingredients
     created_ingredients = _create_new_ingredients(gemini_result.ingredients)
@@ -547,7 +550,7 @@ Antworte ausschließlich im angegebenen JSON-Format."""
     )
 
     if response is None:
-        raise ValueError("KI-Service nicht verfügbar")
+        raise GeminiUnavailableError()
 
     return GeminiRecipeExtraction.model_validate_json(response.text)
 
@@ -563,8 +566,20 @@ def _create_new_ingredients(
     """Create new Ingredient records for unmatched items."""
     from supply.choices import IngredientStatusChoices, PhysicalViscosityChoices
     from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Portion
+    from supply.services.generic_terms import generic_name_warning
+    from supply.services.term_normalization import normalize_term
 
     created: list[dict[str, Any]] = []
+
+    # Normalized-name -> ingredient_id map, used as a fallback reuse path
+    # (never the sole criterion) so singular/plural variants (e.g.
+    # "Kartoffel"/"Kartoffeln") reuse the existing ingredient instead of
+    # creating a duplicate.
+    normalized_index: dict[str, int] = {}
+    for ing_id, ing_name in Ingredient.objects.values_list("id", "name"):
+        normalized_index.setdefault(normalize_term(ing_name), ing_id)
+    for alias_ing_id, alias_name in IngredientAlias.objects.values_list("ingredient_id", "name"):
+        normalized_index.setdefault(normalize_term(alias_name), alias_ing_id)
 
     for ing in ingredients:
         if ing.matched_ingredient_id is not None or ing.new_ingredient is None:
@@ -574,6 +589,14 @@ def _create_new_ingredients(
 
         # Check if ingredient with same name already exists – reuse it
         existing = Ingredient.objects.filter(name__iexact=data.name).first()
+
+        # Normalized (stemmed) match — additional fallback path
+        if not existing:
+            normalized = normalize_term(data.name)
+            matched_id = normalized_index.get(normalized) if normalized else None
+            if matched_id:
+                existing = Ingredient.objects.filter(id=matched_id).first()
+
         if existing:
             ing.matched_ingredient_id = existing.id
             created.append(
@@ -582,6 +605,9 @@ def _create_new_ingredients(
                     "name": existing.name,
                     "aliases": [],
                     "nutri_class": data.nutri_class,
+                    # Warning is based on the originally requested name, not
+                    # the (possibly more specific) reused ingredient's name.
+                    "name_warning": generic_name_warning(data.name),
                 }
             )
             continue
@@ -651,6 +677,7 @@ def _create_new_ingredients(
                 "name": data.name,
                 "aliases": data.aliases,
                 "nutri_class": data.nutri_class,
+                "name_warning": generic_name_warning(data.name),
             }
         )
 

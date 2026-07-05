@@ -39,8 +39,28 @@ router = Router(tags=["admin"])
 
 
 def _require_staff(request):
-    if not request.user.is_authenticated or not request.user.is_staff:
+    if not request.user.is_authenticated:
         raise HttpError(403, "Nur Admins haben Zugriff.")
+    if request.user.is_staff:
+        return
+    try:
+        if request.user.profile.role in ("staff", "admin"):
+            return
+    except AttributeError:
+        pass
+    raise HttpError(403, "Nur Admins haben Zugriff.")
+
+
+def _require_admin(request):
+    """Require the top-level 'admin' profile role (stricter than staff)."""
+    if not request.user.is_authenticated:
+        raise HttpError(403, "Nur Administratoren haben Zugriff.")
+    try:
+        if request.user.profile.role == "admin":
+            return
+    except AttributeError:
+        pass
+    raise HttpError(403, "Nur Administratoren haben Zugriff.")
 
 
 # ---------------------------------------------------------------------------
@@ -641,3 +661,90 @@ def admin_delete_unit(request, unit_id: int):
     unit = get_object_or_404(MeasuringUnit, id=unit_id)
     unit.delete()
     return 204, None
+
+
+# ---------------------------------------------------------------------------
+# User Role Management (admin-only)
+# ---------------------------------------------------------------------------
+
+
+class UserRoleUpdateIn(Schema):
+    role: str
+
+
+class UserRoleOut(Schema):
+    id: int
+    role: str
+
+
+@router.patch("/users/{user_id}/role/", response=UserRoleOut)
+def admin_update_user_role(request, user_id: int, payload: UserRoleUpdateIn):
+    """Change a user's profile role (admin-only)."""
+    _require_admin(request)
+
+    from profiles.choices import UserRoleChoices
+    from profiles.models import UserProfile
+
+    if payload.role not in UserRoleChoices.values:
+        raise HttpError(422, "Ungültige Rolle")
+
+    target = get_object_or_404(User, id=user_id)
+    profile, _created = UserProfile.objects.get_or_create(user=target)
+    profile.role = payload.role
+    profile.save(update_fields=["role"])
+    return {"id": target.id, "role": profile.role}
+
+
+# ---------------------------------------------------------------------------
+# Approval Queue (staff/admin)
+# ---------------------------------------------------------------------------
+
+
+class ApprovalQueueItemOut(Schema):
+    id: int
+    content_type: str
+    title: str
+    created_at: str
+
+
+@router.get("/approval-queue/", response=list[ApprovalQueueItemOut])
+def admin_approval_queue(request, page_size: int = 50):
+    """List draft content awaiting verification, across content types (staff/admin)."""
+    _require_staff(request)
+
+    from supply.models import Ingredient
+
+    items = []
+    for ing in Ingredient.objects.filter(status="draft").order_by("-created_at")[:page_size]:
+        items.append(
+            {
+                "id": ing.id,
+                "content_type": "ingredient",
+                "title": ing.name,
+                "created_at": ing.created_at.isoformat(),
+            }
+        )
+    for recipe in Recipe.objects.filter(status=ContentStatus.DRAFT).order_by("-created_at")[:page_size]:
+        items.append(
+            {
+                "id": recipe.id,
+                "content_type": "recipe",
+                "title": recipe.title,
+                "created_at": recipe.created_at.isoformat(),
+            }
+        )
+    items.sort(key=lambda x: x["created_at"], reverse=True)
+    return items[:page_size]
+
+
+@router.patch("/approval-queue/ingredient/{ingredient_id}/verify/", response={200: dict})
+def admin_verify_ingredient(request, ingredient_id: int):
+    """Mark an ingredient draft as verified (staff/admin)."""
+    _require_staff(request)
+
+    from supply.models import Ingredient
+
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    ingredient.status = "verified"
+    ingredient.save(update_fields=["status", "updated_at"])
+    return {"id": ingredient.id, "status": ingredient.status}

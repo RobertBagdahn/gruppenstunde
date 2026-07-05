@@ -76,6 +76,7 @@ export default function MealPlanWizardPage() {
           id: state.reference_plan_id,
           name: state.name,
           start_datetime: state.start_datetime + ':00',
+          end_datetime: state.end_datetime + ':00',
           norm_portions: state.norm_portions,
         });
         toast.success('Essensplan aus Vorlage erstellt');

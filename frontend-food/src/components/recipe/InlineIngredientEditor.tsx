@@ -17,6 +17,8 @@ import {
 } from '@/api/recipes';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
+import PortionScaler from './PortionScaler';
+import { scaleQuantity, toBasePerServing, rescaleForNewPortions } from '@/lib/cookingQuantityScale';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
@@ -56,10 +58,12 @@ interface InlineIngredientEditorProps {
   recipeId: number;
   items: RecipeItem[];
   portions: number | null;
-  /** If provided, ingredient quantities are displayed scaled by this factor.
-   *  On save, values are divided by this factor before sending to the API.
-   *  This allows editing in familiar quantities (e.g., "for 4 people"). */
-  displayPortions?: number;
+  /** Initial number of persons to edit quantities for (e.g. the detail page's
+   *  current display multiplier). Quantities are shown scaled by this factor
+   *  and can be changed freely inside the editor. On save, values are divided
+   *  by the (possibly changed) factor before sending to the API. This allows
+   *  editing in familiar cooking quantities (e.g. "for 4 people"). */
+  initialEditPortions?: number;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -121,20 +125,23 @@ export default function InlineIngredientEditor({
   recipeId,
   items,
   portions,
-  displayPortions = 1,
+  initialEditPortions = 1,
   onClose,
   onSaved,
 }: InlineIngredientEditorProps) {
-  const scale = displayPortions > 1 ? displayPortions : 1;
+  const [editPortions, setEditPortions] = useState(() =>
+    initialEditPortions > 0 ? initialEditPortions : 1,
+  );
+  const scale = editPortions > 1 ? editPortions : 1;
 
   const [editItems, setEditItems] = useState<EditableItem[]>(() => {
     const normalized = normalizeItems(items, portions);
-    // If displayPortions > 1, scale up all quantities for display
+    // If the initial person count > 1, scale up all quantities for display
     if (scale > 1) {
       return normalized.map((item) => ({
         ...item,
-        quantity: Math.round(item.quantity * scale * 100) / 100,
-        quantityInput: String(Math.round(item.quantity * scale * 100) / 100),
+        quantity: scaleQuantity(item.quantity, scale),
+        quantityInput: String(scaleQuantity(item.quantity, scale)),
       }));
     }
     return normalized;
@@ -447,6 +454,26 @@ export default function InlineIngredientEditor({
     }
   }, [aiSuggestions, selectedAiSuggestions, recipeId, queryClient, onSaved]);
 
+  // --- Person count (cooking-quantity editing) ---
+
+  // Changes how many people the displayed quantities are scaled for.
+  // Re-derives each item's per-1-serving base from the current display value
+  // (using the previous scale), then re-applies the new scale — so manual
+  // edits made at the previous person count are preserved proportionally.
+  const handleEditPortionsChange = useCallback(
+    (newPortions: number) => {
+      const clamped = Math.max(1, newPortions);
+      setEditItems((prev) =>
+        prev.map((item) => {
+          const newQty = rescaleForNewPortions(item.quantity, scale, clamped);
+          return { ...item, quantity: newQty, quantityInput: String(newQty) };
+        }),
+      );
+      setEditPortions(clamped);
+    },
+    [scale],
+  );
+
   // --- Scale ---
 
   const handleScale = useCallback(() => {
@@ -606,7 +633,7 @@ export default function InlineIngredientEditor({
         const promise = createItem
           .mutateAsync({
             portion_id: item.portion_id,
-            quantity: scale > 1 ? Math.round((item.quantity / scale) * 1000) / 1000 : item.quantity,
+            quantity: toBasePerServing(item.quantity, scale),
             sort_order: item.sort_order,
             note: item.note,
             is_optional: item.is_optional,
@@ -632,7 +659,7 @@ export default function InlineIngredientEditor({
             itemId: item.id,
             data: {
               portion_id: item.portion_id,
-              quantity: scale > 1 ? Math.round((item.quantity / scale) * 1000) / 1000 : item.quantity,
+              quantity: toBasePerServing(item.quantity, scale),
               note: item.note,
               sort_order: item.sort_order,
             },
@@ -657,16 +684,20 @@ export default function InlineIngredientEditor({
 
   return (
     <div className="space-y-4">
-      {/* Scale info banner */}
-      {scale > 1 && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-          <span className="material-symbols-outlined text-[16px]">info</span>
-          <span>
-            Mengen für <strong>{scale} Personen</strong> — werden beim Speichern auf 1 Portion normiert.
-            Portionszahl während Bearbeitung gesperrt.
-          </span>
-        </div>
-      )}
+      {/* Person-count selector for cooking-quantity editing */}
+      <div className="space-y-1">
+        <PortionScaler
+          value={editPortions}
+          min={1}
+          max={100}
+          compact
+          onChange={handleEditPortionsChange}
+        />
+        <p className="px-1 text-xs text-blue-800">
+          Mengen für <strong>{editPortions} {editPortions === 1 ? 'Person' : 'Personen'}</strong> — werden beim
+          Speichern auf 1 Portion normiert.
+        </p>
+      </div>
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <div className="flex items-center gap-2 text-sm font-medium text-amber-800">

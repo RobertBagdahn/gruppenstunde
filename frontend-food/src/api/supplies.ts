@@ -305,7 +305,7 @@ export function useReorderPortions(slug: string) {
 export function useCreateAlias(slug: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; rank?: number }) =>
+    mutationFn: (data: { name: string; rank?: number; is_generic?: boolean }) =>
       postJsonRaw(`${INGREDIENT_BASE}/${slug}/aliases/`, data, IngredientAliasSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
@@ -320,6 +320,18 @@ export function useDeleteAlias(slug: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
     },
+  });
+}
+
+// ==========================================================================
+// Generic Terms (for "too generic" name warnings)
+// ==========================================================================
+
+export function useGenericTerms() {
+  return useQuery({
+    queryKey: ['generic-terms'],
+    queryFn: () => fetchJson(`${INGREDIENT_BASE}/generic-terms/`, z.array(z.string())),
+    staleTime: 5 * 60 * 1000,
   });
 }
 

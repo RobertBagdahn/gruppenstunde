@@ -234,7 +234,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
     items = (
         shopping_list.items.select_related("ingredient", "retail_section")
         .prefetch_related("sources")
-        .order_by("retail_section__name", "sort_order")
+        .order_by("retail_section__rank", "retail_section__name", "sort_order")
     )
 
     if view == "summarized":

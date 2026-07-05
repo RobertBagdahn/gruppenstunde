@@ -11,9 +11,11 @@ import django
 
 django.setup()
 
+import datetime as dt
 import json
 
 from django.test import Client, TestCase
+from django.utils import timezone
 from model_bakery import baker
 
 from planner.models import Meal, MealItem, MealPlan
@@ -28,6 +30,7 @@ class TestMealItemPatchEndpoint(TestCase):
             norm_portions=10,
             created_by=self.user,
             owner=self.user,
+            start_datetime=timezone.make_aware(dt.datetime(2026, 7, 10, 8, 0)),
         )
         self.meal = Meal.objects.create(
             meal_plan=self.plan,

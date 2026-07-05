@@ -59,6 +59,13 @@ logger = logging.getLogger(__name__)
 
 meal_plan_router = Router(tags=["meal-plans"])
 
+# Default arrival/departure times used when creating a meal plan from an
+# Event without explicit start/end times. Chosen so the existing time-aware
+# skip logic treats arrival/departure days as partial days instead of full
+# days (see create_meals_for_date_timeaware).
+EVENT_DEFAULT_ARRIVAL_TIME = dt.time(17, 0)
+EVENT_DEFAULT_DEPARTURE_TIME = dt.time(11, 0)
+
 
 def _require_auth(request):
     if not request.user.is_authenticated:
@@ -79,7 +86,18 @@ def _get_user_role(meal_plan: MealPlan, user) -> str | None:
         collab = MealPlanCollaborator.objects.get(meal_plan=meal_plan, user=user)
         return collab.role
     except MealPlanCollaborator.DoesNotExist:
-        return None
+        pass
+
+    # Fall back to the generic ContentCollaborator sharing system.
+    from django.contrib.contenttypes.models import ContentType
+
+    from content.models import ContentCollaborator
+
+    ct = ContentType.objects.get_for_model(MealPlan)
+    generic_collab = ContentCollaborator.objects.filter(content_type=ct, object_id=meal_plan.id, user=user).first()
+    if generic_collab is not None:
+        return generic_collab.role
+    return None
 
 
 def _require_access(meal_plan: MealPlan, user) -> str:
@@ -302,20 +320,28 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
         meal_plan.event = event
 
     # Set start/end datetime (make timezone-aware if naive)
-    if payload.start_datetime and payload.end_datetime:
+    if payload.start_datetime:
         meal_plan.start_datetime = (
             timezone.make_aware(payload.start_datetime)
             if timezone.is_naive(payload.start_datetime)
             else payload.start_datetime
         )
+    if payload.end_datetime:
         meal_plan.end_datetime = (
             timezone.make_aware(payload.end_datetime)
             if timezone.is_naive(payload.end_datetime)
             else payload.end_datetime
         )
-    elif meal_plan.event and meal_plan.event.start_date and meal_plan.event.end_date:
-        meal_plan.start_datetime = timezone.make_aware(dt.datetime.combine(meal_plan.event.start_date, dt.time(0, 0)))
-        meal_plan.end_datetime = timezone.make_aware(dt.datetime.combine(meal_plan.event.end_date, dt.time(0, 0)))
+    if not meal_plan.start_datetime:
+        if meal_plan.event and meal_plan.event.start_date and meal_plan.event.end_date:
+            meal_plan.start_datetime = timezone.make_aware(
+                dt.datetime.combine(meal_plan.event.start_date, EVENT_DEFAULT_ARRIVAL_TIME)
+            )
+            meal_plan.end_datetime = timezone.make_aware(
+                dt.datetime.combine(meal_plan.event.end_date, EVENT_DEFAULT_DEPARTURE_TIME)
+            )
+        else:
+            meal_plan.start_datetime = timezone.now()
 
     meal_plan.save()
 
@@ -432,7 +458,7 @@ def delete_meal_plan(request, meal_plan_id: int):
 
 @meal_plan_router.post("/{meal_plan_id}/duplicate/", response=MealPlanOut)
 def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn):
-    """Duplicate a meal plan with new name, start date, and portions."""
+    """Duplicate a meal plan using day-index mapping (Tag N → Tag N)."""
     from django.db import transaction
 
     _require_auth(request)
@@ -442,17 +468,29 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
     )
     _require_access(source, request.user)
 
-    if not source.start_datetime:
-        raise HttpError(400, "Quell-Essensplan hat kein Startdatum")
+    if not source.end_datetime:
+        raise HttpError(400, "Quell-Essensplan hat kein Enddatum")
+
+    source_days = (source.end_datetime.date() - source.start_datetime.date()).days
 
     start_dt = (
         timezone.make_aware(payload.start_datetime)
         if timezone.is_naive(payload.start_datetime)
         else payload.start_datetime
     )
-    offset = start_dt - source.start_datetime
+    end_dt = (
+        timezone.make_aware(payload.end_datetime)
+        if timezone.is_naive(payload.end_datetime)
+        else payload.end_datetime
+    )
+    target_days = (end_dt.date() - start_dt.date()).days
 
-    # Prefetch items + overrides to avoid N+1 during clone
+    if target_days != source_days:
+        raise HttpError(
+            400,
+            f"Tagesanzahl muss übereinstimmen (Quelle: {source_days} Tage, Ziel: {target_days} Tage)",
+        )
+
     source_with_data = get_object_or_404(
         MealPlan.objects.prefetch_related(
             "meals__items__overrides",
@@ -461,40 +499,52 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
         id=meal_plan_id,
     )
 
+    source_start_date = source.start_datetime.date()
+    new_start_date = start_dt.date()
+
+    meals_copied = 0
+    items_copied = 0
+    overrides_copied = 0
+
     with transaction.atomic():
         new_plan = MealPlan(
             name=payload.name,
             description=source_with_data.description,
             norm_portions=payload.norm_portions,
             reserve_factor=source_with_data.reserve_factor,
-            # Carry over metadata from source
             visibility=source_with_data.visibility,
             day_part_factors=source_with_data.day_part_factors,
             meal_default_times=source_with_data.meal_default_times,
             start_datetime=start_dt,
-            end_datetime=source_with_data.end_datetime + offset if source_with_data.end_datetime else None,
+            end_datetime=end_dt,
             created_by=request.user,
         )
         new_plan.save()
 
-        # Copy nutritional tags
         new_plan.nutritional_tags.set(source_with_data.nutritional_tags.all())
 
-        # Only clone regular meals (skip RefMeals which have null datetimes)
         for meal in source_with_data.meals.filter(is_reference=False):
             if meal.start_datetime is None or meal.end_datetime is None:
                 continue
 
+            day_index = (meal.start_datetime.date() - source_start_date).days
+            new_date = new_start_date + dt.timedelta(days=day_index)
+            new_meal_start = dt.datetime.combine(new_date, meal.start_datetime.time())
+            new_meal_start = timezone.make_aware(new_meal_start) if timezone.is_naive(new_meal_start) else new_meal_start
+            new_meal_end = dt.datetime.combine(new_date, meal.end_datetime.time())
+            new_meal_end = timezone.make_aware(new_meal_end) if timezone.is_naive(new_meal_end) else new_meal_end
+
             new_meal = Meal(
                 meal_plan=new_plan,
-                start_datetime=meal.start_datetime + offset,
-                end_datetime=meal.end_datetime + offset,
+                start_datetime=new_meal_start,
+                end_datetime=new_meal_end,
                 meal_type=meal.meal_type,
                 day_part_factor=meal.day_part_factor,
                 display_name=meal.display_name,
                 override_portions=meal.override_portions,
             )
             new_meal.save()
+            meals_copied += 1
 
             for item in meal.items.all():
                 new_item = MealItem.objects.create(
@@ -506,7 +556,8 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                     display_name=item.display_name,
                     factor=item.factor,
                 )
-                # Clone MealItemOverrides for each item
+                items_copied += 1
+
                 for override in item.overrides.all():
                     MealItemOverride.objects.create(
                         meal_item=new_item,
@@ -514,7 +565,11 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                         quantity_override=override.quantity_override,
                         excluded=override.excluded,
                     )
+                    overrides_copied += 1
 
+    new_plan.meals_copied = meals_copied
+    new_plan.items_copied = items_copied
+    new_plan.overrides_copied = overrides_copied
     return new_plan
 
 
@@ -1419,6 +1474,8 @@ def shopping_list(request, meal_plan_id: int):
             ingredient_name=item.ingredient_name,
             ingredient_slug=item.ingredient_slug,
             total_quantity_g=item.total_quantity_g,
+            net_quantity_g=item.net_quantity_g,
+            reserve_quantity_g=item.reserve_quantity_g,
             unit=item.unit,
             retail_section=item.retail_section,
             estimated_price_eur=item.estimated_price_eur,

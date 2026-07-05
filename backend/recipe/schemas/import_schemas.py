@@ -44,6 +44,7 @@ class CreatedIngredientInfoOut(BaseModel):
     name: str
     aliases: list[str] = []
     nutri_class: int | None = None
+    name_warning: str | None = None
 
 
 class RecipeDraftOut(BaseModel):

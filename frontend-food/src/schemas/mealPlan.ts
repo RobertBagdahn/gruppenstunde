@@ -128,6 +128,9 @@ export const MealPlanSchema = z.object({
   is_template: z.boolean().default(false),
   is_owner: z.boolean().default(false),
   collaborators_count: z.number().default(0),
+  meals_copied: z.number().optional(),
+  items_copied: z.number().optional(),
+  overrides_copied: z.number().optional(),
 });
 export type MealPlan = z.infer<typeof MealPlanSchema>;
 
@@ -183,6 +186,9 @@ export const MealPlanDetailSchema = z.object({
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   is_template: z.boolean().default(false),
+  meals_copied: z.number().optional(),
+  items_copied: z.number().optional(),
+  overrides_copied: z.number().optional(),
 });
 export type MealPlanDetail = z.infer<typeof MealPlanDetailSchema>;
 
@@ -239,6 +245,8 @@ export const ShoppingListItemSchema = z.object({
   ingredient_name: z.string(),
   ingredient_slug: z.string().default(''),
   total_quantity_g: z.number(),
+  net_quantity_g: z.number().default(0),
+  reserve_quantity_g: z.number().default(0),
   unit: z.string(),
   retail_section: z.string(),
   estimated_price_eur: z.number().nullable(),
@@ -680,6 +688,7 @@ export type MealPlanCostSummary = z.infer<typeof MealPlanCostSummarySchema>;
 export const MealPlanDuplicateInSchema = z.object({
   name: z.string().min(1),
   start_datetime: z.string().min(1),
+  end_datetime: z.string().min(1),
   norm_portions: z.number().int().min(1),
 });
 export type MealPlanDuplicateIn = z.infer<typeof MealPlanDuplicateInSchema>;
@@ -695,6 +704,7 @@ export const RefMealSchema = z.object({
   items: z.array(MealItemSchema),
   synced_meals_count: z.number(),
   total_meals_count: z.number(),
+  synced_meal_count: z.number().nullable().optional(),
 });
 export type RefMeal = z.infer<typeof RefMealSchema>;
 

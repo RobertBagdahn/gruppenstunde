@@ -19,6 +19,7 @@ import type { MealItem, RefMealItemIn } from '@/schemas/mealPlan';
 import { NORM_PERSON_DAILY_KCAL } from '@/lib/breakfastCalc';
 import { BackButton } from '@/components/shared/BackButton';
 import { Card, CardContent } from '@/components/ui/card';
+import { RefMealSyncConfirmDialog } from '@/components/planning/RefMealSyncConfirmDialog';
 
 /** Category labels for recipe type grouping */
 const RECIPE_TYPE_GROUPS: Record<string, string> = {
@@ -77,6 +78,7 @@ export default function RefMealEditorPage() {
   // Local state for items being edited
   const [localItems, setLocalItems] = useState<RefMealItemIn[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
 
   // Initialize local items from refMeal
   if (refMeal && !initialized) {
@@ -176,11 +178,32 @@ export default function RefMealEditorPage() {
   const handleSave = async () => {
     if (!refMeal) return;
     try {
-      await updateRefMealMutation.mutateAsync({ items: localItems });
-      toast.success('Referenz-Mahlzeit gespeichert');
+      const result = await updateRefMealMutation.mutateAsync({ items: localItems });
+      const count = result.synced_meal_count ?? 0;
+      if (count > 0) {
+        toast.success(
+          `Referenz-Mahlzeit gespeichert · ${count} verknüpfte Mahlzeit${count === 1 ? '' : 'en'} aktualisiert`
+        );
+      } else {
+        toast.success('Referenz-Mahlzeit gespeichert');
+      }
     } catch {
       toast.error('Fehler beim Speichern');
     }
+  };
+
+  const handleSaveClick = () => {
+    if (!refMeal) return;
+    if (refMeal.synced_meals_count > 0) {
+      setShowSyncConfirm(true);
+      return;
+    }
+    void handleSave();
+  };
+
+  const handleConfirmSave = () => {
+    setShowSyncConfirm(false);
+    void handleSave();
   };
 
   const handleSync = async () => {
@@ -501,9 +524,10 @@ export default function RefMealEditorPage() {
             {/* Action buttons */}
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={handleSave}
+                onClick={handleSaveClick}
                 disabled={updateRefMealMutation.isPending}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm disabled:opacity-50"
+                data-testid="ref-meal-save-button"
               >
                 Speichern
               </button>
@@ -525,6 +549,15 @@ export default function RefMealEditorPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation dialog before destructive auto-sync */}
+      <RefMealSyncConfirmDialog
+        open={showSyncConfirm}
+        onOpenChange={setShowSyncConfirm}
+        syncedMealsCount={refMeal?.synced_meals_count ?? 0}
+        onCancel={() => setShowSyncConfirm(false)}
+        onConfirm={handleConfirmSave}
+      />
     </div>
   );
 }

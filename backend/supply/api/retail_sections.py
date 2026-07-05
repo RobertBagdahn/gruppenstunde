@@ -16,8 +16,16 @@ def list_retail_sections(request):
 
 
 def _require_staff(request):
-    if not request.user.is_authenticated or not request.user.is_staff:
+    if not request.user.is_authenticated:
         raise HttpError(403, "Nur Admins")
+    if request.user.is_staff:
+        return
+    try:
+        if request.user.profile.role in ("staff", "admin"):
+            return
+    except AttributeError:
+        pass
+    raise HttpError(403, "Nur Admins")
 
 
 @retail_section_router.post("/", response={201: RetailSectionOut})

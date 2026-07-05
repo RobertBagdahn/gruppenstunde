@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 import httpx
 from bs4 import BeautifulSoup
 
+from recipe.services.exceptions import NoRecipeFoundError, SourceUnreachableError
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,13 +40,16 @@ class ImportedRecipe:
 
 def import_from_url(url: str) -> ImportedRecipe:
     """Fetch and parse a recipe from a URL."""
-    response = httpx.get(
-        url,
-        follow_redirects=True,
-        timeout=15.0,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; InspiBot/1.0)"},
-    )
-    response.raise_for_status()
+    try:
+        response = httpx.get(
+            url,
+            follow_redirects=True,
+            timeout=15.0,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; InspiBot/1.0)"},
+        )
+        response.raise_for_status()
+    except httpx.HTTPError as e:
+        raise SourceUnreachableError(f"Seite konnte nicht geladen werden: {e}") from e
 
     soup = BeautifulSoup(response.text, "html.parser")
 
@@ -64,7 +69,7 @@ def import_from_url(url: str) -> ImportedRecipe:
     if recipe and recipe.title:
         return recipe
 
-    raise ValueError("Kein Rezept auf dieser Seite gefunden")
+    raise NoRecipeFoundError("Kein Rezept auf dieser Seite gefunden")
 
 
 def _parse_json_ld(soup: BeautifulSoup, url: str) -> ImportedRecipe | None:

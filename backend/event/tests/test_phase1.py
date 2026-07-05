@@ -395,8 +395,8 @@ class TestLabelAPI:
         resp = manager_client.get(f"/api/events/{event_with_manager.slug}/participants/?label_id={label.id}")
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data) == 1
-        assert data[0]["first_name"] == "Alice"
+        assert len(data["items"]) == 1
+        assert data["items"][0]["first_name"] == "Alice"
 
     def test_label_permission_denied(self, regular_client, event_with_manager):
         resp = regular_client.get(f"/api/events/{event_with_manager.slug}/labels/")
