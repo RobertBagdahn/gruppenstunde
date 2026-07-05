@@ -9,3 +9,4 @@ node_modules/
 *.ipynb
 .env*
 docker-compose.yml
+backend/data/
