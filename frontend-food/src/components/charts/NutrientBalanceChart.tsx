@@ -80,46 +80,61 @@ export default function NutrientBalanceChart({
   const fibreSoll = getSollAndRange('fibre_g');
   const saltSoll = getSollAndRange('salt_g');
 
+  // Helper: For min-only nutrients (max = null), set Soll = Ist to avoid overage appearance
+  const getDisplaySoll = (
+    istValue: number,
+    mid: number,
+    minVal: number | null,
+    maxVal: number | null
+  ): number => {
+    // If min-only nutrient (has min but no max), show Soll = Ist so bars align
+    if (minVal !== null && maxVal === null) {
+      return istValue;
+    }
+    // Otherwise use the calculated mid value
+    return mid;
+  };
+
   const data = [
     {
       name: 'Eiweiß',
       Ist: Math.round(proteinG * 10) / 10,
-      Soll: Math.round(proteinSoll.mid * 10) / 10,
+      Soll: Math.round(getDisplaySoll(proteinG, proteinSoll.mid, proteinSoll.min, proteinSoll.max) * 10) / 10,
       min: proteinSoll.min,
       max: proteinSoll.max,
     },
     {
       name: 'Fett',
       Ist: Math.round(fatG * 10) / 10,
-      Soll: Math.round(fatSoll.mid * 10) / 10,
+      Soll: Math.round(getDisplaySoll(fatG, fatSoll.mid, fatSoll.min, fatSoll.max) * 10) / 10,
       min: fatSoll.min,
       max: fatSoll.max,
     },
     {
       name: 'Kohlenh.',
       Ist: Math.round(carbsG * 10) / 10,
-      Soll: Math.round(carbsSoll.mid * 10) / 10,
+      Soll: Math.round(getDisplaySoll(carbsG, carbsSoll.mid, carbsSoll.min, carbsSoll.max) * 10) / 10,
       min: carbsSoll.min,
       max: carbsSoll.max,
     },
     {
       name: 'Zucker',
       Ist: Math.round(sugarG * 10) / 10,
-      Soll: Math.round(sugarSoll.mid * 10) / 10,
+      Soll: Math.round(getDisplaySoll(sugarG, sugarSoll.mid, sugarSoll.min, sugarSoll.max) * 10) / 10,
       min: sugarSoll.min,
       max: sugarSoll.max,
     },
     {
       name: 'Ballasts.',
       Ist: Math.round(fibreG * 10) / 10,
-      Soll: Math.round(fibreSoll.mid * 10) / 10,
+      Soll: Math.round(getDisplaySoll(fibreG, fibreSoll.mid, fibreSoll.min, fibreSoll.max) * 10) / 10,
       min: fibreSoll.min,
       max: fibreSoll.max,
     },
     {
       name: 'Salz',
       Ist: Math.round(saltG * 10) / 10,
-      Soll: Math.round(saltSoll.mid * 10) / 10,
+      Soll: Math.round(getDisplaySoll(saltG, saltSoll.mid, saltSoll.min, saltSoll.max) * 10) / 10,
       min: saltSoll.min,
       max: saltSoll.max,
     },
