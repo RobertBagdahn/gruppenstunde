@@ -39,7 +39,7 @@ interface EditableItem {
   is_optional: boolean;
   exchange_group_id: number | null;
   exchange_position: number | null;
-  ingredient_portions: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; rank: number }[];
+  ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number }[];
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -72,7 +72,31 @@ interface InlineIngredientEditorProps {
 
 /** Normalize items to per-1-serving quantities in grams.
  *  Converts portion-based quantities to grams for editing,
- *  and switches to the rank=1 (Normalportion) portion. */
+ *  and switches to the rank=1 (Normalportion) portion.
+ *
+ *  CRITICAL LABELING RULE (fix for recipe #434 bug):
+ *  ================================================
+ *  Portions fall into two categories by their `quantity` field:
+ *
+ *  1. Composite portions (quantity !== 1):
+ *     Example: "1 Portion Nudeln" (quantity=125, weight_g=125, measuring_unit="Gramm")
+ *     These are pre-scaled portions. The quantity field is a CONVERSION FACTOR,
+ *     not a count. The label MUST be the portion's own name ("1 Portion Nudeln"),
+ *     NOT the underlying measuring_unit_name ("Gramm").
+ *     Bug scenario: User sees "Gramm" label, enters "500", saved as 500×125=62,500g
+ *     Fix: Label is "1 Portion Nudeln" so user enters "2.24" correctly.
+ *
+ *  2. Direct-unit portions (quantity === 1):
+ *     Examples: "Gramm" (quantity=1, measuring_unit="Gramm"),
+ *               "Stück" (quantity=1, measuring_unit="Stück")
+ *     These are direct units. The label is the measuring_unit_name.
+ *
+ *  The labeling rule is applied consistently in:
+ *  - normalizeItems() [this function]
+ *  - handlePortionChange()
+ *  - Dropdown option rendering
+ *  - Add ingredient flows (handleAddIngredient, handleAddFromDialog, handleSelectAlternative)
+ */
 function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
   const s = portions ?? 1;
   return items.map((item) => {
@@ -94,6 +118,15 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
     const quantityForBasePortion = normalizedQty / basePortionWeightG;
 
     const qty = Math.round(quantityForBasePortion * 100) / 100;
+    
+    // FIXED: Label composite portions (quantity !== 1) with their own name,
+    // not the underlying measuring_unit_name. This prevents mislabeling a
+    // "1 Portion Nudeln" (125g) as "Gramm", which would confuse users into
+    // entering the wrong magnitude when editing.
+    const label = basePortion && basePortion.quantity !== 1
+      ? basePortion.name
+      : basePortion?.measuring_unit_name ?? 'g';
+    
     return {
       id: item.id,
       portion_id: basePortionId,
@@ -101,12 +134,13 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
       ingredient_name: item.ingredient_name,
       quantity: qty,
       quantityInput: String(qty),
-      measuring_unit_name: basePortion?.measuring_unit_name ?? 'g',
+      measuring_unit_name: label,
       note: item.note,
       sort_order: item.sort_order,
       ingredient_portions: (item.ingredient_portions ?? []).map((p) => ({
         id: p.id,
         name: p.name,
+        quantity: p.quantity, // Include quantity to detect composite portions
         weight_g: p.weight_g,
         measuring_unit_name: p.measuring_unit_name,
         rank: p.rank ?? 999,
@@ -222,10 +256,15 @@ export default function InlineIngredientEditor({
         const quantityInGrams = item.quantity * oldWeightG;
         const newQuantity = Math.round((quantityInGrams / newWeightG) * 100) / 100;
 
+        // Use the same composite-portion label rule as normalizeItems()
+        const label = newPortion.quantity !== 1
+          ? newPortion.name
+          : newPortion.measuring_unit_name ?? 'g';
+
         return {
           ...item,
           portion_id: portionId,
-          measuring_unit_name: newPortion.measuring_unit_name ?? newPortion.name,
+          measuring_unit_name: label,
           quantity: newQuantity,
           quantityInput: String(newQuantity),
           isDirty: true,
@@ -264,6 +303,11 @@ export default function InlineIngredientEditor({
           return;
         }
 
+        // Use the same composite-portion label rule
+        const portionLabel = bestPortion.quantity !== 1
+          ? bestPortion.name
+          : (bestPortion.measuring_unit_name || 'g');
+        
         setEditItems((prev) => [
           ...prev,
           {
@@ -273,12 +317,13 @@ export default function InlineIngredientEditor({
             ingredient_name: ingredient.name,
             quantity: 1, // (4.2) start with 1, not 0
             quantityInput: '1',
-            measuring_unit_name: bestPortion.measuring_unit_name || bestPortion.name || 'g', // (4.3)
+            measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; rank?: number | null }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number | null }) => ({
               id: p.id,
               name: p.name,
+              quantity: p.quantity,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
               rank: p.rank ?? 999,
@@ -329,6 +374,11 @@ export default function InlineIngredientEditor({
           return;
         }
 
+        // Use the same composite-portion label rule
+        const portionLabel = selectedPortion!.quantity !== 1
+          ? selectedPortion!.name
+          : (selectedPortion!.measuring_unit_name || 'g');
+        
         setEditItems((prev) => [
           ...prev,
           {
@@ -338,12 +388,13 @@ export default function InlineIngredientEditor({
             ingredient_name: ingredientName,
             quantity,
             quantityInput: String(quantity),
-            measuring_unit_name: selectedPortion!.measuring_unit_name || 'g',
+            measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
-            ingredient_portions: portions.map((p: { id: number; name: string; weight_g: number | null; measuring_unit_name: string | null; rank?: number }) => ({
+            ingredient_portions: portions.map((p: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank?: number }) => ({
               id: p.id,
               name: p.name,
+              quantity: p.quantity,
               weight_g: p.weight_g,
               measuring_unit_name: p.measuring_unit_name,
               rank: p.rank ?? 999,
@@ -562,19 +613,21 @@ export default function InlineIngredientEditor({
             ingredient_name: ingredientName,
             quantity: 1,
             quantityInput: '1',
-            measuring_unit_name: bestPortion.measuring_unit_name || bestPortion.name || 'g',
+            measuring_unit_name: bestPortion.quantity !== 1 ? bestPortion.name : (bestPortion.measuring_unit_name || 'g'),
             note: '',
             sort_order: maxSort + 1,
             ingredient_portions: portions.map(
               (p: {
                 id: number;
                 name: string;
+                quantity: number;
                 weight_g: number | null;
                 measuring_unit_name: string | null;
                 rank?: number | null;
               }) => ({
                 id: p.id,
                 name: p.name,
+                quantity: p.quantity,
                 weight_g: p.weight_g,
                 measuring_unit_name: p.measuring_unit_name,
                 rank: p.rank ?? 999,
@@ -791,11 +844,15 @@ export default function InlineIngredientEditor({
                   onChange={(e) => handlePortionChange(item.id, parseInt(e.target.value))}
                   className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
                 >
-                  {item.ingredient_portions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.measuring_unit_name || p.name}
-                    </option>
-                  ))}
+                  {item.ingredient_portions.map((p) => {
+                    // Use the same composite-portion label rule: if portion.quantity !== 1, show portion name
+                    const optionLabel = p.quantity !== 1 ? p.name : (p.measuring_unit_name || p.name);
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {optionLabel}
+                      </option>
+                    );
+                  })}
                 </select>
               ) : (
                 <span className="text-xs text-muted-foreground min-w-[3.5rem]">
