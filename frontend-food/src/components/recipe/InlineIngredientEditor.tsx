@@ -108,28 +108,31 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
     const quantityInGrams = item.quantity * portionWeightG;
     const normalizedQty = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
 
-    // Use the rank=1 (Normalportion) for editing; fall back to current portion
-    const sortedPortions = [...(item.ingredient_portions ?? [])].sort((a, b) => a.rank - b.rank);
-    const basePortion = sortedPortions.find((p) => p.rank === 1) ?? currentPortion;
-    const basePortionId = basePortion?.id ?? item.portion_id;
-    const basePortionWeightG = basePortion?.weight_g ?? 1;
-
-    // Quantity as multiplier on the base portion
-    const quantityForBasePortion = normalizedQty / basePortionWeightG;
-
-    const qty = Math.round(quantityForBasePortion * 100) / 100;
+    // Quantity as multiplier on the ORIGINAL (saved) portion
+    // This ensures save path always works correctly: toBasePerServing(qty, scale) produces right results
+    const quantityForOriginalPortion = portionWeightG > 0 
+      ? Math.round((normalizedQty / portionWeightG) * 100) / 100 
+      : normalizedQty;
+    const qty = quantityForOriginalPortion;
     
-    // FIXED: Label composite portions (quantity !== 1) with their own name,
-    // not the underlying measuring_unit_name. This prevents mislabeling a
-    // "1 Portion Nudeln" (125g) as "Gramm", which would confuse users into
-    // entering the wrong magnitude when editing.
-    const label = basePortion && basePortion.quantity !== 1
-      ? basePortion.name
-      : basePortion?.measuring_unit_name ?? 'g';
+    // Label: prefer rank=1 portion name only if it has a meaningful weight_g
+    // This improves UX by showing nice labels like "100g Würstchen" or "1 Portion Nudeln"
+    // but avoids confusing labels like "n. B." (nach Bedarf / as needed)
+    // (while keeping quantity multipliers based on original saved portion)
+    const sortedPortions = [...(item.ingredient_portions ?? [])].sort((a, b) => a.rank - b.rank);
+    const rank1Portion = sortedPortions.find((p) => p.rank === 1);
+    // Use rank=1 name only if it has meaningful weight_g and quantity info
+    const shouldUseRank1Label = rank1Portion && 
+      rank1Portion.weight_g !== null && 
+      rank1Portion.weight_g !== undefined &&
+      (rank1Portion.quantity !== 1 || rank1Portion.weight_g !== currentPortion?.weight_g);
+    const label = shouldUseRank1Label && rank1Portion
+      ? rank1Portion.name
+      : currentPortion?.measuring_unit_name ?? 'g';
     
     return {
       id: item.id,
-      portion_id: basePortionId,
+      portion_id: item.portion_id, // Keep original portion_id for save
       ingredient_id: item.ingredient_id ?? null,
       ingredient_name: item.ingredient_name,
       quantity: qty,
@@ -148,7 +151,8 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
       is_optional: item.is_optional ?? false,
       exchange_group_id: item.exchange_group_id ?? null,
       exchange_position: item.exchange_position ?? null,
-      isDirty: s > 1 || basePortionId !== item.portion_id,
+      // Only mark dirty if portions changed by user action (s > 1)
+      isDirty: s > 1,
     };
   });
 }

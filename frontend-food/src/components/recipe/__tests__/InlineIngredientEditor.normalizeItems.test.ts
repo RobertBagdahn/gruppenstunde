@@ -4,7 +4,10 @@ import { describe, it, expect } from 'vitest';
  * Mock normalizeItems function for testing the composite-portion label logic.
  * This mirrors the real function in InlineIngredientEditor.tsx.
  * 
- * KEY CHANGE: When basePortion.quantity !== 1, use basePortion.name as the label.
+ * KEY CHANGE: 
+ * - Quantity is calculated using ORIGINAL portion (for correct save path)
+ * - Label comes from rank=1 portion (for better UX showing nice labels)
+ * - portion_id is NOT changed (stays as original)
  * This fixes the bug where composite portions (e.g. "1 Portion Nudeln" with
  * measuring_unit="Gramm") would be mislabeled as "Gramm".
  */
@@ -38,26 +41,30 @@ function normalizeItems(
     const quantityInGrams = item.quantity * portionWeightG;
     const normalizedQty = editPortions > 1 ? Math.round((quantityInGrams / editPortions) * 100) / 100 : quantityInGrams;
 
-    // Use rank=1 (Normalportion) for editing
+    // Quantity as multiplier of the ORIGINAL (saved) portion
+    // This ensures save path always works correctly
+    const quantityForOriginalPortion = portionWeightG > 0 
+      ? Math.round((normalizedQty / portionWeightG) * 100) / 100 
+      : normalizedQty;
+    const qty = quantityForOriginalPortion;
+
+    // Label: prefer rank=1 portion name only if it has a meaningful weight_g
+    // This improves UX by showing nice labels like "100g Würstchen" or "1 Portion Nudeln"
+    // but avoids confusing labels like "n. B." (nach Bedarf / as needed)
     const sortedPortions = [...item.ingredient_portions].sort((a, b) => a.rank - b.rank);
-    const basePortion = sortedPortions.find((p) => p.rank === 1) ?? currentPortion;
-    const basePortionId = basePortion?.id ?? item.portion_id;
-    const basePortionWeightG = basePortion?.weight_g ?? 1;
-
-    // Quantity as multiplier of the base portion
-    const quantityForBasePortion = normalizedQty / basePortionWeightG;
-    const qty = Math.round(quantityForBasePortion * 100) / 100;
-
-    // FIXED LOGIC: composite portions (quantity !== 1) use their own name as label
-    const label =
-      basePortion && basePortion.quantity !== 1
-        ? basePortion.name
-        : basePortion?.measuring_unit_name ?? 'g';
+    const rank1Portion = sortedPortions.find((p) => p.rank === 1);
+    const shouldUseRank1Label = rank1Portion && 
+      rank1Portion.weight_g !== null && 
+      rank1Portion.weight_g !== undefined &&
+      (rank1Portion.quantity !== 1 || rank1Portion.weight_g !== currentPortion?.weight_g);
+    const label = shouldUseRank1Label && rank1Portion
+      ? rank1Portion.name
+      : currentPortion?.measuring_unit_name ?? 'g';
 
     return {
       id: item.id,
       quantity: qty,
-      portion_id: basePortionId,
+      portion_id: item.portion_id, // Keep original portion_id for save
       measuring_unit_name: label,
     };
   });
