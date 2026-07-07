@@ -226,7 +226,7 @@ export const NutrientScatterItemSchema = z.object({
 export type NutrientScatterItem = z.infer<typeof NutrientScatterItemSchema>;
 
 export const NutrientDistributionSchema = z.object({
-  nutrients: z.array(z.record(z.string(), z.any())),
+  nutrients: z.array(z.record(z.string(), z.unknown())),
   scatter_data: z.array(NutrientScatterItemSchema),
 });
 

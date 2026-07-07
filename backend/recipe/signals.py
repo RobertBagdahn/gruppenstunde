@@ -273,6 +273,10 @@ def update_recipe_embedding(sender, instance: Recipe, created: bool, update_fiel
     from django.db import transaction
 
     transaction.on_commit(lambda: run_in_background(_do_update))
+
+
+@receiver(post_save, sender=RecipeItem, dispatch_uid="recipe_embedding_invalidate_on_item_save")
+@receiver(post_delete, sender=RecipeItem, dispatch_uid="recipe_embedding_invalidate_on_item_delete")
 def invalidate_recipe_embedding_on_item_change(sender, instance, **kwargs):
     """When a RecipeItem changes, invalidate the recipe embedding."""
     try:

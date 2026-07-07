@@ -1,8 +1,9 @@
-"""API endpoint for AI-powered meal plan suggestions."""
+"""API endpoint for AI-powered meal plan suggestions and apply."""
 
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
@@ -13,12 +14,15 @@ from core.services.gemini import (
     GeminiUnavailableError,
     GeminiUpstreamRateLimitError,
 )
-from planner.schemas.ai_generation import AiSuggestIn, AiSuggestOut
+from planner.api.meal_plan import _require_edit
+from planner.models import MealPlan
+from planner.schemas.ai_generation import AiApplyOut, AiSuggestIn, AiSuggestOut
 from planner.services.meal_plan_ai_service import MealPlanAiService
 
 logger = logging.getLogger(__name__)
 
 ai_suggest_router = Router(tags=["AI Meal Plan Generation"])
+ai_apply_router = Router(tags=["AI Meal Plan Generation"])
 
 ai_service = MealPlanAiService()
 
@@ -55,3 +59,21 @@ def ai_suggest(request, payload: AiSuggestIn):
         raise HttpError(502, str(e))
     except GeminiUnavailableError as e:
         raise HttpError(503, str(e))
+
+
+@ai_apply_router.post(
+    "/{meal_plan_id}/apply-ai/",
+    response={200: AiApplyOut},
+    summary="Apply AI suggestions to a meal plan",
+    description="Takes AI-generated meal plan suggestions and creates MealItems for each suggested recipe.",
+)
+def ai_apply(request, meal_plan_id: int, payload: AiSuggestOut):
+    user: AbstractBaseUser | None = request.user
+    if not user.is_authenticated:
+        raise HttpError(403, "Anmeldung erforderlich")
+
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, user)
+
+    result = ai_service.apply_suggestions(meal_plan, payload.dict())
+    return 200, result

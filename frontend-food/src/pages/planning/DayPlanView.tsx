@@ -242,7 +242,7 @@ export function DayPlanView({
         </div>
       )}
 
-      {/* Recipe Search Dialog (after creating a new meal) */}
+      {/* Recipe Search Dialog — immer gemountet, Sichtbarkeit per open-Prop */}
       <RecipeSearchDialog
         mealType={searchDialogMeal?.meal_type ?? 'snack'}
         open={searchDialogMeal !== null}

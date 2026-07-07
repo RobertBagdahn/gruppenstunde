@@ -714,24 +714,24 @@ export default function TableView({
         </table>
       </div>
 
-      {/* Recipe Search Dialog */}
-      {searchDialogMeal !== null && (
-        <RecipeSearchDialog
-          mealType={searchDialogMeal.meal_type}
-          open={searchDialogMeal !== null}
-          onOpenChange={(open) => !open && setSearchDialogMeal(null)}
-          onSelect={(recipeId) => {
-            onAddRecipe?.(searchDialogMeal.id, recipeId);
-            setSearchDialogMeal(null);
-          }}
-          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _ingredientName) => {
-            onAddIngredient?.(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
-            setSearchDialogMeal(null);
-          }}
-          nutritionalTagIds={nutritionalTagIds}
-          nutritionalTagNames={nutritionalTagNames}
-        />
-      )}
+      {/* Recipe Search Dialog — immer gemountet, Sichtbarkeit per open-Prop */}
+      <RecipeSearchDialog
+        mealType={searchDialogMeal?.meal_type ?? 'snack'}
+        open={searchDialogMeal !== null}
+        onOpenChange={(open) => !open && setSearchDialogMeal(null)}
+        onSelect={(recipeId) => {
+          if (!searchDialogMeal) return;
+          onAddRecipe?.(searchDialogMeal.id, recipeId);
+          setSearchDialogMeal(null);
+        }}
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _ingredientName) => {
+          if (!searchDialogMeal) return;
+          onAddIngredient?.(searchDialogMeal.id, ingredientId, portionId, measuringUnitId, quantity);
+          setSearchDialogMeal(null);
+        }}
+        nutritionalTagIds={nutritionalTagIds}
+        nutritionalTagNames={nutritionalTagNames}
+      />
     </div>
   );
 }

@@ -225,7 +225,7 @@ export default function InlineIngredientEditor({
   const createExchangeGroup = useCreateExchangeGroup(recipeId);
 
   // Map to store update mutations for each ingredient (keyed by ingredient_id)
-  const ingredientUpdateMutations = new Map<number, any>();
+  const ingredientUpdateMutations = new Map<number, null>();
   editItems.forEach((item) => {
     if (item.ingredient_id && !ingredientUpdateMutations.has(item.ingredient_id)) {
       // Create a stable key for the mutation (we'll create actual mutations inside renderRow)

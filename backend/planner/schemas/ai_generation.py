@@ -27,3 +27,19 @@ class AiSuggestDay(Schema):
 
 class AiSuggestOut(Schema):
     days: list[AiSuggestDay]
+
+
+AiApplyIn = AiSuggestOut
+
+
+class SkippedItem(Schema):
+    day: dt.date
+    meal_type: str
+    recipe_id: int
+    reason: str
+
+
+class AiApplyOut(Schema):
+    applied: int
+    skipped: int
+    skipped_items: list[SkippedItem]

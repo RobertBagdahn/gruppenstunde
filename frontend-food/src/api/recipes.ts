@@ -251,6 +251,8 @@ export interface RecipeUpdatePayload {
   scout_level_ids?: number[];
   tag_ids?: number[];
   nutritional_tag_ids?: number[];
+  source_url?: string;
+  authors_ids?: number[];
   recipe_items?: Array<{
     portion_id?: number | null;
     ingredient_id?: number | null;

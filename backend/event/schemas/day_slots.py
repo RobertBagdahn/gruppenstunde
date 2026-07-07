@@ -1,9 +1,12 @@
 """Pydantic schemas for EventDaySlot (Django Ninja)."""
 
+import logging
 import datetime as _dt
 from datetime import datetime, time
 
 from ninja import Schema
+
+logger = logging.getLogger(__name__)
 
 
 class EventDaySlotOut(Schema):
@@ -35,7 +38,10 @@ class EventDaySlotOut(Schema):
                 content_obj = obj.content_type.get_object_for_this_type(pk=obj.object_id)
                 return getattr(content_obj, "title", None)
             except Exception:
-                pass
+                logger.warning(
+                    "Could not resolve content title for day_slot %d (type=%s, pk=%s)",
+                    obj.id, obj.content_type, obj.object_id,
+                )
         return None
 
     @staticmethod
@@ -45,7 +51,10 @@ class EventDaySlotOut(Schema):
                 content_obj = obj.content_type.get_object_for_this_type(pk=obj.object_id)
                 return getattr(content_obj, "slug", None)
             except Exception:
-                pass
+                logger.warning(
+                    "Could not resolve content slug for day_slot %d (type=%s, pk=%s)",
+                    obj.id, obj.content_type, obj.object_id,
+                )
         return None
 
 

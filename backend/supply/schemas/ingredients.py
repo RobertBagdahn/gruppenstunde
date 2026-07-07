@@ -481,4 +481,4 @@ class IngredientSimilarOut(Schema):
     id: int
     name: str
     slug: str
-    similarity_pct: float
+    distance: float

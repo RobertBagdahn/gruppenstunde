@@ -2,11 +2,14 @@
 Content API — Admin endpoints (approval queue, embedding viewer, embedding feedback).
 """
 
+import logging
 import math
 
 from django.contrib.contenttypes.models import ContentType
 from ninja import Router
 from ninja.errors import HttpError
+
+logger = logging.getLogger(__name__)
 
 from content.schemas.admin import (
     AdminApprovalActionIn,
@@ -306,12 +309,12 @@ def admin_embedding_feedback(
             src_obj = link.source_content_type.get_object_for_this_type(pk=link.source_object_id)
             src_title = getattr(src_obj, "title", "")
         except Exception:
-            pass
+            logger.warning("Could not resolve source content for content_link %d", link.id)
         try:
             tgt_obj = link.target_content_type.get_object_for_this_type(pk=link.target_object_id)
             tgt_title = getattr(tgt_obj, "title", "")
         except Exception:
-            pass
+            logger.warning("Could not resolve target content for content_link %d", link.id)
 
         items.append(
             {

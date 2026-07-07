@@ -409,6 +409,21 @@ export const AiSuggestOutSchema = z.object({
 });
 export type AiSuggestOut = z.infer<typeof AiSuggestOutSchema>;
 
+export const AiApplySkippedItemSchema = z.object({
+  day: z.string(),
+  meal_type: z.string(),
+  recipe_id: z.number(),
+  reason: z.string(),
+});
+export type AiApplySkippedItem = z.infer<typeof AiApplySkippedItemSchema>;
+
+export const AiApplyOutSchema = z.object({
+  applied: z.number(),
+  skipped: z.number(),
+  skipped_items: z.array(AiApplySkippedItemSchema),
+});
+export type AiApplyOut = z.infer<typeof AiApplyOutSchema>;
+
 // ==========================================================================
 // Wizard State schemas
 // ==========================================================================

@@ -14,6 +14,7 @@ Endpoints:
   /api/admin/units/{id}/        — Unit update/delete
 """
 
+import logging
 import math
 from datetime import timedelta
 
@@ -24,6 +25,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Query, Router, Schema
 from ninja.errors import HttpError
+
+logger = logging.getLogger(__name__)
 
 from blog.models import Blog
 from content.choices import CommentStatus, ContentStatus
@@ -233,6 +236,22 @@ class MaterialAdminUpdateIn(Schema):
     default_unit_id: int | None = None
 
 
+class PaginatedUserOut(Schema):
+    items: list[AdminUserOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class PaginatedCommentModerationOut(Schema):
+    items: list[CommentModerationOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 class PaginatedMaterialAdminOut(Schema):
     items: list[MaterialAdminOut]
     total: int
@@ -404,7 +423,7 @@ def admin_recent_activity(request):
                 title = obj.title
                 slug = obj.slug
         except Exception:
-            pass
+            logger.warning("Could not resolve content_object for ContentView %d", v.id)
         recent_views.append(
             {
                 "id": v.id,
@@ -460,10 +479,21 @@ def admin_recent_activity(request):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/users/", response=list[AdminUserOut])
-def admin_users(request):
+@router.get("/users/", response=PaginatedUserOut)
+def admin_users(request, page: int = 1, page_size: int = 50):
     _require_staff(request)
-    return list(User.objects.all().order_by("-date_joined"))
+    qs = User.objects.all().order_by("-date_joined")
+    total = qs.count()
+    total_pages = max(1, math.ceil(total / page_size))
+    start = (page - 1) * page_size
+    items = list(qs[start : start + page_size])
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 @router.get("/users/{user_id}/", response=AdminUserDetailOut)
@@ -494,7 +524,7 @@ def admin_user_detail(request, user_id: int):
                 title = obj.title
                 slug = obj.slug
         except Exception:
-            pass
+            logger.warning("Could not resolve content_object for ContentComment %d", c.id)
         comments.append(
             {
                 "id": c.id,
@@ -525,14 +555,23 @@ def admin_user_detail(request, user_id: int):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/moderation/", response=list[CommentModerationOut])
-def moderation_queue(request):
+@router.get("/moderation/", response=PaginatedCommentModerationOut)
+def moderation_queue(request, page: int = 1, page_size: int = 50):
     _require_staff(request)
-    return list(
-        ContentComment.objects.filter(status=CommentStatus.PENDING)
-        .select_related("content_type", "user")
-        .order_by("-created_at")
-    )
+    qs = ContentComment.objects.filter(status=CommentStatus.PENDING).select_related(
+        "content_type", "user"
+    ).order_by("-created_at")
+    total = qs.count()
+    total_pages = max(1, math.ceil(total / page_size))
+    start = (page - 1) * page_size
+    items = list(qs[start : start + page_size])
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 @router.post("/moderation/", response=CommentModerationOut)

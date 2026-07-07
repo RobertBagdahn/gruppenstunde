@@ -3,7 +3,7 @@
  * MUST stay in sync with backend/planner/api/meal_plan.py
  */
 import { API_BASE_URL } from '@/lib/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   MealPlanCollaboratorSchema,
   MealPlanSchema,
@@ -37,8 +37,8 @@ import {
   type CookingSchedule,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
-import { AiSuggestOutSchema } from '@/schemas/mealPlan';
-import type { AiSuggestOut } from '@/schemas/mealPlan';
+import { AiApplyOutSchema, AiSuggestOutSchema } from '@/schemas/mealPlan';
+import type { AiApplyOut, AiSuggestOut } from '@/schemas/mealPlan';
 
 const API_BASE = `${API_BASE_URL}/api/meal-plans`;
 
@@ -176,6 +176,18 @@ export function useAiMealPlanSuggest() {
       nutritional_tag_ids?: number[];
       budget_per_person_per_day?: number;
     }): Promise<AiSuggestOut> => postJson(`${API_BASE}/ai/suggest/`, body, AiSuggestOutSchema),
+  });
+}
+
+export function useApplyAiSuggestions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ planId, body }: { planId: number; body: AiSuggestOut }): Promise<AiApplyOut> =>
+      postJson(`${API_BASE}/${planId}/apply-ai/`, body, AiApplyOutSchema),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', variables.planId] });
+    },
   });
 }
 
@@ -475,6 +487,7 @@ export function useRecipeSearch(params: RecipeSearchParams) {
         UnifiedSearchResponseSchema,
       ),
     enabled: (q?.length ?? 0) >= 2 || !!recipe_types?.length || !!recipe_badge || !!exclude_nutritional_tag_ids?.length || !!nutritional_tag_ids?.length || !!meal_type,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -511,6 +524,7 @@ export function useRecipeSuggestions(params: RecipeSuggestionsParams) {
         RecipeSuggestionsResponseSchema,
       ),
     enabled: (q?.length ?? 0) >= 2 || !!mealType || !!excludeNutritionalTagIds?.length || !!recipeTypes?.length,
+    placeholderData: keepPreviousData,
   });
 }
 

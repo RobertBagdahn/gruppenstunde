@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple, X } from 'lucide-react';
 import { useNutritionalTags } from '@/api/supplies';
 import {
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { useRecipeSearch, useRecentlyUsedRecipes } from '@/api/mealPlans';
 import type { IngredientSearchResult, IngredientPortion, RecipeSearchResult } from '@/schemas/mealPlan';
-import RecipePreviewDialog from './RecipePreviewDialog';
+import RecipePreviewInline from './RecipePreviewInline';
 import CategoryPills from '@/components/recipe/CategoryPills';
 import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
@@ -191,7 +191,7 @@ export default function RecipeSearchDialog({
   const isIngredientMode = selectedTypes.has('ingredient');
 
   const showRecentlyUsed = !ingredientOnly && !isIngredientMode
-    && debouncedQuery.length < 2 && searchQuery.length < 2
+    && debouncedQuery.length < 2
     && (recentlyUsedData?.recipes?.length ?? 0) > 0;
 
   const recipes = results?.recipes ?? [];
@@ -205,10 +205,34 @@ export default function RecipeSearchDialog({
     : mealType === 'drinks' ? 'Getränke'
     : 'Mahlzeit';
 
+  const handleEscapeKeyDown = useCallback((e: KeyboardEvent) => {
+    if (previewRecipe || ingredientDialog) {
+      e.preventDefault();
+      setPreviewRecipe(null);
+      setIngredientDialog(null);
+    }
+  }, [previewRecipe, ingredientDialog]);
+
   return (
-    <>
-      <Dialog open={open && !ingredientDialog} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col gap-3">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-3xl max-h-[85vh] min-h-[60vh] max-[640px]:min-h-[80vh] flex flex-col gap-3"
+        onEscapeKeyDown={handleEscapeKeyDown}
+      >
+        {previewRecipe ? (
+          <RecipePreviewInline
+            recipe={previewRecipe}
+            onConfirm={handlePreviewConfirm}
+            onCancel={() => setPreviewRecipe(null)}
+          />
+        ) : ingredientDialog ? (
+          <IngredientQuantityInline
+            ingredient={ingredientDialog}
+            onConfirm={handleIngredientConfirm}
+            onCancel={() => setIngredientDialog(null)}
+          />
+        ) : (
+          <>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-display">
               {ingredientOnly || isIngredientMode ? (
@@ -495,47 +519,28 @@ export default function RecipeSearchDialog({
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Zutaten-Mengen-Dialog */}
-      {ingredientDialog && (
-        <IngredientQuantityDialog
-          ingredient={ingredientDialog}
-          open={!!ingredientDialog}
-          onOpenChange={(open) => { if (!open) setIngredientDialog(null); }}
-          onConfirm={handleIngredientConfirm}
-        />
-      )}
-
-      {/* Rezept-Vorschau-Dialog */}
-      <RecipePreviewDialog
-        recipe={previewRecipe}
-        open={!!previewRecipe}
-        onOpenChange={(open) => { if (!open) setPreviewRecipe(null); }}
-        onConfirm={handlePreviewConfirm}
-      />
-    </>
+        </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
 // ==========================================================================
-// Ingredient Quantity Dialog
+// Ingredient Quantity Inline (rendered inside RecipeSearchDialog)
 // ==========================================================================
 
-interface IngredientQuantityDialogProps {
+interface IngredientQuantityInlineProps {
   ingredient: IngredientSearchResult;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   onConfirm: (ingredientId: number, portion: IngredientPortion | null, quantity: number) => void;
+  onCancel: () => void;
 }
 
-function IngredientQuantityDialog({
+function IngredientQuantityInline({
   ingredient,
-  open,
-  onOpenChange,
   onConfirm,
-}: IngredientQuantityDialogProps) {
+  onCancel,
+}: IngredientQuantityInlineProps) {
   const [selectedPortionId, setSelectedPortionId] = useState<string>(
     ingredient.portions.length > 0 ? String(ingredient.portions[0].id) : '',
   );
@@ -550,70 +555,66 @@ function IngredientQuantityDialog({
     : null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-display">
-            <Egg className="w-5 h-5 text-primary" />
-            {ingredient.name} hinzufügen
-          </DialogTitle>
-        </DialogHeader>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 text-lg font-display font-bold mb-4">
+        <Egg className="w-5 h-5 text-primary" />
+        {ingredient.name} hinzufügen
+      </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Menge</label>
-            <input
-              type="number"
-              min={0.1}
-              step={0.5}
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(0.1, parseFloat(e.target.value) || 1))}
-              className="w-full mt-1 rounded-lg border px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </div>
-
-          {ingredient.portions.length > 0 && (
-            <div>
-              <label className="text-sm font-medium">Einheit</label>
-              <Select value={selectedPortionId} onValueChange={setSelectedPortionId}>
-                <SelectTrigger className="w-full mt-1">
-                  <SelectValue placeholder="Portion wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ingredient.portions.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
-                      {p.measuring_unit ? ` (${p.measuring_unit})` : ''}
-                      {p.weight_g ? ` — ${p.weight_g}g` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {totalWeightG && selectedPortion?.weight_g && (
-            <p className="text-xs text-muted-foreground">
-              {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
-            </p>
-          )}
-
-          <div className="flex gap-2 justify-end">
-            <button
-              onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
-            >
-              Abbrechen
-            </button>
-            <button
-              onClick={() => onConfirm(ingredient.id, selectedPortion, quantity)}
-              className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Hinzufügen
-            </button>
-          </div>
+      <div className="flex-1 space-y-4">
+        <div>
+          <label className="text-sm font-medium">Menge</label>
+          <input
+            type="number"
+            min={0.1}
+            step={0.5}
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(0.1, parseFloat(e.target.value) || 1))}
+            className="w-full mt-1 rounded-lg border px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
         </div>
-      </DialogContent>
-    </Dialog>
+
+        {ingredient.portions.length > 0 && (
+          <div>
+            <label className="text-sm font-medium">Einheit</label>
+            <Select value={selectedPortionId} onValueChange={setSelectedPortionId}>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Portion wählen" />
+              </SelectTrigger>
+              <SelectContent>
+                {ingredient.portions.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name}
+                    {p.measuring_unit ? ` (${p.measuring_unit})` : ''}
+                    {p.weight_g ? ` — ${p.weight_g}g` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {totalWeightG && selectedPortion?.weight_g && (
+          <p className="text-xs text-muted-foreground">
+            {quantity} × {selectedPortion.weight_g}g = {Math.round(totalWeightG)}g
+          </p>
+        )}
+      </div>
+
+      <div className="flex gap-2 justify-end pt-3 border-t mt-3">
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 text-sm rounded-md border hover:bg-muted transition-colors"
+        >
+          Abbrechen
+        </button>
+        <button
+          onClick={() => onConfirm(ingredient.id, selectedPortion, quantity)}
+          className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          Hinzufügen
+        </button>
+      </div>
+    </div>
   );
 }

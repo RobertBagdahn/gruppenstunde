@@ -23,4 +23,4 @@
 - [x] 4.1 Cloud SQL Proxy starten (war bereits aktiv)
 - [x] 4.2 `uv run python bin/export_prod_data.py --only food` ausführen (41398 Einträge exportiert)
 - [x] 4.3 `supply_ingredient.json` enthält jetzt 4 Ingredients mit `tags=[71]`
-- [ ] 4.4 `git diff` prüfen und committen (erst nach visueller Prüfung durch User)
+- [x] 4.4 `git diff` prüfen und committen (commit dc9393a)

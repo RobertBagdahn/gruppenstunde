@@ -8,7 +8,7 @@ import {
   useCreateMealPlan,
   useDuplicateMealPlan,
 } from '@/api/mealPlans';
-import { useAiMealPlanSuggest } from '@/api/mealPlans';
+import { useAiMealPlanSuggest, useApplyAiSuggestions } from '@/api/mealPlans';
 import type { MealPlanWizardStrategy } from '@/schemas/mealPlan';
 import UnauthGate from '@/components/shared/UnauthGate';
 
@@ -41,6 +41,7 @@ export default function MealPlanWizardPage() {
   const createMutation = useCreateMealPlan();
   const duplicateMutation = useDuplicateMealPlan();
   const aiSuggestMutation = useAiMealPlanSuggest();
+  const applyMutation = useApplyAiSuggestions();
 
   const nutritionalTagNames = useMemo(() => {
     return state.nutritional_tag_ids.length > 0 ? [] : [];
@@ -100,17 +101,19 @@ export default function MealPlanWizardPage() {
         });
 
         if (state.strategy === 'ai' && state.ai_suggestions) {
-          const suggestions = state.ai_suggestions as { days: { date: string; meals: { meal_type: string; recipe_id: number; recipe_title: string }[] }[] };
-          for (const day of suggestions.days) {
-            const dayDate = new Date(day.date + 'T12:00:00');
-            const dayStart = new Date(dayDate);
-            dayStart.setHours(8, 0, 0, 0);
-            const dayEnd = new Date(dayDate);
-            dayEnd.setHours(20, 0, 0, 0);
+          try {
+            await applyMutation.mutateAsync({
+              planId: plan.id,
+              body: state.ai_suggestions as { days: { date: string; meals: { meal_type: string; recipe_id: number; recipe_title: string }[] }[] },
+            });
+            toast.success('Essensplan mit KI-Vorschlägen erstellt');
+          } catch {
+            toast.warning('Essensplan erstellt, aber KI-Vorschläge konnten nicht übernommen werden');
           }
+        } else {
+          toast.success('Essensplan erstellt');
         }
 
-        toast.success('Essensplan erstellt');
         cleanup();
         navigate(`/meal-plans/${plan.id}`);
       } catch (err: unknown) {
@@ -224,7 +227,7 @@ export default function MealPlanWizardPage() {
             state={state}
             nutritionalTagNames={nutritionalTagNames}
             onCreate={handleCreate}
-            isPending={createMutation.isPending || duplicateMutation.isPending}
+            isPending={createMutation.isPending || duplicateMutation.isPending || applyMutation.isPending}
           />
         )}
       </div>

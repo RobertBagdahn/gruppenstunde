@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useRecipeBySlug, useUpdateRecipe } from '@/api/recipes';
+import { useRecipeBySlug, useUpdateRecipe, type RecipeUpdatePayload } from '@/api/recipes';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { useBreakfastDays } from '@/api/breakfast';
 import { useCurrentUser } from '@/api/auth';
@@ -57,7 +57,7 @@ export default function EditRecipePage() {
       // Staff fields
       setStatus(recipe.status || '');
       setSourceUrl(recipe.source_url || '');
-      setSelectedAuthorIds(recipe.authors?.map((a) => a.id) || []);
+      setSelectedAuthorIds(recipe.authors?.map((a) => a.id).filter((id): id is number => id !== null) || []);
       setInitialized(true);
     }
   }, [recipe, initialized]);
@@ -82,12 +82,11 @@ export default function EditRecipePage() {
       return;
     }
 
-    const payload: any = {
+    const payload: RecipeUpdatePayload = {
       title: title.trim(),
       recipe_type: recipeType,
       summary: summary.trim(),
       description: description.trim(),
-      // portions always 1 (normalized backend storage)
       difficulty: difficulty || undefined,
       execution_time: executionTime || undefined,
       preparation_time: preparationTime || undefined,

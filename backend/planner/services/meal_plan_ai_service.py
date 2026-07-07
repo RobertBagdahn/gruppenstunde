@@ -3,10 +3,14 @@
 import logging
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import transaction
+from django.utils import timezone
 from google.genai import types as genai_types
 from pydantic import BaseModel, Field, ValidationError
 
 from core.services.gemini import GeminiInvalidResponseError, GeminiUnavailableError, gemini_call
+from planner.models import Meal, MealItem
+from planner.schemas.ai_generation import AiApplyOut, SkippedItem
 from recipe.models import Recipe
 
 logger = logging.getLogger(__name__)
@@ -141,3 +145,77 @@ class MealPlanAiService:
             )
 
         return {"days": validated_days}
+
+    def apply_suggestions(
+        self,
+        meal_plan,
+        suggestions_data: dict,
+    ) -> AiApplyOut:
+        """Apply AI suggestions to a meal plan.
+
+        Creates MealItems for each suggested recipe in the corresponding
+        Meal slot (matched by date + meal_type). Invalid recipe_ids or
+        unknown meal_types are skipped and reported in the response.
+        """
+        with transaction.atomic():
+            valid_recipe_ids = set(
+                Recipe.objects.filter(
+                    id__in=[m["recipe_id"] for day in suggestions_data["days"] for m in day["meals"]]
+                ).values_list("id", flat=True)
+            )
+
+            skipped_items: list[SkippedItem] = []
+            applied_count = 0
+
+            for day_data in suggestions_data["days"]:
+                day_date = day_data["date"]
+                if isinstance(day_date, str):
+                    day_date = timezone.datetime.strptime(day_date, "%Y-%m-%d").date()
+
+                # Ensure Meal slots exist for this date
+                meal_plan.create_meals_for_date_timeaware(day_date)
+
+                for meal_data in day_data["meals"]:
+                    recipe_id = meal_data["recipe_id"]
+                    meal_type = meal_data["meal_type"]
+
+                    if recipe_id not in valid_recipe_ids:
+                        skipped_items.append(
+                            SkippedItem(
+                                day=day_date,
+                                meal_type=meal_type,
+                                recipe_id=recipe_id,
+                                reason="Rezept nicht gefunden",
+                            )
+                        )
+                        continue
+
+                    try:
+                        meal = Meal.objects.get(
+                            meal_plan=meal_plan,
+                            start_datetime__date=day_date,
+                            meal_type=meal_type,
+                        )
+                    except Meal.DoesNotExist:
+                        skipped_items.append(
+                            SkippedItem(
+                                day=day_date,
+                                meal_type=meal_type,
+                                recipe_id=recipe_id,
+                                reason=f"Mahlzeit-Typ '{meal_type}' ist an diesem Tag nicht verfügbar",
+                            )
+                        )
+                        continue
+
+                    MealItem.objects.create(
+                        meal=meal,
+                        recipe_id=recipe_id,
+                        factor=1.0,
+                    )
+                    applied_count += 1
+
+        return AiApplyOut(
+            applied=applied_count,
+            skipped=len(skipped_items),
+            skipped_items=skipped_items,
+        )

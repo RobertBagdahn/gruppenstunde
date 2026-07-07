@@ -108,11 +108,13 @@ class RecipeDetailOut(ContentDetailOut):
     cached_at: dt.datetime | None = None
     # Cached micronutrients
     cached_vitamin_c_mg: float | None = None
+    cached_weight_g: float | None = None
     # Personal recipe fields
     owner_name: str | None = None
     forked_from_title: str | None = None
     forked_from_slug: str | None = None
     visibility: str | None = None
+    source_url: str = ""
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
     is_owner: bool = False
     usage_in_meal_plans_count: int = 0

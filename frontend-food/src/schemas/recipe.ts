@@ -79,6 +79,7 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   cached_at: z.string().nullable().optional(),
   // Cached micronutrient values
   cached_vitamin_c_mg: z.number().nullable().optional(),
+  cached_weight_g: z.number().nullable().optional(),
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),
@@ -115,13 +116,14 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   cached_at: z.string().nullable().optional(),
   // Cached micronutrient values
   cached_vitamin_c_mg: z.number().nullable().optional(),
+  cached_weight_g: z.number().nullable().optional(),
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),
   forked_from_slug: z.string().nullable().optional(),
   visibility: z.string().nullable().optional(),
-  source_url: z.string().optional().default(''),
   recipe_badge: z.string().nullable().optional(), // "verified" | "community" | "personal"
+  source_url: z.string().optional().default(''),
   is_owner: z.boolean().default(false),
   usage_in_meal_plans_count: z.number().default(0),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
