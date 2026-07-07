@@ -422,6 +422,7 @@ class ContentAIService:
         title: str = "",
         summary: str = "",
         content_type: str = "session",
+        ingredients: list[dict] | None = None,
         user: AbstractBaseUser | None = None,
     ) -> list[str]:
         """
@@ -440,16 +441,46 @@ class ContentAIService:
             context_parts.append(f"Title: {title}")
         if summary:
             context_parts.append(f"Summary: {summary[:200]}")
+        
+        # For recipes, include actual ingredients
+        if content_type == "recipe" and ingredients:
+            ingredients_text = ", ".join(
+                f"{ing.get('name', '')} ({ing.get('description', '')})" 
+                for ing in ingredients 
+                if ing.get('name')
+            )
+            if ingredients_text:
+                context_parts.append(f"Ingredients: {ingredients_text}")
+        
         context_text = "; ".join(context_parts)
 
-        full_prompt = (
-            f"Colorful cartoon clipart illustration, hand-drawn style, clean outlines, "
-            f"bright cheerful colors, white background. NO humans or people. No Text in the image. "
-            f"No photos, only drawings. The image should clearly illustrate the {ct_config['label']} at a glance. "
-            f"Only objects, nature, animals, tools. Child-friendly scouting activity style.\n"
-            f"Content: {context_text}\n"
-            f"Image: {prompt}"
-        )
+        # Recipe images: realistic illustrated style, focus on the finished dish plated
+        if content_type == "recipe":
+            full_prompt = (
+                f"Appetizing illustrated style, professionally painted, watercolor or gouache technique, "
+                f"realistic but artistic. Focus on the finished dish beautifully plated on a simple, plain plate. "
+                f"Use everyday, simple dishware - not fancy or luxurious plating. "
+                f"The food should be the main subject, prominently displayed and appetizing. "
+                f"CRITICAL: Show ONLY the exact ingredients listed in the content - NEVER add, invent, imagine, or assume any other ingredients. "
+                f"ONLY use ingredients that are explicitly provided. "
+                f"The actual listed ingredients can appear subtly in the background for context. "
+                f"NO humans or people. No Text in the image. No photos, only paintings/illustrations. "
+                f"NO cooking pots or stoves - show the final presentation. "
+                f"Warm, inviting colors. Clean white or light neutral background. "
+                f"Professional food styling and presentation.\n"
+                f"Content: {context_text}\n"
+                f"Image: {prompt}"
+            )
+        else:
+            # Activities, games, sessions: colorful cartoon style, child-friendly
+            full_prompt = (
+                f"Colorful cartoon clipart illustration, hand-drawn style, clean outlines, "
+                f"bright cheerful colors, white background. NO humans or people. No Text in the image. "
+                f"No photos, only drawings. The image should clearly illustrate the {ct_config['label']} at a glance. "
+                f"Only objects, nature, animals, tools. Child-friendly scouting activity style.\n"
+                f"Content: {context_text}\n"
+                f"Image: {prompt}"
+            )
 
         max_retries = 3
         response = None

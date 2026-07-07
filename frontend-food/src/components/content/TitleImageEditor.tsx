@@ -317,6 +317,10 @@ function AiImageModal({
       {
         onSuccess: (data) => {
           setGeneratedUrls(data.image_urls);
+          // Auto-select the first generated image and close dialog
+          if (data.image_urls.length > 0) {
+            onSelect(data.image_urls[0]);
+          }
         },
         onError: (err) => {
           toast.error('KI-Bildgenerierung fehlgeschlagen', {
@@ -333,32 +337,84 @@ function AiImageModal({
         <DialogHeader>
           <DialogTitle>Bild mit KI generieren</DialogTitle>
           <DialogDescription>
-            Beschreibe das gewünschte Bild oder nutze den Vorschlag.
+            Das Bild wird automatisch aus Titel, Zusammenfassung und Ihrer Beschreibung generiert.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Prompt input */}
+          {/* Already included data */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm space-y-2">
+            <p className="font-medium text-blue-900">Bereits eingehende Informationen:</p>
+            <ul className="space-y-1 text-blue-800">
+              {title && <li>• <strong>Titel:</strong> {title}</li>}
+              {summary && <li>• <strong>Zusammenfassung:</strong> {summary}</li>}
+            </ul>
+            <p className="text-blue-700 text-xs mt-2">
+              Sie können optional eine weitere Bildbeschreibung hinzufügen oder direkt auf „Generieren" klicken.
+            </p>
+          </div>
+
+          {/* Prompt input - optional */}
           <div>
             <label htmlFor="ai-image-prompt" className="text-sm font-medium mb-1.5 block">
-              Bildbeschreibung
+              Bildbeschreibung <span className="text-xs text-muted-foreground">(optional)</span>
             </label>
             <textarea
               id="ai-image-prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              rows={3}
+              rows={2}
               className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder="Beschreibe das Bild..."
+              placeholder="z.B. Mit frischen Kräutern garniert, natürliches Licht..."
             />
           </div>
 
-          {/* Generate button */}
+          {/* Loading skeleton */}
+          {generateImage.isPending && generatedUrls.length === 0 && (
+            <div className="aspect-square rounded-lg bg-muted animate-pulse max-w-xs mx-auto" />
+          )}
+
+          {/* Generated images grid */}
+          {generatedUrls.length > 0 && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                ✓ Bild wird übernommen...
+              </p>
+              <div className="max-w-xs mx-auto">
+                {generatedUrls.slice(0, 1).map((url) => (
+                  <div
+                    key={url}
+                    className="relative aspect-square w-full rounded-lg overflow-hidden border-2 border-green-400"
+                  >
+                    <img
+                      src={url}
+                      alt="KI-generiertes Bild"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-4xl drop-shadow-lg">
+                        check_circle
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Error state */}
+          {generateImage.isError && (
+            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+              {generateImage.error.message}
+            </div>
+          )}
+
+          {/* Generate button - at the bottom */}
           <button
             type="button"
             onClick={handleGenerate}
             disabled={generateImage.isPending}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition disabled:opacity-50 disabled:bg-green-600"
           >
             {generateImage.isPending ? (
               <>
@@ -374,49 +430,6 @@ function AiImageModal({
               </>
             )}
           </button>
-
-          {/* Loading skeleton */}
-          {generateImage.isPending && generatedUrls.length === 0 && (
-            <div className="aspect-square rounded-lg bg-muted animate-pulse max-w-xs mx-auto" />
-          )}
-
-          {/* Generated images grid */}
-          {generatedUrls.length > 0 && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Klicke auf das Bild, um es als Titelbild zu setzen:
-              </p>
-              <div className="max-w-xs mx-auto">
-                {generatedUrls.slice(0, 1).map((url) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => onSelect(url)}
-                    disabled={isSettingImage}
-                    className="relative aspect-square w-full rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition group focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                  >
-                    <img
-                      src={url}
-                      alt="KI-generiertes Bild"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-                      <span className="material-symbols-outlined text-white text-3xl opacity-0 group-hover:opacity-100 transition drop-shadow-lg">
-                        check_circle
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Error state */}
-          {generateImage.isError && (
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              {generateImage.error.message}
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

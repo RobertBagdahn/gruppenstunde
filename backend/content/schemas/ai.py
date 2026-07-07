@@ -76,6 +76,7 @@ class AiGenerateImageIn(Schema):
     title: str = ""
     summary: str = ""
     content_type: str = "session"
+    ingredients: list[dict] = []  # List of {name: str, description: str}
 
 
 class AiGenerateImageOut(Schema):

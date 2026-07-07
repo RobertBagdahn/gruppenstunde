@@ -180,6 +180,7 @@ def ai_generate_image(request, payload: AiGenerateImageIn):
             title=payload.title,
             summary=payload.summary,
             content_type=payload.content_type,
+            ingredients=payload.ingredients,
             user=request.user,
         )
     except AiTimeoutError as exc:
