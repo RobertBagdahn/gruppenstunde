@@ -358,6 +358,7 @@ export const EstimateQuantityItemSchema = z.object({
   ingredient_name: z.string(),
   quantity_per_portion: z.number(),
   unit: z.string(),
+  grams_total: z.number(),
 });
 export type EstimateQuantityItem = z.infer<typeof EstimateQuantityItemSchema>;
 

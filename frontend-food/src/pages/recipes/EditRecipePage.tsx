@@ -385,8 +385,9 @@ export default function EditRecipePage() {
             <div className="space-y-4">
               {/* Status */}
               <div>
-                <label className="text-xs text-amber-800 mb-1 block font-medium">Rezept-Status</label>
+                <label htmlFor="recipe-admin-status" className="text-xs text-amber-800 mb-1 block font-medium">Rezept-Status</label>
                 <select
+                  id="recipe-admin-status"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
@@ -402,8 +403,9 @@ export default function EditRecipePage() {
 
               {/* Source URL */}
               <div>
-                <label className="text-xs text-amber-800 mb-1 block font-medium">Quell-URL</label>
+                <label htmlFor="recipe-admin-source-url" className="text-xs text-amber-800 mb-1 block font-medium">Quell-URL</label>
                 <input
+                  id="recipe-admin-source-url"
                   type="url"
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
@@ -414,8 +416,9 @@ export default function EditRecipePage() {
 
               {/* Authors (Simplified: comma-separated IDs or user selection) */}
               <div>
-                <label className="text-xs text-amber-800 mb-1 block font-medium">Autoren / Mitwirkende</label>
+                <label htmlFor="recipe-admin-authors" className="text-xs text-amber-800 mb-1 block font-medium">Autoren / Mitwirkende</label>
                 <input
+                  id="recipe-admin-authors"
                   type="text"
                   placeholder="Autor-IDs durch Komma getrennt, z.B. 1,2,3"
                   value={selectedAuthorIds.join(',')}

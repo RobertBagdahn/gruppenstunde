@@ -457,12 +457,20 @@ class RecipeQuantityEstimationService:
             else:
                 quantity_per_portion = estimated_grams / weight_g
 
+            # Total gram equivalent for the resolved quantity_per_portion, so the
+            # UI can always show a gram value next to the (possibly non-gram)
+            # portion unit — recomputed from quantity_per_portion × weight_g
+            # (rather than using estimated_grams directly) so it stays consistent
+            # with the rounded quantity_per_portion shown to the user.
+            grams_total = round(quantity_per_portion * weight_g, 1)
+
             results.append(
                 {
                     "item_id": item.id,
                     "ingredient_name": ingredient_name,
                     "quantity_per_portion": round(quantity_per_portion, 2),
                     "unit": unit,
+                    "grams_total": grams_total,
                 }
             )
 

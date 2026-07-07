@@ -244,6 +244,7 @@ class EstimateQuantityItemOut(Schema):
     ingredient_name: str
     quantity_per_portion: float
     unit: str
+    grams_total: float
 
 
 class EstimateQuantitiesOut(Schema):

@@ -50,6 +50,7 @@ class TestRecipeQuantityEstimationService:
                 "ingredient_name": "Haferflocken",
                 "quantity_per_portion": 400.0,
                 "unit": "Gramm",
+                "grams_total": 400.0,
             }
         ]
         assert default_portion.weight_g == 1.0
@@ -91,8 +92,12 @@ class TestRecipeQuantityEstimationService:
                 "ingredient_name": "Nudeln",
                 "quantity_per_portion": 1.0,
                 "unit": "1 Portion Nudeln",
+                "grams_total": 125.0,
             }
         ]
         # Explicitly guard against the recipe #434 regression: label must never
         # be "Gramm" when the underlying portion is a composite conversion factor.
         assert result[0]["unit"] != "Gramm"
+        # Even though the label is the portion name, the UI can still always show
+        # the gram equivalent alongside it.
+        assert result[0]["grams_total"] == 125.0

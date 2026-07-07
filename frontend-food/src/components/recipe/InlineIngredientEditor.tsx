@@ -99,6 +99,18 @@ interface InlineIngredientEditorProps {
  *  - Dropdown option rendering
  *  - Add ingredient flows (handleAddIngredient, handleAddFromDialog, handleSelectAlternative)
  */
+
+/** Formats a gram value compactly for inline display next to a portion unit,
+ *  e.g. "125g" or "1,3kg". Used in the AI-Mengenschätzung preview table so the
+ *  gram equivalent is always visible regardless of the portion unit shown. */
+function formatGramsShort(grams: number): string {
+  if (!Number.isFinite(grams) || grams <= 0) return '0g';
+  if (grams >= 1000) {
+    return `${(grams / 1000).toFixed(1).replace('.', ',')}kg`;
+  }
+  return `${Math.round(grams * 10) / 10}g`;
+}
+
 function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
   const s = portions ?? 1;
   return items.map((item) => {
@@ -1098,8 +1110,15 @@ export default function InlineIngredientEditor({
               <tbody>
                 {estimateResult.map((est) => {
                   const currentItem = editItems.find((i) => i.id === est.item_id);
+                  const currentPortion = currentItem?.ingredient_portions.find(
+                    (p) => p.id === currentItem.portion_id,
+                  );
+                  const altGramsText =
+                    currentItem && currentItem.quantity > 0 && currentPortion?.weight_g != null
+                      ? ` (${formatGramsShort(currentItem.quantity * currentPortion.weight_g)})`
+                      : '';
                   const altValue = currentItem && currentItem.quantity > 0
-                    ? `${currentItem.quantity} ${currentItem.measuring_unit_name || 'g'}`
+                    ? `${currentItem.quantity} ${currentItem.measuring_unit_name || 'g'}${altGramsText}`
                     : '—';
                   const hasChange = !currentItem || currentItem.quantity !== est.quantity_per_portion;
                   return (
@@ -1130,7 +1149,7 @@ export default function InlineIngredientEditor({
                         {altValue}
                       </td>
                       <td className="py-2 text-right font-medium">
-                        {est.quantity_per_portion} {est.unit}
+                        {est.quantity_per_portion} {est.unit} ({formatGramsShort(est.grams_total)})
                       </td>
                     </tr>
                   );
