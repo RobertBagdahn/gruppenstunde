@@ -6,6 +6,7 @@ Creates:
 - 17 specific topping ingredients (tagged breakfast-topping)
 - 6 drink ingredients (tagged breakfast-drink) — Milch, Säfte, Hafermilch
 - 3 drink recipes (tagged breakfast-drink) — Kaffee, Kakao, Tee
+- Optionally tags existing generic bread ingredients (Brot, Brötchen, etc.) with `breakfast-base`
 
 Idempotent: uses slug-based deduplication.
 """
@@ -22,6 +23,12 @@ DRINK_TAG_SLUG = "breakfast-drink"
 WARM_MEAL_TAG_SLUG = "breakfast-warm-meal"
 
 BREAKFAST_DAY_NAMES = ["Tag 1", "Tag 2", "Tag 3", "Tag 4", "Tag 5"]
+
+# Existing generic bread ingredients to tag with breakfast-base when --tag-existing is used.
+EXISTING_BREAD_SLUGS = [
+    "brot", "brotchen", "brot-vollkorn", "toastbrot", "vollkorn-toast",
+    "koernerbrot", "roggenbrot", "weissbrot", "ciabatta",
+]
 
 # (name, slug, standard_recipe_weight_g, energy_kcal, protein_g, carb_g)
 BASE_INGREDIENTS = [
@@ -87,6 +94,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
         parser.add_argument("--skip-tags", action="store_true", help="Skip tag creation (for re-seeding data only)")
+        parser.add_argument("--tag-existing", action="store_true", help="Tag existing generic bread ingredients with breakfast-base")
 
     def handle(self, *args, **options):
         dry_run = options.get("dry_run", False)
@@ -352,6 +360,21 @@ class Command(BaseCommand):
 
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed drink recipe {title}: {e}"))
+
+        # ── Tag existing bread ingredients ─────────────────────────────────
+        tagged_existing = 0
+        if options.get("tag_existing"):
+            base_tag = _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base")
+            for slug in EXISTING_BREAD_SLUGS:
+                ing = Ingredient.objects.filter(slug=slug).first()
+                if ing is None:
+                    continue
+                if not ing.tags.filter(id=base_tag.id).exists():
+                    if not dry_run:
+                        ing.tags.add(base_tag)
+                    tagged_existing += 1
+                    self.stdout.write(f"  Tagged existing: {ing.name} (slug={slug})")
+            self.stdout.write(f"  Existing bread ingredients tagged: {tagged_existing}")
 
         # ── Summary ────────────────────────────────────────────────────────
         self.stdout.write(self.style.SUCCESS("\nBreakfast catalog seed complete"))

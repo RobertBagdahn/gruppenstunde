@@ -4,12 +4,13 @@ import json
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import Client
 from model_bakery import baker
 
 from content.models import Tag
 from recipe.models import Recipe
-from supply.models import MeasuringUnit
+from supply.models import Ingredient, MeasuringUnit
 from supply.tests import make_ingredient, make_portion
 
 User = get_user_model()
@@ -282,6 +283,58 @@ class TestBreakfastLeftovers:
         assert data["total_needed_g"] == pytest.approx(150.0)
         assert data["packages_needed"] is None
         assert data["leftover_g"] is None
+
+# ============================================================================
+# Seed Command: --tag-existing
+# ============================================================================
+
+
+@pytest.mark.django_db
+class TestTagExisting:
+    def _ensure_units(self):
+        MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        MeasuringUnit.objects.get_or_create(name="ml", defaults={"quantity": 1.0, "unit": "ml"})
+
+    def test_tags_existing_bread_ingredients(self):
+        self._ensure_units()
+        Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "breakfast-base"})
+        ing = make_ingredient(name="Brot", is_standalone_food=True)
+        Ingredient.objects.filter(pk=ing.pk).update(slug="brot")
+        ing.refresh_from_db()
+
+        call_command("seed_breakfast_catalog", "--tag-existing")
+
+        ing.refresh_from_db()
+        tags = list(ing.tags.values_list("slug", flat=True))
+        assert "breakfast-base" in tags
+
+    def test_does_not_tag_non_bread(self):
+        self._ensure_units()
+        Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "breakfast-base"})
+        ing = make_ingredient(name="Tomate", is_standalone_food=True)
+        Ingredient.objects.filter(pk=ing.pk).update(slug="tomate")
+        ing.refresh_from_db()
+
+        call_command("seed_breakfast_catalog", "--tag-existing")
+
+        ing.refresh_from_db()
+        tags = list(ing.tags.values_list("slug", flat=True))
+        assert "breakfast-base" not in tags
+
+    def test_idempotent(self):
+        self._ensure_units()
+        Tag.objects.get_or_create(slug="breakfast-base", defaults={"name": "breakfast-base"})
+        ing = make_ingredient(name="Brötchen", is_standalone_food=True)
+        Ingredient.objects.filter(pk=ing.pk).update(slug="brotchen")
+        ing.refresh_from_db()
+
+        call_command("seed_breakfast_catalog", "--tag-existing")
+        call_command("seed_breakfast_catalog", "--tag-existing")
+
+        ing.refresh_from_db()
+        tags = list(ing.tags.values_list("slug", flat=True))
+        assert tags.count("breakfast-base") == 1
+
 
     def test_leftovers_multiple_toppings(self):
         g_unit = _g_unit()

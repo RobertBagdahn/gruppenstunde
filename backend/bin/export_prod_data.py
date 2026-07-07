@@ -49,7 +49,7 @@ GROUPS: dict[str, list[tuple[str, str, str, list[str]]]] = {
         ("supply", "DgeReference", "id", []),
     ],
     "food": [
-        ("supply", "Ingredient", "id", ["nutritional_tags"]),
+        ("supply", "Ingredient", "id", ["nutritional_tags", "tags"]),
         ("supply", "Portion", "id", []),
         ("supply", "IngredientAlias", "id", []),
         ("recipe", "Rule", "id", []),
@@ -107,6 +107,12 @@ def get_model_column_map(app_label: str, model_name: str) -> dict[str, str]:
         return column_map
     except LookupError:
         return {}
+
+
+def get_model_fields(app_label: str, model_name: str) -> set[str]:
+    """Return set of column names for a Django model."""
+    column_map = get_model_column_map(app_label, model_name)
+    return set(column_map.keys())
 
 
 def fix_recipe_item_quantity(fields: dict) -> dict:
