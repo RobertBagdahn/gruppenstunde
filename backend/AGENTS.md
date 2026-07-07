@@ -4,6 +4,16 @@
 
 ## Datenmodell-Überblick
 
+## ⚠️ WICHTIG: Django Ninja URL Routing Order
+
+Literale/statische Routen (z.B. `/{slug}/portions/reorder/`) MÜSSEN **vor** parameterisierten Routen (z.B. `/{slug}/portions/{portion_id}/`) im selben Router definiert werden. Django Ninja registriert Path Operations in Definitions-Reihenfolge, und `{portion_id}` matched als `[^/]+` — jedes Literal (wie `reorder`) würde sonst fälschlich als `portion_id` geparst und die Methode nicht gefunden (→ 405).
+
+**Betroffener Router:** `ingredient_router` in `supply/api/ingredients.py` — die Reihenfolge ist:
+1. `/{slug}/portions/` (GET, POST) ← static
+2. `/{slug}/portions/reorder/` (POST) ← literal
+3. `/{slug}/portions/{portion_id}/` (PATCH, DELETE) ← parameterized
+4. `/{slug}/portions/{portion_id}/move/` (POST, deprecated) ← parameterized
+
 ### Planner App
 - **`MealPlan`**: name, slug, description, norm_portions, reserve_factor, event FK (nullable). DB table: `planner_mealplan`. Kein `activity_factor`/PAL mehr — PAL lebt nur noch im Norm-Portion-Rechner. `scaling_factor` = `norm_portions × reserve_factor`.
 - **`Meal`**: meal_plan FK, start_datetime, end_datetime, meal_type, day_part_factor. Gruppierung nach Tag via `start_datetime__date`.

@@ -453,6 +453,36 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     return portion
 
 
+@ingredient_router.post("/{slug}/portions/reorder/", response=list[PortionOut])
+def reorder_portions(request, slug: str, payload: PortionReorderIn):
+    """Reorder multiple portions atomically.
+
+    Body: { orders: [{id: int, rank: int}, ...] }
+
+    Atomically updates all portion ranks. The 'g' portion must remain at rank 9999.
+    """
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    # Validate: 'g' portion (rank 9999) should never be moved
+    for order in payload.orders:
+        portion = Portion.objects.filter(id=order.id, ingredient=ingredient).first()
+        if portion and portion.name == "g" and order.rank != 9999:
+            raise HttpError(422, "Die 'g'-Portion muss immer rank=9999 haben und kann nicht verschoben werden.")
+
+    with transaction.atomic():
+        for order in payload.orders:
+            Portion.objects.filter(id=order.id, ingredient=ingredient).update(rank=order.rank)
+
+    # Return updated list sorted by rank
+    return list(
+        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+        .order_by("rank")
+        .select_related("measuring_unit")
+    )
+
+
 @ingredient_router.patch("/{slug}/portions/{portion_id}/", response=PortionOut)
 def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn):
     """Update a portion.
@@ -520,36 +550,6 @@ def delete_portion(request, slug: str, portion_id: int):
 
     portion.soft_delete()
     return {"success": True}
-
-
-@ingredient_router.post("/{slug}/portions/reorder/", response=list[PortionOut])
-def reorder_portions(request, slug: str, payload: PortionReorderIn):
-    """Reorder multiple portions atomically.
-
-    Body: { orders: [{id: int, rank: int}, ...] }
-
-    Atomically updates all portion ranks. The 'g' portion must remain at rank 9999.
-    """
-    require_auth(request)
-
-    ingredient = get_object_or_404(Ingredient, slug=slug)
-
-    # Validate: 'g' portion (rank 9999) should never be moved
-    for order in payload.orders:
-        portion = Portion.objects.filter(id=order.id, ingredient=ingredient).first()
-        if portion and portion.name == "g" and order.rank != 9999:
-            raise HttpError(422, "Die 'g'-Portion muss immer rank=9999 haben und kann nicht verschoben werden.")
-
-    with transaction.atomic():
-        for order in payload.orders:
-            Portion.objects.filter(id=order.id, ingredient=ingredient).update(rank=order.rank)
-
-    # Return updated list sorted by rank
-    return list(
-        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-        .order_by("rank")
-        .select_related("measuring_unit")
-    )
 
 
 @ingredient_router.post("/{slug}/portions/{portion_id}/move/", response=list[PortionOut], deprecated=True)

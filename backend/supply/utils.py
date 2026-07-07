@@ -65,20 +65,14 @@ def build_portion_display(
         - measuring_unit.name == "Stück" → unit_name omitted
         - weight_g is None → no weight clause, has_missing_weight=True
         - ingredient.name missing → fall back to slug or portion.name
+        - portion.quantity != 1 (composite/pre-scaled portion, e.g. "1 Portion
+          Nudeln" = 125g): the portion's own name is used as the entire label
+          instead of "{measuring_unit} {ingredient_name}". Using the underlying
+          measuring_unit name (often "Gramm") here would be misleading, since
+          `quantity` is a count of that portion, not a gram amount — same bug
+          class as recipe #434.
     """
-    # Resolve ingredient name (with slug fallback)
-    ingredient_name = ""
-    if ingredient:
-        ingredient_name = ingredient.name or ingredient.slug or ""
-    if not ingredient_name and portion:
-        ingredient_name = getattr(portion, "name", "") or ""
-
-    # Resolve unit name – suppress "Stück"
-    unit_name = ""
-    if portion and portion.measuring_unit:
-        mu_name = portion.measuring_unit.name or ""
-        if mu_name.lower() != "stück":
-            unit_name = mu_name
+    is_composite = bool(portion and portion.quantity and portion.quantity != 1)
 
     # Compute total weight
     weight_g: float | None = None
@@ -91,12 +85,31 @@ def build_portion_display(
     # Build quantity string
     qty_str = _format_quantity(quantity)
 
-    # Build display
-    parts = [qty_str]
-    if unit_name:
-        parts.append(unit_name)
-    if ingredient_name:
-        parts.append(ingredient_name)
+    if is_composite:
+        parts = [qty_str]
+        composite_name = getattr(portion, "name", "") or ""
+        if composite_name:
+            parts.append(composite_name)
+    else:
+        # Resolve ingredient name (with slug fallback)
+        ingredient_name = ""
+        if ingredient:
+            ingredient_name = ingredient.name or ingredient.slug or ""
+        if not ingredient_name and portion:
+            ingredient_name = getattr(portion, "name", "") or ""
+
+        # Resolve unit name – suppress "Stück"
+        unit_name = ""
+        if portion and portion.measuring_unit:
+            mu_name = portion.measuring_unit.name or ""
+            if mu_name.lower() != "stück":
+                unit_name = mu_name
+
+        parts = [qty_str]
+        if unit_name:
+            parts.append(unit_name)
+        if ingredient_name:
+            parts.append(ingredient_name)
 
     base = " ".join(parts)
 

@@ -428,9 +428,18 @@ class RecipeQuantityEstimationService:
                 if default_portion:
                     target_portion = default_portion
 
+            # Composite-portion labeling rule (same as frontend normalizeItems(),
+            # fixed for recipe #434): portions with quantity != 1 are pre-scaled
+            # conversion factors (e.g. "1 Portion Nudeln" = 125g). Their own name
+            # MUST be used as the label — using the underlying measuring_unit
+            # name ("Gramm") is misleading, since quantity_per_portion here is a
+            # count of that portion, not a gram amount.
             unit = "g"
-            if target_portion and target_portion.measuring_unit:
-                unit = target_portion.measuring_unit.name
+            if target_portion:
+                if target_portion.quantity != 1 and target_portion.name:
+                    unit = target_portion.name
+                elif target_portion.measuring_unit:
+                    unit = target_portion.measuring_unit.name
 
             # Convert AI grams into the editable unit. Use consistent logic with
             # assign_portions (line 238): check weight_g > 0, not just falsy.

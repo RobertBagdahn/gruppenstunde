@@ -18,6 +18,26 @@ function parseSteps(description: string): string[] {
   return lines.length > 1 ? lines : [description];
 }
 
+/**
+ * Resolve the correct unit label for a recipe item, honoring the
+ * composite-portion labeling rule (recipe #434 bug class): portions with
+ * quantity !== 1 (e.g. "1 Portion Nudeln" = 125g) are pre-scaled conversion
+ * factors — their own name MUST be used as the label, not the underlying
+ * measuring_unit name ("Gramm"), which would misleadingly suggest the
+ * quantity is a gram amount.
+ */
+function resolveUnitLabel(item: {
+  portion_id: number;
+  measuring_unit_name: string | null;
+  ingredient_portions: { id: number; name: string; quantity: number }[];
+}): string {
+  const currentPortion = item.ingredient_portions.find((p) => p.id === item.portion_id);
+  if (currentPortion && currentPortion.quantity !== 1) {
+    return currentPortion.name;
+  }
+  return item.measuring_unit_name ?? '';
+}
+
 export default function RecipePrintPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
@@ -77,7 +97,7 @@ export default function RecipePrintPage() {
                   return (
                   <li key={item.id} className="flex items-start gap-2 text-sm">
                     <span className="font-semibold min-w-[80px] text-right shrink-0">
-                      {scaledQty % 1 === 0 ? scaledQty : parseFloat(scaledQty.toFixed(2))} {item.measuring_unit_name ?? ''}
+                      {scaledQty % 1 === 0 ? scaledQty : parseFloat(scaledQty.toFixed(2))} {resolveUnitLabel(item)}
                     </span>
                     <span>
                       {item.ingredient_name}

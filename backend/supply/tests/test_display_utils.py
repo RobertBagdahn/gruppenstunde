@@ -141,6 +141,29 @@ class TestBuildPortionDisplay:
         display, _ = build_portion_display(1500.0, portion, ingredient)
         assert "1,5 kg" in display
 
+    def test_composite_portion_uses_own_name_not_measuring_unit(self):
+        """Regression test (recipe #434 bug class): a composite/pre-scaled
+        portion (quantity != 1, e.g. "1 Portion Nudeln" = 125g) must be labeled
+        with its own name, not the underlying measuring_unit name ("Gramm").
+        `quantity` here is a *count* of the portion, not a gram amount.
+        """
+        ingredient = self._make_ingredient("Nudeln")
+        gram_unit = self._make_unit("Gramm")
+        portion = baker.make(
+            Portion,
+            ingredient=ingredient,
+            measuring_unit=gram_unit,
+            name="1 Portion Nudeln",
+            quantity=125.0,
+            weight_g=125.0,
+        )
+        display, missing = build_portion_display(2.24, portion, ingredient)
+        assert "1 Portion Nudeln" in display
+        assert "Gramm" not in display
+        assert missing is False
+        # 2.24 × 125g = 280g
+        assert "280g" in display
+
 
 # ---------------------------------------------------------------------------
 # build_package_display
