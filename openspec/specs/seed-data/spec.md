@@ -36,6 +36,17 @@ Das System MUSS ein Management Command bereitstellen das realistische Beispielda
 - **THEN** MÜSSEN alle Texte korrekte Umlaute verwenden (ä, ö, ü, ß — niemals ae, oe, ue, ss)
 - **THEN** MUSS `status=approved` gesetzt sein
 
+#### Scenario: Seed auf Produktion ausgeführt
+- **WHEN** `uv run python manage.py seed_breakfast_catalog` auf der Produktionsdatenbank ausgeführt wird
+- **THEN** MÜSSEN die 6 Basis-Zutaten (Bauernbrot, Toastbrot, Stuten, Körnerbrot, Brötchen halb/ganz) als `supply.Ingredient` mit Tag `breakfast-base` existieren
+- **THEN** MÜSSEN 17 Topping-Zutaten mit Tag `breakfast-topping` existieren
+- **THEN** MÜSSEN 3 Drink-Rezepte mit Tag `breakfast-drink` existieren
+
+#### Scenario: Vorhandene Brot-Zutaten nachgetaggt
+- **WHEN** `uv run python manage.py seed_breakfast_catalog --tag-existing` ausgeführt wird
+- **THEN** MÜSSEN existierende generische Brot-Zutaten (z.B. Brot, Brötchen, Vollkornbrot, Toast) den Tag `breakfast-base` erhalten
+- **THEN** DÜRFEN keine neuen Zutaten dupliziert werden (nur Tags werden hinzugefügt)
+
 ### Requirement: Beispielrezepte Vielfalt
 
 Die Seed-Rezepte MÜSSEN verschiedene Rezepttypen und Schwierigkeitsgrade abdecken.
@@ -167,3 +178,16 @@ Neu: Korrekte Unit-Zuordnung und `quantity_type="per_person"` mit Pro-Portion-Me
 #### Scenario: Re-Import bestehender Daten
 - **WHEN** `--force` Flag beim Aufruf gesetzt ist
 - **THEN** werden vorherige Cooklang-Imports gelöscht und korrekt neu importiert
+
+### Requirement: Export-Skript exportiert tags-M2M für Ingredient
+
+Das Export-Skript `bin/export_prod_data.py` SHALL das `tags`-M2M-Feld für `Ingredient` exportieren, damit lokale Importe die Tag-Zuordnungen nicht verlieren.
+
+#### Scenario: Export enthält ingredient tags
+- **WHEN** `uv run python bin/export_prod_data.py` ausgeführt wird
+- **THEN** SHALL die `supply_ingredient.json`-Fixtures das `tags`-Feld für jeden Ingredient-Eintrag enthalten (analog zu `Recipe`)
+- **THEN** SHALL die `supply_ingredient_tags`-Junction-Table korrekt in die Fixtures exportiert werden
+
+#### Scenario: Import stellt Tags wieder her
+- **WHEN** `uv run python manage.py import_prod_data --flush` ausgeführt wird (nach korrektem Export)
+- **THEN** HABEN alle Ingredients die gleichen Tags wie in der Produktion
