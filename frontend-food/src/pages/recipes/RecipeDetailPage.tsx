@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Smile, GitFork, UtensilsCrossed } from 'lucide-react';
+import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2 } from 'lucide-react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { EntityLink } from '@/components/shared/EntityLink';
@@ -437,49 +437,51 @@ export default function RecipeDetailPage() {
       />
 
       {/* Recipe Type Badge + Recipe Badge */}
-      {/* Title + Summary */}
-      <div className="mb-4">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{recipe.title}</h1>
-        {/* Compact Summary */}
-        {recipe.summary && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {recipe.summary}
-          </p>
-        )}
-      </div>
+      {/* Title + Summary + Actions */}
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{recipe.title}</h1>
+          {/* Compact Summary */}
+          {recipe.summary && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {recipe.summary}
+            </p>
+          )}
+        </div>
 
-      {/* Edit + Delete + Print Buttons */}
-      <div className="flex items-center justify-end gap-2">
-        <a
-          href={`/recipes/${recipe.slug}/print?portions=${displayedPortions}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
-          title="Druckansicht öffnen"
-        >
-          <span className="material-symbols-outlined text-[18px]">print</span>
-          <span className="hidden sm:inline">Drucken</span>
-        </a>
-        {recipe.can_edit && (
-          <Link
-            to={`/recipes/${recipe.slug}/edit`}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted transition-colors"
-            title="Rezept bearbeiten"
+        {/* Edit + Delete + Print Buttons */}
+        <div className="flex items-center justify-end gap-1.5 shrink-0">
+          <a
+            href={`/recipes/${recipe.slug}/print?portions=${displayedPortions}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-9 h-9 rounded-lg border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            title="Druckansicht öffnen"
+            aria-label="Drucken"
           >
-            <span className="material-symbols-outlined text-[18px]">edit</span>
-            <span className="hidden sm:inline">Bearbeiten</span>
-          </Link>
-        )}
-        {recipe.can_delete && (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
-            title="Rezept löschen"
-          >
-            <span className="material-symbols-outlined text-[18px]">delete</span>
-            <span className="hidden sm:inline">Löschen</span>
-          </button>
-        )}
+            <Printer className="w-4 h-4" />
+          </a>
+          {recipe.can_edit && (
+            <Link
+              to={`/recipes/${recipe.slug}/edit`}
+              className="flex items-center justify-center w-9 h-9 rounded-lg border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Rezept bearbeiten"
+              aria-label="Bearbeiten"
+            >
+              <Pencil className="w-4 h-4" />
+            </Link>
+          )}
+          {recipe.can_delete && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+              title="Rezept löschen"
+              aria-label="Löschen"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Source URL */}

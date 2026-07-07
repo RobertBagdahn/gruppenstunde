@@ -243,12 +243,20 @@ class RecipeCreateIn(ContentCreateIn):
 
 
 class RecipeUpdateIn(ContentUpdateIn):
-    """Schema for updating a recipe."""
+    """Schema for updating a recipe.
+    
+    Staff-only fields (status, source_url, authors_ids):
+    Non-staff attempts to modify these will be rejected with 403 Forbidden.
+    """
 
     recipe_type: str | None = None
     portions: int | None = None
     nutritional_tag_ids: list[int] | None = None
     recipe_items: list[RecipeItemCreateIn] | None = None
+    # Staff-only fields
+    status: str | None = None
+    source_url: str | None = None
+    authors_ids: list[int] | None = None
 
 
 # --- Search/Filter ---

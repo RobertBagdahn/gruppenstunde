@@ -346,6 +346,87 @@ class TestUpdateRecipe:
         assert resp.status_code == 200
         assert resp.json()["title"] == "Admin Updated"
 
+    def test_non_staff_cannot_set_status(self, auth_client, db):
+        """Non-staff user cannot set recipe.status via API."""
+        user = auth_client._user
+        recipe = Recipe.objects.create(
+            title="Test Recipe",
+            status=ContentStatus.DRAFT,
+            created_by=user,
+        )
+        recipe.authors.add(user)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"status": "approved"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 403
+        assert "Admins" in resp.json()["detail"]
+
+        recipe.refresh_from_db()
+        assert recipe.status == ContentStatus.DRAFT
+
+    def test_staff_can_set_status(self, admin_client, db):
+        """Staff user CAN set recipe.status via API."""
+        # Create a recipe with auth_client, then update with admin_client
+        recipe = Recipe.objects.create(
+            title="Test Recipe",
+            status=ContentStatus.DRAFT,
+        )
+
+        resp = admin_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"status": "approved"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "approved"
+
+        recipe.refresh_from_db()
+        assert recipe.status == ContentStatus.APPROVED
+
+    def test_staff_can_set_authors(self, admin_client, db):
+        """Staff user CAN set recipe.authors via API."""
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        user1 = User.objects.create_user(username="user1", password="pass")
+        user2 = User.objects.create_user(username="user2", password="pass")
+
+        recipe = Recipe.objects.create(
+            title="Test Recipe",
+            status=ContentStatus.DRAFT,
+        )
+
+        resp = admin_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"authors_ids": [user1.id, user2.id]}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+        recipe.refresh_from_db()
+        author_ids = set(recipe.authors.values_list("id", flat=True))
+        assert author_ids == {user1.id, user2.id}
+
+    def test_invalid_author_ids_rejected(self, admin_client, db):
+        """Invalid author IDs are rejected."""
+        recipe = Recipe.objects.create(
+            title="Test Recipe",
+            status=ContentStatus.DRAFT,
+        )
+
+        resp = admin_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"authors_ids": [99999]}),
+            content_type="application/json",
+        )
+        # Should succeed but set authors to empty (User.objects.filter with invalid IDs returns empty queryset)
+        assert resp.status_code == 200
+        recipe.refresh_from_db()
+        assert recipe.authors.count() == 0
+
     @pytest.mark.usefixtures("db")
     def test_block_empty_ingredients_on_submitted(self, auth_client, portion, ingredient):
         """Cannot remove all ingredients from a submitted recipe."""

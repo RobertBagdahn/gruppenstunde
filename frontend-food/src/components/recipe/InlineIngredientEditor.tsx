@@ -15,6 +15,8 @@ import {
   usePatchRecipeItem,
   useCreateExchangeGroup,
 } from '@/api/recipes';
+import { useUpdateIngredient } from '@/api/supplies';
+import { useCurrentUser } from '@/api/auth';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
 import PortionScaler from './PortionScaler';
@@ -200,6 +202,7 @@ export default function InlineIngredientEditor({
   const [alternativeTargetId, setAlternativeTargetId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
 
   const updateRecipe = useUpdateRecipe(recipeId);
   const updateItem = useUpdateRecipeItem(recipeId);
@@ -208,6 +211,15 @@ export default function InlineIngredientEditor({
   const estimateQuantities = useEstimateQuantities(recipeId);
   const patchItem = usePatchRecipeItem(recipeId);
   const createExchangeGroup = useCreateExchangeGroup(recipeId);
+
+  // Map to store update mutations for each ingredient (keyed by ingredient_id)
+  const ingredientUpdateMutations = new Map<number, any>();
+  editItems.forEach((item) => {
+    if (item.ingredient_id && !ingredientUpdateMutations.has(item.ingredient_id)) {
+      // Create a stable key for the mutation (we'll create actual mutations inside renderRow)
+      ingredientUpdateMutations.set(item.ingredient_id, null);
+    }
+  });
 
   // --- Handlers ---
 
@@ -817,7 +829,11 @@ export default function InlineIngredientEditor({
             item => item.exchange_group_id != null && item.exchange_position === 0
           );
 
-          const renderRow = (item: EditableItem, isSource: boolean, isAlt: boolean, isLastInGroup: boolean) => (
+          const renderRow = (item: EditableItem, isSource: boolean, isAlt: boolean, isLastInGroup: boolean) => {
+            // Create a mutation for this ingredient's status update
+            const updateIngredientMutation = useUpdateIngredient(item.ingredient_name.toLowerCase().replace(/\s+/g, '-'));
+
+            return (
             <div
               key={item.id}
               className={`flex items-center gap-3 p-3 border-l-4 bg-card transition-colors ${
@@ -945,8 +961,35 @@ export default function InlineIngredientEditor({
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
+              {/* Verify button (staff only) */}
+              {user?.is_staff && (
+                <button
+                  type="button"
+                  disabled={updateIngredientMutation.isPending}
+                  title="Diese Zutat als verifiziert markieren"
+                  onClick={() => {
+                    updateIngredientMutation.mutate(
+                      { status: 'verified' },
+                      {
+                        onSuccess: () => {
+                          toast.success('Zutat als verifiziert markiert');
+                        },
+                        onError: (err) => {
+                          toast.error('Fehler beim Verifizieren', {
+                            description: err.message,
+                          });
+                        },
+                      },
+                    );
+                  }}
+                  className="p-1.5 text-green-600/60 hover:text-green-600 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-[16px]" title="Verify">verified</span>
+                </button>
+              )}
             </div>
           );
+          };
 
           const rendered: ReactNode[] = [];
 

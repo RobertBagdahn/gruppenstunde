@@ -432,10 +432,21 @@ class RecipeQuantityEstimationService:
             if target_portion and target_portion.measuring_unit:
                 unit = target_portion.measuring_unit.name
 
-            # Convert AI grams into the editable unit, not the stored package size.
-            weight_g = target_portion.weight_g if target_portion and target_portion.weight_g else 1.0
-            estimated_grams = max(estimate.estimated_grams_per_person, 1.0)
-            quantity_per_portion = estimated_grams / weight_g
+            # Convert AI grams into the editable unit. Use consistent logic with
+            # assign_portions (line 238): check weight_g > 0, not just falsy.
+            # This prevents items with weight_g=0 from incorrectly falling back to 1.0.
+            weight_g = target_portion.weight_g if (target_portion and target_portion.weight_g and target_portion.weight_g > 0) else 1.0
+            
+            # Use the AI estimate directly without clamping to 1.0.
+            # Small amounts (0.1-0.5g) for spices should pass through unchanged.
+            # Clamping contradicts assign_portions (line 239) which uses no clamping.
+            estimated_grams = max(estimate.estimated_grams_per_person, 0)
+            
+            # Avoid division by zero and ensure we always return a valid quantity
+            if estimated_grams <= 0 or weight_g <= 0:
+                quantity_per_portion = 1.0
+            else:
+                quantity_per_portion = estimated_grams / weight_g
 
             results.append(
                 {

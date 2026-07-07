@@ -216,7 +216,6 @@ export default function IngredientEditPage() {
     const payload: Record<string, unknown> = {
       name: name.trim(),
       description: description.trim(),
-      status,
       retail_section_id: retailSectionId ? Number(retailSectionId) : null,
 
       energy_kcal: toNum(energyKcal),
@@ -259,6 +258,11 @@ export default function IngredientEditPage() {
 
       nutritional_tag_ids: selectedTags,
     };
+
+    // Only include status field for staff users
+    if (user?.is_staff) {
+      payload.status = status;
+    }
 
     updateIngredient.mutate(payload, {
       onSuccess: () => {
@@ -333,17 +337,23 @@ export default function IngredientEditPage() {
               />
             </Field>
             <Field label="Status">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className={inputClass}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              {user?.is_staff ? (
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className={inputClass}
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="px-3 py-2 bg-muted/30 border border-border rounded text-sm text-muted-foreground">
+                  {STATUS_OPTIONS.find((opt) => opt.value === status)?.label || status}
+                </div>
+              )}
             </Field>
             <Field label="Supermarkt-Abteilung">
               <select

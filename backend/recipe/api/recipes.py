@@ -487,7 +487,23 @@ def create_recipe(request, payload: RecipeCreateIn):
 
 @router.patch("/{recipe_id}/", response=RecipeDetailOut)
 def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
-    """Update a recipe."""
+    """Update a recipe.
+    
+    Staff-only fields: status, source_url, authors_ids
+    Non-staff users attempting to modify these fields will receive a 403 Forbidden error.
+    
+    Example staff request:
+    {
+        "title": "New Title",
+        "status": "approved",
+        "source_url": "https://example.com/recipe",
+        "authors_ids": [1, 2, 3]
+    }
+    
+    Non-staff users can only modify: title, summary, description, recipe_type,
+    execution_time, preparation_time, difficulty, tag_ids, scout_level_ids,
+    nutritional_tag_ids, recipe_items.
+    """
     _require_auth(request)
 
     recipe = _get_visible_recipe_or_404(request, recipe_id)
@@ -496,11 +512,19 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         raise HttpError(403, "Keine Berechtigung")
 
     data = payload.dict(exclude_unset=True)
+    
+    # Staff-only field protection
+    if "status" in data and not request.user.is_staff:
+        raise HttpError(403, "Nur Admins können den Rezept-Status ändern")
+    if "authors_ids" in data and not request.user.is_staff:
+        raise HttpError(403, "Nur Admins können die Autoren ändern")
+    
     data.pop("portions", None)  # Always enforce portions=1
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
     nutritional_tag_ids = data.pop("nutritional_tag_ids", None)
     recipe_items_data = data.pop("recipe_items", None)
+    authors_ids = data.pop("authors_ids", None)
 
     for field, value in data.items():
         setattr(recipe, field, value)
@@ -515,6 +539,15 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         recipe.scout_levels.set(valid_ids)
     if tag_ids is not None:
         recipe.tags.set(tag_ids)
+    if authors_ids is not None:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        try:
+            valid_authors = User.objects.filter(id__in=authors_ids)
+            recipe.authors.set(valid_authors)
+        except User.DoesNotExist:
+            raise HttpError(400, "Eine oder mehrere Autoren-IDs existieren nicht")
 
     # Replace recipe items FIRST (triggers sync_recipe_nutritional_tags via signal)
     if recipe_items_data is not None:

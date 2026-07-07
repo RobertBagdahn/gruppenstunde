@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useRecipeBySlug, useUpdateRecipe } from '@/api/recipes';
 import { useTags, useScoutLevels } from '@/api/tags';
 import { useBreakfastDays } from '@/api/breakfast';
+import { useCurrentUser } from '@/api/auth';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { ArrowLeft, Save } from 'lucide-react';
 import {
@@ -16,6 +17,7 @@ import { toast } from 'sonner';
 export default function EditRecipePage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { data: user } = useCurrentUser();
   const { data: recipe, isLoading, error } = useRecipeBySlug(slug ?? '');
   const updateRecipe = useUpdateRecipe(recipe?.id ?? 0);
 
@@ -30,6 +32,10 @@ export default function EditRecipePage() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [selectedScoutIds, setSelectedScoutIds] = useState<number[]>([]);
   const [initialized, setInitialized] = useState(false);
+  // Staff-only fields
+  const [status, setStatus] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [selectedAuthorIds, setSelectedAuthorIds] = useState<number[]>([]);
 
   const { data: allTags } = useTags();
   const { data: scoutLevels } = useScoutLevels();
@@ -48,6 +54,10 @@ export default function EditRecipePage() {
       setPreparationTime(recipe.preparation_time);
       setSelectedTagIds(recipe.tags.map((t) => t.id));
       setSelectedScoutIds(recipe.scout_levels.map((s) => s.id));
+      // Staff fields
+      setStatus(recipe.status || '');
+      setSourceUrl(recipe.source_url || '');
+      setSelectedAuthorIds(recipe.authors?.map((a) => a.id) || []);
       setInitialized(true);
     }
   }, [recipe, initialized]);
@@ -72,29 +82,35 @@ export default function EditRecipePage() {
       return;
     }
 
-    updateRecipe.mutate(
-      {
-        title: title.trim(),
-        recipe_type: recipeType,
-        summary: summary.trim(),
-        description: description.trim(),
-        // portions always 1 (normalized backend storage)
-        difficulty: difficulty || undefined,
-        execution_time: executionTime || undefined,
-        preparation_time: preparationTime || undefined,
-        tag_ids: selectedTagIds,
-        scout_level_ids: selectedScoutIds,
+    const payload: any = {
+      title: title.trim(),
+      recipe_type: recipeType,
+      summary: summary.trim(),
+      description: description.trim(),
+      // portions always 1 (normalized backend storage)
+      difficulty: difficulty || undefined,
+      execution_time: executionTime || undefined,
+      preparation_time: preparationTime || undefined,
+      tag_ids: selectedTagIds,
+      scout_level_ids: selectedScoutIds,
+    };
+
+    // Include staff-only fields if user is staff
+    if (user?.is_staff) {
+      if (status) payload.status = status;
+      if (sourceUrl) payload.source_url = sourceUrl;
+      if (selectedAuthorIds.length > 0) payload.authors_ids = selectedAuthorIds;
+    }
+
+    updateRecipe.mutate(payload, {
+      onSuccess: (data) => {
+        toast.success('Rezept gespeichert');
+        navigate(`/recipes/${data.slug}`);
       },
-      {
-        onSuccess: (data) => {
-          toast.success('Rezept gespeichert');
-          navigate(`/recipes/${data.slug}`);
-        },
-        onError: (err) => {
-          toast.error('Fehler beim Speichern', { description: err.message });
-        },
+      onError: (err) => {
+        toast.error('Fehler beim Speichern', { description: err.message });
       },
-    );
+    });
   }
 
   if (isLoading) {
@@ -355,6 +371,69 @@ export default function EditRecipePage() {
                   {level.name}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Admin Controls (Staff Only) */}
+        {user?.is_staff && (
+          <div className="bg-card rounded-xl border-2 border-amber-200 bg-amber-50 p-5 shadow-sm">
+            <label className="flex items-center gap-1.5 text-sm font-medium mb-3 text-amber-900">
+              <span className="material-symbols-outlined text-amber-600 text-[18px]">admin_panel_settings</span>
+              Admin-Kontrollen
+            </label>
+            <div className="space-y-4">
+              {/* Status */}
+              <div>
+                <label className="text-xs text-amber-800 mb-1 block font-medium">Rezept-Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                >
+                  <option value="">Keine Änderung</option>
+                  <option value="draft">Entwurf</option>
+                  <option value="submitted">Eingereicht</option>
+                  <option value="approved">Genehmigt</option>
+                  <option value="rejected">Abgelehnt</option>
+                  <option value="archived">Archiviert</option>
+                </select>
+              </div>
+
+              {/* Source URL */}
+              <div>
+                <label className="text-xs text-amber-800 mb-1 block font-medium">Quell-URL</label>
+                <input
+                  type="url"
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  placeholder="z.B. https://example.com/recipe"
+                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+
+              {/* Authors (Simplified: comma-separated IDs or user selection) */}
+              <div>
+                <label className="text-xs text-amber-800 mb-1 block font-medium">Autoren / Mitwirkende</label>
+                <input
+                  type="text"
+                  placeholder="Autor-IDs durch Komma getrennt, z.B. 1,2,3"
+                  value={selectedAuthorIds.join(',')}
+                  onChange={(e) => {
+                    const ids = e.target.value
+                      .split(',')
+                      .map((id) => parseInt(id.trim(), 10))
+                      .filter((id) => !isNaN(id));
+                    setSelectedAuthorIds(ids);
+                  }}
+                  className="w-full px-3 py-2.5 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                />
+                <p className="text-xs text-amber-700 mt-1">
+                  {selectedAuthorIds.length > 0
+                    ? `${selectedAuthorIds.length} Autor(en) ausgewählt`
+                    : 'Keine Autoren'}
+                </p>
+              </div>
             </div>
           </div>
         )}
