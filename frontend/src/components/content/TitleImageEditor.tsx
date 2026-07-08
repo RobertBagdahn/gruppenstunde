@@ -376,21 +376,4 @@ function AiImageModal({
       </DialogContent>
     </Dialog>
   );
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Error state */}
-          {generateImage.isError && (
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              {generateImage.error.message}
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
 }
