@@ -577654,5 +577654,3119 @@
       "deleted_at": null,
       "is_system": false
     }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32537,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 100.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:14.239614+00:00",
+      "updated_at": "2026-07-07T23:38:14.239638+00:00",
+      "created_by_id": null,
+      "ingredient_id": 138,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32538,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 100.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:14.352635+00:00",
+      "updated_at": "2026-07-07T23:38:14.352666+00:00",
+      "created_by_id": null,
+      "ingredient_id": 139,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32539,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 100.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:14.464096+00:00",
+      "updated_at": "2026-07-07T23:38:14.464130+00:00",
+      "created_by_id": null,
+      "ingredient_id": 294,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32540,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 100.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:14.645911+00:00",
+      "updated_at": "2026-07-07T23:38:14.645942+00:00",
+      "created_by_id": null,
+      "ingredient_id": 4666,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32541,
+    "fields": {
+      "name": "120g",
+      "quantity": 120.0,
+      "weight_g": 120.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:15.166811+00:00",
+      "updated_at": "2026-07-07T23:38:15.166844+00:00",
+      "created_by_id": null,
+      "ingredient_id": 5309,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32542,
+    "fields": {
+      "name": "5g",
+      "quantity": 5.0,
+      "weight_g": 5.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:15.834716+00:00",
+      "updated_at": "2026-07-07T23:38:15.834726+00:00",
+      "created_by_id": null,
+      "ingredient_id": 4766,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32543,
+    "fields": {
+      "name": "180g",
+      "quantity": 180.0,
+      "weight_g": 180.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:16.832526+00:00",
+      "updated_at": "2026-07-07T23:38:16.832548+00:00",
+      "created_by_id": null,
+      "ingredient_id": 5309,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32544,
+    "fields": {
+      "name": "10g",
+      "quantity": 10.0,
+      "weight_g": 10.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:17.512592+00:00",
+      "updated_at": "2026-07-07T23:38:17.512626+00:00",
+      "created_by_id": null,
+      "ingredient_id": 4766,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32545,
+    "fields": {
+      "name": "60g",
+      "quantity": 60.0,
+      "weight_g": 60.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:19.449739+00:00",
+      "updated_at": "2026-07-07T23:38:19.449765+00:00",
+      "created_by_id": null,
+      "ingredient_id": 6939,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32546,
+    "fields": {
+      "name": "150g",
+      "quantity": 150.0,
+      "weight_g": 150.0,
+      "rank": 1,
+      "created_at": "2026-07-07T23:38:20.139934+00:00",
+      "updated_at": "2026-07-07T23:38:20.139968+00:00",
+      "created_by_id": null,
+      "ingredient_id": 6810,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32547,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:11.228854+00:00",
+      "updated_at": "2026-07-08T16:34:11.228871+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7328,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32548,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:11.476226+00:00",
+      "updated_at": "2026-07-08T16:34:11.476245+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7328,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32549,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:11.648906+00:00",
+      "updated_at": "2026-07-08T16:34:11.648928+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7328,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32550,
+    "fields": {
+      "name": "Scheibe (50g)",
+      "quantity": 50.0,
+      "weight_g": 50.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:11.989849+00:00",
+      "updated_at": "2026-07-08T16:34:11.989859+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7328,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32551,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:12.210413+00:00",
+      "updated_at": "2026-07-08T16:34:12.210423+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7329,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32552,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:12.343805+00:00",
+      "updated_at": "2026-07-08T16:34:12.343827+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7329,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32553,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:12.578748+00:00",
+      "updated_at": "2026-07-08T16:34:12.578760+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7329,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32554,
+    "fields": {
+      "name": "Scheibe (30g)",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:12.817458+00:00",
+      "updated_at": "2026-07-08T16:34:12.817469+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7329,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32555,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:13.104690+00:00",
+      "updated_at": "2026-07-08T16:34:13.104698+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7330,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32556,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:13.230444+00:00",
+      "updated_at": "2026-07-08T16:34:13.230457+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7330,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32557,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:13.375183+00:00",
+      "updated_at": "2026-07-08T16:34:13.375195+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7330,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32558,
+    "fields": {
+      "name": "Scheibe (45g)",
+      "quantity": 45.0,
+      "weight_g": 45.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:13.694977+00:00",
+      "updated_at": "2026-07-08T16:34:13.694987+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7330,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32559,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:13.929252+00:00",
+      "updated_at": "2026-07-08T16:34:13.929269+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7331,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32560,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:14.138795+00:00",
+      "updated_at": "2026-07-08T16:34:14.138805+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7331,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32561,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:14.285923+00:00",
+      "updated_at": "2026-07-08T16:34:14.285938+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7331,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32562,
+    "fields": {
+      "name": "Scheibe (55g)",
+      "quantity": 55.0,
+      "weight_g": 55.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:14.630575+00:00",
+      "updated_at": "2026-07-08T16:34:14.630586+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7331,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32563,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:14.850639+00:00",
+      "updated_at": "2026-07-08T16:34:14.850648+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7332,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32564,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:14.979699+00:00",
+      "updated_at": "2026-07-08T16:34:14.979710+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7332,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32565,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:15.203144+00:00",
+      "updated_at": "2026-07-08T16:34:15.203154+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7332,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32566,
+    "fields": {
+      "name": "Scheibe (35g)",
+      "quantity": 35.0,
+      "weight_g": 35.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:15.462878+00:00",
+      "updated_at": "2026-07-08T16:34:15.462890+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7332,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32567,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:15.764464+00:00",
+      "updated_at": "2026-07-08T16:34:15.764467+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7333,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32568,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:15.897489+00:00",
+      "updated_at": "2026-07-08T16:34:15.897511+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7333,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32569,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:16.146475+00:00",
+      "updated_at": "2026-07-08T16:34:16.146484+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7333,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32570,
+    "fields": {
+      "name": "Scheibe (70g)",
+      "quantity": 70.0,
+      "weight_g": 70.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:16.399003+00:00",
+      "updated_at": "2026-07-08T16:34:16.399018+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7333,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32571,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 8.0,
+      "weight_g": 8.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:16.647116+00:00",
+      "updated_at": "2026-07-08T16:34:16.647137+00:00",
+      "created_by_id": null,
+      "ingredient_id": 94,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32572,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 10.0,
+      "weight_g": 10.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:16.759417+00:00",
+      "updated_at": "2026-07-08T16:34:16.759435+00:00",
+      "created_by_id": null,
+      "ingredient_id": 94,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32573,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 15.0,
+      "weight_g": 15.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:16.875486+00:00",
+      "updated_at": "2026-07-08T16:34:16.875504+00:00",
+      "created_by_id": null,
+      "ingredient_id": 94,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32574,
+    "fields": {
+      "name": "Packung (250g)",
+      "quantity": 250.0,
+      "weight_g": 250.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:16.980565+00:00",
+      "updated_at": "2026-07-08T16:34:16.980571+00:00",
+      "created_by_id": null,
+      "ingredient_id": 94,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32575,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:17.289632+00:00",
+      "updated_at": "2026-07-08T16:34:17.289652+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7334,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32576,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:17.414245+00:00",
+      "updated_at": "2026-07-08T16:34:17.414257+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7334,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32577,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:17.562049+00:00",
+      "updated_at": "2026-07-08T16:34:17.562061+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7334,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32578,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 15.0,
+      "weight_g": 15.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:17.896357+00:00",
+      "updated_at": "2026-07-08T16:34:17.896371+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7334,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32579,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:18.004610+00:00",
+      "updated_at": "2026-07-08T16:34:18.004635+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7334,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32580,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:18.112129+00:00",
+      "updated_at": "2026-07-08T16:34:18.112140+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7334,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32581,
+    "fields": {
+      "name": "Packung (450g)",
+      "quantity": 450.0,
+      "weight_g": 450.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:18.308454+00:00",
+      "updated_at": "2026-07-08T16:34:18.308473+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7334,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32582,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:18.535358+00:00",
+      "updated_at": "2026-07-08T16:34:18.535376+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7335,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32583,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:18.744190+00:00",
+      "updated_at": "2026-07-08T16:34:18.744215+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7335,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32584,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:18.898345+00:00",
+      "updated_at": "2026-07-08T16:34:18.898368+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7335,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32585,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 15.0,
+      "weight_g": 15.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:19.158891+00:00",
+      "updated_at": "2026-07-08T16:34:19.158911+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7335,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32586,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:19.364017+00:00",
+      "updated_at": "2026-07-08T16:34:19.364033+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7335,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32587,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:19.472785+00:00",
+      "updated_at": "2026-07-08T16:34:19.472795+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7335,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32588,
+    "fields": {
+      "name": "Packung (500g)",
+      "quantity": 500.0,
+      "weight_g": 500.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:19.582147+00:00",
+      "updated_at": "2026-07-08T16:34:19.582160+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7335,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32589,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 12.0,
+      "weight_g": 12.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:19.816264+00:00",
+      "updated_at": "2026-07-08T16:34:19.816278+00:00",
+      "created_by_id": null,
+      "ingredient_id": 160,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32590,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 15.0,
+      "weight_g": 15.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:19.922956+00:00",
+      "updated_at": "2026-07-08T16:34:19.922968+00:00",
+      "created_by_id": null,
+      "ingredient_id": 160,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32591,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:20.031377+00:00",
+      "updated_at": "2026-07-08T16:34:20.031403+00:00",
+      "created_by_id": null,
+      "ingredient_id": 160,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32592,
+    "fields": {
+      "name": "Packung (500g)",
+      "quantity": 500.0,
+      "weight_g": 500.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:20.138911+00:00",
+      "updated_at": "2026-07-08T16:34:20.138931+00:00",
+      "created_by_id": null,
+      "ingredient_id": 160,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32593,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 15.0,
+      "weight_g": 15.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:20.394850+00:00",
+      "updated_at": "2026-07-08T16:34:20.394862+00:00",
+      "created_by_id": null,
+      "ingredient_id": 181,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32594,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:20.505843+00:00",
+      "updated_at": "2026-07-08T16:34:20.505865+00:00",
+      "created_by_id": null,
+      "ingredient_id": 181,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32595,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:20.625873+00:00",
+      "updated_at": "2026-07-08T16:34:20.625922+00:00",
+      "created_by_id": null,
+      "ingredient_id": 181,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32596,
+    "fields": {
+      "name": "Packung (500g)",
+      "quantity": 500.0,
+      "weight_g": 500.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:20.738511+00:00",
+      "updated_at": "2026-07-08T16:34:20.738533+00:00",
+      "created_by_id": null,
+      "ingredient_id": 181,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32597,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:21.059378+00:00",
+      "updated_at": "2026-07-08T16:34:21.059400+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7336,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32598,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:21.198629+00:00",
+      "updated_at": "2026-07-08T16:34:21.198646+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7336,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32599,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:21.432657+00:00",
+      "updated_at": "2026-07-08T16:34:21.432668+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7336,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32600,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:21.680288+00:00",
+      "updated_at": "2026-07-08T16:34:21.680304+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7336,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32601,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:21.787061+00:00",
+      "updated_at": "2026-07-08T16:34:21.787080+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7336,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32602,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 40.0,
+      "weight_g": 40.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:21.977087+00:00",
+      "updated_at": "2026-07-08T16:34:21.977095+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7336,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32603,
+    "fields": {
+      "name": "Packung (200g)",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:22.086293+00:00",
+      "updated_at": "2026-07-08T16:34:22.086314+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7336,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32604,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:22.320397+00:00",
+      "updated_at": "2026-07-08T16:34:22.320407+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7337,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32605,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:22.543748+00:00",
+      "updated_at": "2026-07-08T16:34:22.543770+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7337,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32606,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:22.722130+00:00",
+      "updated_at": "2026-07-08T16:34:22.722160+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7337,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32607,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:23.047066+00:00",
+      "updated_at": "2026-07-08T16:34:23.047080+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7337,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32608,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:23.152929+00:00",
+      "updated_at": "2026-07-08T16:34:23.152942+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7337,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32609,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 40.0,
+      "weight_g": 40.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:23.268677+00:00",
+      "updated_at": "2026-07-08T16:34:23.268695+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7337,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32610,
+    "fields": {
+      "name": "Packung (250g)",
+      "quantity": 250.0,
+      "weight_g": 250.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:23.462929+00:00",
+      "updated_at": "2026-07-08T16:34:23.462940+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7337,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32611,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:23.686808+00:00",
+      "updated_at": "2026-07-08T16:34:23.686818+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7338,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32612,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:23.817998+00:00",
+      "updated_at": "2026-07-08T16:34:23.818017+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7338,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32613,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:24.051994+00:00",
+      "updated_at": "2026-07-08T16:34:24.052007+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7338,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32614,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:24.296843+00:00",
+      "updated_at": "2026-07-08T16:34:24.296856+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7338,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32615,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:24.408526+00:00",
+      "updated_at": "2026-07-08T16:34:24.408534+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7338,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32616,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 40.0,
+      "weight_g": 40.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:24.600496+00:00",
+      "updated_at": "2026-07-08T16:34:24.600506+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7338,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32617,
+    "fields": {
+      "name": "Packung (400g)",
+      "quantity": 400.0,
+      "weight_g": 400.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:24.718517+00:00",
+      "updated_at": "2026-07-08T16:34:24.718530+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7338,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32618,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 40.0,
+      "weight_g": 40.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:24.871670+00:00",
+      "updated_at": "2026-07-08T16:34:24.871680+00:00",
+      "created_by_id": null,
+      "ingredient_id": 65,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32619,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 50.0,
+      "weight_g": 50.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:25.056884+00:00",
+      "updated_at": "2026-07-08T16:34:25.056904+00:00",
+      "created_by_id": null,
+      "ingredient_id": 65,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32620,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 70.0,
+      "weight_g": 70.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:25.170471+00:00",
+      "updated_at": "2026-07-08T16:34:25.170485+00:00",
+      "created_by_id": null,
+      "ingredient_id": 65,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32621,
+    "fields": {
+      "name": "Packung (200g)",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:25.282884+00:00",
+      "updated_at": "2026-07-08T16:34:25.282903+00:00",
+      "created_by_id": null,
+      "ingredient_id": 65,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32622,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:25.585107+00:00",
+      "updated_at": "2026-07-08T16:34:25.585130+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7339,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32623,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:25.719797+00:00",
+      "updated_at": "2026-07-08T16:34:25.719807+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7339,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32624,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:25.869000+00:00",
+      "updated_at": "2026-07-08T16:34:25.869013+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7339,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32625,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 15.0,
+      "weight_g": 15.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:26.195367+00:00",
+      "updated_at": "2026-07-08T16:34:26.195378+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7339,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32626,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:26.304666+00:00",
+      "updated_at": "2026-07-08T16:34:26.304676+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7339,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32627,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:26.420555+00:00",
+      "updated_at": "2026-07-08T16:34:26.420566+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7339,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32628,
+    "fields": {
+      "name": "Packung (500g)",
+      "quantity": 500.0,
+      "weight_g": 500.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:26.631017+00:00",
+      "updated_at": "2026-07-08T16:34:26.631041+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7339,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32629,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:26.866519+00:00",
+      "updated_at": "2026-07-08T16:34:26.866543+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7340,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32630,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:26.989301+00:00",
+      "updated_at": "2026-07-08T16:34:26.989312+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7340,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32631,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:27.217939+00:00",
+      "updated_at": "2026-07-08T16:34:27.217949+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7340,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32632,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 15.0,
+      "weight_g": 15.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:27.465123+00:00",
+      "updated_at": "2026-07-08T16:34:27.465136+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7340,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32633,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:27.659213+00:00",
+      "updated_at": "2026-07-08T16:34:27.659225+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7340,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32634,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:27.768706+00:00",
+      "updated_at": "2026-07-08T16:34:27.768717+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7340,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32635,
+    "fields": {
+      "name": "Packung (350g)",
+      "quantity": 350.0,
+      "weight_g": 350.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:27.882929+00:00",
+      "updated_at": "2026-07-08T16:34:27.882949+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7340,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32636,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:28.038091+00:00",
+      "updated_at": "2026-07-08T16:34:28.038105+00:00",
+      "created_by_id": null,
+      "ingredient_id": 105,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32637,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:28.224047+00:00",
+      "updated_at": "2026-07-08T16:34:28.224069+00:00",
+      "created_by_id": null,
+      "ingredient_id": 105,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32638,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 35.0,
+      "weight_g": 35.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:28.336878+00:00",
+      "updated_at": "2026-07-08T16:34:28.336892+00:00",
+      "created_by_id": null,
+      "ingredient_id": 105,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32639,
+    "fields": {
+      "name": "Packung (250g)",
+      "quantity": 250.0,
+      "weight_g": 250.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:28.453163+00:00",
+      "updated_at": "2026-07-08T16:34:28.453181+00:00",
+      "created_by_id": null,
+      "ingredient_id": 105,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32640,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:28.611621+00:00",
+      "updated_at": "2026-07-08T16:34:28.611631+00:00",
+      "created_by_id": null,
+      "ingredient_id": 107,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32641,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:28.802166+00:00",
+      "updated_at": "2026-07-08T16:34:28.802192+00:00",
+      "created_by_id": null,
+      "ingredient_id": 107,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32642,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 35.0,
+      "weight_g": 35.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:28.910103+00:00",
+      "updated_at": "2026-07-08T16:34:28.910129+00:00",
+      "created_by_id": null,
+      "ingredient_id": 107,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32643,
+    "fields": {
+      "name": "Packung (250g)",
+      "quantity": 250.0,
+      "weight_g": 250.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:29.029048+00:00",
+      "updated_at": "2026-07-08T16:34:29.029075+00:00",
+      "created_by_id": null,
+      "ingredient_id": 107,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32644,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:29.336688+00:00",
+      "updated_at": "2026-07-08T16:34:29.336712+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7341,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32645,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:29.473053+00:00",
+      "updated_at": "2026-07-08T16:34:29.473111+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7341,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32646,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:29.629749+00:00",
+      "updated_at": "2026-07-08T16:34:29.629771+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7341,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32647,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 20.0,
+      "weight_g": 20.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:29.946154+00:00",
+      "updated_at": "2026-07-08T16:34:29.946164+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7341,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32648,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:30.050292+00:00",
+      "updated_at": "2026-07-08T16:34:30.050299+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7341,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32649,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 35.0,
+      "weight_g": 35.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:30.160834+00:00",
+      "updated_at": "2026-07-08T16:34:30.160848+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7341,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32650,
+    "fields": {
+      "name": "Packung (250g)",
+      "quantity": 250.0,
+      "weight_g": 250.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:30.346290+00:00",
+      "updated_at": "2026-07-08T16:34:30.346341+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7341,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32651,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:30.499524+00:00",
+      "updated_at": "2026-07-08T16:34:30.499633+00:00",
+      "created_by_id": null,
+      "ingredient_id": 115,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32652,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:30.606690+00:00",
+      "updated_at": "2026-07-08T16:34:30.606702+00:00",
+      "created_by_id": null,
+      "ingredient_id": 115,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32653,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 40.0,
+      "weight_g": 40.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:30.801876+00:00",
+      "updated_at": "2026-07-08T16:34:30.801901+00:00",
+      "created_by_id": null,
+      "ingredient_id": 115,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32654,
+    "fields": {
+      "name": "Packung (200g)",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:30.917873+00:00",
+      "updated_at": "2026-07-08T16:34:30.917899+00:00",
+      "created_by_id": null,
+      "ingredient_id": 115,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32655,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:31.140119+00:00",
+      "updated_at": "2026-07-08T16:34:31.140161+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7342,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32656,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:31.353540+00:00",
+      "updated_at": "2026-07-08T16:34:31.353555+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7342,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32657,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:31.508740+00:00",
+      "updated_at": "2026-07-08T16:34:31.508759+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7342,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32658,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:31.751770+00:00",
+      "updated_at": "2026-07-08T16:34:31.751789+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7342,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32659,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:31.938541+00:00",
+      "updated_at": "2026-07-08T16:34:31.938551+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7342,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32660,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 40.0,
+      "weight_g": 40.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:32.044188+00:00",
+      "updated_at": "2026-07-08T16:34:32.044195+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7342,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32661,
+    "fields": {
+      "name": "Packung (200g)",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:32.151214+00:00",
+      "updated_at": "2026-07-08T16:34:32.151224+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7342,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32662,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:32.459244+00:00",
+      "updated_at": "2026-07-08T16:34:32.459254+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7343,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32663,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:32.594593+00:00",
+      "updated_at": "2026-07-08T16:34:32.594608+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7343,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32664,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:32.742509+00:00",
+      "updated_at": "2026-07-08T16:34:32.742520+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7343,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32665,
+    "fields": {
+      "name": "Belag knapp",
+      "quantity": 25.0,
+      "weight_g": 25.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:33.073632+00:00",
+      "updated_at": "2026-07-08T16:34:33.073646+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7343,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32666,
+    "fields": {
+      "name": "Belag normal",
+      "quantity": 30.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:33.182294+00:00",
+      "updated_at": "2026-07-08T16:34:33.182316+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7343,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32667,
+    "fields": {
+      "name": "Belag üppig",
+      "quantity": 40.0,
+      "weight_g": 40.0,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:33.295735+00:00",
+      "updated_at": "2026-07-08T16:34:33.295743+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7343,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32668,
+    "fields": {
+      "name": "Packung (200g)",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 4,
+      "created_at": "2026-07-08T16:34:33.491837+00:00",
+      "updated_at": "2026-07-08T16:34:33.491858+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7343,
+      "measuring_unit_id": 101,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32669,
+    "fields": {
+      "name": "1 Portion",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:33.651619+00:00",
+      "updated_at": "2026-07-08T16:34:33.651628+00:00",
+      "created_by_id": null,
+      "ingredient_id": 288,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32670,
+    "fields": {
+      "name": "1 Liter",
+      "quantity": 1000.0,
+      "weight_g": 1000.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:33.763796+00:00",
+      "updated_at": "2026-07-08T16:34:33.763807+00:00",
+      "created_by_id": null,
+      "ingredient_id": 288,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32671,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:34.083474+00:00",
+      "updated_at": "2026-07-08T16:34:34.083497+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7344,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32672,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:34.217488+00:00",
+      "updated_at": "2026-07-08T16:34:34.217513+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7344,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32673,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:34.471246+00:00",
+      "updated_at": "2026-07-08T16:34:34.471268+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7344,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32674,
+    "fields": {
+      "name": "1 Portion",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:34.710785+00:00",
+      "updated_at": "2026-07-08T16:34:34.710795+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7344,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32675,
+    "fields": {
+      "name": "1 Liter",
+      "quantity": 1000.0,
+      "weight_g": 1000.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:34.823319+00:00",
+      "updated_at": "2026-07-08T16:34:34.823332+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7344,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32676,
+    "fields": {
+      "name": "1 Liter",
+      "quantity": 1000.0,
+      "weight_g": 1000.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:35.089405+00:00",
+      "updated_at": "2026-07-08T16:34:35.089419+00:00",
+      "created_by_id": null,
+      "ingredient_id": 112,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32677,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:35.320900+00:00",
+      "updated_at": "2026-07-08T16:34:35.320922+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7345,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32678,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:35.539184+00:00",
+      "updated_at": "2026-07-08T16:34:35.539199+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7345,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32679,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:35.699906+00:00",
+      "updated_at": "2026-07-08T16:34:35.699928+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7345,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32680,
+    "fields": {
+      "name": "1 Portion",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:35.953600+00:00",
+      "updated_at": "2026-07-08T16:34:35.953622+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7345,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32681,
+    "fields": {
+      "name": "1 Liter",
+      "quantity": 1000.0,
+      "weight_g": 1000.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:36.152034+00:00",
+      "updated_at": "2026-07-08T16:34:36.152045+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7345,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32682,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:36.383397+00:00",
+      "updated_at": "2026-07-08T16:34:36.383409+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7346,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32683,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:36.596666+00:00",
+      "updated_at": "2026-07-08T16:34:36.596675+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7346,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32684,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:36.759022+00:00",
+      "updated_at": "2026-07-08T16:34:36.759039+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7346,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32685,
+    "fields": {
+      "name": "1 Portion",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:37.002039+00:00",
+      "updated_at": "2026-07-08T16:34:37.002051+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7346,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32686,
+    "fields": {
+      "name": "1 Liter",
+      "quantity": 1000.0,
+      "weight_g": 1000.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:37.208653+00:00",
+      "updated_at": "2026-07-08T16:34:37.208665+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7346,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32687,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:34:37.442096+00:00",
+      "updated_at": "2026-07-08T16:34:37.442129+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7347,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32688,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:34:37.666296+00:00",
+      "updated_at": "2026-07-08T16:34:37.666308+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7347,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32689,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:37.821617+00:00",
+      "updated_at": "2026-07-08T16:34:37.821627+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7347,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32690,
+    "fields": {
+      "name": "1 Portion",
+      "quantity": 200.0,
+      "weight_g": 200.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:38.165250+00:00",
+      "updated_at": "2026-07-08T16:34:38.165261+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7347,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32691,
+    "fields": {
+      "name": "1 Liter",
+      "quantity": 1000.0,
+      "weight_g": 1000.0,
+      "rank": 2,
+      "created_at": "2026-07-08T16:34:38.278841+00:00",
+      "updated_at": "2026-07-08T16:34:38.278850+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7347,
+      "measuring_unit_id": 102,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32692,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 50.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:56.379478+00:00",
+      "updated_at": "2026-07-08T16:34:56.379490+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7328,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32693,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 70.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:56.630439+00:00",
+      "updated_at": "2026-07-08T16:34:56.630449+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7333,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32694,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 35.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:56.735677+00:00",
+      "updated_at": "2026-07-08T16:34:56.735687+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7332,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32695,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 55.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:56.869745+00:00",
+      "updated_at": "2026-07-08T16:34:56.869755+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7331,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32696,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 45.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:57.060106+00:00",
+      "updated_at": "2026-07-08T16:34:57.060116+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7330,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32697,
+    "fields": {
+      "name": "Scheibe",
+      "quantity": 1.0,
+      "weight_g": 30.0,
+      "rank": 1,
+      "created_at": "2026-07-08T16:34:57.167096+00:00",
+      "updated_at": "2026-07-08T16:34:57.167108+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7329,
+      "measuring_unit_id": 72,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": false
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32698,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:51:18.435568+00:00",
+      "updated_at": "2026-07-08T16:51:18.435582+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7348,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32699,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:51:18.653603+00:00",
+      "updated_at": "2026-07-08T16:51:18.653614+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7348,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32700,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:51:18.815465+00:00",
+      "updated_at": "2026-07-08T16:51:18.815492+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7348,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32701,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:51:19.272653+00:00",
+      "updated_at": "2026-07-08T16:51:19.272661+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7349,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32702,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:51:19.486056+00:00",
+      "updated_at": "2026-07-08T16:51:19.486060+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7349,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32703,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:51:19.728004+00:00",
+      "updated_at": "2026-07-08T16:51:19.728016+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7349,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32704,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:51:20.240618+00:00",
+      "updated_at": "2026-07-08T16:51:20.240630+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7350,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32705,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:51:20.376997+00:00",
+      "updated_at": "2026-07-08T16:51:20.377007+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7350,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32706,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:51:20.619037+00:00",
+      "updated_at": "2026-07-08T16:51:20.619047+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7350,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32707,
+    "fields": {
+      "name": "g",
+      "quantity": 1.0,
+      "weight_g": 1.0,
+      "rank": 9999,
+      "created_at": "2026-07-08T16:51:21.080210+00:00",
+      "updated_at": "2026-07-08T16:51:21.080221+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7351,
+      "measuring_unit_id": 61,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32708,
+    "fields": {
+      "name": "Packung",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 3,
+      "created_at": "2026-07-08T16:51:21.290883+00:00",
+      "updated_at": "2026-07-08T16:51:21.290894+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7351,
+      "measuring_unit_id": 105,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
+  },
+  {
+    "model": "supply.portion",
+    "pk": 32709,
+    "fields": {
+      "name": "Stück",
+      "quantity": 1.0,
+      "weight_g": null,
+      "rank": 2,
+      "created_at": "2026-07-08T16:51:21.442196+00:00",
+      "updated_at": "2026-07-08T16:51:21.442206+00:00",
+      "created_by_id": null,
+      "ingredient_id": 7351,
+      "measuring_unit_id": 65,
+      "updated_by_id": null,
+      "deleted_at": null,
+      "is_system": true
+    }
   }
 ]

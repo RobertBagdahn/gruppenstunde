@@ -64,19 +64,28 @@ class Command(BaseCommand):
             )
 
             for ingredient in ingredients:
-                # Check if alias already exists
+                # Check if alias already exists on this ingredient
                 alias_lower = alias_name.lower()
                 existing = ingredient.aliases.filter(name__iexact=alias_name).exists()
                 if existing:
                     skipped_count += 1
                     continue
 
+                # Non-generic alias names must be globally unique (unique_alias_name_when_not_generic).
+                # Skip if another ingredient already owns this alias name.
+                if IngredientAlias.objects.filter(name__iexact=alias_name, is_generic=False).exists():
+                    skipped_count += 1
+                    continue
+
                 if dry_run:
                     self.stdout.write(f"[DRY-RUN] Would add alias '{alias_name}' → '{ingredient.name}'")
                 else:
+                    existing_ranks = set(ingredient.aliases.values_list("rank", flat=True))
+                    rank = max(existing_ranks) + 1 if existing_ranks else 1
                     IngredientAlias.objects.create(
                         ingredient=ingredient,
                         name=alias_name,
+                        rank=rank,
                     )
                     self.stdout.write(f"Added alias '{alias_name}' → '{ingredient.name}'")
                 created_count += 1

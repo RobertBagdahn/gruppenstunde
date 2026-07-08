@@ -53,6 +53,17 @@ export const DrinkRecipeSchema = z.object({
 });
 export type DrinkRecipe = z.infer<typeof DrinkRecipeSchema>;
 
+export const DrinkIngredientSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  is_standalone_food: z.boolean(),
+  energy_kcal: z.number().nullable(),
+  price_per_kg: z.number().nullable(),
+  portions: z.array(BreakfastPortionSchema),
+});
+export type DrinkIngredient = z.infer<typeof DrinkIngredientSchema>;
+
 export const WarmMealRecipeSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -64,6 +75,7 @@ export type WarmMealRecipe = z.infer<typeof WarmMealRecipeSchema>;
 export const BreakfastCatalogSchema = z.object({
   base_ingredients: z.array(BaseIngredientSchema),
   topping_ingredients: z.array(ToppingIngredientSchema),
+  drink_ingredients: z.array(DrinkIngredientSchema),
   drink_recipes: z.array(DrinkRecipeSchema),
   warm_meal_recipes: z.array(WarmMealRecipeSchema),
   gram_measuring_unit_id: z.number().nullable(),

@@ -42393,20 +42393,6 @@
   },
   {
     "model": "recipe.recipeitem",
-    "pk": 3395,
-    "fields": {
-      "quantity": 2.2001115179059885,
-      "sort_order": 1,
-      "note": "",
-      "portion_id": 423,
-      "recipe_id": 434,
-      "exchange_position": null,
-      "is_optional": false,
-      "exchange_group_id": null
-    }
-  },
-  {
-    "model": "recipe.recipeitem",
     "pk": 3396,
     "fields": {
       "quantity": 3.520178428649581,
@@ -42722,6 +42708,118 @@
       "note": "",
       "portion_id": 15231,
       "recipe_id": 432,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3407,
+    "fields": {
+      "quantity": 2.0,
+      "sort_order": 0,
+      "note": "",
+      "portion_id": 32541,
+      "recipe_id": 439,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3408,
+    "fields": {
+      "quantity": 1.0,
+      "sort_order": 1,
+      "note": "",
+      "portion_id": 32542,
+      "recipe_id": 439,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3409,
+    "fields": {
+      "quantity": 3.0,
+      "sort_order": 0,
+      "note": "",
+      "portion_id": 32543,
+      "recipe_id": 440,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3410,
+    "fields": {
+      "quantity": 1.0,
+      "sort_order": 1,
+      "note": "",
+      "portion_id": 32544,
+      "recipe_id": 440,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3411,
+    "fields": {
+      "quantity": 2.0,
+      "sort_order": 0,
+      "note": "",
+      "portion_id": 32541,
+      "recipe_id": 441,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3412,
+    "fields": {
+      "quantity": 1.0,
+      "sort_order": 0,
+      "note": "",
+      "portion_id": 32545,
+      "recipe_id": 442,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3413,
+    "fields": {
+      "quantity": 1.0,
+      "sort_order": 1,
+      "note": "",
+      "portion_id": 32546,
+      "recipe_id": 442,
+      "exchange_position": null,
+      "is_optional": false,
+      "exchange_group_id": null
+    }
+  },
+  {
+    "model": "recipe.recipeitem",
+    "pk": 3395,
+    "fields": {
+      "quantity": 1.0,
+      "sort_order": 1,
+      "note": "",
+      "portion_id": 423,
+      "recipe_id": 434,
       "exchange_position": null,
       "is_optional": false,
       "exchange_group_id": null
