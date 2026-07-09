@@ -82,6 +82,13 @@ class Recipe(Content):
         verbose_name=_("Ordner"),
         help_text=_("Optionaler Ordner für persönliche Rezepte"),
     )
+    shared_groups = models.ManyToManyField(
+        "profiles.Group",
+        blank=True,
+        related_name="shared_recipes",
+        verbose_name=_("Geteilte Gruppen"),
+        help_text=_("Gruppen, mit denen dieses Rezept geteilt wird (relevant für breakfast wizard)"),
+    )
 
     # --- Popularity tracking ---
     usage_count = models.IntegerField(

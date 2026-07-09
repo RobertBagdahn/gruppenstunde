@@ -171,6 +171,211 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
   });
 }
 
+// --- Ingredient Row (own component so the per-row `useUpdateIngredient` hook
+//     has a stable Fiber/hook-list regardless of how many rows are rendered) ---
+
+interface IngredientRowProps {
+  item: EditableItem;
+  isSource: boolean;
+  isAlt: boolean;
+  isLastInGroup: boolean;
+  editItems: EditableItem[];
+  expandedNotes: Set<number>;
+  setExpandedNotes: React.Dispatch<React.SetStateAction<Set<number>>>;
+  handleQuantityInputChange: (id: number, raw: string) => void;
+  handleQuantityBlur: (id: number) => void;
+  handlePortionChange: (id: number, portionId: number) => void;
+  handleNoteChange: (id: number, note: string) => void;
+  handleDelete: (id: number) => void;
+  setAlternativeTargetId: (id: number | null) => void;
+  patchItem: ReturnType<typeof usePatchRecipeItem>;
+  setEditItems: React.Dispatch<React.SetStateAction<EditableItem[]>>;
+  user: { is_staff?: boolean } | undefined;
+}
+
+function IngredientRow({
+  item,
+  isSource,
+  isAlt,
+  isLastInGroup,
+  editItems,
+  expandedNotes,
+  setExpandedNotes,
+  handleQuantityInputChange,
+  handleQuantityBlur,
+  handlePortionChange,
+  handleNoteChange,
+  handleDelete,
+  setAlternativeTargetId,
+  patchItem,
+  setEditItems,
+  user,
+}: IngredientRowProps) {
+  // Mutation for this ingredient's verification status update.
+  // This component is only ever mounted via JSX (not called as a plain
+  // function inside a loop), so its hooks always run in a stable order.
+  const updateIngredientMutation = useUpdateIngredient(
+    item.ingredient_name.toLowerCase().replace(/\s+/g, '-'),
+  );
+
+  return (
+    <div
+      key={item.id}
+      className={`flex items-center gap-3 p-3 border-l-4 bg-card transition-colors ${
+        isAlt ? 'border-l-amber-400 pl-9 bg-muted/20' : isSource ? 'border-l-amber-400' : 'border-l-transparent'
+      } ${
+        isAlt && !isLastInGroup ? 'border border-b-0 border-t-0' : ''
+      } ${
+        isAlt && isLastInGroup ? 'rounded-b-lg border border-t-0 border-border' : ''
+      } ${
+        isSource && !isLastInGroup ? 'rounded-t-lg border border-b-0 border-border' : ''
+      } ${
+        isSource && isLastInGroup ? 'border rounded-lg border-border' : ''
+      } ${
+        !isSource && !isAlt ? 'border rounded-lg border-border hover:bg-muted/30' : ''
+      } ${isSource ? 'hover:bg-muted/30' : ''}`}
+    >
+      <input
+        type="text"
+        inputMode="decimal"
+        value={item.quantityInput}
+        onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+        onBlur={() => handleQuantityBlur(item.id)}
+        className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
+      />
+      {item.ingredient_portions.length > 1 ? (
+        <select
+          value={item.portion_id}
+          onChange={(e) => handlePortionChange(item.id, parseInt(e.target.value))}
+          className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
+        >
+          {item.ingredient_portions.map((p) => {
+            // Use the same composite-portion label rule: if portion.quantity !== 1, show portion name
+            const optionLabel = p.quantity !== 1 ? p.name : (p.measuring_unit_name || p.name);
+            return (
+              <option key={p.id} value={p.id}>
+                {optionLabel}
+              </option>
+            );
+          })}
+        </select>
+      ) : (
+        <span className="text-xs text-muted-foreground min-w-[3.5rem]">
+          {item.measuring_unit_name || 'g'}
+        </span>
+      )}
+      <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
+      {expandedNotes.has(item.id) || item.note ? (
+        <input
+          type="text"
+          value={item.note}
+          onChange={(e) => handleNoteChange(item.id, e.target.value)}
+          placeholder="Notiz"
+          className="w-24 px-2 py-1.5 text-xs border rounded-md text-muted-foreground"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setExpandedNotes((prev) => new Set(prev).add(item.id))}
+          className="p-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          title="Notiz hinzufügen"
+        >
+          <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
+        </button>
+      )}
+      {/* Optional toggle (task 9.3) — disabled when in exchange group or unsaved */}
+      <button
+        type="button"
+        disabled={item.exchange_group_id !== null || item.isNew === true}
+        title={item.is_optional ? 'Als Pflicht-Zutat markieren' : 'Als optional markieren'}
+        onClick={() => {
+          patchItem.mutate(
+            { itemId: item.id, data: { is_optional: !item.is_optional } },
+            {
+              onSuccess: () => {
+                setEditItems((prev) =>
+                  prev.map((i) =>
+                    i.id === item.id ? { ...i, is_optional: !i.is_optional } : i,
+                  ),
+                );
+              },
+              onError: (err) => {
+                toast.error('Fehler', { description: err.message });
+              },
+            },
+          );
+        }}
+        className={`p-1.5 transition-colors rounded ${item.is_optional ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground/40 hover:text-muted-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
+      >
+        <span className="material-symbols-outlined text-[16px]">
+          {item.is_optional ? 'toggle_on' : 'toggle_off'}
+        </span>
+      </button>
+      {/* Alternative hinzufügen (tasks 9.1, 9.2) — only when not optional */}
+      <button
+        type="button"
+        disabled={item.is_optional || item.isNew}
+        title={item.isNew ? 'Bitte zuerst speichern' : 'Alternative hinzufügen'}
+        onClick={() => setAlternativeTargetId(item.id)}
+        className="p-1.5 text-muted-foreground/40 hover:text-primary transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const hasAlternatives = item.exchange_group_id != null
+            && item.exchange_position === 0
+            && editItems.some(
+              (other) =>
+                other.exchange_group_id === item.exchange_group_id &&
+                other.id !== item.id &&
+                !other.isDeleted,
+            );
+          if (hasAlternatives) {
+            toast.error('Löschen nicht möglich', {
+              description:
+                'Dieses Item hat Alternativen. Bitte zuerst die Alternativen entfernen.',
+            });
+            return;
+          }
+          handleDelete(item.id);
+        }}
+        className="p-1 text-destructive/60 hover:text-destructive transition-colors"
+        title="Entfernen"
+      >
+        <span className="material-symbols-outlined text-[18px]">close</span>
+      </button>
+      {/* Verify button (staff only) */}
+      {user?.is_staff && (
+        <button
+          type="button"
+          disabled={updateIngredientMutation.isPending}
+          title="Diese Zutat als verifiziert markieren"
+          onClick={() => {
+            updateIngredientMutation.mutate(
+              { status: 'verified' },
+              {
+                onSuccess: () => {
+                  toast.success('Zutat als verifiziert markiert');
+                },
+                onError: (err) => {
+                  toast.error('Fehler beim Verifizieren', {
+                    description: err.message,
+                  });
+                },
+              },
+            );
+          }}
+          className="p-1.5 text-green-600/60 hover:text-green-600 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <span className="material-symbols-outlined text-[16px]" title="Verify">verified</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 // --- Component ---
 
 export default function InlineIngredientEditor({
@@ -223,15 +428,6 @@ export default function InlineIngredientEditor({
   const estimateQuantities = useEstimateQuantities(recipeId);
   const patchItem = usePatchRecipeItem(recipeId);
   const createExchangeGroup = useCreateExchangeGroup(recipeId);
-
-  // Map to store update mutations for each ingredient (keyed by ingredient_id)
-  const ingredientUpdateMutations = new Map<number, null>();
-  editItems.forEach((item) => {
-    if (item.ingredient_id && !ingredientUpdateMutations.has(item.ingredient_id)) {
-      // Create a stable key for the mutation (we'll create actual mutations inside renderRow)
-      ingredientUpdateMutations.set(item.ingredient_id, null);
-    }
-  });
 
   // --- Handlers ---
 
@@ -841,167 +1037,27 @@ export default function InlineIngredientEditor({
             item => item.exchange_group_id != null && item.exchange_position === 0
           );
 
-          const renderRow = (item: EditableItem, isSource: boolean, isAlt: boolean, isLastInGroup: boolean) => {
-            // Create a mutation for this ingredient's status update
-            const updateIngredientMutation = useUpdateIngredient(item.ingredient_name.toLowerCase().replace(/\s+/g, '-'));
-
-            return (
-            <div
+          const renderRow = (item: EditableItem, isSource: boolean, isAlt: boolean, isLastInGroup: boolean) => (
+            <IngredientRow
               key={item.id}
-              className={`flex items-center gap-3 p-3 border-l-4 bg-card transition-colors ${
-                isAlt ? 'border-l-amber-400 pl-9 bg-muted/20' : isSource ? 'border-l-amber-400' : 'border-l-transparent'
-              } ${
-                isAlt && !isLastInGroup ? 'border border-b-0 border-t-0' : ''
-              } ${
-                isAlt && isLastInGroup ? 'rounded-b-lg border border-t-0 border-border' : ''
-              } ${
-                isSource && !isLastInGroup ? 'rounded-t-lg border border-b-0 border-border' : ''
-              } ${
-                isSource && isLastInGroup ? 'border rounded-lg border-border' : ''
-              } ${
-                !isSource && !isAlt ? 'border rounded-lg border-border hover:bg-muted/30' : ''
-              } ${isSource ? 'hover:bg-muted/30' : ''}`}
-            >
-              <input
-                type="text"
-                inputMode="decimal"
-                value={item.quantityInput}
-                onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
-                onBlur={() => handleQuantityBlur(item.id)}
-                className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
-              />
-              {item.ingredient_portions.length > 1 ? (
-                <select
-                  value={item.portion_id}
-                  onChange={(e) => handlePortionChange(item.id, parseInt(e.target.value))}
-                  className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
-                >
-                  {item.ingredient_portions.map((p) => {
-                    // Use the same composite-portion label rule: if portion.quantity !== 1, show portion name
-                    const optionLabel = p.quantity !== 1 ? p.name : (p.measuring_unit_name || p.name);
-                    return (
-                      <option key={p.id} value={p.id}>
-                        {optionLabel}
-                      </option>
-                    );
-                  })}
-                </select>
-              ) : (
-                <span className="text-xs text-muted-foreground min-w-[3.5rem]">
-                  {item.measuring_unit_name || 'g'}
-                </span>
-              )}
-              <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
-              {expandedNotes.has(item.id) || item.note ? (
-                <input
-                  type="text"
-                  value={item.note}
-                  onChange={(e) => handleNoteChange(item.id, e.target.value)}
-                  placeholder="Notiz"
-                  className="w-24 px-2 py-1.5 text-xs border rounded-md text-muted-foreground"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setExpandedNotes((prev) => new Set(prev).add(item.id))}
-                  className="p-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                  title="Notiz hinzufügen"
-                >
-                  <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
-                </button>
-              )}
-              {/* Optional toggle (task 9.3) — disabled when in exchange group or unsaved */}
-              <button
-                type="button"
-                disabled={item.exchange_group_id !== null || item.isNew === true}
-                title={item.is_optional ? 'Als Pflicht-Zutat markieren' : 'Als optional markieren'}
-                onClick={() => {
-                  patchItem.mutate(
-                    { itemId: item.id, data: { is_optional: !item.is_optional } },
-                    {
-                      onSuccess: () => {
-                        setEditItems((prev) =>
-                          prev.map((i) =>
-                            i.id === item.id ? { ...i, is_optional: !i.is_optional } : i,
-                          ),
-                        );
-                      },
-                      onError: (err) => {
-                        toast.error('Fehler', { description: err.message });
-                      },
-                    },
-                  );
-                }}
-                className={`p-1.5 transition-colors rounded ${item.is_optional ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground/40 hover:text-muted-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  {item.is_optional ? 'toggle_on' : 'toggle_off'}
-                </span>
-              </button>
-              {/* Alternative hinzufügen (tasks 9.1, 9.2) — only when not optional */}
-              <button
-                type="button"
-                disabled={item.is_optional || item.isNew}
-                title={item.isNew ? 'Bitte zuerst speichern' : 'Alternative hinzufügen'}
-                onClick={() => setAlternativeTargetId(item.id)}
-                className="p-1.5 text-muted-foreground/40 hover:text-primary transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const hasAlternatives = item.exchange_group_id != null
-                    && item.exchange_position === 0
-                    && editItems.some(
-                      (other) =>
-                        other.exchange_group_id === item.exchange_group_id &&
-                        other.id !== item.id &&
-                        !other.isDeleted,
-                    );
-                  if (hasAlternatives) {
-                    toast.error('Löschen nicht möglich', {
-                      description:
-                        'Dieses Item hat Alternativen. Bitte zuerst die Alternativen entfernen.',
-                    });
-                    return;
-                  }
-                  handleDelete(item.id);
-                }}
-                className="p-1 text-destructive/60 hover:text-destructive transition-colors"
-                title="Entfernen"
-              >
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-              {/* Verify button (staff only) */}
-              {user?.is_staff && (
-                <button
-                  type="button"
-                  disabled={updateIngredientMutation.isPending}
-                  title="Diese Zutat als verifiziert markieren"
-                  onClick={() => {
-                    updateIngredientMutation.mutate(
-                      { status: 'verified' },
-                      {
-                        onSuccess: () => {
-                          toast.success('Zutat als verifiziert markiert');
-                        },
-                        onError: (err) => {
-                          toast.error('Fehler beim Verifizieren', {
-                            description: err.message,
-                          });
-                        },
-                      },
-                    );
-                  }}
-                  className="p-1.5 text-green-600/60 hover:text-green-600 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <span className="material-symbols-outlined text-[16px]" title="Verify">verified</span>
-                </button>
-              )}
-            </div>
+              item={item}
+              isSource={isSource}
+              isAlt={isAlt}
+              isLastInGroup={isLastInGroup}
+              editItems={editItems}
+              expandedNotes={expandedNotes}
+              setExpandedNotes={setExpandedNotes}
+              handleQuantityInputChange={handleQuantityInputChange}
+              handleQuantityBlur={handleQuantityBlur}
+              handlePortionChange={handlePortionChange}
+              handleNoteChange={handleNoteChange}
+              handleDelete={handleDelete}
+              setAlternativeTargetId={setAlternativeTargetId}
+              patchItem={patchItem}
+              setEditItems={setEditItems}
+              user={user}
+            />
           );
-          };
 
           const rendered: ReactNode[] = [];
 

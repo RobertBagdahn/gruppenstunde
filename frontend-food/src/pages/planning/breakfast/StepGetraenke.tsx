@@ -1,189 +1,171 @@
 /**
- * Step 4 — Getränke: Getränke-Rezepte aus dem Katalog auswählen.
- * Analog zu StepExtras für warme Gerichte.
+ * Step 5 — Getränke: Getränke-Rezepte mit Verteilungs-Schiebereglern.
+ * Ähnlich wie StepStreichfett, mit Basis-Getränken und optionalen Zusätzen (Milch/Säfte).
  */
-import { Check, Plus, X } from 'lucide-react';
+import { useEffect } from 'react';
 import type { UseWizardStateReturn } from './useWizardState';
-import type { BreakfastCatalog } from '@/schemas/breakfast';
+import { useBreakfastCatalog } from '@/api/breakfast';
+import ShareSlider from './ShareSlider';
+import type { DrinkRecipeSelection, DrinkIngredientSelection } from '@/schemas/breakfast';
 
 interface StepGetraenkeProps {
   wiz: UseWizardStateReturn;
-  catalog?: BreakfastCatalog;
 }
 
-export default function StepGetraenke({ wiz, catalog }: StepGetraenkeProps) {
-  const { state, addDrinkRecipe, removeDrinkRecipe, setDrinkFactor, setExtraIngredient, removeExtraIngredient } = wiz;
+const KEIN_EXTRA_GETRAENK: DrinkRecipeSelection = {
+  recipeId: 0,
+  name: 'Kein Extra Getränk',
+  sharePercent: 50,
+  locked: false,
+  energyKcal: 0,
+};
 
-  const availableDrinks = catalog?.drink_recipes ?? [];
-  const selectedIds = state.drinkRecipeIds;
+const KEINE_MILCH_SAFT: DrinkIngredientSelection = {
+  ingredientId: 0,
+  name: 'Keine Milch/Säfte',
+  sharePercent: 50,
+  locked: false,
+  mlPerPerson: 0,
+};
 
-  const drinkIngredients = catalog?.drink_ingredients ?? [];
-  const selectedDrinkIngredientIds = Object.keys(state.extraIngredients)
-    .map(Number)
-    .filter((id) => drinkIngredients.some((d) => d.id === id));
-  const unselectedDrinkIngredients = drinkIngredients.filter(
-    (d) => !selectedDrinkIngredientIds.includes(d.id),
-  );
+export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
+  const { state, setDrinkRecipeShare, setDrinkRecipeLocked, initDrinkRecipes, setDrinkIngredientShare, setDrinkIngredientLocked, initDrinkIngredients } = wiz;
+  const { data: catalog, isLoading } = useBreakfastCatalog();
 
-  function defaultGramsForIngredient(ingredientId: number): number {
-    const ing = drinkIngredients.find((d) => d.id === ingredientId);
-    const portion = ing?.portions.find((p) => p.is_default) ?? ing?.portions[0];
-    return portion?.weight_g ?? 200;
+  // Initialize drink recipes on first load
+  useEffect(() => {
+    if (!catalog || state.drinkRecipes.length > 0) return;
+
+    const drinks = (catalog.drink_recipes ?? []).map((recipe, i) => {
+      const defaultShare = i === 0 ? 50 : 0;
+      return {
+        recipeId: recipe.id,
+        name: recipe.title,
+        sharePercent: defaultShare,
+        locked: false,
+        energyKcal: recipe.cached_energy_kcal,
+      };
+    });
+
+    // Add virtual "Kein Extra Getränk" option
+    const keinGetraenk = { ...KEIN_EXTRA_GETRAENK, sharePercent: drinks.length > 0 ? 50 : 100 };
+    const all: DrinkRecipeSelection[] = [...drinks, keinGetraenk];
+    initDrinkRecipes(all);
+  }, [catalog, state.drinkRecipes.length, initDrinkRecipes]);
+
+  // Initialize drink ingredients on first load
+  useEffect(() => {
+    if (!catalog || state.drinkIngredients.length > 0) return;
+
+    const ingredients = (catalog.drink_ingredients ?? []).map((ing) => ({
+      ingredientId: ing.id,
+      name: ing.name,
+      sharePercent: 0,
+      locked: false,
+      mlPerPerson: null,
+    }));
+
+    // Add virtual "Keine Milch/Säfte" option
+    const keineMilch = { ...KEINE_MILCH_SAFT };
+    const all: DrinkIngredientSelection[] = [...ingredients, keineMilch];
+    initDrinkIngredients(all);
+  }, [catalog, state.drinkIngredients.length, initDrinkIngredients]);
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground p-4">Lade Getränke…</div>;
   }
 
-  const selectedDrinks = selectedIds
-    .map((id) => availableDrinks.find((r) => r.id === id))
-    .filter(Boolean) as typeof availableDrinks;
-
-  function handleToggle(recipeId: number, title: string) {
-    if (selectedIds.includes(recipeId)) {
-      removeDrinkRecipe(recipeId);
-    } else {
-      addDrinkRecipe(recipeId, title);
-    }
+  if (!catalog?.drink_recipes?.length && state.drinkRecipes.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h3 className="font-display font-semibold text-base">Getränke</h3>
+        <p className="text-sm text-muted-foreground">
+          Keine Getränke-Rezepte verfügbar — lege Rezepte mit dem Tag breakfast-drink an.
+        </p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
+      {/* Getränke-Rezepte */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <div>
-          <h3 className="font-display font-semibold text-base">Getränke</h3>
-          <p className="text-xs text-muted-foreground">
-            Wähle Getränke-Rezepte aus — Kalorien kommen aus dem Rezept.
-          </p>
-        </div>
+        <h3 className="font-display font-semibold text-base">Getränke</h3>
+        <p className="text-xs text-muted-foreground">
+          Wähle Getränke-Rezepte aus — Kalorien kommen aus dem Rezept.
+        </p>
+      </div>
 
-        {availableDrinks.length === 0 && (
-          <p className="text-sm text-muted-foreground py-2">Keine Getränke-Rezepte verfügbar.</p>
-        )}
-
-        {/* Auswahl-Kacheln */}
-        {availableDrinks.length > 0 && (
-          <div className="divide-y divide-border">
-            {availableDrinks.map((recipe) => {
-              const isSelected = selectedIds.includes(recipe.id);
-              const factor = state.drinkFactors[String(recipe.id)] ?? 1.0;
+      {state.drinkRecipes.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-semibold text-base">Verteilung</h3>
+            <button
+              type="button"
+              onClick={() => wiz.openCreateModal('recipe', undefined, 'drink')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              + Neues Getränk-Rezept erstellen
+            </button>
+          </div>
+          <div className="space-y-4">
+            {state.drinkRecipes.map((d, i) => {
+              const kcal = d.energyKcal ? d.energyKcal : 0;
               return (
-                <div key={recipe.id} className="py-3 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(recipe.id, recipe.title)}
-                    className={`flex items-center justify-center w-6 h-6 rounded-md border-2 transition-colors flex-shrink-0 ${
-                      isSelected
-                        ? 'bg-primary border-primary text-primary-foreground'
-                        : 'border-border hover:border-primary'
-                    }`}
-                    aria-pressed={isSelected}
-                    title={isSelected ? 'Entfernen' : 'Hinzufügen'}
-                  >
-                    {isSelected && <Check className="w-3.5 h-3.5" />}
-                  </button>
-
-                  <span className="flex-1 text-sm font-medium">{recipe.title}</span>
-
-                  {recipe.cached_energy_kcal != null && (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {Math.round(recipe.cached_energy_kcal)} kcal
-                    </span>
-                  )}
-
-                  {isSelected && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">×</span>
-                      <input
-                        type="number"
-                        min={0.1}
-                        step={0.5}
-                        value={factor}
-                        onChange={(e) =>
-                          setDrinkFactor(recipe.id, Math.max(0.1, Number(e.target.value)))
-                        }
-                        className="w-16 rounded border px-2 py-1 text-sm text-right"
-                        title="Faktor (Portionsmultiplikator)"
-                      />
-                    </div>
-                  )}
-                </div>
+                <ShareSlider
+                  key={`drink-${d.recipeId}`}
+                  label={d.name}
+                  value={d.sharePercent}
+                  locked={d.locked}
+                  onChange={(v) => setDrinkRecipeShare(i, v)}
+                  onToggleLock={() => setDrinkRecipeLocked(i, !d.locked)}
+                  detail={d.sharePercent > 0 && d.recipeId > 0
+                    ? `${Math.round(kcal)} kcal`
+                    : d.sharePercent > 0 && d.recipeId === 0
+                      ? `${d.sharePercent}% kein Extra`
+                      : 'Nicht gewählt'
+                  }
+                />
               );
             })}
           </div>
-        )}
-
-        {selectedDrinks.length > 0 && (
-          <p className="text-xs text-muted-foreground pt-1">
-            {selectedDrinks.length} Getränk{selectedDrinks.length !== 1 ? 'e' : ''} ausgewählt
-          </p>
-        )}
-      </div>
-
-      {drinkIngredients.length > 0 && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-          <div>
-            <h3 className="font-display font-semibold text-base">Milch & Säfte</h3>
-            <p className="text-xs text-muted-foreground">Zum Trinken oder für Kaffee/Kakao (optional)</p>
-          </div>
-
-          {selectedDrinkIngredientIds.length === 0 && (
-            <p className="text-sm text-muted-foreground py-2">Keine Milch/Säfte geplant.</p>
-          )}
-
-          {selectedDrinkIngredientIds.length > 0 && (
-            <div className="divide-y divide-border">
-              {selectedDrinkIngredientIds.map((id) => {
-                const ing = drinkIngredients.find((d) => d.id === id);
-                const grams = state.extraIngredients[String(id)] ?? defaultGramsForIngredient(id);
-                return (
-                  <div key={id} className="py-2 flex items-center gap-3">
-                    <span className="flex-1 text-sm font-medium">{ing?.name ?? `Zutat #${id}`}</span>
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min={1}
-                        step={10}
-                        value={grams}
-                        onChange={(e) => setExtraIngredient(id, Math.max(1, Number(e.target.value)), ing?.name)}
-                        className="w-20 rounded border px-2 py-1 text-sm text-right"
-                      />
-                      <span className="text-xs text-muted-foreground">ml/P</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeExtraIngredient(id)}
-                      className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
-                      title="Entfernen"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {unselectedDrinkIngredients.length > 0 && (
-            <div className="divide-y divide-border border-t border-border pt-2">
-              {unselectedDrinkIngredients.map((ing) => (
-                <div key={ing.id} className="py-2 flex items-center gap-3">
-                  <span className="flex-1 text-sm">{ing.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setExtraIngredient(ing.id, defaultGramsForIngredient(ing.id), ing.name)}
-                    className="flex items-center gap-1 px-3 py-1 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Hinzufügen
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
-      {selectedIds.length === 0 && selectedDrinkIngredientIds.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-2">
-          Keine Getränke geplant — kein Problem, das ist optional.
-        </p>
+      {/* Milch & Säfte */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h3 className="font-display font-semibold text-base">Milch & Säfte</h3>
+        <p className="text-xs text-muted-foreground">Zum Trinken oder für Kaffee/Kakao (optional)</p>
+      </div>
+
+      {state.drinkIngredients.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-semibold text-base">Verteilung</h3>
+          </div>
+          <div className="space-y-4">
+            {state.drinkIngredients.map((d, i) => {
+              const defaultMl = 200;
+              const ml = d.mlPerPerson ?? defaultMl;
+              return (
+                <ShareSlider
+                  key={`drink-ing-${d.ingredientId}`}
+                  label={d.name}
+                  value={d.sharePercent}
+                  locked={d.locked}
+                  onChange={(v) => setDrinkIngredientShare(i, v)}
+                  onToggleLock={() => setDrinkIngredientLocked(i, !d.locked)}
+                  detail={d.sharePercent > 0 && d.ingredientId > 0
+                    ? `${ml}ml pro Person`
+                    : d.sharePercent > 0 && d.ingredientId === 0
+                      ? `${d.sharePercent}% ohne Zusatz`
+                      : 'Nicht gewählt'
+                  }
+                />
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );

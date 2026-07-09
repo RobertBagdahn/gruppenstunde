@@ -119,6 +119,13 @@ class IngredientDetailOut(Schema):
     status: str
     name_warning: str | None = None
 
+    # Ownership & Visibility (for breakfast wizard user-generated items)
+    owner_id: int | None = None
+    owner_name: str | None = None
+    visibility: str = "private"
+    shared_groups: list[dict] = []  # { id, name }
+    created_by_name: str | None = None
+
     # Physical
     physical_density: float
     physical_viscosity: str
@@ -235,6 +242,22 @@ class IngredientDetailOut(Schema):
     @staticmethod
     def resolve_groups(obj) -> list:
         return [{"id": g.id, "name": g.name, "slug": g.slug} for g in obj.groups.all()]
+    
+    @staticmethod
+    def resolve_owner_name(obj) -> str | None:
+        if obj.owner:
+            return f"{obj.owner.first_name} {obj.owner.last_name}".strip() or obj.owner.username
+        return None
+    
+    @staticmethod
+    def resolve_created_by_name(obj) -> str | None:
+        if obj.created_by:
+            return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username
+        return None
+    
+    @staticmethod
+    def resolve_shared_groups(obj) -> list:
+        return [{"id": g.id, "name": g.name} for g in obj.shared_groups.all()]
 
     @staticmethod
     def resolve_created_at(obj) -> str:
@@ -300,6 +323,11 @@ class IngredientCreateIn(Schema):
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] = []
     group_ids: list[int] = []
+    tag_ids: list[int] = []  # For breakfast tags and nutritional tags
+    
+    # Ownership & Visibility (for breakfast wizard user-generated items)
+    visibility: str = "private"  # "private" or "shared"
+    shared_group_ids: list[int] = []  # Groups to share with (only relevant if visibility="shared")
 
 
 class IngredientUpdateIn(Schema):
@@ -349,9 +377,21 @@ class IngredientUpdateIn(Schema):
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] | None = None
     group_ids: list[int] | None = None
+    tag_ids: list[int] | None = None  # For breakfast tags
     status: str | None = None
     is_standalone_food: bool | None = None
     ingredient_ref_id: int | None = None
+    
+    # Ownership & Visibility
+    visibility: str | None = None  # "private" or "shared"
+    shared_group_ids: list[int] | None = None
+
+
+class VisibilityIn(Schema):
+    """Schema for updating ingredient/recipe visibility and sharing."""
+
+    visibility: str  # "private" or "shared"
+    shared_group_ids: list[int] = []  # Only used when visibility="shared"
 
 
 class PaginatedIngredientOut(Schema):

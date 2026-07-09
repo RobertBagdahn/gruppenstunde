@@ -35,6 +35,8 @@ import {
   type RecipeSuggestion,
   CookingScheduleSchema,
   type CookingSchedule,
+  IntelligentSuggestionsResponseSchema,
+  type IntelligentSuggestionsResponse,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 import { AiApplyOutSchema, AiSuggestOutSchema } from '@/schemas/mealPlan';
@@ -693,6 +695,31 @@ export function useRemoveMealPlanCollaborator(planId: number) {
       queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
       queryClient.invalidateQueries({ queryKey: ['meal-plan', planId, 'collaborators'] });
     },
+  });
+}
+
+// ==========================================================================
+// ==========================================================================
+// Intelligent Recipe Suggestions
+// ==========================================================================
+
+export function useIntelligentSuggestions(
+  planId: number,
+  mealId: number,
+  aiEnhance = false,
+) {
+  const searchParams = new URLSearchParams();
+  if (aiEnhance) searchParams.set('ai_enhance', 'true');
+
+  return useQuery<IntelligentSuggestionsResponse>({
+    queryKey: ['intelligent-suggestions', planId, mealId, aiEnhance],
+    queryFn: () =>
+      fetchJson(
+        `${API_BASE}/${planId}/meal/${mealId}/suggestions/?${searchParams.toString()}`,
+        IntelligentSuggestionsResponseSchema,
+      ),
+    enabled: !!planId && !!mealId,
+    staleTime: 30_000,
   });
 }
 

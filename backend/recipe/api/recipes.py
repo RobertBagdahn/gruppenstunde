@@ -75,13 +75,14 @@ def _get_visible_recipes_qs(request):
     - User's own recipes (owner=current_user) are always visible to them
     - Public community recipes (visibility=public, status=approved) are visible
     - Group recipes (visibility=group) visible to group members (TODO: implement group membership)
+    - Shared recipes (visibility=shared) visible to members of shared_groups
     - Staff sees everything
     """
     base_prefetch = ("scout_levels", "tags__parent", "authors")
     base_select = ("owner", "forked_from")
 
     if request.user.is_authenticated and request.user.is_staff:
-        return Recipe.objects.all().select_related(*base_select).prefetch_related(*base_prefetch)
+        return Recipe.objects.all().select_related(*base_select).prefetch_related(*base_prefetch, "shared_groups")
 
     # System recipes (Inspi-verified): owner is null, status approved
     system_q = Q(owner__isnull=True, status="approved")
@@ -93,11 +94,17 @@ def _get_visible_recipes_qs(request):
         own_q = Q(owner=request.user)
         # Also show own drafts (created_by, for backward compat)
         created_q = Q(created_by=request.user)
-        visibility_q = system_q | community_q | own_q | created_q
+        
+        # Recipes shared with user's groups (new breakfast wizard model)
+        from profiles.models import Group
+        user_groups = Group.objects.filter(members=request.user)
+        shared_q = Q(visibility="shared", shared_groups__in=user_groups)
+        
+        visibility_q = system_q | community_q | own_q | created_q | shared_q
     else:
         visibility_q = system_q | community_q
 
-    return Recipe.objects.filter(visibility_q).select_related(*base_select).prefetch_related(*base_prefetch)
+    return Recipe.objects.filter(visibility_q).select_related(*base_select).prefetch_related(*base_prefetch, "shared_groups").distinct()
 
 
 def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = False) -> Recipe:
@@ -125,6 +132,104 @@ def _is_transitively_visible_recipe(recipe: Recipe, request) -> bool:
     from content.services.transitive_visibility import recipe_visible_transitively
 
     return recipe_visible_transitively(recipe, request.user)
+
+
+# ==========================================================================
+# Breakfast Wizard Visibility Functions
+# ==========================================================================
+# New visibility model for breakfast wizard user-generated items
+
+
+def _can_view_recipe_breakfast(recipe: Recipe, user) -> bool:
+    """Check if user can view recipe in breakfast wizard context.
+    
+    Rules:
+    - System recipes (owner=None, status=approved) are always visible
+    - User-owned recipes (owner=user) are visible to owner
+    - Recipes shared with user's groups (visibility=shared, shared_groups contains user's groups)
+    - Staff can see everything
+    """
+    if not user.is_authenticated:
+        # Unauthenticated users can only see system recipes
+        return recipe.owner_id is None and recipe.status == "approved"
+    
+    # Staff can see everything
+    if user.is_staff:
+        return True
+    
+    # System recipes are always visible
+    if recipe.owner_id is None:
+        return recipe.status == "approved"
+    
+    # Owner can always see their own recipe
+    if recipe.owner_id == user.id:
+        return True
+    
+    # Check shared groups
+    if recipe.visibility in ("group", "public"):
+        # Old visibility model (group/public) - handled by existing logic
+        if recipe.visibility == "public" and recipe.status == "approved":
+            return True
+        if recipe.visibility == "group":
+            # Group visibility - need to check if user is in recipe's group
+            # This requires additional logic
+            return False
+    
+    # New shared_groups model
+    from profiles.models import Group
+    user_groups = Group.objects.filter(members=user)
+    return recipe.shared_groups.filter(id__in=user_groups).exists()
+
+
+def _get_visible_recipes_for_breakfast_qs(user, group_ids: list[int] | None = None):
+    """Get recipes visible to user for breakfast wizard.
+    
+    Args:
+        user: The requesting user
+        group_ids: Optional list of group IDs to filter for
+    
+    Returns:
+        Queryset of visible Recipe objects
+    """
+    from profiles.models import Group
+    
+    qs = Recipe.objects.select_related("owner", "forked_from").prefetch_related("shared_groups", "scout_levels", "tags")
+    
+    if user.is_authenticated and user.is_staff:
+        return qs
+    
+    # System recipes (owner=None, status=approved) are always visible
+    system_q = Q(owner__isnull=True, status="approved")
+    
+    if not user.is_authenticated:
+        return qs.filter(system_q)
+    
+    # User's own recipes
+    own_q = Q(owner=user)
+    
+    # Get user's groups
+    user_groups = Group.objects.filter(members=user)
+    
+    # Recipes shared with user's groups
+    shared_q = Q(visibility="shared", shared_groups__in=user_groups)
+    
+    # Public recipes
+    public_q = Q(visibility="public", status="approved")
+    
+    # For "group" visibility, check if user is in recipe's group context
+    # This would require knowing which group the recipe belongs to
+    # For now, we only handle explicit shared_groups model
+    
+    visibility_q = system_q | own_q | shared_q | public_q
+    
+    if group_ids:
+        # If specific groups are requested, also include recipes shared with those groups
+        visibility_q = visibility_q | Q(
+            visibility="shared",
+            shared_groups__in=Group.objects.filter(id__in=group_ids)
+        )
+    
+    return qs.filter(visibility_q).distinct()
 
 
 # ==========================================================================
@@ -425,7 +530,10 @@ def _attach_similar_recipes(recipe: Recipe):
 
 @router.post("/", response=RecipeDetailOut)
 def create_recipe(request, payload: RecipeCreateIn):
-    """Create a new recipe."""
+    """Create a new recipe.
+    
+    For breakfast wizard items, sets owner to current user and handles visibility/sharing.
+    """
     _require_auth(request)
 
     # Bot protection
@@ -476,6 +584,18 @@ def create_recipe(request, payload: RecipeCreateIn):
     # Store manually-set nutritional tags after sync (M2M .set() does NOT trigger post_save)
     if payload.nutritional_tag_ids:
         recipe.manual_nutritional_tags.set(payload.nutritional_tag_ids)
+    
+    # Handle shared_group_ids for breakfast wizard recipes
+    if payload.shared_group_ids:
+        from profiles.models import Group
+        
+        # Validate that user is member of all shared groups
+        user_group_ids = set(Group.objects.filter(members=request.user).values_list("id", flat=True))
+        invalid_group_ids = set(payload.shared_group_ids) - user_group_ids
+        if invalid_group_ids:
+            raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
+        
+        recipe.shared_groups.set(payload.shared_group_ids)
 
     recipe.emotion_counts = {}
     recipe.user_emotion = None
@@ -490,7 +610,8 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     """Update a recipe.
     
     Staff-only fields: status, source_url, authors_ids
-    Non-staff users attempting to modify these fields will receive a 403 Forbidden error.
+    Owner-only fields: shared_group_ids, visibility (for breakfast wizard)
+    Non-staff users attempting to modify staff-only fields will receive a 403 Forbidden error.
     
     Example staff request:
     {
@@ -502,7 +623,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     
     Non-staff users can only modify: title, summary, description, recipe_type,
     execution_time, preparation_time, difficulty, tag_ids, scout_level_ids,
-    nutritional_tag_ids, recipe_items.
+    nutritional_tag_ids, recipe_items, shared_group_ids (breakfast wizard).
     """
     _require_auth(request)
 
@@ -519,12 +640,18 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     if "authors_ids" in data and not request.user.is_staff:
         raise HttpError(403, "Nur Admins können die Autoren ändern")
     
+    # Owner-only field protection (breakfast wizard)
+    if recipe.owner and ("shared_group_ids" in data):
+        if recipe.owner_id != request.user.id and not request.user.is_staff:
+            raise HttpError(403, "Nur der Owner darf Sharing-Einstellungen ändern")
+    
     data.pop("portions", None)  # Always enforce portions=1
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
     nutritional_tag_ids = data.pop("nutritional_tag_ids", None)
     recipe_items_data = data.pop("recipe_items", None)
     authors_ids = data.pop("authors_ids", None)
+    shared_group_ids = data.pop("shared_group_ids", None)
 
     for field, value in data.items():
         setattr(recipe, field, value)
@@ -567,6 +694,22 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     # Store manually-set nutritional tags AFTER items (M2M .set() does NOT trigger post_save)
     if nutritional_tag_ids is not None:
         recipe.manual_nutritional_tags.set(nutritional_tag_ids)
+    
+    # Handle shared_group_ids for breakfast wizard recipes
+    if shared_group_ids is not None:
+        if recipe.visibility == "shared" or data.get("visibility") == "shared":
+            from profiles.models import Group
+            
+            # Validate that user is member of all shared groups
+            user_group_ids = set(Group.objects.filter(members=request.user).values_list("id", flat=True))
+            invalid_group_ids = set(shared_group_ids) - user_group_ids
+            if invalid_group_ids:
+                raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
+            
+            recipe.shared_groups.set(shared_group_ids)
+        else:
+            # Clear shared groups if not sharing
+            recipe.shared_groups.clear()
 
     enrich_content_with_interactions(request, recipe, Recipe)
     recipe.can_edit = True

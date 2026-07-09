@@ -45,6 +45,17 @@ export const ToppingIngredientSchema = z.object({
 });
 export type ToppingIngredient = z.infer<typeof ToppingIngredientSchema>;
 
+export const FatIngredientSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  is_standalone_food: z.boolean(),
+  energy_kcal: z.number().nullable(),
+  price_per_kg: z.number().nullable(),
+  portions: z.array(BreakfastPortionSchema),
+});
+export type FatIngredient = z.infer<typeof FatIngredientSchema>;
+
 export const DrinkRecipeSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -75,6 +86,7 @@ export type WarmMealRecipe = z.infer<typeof WarmMealRecipeSchema>;
 export const BreakfastCatalogSchema = z.object({
   base_ingredients: z.array(BaseIngredientSchema),
   topping_ingredients: z.array(ToppingIngredientSchema),
+  fat_ingredients: z.array(FatIngredientSchema),
   drink_ingredients: z.array(DrinkIngredientSchema),
   drink_recipes: z.array(DrinkRecipeSchema),
   warm_meal_recipes: z.array(WarmMealRecipeSchema),
@@ -153,11 +165,44 @@ export const ToppingSelectionSchema = z.object({
 });
 export type ToppingSelection = z.infer<typeof ToppingSelectionSchema>;
 
+/** One fat/spread with share (0–100%) for the Streichfett step */
+export const FatSelectionSchema = z.object({
+  ingredientId: z.number(),
+  name: z.string(),
+  sharePercent: z.number().min(0).max(100),
+  locked: z.boolean(),
+  energyKcal100g: z.number().nullable(),
+  pricePerKg: z.number().nullable(),
+  portions: z.array(BreakfastPortionSchema),
+});
+export type FatSelection = z.infer<typeof FatSelectionSchema>;
+
+/** One drink recipe with share (0–100%) for the Getränke step */
+export const DrinkRecipeSelectionSchema = z.object({
+  recipeId: z.number(),
+  name: z.string(),
+  sharePercent: z.number().min(0).max(100),
+  locked: z.boolean(),
+  energyKcal: z.number().nullable(),
+});
+export type DrinkRecipeSelection = z.infer<typeof DrinkRecipeSelectionSchema>;
+
+/** One drink ingredient (Milch, Saft) with share (0–100%) */
+export const DrinkIngredientSelectionSchema = z.object({
+  ingredientId: z.number(),
+  name: z.string(),
+  sharePercent: z.number().min(0).max(100),
+  locked: z.boolean(),
+  mlPerPerson: z.number().nullable(),
+});
+export type DrinkIngredientSelection = z.infer<typeof DrinkIngredientSelectionSchema>;
+
 /** Complete wizard state */
 export const WizardStateSchema = z.object({
   /** Grams of bread per person */
   gramsPerPerson: z.number().min(50).max(300),
   basis: z.array(BasisSelectionSchema),
+  fatSelections: z.array(FatSelectionSchema),
   toppings: z.array(ToppingSelectionSchema),
   globalIntensity: z.enum(['knapp', 'normal', 'üppig']),
   /** IDs of warm-dish recipes chosen in Extras step */
@@ -170,12 +215,10 @@ export const WizardStateSchema = z.object({
   extraIngredients: z.record(z.string(), z.number()),
   /** Names of extra ingredients for display */
   extraIngredientNames: z.record(z.string(), z.string()),
-  /** IDs of drink recipes chosen in Getränke step */
-  drinkRecipeIds: z.array(z.number()).default([]),
-  /** Scaling factor for each drink recipe */
-  drinkFactors: z.record(z.string(), z.number()).default({}),
-  /** Names of drink recipes for display */
-  drinkRecipeNames: z.record(z.string(), z.string()).default({}),
+  /** Drink recipes with share distribution */
+  drinkRecipes: z.array(DrinkRecipeSelectionSchema).default([]),
+  /** Drink ingredients (Milch, Saft) with share distribution */
+  drinkIngredients: z.array(DrinkIngredientSelectionSchema).default([]),
 });
 export type WizardState = z.infer<typeof WizardStateSchema>;
 
@@ -204,6 +247,7 @@ export function defaultWizardState(): WizardState {
   return {
     gramsPerPerson: 150,
     basis: [],
+    fatSelections: [],
     toppings: [],
     globalIntensity: 'normal',
     warmDishRecipeIds: [],
@@ -211,8 +255,7 @@ export function defaultWizardState(): WizardState {
     warmDishRecipeNames: {},
     extraIngredients: {},
     extraIngredientNames: {},
-    drinkRecipeIds: [],
-    drinkFactors: {},
-    drinkRecipeNames: {},
+    drinkRecipes: [],
+    drinkIngredients: [],
   };
 }

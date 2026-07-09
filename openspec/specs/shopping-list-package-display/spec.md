@@ -1,8 +1,12 @@
-## MODIFIED Requirements
+# shopping-list-package-display Specification
 
+## Purpose
+
+Erweitert Einkaufslisten-Items, um neben der Gramm-Menge auch sinnvolle Packungsgrößen anzuzeigen (z.B. "750g · 6×125g"), basierend auf den verfügbaren Portionen der Zutat.
+## Requirements
 ### Requirement: Packungsoptionen in Einkaufslisten-Zeile
 
-Das Backend SHALL für jeden `ShoppingListItem` mit einem verknüpften `Ingredient` die kleinste sinnvolle Packungsgröße berechnen und in `display_quantity` anhängen. Die Packungsgröße wird anhand der Portion mit dem kleinsten `weight_g > 0` ermittelt, die nicht die Gramm-Basiseinheit ist (kein `measuring_unit.unit="g"` mit `quantity <= 1`).
+Das Backend SHALL für jeden `ShoppingListItem` mit einem verknüpften `Ingredient` die kleinste sinnvolle Packungsgröße berechnen und in `display_quantity` anhängen. Die Packungsgröße wird anhand der Portion mit dem kleinsten `weight_g > 0` ermittelt, die nicht die Gramm-Basiseinheit ist (kein `measuring_unit.unit="g"` mit `quantity <= 1`). Besitzt diese Portion einen aussagekräftigen Namen (ungleich generischer Gewichtsbezeichnung, z.B. „Scheibe", „Packung", „Stück"), SHALL dieser Name statt einer reinen Gewichtsangabe verwendet werden.
 
 #### Scenario: Ein Ingredient mit mehreren Portionen — kleinste Packung verwendet
 
@@ -13,6 +17,11 @@ Das Backend SHALL für jeden `ShoppingListItem` mit einem verknüpften `Ingredie
 
 - **WHEN** ein `ShoppingListItem` hat `quantity_g=750`, `ingredient` hat Portionen `"Packung" (weight_g=250)` und `"g"`
 - **THEN** MUST `display_quantity` den String `"750g · 3×250g"` enthalten
+
+#### Scenario: Benannte Portion wird bevorzugt dargestellt
+
+- **WHEN** ein `ShoppingListItem` hat `quantity_g=170`, `ingredient` hat eine Portion `"Scheibe"` mit `weight_g=50`
+- **THEN** MUST `display_quantity` den String `"170g · ≈ 3,4 Scheiben"` enthalten (benannte Portion statt generischer „N×50g"-Zählung)
 
 #### Scenario: Kein geeignete Portion vorhanden
 
@@ -33,8 +42,6 @@ Das Backend SHALL für jeden `ShoppingListItem` mit einem verknüpften `Ingredie
 
 - **WHEN** `ShoppingListItem.quantity_g` enthält bereits den skalierten Wert inkl. `reserve_factor`
 - **THEN** MUST die Packungsberechnung direkt auf diesem Wert arbeiten, ohne weiteren Aufschlag
-
----
 
 ### Requirement: Packungsanzeige nur bei vorhandenen Daten
 
@@ -60,3 +67,4 @@ Packungsoptionen in der Einkaufsliste sind rein informativ. Das System SHALL kei
 
 - **WHEN** ein Nutzer die Einkaufsliste ansieht und die Packungsoptionen liest
 - **THEN** MUST kein Schreibvorgang auf `ShoppingListItem` stattfinden
+

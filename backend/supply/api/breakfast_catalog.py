@@ -52,7 +52,7 @@ class PortionOut(Schema):
     quantity: float
     weight_g: float | None = None
     is_default: bool = False
-    priority: int = 0
+    priority: int = 0  # Alias for rank (lower = primary)
 
 
 class BaseIngredientOut(Schema):
@@ -70,6 +70,18 @@ class BaseIngredientOut(Schema):
 
 class ToppingIngredientOut(Schema):
     """Topping/spread ingredient for breakfast wizard."""
+
+    id: int
+    name: str
+    slug: str
+    is_standalone_food: bool = True
+    energy_kcal: float | None = None
+    price_per_kg: float | None = None
+    portions: list[PortionOut] = []
+
+
+class FatIngredientOut(Schema):
+    """Fat/spread ingredient for the Streichfett wizard step."""
 
     id: int
     name: str
@@ -115,6 +127,8 @@ class BreakfastCatalogOut(Schema):
 
     base_ingredients: list[BaseIngredientOut] = []
     topping_ingredients: list[ToppingIngredientOut] = []
+    fat_ingredients: list[FatIngredientOut] = []
+    extra_ingredients: list[ToppingIngredientOut] = []  # Extras (Marmelade, Honig, etc.)
     drink_ingredients: list[DrinkIngredientOut] = []
     drink_recipes: list[DrinkRecipeOut] = []
     warm_meal_recipes: list[WarmMealRecipeOut] = []
@@ -140,8 +154,10 @@ def _ingredient_to_dict(ing: Ingredient) -> dict:
             "quantity": float(p.quantity) if p.quantity is not None else None,
             "weight_g": float(p.weight_g) if p.weight_g is not None else None,
             "is_default": p.rank == 1,
+            "priority": p.rank,  # Map rank to priority for frontend
         }
-        for p in ing.portions.all()
+        # Sort by rank ascending (lower rank = primary portion)
+        for p in sorted(ing.portions.all(), key=lambda x: x.rank)
     ]
     return {
         "id": ing.id,
@@ -161,36 +177,57 @@ def _ingredient_to_dict(ing: Ingredient) -> dict:
 
 
 @breakfast_catalog_router.get("/breakfast-catalog/", response=BreakfastCatalogOut)
-def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]:
+def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | None = None) -> dict[str, Any]:
+    """Get breakfast catalog with permission-aware filtering.
+    
+    Query parameters:
+    - tag_ids: Comma-separated list of tag IDs for filtering
+    - group_id: Optional group ID to filter by (for group context)
+    
+    Returns ingredients and recipes filtered by user permissions:
+    - Unauthenticated: only system items (owner=null, status=approved)
+    - Authenticated: system items + own items + items shared with user's groups
+    """
     from supply.models import MeasuringUnit
+    from profiles.models import Group
+    from django.db.models import Q
+
+    def _get_visible_ingredients(tag_filters: Q | None = None) -> list[dict]:
+        """Get ingredients visible to user."""
+        base_qs = Ingredient.objects.select_related("owner").prefetch_related("portions")
+        
+        if tag_filters:
+            base_qs = base_qs.filter(tag_filters)
+        
+        base_qs = base_qs.filter(is_standalone_food=True).order_by("name")
+        
+        # Permission filtering
+        if not request.user.is_authenticated:
+            # Unauthenticated: only system items
+            base_qs = base_qs.filter(owner__isnull=True, status="approved")
+        else:
+            # Authenticated: system + own + shared items
+            user_groups = Group.objects.filter(members=request.user)
+            system_q = Q(owner__isnull=True, status="approved")
+            own_q = Q(owner=request.user)
+            shared_q = Q(visibility="shared", shared_groups__in=user_groups)
+            base_qs = base_qs.filter(system_q | own_q | shared_q).distinct()
+        
+        result = []
+        for ing in base_qs.prefetch_related("portions"):
+            ing_dict = _ingredient_to_dict(ing)
+            result.append(ing_dict)
+        return result
 
     base_tag = Tag.objects.filter(slug="breakfast-base").first()
     topping_tag = Tag.objects.filter(slug="breakfast-topping").first()
+    fat_tag = Tag.objects.filter(slug="breakfast-fat").first()
+    extra_tag = Tag.objects.filter(slug="breakfast-extra").first()
 
-    base_ingredients = []
-    topping_ingredients = []
-
-    if base_tag:
-        bases = (
-            Ingredient.objects.filter(tags=base_tag, is_standalone_food=True)
-            .order_by("name")
-            .prefetch_related("portions")
-        )
-
-        for ing in bases:
-            ing_dict = _ingredient_to_dict(ing)
-            base_ingredients.append(ing_dict)
-
-    if topping_tag:
-        toppings = (
-            Ingredient.objects.filter(tags=topping_tag, is_standalone_food=True)
-            .order_by("name")
-            .prefetch_related("portions")
-        )
-
-        for ing in toppings:
-            ing_dict = _ingredient_to_dict(ing)
-            topping_ingredients.append(ing_dict)
+    base_ingredients = _get_visible_ingredients(Q(tags=base_tag)) if base_tag else []
+    topping_ingredients = _get_visible_ingredients(Q(tags=topping_tag)) if topping_tag else []
+    fat_ingredients = _get_visible_ingredients(Q(tags=fat_tag)) if fat_tag else []
+    extra_ingredients = _get_visible_ingredients(Q(tags=extra_tag)) if extra_tag else []
 
     drink_tag = Tag.objects.filter(slug="breakfast-drink").first()
     drink_recipes = []
@@ -204,7 +241,7 @@ def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]
             except (ValueError, TypeError):
                 pass
 
-        # Drink recipes (Kaffee, Kakao, Tee)
+        # Drink recipes (Kaffee, Kakao, Tee) - use existing permission logic
         drinks = Recipe.objects.filter(tags=drink_tag, recipe_type="drink", status="approved")
         # Filter by breakfast day tags if provided
         if parsed_tag_ids:
@@ -222,14 +259,7 @@ def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]
             for d in drinks
         ]
         # Drink ingredients (Milch, Säfte, Hafermilch)
-        drink_ings = (
-            Ingredient.objects.filter(tags=drink_tag, is_standalone_food=True)
-            .order_by("name")
-            .prefetch_related("portions")
-        )
-        for ing in drink_ings:
-            ing_dict = _ingredient_to_dict(ing)
-            drink_ingredients.append(ing_dict)
+        drink_ingredients = _get_visible_ingredients(Q(tags=drink_tag))
 
     warm_tag = Tag.objects.filter(slug="breakfast-warm-meal").first()
     warm_meal_recipes = []
@@ -257,6 +287,8 @@ def get_breakfast_catalog(request, tag_ids: str | None = None) -> dict[str, Any]
     return {
         "base_ingredients": base_ingredients,
         "topping_ingredients": topping_ingredients,
+        "fat_ingredients": fat_ingredients,
+        "extra_ingredients": extra_ingredients,
         "drink_ingredients": drink_ingredients,
         "drink_recipes": drink_recipes,
         "warm_meal_recipes": warm_meal_recipes,

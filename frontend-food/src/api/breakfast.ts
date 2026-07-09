@@ -337,3 +337,95 @@ export function useCalculateIngredientKcal(mealPlanId: number) {
       calculateIngredientKcal(mealPlanId, items),
   });
 }
+
+// ============================================================================
+// Create Ingredient (Task 18.1)
+// ============================================================================
+
+interface CreateIngredientPayload {
+  name: string;
+  description?: string;
+  visibility?: 'private' | 'shared';
+  shared_group_ids?: number[];
+  tag_ids?: number[];
+}
+
+async function createIngredient(
+  payload: CreateIngredientPayload,
+): Promise<any> {
+  const SUPPLY_BASE_URL = `${API_BASE_URL}/api/supplies`;
+  const res = await fetch(`${SUPPLY_BASE_URL}/ingredients/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Failed to create ingredient: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export function useCreateIngredient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createIngredient,
+    onSuccess: () => {
+      // Refresh breakfast catalog after creating ingredient
+      queryClient.invalidateQueries({ queryKey: ['breakfast-catalog'] });
+    },
+  });
+}
+
+// ============================================================================
+// Create Recipe (Task 18.2)
+// ============================================================================
+
+interface CreateRecipePayload {
+  title: string;
+  description?: string;
+  summary?: string;
+  recipe_type?: string;
+  portions?: number;
+  visibility?: 'private' | 'shared' | 'group' | 'public';
+  shared_group_ids?: number[];
+  tag_ids?: number[];
+  recipe_items?: any[];
+  website?: string;
+  form_loaded_at?: number;
+}
+
+async function createRecipe(
+  payload: CreateRecipePayload,
+): Promise<any> {
+  const RECIPES_BASE_URL = `${API_BASE_URL}/api/recipes`;
+  const res = await fetch(`${RECIPES_BASE_URL}/`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCsrfToken(),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Failed to create recipe: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
+export function useCreateRecipe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createRecipe,
+    onSuccess: () => {
+      // Refresh breakfast catalog after creating recipe
+      queryClient.invalidateQueries({ queryKey: ['breakfast-catalog'] });
+    },
+  });
+}

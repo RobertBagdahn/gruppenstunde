@@ -9,6 +9,7 @@ import {
   computeGroupKcal,
   toppingItemGrams,
 } from '@/lib/breakfastCalc';
+import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import ShareSlider from './ShareSlider';
 import type { ToppingSelection, ToppingIntensity } from '@/schemas/breakfast';
 
@@ -59,7 +60,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
     initToppings(items);
   }, [catalog, state.toppings.length, initToppings]);
 
-  const { toppingKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, 0);
+  const { toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, 0);
   const totalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
   const activeToppings = state.toppings.filter((t) => t.sharePercent > 0);
 
@@ -107,14 +108,24 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-base">Sortenverteilung</h3>
-            <span className="text-xs text-muted-foreground">
-              {Math.round(toppingKcal)} kcal/Person
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => wiz.openCreateModal('ingredient', 'breakfast-topping')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+              >
+                + Neues Belag erstellen
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {Math.round(toppingKcal)} kcal/Person
+              </span>
+            </div>
           </div>
           <div className="space-y-4">
             {state.toppings.map((t, i) => {
               const grams = toppingItemGrams(t.sharePercent, totalShare, toppingKcal, t.energyKcal100g);
               const kcal = t.energyKcal100g ? (t.energyKcal100g / 100) * grams : null;
+              const gramsWithHint = formatGramsWithPortionHint(grams, t.portions);
               return (
                 <ShareSlider
                   key={t.ingredientId}
@@ -124,7 +135,7 @@ export default function StepBelag({ wiz, dayPartFactor }: StepBelagProps) {
                   onChange={(v) => setToppingShare(i, v)}
                   onToggleLock={() => setToppingLocked(i, !t.locked)}
                   detail={t.sharePercent > 0
-                    ? `${Math.round(grams)}g · ${kcal ? `${Math.round(kcal)} kcal` : ''}`
+                    ? `${gramsWithHint} · ${kcal ? `${Math.round(kcal)} kcal` : ''}`
                     : 'Nicht gewählt'
                   }
                 />

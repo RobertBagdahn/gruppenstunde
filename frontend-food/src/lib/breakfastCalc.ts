@@ -7,9 +7,12 @@
  * Energy norm: NORM_PERSON_DAILY_KCAL (2335 kcal, kept in sync with backend constant)
  */
 
-import type { BasisSelection, ToppingSelection, WizardState, ToppingIntensity } from '@/schemas/breakfast';
+import type { BasisSelection, ToppingSelection, FatSelection, WizardState, ToppingIntensity } from '@/schemas/breakfast';
 
 export const NORM_PERSON_DAILY_KCAL = 2335;
+
+/** Fixed grams per person for Streichfett (spread fat). */
+export const FAT_GRAMS_PER_PERSON = 8;
 
 // ============================================================================
 // Kcal distribution between bread and toppings
@@ -24,24 +27,53 @@ export function distributableKcal(dayPartFactor: number, fixKcal: number): numbe
 }
 
 /**
- * Split distributable kcal between bread and topping groups
- * proportional to their sharePercent sums.
+ * Compute Streichfett kcal for the given fat selections.
+ * "Kein Fett" (ingredientId=0) contributes 0 kcal.
+ */
+export function computeFatKcal(fats: FatSelection[]): number {
+  let kcal = 0;
+  for (const f of fats) {
+    if (f.ingredientId === 0) continue;
+    const grams = (f.sharePercent / 100) * FAT_GRAMS_PER_PERSON;
+    kcal += grams * ((f.energyKcal100g ?? 0) / 100);
+  }
+  return kcal;
+}
+
+/**
+ * Split distributable kcal between bread, fat, and topping groups.
+ * Bread Kcal is fixed from gramsPerPerson × weighted kcal density.
+ * Fat Kcal is fixed from fatSelections × FAT_GRAMS_PER_PERSON.
+ * Topping Kcal gets the remainder.
  */
 export function computeGroupKcal(
   basis: BasisSelection[],
-  toppings: ToppingSelection[],
+  _toppings: ToppingSelection[],
+  fats: FatSelection[],
+  gramsPerPerson: number,
   dayPartFactor: number,
   fixKcal: number,
-): { breadKcal: number; toppingKcal: number } {
+): { breadKcal: number; fatKcal: number; toppingKcal: number } {
   const total = distributableKcal(dayPartFactor, fixKcal);
-  const brotAnteil = basis.reduce((s, b) => s + b.sharePercent, 0);
-  const belagAnteil = toppings.reduce((s, t) => s + t.sharePercent, 0);
-  const sum = brotAnteil + belagAnteil;
-  if (sum <= 0) return { breadKcal: 0, toppingKcal: 0 };
-  return {
-    breadKcal: total * (brotAnteil / sum),
-    toppingKcal: total * (belagAnteil / sum),
-  };
+
+  // Bread Kcal: fixed from gramsPerPerson × weighted kcal density
+  const totalBasisShare = basis.reduce((s, b) => s + b.sharePercent, 0);
+  let breadKcal = 0;
+  if (totalBasisShare > 0) {
+    for (const b of basis) {
+      if (b.sharePercent <= 0 || !b.energyKcal100g) continue;
+      const grams = gramsPerPerson * (b.sharePercent / totalBasisShare);
+      breadKcal += grams * (b.energyKcal100g / 100);
+    }
+  }
+
+  // Fat Kcal
+  const fatKcal = computeFatKcal(fats);
+
+  // Topping Kcal = remaining
+  const toppingKcal = Math.max(0, total - breadKcal - fatKcal);
+
+  return { breadKcal, fatKcal, toppingKcal };
 }
 
 // ============================================================================
@@ -116,14 +148,12 @@ export interface RecipeEnergyData {
  */
 export function drinkKcalFromRecipes(
   state: WizardState,
-  recipeDataMap: Map<number, RecipeEnergyData>,
+  _recipeDataMap: Map<number, RecipeEnergyData>,
 ): number {
   let kcal = 0;
-  for (const id of state.drinkRecipeIds) {
-    const data = recipeDataMap.get(id);
-    if (!data?.cached_energy_kcal) continue;
-    const factor = state.drinkFactors[String(id)] ?? 1.0;
-    kcal += data.cached_energy_kcal * factor;
+  for (const drink of state.drinkRecipes.filter((d) => d.sharePercent > 0 && d.recipeId > 0)) {
+    const energyKcal = drink.energyKcal ?? 0;
+    kcal += energyKcal * (drink.sharePercent / 100);
   }
   return kcal;
 }
@@ -178,15 +208,17 @@ export function extrasKcalPerPerson(
 // Total kcal per person
 // ============================================================================
 
-/** Total kcal per person from basis + toppings + extras. */
+/** Total kcal per person from basis + fats + toppings + extras. */
 export function totalKcalPerPerson(
   basis: BasisSelection[],
   toppings: ToppingSelection[],
+  fats: FatSelection[],
+  gramsPerPerson: number,
   dayPartFactor: number,
   fixKcal: number,
 ): number {
-  const { breadKcal, toppingKcal } = computeGroupKcal(basis, toppings, dayPartFactor, fixKcal);
-  return breadKcal + toppingKcal + fixKcal;
+  const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal(basis, toppings, fats, gramsPerPerson, dayPartFactor, fixKcal);
+  return breadKcal + fatKcal + toppingKcal + fixKcal;
 }
 
 /** Energy target per person for a given day_part_factor. */
@@ -199,22 +231,28 @@ export function energyTargetKcal(dayPartFactor: number): number {
 // ============================================================================
 
 /**
- * Compute a scale factor that, when applied to bread + topping quantities,
+ * Compute a scale factor that, when applied to topping quantities,
  * brings total kcal to the target.
+ * Bread Kcal and Fat Kcal are fixed — only toppings get scaled.
  * Returns 1.0 if already at target or scale would be meaningless.
  */
 export function normalizeScale(
   basis: BasisSelection[],
   toppings: ToppingSelection[],
+  fats: FatSelection[],
+  gramsPerPerson: number,
   dayPartFactor: number,
   fixKcal: number,
 ): number {
-  const { breadKcal, toppingKcal } = computeGroupKcal(basis, toppings, dayPartFactor, fixKcal);
-  const currentTotal = breadKcal + toppingKcal;
+  const { breadKcal, fatKcal, toppingKcal } = computeGroupKcal(basis, toppings, fats, gramsPerPerson, dayPartFactor, fixKcal);
+  const currentTotal = breadKcal + fatKcal + toppingKcal;
   if (currentTotal <= 0) return 1.0;
   const target = NORM_PERSON_DAILY_KCAL * dayPartFactor - fixKcal;
   if (target <= 0) return 1.0;
-  return Math.max(0.5, Math.min(2.0, target / currentTotal));
+  // Scale only the topping portion to hit target
+  const targetTopping = Math.max(0, target - breadKcal - fatKcal);
+  if (toppingKcal <= 0) return targetTopping > 0 ? 1.0 : 1.0;
+  return Math.max(0.5, Math.min(2.0, targetTopping / toppingKcal));
 }
 
 // ============================================================================

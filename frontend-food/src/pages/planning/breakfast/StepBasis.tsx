@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useBreakfastCatalog } from '@/api/breakfast';
 import { computeGroupKcal, breadItemGrams } from '@/lib/breakfastCalc';
+import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import ShareSlider from './ShareSlider';
 import type { BasisSelection } from '@/schemas/breakfast';
 
@@ -31,7 +32,7 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
     initBasis(initial);
   }, [catalog, state.basis.length, initBasis]);
 
-  const { breadKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, 0);
+  const { breadKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, 0);
   const totalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
   const totalGrams = state.basis.reduce((s, b) =>
     s + breadItemGrams(b.sharePercent, totalShare, breadKcal, b.energyKcal100g), 0);
@@ -43,14 +44,28 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
         <div className="bg-card border border-border rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-semibold text-base">Sortenverteilung</h3>
-            <span className="text-xs text-muted-foreground">
-              {Math.round(totalGrams)}g · {Math.round(breadKcal)} kcal/Person
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => wiz.openCreateModal('ingredient', 'breakfast-base')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+              >
+                +  Neue Basis erstellen
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {Math.round(totalGrams)}g · {Math.round(breadKcal)} kcal/Person
+              </span>
+            </div>
           </div>
           <div className="space-y-4">
             {state.basis.map((b, i) => {
               const grams = breadItemGrams(b.sharePercent, totalShare, breadKcal, b.energyKcal100g);
               const kcal = b.energyKcal100g ? (b.energyKcal100g / 100) * grams : null;
+              
+              // Get portions from catalog for portion hint
+              const catalogIng = catalog?.base_ingredients.find((ing) => ing.id === b.ingredientId);
+              const gramsWithHint = formatGramsWithPortionHint(grams, catalogIng?.portions);
+              
               return (
                 <ShareSlider
                   key={b.ingredientId}
@@ -60,7 +75,7 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
                   onChange={(v) => setBasisShare(i, v)}
                   onToggleLock={() => setBasisLocked(i, !b.locked)}
                   detail={[
-                    `${Math.round(grams)}g`,
+                    gramsWithHint,
                     kcal ? `${Math.round(kcal)} kcal` : null,
                   ].filter(Boolean).join(' · ')}
                 />

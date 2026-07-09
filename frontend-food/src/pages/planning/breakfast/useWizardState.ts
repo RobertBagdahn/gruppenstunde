@@ -8,15 +8,19 @@ import {
   type WizardState,
   type BasisSelection,
   type ToppingSelection,
+  type FatSelection,
+  type DrinkRecipeSelection,
+  type DrinkIngredientSelection,
   type ToppingIntensity,
 } from '@/schemas/breakfast';
 import { rebalanceShares } from '@/lib/breakfastCalc';
 
-export type WizardStep = 'basis' | 'belag' | 'extras' | 'getraenke' | 'cockpit';
+export type WizardStep = 'basis' | 'fett' | 'belag' | 'extras' | 'getraenke' | 'cockpit';
 export type UseWizardStateReturn = ReturnType<typeof useWizardState>;
 
 export const WIZARD_STEPS: WizardStep[] = [
   'basis',
+  'fett',
   'belag',
   'extras',
   'getraenke',
@@ -25,11 +29,23 @@ export const WIZARD_STEPS: WizardStep[] = [
 
 export const STEP_LABELS: Record<WizardStep, string> = {
   basis: 'Basis',
+  fett: 'Streichfett',
   belag: 'Belag',
   extras: 'Extras',
   getraenke: 'Getränke',
   cockpit: 'Abschluss',
 };
+
+export type CreateModalType = 'ingredient' | 'recipe' | null;
+
+export interface CreateModalState {
+  isOpen: boolean;
+  type: CreateModalType;
+  breakfastTag?: string; // breakfast-base, breakfast-fat, breakfast-topping, breakfast-extra, etc.
+  recipeType?: string; // 'breakfast', 'drink', etc.
+  isSubmitting: boolean;
+  error: string | null;
+}
 
 export function useWizardState(initialState?: Partial<WizardState>) {
   const [state, setState] = useState<WizardState>({
@@ -37,6 +53,14 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     ...initialState,
   });
   const [step, setStep] = useState<WizardStep>('basis');
+
+  // ── Modal state for create ingredient/recipe ──────────────────────────────
+  const [createModal, setCreateModal] = useState<CreateModalState>({
+    isOpen: false,
+    type: null,
+    isSubmitting: false,
+    error: null,
+  });
 
   const currentStepIndex = WIZARD_STEPS.indexOf(step);
   const canGoNext = currentStepIndex < WIZARD_STEPS.length - 1;
@@ -94,6 +118,26 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     setState((s) => ({ ...s, toppings }));
   }, []);
 
+  // ── Fat actions ────────────────────────────────────────────────────────────
+
+  const setFatShare = useCallback((index: number, value: number) => {
+    setState((s) => ({
+      ...s,
+      fatSelections: rebalanceShares(s.fatSelections, index, value) as FatSelection[],
+    }));
+  }, []);
+
+  const setFatLocked = useCallback((index: number, locked: boolean) => {
+    setState((s) => ({
+      ...s,
+      fatSelections: s.fatSelections.map((f, i) => (i === index ? { ...f, locked } : f)),
+    }));
+  }, []);
+
+  const initFats = useCallback((fats: FatSelection[]) => {
+    setState((s) => ({ ...s, fatSelections: fats }));
+  }, []);
+
   // ── Extras actions ─────────────────────────────────────────────────────────
 
   const addWarmDish = useCallback((recipeId: number, name?: string) => {
@@ -148,36 +192,54 @@ export function useWizardState(initialState?: Partial<WizardState>) {
 
   // ── Drinks actions ─────────────────────────────────────────────────────────
 
-  const addDrinkRecipe = useCallback((recipeId: number, name?: string) => {
+  // ── Drink Recipes actions ─────────────────────────────────────────────────
+
+  const setDrinkRecipeShare = useCallback((index: number, value: number) => {
     setState((s) => ({
       ...s,
-      drinkRecipeIds: s.drinkRecipeIds.includes(recipeId)
-        ? s.drinkRecipeIds
-        : [...s.drinkRecipeIds, recipeId],
-      drinkFactors: { ...s.drinkFactors, [String(recipeId)]: s.drinkFactors[String(recipeId)] ?? 1.0 },
-      drinkRecipeNames: name
-        ? { ...s.drinkRecipeNames, [String(recipeId)]: name }
-        : s.drinkRecipeNames,
+      drinkRecipes: rebalanceShares(s.drinkRecipes, index, value) as DrinkRecipeSelection[],
     }));
   }, []);
 
-  const removeDrinkRecipe = useCallback((recipeId: number) => {
-    setState((s) => {
-      const { [String(recipeId)]: _f, ...restFactors } = s.drinkFactors;
-      const { [String(recipeId)]: _n, ...restNames } = s.drinkRecipeNames;
-      return {
-        ...s,
-        drinkRecipeIds: s.drinkRecipeIds.filter((id) => id !== recipeId),
-        drinkFactors: restFactors,
-        drinkRecipeNames: restNames,
-      };
-    });
-  }, []);
-
-  const setDrinkFactor = useCallback((recipeId: number, factor: number) => {
+  const setDrinkRecipeLocked = useCallback((index: number, locked: boolean) => {
     setState((s) => ({
       ...s,
-      drinkFactors: { ...s.drinkFactors, [String(recipeId)]: factor },
+      drinkRecipes: s.drinkRecipes.map((d, i) => (i === index ? { ...d, locked } : d)),
+    }));
+  }, []);
+
+  const initDrinkRecipes = useCallback((drinks: DrinkRecipeSelection[]) => {
+    setState((s) => ({ ...s, drinkRecipes: drinks }));
+  }, []);
+
+  // ── Drink Ingredients actions (Milch & Säfte) ──────────────────────────────
+
+  const setDrinkIngredientShare = useCallback((index: number, value: number) => {
+    setState((s) => ({
+      ...s,
+      drinkIngredients: rebalanceShares(s.drinkIngredients, index, value).map((d) => ({
+        ...d,
+        // Calculate mlPerPerson: 200ml per person for real ingredients, null for virtual option
+        mlPerPerson: d.sharePercent > 0 && d.ingredientId > 0 ? 200 : null,
+      })) as DrinkIngredientSelection[],
+    }));
+  }, []);
+
+  const setDrinkIngredientLocked = useCallback((index: number, locked: boolean) => {
+    setState((s) => ({
+      ...s,
+      drinkIngredients: s.drinkIngredients.map((d, i) => (i === index ? { ...d, locked } : d)),
+    }));
+  }, []);
+
+  const initDrinkIngredients = useCallback((ingredients: DrinkIngredientSelection[]) => {
+    setState((s) => ({
+      ...s,
+      drinkIngredients: ingredients.map((d) => ({
+        ...d,
+        // Calculate mlPerPerson if not set: 200ml per person for real ingredients
+        mlPerPerson: d.mlPerPerson ?? (d.sharePercent > 0 && d.ingredientId > 0 ? 200 : null),
+      })),
     }));
   }, []);
 
@@ -194,6 +256,43 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     setState(next);
   }, []);
 
+  // ── Modal actions (Task 17.1-17.4) ────────────────────────────────────────
+
+  const openCreateModal = useCallback(
+    (
+      type: CreateModalType,
+      breakfastTag?: string,
+      recipeType?: string,
+    ) => {
+      setCreateModal({
+        isOpen: true,
+        type,
+        breakfastTag,
+        recipeType,
+        isSubmitting: false,
+        error: null,
+      });
+    },
+    [],
+  );
+
+  const closeCreateModal = useCallback(() => {
+    setCreateModal({
+      isOpen: false,
+      type: null,
+      isSubmitting: false,
+      error: null,
+    });
+  }, []);
+
+  const setCreateModalSubmitting = useCallback((submitting: boolean) => {
+    setCreateModal((m) => ({ ...m, isSubmitting: submitting }));
+  }, []);
+
+  const setCreateModalError = useCallback((error: string | null) => {
+    setCreateModal((m) => ({ ...m, error }));
+  }, []);
+
   return {
     state,
     step,
@@ -203,6 +302,12 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     canGoPrev,
     goNext,
     goPrev,
+    // modal state
+    createModal,
+    openCreateModal,
+    closeCreateModal,
+    setCreateModalSubmitting,
+    setCreateModalError,
     // actions
     setBasisShare,
     setBasisLocked,
@@ -211,14 +316,20 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     setToppingLocked,
     setGlobalIntensity,
     initToppings,
+    setFatShare,
+    setFatLocked,
+    initFats,
     addWarmDish,
     removeWarmDish,
     setWarmDishFactor,
     setExtraIngredient,
     removeExtraIngredient,
-    addDrinkRecipe,
-    removeDrinkRecipe,
-    setDrinkFactor,
+    setDrinkRecipeShare,
+    setDrinkRecipeLocked,
+    initDrinkRecipes,
+    setDrinkIngredientShare,
+    setDrinkIngredientLocked,
+    initDrinkIngredients,
     setGramsPerPerson,
     replaceState,
   };

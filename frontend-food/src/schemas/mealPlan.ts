@@ -3,6 +3,7 @@
  * MUST stay in sync with backend/planner/schemas.py (MealPlan section)
  */
 import { z } from 'zod';
+import { UtensilsCrossed, Moon, Cookie } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
 
 // Lightweight nutritional tag schema for search results (backend only returns id+name)
@@ -510,11 +511,27 @@ export const MEAL_TYPE_ICONS: Record<string, string> = {
   snack: 'cookie',
 };
 
-export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border: string }> = {
-  breakfast: { text: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-300' },
-  lunch: { text: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-300' },
-  dinner: { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-300' },
-  snack: { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-300' },
+/**
+ * Lucide React icon components for meal types.
+ * Maps meal type keys (breakfast, lunch, dinner, snack) to Lucide icon components.
+ * Used in UI components to render consistent, modern meal category indicators.
+ * - breakfast: UtensilsCrossed (utensil icon)
+ * - lunch: UtensilsCrossed (utensil icon)
+ * - dinner: Moon (crescent moon for evening)
+ * - snack: Cookie (cookie icon)
+ */
+export const MEAL_TYPE_ICONS_LUCIDE: Record<string, typeof UtensilsCrossed> = {
+  breakfast: UtensilsCrossed,
+  lunch: UtensilsCrossed,
+  dinner: Moon,
+  snack: Cookie,
+};
+
+export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border: string; dot: string }> = {
+  breakfast: { text: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-300', dot: 'bg-orange-600' },
+  lunch: { text: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-300', dot: 'bg-cyan-600' },
+  dinner: { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-300', dot: 'bg-indigo-600' },
+  snack: { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-300', dot: 'bg-amber-600' },
 };
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';
@@ -973,6 +990,37 @@ export function getDaysCount(startDatetime?: string | null, endDatetime?: string
   const diff = end.getTime() - start.getTime();
   return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
 }
+
+// ==========================================================================
+// Intelligent Recipe Suggestions
+// ==========================================================================
+
+export const IntelligentSuggestionSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  image_url: z.string().nullable(),
+  recipe_type: z.string(),
+  recipe_badge: z.string().default('community'),
+  reason: z.string().default(''),
+  reason_text: z.string().default(''),
+  usage_count: z.number().default(0),
+  price_per_serving: z.number().nullable(),
+});
+export type IntelligentSuggestion = z.infer<typeof IntelligentSuggestionSchema>;
+
+export const IntelligentSuggestionsResponseSchema = z.object({
+  suggestions: z.object({
+    top_picks: z.array(IntelligentSuggestionSchema),
+    variety: z.array(IntelligentSuggestionSchema),
+    discovery: z.array(IntelligentSuggestionSchema),
+  }),
+  total: z.number().default(0),
+  ai_enhanced: z.boolean().default(false),
+  meal_type: z.string().default(''),
+  day_number: z.number().default(1),
+});
+export type IntelligentSuggestionsResponse = z.infer<typeof IntelligentSuggestionsResponseSchema>;
 
 // ==========================================================================
 // Backward compatibility re-exports

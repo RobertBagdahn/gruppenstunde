@@ -25,6 +25,7 @@ from planner.schemas import (
     CalculateIngredientKcalOut,
     CookingScheduleOut,
     CopyItemsFromPlanIn,
+    IntelligentSuggestionsResponse,
     MealCreateIn,
     MealDayBulkCreateIn,
     MealItemBatchIn,
@@ -1898,6 +1899,8 @@ def search_recipes(
                 "status",
             )[:limit]
         )
+        for ing in ing_list:
+            ing["price_per_kg"] = float(ing["price_per_kg"]) if ing["price_per_kg"] is not None else None
 
         if ing_list:
             ing_ids = [i["id"] for i in ing_list]
@@ -2100,6 +2103,8 @@ def search_recipes(
             "status",
         )[:limit]
     )
+    for ing in ing_list:
+        ing["price_per_kg"] = float(ing["price_per_kg"]) if ing["price_per_kg"] is not None else None
 
     # Attach portions + nutritional tags to each ingredient
     if ing_list:
@@ -2447,3 +2452,53 @@ def calculate_ingredient_kcal(request, meal_plan_id: int, payload: CalculateIngr
         result_items.append({"ingredient_id": ingredient_id, "energy_kcal": energy_kcal})
 
     return {"items": result_items}
+
+
+# ==========================================================================
+# Intelligent Recipe Suggestions
+# ==========================================================================
+
+
+@meal_plan_router.get(
+    "/{meal_plan_id}/meal/{meal_id}/suggestions/",
+    response=IntelligentSuggestionsResponse,
+)
+def intelligent_suggestions(
+    request,
+    meal_plan_id: int,
+    meal_id: int,
+    ai_enhance: bool = False,
+):
+    """Get 9 context-aware recipe suggestions for a specific meal slot.
+
+    Uses algorithmic scoring (season, popularity, variety, recency, budget)
+    with optional Gemini reranking (ai_enhance=true).
+    """
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+
+    meal = get_object_or_404(Meal, id=meal_id, meal_plan=meal_plan)
+
+    from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+    service = IntelligentSuggestionsService(
+        meal_plan=meal_plan,
+        meal=meal,
+        user=request.user,
+    )
+    suggestions = service.get_suggestions(ai_enhance=ai_enhance)
+
+    total = sum(len(v) for v in suggestions.values())
+
+    day_number = 1
+    if meal_plan.start_datetime and meal.start_datetime:
+        day_number = (meal.start_datetime.date() - meal_plan.start_datetime.date()).days + 1
+
+    return IntelligentSuggestionsResponse(
+        suggestions=suggestions,
+        total=total,
+        ai_enhanced=ai_enhance,
+        meal_type=meal.meal_type,
+        day_number=max(day_number, 1),
+    )

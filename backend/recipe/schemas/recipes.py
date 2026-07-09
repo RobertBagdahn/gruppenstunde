@@ -48,6 +48,7 @@ class RecipeListOut(ContentListOut):
     owner_name: str | None = None
     forked_from_title: str | None = None
     visibility: str | None = None
+    shared_group_ids: list[int] = []
     source_url: str = ""
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
 
@@ -74,6 +75,11 @@ class RecipeListOut(ContentListOut):
         if obj.visibility == "public" and obj.status == "approved":
             return "community"
         return "personal"
+
+    @staticmethod
+    def resolve_shared_group_ids(obj) -> list:
+        """Return list of shared group IDs."""
+        return list(obj.shared_groups.values_list("id", flat=True))
 
 
 # --- Similar Recipes ---
@@ -114,6 +120,8 @@ class RecipeDetailOut(ContentDetailOut):
     forked_from_title: str | None = None
     forked_from_slug: str | None = None
     visibility: str | None = None
+    shared_group_ids: list[int] = []
+    shared_groups: list[dict] = []  # { id, name }
     source_url: str = ""
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
     is_owner: bool = False
@@ -151,6 +159,16 @@ class RecipeDetailOut(ContentDetailOut):
         if obj.visibility == "public" and obj.status == "approved":
             return "community"
         return "personal"
+
+    @staticmethod
+    def resolve_shared_groups(obj) -> list:
+        """Return shared groups with id and name."""
+        return [{"id": g.id, "name": g.name} for g in obj.shared_groups.all()]
+
+    @staticmethod
+    def resolve_shared_group_ids(obj) -> list:
+        """Return list of shared group IDs for convenience."""
+        return list(obj.shared_groups.values_list("id", flat=True))
 
     @staticmethod
     def resolve_authors(obj) -> list:
@@ -239,6 +257,8 @@ class RecipeCreateIn(ContentCreateIn):
     portions: int = 1
     nutritional_tag_ids: list[int] = []
     recipe_items: list[RecipeItemCreateIn] = []
+    # Ownership & Sharing (for breakfast wizard)
+    shared_group_ids: list[int] = []
     # Bot protection fields
     website: str = ""  # honeypot – must be empty
     form_loaded_at: float = 0  # JS timestamp – must be > 5s ago
@@ -255,6 +275,8 @@ class RecipeUpdateIn(ContentUpdateIn):
     portions: int | None = None
     nutritional_tag_ids: list[int] | None = None
     recipe_items: list[RecipeItemCreateIn] | None = None
+    # Ownership & Sharing
+    shared_group_ids: list[int] | None = None
     # Staff-only fields
     status: str | None = None
     source_url: str | None = None

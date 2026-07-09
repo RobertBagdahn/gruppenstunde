@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
-import { Loader2, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle } from 'lucide-react';
-import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '@/schemas/mealPlan';
+import { Loader2, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle, Users } from 'lucide-react';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, MEAL_TYPE_ICONS_LUCIDE, MEAL_TYPE_COLORS } from '@/schemas/mealPlan';
 import type { CookingScheduleItem, CookingScheduleDay, CookingScheduleStep } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -22,14 +22,6 @@ function formatDate(dateStr: string): string {
   }
 }
 
-const MEAL_TYPE_DOT_COLORS: Record<string, string> = {
-  breakfast: 'bg-amber-400',
-  lunch: 'bg-emerald-400',
-  dinner: 'bg-indigo-400',
-  snack: 'bg-rose-400',
-  drink: 'bg-sky-400',
-};
-
 function AllergenChip({ name, isDangerous }: { name: string; isDangerous?: boolean }) {
   return (
     <span
@@ -37,7 +29,7 @@ function AllergenChip({ name, isDangerous }: { name: string; isDangerous?: boole
         isDangerous ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
       }`}
     >
-      {isDangerous && <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />}
+      {isDangerous && <AlertTriangle className="w-3 h-3 mr-0.5" />}
       {name}
     </span>
   );
@@ -52,7 +44,7 @@ function StepView({ steps }: { steps: CookingScheduleStep[] }) {
           <span className="whitespace-pre-line">{step.text.replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '')}</span>
           {step.timer && (
             <span className="inline-flex items-center gap-0.5 ml-1.5 text-xs font-medium text-primary">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3.5 h-3.5" />
               {step.timer} Min.
             </span>
           )}
@@ -138,19 +130,14 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
   );
 }
 
-function TimelineItem({ item, isLast }: { item: CookingScheduleItem; isLast: boolean }) {
+function TimelineItem({ item }: { item: CookingScheduleItem }) {
   const [expanded, setExpanded] = useState(false);
   const hasDetails = item.ingredients.length > 0 || item.steps_parsed.length > 0 || item.steps.trim().length > 0;
   const hasAllergens = item.nutritional_tags.length > 0;
-  const mealColor = MEAL_TYPE_DOT_COLORS[item.meal_type] ?? 'bg-gray-400';
 
   return (
-    <div className="relative pl-8 pb-4">
-      {!isLast && (
-        <div className="absolute left-[11px] top-5 bottom-0 w-0.5 bg-border" />
-      )}
-      <div className={`absolute left-[4px] top-1.5 w-[15px] h-[15px] rounded-full border-2 border-background ${mealColor}`} />
-
+    <div className="relative pb-4">
+      {/* Timeline item card with clean, minimal design - redundant dots removed per design modernization */}
       <div className={`rounded-xl border border-border bg-card shadow-soft overflow-hidden ${expanded ? '' : ''}`}>
         <button
           type="button"
@@ -224,9 +211,13 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
             {formatDate(day.date)}
           </h2>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="font-semibold">👥 {day.portions} Personen</span>
+            <span className="font-semibold flex items-center gap-1">
+              <Users className="w-3.5 h-3.5" /> {day.portions} Personen
+            </span>
             {day.day_start_time && day.day_end_time && (
-              <span>⏱ {day.day_start_time} – {day.day_end_time} ({day.day_duration_minutes} Min.)</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" /> {day.day_start_time} – {day.day_end_time} ({day.day_duration_minutes} Min.)
+              </span>
             )}
             {hasCost && (
               <span className="font-medium">{day.total_cost_eur.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
@@ -248,15 +239,18 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
           if (!items || items.length === 0) return null;
           return (
             <div key={mealType} className="mb-4">
-              <h3 className="flex items-center gap-2 text-sm font-display font-bold text-foreground mb-2 pl-8">
-                <span className={`w-2.5 h-2.5 rounded-full ${MEAL_TYPE_DOT_COLORS[mealType] ?? 'bg-gray-400'}`} />
+              <h3 className={`flex items-center gap-2 text-sm font-display font-bold mb-2 px-3 py-1.5 rounded-lg transition-colors group hover:bg-muted/30 ${MEAL_TYPE_COLORS[mealType]?.text ?? 'text-foreground'}`}>
+                {(() => {
+                  const IconComponent = MEAL_TYPE_ICONS_LUCIDE[mealType];
+                  if (!IconComponent) return null;
+                  return <IconComponent className="w-4 h-4 transition-transform group-hover:scale-105" aria-label={MEAL_TYPE_LABELS[mealType] ?? mealType} />;
+                })()}
                 {MEAL_TYPE_LABELS[mealType] ?? mealType}
               </h3>
               {items.map((item, idx) => (
                 <TimelineItem
                   key={`${item.recipe_slug}-${idx}`}
                   item={item}
-                  isLast={idx === items.length - 1 && (!groupedItems[MEAL_TYPE_ORDER[MEAL_TYPE_ORDER.indexOf(mealType) + 1]] || idx % 2 === 0)}
                 />
               ))}
             </div>

@@ -114,7 +114,7 @@ class Command(BaseCommand):
             ing_a = Ingredient.objects.get(id=pair['ing_a_id'])
             if ing_a.id not in embeddings:
                 text_a = build_ingredient_embedding_text(ing_a)
-                emb_a = create_embedding(text_a, output_dimensionality=384)
+                emb_a = create_embedding(text_a, output_dimensionality=768)
                 if emb_a:
                     embeddings[ing_a.id] = emb_a
             
@@ -122,7 +122,7 @@ class Command(BaseCommand):
             ing_b = Ingredient.objects.get(id=pair['ing_b_id'])
             if ing_b.id not in embeddings:
                 text_b = build_ingredient_embedding_text(ing_b)
-                emb_b = create_embedding(text_b, output_dimensionality=384)
+                emb_b = create_embedding(text_b, output_dimensionality=768)
                 if emb_b:
                     embeddings[ing_b.id] = emb_b
         

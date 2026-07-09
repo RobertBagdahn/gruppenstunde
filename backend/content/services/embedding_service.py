@@ -18,11 +18,12 @@ from pgvector.django import CosineDistance
 logger = logging.getLogger(__name__)
 
 EMBEDDING_MODEL = "gemini-embedding-001"
-# Output dimensionality for Vertex AI embeddings
-# Validated via embedding_dimension_experiment: 384-dim achieves ~100% top-10 overlap
-# while reducing size to 12.5% of original (3072 -> 384)
-EMBEDDING_OUTPUT_DIM = 384
-EMBEDDING_DIMENSIONS = 384  # VectorField dimensions for PostgreSQL pgvector
+# Output dimensionality for Vertex AI embeddings.
+# Must match the VectorField dimensions on both supply.Ingredient.embedding
+# and content.Content.embedding (used by Recipe/Blog/Game/Session) — both are
+# 768 dims.
+EMBEDDING_OUTPUT_DIM = 768
+EMBEDDING_DIMENSIONS = 768  # VectorField dimensions for PostgreSQL pgvector
 
 
 def _text_hash(text: str) -> str:

@@ -331,18 +331,20 @@ export default function MealPlanDetailPage() {
         <div className="flex items-center gap-2 self-start">
           <button
             onClick={() => setShowShare(!showShare)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+            aria-label="Essensplan teilen"
+            title="Essensplan teilen"
           >
-            <Share2 className="w-4 h-4 text-primary" />
-            Teilen
+            <Share2 className="w-5 h-5 text-primary" />
           </button>
           {plan.can_edit && (
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+              className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+              aria-label="Einstellungen"
+              title="Einstellungen"
             >
-              <Settings className="w-4 h-4 text-primary" />
-              Einstellungen
+              <Settings className="w-5 h-5 text-primary" />
             </button>
           )}
         </div>
@@ -386,7 +388,7 @@ export default function MealPlanDetailPage() {
                 }`
               }
             >
-              <IconComponent className="w-4 h-4" />
+              <IconComponent className="w-4 h-4" aria-label={tab.label} />
               {tab.label}
             </NavLink>
           );

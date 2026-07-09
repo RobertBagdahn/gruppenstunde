@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useRandomRecipeSuggestion, useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
+import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import {
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ICONS,
@@ -360,6 +361,10 @@ export function MealSlot({
                             </>
                           ) : isIng && !meal.is_synced ? (
                             // OLD format: raw unit, editable — show grams only
+                            // TODO (4.1): Enhance to show portion hints like breakfast wizard:
+                            // When ingredient portions are available, use:
+                            // formatGramsWithPortionHint(it.quantity_g, ingredientPortions)
+                            // Requires: fetch/cache ingredient portions from breakfast_catalog API or /ingredients/{slug} endpoint
                             <span className="text-xs text-muted-foreground">{Math.round(it.quantity_g ?? 0)}g</span>
                           ) : isIng && it.portion_display ? (
                              // portion_display from backend (read-only)
@@ -566,6 +571,8 @@ export function MealSlot({
         nutritionalTagNames={nutritionalTagNames}
         excludedRecipeIds={excludedRecipeIds}
         excludedIngredientIds={excludedIngredientIds}
+        planId={mealPlanId}
+        mealId={meal.id}
       />
 
       {/* Warning dialog for overwriting existing items */}

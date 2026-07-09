@@ -12,15 +12,18 @@ import { useRefMeals } from '@/api/refMeals';
 import { useBreakfastCatalog, useSaveBreakfastWizard, useSaveDirectMeal } from '@/api/breakfast';
 import { useWizardState, STEP_LABELS, WIZARD_STEPS } from './useWizardState';
 import StepBasis from './StepBasis';
+import StepStreichfett from './StepStreichfett';
 import StepBelag from './StepBelag';
 import StepExtras from './StepExtras';
 import StepGetraenke from './StepGetraenke';
 import StepCockpit from './StepCockpit';
+import { CreateIngredientModal } from '@/components/breakfast/CreateIngredientModal';
+import { CreateRecipeModal } from '@/components/breakfast/CreateRecipeModal';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import type { WizardItemIn } from '@/api/breakfast';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
-import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson } from '@/lib/breakfastCalc';
+import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson, FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
 
 export default function BreakfastWizardPage() {
   const { id, mealId: mealIdParam } = useParams<{ id: string; mealId?: string }>();
@@ -72,7 +75,7 @@ export default function BreakfastWizardPage() {
     const gramUnitId = catalog?.gram_measuring_unit_id ?? null;
 
     const fixKcal = extrasKcalPerPerson(state);
-    const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, dayPartFactor, fixKcal);
+    const { breadKcal, toppingKcal } = computeGroupKcal(state.basis, state.toppings, state.fatSelections, state.gramsPerPerson, dayPartFactor, fixKcal);
     const basisTotalShare = state.basis.reduce((s, b) => s + b.sharePercent, 0);
     const toppingTotalShare = state.toppings.reduce((s, t) => s + t.sharePercent, 0);
 
@@ -85,6 +88,12 @@ export default function BreakfastWizardPage() {
       const grams = breadItemGrams(b.sharePercent, basisTotalShare, breadKcal, b.energyKcal100g);
       if (grams <= 0) continue;
       ingGrams[b.ingredientId] = (ingGrams[b.ingredientId] ?? 0) + grams;
+    }
+
+    // ── Streichfett ──
+    for (const f of state.fatSelections.filter((f) => f.sharePercent > 0 && f.ingredientId > 0)) {
+      const grams = (f.sharePercent / 100) * FAT_GRAMS_PER_PERSON;
+      ingGrams[f.ingredientId] = (ingGrams[f.ingredientId] ?? 0) + grams;
     }
 
     // ── Belag (toppings) ──
@@ -110,12 +119,19 @@ export default function BreakfastWizardPage() {
       ingGrams[id] = (ingGrams[id] ?? 0) + grams;
     }
 
-    // ── Getränke (drink recipe-IDs analog zu warmen Gerichten) ──
-    for (const recipeId of state.drinkRecipeIds) {
+    // ── Getränke-Rezepte (drink recipe-IDs analog zu warmen Gerichten) ──
+    for (const drink of state.drinkRecipes.filter((d) => d.sharePercent > 0 && d.recipeId > 0)) {
       items.push({
-        recipe_id: recipeId,
-        factor: state.drinkFactors[String(recipeId)] ?? 1.0,
+        recipe_id: drink.recipeId,
+        factor: drink.sharePercent / 100,
       });
+    }
+
+    // ── Milch & Säfte (drink ingredients — milk, juices) ──
+    for (const ingredient of state.drinkIngredients.filter((d) => d.sharePercent > 0 && d.ingredientId > 0)) {
+      const ml = ingredient.mlPerPerson ?? 0;
+      if (ml <= 0) continue;
+      ingGrams[ingredient.ingredientId] = (ingGrams[ingredient.ingredientId] ?? 0) + ml;
     }
 
     // ── Post-process: push accumulated ingredients (in grams) + recipe items ──
@@ -218,6 +234,7 @@ export default function BreakfastWizardPage() {
       {/* Step content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
         {step === 'basis' && <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />}
+        {step === 'fett' && <StepStreichfett wiz={wiz} />}
         {step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
         {step === 'extras' && <StepExtras wiz={wiz} catalog={catalog} />}
         {step === 'getraenke' && <StepGetraenke wiz={wiz} />}
@@ -279,6 +296,24 @@ export default function BreakfastWizardPage() {
           )}
         </div>
       </div>
+
+      {/* Create Modals */}
+      {wiz.createModal.type === 'ingredient' && (
+        <CreateIngredientModal
+          isOpen={wiz.createModal.isOpen}
+          onClose={wiz.closeCreateModal}
+          modalState={wiz.createModal}
+          onError={wiz.setCreateModalError}
+        />
+      )}
+      {wiz.createModal.type === 'recipe' && (
+        <CreateRecipeModal
+          isOpen={wiz.createModal.isOpen}
+          onClose={wiz.closeCreateModal}
+          modalState={wiz.createModal}
+          onError={wiz.setCreateModalError}
+        />
+      )}
     </div>
   );
 }

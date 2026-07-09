@@ -116,6 +116,17 @@ class ShoppingListItemOut(Schema):
                 qty = int(qty)
             return f"{qty} {obj.unit}"
 
+        # Prefer named portions (e.g., "Scheibe") if available
+        if obj.ingredient:
+            portions = list(obj.ingredient.portions.order_by("rank", "name"))
+            if portions:
+                from supply.services.shopping_service import compute_portion_options
+
+                best_display, _ = compute_portion_options(obj.quantity_g, portions)
+                if best_display:
+                    base = _format_weight(obj.quantity_g)
+                    return f"{base} · ≈ {best_display}"
+
         base = _format_weight(obj.quantity_g)
 
         # Append package options when the ingredient has package portions

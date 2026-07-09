@@ -196,6 +196,31 @@ class Ingredient(models.Model):
         verbose_name=_("Status"),
     )
 
+    # Ownership & Visibility (for breakfast wizard user-generated items)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ingredients_owned",
+        verbose_name=_("Besitzer"),
+        help_text=_("Null = System-Zutat, gesetzt = Nutzer-Zutat"),
+    )
+    visibility = models.CharField(
+        max_length=20,
+        choices=[("private", _("Privat")), ("shared", _("Geteilt"))],
+        default="private",
+        verbose_name=_("Sichtbarkeit"),
+        help_text=_("Privat: nur für Owner + dessen Gruppe sichtbar. Geteilt: mit selected_groups"),
+    )
+    shared_groups = models.ManyToManyField(
+        "profiles.Group",
+        blank=True,
+        related_name="shared_ingredients",
+        verbose_name=_("Geteilte Gruppen"),
+        help_text=_("Gruppen, mit denen diese Zutat geteilt wird (relevante wenn visibility=shared)"),
+    )
+
     # Scout/camp fields
     storage_type = models.CharField(
         max_length=20,

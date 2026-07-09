@@ -1,9 +1,10 @@
 """Consolidated seed command for the breakfast catalog.
 
 Creates:
-- 4 content.Tag instances: breakfast-base, breakfast-topping, breakfast-drink, breakfast-warm-meal
+- 5 content.Tag instances: breakfast-base, breakfast-topping, breakfast-fat, breakfast-drink, breakfast-warm-meal
 - 6 base bread ingredients (tagged breakfast-base)
-- 17 specific topping ingredients (tagged breakfast-topping)
+- 16 specific topping ingredients (tagged breakfast-topping)
+- 2 fat/spread ingredients (tagged breakfast-fat) — Butter, Margarine
 - 6 drink ingredients (tagged breakfast-drink) — Milch, Säfte, Hafermilch
 - 3 drink recipes (tagged breakfast-drink) — Kaffee, Kakao, Tee
 - Optionally tags existing generic bread ingredients (Brot, Brötchen, etc.) with `breakfast-base`
@@ -19,6 +20,7 @@ from supply.models import Ingredient, MeasuringUnit, Portion
 
 BASE_TAG_SLUG = "breakfast-base"
 TOPPING_TAG_SLUG = "breakfast-topping"
+FAT_TAG_SLUG = "breakfast-fat"
 DRINK_TAG_SLUG = "breakfast-drink"
 WARM_MEAL_TAG_SLUG = "breakfast-warm-meal"
 
@@ -43,8 +45,6 @@ BASE_INGREDIENTS = [
 # (name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, portions_grams, package_g)
 # portions_grams: (knapp, normal, üppig)
 TOPPING_INGREDIENTS = [
-    # Spreads
-    ("Butter", "butter", 717, 0.7, 0.1, 81, 15.0, (8, 10, 15), 250),
     ("Nutella", "nutella", 540, 6.3, 63, 31, 8.0, (15, 20, 25), 450),
     ("Marmelade", "marmelade", 265, 0.3, 63, 0.1, 5.0, (15, 20, 30), 500),
     ("Honig", "honig", 304, 0.3, 82, 0, 12.0, (12, 15, 20), 500),
@@ -63,6 +63,12 @@ TOPPING_INGREDIENTS = [
     ("Salami", "salami", 400, 22, 1, 35, 15.0, (25, 30, 40), 200),
     ("Schinken (gekocht)", "schinken-gekocht", 120, 20, 1, 4, 10.0, (25, 30, 40), 200),
     ("Putenbrust (Aufschnitt)", "putenbrust-aufschnitt", 105, 22, 0.5, 2, 12.0, (25, 30, 40), 200),
+]
+
+# (name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, standard_g, package_g)
+FAT_INGREDIENTS = [
+    ("Butter", "butter", 717, 0.7, 0.1, 81, 15.0, 8, 250),
+    ("Margarine", "margarine", 717, 0.7, 0.1, 81, 8.0, 8, 500),
 ]
 
 # (name, slug, energy_kcal, protein_g, carb_g, fat_g, sugar_g)
@@ -108,6 +114,7 @@ class Command(BaseCommand):
             tags = {
                 BASE_TAG_SLUG: _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base"),
                 TOPPING_TAG_SLUG: _get_or_create_tag(TOPPING_TAG_SLUG, "breakfast-topping"),
+                FAT_TAG_SLUG: _get_or_create_tag(FAT_TAG_SLUG, "breakfast-fat"),
                 DRINK_TAG_SLUG: _get_or_create_tag(DRINK_TAG_SLUG, "breakfast-drink"),
                 WARM_MEAL_TAG_SLUG: _get_or_create_tag(WARM_MEAL_TAG_SLUG, "breakfast-warm-meal"),
             }
@@ -128,10 +135,12 @@ class Command(BaseCommand):
 
         base_tag = _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base")
         topping_tag = _get_or_create_tag(TOPPING_TAG_SLUG, "breakfast-topping")
+        fat_tag = _get_or_create_tag(FAT_TAG_SLUG, "breakfast-fat")
         drink_tag = _get_or_create_tag(DRINK_TAG_SLUG, "breakfast-drink")
 
         created_base = 0
         created_topping = 0
+        created_fat = 0
         created_drink_ing = 0
         created_drink_recipe = 0
 
@@ -243,6 +252,57 @@ class Command(BaseCommand):
 
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed topping {name}: {e}"))
+
+        # ── Fat ingredients (tagged breakfast-fat) ─────────────────────────
+        for name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, standard_g, package_g in FAT_INGREDIENTS:
+            try:
+                ing, created = Ingredient.objects.get_or_create(
+                    slug=slug,
+                    defaults={
+                        "name": name,
+                        "is_standalone_food": True,
+                        "status": "verified",
+                        "energy_kcal": energy_kcal,
+                        "protein_g": protein_g,
+                        "carbohydrate_g": carb_g,
+                        "fat_g": fat_g,
+                        "sugar_g": carb_g * 0.7,
+                        "fibre_g": 0.5,
+                        "salt_g": 0.5,
+                        "price_per_kg": price_per_kg,
+                    },
+                )
+                if created:
+                    created_fat += 1
+                    self.stdout.write(f"  Created fat: {ing.name}")
+
+                if not ing.tags.filter(id=fat_tag.id).exists() and not dry_run:
+                    ing.tags.add(fat_tag)
+
+                if not dry_run:
+                    Portion.objects.get_or_create(
+                        ingredient=ing,
+                        name="Streichfett (8g)",
+                        defaults={
+                            "measuring_unit": g_unit,
+                            "quantity": standard_g,
+                            "weight_g": standard_g,
+                            "rank": 1,
+                        },
+                    )
+                    Portion.objects.get_or_create(
+                        ingredient=ing,
+                        name=f"Packung ({package_g}g)",
+                        defaults={
+                            "measuring_unit": g_unit,
+                            "quantity": package_g,
+                            "weight_g": package_g,
+                            "rank": 4,
+                        },
+                    )
+
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"  Failed fat {name}: {e}"))
 
         # ── Drink ingredients (tagged breakfast-drink, standalone food) ────
         for name, slug, energy_kcal, protein_g, carb_g, fat_g, sugar_g in DRINK_INGREDIENTS:
@@ -380,6 +440,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("\nBreakfast catalog seed complete"))
         self.stdout.write(f"  Base ingredients: {created_base} created")
         self.stdout.write(f"  Topping ingredients: {created_topping} created")
+        self.stdout.write(f"  Fat ingredients: {created_fat} created")
         self.stdout.write(f"  Drink ingredients: {created_drink_ing} created")
         self.stdout.write(f"  Drink recipes: {created_drink_recipe} created")
 

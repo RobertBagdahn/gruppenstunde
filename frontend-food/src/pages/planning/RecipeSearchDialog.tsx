@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple, X } from 'lucide-react';
+import { Search, Egg, Plus, ShieldCheck, Users, LayoutGrid, Leaf, Apple, X, Sparkles } from 'lucide-react';
 import { useNutritionalTags } from '@/api/supplies';
 import {
   Dialog,
@@ -20,6 +20,7 @@ import RecipePreviewInline from './RecipePreviewInline';
 import CategoryPills from '@/components/recipe/CategoryPills';
 import SearchResultCard from '@/components/recipe/RecipeSearchCard';
 import RecentlyUsedSection from '@/components/recipe/RecentlyUsedSection';
+import IntelligentSuggestionsGrid from '@/components/recipe/IntelligentSuggestionsGrid';
 
 // Welche recipe_types beim Öffnen aus einem bestimmten meal_type vorausgewählt werden
 export const MEAL_TYPE_DEFAULT_RECIPE_TYPES: Record<string, string[]> = {
@@ -68,6 +69,8 @@ interface RecipeSearchDialogProps {
   excludedIngredientIds?: Set<number>;
   ingredientOnly?: boolean;
   breakfastDayTags?: Array<{ id: number; name: string }>;
+  planId?: number;
+  mealId?: number;
 }
 
 export default function RecipeSearchDialog({
@@ -82,6 +85,8 @@ export default function RecipeSearchDialog({
   excludedIngredientIds = new Set(),
   ingredientOnly = false,
   breakfastDayTags,
+  planId,
+  mealId,
 }: RecipeSearchDialogProps) {
   const defaultTypes = ingredientOnly
     ? ['ingredient']
@@ -89,6 +94,7 @@ export default function RecipeSearchDialog({
 
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set(defaultTypes));
   const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>('all');
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const [ingredientDialog, setIngredientDialog] = useState<IngredientSearchResult | null>(null);
   const [previewRecipe, setPreviewRecipe] = useState<RecipeSearchResult | null>(null);
   const [excludeDietaryTags, setExcludeDietaryTags] = useState(true);
@@ -148,6 +154,7 @@ export default function RecipeSearchDialog({
       setPreviewRecipe(null);
       setSearchQuery('');
       setDebouncedQuery('');
+      setShowSuggestions(true);
       setSelectedBreakfastDayTagIds(new Set());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -243,8 +250,48 @@ export default function RecipeSearchDialog({
             </DialogTitle>
           </DialogHeader>
 
-          {/* Suchfeld — nur im Rezept-Modus */}
-          {!ingredientOnly && !isIngredientMode && (
+          {/* View toggle: Vorschläge vs. Suche (nur wenn planId/mealId vorhanden) */}
+          {!ingredientOnly && !isIngredientMode && planId && mealId && (
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 w-fit">
+              <button
+                onClick={() => { setShowSuggestions(true); setSearchQuery(''); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  showSuggestions
+                    ? 'bg-card text-foreground shadow-sm border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Vorschläge
+              </button>
+              <button
+                onClick={() => setShowSuggestions(false)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  !showSuggestions
+                    ? 'bg-card text-foreground shadow-sm border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Search className="w-3.5 h-3.5" />
+                Suche
+              </button>
+            </div>
+          )}
+
+          {/* Vorschläge-Ansicht */}
+          {!ingredientOnly && !isIngredientMode && showSuggestions && planId && mealId && (
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <IntelligentSuggestionsGrid
+                planId={planId}
+                mealId={mealId}
+                mealType={mealType}
+                onSelect={(recipeId, title) => { onSelect?.(recipeId, title); onOpenChange(false); }}
+              />
+            </div>
+          )}
+
+          {/* Suchfeld — nur im Rezept-Modus (und nicht in Vorschlags-Ansicht) */}
+          {!ingredientOnly && !isIngredientMode && !(showSuggestions && planId && mealId) && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input

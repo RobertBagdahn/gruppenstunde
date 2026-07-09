@@ -123,14 +123,23 @@ export default function StepExtras({ wiz, mealType = 'breakfast', catalog }: Ste
             <h3 className="font-display font-semibold text-base">Gemüse & Extras</h3>
             <p className="text-xs text-muted-foreground">Tomaten, Gurken, Obst etc. (optional)</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowIngredientSearch(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Zutat
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => wiz.openCreateModal('ingredient', 'breakfast-extra')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              + Neues Extra erstellen
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowIngredientSearch(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Zutat
+            </button>
+          </div>
         </div>
 
         {extraEntries.length === 0 ? (

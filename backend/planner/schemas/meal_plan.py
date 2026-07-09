@@ -847,3 +847,33 @@ class CalculateIngredientKcalOut(Schema):
     """Response for ingredient kcal calculation."""
 
     items: list[IngredientKcalItemOut]
+
+
+# ==========================================================================
+# Intelligent Recipe Suggestions
+# ==========================================================================
+
+
+class IntelligentSuggestionOut(Schema):
+    """A single intelligent recipe suggestion."""
+
+    id: int
+    title: str
+    slug: str
+    image_url: str | None = None
+    recipe_type: str
+    recipe_badge: str = "community"
+    reason: str = ""
+    reason_text: str = ""
+    usage_count: int = 0
+    price_per_serving: float | None = None
+
+
+class IntelligentSuggestionsResponse(Schema):
+    """Response for intelligent recipe suggestions."""
+
+    suggestions: dict[str, list[IntelligentSuggestionOut]]
+    total: int = 0
+    ai_enhanced: bool = False
+    meal_type: str = ""
+    day_number: int = 1
