@@ -78,6 +78,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://inspi-frontend-food-148679246533.europe-west1.run.app",
     "https://essensplan.app",
     "https://www.essensplan.app",
+    # Allows the REWE-Warenkorb-Export bookmarklet (executed on shop.rewe.de)
+    # to fetch the export/report endpoints from this backend.
+    "https://shop.rewe.de",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
