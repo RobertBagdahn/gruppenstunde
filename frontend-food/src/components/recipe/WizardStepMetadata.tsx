@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRecipeBySlug } from '@/api/recipes';
 import { RECIPE_DIFFICULTY_OPTIONS, RECIPE_EXECUTION_TIME_OPTIONS } from '@/schemas/recipe';
 import MarkdownEditor from '@/components/MarkdownEditor';
@@ -37,16 +37,22 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
   const [preparationTime, setPreparationTime] = useState(initialData?.preparationTime || '');
   const [visibility, setVisibility] = useState(initialData?.visibility || 'private');
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>(initialData?.selectedTagSlugs || []);
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (recipe && !initialData) {
-      setSummary(recipe.summary || '');
-      setDescription(recipe.description || '');
-      setDifficulty(recipe.difficulty || '');
-      setExecutionTime(recipe.execution_time || '');
-      setPreparationTime(recipe.preparation_time || '');
-      setVisibility(recipe.visibility || 'private');
-      setSelectedTagSlugs(recipe.tags?.map((t: { slug: string }) => t.slug) || []);
+    if (recipe && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      setSummary(initialData?.description || recipe.summary || '');
+      setDescription(initialData?.description || recipe.description || '');
+      setDifficulty(initialData?.difficulty || recipe.difficulty || '');
+      setExecutionTime(initialData?.executionTime || recipe.execution_time || '');
+      setPreparationTime(initialData?.preparationTime || recipe.preparation_time || '');
+      setVisibility(initialData?.visibility || recipe.visibility || 'private');
+      setSelectedTagSlugs(
+        initialData?.selectedTagSlugs?.length
+          ? initialData.selectedTagSlugs
+          : recipe.tags?.map((t: { slug: string }) => t.slug) || [],
+      );
     }
   }, [recipe, initialData]);
 

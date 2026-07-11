@@ -123,10 +123,12 @@ def update_ingredient_embedding_and_score(sender, instance: Ingredient, created:
                 from content.services.embedding_service import update_ingredient_embedding
 
                 update_ingredient_embedding(instance)
-        except Exception:
+        except Exception as e:
             import logging
 
-            logging.getLogger(__name__).warning("Failed to update embedding/score for Ingredient #%d", instance.pk)
+            logging.getLogger(__name__).warning(
+                "Failed to update embedding/score for Ingredient #%d: %s", instance.pk, str(e), exc_info=True
+            )
         finally:
             if hasattr(instance, "_updating_embedding"):
                 delattr(instance, "_updating_embedding")

@@ -156,7 +156,7 @@ class RecipeItemOut(Schema):
 
 
 class RecipeItemCreateIn(Schema):
-    portion_id: int
+    portion_id: int | None = None  # Can be None from URL imports; items without portion are skipped
     quantity: float = 1
     sort_order: int = 0
     note: str = ""

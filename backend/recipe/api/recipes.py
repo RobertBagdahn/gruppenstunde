@@ -573,7 +573,10 @@ def create_recipe(request, payload: RecipeCreateIn):
     recipe.authors.add(request.user)
 
     # Create recipe items first (triggers sync_recipe_nutritional_tags via signal)
+    # Skip items without portion_id (can happen in URL imports if portion resolution failed)
     for item_data in payload.recipe_items:
+        if item_data.portion_id is None:
+            continue  # Skip items without a portion
         RecipeItem.objects.create(
             recipe=recipe,
             portion_id=item_data.portion_id,

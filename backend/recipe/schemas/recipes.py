@@ -284,6 +284,7 @@ class RecipeCreateIn(ContentCreateIn):
     recipe_items: list[RecipeItemCreateIn] = []
     # Ownership & Sharing (for breakfast wizard)
     shared_group_ids: list[int] = []
+    visibility: str = "private"  # accepted from frontend but always forced to "private" on backend
     # Bot protection fields
     website: str = ""  # honeypot – must be empty
     form_loaded_at: float = 0  # JS timestamp – must be > 5s ago

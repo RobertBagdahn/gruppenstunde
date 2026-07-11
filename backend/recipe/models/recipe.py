@@ -184,6 +184,11 @@ class Recipe(Content):
             models.Index(fields=["owner", "visibility", "status"], name="recipe_owner_vis_status_idx"),
         ]
 
+    def __str__(self) -> str:
+        """Display recipe with type and status in Django admin."""
+        recipe_type_label = dict(RecipeTypeChoices.choices).get(self.recipe_type, self.recipe_type) if self.recipe_type else ""
+        return f"{self.title} ({recipe_type_label})" if recipe_type_label else self.title
+
     @staticmethod
     def visible_for_user(user) -> models.Q:
         """Return Q filter for recipes visible to the given user.

@@ -1,24 +1,50 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle } from 'react';
 import { toast } from 'sonner';
 import { useRecipeBySlug, useUpdateRecipe } from '@/api/recipes';
 import { useRecipeSteps } from '@/hooks/useRecipeSteps';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
-import IngredientList from '@/components/supply/IngredientList';
-import { ArrowLeft, Check, Save, Loader2 } from 'lucide-react';
+import RecipeIngredientsTable from '@/components/recipe/RecipeIngredientsTable';
 import { Badge } from '@/components/ui/badge';
 import { RECIPE_DIFFICULTY_OPTIONS, RECIPE_EXECUTION_TIME_OPTIONS, RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 
 interface WizardStepPreviewProps {
   recipeSlug: string;
   onFinish: () => void;
-  onGoToStep: (step: number) => void;
 }
 
-export default function WizardStepPreview({ recipeSlug, onFinish, onGoToStep }: WizardStepPreviewProps) {
+export interface WizardStepPreviewHandle {
+  primaryAction: () => Promise<boolean>;
+}
+
+const WizardStepPreview = forwardRef<WizardStepPreviewHandle, WizardStepPreviewProps>(function WizardStepPreview({ recipeSlug, onFinish }, ref) {
   const { data: recipe } = useRecipeBySlug(recipeSlug);
   const { data: steps } = useRecipeSteps(recipeSlug);
   const updateRecipe = useUpdateRecipe(recipe?.id ?? 0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (): Promise<boolean> => {
+    try {
+      const isPublic = recipe?.visibility === 'public';
+      const payload: Record<string, unknown> = {};
+      if (isPublic) {
+        payload.status = 'submitted';
+      }
+      if (Object.keys(payload).length > 0) {
+        await updateRecipe.mutateAsync(payload as Parameters<typeof updateRecipe.mutateAsync>[0]);
+      }
+      toast.success('Rezept fertiggestellt!');
+      onFinish();
+      return true;
+    } catch (err) {
+      toast.error('Fehler beim Speichern', {
+        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
+      });
+      return false;
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    primaryAction: handleSubmit,
+  }));
 
   if (!recipe) {
     return (
@@ -31,33 +57,6 @@ export default function WizardStepPreview({ recipeSlug, onFinish, onGoToStep }: 
   const recipeTypeLabel = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type)?.label || recipe.recipe_type;
   const difficultyLabel = RECIPE_DIFFICULTY_OPTIONS.find((o) => o.value === recipe.difficulty)?.label;
   const executionLabel = RECIPE_EXECUTION_TIME_OPTIONS.find((o) => o.value === recipe.execution_time)?.label;
-
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      const isPublic = recipe.visibility === 'public';
-      const payload: Record<string, unknown> = {};
-      if (isPublic) {
-        payload.status = 'submitted';
-      }
-      if (Object.keys(payload).length > 0) {
-        await updateRecipe.mutateAsync(payload as Parameters<typeof updateRecipe.mutateAsync>[0]);
-      }
-      toast.success('Rezept fertiggestellt!');
-      onFinish();
-    } catch (err) {
-      toast.error('Fehler beim Speichern', {
-        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSaveDraft = () => {
-    toast.success('Als Entwurf gespeichert');
-    onFinish();
-  };
 
   return (
     <div className="space-y-6">
@@ -101,20 +100,20 @@ export default function WizardStepPreview({ recipeSlug, onFinish, onGoToStep }: 
         {recipe.description && (
           <div>
             <h4 className="text-sm font-semibold mb-2">Beschreibung</h4>
-            <MarkdownRenderer content={recipe.description} />
+            <div className="prose prose-sm max-w-none text-sm text-muted-foreground leading-relaxed">
+              <MarkdownRenderer content={recipe.description} />
+            </div>
           </div>
         )}
 
         {recipe.recipe_items && recipe.recipe_items.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-2">
+            <h4 className="text-sm font-semibold mb-3">
               Zutaten ({recipe.recipe_items.length})
             </h4>
-            <IngredientList
+            <RecipeIngredientsTable
               items={recipe.recipe_items}
-              portions={1}
-              portionsMultiplier={1}
-              showSearch={false}
+              portions={recipe.portions}
             />
           </div>
         )}
@@ -132,45 +131,9 @@ export default function WizardStepPreview({ recipeSlug, onFinish, onGoToStep }: 
           </div>
         )}
       </div>
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          type="button"
-          onClick={() => onGoToStep(0)}
-          className="flex items-center gap-2 px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Zurück zum Bearbeiten
-        </button>
-        <div className="flex gap-2 sm:ml-auto">
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            className="flex items-center gap-2 px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
-          >
-            <Save className="w-4 h-4" />
-            Als Entwurf speichern
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Speichert...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                Fertigstellen
-              </>
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
-}
+});
+
+export default WizardStepPreview;
+

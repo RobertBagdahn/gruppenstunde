@@ -104,6 +104,10 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Keine Berechtigung")
 
+    # Manual creation requires a valid portion_id
+    if payload.portion_id is None:
+        raise HttpError(400, "portion_id ist erforderlich")
+
     item = RecipeItem.objects.create(
         recipe=recipe,
         portion_id=payload.portion_id,

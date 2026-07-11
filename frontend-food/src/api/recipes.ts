@@ -52,6 +52,34 @@ async function fetchJson<T extends z.ZodTypeAny>(
   return schema.parse(data);
 }
 
+function extractErrorMessage(errBody: unknown): string {
+  if (typeof errBody === 'string') {
+    return errBody;
+  }
+  if (typeof errBody === 'object' && errBody !== null) {
+    if ('detail' in errBody && typeof (errBody as Record<string, unknown>).detail === 'string') {
+      return (errBody as Record<string, unknown>).detail as string;
+    }
+    if (Array.isArray(errBody)) {
+      const messages = errBody
+        .map((item) => {
+          if (typeof item === 'string') return item;
+          if (typeof item === 'object' && item !== null) {
+            // Try to extract error message from various error formats
+            const record = item as Record<string, unknown>;
+            return record.msg || record.message || record.detail || record.error || JSON.stringify(item);
+          }
+          return String(item);
+        })
+        .filter((msg) => msg && msg !== 'undefined');
+      if (messages.length > 0) {
+        return messages.join(', ');
+      }
+    }
+  }
+  return `API error`;
+}
+
 async function postJson<T extends z.ZodTypeAny>(
   url: string,
   body: unknown,
@@ -68,12 +96,7 @@ async function postJson<T extends z.ZodTypeAny>(
   });
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    throw new Error(
-      errBody.detail
-      || (Array.isArray(errBody)
-        ? errBody.map((e: { msg: string }) => e.msg).join(', ')
-        : `API error: ${res.status}`)
-    );
+    throw new Error(extractErrorMessage(errBody) || `API error: ${res.status}`);
   }
   const data = await res.json();
   return schema.parse(data);
@@ -95,7 +118,7 @@ async function patchJson<T extends z.ZodTypeAny>(
   });
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.detail || `API error: ${res.status}`);
+    throw new Error(extractErrorMessage(errBody) || `API error: ${res.status}`);
   }
   const data = await res.json();
   return schema.parse(data);

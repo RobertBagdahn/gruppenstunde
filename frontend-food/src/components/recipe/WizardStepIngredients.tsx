@@ -24,7 +24,7 @@ export default function WizardStepIngredients({
   title,
   recipeType,
 }: WizardStepIngredientsProps) {
-  const { data: recipe } = useRecipeBySlug(recipeSlug);
+  const { data: recipe, isLoading } = useRecipeBySlug(recipeSlug);
   const items = recipe?.recipe_items ?? [];
   const portions = recipe?.portions ?? 1;
 
@@ -33,6 +33,18 @@ export default function WizardStepIngredients({
   useEffect(() => {
     onIngredientsCountChange(items.length);
   }, [items.length, onIngredientsCountChange]);
+
+  // Wait for the freshly created recipe (with its imported/mapped ingredients) to
+  // load before mounting InlineIngredientEditor — its internal state is only
+  // initialized once on mount, so mounting with an empty `items` array (before
+  // the fetch resolves) would permanently show an empty ingredient list.
+  if (isLoading || !recipe) {
+    return (
+      <div className="flex items-center justify-center py-12 text-muted-foreground">
+        Lade Zutaten...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

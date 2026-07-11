@@ -4,11 +4,11 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useCreateRecipe } from '@/api/recipes';
 
-import WizardStepMethod from './WizardStepMethod';
+import WizardStepMethod, { type WizardStepMethodHandle } from './WizardStepMethod';
 import WizardStepIngredients from './WizardStepIngredients';
 import WizardStepMetadata from './WizardStepMetadata';
 import WizardStepSteps from './WizardStepSteps';
-import WizardStepPreview from './WizardStepPreview';
+import WizardStepPreview, { type WizardStepPreviewHandle } from './WizardStepPreview';
 
 type CreationMethod = 'manual' | 'ai' | 'url' | null;
 
@@ -61,8 +61,6 @@ function validateStep(state: WizardState, hasTitle: boolean, hasRecipeType: bool
   switch (state.currentStep) {
     case 0:
       if (!state.creationMethod) return 'Bitte wähle eine Erstellungsmethode';
-      if (state.creationMethod === 'ai' && !state.recipeId) return 'Bitte generiere zuerst ein Rezept';
-      if (state.creationMethod === 'url' && !state.recipeId) return 'Bitte importiere zuerst ein Rezept';
       return null;
     case 1:
       if (!hasTitle) return 'Bitte gib einen Titel ein';
@@ -117,6 +115,8 @@ export default function RecipeWizard() {
   }, []);
 
   const [isSaving, setIsSaving] = useState(false);
+  const methodStepRef = useRef<WizardStepMethodHandle>(null);
+  const previewStepRef = useRef<WizardStepPreviewHandle>(null);
 
   const saveRecipe = useCallback(async (recipeId: number, body: Record<string, unknown>) => {
     const url = `/api/recipes/${recipeId}/`;
@@ -139,13 +139,20 @@ export default function RecipeWizard() {
     setIsSaving(true);
 
     try {
-      if (state.currentStep === 0 && state.creationMethod === 'manual' && !state.recipeId) {
-        const recipe = await createRecipe.mutateAsync({
-          title: stepTitle || 'Neues Rezept',
-          recipe_type: stepRecipeType || 'warm_meal',
-          portions: 1,
-        });
-        updateState({ recipeId: recipe.id, recipeSlug: recipe.slug });
+      if (state.currentStep === 0) {
+        const shouldAdvance = await methodStepRef.current?.primaryAction();
+        if (!shouldAdvance) {
+          setIsSaving(false);
+          return;
+        }
+        if (state.creationMethod === 'manual' && !state.recipeId) {
+          const recipe = await createRecipe.mutateAsync({
+            title: stepTitle || 'Neues Rezept',
+            recipe_type: stepRecipeType || 'warm_meal',
+            portions: 1,
+          });
+          updateState({ recipeId: recipe.id, recipeSlug: recipe.slug });
+        }
       }
 
       if (state.currentStep === 1 && state.recipeId) {
@@ -188,6 +195,13 @@ export default function RecipeWizard() {
     setState((prev) => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }));
   }, []);
 
+  const handleFinish = useCallback(async () => {
+    setIsSaving(true);
+    const success = await previewStepRef.current?.primaryAction();
+    setIsSaving(false);
+    return success;
+  }, []);
+
   const handleCreated = useCallback((recipeId: number, recipeSlug: string) => {
     updateState({ recipeId, recipeSlug });
   }, [updateState]);
@@ -199,6 +213,7 @@ export default function RecipeWizard() {
   const stepComponents: Record<number, ReactNode> = {
     0: (
       <WizardStepMethod
+        ref={methodStepRef}
         state={state}
         updateState={updateState}
         onCreated={handleCreated}
@@ -238,11 +253,11 @@ export default function RecipeWizard() {
     ) : null,
     4: state.recipeSlug ? (
       <WizardStepPreview
+        ref={previewStepRef}
         recipeSlug={state.recipeSlug}
         onFinish={() => {
           if (state.recipeSlug) navigate(`/recipes/${state.recipeSlug}`);
         }}
-        onGoToStep={(step) => updateState({ currentStep: step })}
       />
     ) : null,
   };
@@ -285,6 +300,21 @@ export default function RecipeWizard() {
               <>
                 Weiter
                 <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        )}
+        {isLast && (
+          <button
+            type="button"
+            onClick={handleFinish}
+            disabled={isSaving}
+            className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
+          >
+            {isSaving ? 'Speichert...' : (
+              <>
+                Fertigstellen
+                <Check className="w-4 h-4" />
               </>
             )}
           </button>

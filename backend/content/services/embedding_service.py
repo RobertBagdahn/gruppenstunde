@@ -19,9 +19,8 @@ logger = logging.getLogger(__name__)
 
 EMBEDDING_MODEL = "gemini-embedding-001"
 # Output dimensionality for Vertex AI embeddings.
-# Must match the VectorField dimensions on both supply.Ingredient.embedding
-# and content.Content.embedding (used by Recipe/Blog/Game/Session) — both are
-# 768 dims.
+# supply.Ingredient.embedding uses 768 dims (via migration 0054).
+# Requesting 768 dimensions to match the database schema.
 EMBEDDING_OUTPUT_DIM = 768
 EMBEDDING_DIMENSIONS = 768  # VectorField dimensions for PostgreSQL pgvector
 

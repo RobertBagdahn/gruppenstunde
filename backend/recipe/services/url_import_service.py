@@ -15,6 +15,7 @@ import logging
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import IntegrityError
 from django.db.models import Q
 from pydantic import BaseModel, Field
 
@@ -1046,15 +1047,36 @@ def _resolve_portion(
 
         weight = estimated_weight_g if estimated_weight_g > 0 else None
 
-        portion, _ = Portion.objects.get_or_create(
+        # The unique constraint is case-insensitive on name (lower(name), ingredient_id),
+        # so look up case-insensitively first to avoid IntegrityError on e.g. "g" vs "G".
+        portion = Portion.objects.filter(
             ingredient_id=ingredient_id,
-            name=p_name,
-            measuring_unit_id=measuring_unit_id,
-            quantity=1.0,
-            defaults={
-                "weight_g": weight,
-            },
-        )
+            name__iexact=p_name,
+        ).first()
+        if portion:
+            if _should_update_weight(portion, estimated_weight_g):
+                portion.weight_g = estimated_weight_g
+                portion.save(update_fields=["weight_g"])
+            return portion.id
+
+        try:
+            portion, _ = Portion.objects.get_or_create(
+                ingredient_id=ingredient_id,
+                name=p_name,
+                measuring_unit_id=measuring_unit_id,
+                quantity=1.0,
+                defaults={
+                    "weight_g": weight,
+                },
+            )
+        except IntegrityError:
+            # Lost a race against a concurrent insert of the same (case-insensitive) name.
+            portion = Portion.objects.filter(
+                ingredient_id=ingredient_id,
+                name__iexact=p_name,
+            ).first()
+            if portion is None:
+                raise
         return portion.id
 
     return None
