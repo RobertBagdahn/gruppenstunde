@@ -19,6 +19,7 @@ import ShoppingListItemRow from '@/components/shopping/ShoppingListItemRow';
 import ShoppingListProgress from '@/components/shopping/ShoppingListProgress';
 import CollaboratorManager from '@/components/shopping/CollaboratorManager';
 import KitchenReminderSection from '@/components/shopping/KitchenReminderSection';
+import ReweExportButton from '@/components/shopping/ReweExportButton';
 import {
   useShoppingListWebSocket,
   useOptimisticCheckItem,
@@ -27,7 +28,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Users, ChevronDown, Store, ShoppingBag, ShoppingCart } from 'lucide-react';
 
 export default function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -368,6 +369,15 @@ export default function ShoppingListDetailPage() {
           )}
         </div>
       )}
+
+      {/* REWE Export */}
+      <section className="mt-6 bg-card rounded-xl border border-border p-5 shadow-soft">
+        <h2 className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
+          <ShoppingCart className="w-4 h-4 text-primary shrink-0" />
+          REWE-Export
+        </h2>
+        <ReweExportButton listId={listId} listName={list.name} items={items} />
+      </section>
 
       {/* Kitchen Reminder Section */}
       <KitchenReminderSection />

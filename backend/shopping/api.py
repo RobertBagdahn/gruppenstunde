@@ -1,5 +1,8 @@
 """API endpoints for the Shopping app."""
 
+import math
+from datetime import timedelta
+
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -12,6 +15,7 @@ from .models import (
     CollaboratorRole,
     KitchenReminder,
     KitchenReminderCategory,
+    ReweExportToken,
     ShoppingList,
     ShoppingListCollaborator,
     ShoppingListItem,
@@ -27,6 +31,10 @@ from .schemas import (
     KitchenReminderSuggestIn,
     PaginatedShoppingListOut,
     PaginatedUserOut,
+    ReweExportItem,
+    ReweExportListResponse,
+    ReweExportTokenResponse,
+    ReweReportRequest,
     ShoppingListCollaboratorOut,
     ShoppingListCreateIn,
     ShoppingListDetailOut,
@@ -169,6 +177,112 @@ def list_users(
         "page_size": page_size,
         "total_pages": total_pages,
     }
+
+
+# ---------------------------------------------------------------------------
+# REWE Export — static token routes (must be before /{shopping_list_id}/)
+# ---------------------------------------------------------------------------
+
+
+@shopping_router.get("/rewe-export/{token}/", response=ReweExportListResponse)
+def rewe_export_get_list(request, token: str):
+    """Return shopping list items for REWE export via a valid token."""
+    try:
+        from uuid import UUID
+
+        token_uuid = UUID(token)
+    except (ValueError, TypeError):
+        raise HttpError(401, "Ungültiges Token-Format. Bitte neuen Token erzeugen.")
+
+    export_token = ReweExportToken.objects.filter(token=token_uuid).first()
+    if not export_token or not export_token.is_valid():
+        raise HttpError(401, "Token abgelaufen oder ungültig. Bitte neuen Token erzeugen.")
+
+    shopping_list = export_token.shopping_list
+    items = shopping_list.items.select_related("ingredient").order_by("sort_order", "id")
+
+    export_items = []
+    for item in items:
+        matched = bool(item.ingredient and item.ingredient.nan_art_id_rewe)
+        nan_art_id = item.ingredient.nan_art_id_rewe if item.ingredient else None
+        order_quantity, unit = _compute_order_quantity(item)
+
+        export_items.append(
+            ReweExportItem(
+                item_id=item.id,
+                ingredient_name=item.ingredient.name if item.ingredient else item.name,
+                nan_art_id_rewe=nan_art_id,
+                order_quantity=order_quantity,
+                unit=unit,
+                already_added_at=item.rewe_added_at,
+                matched=matched,
+            )
+        )
+
+    return ReweExportListResponse(
+        items=export_items,
+        shopping_list_id=shopping_list.id,
+        shopping_list_name=shopping_list.name,
+    )
+
+
+@shopping_router.post("/rewe-export/{token}/report/")
+def rewe_export_report(request, token: str, payload: ReweReportRequest):
+    """Receive export result report from the bookmarklet."""
+    try:
+        from uuid import UUID
+
+        token_uuid = UUID(token)
+    except (ValueError, TypeError):
+        raise HttpError(401, "Ungültiges Token-Format.")
+
+    export_token = ReweExportToken.objects.filter(token=token_uuid).first()
+    if not export_token or not export_token.is_valid():
+        raise HttpError(401, "Token abgelaufen oder ungültig.")
+
+    shopping_list = export_token.shopping_list
+    now = timezone.now()
+
+    valid_item_ids = set(
+        ShoppingListItem.objects.filter(shopping_list=shopping_list).values_list("id", flat=True)
+    )
+
+    successful = []
+    ignored = []
+    for item_id in payload.successful_item_ids:
+        if item_id in valid_item_ids:
+            successful.append(item_id)
+        else:
+            ignored.append(item_id)
+
+    if successful:
+        ShoppingListItem.objects.filter(id__in=successful).update(rewe_added_at=now)
+
+    return {"success": True, "updated": len(successful), "ignored": len(ignored)}
+
+
+def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
+    """Compute the order quantity and display unit for REWE export.
+
+    Uses the ingredient's purchasable portion to calculate how many
+    packages are needed (rounding up), or falls back to raw grams.
+    """
+    from supply.utils import format_weight, get_shopping_portion
+
+    quantity_g = item.quantity_g or 0
+    if not quantity_g or quantity_g <= 0:
+        return 0.0, item.unit or "g"
+
+    if not item.ingredient:
+        return quantity_g, item.unit or "g"
+
+    portion = get_shopping_portion(item.ingredient)
+    if portion and portion.weight_g and portion.weight_g > 0:
+        count = math.ceil(quantity_g / portion.weight_g)
+        label = portion.name or "Packung"
+        return float(count), f"{label} ({format_weight(portion.weight_g)})"
+
+    return quantity_g, "g"
 
 
 @shopping_router.get("/{shopping_list_id}/", response=ShoppingListDetailOut)
@@ -463,6 +577,34 @@ def remove_collaborator(request, shopping_list_id: int, collab_id: int):
     collab = get_object_or_404(ShoppingListCollaborator, id=collab_id, shopping_list=shopping_list)
     collab.delete()
     return {"success": True, "message": "Mitglied entfernt"}
+
+
+# ---------------------------------------------------------------------------
+# REWE Export — token generation (parameterized route)
+# ---------------------------------------------------------------------------
+
+
+@shopping_router.post("/{shopping_list_id}/rewe-export-token/", response=ReweExportTokenResponse)
+def create_rewe_export_token(request, shopping_list_id: int):
+    """Generate a short-lived token for REWE basket export."""
+    _require_auth(request)
+    shopping_list = get_object_or_404(ShoppingList, id=shopping_list_id)
+    _require_access(shopping_list, request.user)
+
+    now = timezone.now()
+    expires_at = now + timedelta(minutes=5)
+
+    export_token = ReweExportToken.objects.create(
+        shopping_list=shopping_list,
+        user=request.user,
+        expires_at=expires_at,
+    )
+
+    return ReweExportTokenResponse(
+        token=str(export_token.token),
+        export_url=f"/api/shopping-lists/rewe-export/{export_token.token}/",
+        expires_at=expires_at,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Sparkles, GripVertical } from 'lucide-react';
 import type { RecipeStepIngredient } from '@/schemas/recipeStep';
 import IngredientAssignmentDropdown from './IngredientAssignmentDropdown';
 import IngredientSuggestions from './IngredientSuggestions';
@@ -22,6 +22,8 @@ interface StepZutatenPanelProps {
   availableRecipeItems?: Array<{
     id: number;
     name?: string;
+    /** Flat ingredient name field, as returned by the RecipeItem API (most common shape). */
+    ingredient_name?: string;
     portion?: {
       ingredient?: { name?: string };
       measuring_unit?: { name?: string };
@@ -54,7 +56,7 @@ export default function StepZutatenPanel({
       availableRecipeItems.map((item) => ({
         id: item.id,
         name: item.name || '',
-        ingredient_name: item.portion?.ingredient?.name || '',
+        ingredient_name: item.portion?.ingredient?.name || item.ingredient_name || '',
         portion: item.portion,
       })),
     [availableRecipeItems]
@@ -105,18 +107,26 @@ export default function StepZutatenPanel({
     );
   };
 
-  const getIngredientDisplay = (recipeItemId: number): string => {
-    const item = availableRecipeItems.find((i) => i.id === recipeItemId);
-    if (!item) return `Item #${recipeItemId}`;
+  // Resolve a display name for a step-ingredient. Prefers the ingredient
+  // name already stored on the step_ingredient itself (`ing.ingredient_name`,
+  // returned by the backend), since `availableRecipeItems` (the recipe's
+  // *current* ingredient list) may not contain the referenced recipe_item —
+  // e.g. right after adding an ingredient elsewhere, before the recipe data
+  // has been refetched. Falls back to the recipe_items lookup, and only
+  // shows the raw "Item #id" as a last resort.
+  const getIngredientDisplay = (ing: RecipeStepIngredient): string => {
+    if (ing.ingredient_name) return ing.ingredient_name;
+    const item = availableRecipeItems.find((i) => i.id === ing.recipe_item_id);
+    if (!item) return `Item #${ing.recipe_item_id}`;
     return (
-      item.portion?.ingredient?.name || item.name || `Item #${recipeItemId}`
+      item.portion?.ingredient?.name || item.ingredient_name || item.name || `Item #${ing.recipe_item_id}`
     );
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-foreground">
           Zutaten in diesem Schritt ({stepIngredients.length})
         </label>
         <div className="flex gap-2">
@@ -124,7 +134,7 @@ export default function StepZutatenPanel({
             <button
               onClick={handleSuggestIngredients}
               disabled={isSuggesting || !stepInstruction.trim()}
-              className="flex items-center gap-1 text-sm px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 text-sm px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
               title="KI-Vorschläge für Zutaten basierend auf der Anweisung"
             >
               <Sparkles size={16} /> Vorschlagen
@@ -133,7 +143,7 @@ export default function StepZutatenPanel({
           <button
             onClick={handleAddIngredient}
             disabled={availableRecipeItems.length === 0}
-            className="flex items-center gap-1 text-sm px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 text-sm px-2 py-1 bg-secondary text-secondary-foreground rounded hover:bg-secondary/80 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
           >
             <Plus size={16} /> Zutat
           </button>
@@ -156,46 +166,57 @@ export default function StepZutatenPanel({
       )}
 
       {stepIngredients.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">Keine Zutaten hinzugefügt</p>
+        <p className="text-sm text-muted-foreground italic">Keine Zutaten hinzugefügt</p>
       ) : (
         <div className="space-y-2">
-          {stepIngredients.map((ing) => (
+          {stepIngredients.map((ing, index) => (
             <div
               key={ing.id}
-              className={`p-3 bg-gray-50 rounded border transition-colors ${
+              draggable={editingId !== ing.id}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', `{${index + 1}}`);
+                e.dataTransfer.effectAllowed = 'copy';
+              }}
+              title={editingId !== ing.id ? `In die Anweisung ziehen, um {${index + 1}} einzufügen` : undefined}
+              className={`p-3 bg-muted/40 rounded border transition-colors ${
+                editingId !== ing.id ? 'cursor-grab active:cursor-grabbing' : ''
+              } ${
                 editingId === ing.id
-                  ? 'border-blue-300 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-primary/40 bg-primary/5'
+                  : 'border-border hover:border-primary/30'
               }`}
             >
               {/* Display Mode */}
               {editingId !== ing.id && (
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900">
-                      {getIngredientDisplay(ing.recipe_item_id)}
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <GripVertical className="w-4 h-4 text-muted-foreground/60 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground">
+                        {getIngredientDisplay(ing)}
+                      </div>
+                      {ing.quantity_modifier && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Menge: {ing.quantity_modifier}
+                        </div>
+                      )}
+                      {ing.preparation && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Zubereitung: {ing.preparation}
+                        </div>
+                      )}
                     </div>
-                    {ing.quantity_modifier && (
-                      <div className="text-xs text-gray-600 mt-1">
-                        Menge: {ing.quantity_modifier}
-                      </div>
-                    )}
-                    {ing.preparation && (
-                      <div className="text-xs text-gray-600 mt-1">
-                        Zubereitung: {ing.preparation}
-                      </div>
-                    )}
                   </div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => setEditingId(ing.id)}
-                      className="px-2 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 whitespace-nowrap"
+                      className="px-2 py-1 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20 whitespace-nowrap"
                     >
                       Bearbeiten
                     </button>
                     <button
                       onClick={() => handleRemoveIngredient(ing.id)}
-                      className="p-1 text-red-600 hover:bg-red-100 rounded"
+                      className="p-1 text-destructive hover:bg-destructive/10 rounded"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -207,7 +228,7 @@ export default function StepZutatenPanel({
               {editingId === ing.id && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Zutat
                     </label>
                     <IngredientAssignmentDropdown
@@ -223,7 +244,7 @@ export default function StepZutatenPanel({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Mengenmodifikator
                     </label>
                     <input
@@ -237,15 +258,15 @@ export default function StepZutatenPanel({
                         })
                       }
                       placeholder="z. B. 1.5 oder 0.5"
-                      className="w-full p-2 border border-gray-300 rounded text-sm"
+                      className="w-full p-2 border border-input bg-background rounded text-sm"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Multiplikator zur Basis-Menge (z.B. 1.5 = 50% mehr)
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Zubereitung
                     </label>
                     <input
@@ -255,20 +276,20 @@ export default function StepZutatenPanel({
                         handleUpdateIngredient(ing.id, { preparation: e.target.value })
                       }
                       placeholder="z. B. 'gehackt', 'gesiebt'"
-                      className="w-full p-2 border border-gray-300 rounded text-sm"
+                      className="w-full p-2 border border-input bg-background rounded text-sm"
                     />
                   </div>
 
                   <div className="flex gap-2 justify-end pt-2">
                     <button
                       onClick={() => setEditingId(null)}
-                      className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
+                      className="px-3 py-1 text-sm rounded border border-input hover:bg-muted"
                     >
                       Fertig
                     </button>
                     <button
                       onClick={() => handleRemoveIngredient(ing.id)}
-                      className="px-3 py-1 text-sm rounded bg-red-100 text-red-700 hover:bg-red-200"
+                      className="px-3 py-1 text-sm rounded bg-destructive/10 text-destructive hover:bg-destructive/20"
                     >
                       Löschen
                     </button>

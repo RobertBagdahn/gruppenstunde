@@ -292,3 +292,18 @@ export function useUsers() {
   const { data, ...rest } = useGenericUsers();
   return { data: data?.items ?? [], ...rest };
 }
+
+// --- REWE Export ---
+
+import { ReweExportTokenResponseSchema } from '@/schemas/shoppingList';
+
+export function useReweExportToken(listId: number) {
+  return useMutation({
+    mutationFn: () =>
+      postJson(
+        `${API_BASE}/${listId}/rewe-export-token/`,
+        {},
+        ReweExportTokenResponseSchema,
+      ),
+  });
+}

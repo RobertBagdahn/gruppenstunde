@@ -216,12 +216,14 @@ export function IngredientAutocomplete({
   );
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative min-w-0', className)}>
       {/* Ghost text layer */}
-      <div className="pointer-events-none absolute inset-0 flex items-center px-3">
-        <Plus className="w-4 h-4 text-muted-foreground shrink-0 mr-2" />
-        <span className="invisible">{value}</span>
-        <span className="text-muted-foreground/40">
+      <div className="pointer-events-none absolute inset-0 flex items-center px-3.5 overflow-hidden">
+        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary shrink-0 mr-2.5">
+          <Plus className="w-4 h-4" />
+        </span>
+        <span className="invisible whitespace-pre">{value}</span>
+        <span className="text-muted-foreground/50 whitespace-pre truncate">
           {ghostText.slice(value.length)}
         </span>
       </div>
@@ -241,7 +243,7 @@ export function IngredientAutocomplete({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className="flex h-10 w-full rounded-md border border-input bg-transparent pl-10 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-11 w-full rounded-lg border border-input bg-background pl-11 pr-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50"
         role="combobox"
         aria-expanded={isOpen}
         aria-autocomplete="list"
@@ -249,12 +251,12 @@ export function IngredientAutocomplete({
 
       {/* Filter pills */}
       {isOpen && retailSections.length > 0 && (
-        <div className="flex items-center gap-1 mt-1.5">
-          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+        <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
             <button
               onClick={() => setSelectedRetailSection(null)}
               className={cn(
-                'shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors border',
+                'shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors border',
                 selectedRetailSection === null
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card text-muted-foreground border-border hover:bg-muted',
@@ -267,7 +269,7 @@ export function IngredientAutocomplete({
                 key={rs.id}
                 onClick={() => setSelectedRetailSection(rs.id)}
                 className={cn(
-                  'shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors border',
+                  'shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors border',
                   selectedRetailSection === rs.id
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-card text-muted-foreground border-border hover:bg-muted',
@@ -284,11 +286,11 @@ export function IngredientAutocomplete({
       {isOpen && (suggestions.length > 0 || debouncedQuery.length >= 2) && (
         <div
           ref={listRef}
-          className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-md"
+          className="absolute top-full z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg"
           role="listbox"
         >
           {hasFallenBack && selectedRetailSection != null && (
-            <div className="px-3 py-1.5 text-[11px] text-muted-foreground border-b bg-muted/30">
+            <div className="px-3.5 py-2 text-xs text-muted-foreground border-b bg-muted/30">
               Keine Treffer in dieser Abteilung — zeige alle Ergebnisse
             </div>
           )}
@@ -304,8 +306,8 @@ export function IngredientAutocomplete({
               <button
                 key={s.id}
                 className={cn(
-                  'flex w-full items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-accent transition-colors',
-                  i === activeIndex && 'bg-accent'
+                  'flex w-full items-center gap-3 px-3.5 py-3 text-sm text-left border-l-2 border-transparent hover:bg-muted transition-colors',
+                  i === activeIndex && 'bg-primary/5 border-l-primary'
                 )}
                 role="option"
                 aria-selected={i === activeIndex}
@@ -319,7 +321,7 @@ export function IngredientAutocomplete({
                 {nutriLabel && nutriColors ? (
                   <span
                     className={cn(
-                      'inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold shrink-0',
+                      'inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold shrink-0',
                       nutriColors.bg,
                       nutriColors.text
                     )}
@@ -327,14 +329,14 @@ export function IngredientAutocomplete({
                     {nutriLabel}
                   </span>
                 ) : (
-                  <span className="w-5 shrink-0" />
+                  <span className="w-6 shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium truncate block">
+                  <span className="font-medium truncate block text-foreground">
                     {s.name}
                   </span>
                   {s.retail_section_name && (
-                    <span className="text-[11px] text-muted-foreground truncate block">
+                    <span className="text-xs text-muted-foreground truncate block">
                       {s.retail_section_name}
                     </span>
                   )}
@@ -355,7 +357,7 @@ export function IngredientAutocomplete({
                 </div>
                 {/* Nutritional info */}
                 {(s.protein_g != null || s.fat_g != null || s.carbohydrate_g != null) && (
-                  <div className="flex items-center gap-1 shrink-0 text-[10px] text-muted-foreground border-l pl-2">
+                  <div className="hidden sm:flex items-center gap-1.5 shrink-0 text-xs text-muted-foreground border-l pl-2.5">
                     {s.protein_g != null && <span>E {formatNum(s.protein_g)}</span>}
                     {s.fat_g != null && <span>F {formatNum(s.fat_g)}</span>}
                     {s.carbohydrate_g != null && <span>KH {formatNum(s.carbohydrate_g)}</span>}
@@ -370,8 +372,8 @@ export function IngredientAutocomplete({
           )}
           <button
             className={cn(
-              'flex w-full items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-accent transition-colors',
-              suggestions.length === 0 && activeIndex === -1 && 'bg-accent'
+              'flex w-full items-center gap-3 px-3.5 py-3 text-sm text-left border-l-2 border-transparent hover:bg-muted transition-colors',
+              suggestions.length === 0 && activeIndex === -1 && 'bg-primary/5 border-l-primary'
             )}
             role="option"
             onMouseDown={(e) => {
@@ -380,7 +382,9 @@ export function IngredientAutocomplete({
               setIsOpen(false);
             }}
           >
-            <Plus className="w-4 h-4 text-primary shrink-0" />
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary shrink-0">
+              <Plus className="w-4 h-4" />
+            </span>
             <span className="flex-1 text-primary font-medium">
               &ldquo;{debouncedQuery}&rdquo; neu anlegen
             </span>

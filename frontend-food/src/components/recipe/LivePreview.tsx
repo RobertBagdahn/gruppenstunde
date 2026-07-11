@@ -62,11 +62,11 @@ export default function LivePreview({
 
   return (
     <div
-      className={`rounded-lg border border-gray-200 bg-gray-50 p-3 ${className}`}
+      className={`rounded-lg border border-border bg-muted/50 p-3 ${className}`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <Eye size={16} className="text-gray-600" />
-        <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+        <Eye size={16} className="text-muted-foreground" />
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           {title}
         </h4>
         {hasUnresolvedPlaceholders && (
@@ -76,12 +76,12 @@ export default function LivePreview({
         )}
       </div>
 
-      <div className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap break-words">
+      <div className="text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words">
         {resolvedText}
       </div>
 
       {!instruction && (
-        <p className="text-xs text-gray-500 italic">
+        <p className="text-xs text-muted-foreground italic">
           Gib eine Anweisung ein, um eine Vorschau zu sehen
         </p>
       )}

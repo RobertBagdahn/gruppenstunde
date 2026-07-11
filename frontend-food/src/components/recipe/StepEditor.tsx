@@ -27,6 +27,7 @@ import { useRecipeSteps, useBatchUpdateSteps, useGenerateStepsFromItems } from '
 import type { RecipeStep } from '@/schemas/recipeStep';
 import StepCard from './StepCard';
 import StepActionsBar from './StepActionsBar';
+import { Button } from '@/components/ui/button';
 
 interface StepEditorProps {
   recipeSlug: string;
@@ -38,6 +39,7 @@ interface StepEditorProps {
   availableRecipeItems?: Array<{
     id: number;
     name?: string;
+    ingredient_name?: string;
     portion?: {
       ingredient?: { name?: string };
       measuring_unit?: { name?: string };
@@ -217,7 +219,7 @@ export default function StepEditor({
         isGenerating={isGenerating}
       />
 
-      {storeError && <div className="rounded bg-red-100 p-4 text-red-800">{storeError}</div>}
+      {storeError && <div className="rounded-lg bg-destructive/10 p-4 text-destructive text-sm">{storeError}</div>}
 
       <DndContext
         sensors={sensors}
@@ -247,14 +249,11 @@ export default function StepEditor({
       </DndContext>
 
       {storeSteps.length === 0 && (
-        <div className="rounded border-2 border-dashed border-gray-300 p-8 text-center text-gray-500">
+        <div className="rounded-lg border-2 border-dashed border-border p-8 text-center text-muted-foreground">
           <p>Keine Schritte vorhanden</p>
-          <button
-            onClick={handleAddStep}
-            className="mt-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-          >
+          <Button className="mt-3" size="sm" onClick={handleAddStep}>
             Ersten Schritt hinzufügen
-          </button>
+          </Button>
         </div>
       )}
     </div>

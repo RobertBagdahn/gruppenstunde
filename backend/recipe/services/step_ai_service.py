@@ -449,7 +449,7 @@ def _parse_step_generation_response(response_text: str, item_id_map: dict) -> li
                 ingredient_ids.append(item_id)
 
         step = {
-            "sort_order": step_data.get("sort_order", idx),
+            "sort_order": idx,
             "instruction": step_data.get("instruction", "").strip(),
             "duration_minutes": step_data.get("duration_minutes"),
             "section": step_data.get("section", "").strip(),

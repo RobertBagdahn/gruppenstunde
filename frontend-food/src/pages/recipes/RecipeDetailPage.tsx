@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BackButton } from '@/components/shared/BackButton';
 import { EntityLink } from '@/components/shared/EntityLink';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
+import { Button } from '@/components/ui/button';
 import { useBlocker } from '@/hooks/useBlocker';
 import { useCreateFromRecipe } from '@/api/shoppingLists';
 import { useCurrentUser } from '@/api/auth';
@@ -753,50 +754,29 @@ export default function RecipeDetailPage() {
               <h2 className="flex items-center gap-2 text-xl font-semibold leading-tight">
                 Zutaten
                 {(recipe.recipe_items?.length ?? 0) > 0 && (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium leading-none text-muted-foreground">
                     {recipe.recipe_items?.length} Zutaten
                   </span>
                 )}
               </h2>
               {!isInlineEditMode && (
-                <p className="text-sm text-muted-foreground leading-tight">
+                <p className="text-sm text-muted-foreground leading-tight mt-0.5">
                   {portionsMultiplier === 1 ? 'pro Portion' : `für ${portionsMultiplier} Portionen`}
                 </p>
               )}
             </div>
           </div>
-          {!isInlineEditMode && (
-            <div className="flex items-center gap-2">
-              {recipe.can_edit && (
-                <>
-                  <label className="sr-only" htmlFor="edit-portions-choice">
-                    Für wie viele Personen bearbeiten
-                  </label>
-                  <select
-                    id="edit-portions-choice"
-                    value={editPortionsChoice}
-                    onChange={(e) => setEditPortionsChoice(parseInt(e.target.value, 10))}
-                    className="text-xs font-medium border rounded-lg px-2 py-1.5 bg-background"
-                    title="Personenzahl für die Bearbeitung wählen"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
-                      <option key={n} value={n}>
-                        {n} {n === 1 ? 'Person' : 'Personen'}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setIsInlineEditMode(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
-                    title="Für mehrere Personen bearbeiten"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">edit</span>
-                    Bearbeiten
-                  </button>
-                </>
-              )}
-            </div>
+          {!isInlineEditMode && recipe.can_edit && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsInlineEditMode(true)}
+              title="Zutaten bearbeiten"
+            >
+              <Pencil className="w-4 h-4 mr-1.5" />
+              Bearbeiten
+            </Button>
           )}
         </div>
 
@@ -1091,7 +1071,7 @@ export default function RecipeDetailPage() {
       {/* Recipe Steps Editor — after Zubereitung */}
       {recipe.can_edit && (
         <AnalysisSection
-          icon="list-ordered"
+          icon="format_list_numbered"
           title="Strukturierte Schritte"
           defaultOpen={mode === 'steps'}
           accentColor="text-blue-600"
@@ -1252,6 +1232,7 @@ export default function RecipeDetailPage() {
         totalPriceEur={displayedPriceTotal}
         onPortionsChange={setPortionsMultiplier}
         onOpenShoppingList={handleOpenShoppingList}
+        hidePortionScaler={isInlineEditMode}
         onClone={() => {
           setCloneTitle(`${recipe.title} (Kopie)`);
           setShowCloneDialog(true);

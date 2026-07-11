@@ -1401,7 +1401,7 @@ def cost_summary(request, meal_plan_id: int):
                     priced_ingredients += 1
                     meal_cost += price
 
-        cost_per_person = meal_cost / effective_portions if effective_portions > 0 else Decimal("0")
+        cost_per_person = meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
 
         day_costs[str(meal_date)]["total"] += meal_cost
         day_costs[str(meal_date)]["per_person"] += cost_per_person
@@ -1452,7 +1452,7 @@ def cost_summary(request, meal_plan_id: int):
                 # Weighted cost_per_person: total_cost / total_person_portions across all meals
                 # This correctly handles meals with different effective_portions (override_portions).
                 "cost_per_person": (
-                    rc["weighted_cost_sum"] / rc["weighted_portions_sum"]
+                    rc["weighted_cost_sum"] / Decimal(str(rc["weighted_portions_sum"]))
                     if rc["weighted_portions_sum"] > 0
                     else Decimal("0")
                 ),
@@ -2613,6 +2613,38 @@ def create_group_member(request, meal_plan_id: int, payload: GroupMemberCreateIn
     return member
 
 
+@meal_plan_router.post("/{meal_plan_id}/group-members/bulk/", response=list[GroupMemberOut])
+def bulk_create_group_members(request, meal_plan_id: int, payload: GroupMemberBulkCreateIn):
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    if payload.count < 1 or payload.count > 50:
+        raise HttpError(400, "Anzahl muss zwischen 1 und 50 liegen")
+
+    if payload.default_age is not None:
+        default_age = payload.default_age
+    elif payload.stufe and payload.stufe in STUFEN_DEFAULT_AGES:
+        default_age = STUFEN_DEFAULT_AGES[payload.stufe]
+    else:
+        raise HttpError(400, "Entweder 'stufe' oder 'default_age' muss angegeben sein")
+
+    members = []
+    for _ in range(payload.count):
+        member = MealPlanGroupMember(
+            meal_plan=meal_plan,
+            age=default_age,
+            gender=payload.gender,
+        )
+        member.save()
+        members.append(member)
+
+    meal_plan.recalculate_norm_portions()
+    meal_plan.save(update_fields=["norm_portions"])
+
+    return members
+
+
 @meal_plan_router.patch("/{meal_plan_id}/group-members/{member_id}/", response=GroupMemberOut)
 def update_group_member(request, meal_plan_id: int, member_id: int, payload: GroupMemberUpdateIn):
     _require_auth(request)
@@ -2656,38 +2688,6 @@ def delete_group_member(request, meal_plan_id: int, member_id: int):
         meal_plan.save(update_fields=["norm_portions"])
 
     return {"success": True}
-
-
-@meal_plan_router.post("/{meal_plan_id}/group-members/bulk/", response=list[GroupMemberOut])
-def bulk_create_group_members(request, meal_plan_id: int, payload: GroupMemberBulkCreateIn):
-    _require_auth(request)
-    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
-    _require_edit(meal_plan, request.user)
-
-    if payload.count < 1 or payload.count > 50:
-        raise HttpError(400, "Anzahl muss zwischen 1 und 50 liegen")
-
-    if payload.default_age is not None:
-        default_age = payload.default_age
-    elif payload.stufe and payload.stufe in STUFEN_DEFAULT_AGES:
-        default_age = STUFEN_DEFAULT_AGES[payload.stufe]
-    else:
-        raise HttpError(400, "Entweder 'stufe' oder 'default_age' muss angegeben sein")
-
-    members = []
-    for _ in range(payload.count):
-        member = MealPlanGroupMember(
-            meal_plan=meal_plan,
-            age=default_age,
-            gender=payload.gender,
-        )
-        member.save()
-        members.append(member)
-
-    meal_plan.recalculate_norm_portions()
-    meal_plan.save(update_fields=["norm_portions"])
-
-    return members
 
 
 @meal_plan_router.post("/{meal_plan_id}/sync-event-participants/", response=list[GroupMemberOut])

@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -119,6 +121,11 @@ class ShoppingListItem(models.Model):
         blank=True,
         default="",
         verbose_name=_("Notiz"),
+    )
+    rewe_added_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Zu REWE übertragen am"),
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -294,3 +301,46 @@ class KitchenReminder(models.Model):
     def __str__(self) -> str:
         status = "✓" if self.is_published else "○"
         return f"{status} {self.name}"
+
+
+class ReweExportToken(models.Model):
+    """Short-lived token granting read access to a shopping list's export data."""
+
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        verbose_name=_("Token"),
+    )
+    shopping_list = models.ForeignKey(
+        ShoppingList,
+        on_delete=models.CASCADE,
+        related_name="export_tokens",
+        verbose_name=_("Einkaufsliste"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="rewe_export_tokens",
+        verbose_name=_("Nutzer"),
+    )
+    expires_at = models.DateTimeField(
+        verbose_name=_("Läuft ab um"),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Erstellt am"),
+    )
+
+    class Meta:
+        verbose_name = _("REWE-Export-Token")
+        verbose_name_plural = _("REWE-Export-Tokens")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Token für {self.shopping_list.name} von {self.user}"
+
+    def is_valid(self) -> bool:
+        from django.utils import timezone
+
+        return self.expires_at > timezone.now()

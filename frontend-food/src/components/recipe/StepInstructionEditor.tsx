@@ -93,11 +93,26 @@ export default function StepInstructionEditor({
     }, 0);
   };
 
+  // Drag & drop: dropping an ingredient from the "Zutaten in diesem Schritt"
+  // panel (see StepZutatenPanel) inserts its `{n}` placeholder at the current
+  // cursor position — same mechanic as clicking it in the Platzhalter-Menü.
+  const handlePlaceholderDragOver = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handlePlaceholderDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const placeholder = e.dataTransfer.getData('text/plain');
+    if (!placeholder) return;
+    handleInsertPlaceholder(placeholder);
+  };
+
   return (
     <div className="space-y-3">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700">Anweisung</label>
+          <label className="block text-sm font-medium text-foreground">Anweisung</label>
           <PlaceholderInsertMenu
             onInsert={handleInsertPlaceholder}
             ingredientCount={stepIngredientCount}
@@ -109,11 +124,13 @@ export default function StepInstructionEditor({
           value={localInstruction}
           onChange={handleInstructionChange}
           onBlur={handleInstructionBlur}
+          onDragOver={handlePlaceholderDragOver}
+          onDrop={handlePlaceholderDrop}
           placeholder="z. B. 'Mehl und {ingredient_name} vermischen bis glatt...'"
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical min-h-24 font-mono text-sm"
+          className="w-full p-3 border border-input bg-background rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent resize-vertical min-h-24 font-mono text-sm"
         />
-        <p className="text-xs text-gray-500 mt-1">
-          Verwende das Platzhalter-Menü oder tippe manuell Platzhalter ein (z.B. {'{ingredient_name}'})
+        <p className="text-xs text-muted-foreground mt-1">
+          Verwende das Platzhalter-Menü, tippe manuell Platzhalter ein (z.B. {'{ingredient_name}'}) oder ziehe eine Zutat aus der Liste unten hierher
         </p>
       </div>
 
@@ -125,7 +142,7 @@ export default function StepInstructionEditor({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Dauer (Min.)</label>
+          <label className="block text-sm font-medium text-foreground mb-2">Dauer (Min.)</label>
           <input
             type="number"
             min="0"
@@ -134,19 +151,19 @@ export default function StepInstructionEditor({
             onChange={handleDurationChange}
             onBlur={handleDurationBlur}
             placeholder="z. B. 5"
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Sektion</label>
+          <label className="block text-sm font-medium text-foreground mb-2">Sektion</label>
           <input
             type="text"
             value={localSection}
             onChange={handleSectionChange}
             onBlur={handleSectionBlur}
             placeholder="z. B. 'Vorbereitung'"
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent"
           />
         </div>
       </div>

@@ -349,3 +349,48 @@ class KitchenReminderSuggestIn(Schema):
     """Input schema for suggesting a new kitchen reminder."""
 
     name: str
+
+
+# --- REWE Export schemas ---
+
+
+class ReweExportTokenResponse(Schema):
+    """Response after generating a REWE export token."""
+
+    token: str
+    export_url: str
+    expires_at: datetime
+
+
+class ReweExportItem(Schema):
+    """Single item in a REWE export list."""
+
+    item_id: int
+    ingredient_name: str
+    nan_art_id_rewe: int | None = None
+    order_quantity: float
+    unit: str
+    already_added_at: datetime | None = None
+    matched: bool = False
+
+
+class ReweExportListResponse(Schema):
+    """Response for the REWE export endpoint."""
+
+    items: list[ReweExportItem]
+    shopping_list_id: int
+    shopping_list_name: str
+
+
+class ReweReportFailedItem(Schema):
+    """A failed item in the REWE export report."""
+
+    item_id: int
+    reason: str
+
+
+class ReweReportRequest(Schema):
+    """Report from the bookmarklet about export results."""
+
+    successful_item_ids: list[int] = []
+    failed_item_ids: list[ReweReportFailedItem] = []

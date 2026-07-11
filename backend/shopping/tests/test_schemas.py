@@ -4,8 +4,7 @@ import pytest
 
 from shopping.models import ShoppingList, ShoppingListItem, SourceType
 from shopping.schemas import ShoppingListItemOut
-from supply.tests import make_ingredient, make_measuring_unit, make_portion
-
+from supply.tests import make_ingredient, make_portion
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -130,7 +129,7 @@ class TestResolveDisplayQuantity:
     def test_portion_with_weight_zero_not_included(self, shopping_list):
         """Portions with weight_g=0 should not be shown (filtered by compute_portion_options)."""
         ingredient = make_ingredient(name="Test Ingredient")
-        
+
         # Valid portion
         valid_portion = make_portion(
             ingredient=ingredient,
@@ -139,7 +138,7 @@ class TestResolveDisplayQuantity:
             weight_g=100,
             rank=1,
         )
-        
+
         # Invalid portion with no weight
         invalid_portion = make_portion(
             ingredient=ingredient,
@@ -171,7 +170,7 @@ class TestResolveDisplayQuantity:
             weight_g=1000,  # Large portion
             rank=1,
         )
-        
+
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             name="Großformat",
@@ -187,7 +186,7 @@ class TestResolveDisplayQuantity:
         """Ingredient with no named portions should fall back to grams (or package display)."""
         ingredient = make_ingredient(name="No Portions")
         # Don't create any meaningful portions for this ingredient
-        
+
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             name="No Portions",
@@ -209,7 +208,7 @@ class TestResolveDisplayQuantity:
             weight_g=50,
             rank=1,
         )
-        
+
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             name="Bread",
@@ -226,12 +225,12 @@ class TestResolveDisplayQuantity:
     def test_portion_priority_ranking_respected(self, shopping_list):
         """Portions should be sorted by rank; lowest rank is primary."""
         ingredient = make_ingredient(name="Test")
-        
+
         # Create portions with explicit ranks
         p2 = make_portion(ingredient=ingredient, name="B", weight_g=100, rank=2)
         p1 = make_portion(ingredient=ingredient, name="A", weight_g=100, rank=1)
         p3 = make_portion(ingredient=ingredient, name="C", weight_g=100, rank=3)
-        
+
         item = ShoppingListItem.objects.create(
             shopping_list=shopping_list,
             name="Test",

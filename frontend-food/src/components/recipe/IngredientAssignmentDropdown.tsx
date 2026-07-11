@@ -91,12 +91,12 @@ export default function IngredientAssignmentDropdown({
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        className="w-full flex items-center justify-between px-3 py-2 border border-input rounded-lg hover:bg-muted focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
       >
-        <span className="text-sm text-gray-700">{selectedDisplay}</span>
+        <span className="text-sm text-foreground">{selectedDisplay}</span>
         <ChevronDown
           size={16}
-          className={`text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -110,12 +110,12 @@ export default function IngredientAssignmentDropdown({
           />
 
           {/* Menu */}
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-40 max-h-64 flex flex-col">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-40 max-h-64 flex flex-col">
             {/* Search Input */}
             {showSearch && (
-              <div className="p-2 border-b border-gray-200">
-                <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 rounded">
-                  <Search size={14} className="text-gray-400" />
+              <div className="p-2 border-b border-border">
+                <div className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded">
+                  <Search size={14} className="text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Suchen..."
@@ -131,7 +131,7 @@ export default function IngredientAssignmentDropdown({
             {/* Items List */}
             <div className="overflow-y-auto">
               {filteredItems.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
                   Keine Zutaten gefunden
                 </div>
               ) : (
@@ -141,13 +141,13 @@ export default function IngredientAssignmentDropdown({
                     onClick={() => handleSelect(item.id)}
                     className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                       item.id === selectedItemId
-                        ? 'bg-blue-100 text-blue-900 font-medium'
-                        : 'hover:bg-gray-100 text-gray-700'
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'hover:bg-muted text-foreground'
                     }`}
                   >
                     <div className="font-medium">{getItemDisplayName(item)}</div>
                     {item.portion?.measuring_unit?.name && (
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {item.portion.measuring_unit.name}
                       </div>
                     )}

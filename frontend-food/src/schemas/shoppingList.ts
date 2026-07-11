@@ -127,3 +127,25 @@ export const COLLABORATOR_ROLE_LABELS: Record<string, string> = {
   editor: 'Bearbeiter',
   admin: 'Administrator',
 };
+
+// --- REWE Export ---
+
+export const ReweExportTokenResponseSchema = z.object({
+  token: z.string(),
+  export_url: z.string(),
+  expires_at: z.string(),
+});
+
+export type ReweExportTokenResponse = z.output<typeof ReweExportTokenResponseSchema>;
+
+export const ReweExportItemSchema = z.object({
+  item_id: z.number(),
+  ingredient_name: z.string(),
+  nan_art_id_rewe: z.number().nullable().optional(),
+  order_quantity: z.number(),
+  unit: z.string(),
+  already_added_at: z.string().nullable().optional(),
+  matched: z.boolean().default(false),
+});
+
+export type ReweExportItem = z.output<typeof ReweExportItemSchema>

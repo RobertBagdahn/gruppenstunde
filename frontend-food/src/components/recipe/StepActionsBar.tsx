@@ -6,6 +6,7 @@
  */
 
 import { Save, Undo2, Redo2, Plus, Loader, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface StepActionsBarProps {
   hasChanges: boolean;
@@ -33,85 +34,82 @@ export default function StepActionsBar({
   isGenerating = false,
 }: StepActionsBarProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+    <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
       {/* Save Button */}
-      <button
-        onClick={onSave}
-        disabled={!hasChanges || isSaving}
-        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-      >
+      <Button size="sm" onClick={onSave} disabled={!hasChanges || isSaving}>
         {isSaving ? (
           <>
-            <Loader size={18} className="animate-spin" />
+            <Loader size={16} className="mr-2 animate-spin" />
             Wird gespeichert...
           </>
         ) : (
           <>
-            <Save size={18} />
+            <Save size={16} className="mr-2" />
             Speichern
           </>
         )}
-      </button>
+      </Button>
 
-      <div className="border-r border-gray-300 h-6" />
+      <div className="border-r border-border h-6" />
 
       {/* Undo Button */}
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         onClick={onUndo}
         disabled={!canUndo}
-        className="flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
         title="Rückgängig machen"
       >
-        <Undo2 size={18} />
+        <Undo2 size={16} className="mr-1" />
         <span className="hidden sm:inline">Rückgängig</span>
-      </button>
+      </Button>
 
       {/* Redo Button */}
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         onClick={onRedo}
         disabled={!canRedo}
-        className="flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
         title="Wiederherstellen"
       >
         <span className="hidden sm:inline">Wiederherstellen</span>
-        <Redo2 size={18} />
-      </button>
+        <Redo2 size={16} className="ml-1" />
+      </Button>
 
-      <div className="border-r border-gray-300 h-6" />
+      <div className="border-r border-border h-6" />
 
       {/* Add Step Button */}
-      <button
-        onClick={onAddStep}
-        className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-      >
-        <Plus size={18} />
+      <Button variant="secondary" size="sm" onClick={onAddStep}>
+        <Plus size={16} className="mr-1" />
         <span className="hidden sm:inline">Schritt</span>
-      </button>
+      </Button>
 
       {/* AI Generate Steps Button */}
       {onGenerateSteps && (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onGenerateSteps}
           disabled={isGenerating}
-          className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           title="Generiere Schritte automatisch von den Zutaten"
+          className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
         >
           {isGenerating ? (
             <>
-              <Loader size={18} className="animate-spin" />
+              <Loader size={16} className="mr-2 animate-spin" />
               <span className="hidden sm:inline">Generiere...</span>
             </>
           ) : (
             <>
-              <Sparkles size={18} />
+              <Sparkles size={16} className="mr-2" />
               <span className="hidden sm:inline">KI Generierung</span>
             </>
           )}
-        </button>
+        </Button>
       )}
 
       {/* Status Indicator */}
-      <div className="ml-auto text-sm text-gray-600">
+      <div className="ml-auto text-sm text-muted-foreground">
         {hasChanges && <span className="text-orange-600 font-medium">● Ungespeichert</span>}
         {!hasChanges && <span className="text-green-600">✓ Gespeichert</span>}
       </div>

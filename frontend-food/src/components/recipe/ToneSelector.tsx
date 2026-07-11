@@ -80,22 +80,22 @@ export default function ToneSelector({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-card text-card-foreground rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Anweisung umschreiben
           </h3>
           <button
             onClick={onClose}
             disabled={isImproving}
-            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50"
+            className="p-1 hover:bg-muted rounded disabled:opacity-50"
           >
             <X size={20} />
           </button>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           Wähle einen Ton, in dem die Anweisung umgeschrieben werden soll:
         </p>
 
@@ -105,30 +105,30 @@ export default function ToneSelector({
               key={tone.id}
               onClick={() => handleToneSelect(tone.id)}
               disabled={isImproving}
-              className="w-full text-left p-3 rounded border border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left p-3 rounded border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">{tone.label}</p>
-                  <p className="text-sm text-gray-600">{tone.description}</p>
+                  <p className="font-medium text-foreground">{tone.label}</p>
+                  <p className="text-sm text-muted-foreground">{tone.description}</p>
                 </div>
                 {isImproving && (
-                  <Loader size={16} className="animate-spin text-purple-600" />
+                  <Loader size={16} className="animate-spin text-primary" />
                 )}
               </div>
             </button>
           ))}
         </div>
 
-        <div className="bg-gray-100 rounded p-3 mb-4">
-          <p className="text-xs font-semibold text-gray-600 mb-1">Original:</p>
-          <p className="text-sm text-gray-800 line-clamp-2">{instruction}</p>
+        <div className="bg-muted rounded p-3 mb-4">
+          <p className="text-xs font-semibold text-muted-foreground mb-1">Original:</p>
+          <p className="text-sm text-foreground line-clamp-2">{instruction}</p>
         </div>
 
         <button
           onClick={onClose}
           disabled={isImproving}
-          className="w-full px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50"
+          className="w-full px-4 py-2 text-foreground bg-secondary hover:bg-secondary/80 rounded transition-colors disabled:opacity-50"
         >
           Abbrechen
         </button>

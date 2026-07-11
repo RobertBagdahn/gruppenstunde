@@ -71,7 +71,7 @@ export function formatWeight(grams: number): FormattedQuantity {
     return {
       value: mg,
       unit: 'g', // keep 'g' as base unit type; display uses 'mg'
-      display: `${mg}mg`,
+      display: `${mg} mg`,
     };
   }
   const rounded = smartRound(grams);

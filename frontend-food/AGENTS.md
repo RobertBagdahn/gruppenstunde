@@ -1,5 +1,9 @@
 # AI Agent Configuration — Inspi Food Frontend
 
+> 📐 Konkrete Design-Entscheidungen, Bugfixes und "Lessons Learned" (z.B. zu Farb-Tokens,
+> Icon-Größen, Portionen-Skalierung) sind in [Design.md](./Design.md) dokumentiert. Vor größeren
+> UI-Änderungen dort nachschauen, um bereits gemachte Fehler nicht zu wiederholen.
+
 ## Design-System & Visuelle Richtlinien
 
 ### 1. Farb-Token & Theme-System

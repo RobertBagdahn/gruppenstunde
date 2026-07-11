@@ -13,6 +13,12 @@ interface RecipeSidebarProps {
   onPortionsChange: (portions: number) => void;
   onOpenShoppingList: () => void;
   onClone: () => void;
+  /**
+   * Hide the portion scaler, e.g. while the inline ingredient editor is open —
+   * it already has its own person-count scaler for editing quantities, so
+   * showing both at once is confusing/duplicated.
+   */
+  hidePortionScaler?: boolean;
 }
 
 export default function RecipeSidebar({
@@ -22,6 +28,7 @@ export default function RecipeSidebar({
   onPortionsChange,
   onOpenShoppingList,
   onClone,
+  hidePortionScaler = false,
 }: RecipeSidebarProps) {
   const navigate = useNavigate();
   const handleShare = async () => {
@@ -47,15 +54,17 @@ export default function RecipeSidebar({
       <RecipeMetaCard recipe={recipe} portions={portions} totalPriceEur={totalPriceEur} />
 
       {/* Portion Scaler (compact, controlled) */}
-      <PortionScaler
-        value={portions}
-        onChange={onPortionsChange}
-        defaultValue={portions}
-        compact
-      />
+      {!hidePortionScaler && (
+        <PortionScaler
+          value={portions}
+          onChange={onPortionsChange}
+          defaultValue={portions}
+          compact
+        />
+      )}
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-2">
+      {/* Action Buttons (compact) */}
+      <div className="flex flex-col gap-1.5">
         <button
           type="button"
           onClick={() => {
@@ -64,43 +73,50 @@ export default function RecipeSidebar({
               { replace: true },
             );
           }}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
         >
           <UtensilsCrossed className="w-4 h-4" />
           Kochen starten
         </button>
         <button
           type="button"
-          onClick={() => window.print()}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
-        >
-          <Printer className="w-4 h-4" />
-          Drucken
-        </button>
-        <button
-          type="button"
           onClick={onOpenShoppingList}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           <ShoppingCart className="w-4 h-4" />
           Einkaufsliste
         </button>
-        <button
-          type="button"
-          onClick={handleShare}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
-        >
-          <Share2 className="w-4 h-4" />
-          Teilen
-        </button>
-        <button
-          type="button"
-          onClick={onClone}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border-2 border-dashed border-primary/30 bg-primary/5 text-primary rounded-lg hover:bg-primary/10 transition-colors"
-        >
-          <Copy className="w-4 h-4" />
-          Rezept clonen
-        </button>
+
+        {/* Secondary actions as a compact icon row */}
+        <div className="grid grid-cols-3 gap-1.5">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            title="Drucken"
+            className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+          >
+            <Printer className="w-4 h-4" />
+            <span className="hidden xl:inline">Drucken</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleShare}
+            title="Teilen"
+            className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="hidden xl:inline">Teilen</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClone}
+            title="Rezept clonen"
+            className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium border border-primary/40 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 hover:border-primary/60 transition-colors"
+          >
+            <Copy className="w-4 h-4" />
+            <span className="hidden xl:inline">Clonen</span>
+          </button>
+        </div>
       </div>
     </aside>
   );

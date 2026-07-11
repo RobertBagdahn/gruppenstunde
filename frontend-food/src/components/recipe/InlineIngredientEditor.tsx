@@ -6,7 +6,7 @@ import { useState, useCallback, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Scale, Sparkles, SlidersHorizontal } from 'lucide-react';
+import { Sparkles, SlidersHorizontal } from 'lucide-react';
 import {
   useUpdateRecipe,
   useUpdateRecipeItem,
@@ -23,6 +23,7 @@ import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
 import PortionScaler from './PortionScaler';
 import { scaleQuantity, toBasePerServing, rescaleForNewPortions } from '@/lib/cookingQuantityScale';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
+import { Button } from '@/components/ui/button';
 import type { RecipeItem } from '@/schemas/recipe';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 
@@ -43,6 +44,12 @@ interface EditableItem {
   exchange_group_id: number | null;
   exchange_position: number | null;
   ingredient_portions: { id: number; name: string; quantity: number; weight_g: number | null; measuring_unit_name: string | null; rank: number }[];
+  /** Backend-computed weight (grams) for `baseQuantity` — authoritative, unlike
+   *  the client-side `ingredient_portions[].weight_g` lookup (which can be
+   *  wrong/missing if `portion_id` doesn't match any listed portion). Used to
+   *  derive a stable grams-per-unit ratio for sorting, see `getItemWeightG`. */
+  baseWeightG: number;
+  baseQuantity: number;
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -170,6 +177,10 @@ function normalizeItems(items: RecipeItem[], portions: number | null): EditableI
       is_optional: item.is_optional ?? false,
       exchange_group_id: item.exchange_group_id ?? null,
       exchange_position: item.exchange_position ?? null,
+      // Backend-computed weight for the raw (unscaled) quantity — authoritative
+      // source for sorting (see `baseWeightG` doc comment on EditableItem).
+      baseWeightG: item.weight_g,
+      baseQuantity: item.quantity,
       // Only mark dirty if portions changed by user action (s > 1)
       isDirty: s > 1,
     };
@@ -282,10 +293,10 @@ function IngredientRow({
         <button
           type="button"
           onClick={() => setExpandedNotes((prev) => new Set(prev).add(item.id))}
-          className="p-1.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
           title="Notiz hinzufügen"
         >
-          <span className="material-symbols-outlined text-[16px]">sticky_note_2</span>
+          <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
         </button>
       )}
       {/* Optional toggle (task 9.3) — disabled when in exchange group or unsaved */}
@@ -310,9 +321,9 @@ function IngredientRow({
             },
           );
         }}
-        className={`p-1.5 transition-colors rounded ${item.is_optional ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground/40 hover:text-muted-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
+        className={`p-1.5 transition-colors rounded ${item.is_optional ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-30 disabled:cursor-not-allowed`}
       >
-        <span className="material-symbols-outlined text-[16px]">
+        <span className="material-symbols-outlined text-[20px]">
           {item.is_optional ? 'toggle_on' : 'toggle_off'}
         </span>
       </button>
@@ -322,9 +333,9 @@ function IngredientRow({
         disabled={item.is_optional || item.isNew}
         title={item.isNew ? 'Bitte zuerst speichern' : 'Alternative hinzufügen'}
         onClick={() => setAlternativeTargetId(item.id)}
-        className="p-1.5 text-muted-foreground/40 hover:text-primary transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+        className="p-1.5 text-muted-foreground hover:text-primary transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
       >
-        <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+        <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
       </button>
       <button
         type="button"
@@ -346,10 +357,10 @@ function IngredientRow({
           }
           handleDelete(item.id);
         }}
-        className="p-1 text-destructive/60 hover:text-destructive transition-colors"
+        className="p-1.5 text-destructive/70 hover:text-destructive transition-colors"
         title="Entfernen"
       >
-        <span className="material-symbols-outlined text-[18px]">close</span>
+        <span className="material-symbols-outlined text-[20px]">close</span>
       </button>
       {/* Verify button (staff only) */}
       {user?.is_staff && (
@@ -372,9 +383,9 @@ function IngredientRow({
               },
             );
           }}
-          className="p-1.5 text-green-600/60 hover:text-green-600 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 text-green-600/70 hover:text-green-600 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <span className="material-symbols-outlined text-[16px]" title="Verify">verified</span>
+          <span className="material-symbols-outlined text-[20px]" title="Verify">verified</span>
         </button>
       )}
     </div>
@@ -422,8 +433,7 @@ export default function InlineIngredientEditor({
   const [selectedAiSuggestions, setSelectedAiSuggestions] = useState<Set<number>>(new Set());
   const [aiSuggestInteractionId, setAiSuggestInteractionId] = useState<string | null>(null);
   const [detailSearchOpen, setDetailSearchOpen] = useState(false);
-  const [showScaleDialog, setShowScaleDialog] = useState(false);
-  const [scaleFactorInput, setScaleFactorInput] = useState('1,0');
+
   const [alternativeTargetId, setAlternativeTargetId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
@@ -483,8 +493,14 @@ export default function InlineIngredientEditor({
         const newPortion = item.ingredient_portions.find((p) => p.id === portionId);
         if (!newPortion) return item;
 
-        // Convert quantity: old quantity in grams → new unit
-        const oldWeightG = oldPortion?.weight_g ?? 1;
+        // Convert quantity: old quantity in grams → new unit. Prefer the
+        // reliable baseWeightG/baseQuantity ratio over the portion lookup —
+        // `oldPortion` can be undefined if `portion_id` isn't present in this
+        // item's own `ingredient_portions` list (seen in the wild), which
+        // would otherwise silently fall back to a wrong "1g" default.
+        const oldWeightG = item.baseQuantity > 0
+          ? item.baseWeightG / item.baseQuantity
+          : (oldPortion?.weight_g ?? 1);
         const newWeightG = newPortion.weight_g ?? 1;
         const quantityInGrams = item.quantity * oldWeightG;
         const newQuantity = Math.round((quantityInGrams / newWeightG) * 100) / 100;
@@ -500,6 +516,9 @@ export default function InlineIngredientEditor({
           measuring_unit_name: label,
           quantity: newQuantity,
           quantityInput: String(newQuantity),
+          // Keep the grams-per-unit ratio consistent with the new portion.
+          baseWeightG: quantityInGrams,
+          baseQuantity: newQuantity,
           isDirty: true,
         };
       }),
@@ -668,6 +687,8 @@ export default function InlineIngredientEditor({
             is_optional: false,
             exchange_group_id: null,
             exchange_position: null,
+            baseWeightG: (selectedPortion!.weight_g ?? 0) * quantity,
+            baseQuantity: quantity,
             isNew: true,
             isDirty: true,
           },
@@ -791,27 +812,6 @@ export default function InlineIngredientEditor({
     [scale],
   );
 
-  // --- Scale ---
-
-  const handleScale = useCallback(() => {
-    const normalized = scaleFactorInput.trim().replace(',', '.');
-    const factor = parseFloat(normalized);
-    if (isNaN(factor) || factor <= 0) return;
-
-    setEditItems((prev) =>
-      prev.map((item) => {
-        const newQty = Math.round(item.quantity * factor * 100) / 100;
-        return {
-          ...item,
-          quantity: newQty,
-          quantityInput: String(newQty),
-          isDirty: true,
-        };
-      }),
-    );
-    setShowScaleDialog(false);
-    setScaleFactorInput('1,0');
-  }, [scaleFactorInput]);
 
   // --- Alternative Ingredient Selection ---
 
@@ -902,6 +902,8 @@ export default function InlineIngredientEditor({
             is_optional: false,
             exchange_group_id: groupId,
             exchange_position: nextPosition,
+            baseWeightG: bestPortion.weight_g ?? 0,
+            baseQuantity: 1,
             isNew: true,
             isDirty: true,
           },
@@ -1013,71 +1015,80 @@ export default function InlineIngredientEditor({
           compact
           onChange={handleEditPortionsChange}
         />
-        <p className="px-1 text-xs text-blue-800">
+        <p className="px-1 text-xs text-amber-800">
           Mengen für <strong>{editPortions} {editPortions === 1 ? 'Person' : 'Personen'}</strong> — werden beim
           Speichern auf 1 Portion normiert.
         </p>
       </div>
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-        <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 border border-border rounded-lg">
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <span className="material-symbols-outlined text-[18px]">edit</span>
           Bearbeitungsmodus
         </div>
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={handleAiSuggest}
             disabled={isAiSuggesting}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-200 transition-colors disabled:opacity-50"
+            className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
             title="Weitere Zutaten per KI vorschlagen"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 mr-1.5" />
             {isAiSuggesting ? 'Lädt...' : 'Weitere Zutaten'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={handleEstimate}
             disabled={estimateQuantities.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-violet-100 text-violet-700 border border-violet-200 rounded-lg hover:bg-violet-200 transition-colors disabled:opacity-50"
+            className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
           >
-            <span className="material-symbols-outlined text-[16px]">auto_fix_high</span>
+            <span className="material-symbols-outlined text-[16px] mr-1.5">auto_fix_high</span>
             {estimateQuantities.isPending ? 'Schätze...' : 'Mengen schätzen'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowScaleDialog(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-100 text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-200 transition-colors"
-            title="Zutaten skalieren"
-          >
-            <Scale className="w-4 h-4" />
-            Skalieren
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-[16px]">save</span>
+          </Button>
+          <Button type="button" size="sm" onClick={handleSave} disabled={isSaving}>
+            <span className="material-symbols-outlined text-[16px] mr-1.5">save</span>
             {isSaving ? 'Speichert...' : 'Speichern'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
-          >
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Abbrechen
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Ingredient Rows */}
       <div className="space-y-2">
         {(() => {
+          // Weight (in grams) of an item — used to sort the list descending by
+          // weight, matching the read-only view (`IngredientList`). Recomputed
+          // live so the order always reflects the current (possibly just-edited)
+          // quantity. Uses the backend-computed `baseWeightG`/`baseQuantity`
+          // ratio rather than looking up `ingredient_portions[].weight_g` by
+          // `portion_id` — that lookup can silently return nothing (and fall
+          // back to a wrong default) when `portion_id` isn't present in the
+          // item's own `ingredient_portions` list.
+          const getItemWeightG = (item: EditableItem) => {
+            if (item.baseQuantity > 0) {
+              return (item.baseWeightG / item.baseQuantity) * item.quantity;
+            }
+            const portion = item.ingredient_portions.find((p) => p.id === item.portion_id);
+            return item.quantity * (portion?.weight_g ?? 0);
+          };
+
           const standaloneItems = activeItems.filter(item => item.exchange_group_id == null);
           const exchangeSources = activeItems.filter(
             item => item.exchange_group_id != null && item.exchange_position === 0
+          );
+
+          // Combine standalone items and exchange-group "source" rows into a
+          // single list, sorted descending by weight — alternatives stay
+          // nested under their source row (see rendering below).
+          const topLevelItems = [...standaloneItems, ...exchangeSources].sort(
+            (a, b) => getItemWeightG(b) - getItemWeightG(a),
           );
 
           const renderRow = (item: EditableItem, isSource: boolean, isAlt: boolean, isLastInGroup: boolean) => (
@@ -1102,27 +1113,23 @@ export default function InlineIngredientEditor({
             />
           );
 
-          const rendered: ReactNode[] = [];
-
-          // Standalone items
-          standaloneItems.forEach((item) => {
-            rendered.push(renderRow(item, false, false, true));
-          });
-
-          // Exchange groups: source + alternatives grouped together
-          exchangeSources.forEach((source) => {
+          const rendered: ReactNode[] = topLevelItems.map((item) => {
+            if (item.exchange_group_id == null) {
+              return renderRow(item, false, false, true);
+            }
+            // Exchange group: source + alternatives grouped together
             const alts = activeItems.filter(
               (other) =>
-                other.exchange_group_id === source.exchange_group_id &&
+                other.exchange_group_id === item.exchange_group_id &&
                 (other.exchange_position ?? 0) > 0,
             );
-            rendered.push(
-              <div key={`group-${source.id}`} className="space-y-0">
-                {renderRow(source, true, false, alts.length === 0)}
+            return (
+              <div key={`group-${item.id}`} className="space-y-0">
+                {renderRow(item, true, false, alts.length === 0)}
                 {alts.map((alt, idx) =>
                   renderRow(alt, false, true, idx === alts.length - 1),
                 )}
-              </div>,
+              </div>
             );
           });
 
@@ -1132,7 +1139,7 @@ export default function InlineIngredientEditor({
 
       {/* Add Ingredient */}
       <div className="pt-2 border-t flex items-center gap-2">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <IngredientAutocomplete
             value={inputValue}
             onChange={setInputValue}
@@ -1151,10 +1158,10 @@ export default function InlineIngredientEditor({
         <button
           type="button"
           onClick={() => setDetailSearchOpen(true)}
-          className="p-2 rounded-lg border hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
+          className="h-11 px-3 rounded-lg border border-input hover:bg-muted hover:border-primary/40 transition-colors text-muted-foreground hover:text-primary shrink-0"
           title="Detailsuche"
         >
-          <SlidersHorizontal className="w-4 h-4" />
+          <SlidersHorizontal className="w-5 h-5" />
         </button>
       </div>
 
@@ -1178,7 +1185,7 @@ export default function InlineIngredientEditor({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-violet-500">auto_fix_high</span>
+              <span className="material-symbols-outlined text-primary">auto_fix_high</span>
               AI-Mengenschätzung
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
@@ -1198,7 +1205,7 @@ export default function InlineIngredientEditor({
                           setSelectedEstimates(new Set());
                         }
                       }}
-                      className="rounded border-gray-300"
+                      className="rounded border-input"
                       title="Alle auswählen"
                     />
                   </th>
@@ -1241,7 +1248,7 @@ export default function InlineIngredientEditor({
                               return next;
                             });
                           }}
-                          className="rounded border-gray-300"
+                          className="rounded border-input"
                         />
                       </td>
                       <td className="py-2">{est.ingredient_name}</td>
@@ -1286,7 +1293,7 @@ export default function InlineIngredientEditor({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-lg shadow-xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-500" />
+              <Sparkles className="w-5 h-5 text-primary" />
               KI-Vorschläge
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
@@ -1306,7 +1313,7 @@ export default function InlineIngredientEditor({
                           setSelectedAiSuggestions(new Set());
                         }
                       }}
-                      className="rounded border-gray-300"
+                      className="rounded border-input"
                       title="Alle auswählen"
                     />
                   </th>
@@ -1332,7 +1339,7 @@ export default function InlineIngredientEditor({
                             return next;
                           });
                         }}
-                        className="rounded border-gray-300"
+                        className="rounded border-input"
                       />
                     </td>
                     <td className="py-2 font-medium">{s.ingredient_name}</td>
@@ -1377,81 +1384,6 @@ export default function InlineIngredientEditor({
       )}
 
       {/* Scale Dialog */}
-      {showScaleDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Scale className="w-5 h-5 text-rose-500" />
-              Zutaten skalieren
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Alle Zutatenmengen werden mit dem gewählten Faktor multipliziert.
-            </p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {[
-                { label: '×0,8', value: 0.8 },
-                { label: '×0,9', value: 0.9 },
-                { label: '×1,0', value: 1.0 },
-                { label: '×1,1', value: 1.1 },
-                { label: '×1,2', value: 1.2 },
-              ].map((preset) => {
-                const parsed = parseFloat(scaleFactorInput.replace(',', '.'));
-                const isSelected = !isNaN(parsed) && parsed === preset.value;
-                return (
-                  <button
-                    key={preset.value}
-                    type="button"
-                    onClick={() =>
-                      setScaleFactorInput(String(preset.value).replace('.', ','))
-                    }
-                    className={`px-3 py-1.5 text-sm font-medium border rounded-lg transition-colors ${
-                      isSelected
-                        ? 'border-rose-300 bg-rose-50 text-rose-700'
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1.5">Faktor</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={scaleFactorInput}
-                onChange={(e) => setScaleFactorInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleScale();
-                }}
-                placeholder="z.B. 2 oder 1,5"
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
-                autoFocus
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowScaleDialog(false);
-                  setScaleFactorInput('1,0');
-                }}
-                className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={handleScale}
-                className="px-4 py-2 text-sm font-medium bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
-              >
-                Skalieren
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -3,9 +3,10 @@
 import logging
 from typing import Optional
 
+from django.core.cache import cache
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from ninja import Router, Query
+from ninja import Router, Query, Body
 from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeStep, RecipeStepIngredient, RecipeItem
@@ -16,11 +17,35 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
+# Minimum time (seconds) a single user must wait between calls to the same
+# expensive AI endpoint. This is a safety net against buggy/looping clients
+# (e.g. a frontend bug re-firing a mutation on every render) that would
+# otherwise burn through the global Gemini quota in seconds.
+AI_ENDPOINT_COOLDOWN_SECONDS = 3
+
 
 def _require_auth(request):
     """Require authenticated user."""
     if not request.user.is_authenticated:
         raise HttpError(403, "Authentifizierung erforderlich")
+
+
+def _throttle_ai_endpoint(request, endpoint: str, *extra_key_parts: str) -> None:
+    """Enforce a short per-user cooldown for an expensive AI endpoint.
+
+    Raises HttpError(429) if the user calls the same endpoint (optionally
+    scoped by extra key parts, e.g. step id) again before the cooldown
+    elapses. Fails open if the cache backend is unavailable.
+    """
+    user_id = getattr(request.user, "id", None) or "anon"
+    cache_key = "ai_throttle:" + ":".join([endpoint, str(user_id), *extra_key_parts])
+    try:
+        if not cache.add(cache_key, 1, timeout=AI_ENDPOINT_COOLDOWN_SECONDS):
+            raise HttpError(429, "Bitte warte kurz, bevor du das erneut anfragst.")
+    except HttpError:
+        raise
+    except Exception:
+        logger.warning("AI throttle cache unavailable, proceeding without throttle")
 
 
 def _can_edit_recipe(request, recipe: Recipe) -> bool:
@@ -129,6 +154,8 @@ def generate_steps_from_items(request, slug: str):
     if not _can_edit_recipe(request, recipe):
         raise HttpError(403, "Berechtigung erforderlich")
     
+    _throttle_ai_endpoint(request, "generate-from-items", slug)
+    
     try:
         steps_data = AiStepService.generate_steps_from_items(
             recipe=recipe,
@@ -155,7 +182,7 @@ def generate_steps_from_items(request, slug: str):
 
 
 @router.post("/{slug}/steps/suggest-ingredients/")
-def suggest_ingredient_assignment(request, slug: str, payload: dict):
+def suggest_ingredient_assignment(request, slug: str, payload: dict = Body(...)):
     """Suggest ingredient assignments for a step using AI."""
     _require_auth(request)
     
@@ -164,6 +191,8 @@ def suggest_ingredient_assignment(request, slug: str, payload: dict):
     
     if not step_instruction:
         raise HttpError(400, "step_instruction darf nicht leer sein")
+    
+    _throttle_ai_endpoint(request, "suggest-ingredients", slug, step_instruction[:100])
     
     try:
         suggestions = AiStepService.suggest_ingredient_assignment(
@@ -184,7 +213,7 @@ def suggest_ingredient_assignment(request, slug: str, payload: dict):
 
 
 @router.post("/{slug}/steps/{step_id}/improve/")
-def improve_step_instruction(request, slug: str, step_id: int, payload: dict):
+def improve_step_instruction(request, slug: str, step_id: int, payload: dict = Body(...)):
     """Improve/rewrite a step instruction with a specific tone using AI."""
     _require_auth(request)
     
@@ -199,6 +228,8 @@ def improve_step_instruction(request, slug: str, step_id: int, payload: dict):
     
     if not instruction or not instruction.strip():
         raise HttpError(400, "Schritt hat keine Anweisung")
+    
+    _throttle_ai_endpoint(request, "improve-step", slug, str(step_id), tone)
     
     try:
         improved_instruction = AiStepService.improve_step_instruction(

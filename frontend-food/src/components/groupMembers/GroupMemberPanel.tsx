@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Users } from 'lucide-react';
+import { Users, Plus } from 'lucide-react';
 import { useGroupMembers, useCreateGroupMember, useDeleteGroupMember, useBulkCreateGroupMembers, useSyncEventParticipants } from '@/api/groupMembers';
-import { AddPersonForm } from './AddPersonForm';
+import { AddPersonDialog } from './AddPersonDialog';
 import { GroupMemberList } from './GroupMemberList';
 import { QuickAddStufenDialog } from './QuickAddStufenDialog';
 
@@ -18,6 +18,8 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName }: Props) {
   const bulkCreateMutation = useBulkCreateGroupMembers(mealPlanId);
   const syncMutation = useSyncEventParticipants(mealPlanId);
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+  const [showAddPersonDialog, setShowAddPersonDialog] = useState(false);
+  const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
@@ -29,15 +31,24 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName }: Props) {
         </span>
       </div>
 
-      <QuickAddStufenDialog
-        onBulkCreate={(data) => bulkCreateMutation.mutate(data)}
-        isPending={bulkCreateMutation.isPending}
-      />
-
-      <AddPersonForm
-        onSubmit={(data) => createMutation.mutate(data)}
-        isPending={createMutation.isPending}
-      />
+      <div className="flex gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setShowQuickAddDialog(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition"
+        >
+          <Users className="w-4 h-4" />
+          Schnell hinzufügen
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowAddPersonDialog(true)}
+          className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted/50 transition"
+        >
+          <Plus className="w-4 h-4" />
+          Person hinzufügen
+        </button>
+      </div>
 
       <GroupMemberList
         members={members}
@@ -86,6 +97,21 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName }: Props) {
           )}
         </div>
       )}
+
+      {/* Dialogs */}
+      <AddPersonDialog
+        open={showAddPersonDialog}
+        onOpenChange={setShowAddPersonDialog}
+        onSubmit={(data) => createMutation.mutate(data)}
+        isPending={createMutation.isPending}
+      />
+
+      <QuickAddStufenDialog
+        open={showQuickAddDialog}
+        onOpenChange={setShowQuickAddDialog}
+        onBulkCreate={(data) => bulkCreateMutation.mutate(data)}
+        isPending={bulkCreateMutation.isPending}
+      />
     </div>
   );
 }
