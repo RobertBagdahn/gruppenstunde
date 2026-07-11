@@ -96,8 +96,8 @@ def _get_visible_recipes_qs(request):
         created_q = Q(created_by=request.user)
         
         # Recipes shared with user's groups (new breakfast wizard model)
-        from profiles.models import Group
-        user_groups = Group.objects.filter(members=request.user)
+        from profiles.models import UserGroup
+        user_groups = UserGroup.objects.filter(memberships__user=request.user)
         shared_q = Q(visibility="shared", shared_groups__in=user_groups)
         
         visibility_q = system_q | community_q | own_q | created_q | shared_q
@@ -176,8 +176,8 @@ def _can_view_recipe_breakfast(recipe: Recipe, user) -> bool:
             return False
     
     # New shared_groups model
-    from profiles.models import Group
-    user_groups = Group.objects.filter(members=user)
+    from profiles.models import UserGroup
+    user_groups = UserGroup.objects.filter(memberships__user=user)
     return recipe.shared_groups.filter(id__in=user_groups).exists()
 
 
@@ -191,7 +191,7 @@ def _get_visible_recipes_for_breakfast_qs(user, group_ids: list[int] | None = No
     Returns:
         Queryset of visible Recipe objects
     """
-    from profiles.models import Group
+    from profiles.models import UserGroup
     
     qs = Recipe.objects.select_related("owner", "forked_from").prefetch_related("shared_groups", "scout_levels", "tags")
     
@@ -208,7 +208,7 @@ def _get_visible_recipes_for_breakfast_qs(user, group_ids: list[int] | None = No
     own_q = Q(owner=user)
     
     # Get user's groups
-    user_groups = Group.objects.filter(members=user)
+    user_groups = UserGroup.objects.filter(memberships__user=user)
     
     # Recipes shared with user's groups
     shared_q = Q(visibility="shared", shared_groups__in=user_groups)
@@ -226,7 +226,7 @@ def _get_visible_recipes_for_breakfast_qs(user, group_ids: list[int] | None = No
         # If specific groups are requested, also include recipes shared with those groups
         visibility_q = visibility_q | Q(
             visibility="shared",
-            shared_groups__in=Group.objects.filter(id__in=group_ids)
+            shared_groups__in=UserGroup.objects.filter(id__in=group_ids)
         )
     
     return qs.filter(visibility_q).distinct()
@@ -589,10 +589,10 @@ def create_recipe(request, payload: RecipeCreateIn):
     
     # Handle shared_group_ids for breakfast wizard recipes
     if payload.shared_group_ids:
-        from profiles.models import Group
+        from profiles.models import UserGroup
         
         # Validate that user is member of all shared groups
-        user_group_ids = set(Group.objects.filter(members=request.user).values_list("id", flat=True))
+        user_group_ids = set(UserGroup.objects.filter(memberships__user=request.user).values_list("id", flat=True))
         invalid_group_ids = set(payload.shared_group_ids) - user_group_ids
         if invalid_group_ids:
             raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
@@ -700,10 +700,10 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     # Handle shared_group_ids for breakfast wizard recipes
     if shared_group_ids is not None:
         if recipe.visibility == "shared" or data.get("visibility") == "shared":
-            from profiles.models import Group
+            from profiles.models import UserGroup
             
             # Validate that user is member of all shared groups
-            user_group_ids = set(Group.objects.filter(members=request.user).values_list("id", flat=True))
+            user_group_ids = set(UserGroup.objects.filter(memberships__user=request.user).values_list("id", flat=True))
             invalid_group_ids = set(shared_group_ids) - user_group_ids
             if invalid_group_ids:
                 raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
@@ -924,7 +924,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
 
     group_map: dict[int, RecipeItemExchangeGroup] = {}
     for group in original.exchange_groups.all():
-        group_map[group.id] = RecipeItemExchangeGroup.objects.create(
+        group_map[group.id] = RecipeItemExchangeUserGroup.objects.create(
             recipe=fork,
             name=group.name,
         )

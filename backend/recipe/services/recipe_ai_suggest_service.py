@@ -198,8 +198,14 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
     )
 
     # Create recipe items — match or create ingredients, then resolve portions
+    from recipe.services.ingredient_matcher import IngredientMatcher
+    from recipe.services.ingredient_enrichment import enrich_ingredient
+
     for i, item in enumerate(data.items):
-        ingredient = _match_or_create_ingredient(item.ingredient_name, user)
+        match_result = IngredientMatcher.match(item.ingredient_name, user)
+        note = match_result.note
+
+        ingredient = _resolve_ingredient_from_match(match_result, item.ingredient_name, user)
         measuring_unit = _match_measuring_unit(item.unit)
         portion = _resolve_or_create_portion(ingredient, measuring_unit, item.unit)
 
@@ -209,9 +215,83 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
             quantity=item.quantity,
             sort_order=i + 1,
             is_optional=item.is_optional,
+            note=note,
         )
 
     return recipe
+
+
+def _resolve_ingredient_from_match(match_result, fallback_name: str, user: AbstractBaseUser | None = None):
+    """Get or create an Ingredient from a MatchResult."""
+    from recipe.services.ingredient_enrichment import enrich_ingredient
+    from supply.choices import IngredientStatusChoices
+    from supply.models import Ingredient
+
+    if match_result.ingredient_id:
+        return Ingredient.objects.get(id=match_result.ingredient_id)
+
+    if match_result.needs_review:
+        base_slug = slugify(fallback_name)
+        slug = base_slug
+        counter = 1
+        while Ingredient.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        ingredient = Ingredient.objects.create(
+            name=fallback_name,
+            slug=slug,
+            status=IngredientStatusChoices.DRAFT,
+            created_by=user if user and user.is_authenticated else None,
+        )
+
+        nutrition = enrich_ingredient(fallback_name, user)
+        if nutrition and nutrition.name:
+            from supply.choices import PhysicalViscosityChoices
+            from supply.models import MeasuringUnit, Portion
+            from supply.services.unit_resolution import resolve_canonical_unit
+
+            ingredient.name = nutrition.name
+            ingredient.energy_kcal = nutrition.energy_kcal
+            ingredient.protein_g = nutrition.protein_g
+            ingredient.fat_g = nutrition.fat_g
+            ingredient.fat_sat_g = nutrition.fat_sat_g
+            ingredient.carbohydrate_g = nutrition.carbohydrate_g
+            ingredient.sugar_g = nutrition.sugar_g
+            ingredient.fibre_g = nutrition.fibre_g
+            ingredient.salt_g = nutrition.salt_g
+            ingredient.child_score = nutrition.child_score
+            ingredient.scout_score = nutrition.scout_score
+            ingredient.environmental_score = nutrition.environmental_score
+            ingredient.nova_score = nutrition.nova_score
+            ingredient.nutri_score = nutrition.nutri_score
+            ingredient.nutri_class = nutrition.nutri_class
+            ingredient.physical_density = nutrition.physical_density
+            ingredient.physical_viscosity = (
+                PhysicalViscosityChoices.BEVERAGE
+                if nutrition.physical_viscosity in ("liquid", "beverage")
+                else PhysicalViscosityChoices.SOLID
+            )
+            ingredient.save()
+
+            for alias_name in nutrition.aliases:
+                from supply.models import IngredientAlias
+                IngredientAlias.objects.get_or_create(ingredient=ingredient, name=alias_name)
+
+            unit = resolve_canonical_unit(nutrition.portion_name)
+            if not unit:
+                unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm")
+            Portion.objects.get_or_create(
+                ingredient=ingredient,
+                name=nutrition.portion_name or unit.name or "Stück",
+                measuring_unit=unit,
+                quantity=1.0,
+                defaults={"weight_g": nutrition.portion_weight_g if nutrition.portion_weight_g > 0 else None},
+            )
+
+        return ingredient
+
+    return _match_or_create_ingredient(fallback_name, user)
 
 
 def _match_or_create_ingredient(name: str, user: AbstractBaseUser | None) -> Ingredient:

@@ -61,6 +61,7 @@ class MatchedIngredientResult:
         measuring_unit_id: int | None,
         measuring_unit_name: str | None,
         is_new_ingredient: bool = False,
+        note: str = "",
     ):
         self.ingredient_id = ingredient_id
         self.ingredient_name = ingredient_name
@@ -70,6 +71,7 @@ class MatchedIngredientResult:
         self.measuring_unit_id = measuring_unit_id
         self.measuring_unit_name = measuring_unit_name
         self.is_new_ingredient = is_new_ingredient
+        self.note = note
 
 
 # ---------------------------------------------------------------------------
@@ -120,75 +122,52 @@ class RecipeAiIngredientsService:
 
     def match_ingredients(
         self, suggestions: list[AiIngredientSuggestion]
-    ) -> list[tuple[AiIngredientSuggestion, int, bool]]:
-        """Match suggested ingredient names against the database.
+    ) -> list[tuple[AiIngredientSuggestion, int, bool, str]]:
+        """Match suggested ingredient names via IngredientMatcher.
 
-        Returns list of (suggestion, ingredient_id, is_new) tuples.
-        Creates missing ingredients with status='draft'.
-
-        Match order: exact name/slug/alias always has priority. As an
-        additional (never sole) path, a normalized (stemmed) comparison is
-        used so that singular/plural variants (e.g. "Zwiebel"/"Zwiebeln")
-        resolve to the same ingredient instead of creating a duplicate.
+        Returns list of (suggestion, ingredient_id, is_new, note) tuples.
+        Uses the central IngredientMatcher with cascading stages.
         """
-        from supply.choices import IngredientStatusChoices
-        from supply.models import Ingredient, IngredientAlias
-        from supply.services.term_normalization import normalize_term
+        from recipe.services.ingredient_matcher import IngredientMatcher
 
-        results: list[tuple[AiIngredientSuggestion, int, bool]] = []
-
-        # Build a normalized-name -> ingredient_id map once, used as a
-        # fallback match path (never the sole criterion for exact matches).
-        normalized_index: dict[str, int] = {}
-        for ing_id, ing_name in Ingredient.objects.values_list("id", "name"):
-            normalized_index.setdefault(normalize_term(ing_name), ing_id)
-        for alias_ing_id, alias_name in IngredientAlias.objects.values_list("ingredient_id", "name"):
-            normalized_index.setdefault(normalize_term(alias_name), alias_ing_id)
+        results: list[tuple[AiIngredientSuggestion, int, bool, str]] = []
 
         for suggestion in suggestions:
-            name_lower = suggestion.name.strip().lower()
-            slug = slugify(suggestion.name)
+            raw_name = suggestion.name.strip()
+            match_result = IngredientMatcher.match(raw_name)
 
-            # Try exact name match (case-insensitive)
-            ingredient = Ingredient.objects.filter(name__iexact=name_lower).first()
+            if match_result.needs_review and not match_result.ingredient_id:
+                from supply.choices import IngredientStatusChoices
+                from supply.models import Ingredient
+                from django.utils.text import slugify
 
-            # Try slug match
-            if not ingredient:
-                ingredient = Ingredient.objects.filter(slug=slug).first()
-
-            # Try alias match
-            if not ingredient:
-                alias = IngredientAlias.objects.filter(name__iexact=name_lower).select_related("ingredient").first()
-                if alias:
-                    ingredient = alias.ingredient
-
-            # Try contains match as fallback
-            if not ingredient:
-                ingredient = Ingredient.objects.filter(name__icontains=name_lower).first()
-
-            # Normalized (stemmed) match — additional path, never sole/automatic
-            # for ambiguous cases, but safe here since it still requires an
-            # exact stem match (e.g. protects "Tomate" vs "Tomatenmark").
-            if not ingredient:
-                normalized = normalize_term(suggestion.name)
-                matched_id = normalized_index.get(normalized) if normalized else None
-                if matched_id:
-                    ingredient = Ingredient.objects.filter(id=matched_id).first()
-
-            if ingredient:
-                results.append((suggestion, ingredient.id, False))
-            else:
-                # Create new ingredient
+                slug = slugify(raw_name)
                 new_ingredient = Ingredient.objects.create(
-                    name=suggestion.name.strip(),
+                    name=raw_name,
                     slug=slug,
                     status=IngredientStatusChoices.DRAFT,
                 )
-                results.append((suggestion, new_ingredient.id, True))
+                results.append((suggestion, new_ingredient.id, True, match_result.note))
+                continue
+
+            if match_result.ingredient_id:
+                results.append((suggestion, match_result.ingredient_id, match_result.is_new, match_result.note))
+            else:
+                from supply.choices import IngredientStatusChoices
+                from supply.models import Ingredient
+                from django.utils.text import slugify
+
+                slug = slugify(raw_name)
+                new_ingredient = Ingredient.objects.create(
+                    name=raw_name,
+                    slug=slug,
+                    status=IngredientStatusChoices.DRAFT,
+                )
+                results.append((suggestion, new_ingredient.id, True, match_result.note))
 
         return results
 
-    def assign_portions(self, matched: list[tuple[AiIngredientSuggestion, int, bool]]) -> list[MatchedIngredientResult]:
+    def assign_portions(self, matched: list[tuple[AiIngredientSuggestion, int, bool, str]]) -> list[MatchedIngredientResult]:
         """Assign best portion for each matched ingredient and calculate quantity.
 
         Logic:
@@ -200,7 +179,7 @@ class RecipeAiIngredientsService:
 
         results: list[MatchedIngredientResult] = []
 
-        for suggestion, ingredient_id, is_new in matched:
+        for suggestion, ingredient_id, is_new, note in matched:
             ingredient = Ingredient.objects.get(id=ingredient_id)
 
             # Find best portion: rank=1 is the Normalportion
@@ -248,6 +227,7 @@ class RecipeAiIngredientsService:
                     measuring_unit_id=portion.measuring_unit_id,
                     measuring_unit_name=portion.measuring_unit.name if portion.measuring_unit else None,
                     is_new_ingredient=is_new,
+                    note=note,
                 )
             )
 

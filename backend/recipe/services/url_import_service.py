@@ -217,36 +217,112 @@ class UrlImportResult:
 
 
 def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
-    """Full URL import pipeline with Gemini ingredient matching."""
+    """Full URL import pipeline with IngredientMatcher + Gemini metadata."""
     from recipe.services.import_service import import_from_url
+    from recipe.services.ingredient_matcher import IngredientMatcher
+    from recipe.services.ingredient_enrichment import enrich_ingredient
 
     # Step 1: Fetch and parse (schema.org / fallback)
-    # `import_from_url` raises `SourceUnreachableError`/`NoRecipeFoundError`
-    # directly; let them propagate to the API layer unchanged.
     parsed = import_from_url(url)
 
-    # Step 2: Pre-filter ingredients via text search
-    ingredient_candidates = _get_ingredient_candidates(parsed.ingredients)
-
-    # Step 3: Gemini call for matching + enrichment
-    # `GeminiUnavailableError`/`GeminiAuthError` propagate unchanged from
-    # `_call_gemini_for_matching` (via `gemini_call`).
-    gemini_result = _call_gemini_for_matching(
+    # Step 2: Gemini call for recipe metadata + quantity/unit parsing only
+    gemini_result = _call_gemini_for_metadata(
         parsed=parsed,
-        candidates=ingredient_candidates,
         user=user,
     )
 
     if not (gemini_result.title or parsed.title) and not gemini_result.ingredients and not parsed.ingredients:
         raise NoRecipeFoundError("Keine verwertbaren Rezeptdaten gefunden")
 
-    # Step 4: Create new ingredients
-    created_ingredients = _create_new_ingredients(gemini_result.ingredients)
+    # Step 3: Match ingredients via IngredientMatcher (algorithmic cascading)
+    created_ingredients: list[dict[str, Any]] = []
+    matched_items: list[dict[str, Any]] = []
 
-    # Step 5: Resolve measuring units and build recipe items
-    recipe_items = _build_recipe_items(gemini_result.ingredients, created_ingredients)
+    for ing in gemini_result.ingredients:
+        match_result = IngredientMatcher.match(ing.original_name, user)
 
-    # Step 6: Resolve time choices (prefer parsed JSON-LD over Gemini estimate)
+        if match_result.ingredient_id:
+            matched_items.append({
+                "ingredient_id": match_result.ingredient_id,
+                "ingredient_name": match_result.name,
+                "quantity": ing.quantity,
+                "unit": ing.unit,
+                "note": match_result.note or ing.note,
+                "is_new_ingredient": match_result.is_new,
+                "estimated_portion_weight_g": ing.estimated_portion_weight_g,
+            })
+            continue
+
+        if match_result.needs_review:
+            from supply.choices import IngredientStatusChoices
+            from supply.models import Ingredient
+            from django.utils.text import slugify
+
+            raw_name = ing.original_name.strip()
+            base_slug = slugify(raw_name)
+            slug = base_slug
+            counter = 1
+            while Ingredient.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            new_ing = Ingredient.objects.create(
+                name=raw_name,
+                slug=slug,
+                status=IngredientStatusChoices.DRAFT,
+            )
+
+            nutrition = enrich_ingredient(raw_name, user)
+            if nutrition and nutrition.name:
+                from supply.choices import PhysicalViscosityChoices
+                from supply.models import MeasuringUnit, Portion
+                from supply.services.unit_resolution import resolve_canonical_unit
+
+                new_ing.name = nutrition.name
+                new_ing.energy_kcal = nutrition.energy_kcal
+                new_ing.protein_g = nutrition.protein_g
+                new_ing.fat_g = nutrition.fat_g
+                new_ing.fat_sat_g = nutrition.fat_sat_g
+                new_ing.carbohydrate_g = nutrition.carbohydrate_g
+                new_ing.sugar_g = nutrition.sugar_g
+                new_ing.fibre_g = nutrition.fibre_g
+                new_ing.salt_g = nutrition.salt_g
+                new_ing.child_score = nutrition.child_score
+                new_ing.scout_score = nutrition.scout_score
+                new_ing.environmental_score = nutrition.environmental_score
+                new_ing.nova_score = nutrition.nova_score
+                new_ing.nutri_score = nutrition.nutri_score
+                new_ing.nutri_class = nutrition.nutri_class
+                new_ing.physical_density = nutrition.physical_density
+                new_ing.physical_viscosity = (
+                    PhysicalViscosityChoices.BEVERAGE
+                    if nutrition.physical_viscosity in ("liquid", "beverage")
+                    else PhysicalViscosityChoices.SOLID
+                )
+                new_ing.save()
+
+            created_ingredients.append({
+                "id": new_ing.id,
+                "name": new_ing.name,
+                "aliases": [],
+                "nutri_class": None,
+                "name_warning": None,
+            })
+
+            matched_items.append({
+                "ingredient_id": new_ing.id,
+                "ingredient_name": new_ing.name,
+                "quantity": ing.quantity,
+                "unit": ing.unit,
+                "note": match_result.note or ing.note,
+                "is_new_ingredient": True,
+                "estimated_portion_weight_g": ing.estimated_portion_weight_g,
+            })
+
+    # Step 4: Resolve measuring units and build recipe items
+    recipe_items = _build_recipe_items_v2(matched_items, created_ingredients)
+
+    # Step 5: Resolve time choices
     execution_time_choice = gemini_result.execution_time_choice
     preparation_time_choice = gemini_result.preparation_time_choice
     if parsed.cook_time_minutes is not None:
@@ -254,7 +330,6 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
     if parsed.prep_time_minutes is not None:
         preparation_time_choice = _minutes_to_preparation_choice(parsed.prep_time_minutes)
 
-    # Filter scout level IDs to only valid ones
     from content.models.tags import ScoutLevel
 
     valid_scout_level_ids = set(
@@ -556,7 +631,86 @@ Antworte ausschließlich im angegebenen JSON-Format."""
 
 
 # ---------------------------------------------------------------------------
-# Step 4: Create new ingredients
+# Simplified Gemini call: metadata + quantity/unit only (no ingredient matching)
+# ---------------------------------------------------------------------------
+
+
+def _call_gemini_for_metadata(
+    parsed: Any,
+    user: AbstractBaseUser,
+) -> GeminiRecipeExtraction:
+    """Gemini call for recipe metadata and quantity/unit parsing only.
+
+    No ingredient matching — that is handled by IngredientMatcher.
+    No nutritional enrichment — that is handled by enrich_ingredient().
+    """
+    from google.genai import types
+
+    from content.models.tags import ScoutLevel, Tag
+
+    scout_levels = list(ScoutLevel.objects.values("id", "name"))
+    tags = list(Tag.objects.values("id", "name"))
+
+    scout_levels_str = json.dumps(scout_levels, ensure_ascii=False)
+    tags_str = json.dumps(tags, ensure_ascii=False)
+
+    recipe_text = f"""Titel: {parsed.title}
+Beschreibung: {parsed.description}
+Portionen: {parsed.servings}
+Zutaten: {", ".join(f"{i.quantity} {i.unit} {i.name}" for i in parsed.ingredients)}
+Schritte: {chr(10).join(parsed.steps[:10])}"""
+
+    prompt = f"""Du bist ein Ernährungsexperte. Analysiere dieses Rezept und extrahiere Metadaten.
+
+REZEPT:
+{recipe_text}
+
+VERFÜGBARE PFADFINDER-STUFEN (wähle alle passenden IDs):
+{scout_levels_str}
+
+VERFÜGBARE TAGS (wähle alle passenden IDs):
+{tags_str}
+
+AUFGABEN:
+1. Extrahiere/validiere die Rezept-Metadaten (title, description, summary, servings, preparation_time, execution_time, steps)
+2. Schätze folgende Felder:
+   - summary: Kurzbeschreibung in 1-2 Sätzen
+   - recipe_type: MUSS einer dieser Werte sein: breakfast, warm_meal, cold_meal, dessert, recipe_part, drink, snack
+   - difficulty: MUSS sein: easy, medium, hard
+   - execution_time_choice: MUSS sein: less_30, 30_60, 60_90, more_90
+   - preparation_time_choice: MUSS sein: none, less_15, 15_30, 30_60, more_60
+   - scout_level_ids: Passende Altersgruppen
+   - tag_ids: Passende Tags
+3. Für jede Zutat: quantity und unit aus dem Rezept-Kontext parsen (KEIN Ingredient-Matching, KEIN new_ingredient):
+   - "2 rote Zwiebeln" → quantity=2, unit="Stück"
+   - "0.25 Pck. Feta" → quantity=0.25, unit="Packung"
+   - "200g Mehl" → quantity=200, unit="g"
+   - Abkürzungen auflösen: Pck.=Packung, Bd.=Bund, EL=Esslöffel, TL=Teelöffel
+   - estimated_portion_weight_g schätzen (z.B. 1 Zwiebel=80g, 1 EL=15g)
+
+Antworte ausschließlich im angegebenen JSON-Format."""
+
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=GeminiRecipeExtraction,
+    )
+
+    response, _interaction_id = gemini_call(
+        user=user,
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=config,
+        context="url_import_metadata",
+    )
+
+    if response is None:
+        raise GeminiUnavailableError()
+
+    return GeminiRecipeExtraction.model_validate_json(response.text)
+
+
+# ---------------------------------------------------------------------------
+# Step 4: Create new ingredients (DEPRECATED — kept for backward compat)
 # ---------------------------------------------------------------------------
 
 
@@ -760,6 +914,75 @@ def _build_recipe_items(
                 measuring_unit_id=measuring_unit_id,
                 measuring_unit_name=measuring_unit_name,
                 note=ing.note,
+                is_new_ingredient=ingredient_id in created_ids,
+                portion_id=portion_id,
+            )
+        )
+
+    return results
+
+
+def _build_recipe_items_v2(
+    matched_items: list[dict[str, Any]],
+    created_ingredients: list[dict[str, Any]],
+) -> list[RecipeItemDraftResult]:
+    """Build recipe items from IngredientMatcher results (v2 — no Gemini note)."""
+    from supply.models import Ingredient, MeasuringUnit
+
+    results: list[RecipeItemDraftResult] = []
+    created_ids = {ci["id"] for ci in created_ingredients}
+
+    for item in matched_items:
+        ingredient_id = item["ingredient_id"]
+        if ingredient_id is None:
+            continue
+
+        try:
+            ingredient = Ingredient.objects.get(id=ingredient_id)
+            ingredient_name = ingredient.name
+        except Ingredient.DoesNotExist:
+            continue
+
+        unit_str = item.get("unit", "")
+        measuring_unit_id = None
+        measuring_unit_name = unit_str
+        if unit_str:
+            unit_aliases = {
+                "Pck.": "Packung", "Pck": "Packung", "Pkg.": "Packung", "Pkg": "Packung",
+                "Bd.": "Bund", "Bd": "Bund",
+                "Msp.": "Messerspitze", "Msp": "Messerspitze",
+                "kl.": "Stück", "gr.": "Stück",
+            }
+            normalized_unit = unit_aliases.get(unit_str, unit_str)
+            mu = MeasuringUnit.objects.filter(
+                Q(name__iexact=normalized_unit)
+                | Q(description__iexact=normalized_unit)
+                | Q(name__iexact=unit_str)
+                | Q(description__iexact=unit_str)
+            ).first()
+            if mu:
+                measuring_unit_id = mu.id
+                measuring_unit_name = mu.name
+            elif normalized_unit != unit_str:
+                mu, _ = MeasuringUnit.objects.get_or_create(name=normalized_unit)
+                measuring_unit_id = mu.id
+                measuring_unit_name = mu.name
+
+        portion_id = _resolve_portion(
+            ingredient_id=ingredient_id,
+            measuring_unit_id=measuring_unit_id,
+            estimated_weight_g=item.get("estimated_portion_weight_g", 100),
+            unit_name=unit_str,
+        )
+
+        results.append(
+            RecipeItemDraftResult(
+                ingredient_id=ingredient_id,
+                ingredient_name=ingredient_name,
+                quantity=item.get("quantity", 1.0),
+                measuring_unit_id=measuring_unit_id,
+                measuring_unit_name=measuring_unit_name,
+                note=item.get("note", ""),
                 is_new_ingredient=ingredient_id in created_ids,
                 portion_id=portion_id,
             )

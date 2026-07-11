@@ -803,6 +803,7 @@ export default function RecipeDetailPage() {
         {isInlineEditMode ? (
           <InlineIngredientEditor
             recipeId={recipe.id}
+            recipeSlug={recipe.slug}
             items={recipe.recipe_items ?? []}
             portions={recipe.portions}
             initialEditPortions={editPortionsChoice}

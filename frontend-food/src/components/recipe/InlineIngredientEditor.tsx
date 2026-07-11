@@ -59,6 +59,7 @@ interface AiIngredientSuggestion {
 
 interface InlineIngredientEditorProps {
   recipeId: number;
+  recipeSlug: string;
   items: RecipeItem[];
   portions: number | null;
   /** Initial number of persons to edit quantities for (e.g. the detail page's
@@ -67,6 +68,8 @@ interface InlineIngredientEditorProps {
    *  by the (possibly changed) factor before sending to the API. This allows
    *  editing in familiar cooking quantities (e.g. "for 4 people"). */
   initialEditPortions?: number;
+  /** Called after successful save. In the Wizard, this can trigger navigation. */
+  onSave?: () => void;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -381,12 +384,15 @@ function IngredientRow({
 
 export default function InlineIngredientEditor({
   recipeId,
+  recipeSlug,
   items,
   portions,
   initialEditPortions = 1,
+  onSave,
   onClose,
   onSaved,
 }: InlineIngredientEditorProps) {
+  void recipeSlug; // used by Wizard context for future data fetching
   const [editPortions, setEditPortions] = useState(() =>
     initialEditPortions > 0 ? initialEditPortions : 1,
   );
@@ -947,6 +953,7 @@ export default function InlineIngredientEditor({
 
       await Promise.all(promises);
       toast.success('Änderungen gespeichert');
+      onSave?.();
       onSaved();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unbekannter Fehler';

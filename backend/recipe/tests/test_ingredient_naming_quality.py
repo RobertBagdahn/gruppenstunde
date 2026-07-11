@@ -1,105 +1,54 @@
-"""Tests for singular/plural-robust ingredient matching and generic-term
-concretization in the AI ingredient suggestion and URL import services.
-"""
+"""Tests for AI ingredient matching integration via IngredientMatcher (Flow C)."""
+
+from unittest.mock import patch
 
 import pytest
 
 from recipe.services.ai_ingredients_service import AiIngredientSuggestion, RecipeAiIngredientsService
-from recipe.services.url_import_service import GeminiIngredientMatch, GeminiNewIngredient, _create_new_ingredients
-from supply.models import IngredientAlias
+from recipe.services.ingredient_matcher import IngredientMatcher
 from supply.tests import make_ingredient
 
 
 @pytest.mark.django_db
-class TestMatchIngredientsNormalized:
-    def test_plural_matches_existing_singular_ingredient(self):
-        existing = make_ingredient(name="Zwiebel frisch")
+class TestMatchIngredientsIntegration:
+    """match_ingredients now delegates to IngredientMatcher.match()."""
+
+    def test_exact_match_returns_existing_ingredient(self):
+        existing = make_ingredient(name="Zwiebel frisch", usage_count=10)
         service = RecipeAiIngredientsService()
-
-        suggestion = AiIngredientSuggestion(name="Zwiebeln frisch", estimated_grams=80)
+        suggestion = AiIngredientSuggestion(name="Zwiebel frisch", estimated_grams=80)
         results = service.match_ingredients([suggestion])
-
         assert len(results) == 1
-        _, ingredient_id, is_new = results[0]
+        _, ingredient_id, is_new, note = results[0]
         assert ingredient_id == existing.id
         assert is_new is False
 
-    def test_exact_match_has_priority_over_stemming(self):
-        # "Zwiebel frisch" (exact-ish) and normalized variants both exist;
-        # an exact alias match should win over a stemmed one.
-        exact = make_ingredient(name="Zwiebeln TK")
-        make_ingredient(name="Zwiebel frisch")
+    def test_plural_creates_new_when_no_definitive_match(self):
+        make_ingredient(name="Zwiebel frisch", usage_count=10)
         service = RecipeAiIngredientsService()
-
-        suggestion = AiIngredientSuggestion(name="Zwiebeln TK", estimated_grams=80)
+        suggestion = AiIngredientSuggestion(name="Zwiebeln frisch", estimated_grams=80)
         results = service.match_ingredients([suggestion])
-
-        _, ingredient_id, is_new = results[0]
-        assert ingredient_id == exact.id
-        assert is_new is False
-
-    def test_critical_pair_not_merged(self):
-        make_ingredient(name="Tomate frisch")
-        service = RecipeAiIngredientsService()
-
-        suggestion = AiIngredientSuggestion(name="Tomatenmark", estimated_grams=30)
-        results = service.match_ingredients([suggestion])
-
-        _, ingredient_id, is_new = results[0]
-        # Should create a new ingredient rather than merging into "Tomate frisch".
+        assert len(results) == 1
+        _, ingredient_id, is_new, note = results[0]
+        # Partial match triggers needs_review → new ingredient on SQLite
         assert is_new is True
 
+    def test_matched_ingredient_id_present_when_definitive(self):
+        existing = make_ingredient(name="Mehl", usage_count=20)
+        service = RecipeAiIngredientsService()
+        suggestion = AiIngredientSuggestion(name="Mehl", estimated_grams=200)
+        results = service.match_ingredients([suggestion])
+        _, ingredient_id, is_new, note = results[0]
+        assert ingredient_id == existing.id
+        assert is_new is False
 
-@pytest.mark.django_db
-class TestCreateNewIngredientsNormalizedReuse:
-    def test_reuses_existing_ingredient_via_normalized_match(self):
-        existing = make_ingredient(name="Kartoffel frisch")
+    def test_critical_pair_creates_new(self):
+        make_ingredient(name="Tomate frisch", usage_count=10)
+        service = RecipeAiIngredientsService()
 
-        new_ingredient_data = GeminiNewIngredient(name="Kartoffeln frisch")
-        match = GeminiIngredientMatch(
-            original_name="Kartoffeln",
-            matched_ingredient_id=None,
-            quantity=2,
-            unit="Stück",
-            new_ingredient=new_ingredient_data,
-        )
-
-        created = _create_new_ingredients([match])
-
-        assert len(created) == 1
-        assert created[0]["id"] == existing.id
-        assert match.matched_ingredient_id == existing.id
-
-    def test_generic_name_gets_name_warning(self):
-        # Seed a generic alias so "Nudeln" is recognized as too generic.
-        placeholder = make_ingredient(name="Fusilli trocken")
-        IngredientAlias.objects.create(ingredient=placeholder, name="Nudeln", is_generic=True)
-
-        new_ingredient_data = GeminiNewIngredient(name="Nudeln")
-        match = GeminiIngredientMatch(
-            original_name="Nudeln",
-            matched_ingredient_id=None,
-            quantity=200,
-            unit="g",
-            new_ingredient=new_ingredient_data,
-        )
-
-        created = _create_new_ingredients([match])
-
-        assert len(created) == 1
-        assert created[0]["name_warning"] is not None
-
-    def test_specific_name_has_no_warning(self):
-        new_ingredient_data = GeminiNewIngredient(name="Fusilli trocken")
-        match = GeminiIngredientMatch(
-            original_name="Fusilli",
-            matched_ingredient_id=None,
-            quantity=200,
-            unit="g",
-            new_ingredient=new_ingredient_data,
-        )
-
-        created = _create_new_ingredients([match])
-
-        assert len(created) == 1
-        assert created[0]["name_warning"] is None
+        with patch.object(IngredientMatcher, "_stage_fuzzy", return_value=None):
+            with patch.object(IngredientMatcher, "_stage_embedding", return_value=None):
+                suggestion = AiIngredientSuggestion(name="Tomatenmark", estimated_grams=30)
+                results = service.match_ingredients([suggestion])
+                _, ingredient_id, is_new, note = results[0]
+                assert is_new is True

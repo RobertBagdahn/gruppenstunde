@@ -1,4 +1,4 @@
-.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-frontend-food build-backend push-frontend push-frontend-food push-backend deploy-frontend deploy-frontend-food deploy-backend migrate-cloud kill-port
+.PHONY: help install dev backend frontend db migrate seed-users reset test lint format typecheck pre-commit clean deploy build setup-infra build-frontend build-frontend-food build-backend push-frontend push-frontend-food push-backend deploy-frontend deploy-frontend-food deploy-backend migrate-cloud kill-port smoke-test
 
 # ============================================================
 # Inspi – Makefile for local development
@@ -129,6 +129,9 @@ food: ## Start Food app with backend (port 5174 + 8000)
 	$(MAKE) backend & \
 	cd frontend-food && npm run dev & \
 	wait
+
+smoke-test: ## Run Playwright end-to-end smoke tests
+	@bash e2e/smoke-test.sh
 
 # -----------------------------------------------
 # Code Quality

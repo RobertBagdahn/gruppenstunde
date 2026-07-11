@@ -100,26 +100,36 @@ def build_embedding_text(content_obj) -> str:
 
 def build_ingredient_embedding_text(ingredient) -> str:
     """
-    Build simplified embedding text for ingredient semantic similarity.
-    
-    Only includes name, description, and retail section.
-    This focuses on actual ingredient similarity (what it is, where it's sold)
-    rather than nutritional metadata.
+    Build embedding text for ingredient semantic similarity.
+
+    Includes name, aliases, groups, description, and retail section.
+    Aliases and groups improve matching for the ingredient matcher pipeline.
     """
     parts = []
-    
-    # Name (required)
+
     if ingredient.name:
         parts.append(ingredient.name)
-    
-    # Description (if available, first 2000 chars)
+
+    try:
+        aliases = list(ingredient.aliases.values_list("name", flat=True)[:10])
+        if aliases:
+            parts.append("auch bekannt als: " + ", ".join(aliases))
+    except Exception:
+        pass
+
+    try:
+        groups = list(ingredient.groups.values_list("name", flat=True)[:5])
+        if groups:
+            parts.append("Gruppe: " + ", ".join(groups))
+    except Exception:
+        pass
+
     if ingredient.description:
         parts.append(ingredient.description[:2000])
-    
-    # Retail section (if available)
+
     if ingredient.retail_section:
         parts.append(f"Abteilung: {ingredient.retail_section.name}")
-    
+
     return " ".join(parts)
 
 

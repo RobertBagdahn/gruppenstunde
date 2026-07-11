@@ -148,6 +148,9 @@ class Ingredient(models.Model):
     nan_art_id_rewe = models.BigIntegerField(null=True, blank=True, verbose_name=_("REWE Artikelnummer"))
     ean = models.CharField(max_length=20, blank=True, default="", verbose_name=_("EAN-Barcode"))
 
+    # Denormalized popularity metric for ingredient matching
+    usage_count = models.IntegerField(default=0, verbose_name=_("Verwendungshäufigkeit"))
+
     # Relations
     ingredient_ref = models.ForeignKey(
         "self",

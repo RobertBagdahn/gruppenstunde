@@ -301,7 +301,7 @@ def list_ingredients(
     group: str = "",
 ):
     """List ingredients with pagination, filters, and ordering."""
-    from django.db.models import Count, F
+    from django.db.models import F
 
     qs = _visible_ingredients_qs(request)
 
@@ -323,8 +323,6 @@ def list_ingredients(
 
     if nutritional_tag:
         qs = qs.filter(nutritional_tags__id=nutritional_tag)
-
-    qs = qs.annotate(usage_count=Count("portions__recipe_items", distinct=True))
 
     ordering_map = {
         "price_asc": F("price_per_kg").asc(nulls_last=True),

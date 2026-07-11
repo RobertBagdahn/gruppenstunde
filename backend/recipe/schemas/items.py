@@ -229,6 +229,7 @@ class AiIngredientApplyIn(Schema):
 
     portion_id: int
     quantity: float = 1.0
+    note: str = ""
     is_optional: bool = False
 
 

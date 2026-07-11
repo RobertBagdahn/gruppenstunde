@@ -1,29 +1,209 @@
 /**
- * MealPlanPrintPage — Dedizierte Druckansicht für Essenspläne.
+ * MealPlanPrintPage — Druckansicht für Essenspläne.
  * Route: /meal-plans/:id/print
  *
- * A4-optimiert, kein App-Layout, alle Tage und Mahlzeiten ausgeklappt.
- * Öffne in neuem Tab, dann Browser-Drucken (Strg+P).
+ * A4-optimiert mit:
+ * - Tag-pro-Seite Layout (page-break-before: always)
+ * - Essens-Boxen mit Notizbereichen
+ * - Einkaufsliste (pro Tag + Gesamt)
+ * - Seitenzahlen & Dokument-Referenz im Footer
+ *
+ * Empfohlene Druckeinstellungen:
+ * - Papierformat: A4
+ * - Skalierung: 100%
+ * - Ränder: Keine/Minimal (2cm werden via CSS gesetzt)
+ * - Hintergrundgrafiken: Aktiviert (für farbige Akzente)
+ *
+ * Öffne in neuem Tab, dann Browser-Drucken (Strg+P / Cmd+P).
  */
 import { useParams } from 'react-router-dom';
 import { useMealPlan } from '@/api/mealPlans';
 import { Loader2 } from 'lucide-react';
-import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, MEAL_TYPE_ICONS } from '@/schemas/mealPlan';
+import type { Meal } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import {
+  type AggregatedIngredient,
+  formatTime,
+  groupMealsByDate,
+  formatIngredients,
+  aggregateIngredientsByDay,
+  calculateTotalIngredients,
+} from './mealPlanPrintUtils';
 
-function formatDate(dateStr: string): string {
-  try {
-    return format(new Date(dateStr), 'EEEE, d. MMMM yyyy', { locale: de });
-  } catch {
-    return dateStr;
-  }
+// ==========================================================================
+// Sub-Components
+// ==========================================================================
+
+function PrintHeader({
+  name,
+  dateRange,
+  portions,
+  reserveFactor,
+  description,
+  url,
+}: {
+  name: string;
+  dateRange: string;
+  portions: number;
+  reserveFactor: number;
+  description?: string | null;
+  url: string;
+}) {
+  return (
+    <div className="meal-plan-print-header">
+      <h1>{name}</h1>
+      <div className="meal-plan-print-header-meta">
+        {dateRange && <span>{dateRange}</span>}
+        <span>{portions} Personen</span>
+        <span>+{Math.round((reserveFactor - 1) * 100)}% Reserve</span>
+      </div>
+      {description && <p>{description}</p>}
+      <span className="meal-plan-print-header-url">{url}</span>
+    </div>
+  );
 }
+
+function DayHeader({ formattedDate }: { formattedDate: string }) {
+  return (
+    <h2 className="meal-plan-print-day-header">
+      {formattedDate}
+    </h2>
+  );
+}
+
+function MealBox({ meal }: { meal: Meal }) {
+  const mealTypeLabel = MEAL_TYPE_LABELS[meal.meal_type] ?? meal.meal_type;
+  const icon = MEAL_TYPE_ICONS[meal.meal_type] ?? '';
+  const timeStr = meal.start_datetime ? formatTime(meal.start_datetime) : '';
+  const ingredientText = formatIngredients(meal.items);
+
+  return (
+    <div className="meal-plan-print-meal-row">
+      <div className="meal-plan-print-meal-box">
+        <h3>
+        {icon && (
+            <span className="material-symbols-outlined meal-plan-print-meal-icon">
+              {icon}
+            </span>
+          )}
+          {mealTypeLabel}
+          {timeStr && <span className="meal-plan-print-meal-time"> ({timeStr} Uhr)</span>}
+        </h3>
+        <div className="meal-plan-print-ingredient-list">
+          <p>{ingredientText}</p>
+        </div>
+      </div>
+      <div className="meal-plan-print-notes-box">
+        <span className="meal-plan-print-notes-label">Notizen</span>
+      </div>
+    </div>
+  );
+}
+
+function DayEndNotes() {
+  return (
+    <div className="meal-plan-print-day-notes">
+      <hr />
+      <hr />
+      <hr />
+    </div>
+  );
+}
+
+function ShoppingListSummary({
+  byDay,
+  totals,
+}: {
+  byDay: Record<string, AggregatedIngredient[]>;
+  totals: AggregatedIngredient[];
+}) {
+  const dateKeys = Object.keys(byDay);
+  const hasPerDay = dateKeys.length > 0;
+  const hasTotals = totals.length > 0;
+
+  if (!hasPerDay && !hasTotals) {
+    return (
+      <div className="meal-plan-print-shopping-list">
+        <h2>Einkaufsliste</h2>
+        <p>Keine Zutaten-Daten verfügbar.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="meal-plan-print-shopping-list">
+      <h2>Einkaufsliste</h2>
+
+      {hasPerDay && (
+        <>
+          <h3>Pro Tag</h3>
+          {dateKeys.map((dateLabel) => (
+            <div key={dateLabel} className="meal-plan-print-shopping-day">
+              <h4>{dateLabel}</h4>
+              <ul>
+                {byDay[dateLabel].map((ing, i) => (
+                  <li key={i}>
+                    {ing.ingredient_name} ({ing.display_text})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </>
+      )}
+
+      {hasTotals && (
+        <>
+          <h3>Gesamt</h3>
+          <ul>
+            {totals.map((ing, i) => (
+              <li key={i}>
+                {ing.ingredient_name} ({ing.display_text})
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PrintFooter({
+  planName,
+  url,
+}: {
+  planName: string;
+  url: string;
+}) {
+  return (
+    <div className="meal-plan-print-footer">
+      <span className="meal-plan-print-footer-ref">{planName} — {url}</span>
+      <span className="meal-plan-print-footer-page">Seite <span className="meal-plan-print-page-num" /> von <span className="meal-plan-print-page-total" /></span>
+      <div className="print:hidden pt-2 text-center">
+        <button
+          onClick={() => window.print()}
+          className="text-blue-600 underline text-sm"
+        >
+          Drucken
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================================================
+// Main Page Component
+// ==========================================================================
 
 export default function MealPlanPrintPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: plan, isLoading, error } = useMealPlan(Number(id));
+  const planId = Number(id);
 
+  const { data: plan, isLoading, error } = useMealPlan(planId);
+
+  // Handle loading and error states
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
@@ -40,97 +220,70 @@ export default function MealPlanPrintPage() {
     );
   }
 
-  type Meal = typeof plan.meals[number];
-
   // Group meals by date
-  const mealsByDate: Record<string, Meal[]> = {};
-  for (const meal of plan.meals ?? []) {
-    const date = meal.start_datetime?.slice(0, 10) ?? 'Unbekannt';
-    if (!mealsByDate[date]) mealsByDate[date] = [];
-    mealsByDate[date].push(meal);
-  }
-  const sortedDates = Object.keys(mealsByDate).sort();
+  const days = groupMealsByDate(plan.meals);
 
-  const formatDateRange = () => {
+  // Format date range for header
+  const formatDateRange = (): string => {
     if (!plan.start_datetime && !plan.end_datetime) return '';
-    const start = plan.start_datetime ? format(new Date(plan.start_datetime), 'd. MMMM', { locale: de }) : '';
-    const end = plan.end_datetime ? format(new Date(plan.end_datetime), 'd. MMMM yyyy', { locale: de }) : '';
+    const start = plan.start_datetime
+      ? format(new Date(plan.start_datetime), 'd. MMMM', { locale: de })
+      : '';
+    const end = plan.end_datetime
+      ? format(new Date(plan.end_datetime), 'd. MMMM yyyy', { locale: de })
+      : '';
     return start && end ? `${start} – ${end}` : start || end;
   };
 
+  // Compute page URL
+  const pageUrl = `${window.location.origin}/meal-plans/${id}`;
+
+  // Shopping list aggregation
+  const byDay = aggregateIngredientsByDay(days);
+  const totals = calculateTotalIngredients(byDay);
+
   return (
-    <div className="min-h-screen bg-white text-black font-sans">
-      <div className="max-w-[21cm] mx-auto px-8 py-10 print:px-6 print:py-6">
+    <div className="meal-plan-print-page">
+      <div className="meal-plan-print-content">
 
-        {/* Header */}
-        <div className="mb-8 border-b-2 border-black pb-4">
-          <h1 className="text-3xl font-bold mb-1">{plan.name}</h1>
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
-            {formatDateRange() && <span>{formatDateRange()}</span>}
-            <span>{plan.norm_portions} Personen</span>
-            <span>+{Math.round((plan.reserve_factor - 1) * 100)}% Reserve</span>
+        <PrintHeader
+          name={plan.name}
+          dateRange={formatDateRange()}
+          portions={plan.norm_portions}
+          reserveFactor={plan.reserve_factor}
+          description={plan.description}
+          url={pageUrl}
+        />
+
+        {days.length === 0 ? (
+          <div className="meal-plan-print-empty">
+            <p>Keine Mahlzeiten geplant.</p>
           </div>
-          {plan.description && (
-            <p className="mt-2 text-sm text-gray-700 italic">{plan.description}</p>
-          )}
-        </div>
-
-        {/* Tage & Mahlzeiten */}
-        {sortedDates.length === 0 ? (
-          <p className="text-gray-500">Keine Mahlzeiten geplant.</p>
         ) : (
-          sortedDates.map((date) => {
-            const meals = mealsByDate[date];
-            return (
-              <section key={date} className="mb-8 break-inside-avoid">
-                <h2 className="text-lg font-bold border-b border-gray-400 pb-1 mb-3">
-                  {formatDate(date + 'T12:00:00')}
-                </h2>
-                <div className="space-y-4">
-                  {[...meals]
-                    .sort((a: Meal, b: Meal) => (a.start_datetime ?? '').localeCompare(b.start_datetime ?? ''))
-                    .map((meal: Meal) => (
-                      <div key={meal.id} className="pl-4 border-l-2 border-gray-300">
-                        <h3 className="font-semibold text-sm uppercase text-gray-500 mb-1">
-                          {MEAL_TYPE_LABELS[meal.meal_type] ?? meal.meal_type}
-                          {meal.start_datetime && (
-                            <span className="font-normal normal-case ml-2">
-                              ({format(new Date(meal.start_datetime), 'HH:mm')} Uhr)
-                            </span>
-                          )}
-                        </h3>
-                        {(meal.items?.length ?? 0) > 0 ? (
-                          <ul className="space-y-0.5 text-sm">
-                            {meal.items?.map((item) => (
-                              <li key={item.id} className="flex items-center gap-2">
-                                <span className="text-gray-500">•</span>
-                                <span className="font-medium">
-                                  {item.recipe_title ?? item.ingredient_name ?? '–'}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-xs text-gray-400 italic">Keine Rezepte</p>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              </section>
-            );
-          })
-        )}
+          <>
+            {days.map((day) => (
+              <section key={day.date} className="meal-plan-print-day">
+                <DayHeader formattedDate={day.formattedDate} />
 
-        {/* Footer */}
-        <div className="mt-10 pt-4 border-t border-gray-200 text-xs text-gray-400 flex justify-between">
-          <span>Inspi — {window.location.origin}/meal-plans/{id}</span>
-          <button
-            onClick={() => window.print()}
-            className="print:hidden text-blue-600 underline"
-          >
-            Drucken
-          </button>
-        </div>
+                {day.meals.map((meal) => (
+                  <MealBox key={meal.id} meal={meal} />
+                ))}
+
+                <DayEndNotes />
+              </section>
+            ))}
+
+            <ShoppingListSummary
+              byDay={byDay}
+              totals={totals}
+            />
+
+            <PrintFooter
+              planName={plan.name}
+              url={pageUrl}
+            />
+          </>
+        )}
       </div>
     </div>
   );

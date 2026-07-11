@@ -7,7 +7,6 @@ def create_breakfast_extra_tag_and_extras(apps, schema_editor):
     """Create breakfast-extra tag and seed system extras."""
     Tag = apps.get_model("content", "Tag")
     Ingredient = apps.get_model("supply", "Ingredient")
-    IngredientStatusChoices = apps.get_model("supply", "IngredientStatusChoices")
     
     # Create breakfast-extra tag (if not exists)
     breakfast_extra_tag, created = Tag.objects.get_or_create(

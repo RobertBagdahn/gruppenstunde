@@ -303,6 +303,7 @@ def ai_suggest_ingredients(request, recipe_id: int):
             "portion_name": r.portion_name,
             "quantity": r.quantity,
             "is_new_ingredient": r.is_new_ingredient,
+            "note": r.note,
         }
         for r in filtered
     ]
@@ -342,6 +343,7 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
             quantity=item_in.quantity,
             sort_order=last_sort + i + 1,
             is_optional=item_in.is_optional,
+            note=item_in.note,
         )
         created_items.append(item)
 

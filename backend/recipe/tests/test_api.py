@@ -470,6 +470,63 @@ class TestUpdateRecipe:
 
         assert RecipeItem.objects.filter(recipe=recipe).count() == 0
 
+    @pytest.mark.usefixtures("db")
+    def test_metadata_update_preserves_recipe_items(self, auth_client, portion, ingredient):
+        """PATCH without recipe_items leaves existing RecipeItems unchanged."""
+        user = auth_client._user
+        recipe = Recipe.objects.create(
+            title="Mein Rezept",
+            status=ContentStatus.DRAFT,
+            created_by=user,
+        )
+        recipe.authors.add(user)
+        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=300.0, sort_order=0)
+        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=200.0, sort_order=1)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"title": "Neuer Titel", "difficulty": "hard"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        assert resp.json()["title"] == "Neuer Titel"
+
+        items = RecipeItem.objects.filter(recipe=recipe)
+        assert items.count() == 2
+        assert items.filter(quantity=300.0).exists()
+        assert items.filter(quantity=200.0).exists()
+
+    @pytest.mark.usefixtures("db")
+    def test_metadata_update_with_recipe_items_replaces_them(self, auth_client, portion, ingredient):
+        """PATCH with recipe_items replaces all existing RecipeItems."""
+        user = auth_client._user
+        recipe = Recipe.objects.create(
+            title="Mein Rezept",
+            status=ContentStatus.DRAFT,
+            created_by=user,
+        )
+        recipe.authors.add(user)
+        old_item = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=500.0, sort_order=0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({
+                "title": "Aktualisiert",
+                "recipe_items": [
+                    {"portion_id": portion.id, "quantity": 250.0, "sort_order": 0, "note": "neu"},
+                ],
+            }),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+
+        items = RecipeItem.objects.filter(recipe=recipe)
+        assert items.count() == 1
+        item = items.first()
+        assert item.quantity == 250.0
+        assert item.note == "neu"
+        assert not RecipeItem.objects.filter(id=old_item.id).exists()
+
 
 # ---------------------------------------------------------------------------
 # Delete Endpoint

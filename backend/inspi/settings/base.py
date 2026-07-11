@@ -173,3 +173,12 @@ WHATSAPP_RATE_LIMIT_PER_HOUR = env.int("WHATSAPP_RATE_LIMIT_PER_HOUR", default=5
 # Build neonize PostgreSQL connection string from individual DB env vars
 _db = DATABASES["default"]
 WHATSAPP_DB_URL = f"postgres://{_db['USER']}:{_db['PASSWORD']}@{_db['HOST']}:{_db['PORT']}/{_db['NAME']}"
+
+# ---------------------------------------------------------------------------
+# Ingredient Matching Pipeline — Stage Thresholds
+# ---------------------------------------------------------------------------
+INGREDIENT_MATCHER_JACCARD_THRESHOLD = env.float("INGREDIENT_MATCHER_JACCARD_THRESHOLD", default=0.90)
+INGREDIENT_MATCHER_FUZZY_THRESHOLD = env.float("INGREDIENT_MATCHER_FUZZY_THRESHOLD", default=0.70)
+INGREDIENT_MATCHER_EMBEDDING_THRESHOLD = env.float("INGREDIENT_MATCHER_EMBEDDING_THRESHOLD", default=0.50)
+INGREDIENT_MATCHER_GREY_ZONE_MIN = env.float("INGREDIENT_MATCHER_GREY_ZONE_MIN", default=0.30)
+INGREDIENT_MATCHER_MULTI_MATCH_DIFF = env.float("INGREDIENT_MATCHER_MULTI_MATCH_DIFF", default=0.05)
