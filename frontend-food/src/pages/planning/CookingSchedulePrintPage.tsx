@@ -282,7 +282,7 @@ export default function CookingSchedulePrintPage() {
                 <p className="text-xl text-gray-700 font-medium">{plan.name}</p>
                 <div className="flex justify-center gap-6 text-sm text-gray-500">
                   {formatDateRange() && <span>{formatDateRange()}</span>}
-                  <span>👥 {plan.norm_portions} Personen</span>
+                  <span>👥 {plan.norm_portions.toFixed(1)} Personen</span>
                   <span>+{Math.round((plan.reserve_factor - 1) * 100)}% Reserve</span>
                 </div>
               </>

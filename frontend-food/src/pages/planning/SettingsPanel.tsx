@@ -113,9 +113,9 @@ export default function SettingsPanel({
           {plan.has_group_members ? (
             <div className="space-y-1">
               <div className="rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2.5 text-sm font-semibold">
-                <span className="text-muted-foreground line-through mr-2">{plan.previous_norm_portions}</span>
+                <span className="text-muted-foreground line-through mr-2">{plan.previous_norm_portions?.toFixed(1)}</span>
                 <span className="text-muted-foreground">→</span>
-                <span className="text-primary ml-2">{plan.norm_portions}</span>
+                <span className="text-primary ml-2">{plan.norm_portions.toFixed(1)}</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 Berechnet aus {plan.group_members_count} {plan.group_members_count === 1 ? 'Person' : 'Personen'}

@@ -361,8 +361,21 @@ interface CalculatorProps {
 }
 
 function SinglePersonCalculator({ chartPal }: CalculatorProps) {
-  const [age, setAge] = useState<number | null>(12);
-  const [gender, setGender] = useState<string>('male');
+  const [searchParams] = useSearchParams();
+  const initialAge = useMemo(() => {
+    const raw = searchParams.get('age');
+    if (!raw) return 12;
+    const p = parseInt(raw, 10);
+    return isNaN(p) || p < 0 || p > 99 ? 12 : p;
+  }, [searchParams]);
+  const initialGender = useMemo(() => {
+    const raw = searchParams.get('gender');
+    if (raw === 'male' || raw === 'female') return raw;
+    return 'male';
+  }, [searchParams]);
+
+  const [age, setAge] = useState<number | null>(initialAge);
+  const [gender, setGender] = useState<string>(initialGender);
 
   const { data, isLoading, error } = useNormPersonCalculation(age, gender, chartPal);
 

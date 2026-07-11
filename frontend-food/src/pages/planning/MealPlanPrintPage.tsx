@@ -56,7 +56,7 @@ function PrintHeader({
       <h1>{name}</h1>
       <div className="meal-plan-print-header-meta">
         {dateRange && <span>{dateRange}</span>}
-        <span>{portions} Personen</span>
+        <span>{portions.toFixed(1)} Personen</span>
         <span>+{Math.round((reserveFactor - 1) * 100)}% Reserve</span>
       </div>
       {description && <p>{description}</p>}

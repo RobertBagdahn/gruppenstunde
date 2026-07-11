@@ -316,7 +316,7 @@ export default function MealPlanDetailPage() {
           <div className="flex flex-wrap gap-3 mt-1.5 text-xs font-semibold text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              {plan.norm_portions} Portionen
+              {plan.norm_portions.toFixed(1)} Portionen
             </span>
             <span className="inline-flex items-center gap-1" title="Reservefaktor – betrifft nur die Einkaufsmengen, nicht die kcal-Bilanz">
               <ShoppingCart className="w-3.5 h-3.5 text-muted-foreground" />
@@ -391,6 +391,7 @@ export default function MealPlanDetailPage() {
           mealPlanId={mealPlanId}
           hasEvent={!!plan.event_id}
           eventName={plan.event_name || ''}
+          activityFactor={plan.activity_factor}
         />
       )}
 

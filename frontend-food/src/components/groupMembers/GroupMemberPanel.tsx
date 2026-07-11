@@ -9,9 +9,10 @@ interface Props {
   mealPlanId: number;
   hasEvent: boolean;
   eventName: string;
+  activityFactor?: number;
 }
 
-export function GroupMemberPanel({ mealPlanId, hasEvent, eventName }: Props) {
+export function GroupMemberPanel({ mealPlanId, hasEvent, eventName, activityFactor = 1.5 }: Props) {
   const { data: members = [] } = useGroupMembers(mealPlanId);
   const createMutation = useCreateGroupMember(mealPlanId);
   const deleteMutation = useDeleteGroupMember(mealPlanId);
@@ -54,6 +55,7 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName }: Props) {
         members={members}
         onDelete={(id) => deleteMutation.mutate(id)}
         isDeleting={deleteMutation.isPending}
+        activityFactor={activityFactor}
       />
 
       {hasEvent && (

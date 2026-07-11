@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChefHat, Clock, Plus } from 'lucide-react';
@@ -497,6 +497,10 @@ function PortionsSection({
 }: PortionsSectionProps) {
   const reorderPortions = useReorderPortions(ingredient.slug);
   const [portions, setPortions] = useState(ingredient.portions);
+
+  useEffect(() => {
+    setPortions(ingredient.portions);
+  }, [ingredient.portions]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

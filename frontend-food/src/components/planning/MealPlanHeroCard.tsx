@@ -143,7 +143,7 @@ export default function MealPlanHeroCard({ plan, userId, onDelete, onUseAsTempla
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-muted-foreground mb-3">
         <span className="inline-flex items-center gap-1">
           <Users className="w-3.5 h-3.5" />
-          {plan.norm_portions} Portionen
+          {plan.norm_portions.toFixed(1)} Portionen
           {reservePercent > 0 && (
             <span className="text-[10px] text-muted-foreground/70">(+{reservePercent}% Reserve)</span>
           )}

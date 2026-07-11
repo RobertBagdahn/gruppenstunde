@@ -298,7 +298,7 @@ function MealPlanListPageInner() {
               </span>
               <span className="inline-flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                {plan.norm_portions} Portionen
+                {plan.norm_portions.toFixed(1)} Portionen
               </span>
               {plan.event_name && (
                 <span className="inline-flex items-center gap-1">

@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { CardTable, DataCardRow } from '@/components/shared/CardTable';
 import type { GroupMember } from '@/schemas/mealPlan';
+import { MemberNormFactor } from './MemberNormFactor';
 
 const GENDER_LABELS: Record<string, string> = {
   male: 'M',
@@ -12,9 +13,10 @@ interface Props {
   members: GroupMember[];
   onDelete: (memberId: number) => void;
   isDeleting: boolean;
+  activityFactor: number;
 }
 
-export function GroupMemberList({ members, onDelete, isDeleting }: Props) {
+export function GroupMemberList({ members, onDelete, isDeleting, activityFactor }: Props) {
   if (members.length === 0) {
     return (
       <div className="text-sm text-muted-foreground text-center py-4">
@@ -38,6 +40,9 @@ export function GroupMemberList({ members, onDelete, isDeleting }: Props) {
               <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
                 {GENDER_LABELS[member.gender] || 'k.A.'}
               </span>
+              {member.gender !== 'no_answer' && (
+                <MemberNormFactor age={member.age} gender={member.gender} pal={activityFactor} />
+              )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {member.nutritional_tags.length > 0 && (

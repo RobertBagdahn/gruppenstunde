@@ -305,7 +305,7 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
         <div className="flex items-center gap-4 text-xs text-muted-foreground font-semibold">
           {plan && (
             <>
-              <span>👥 {plan.norm_portions} Personen</span>
+              <span>👥 {plan.norm_portions.toFixed(1)} Personen</span>
               {totalCost > 0 && (
                 <span>{totalCost.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
               )}
