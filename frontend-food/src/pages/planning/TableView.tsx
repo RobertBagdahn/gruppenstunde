@@ -199,7 +199,7 @@ export default function TableView({
         <table className="w-full border-collapse text-left min-w-[800px]">
           <thead>
             <tr>
-              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-4 py-3 font-display font-semibold text-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[180px]">
+              <th className="sticky left-0 z-20 bg-background/95 backdrop-blur-sm border-r border-b border-border px-4 py-3.5 font-display font-semibold text-base shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-[180px]">
                 Mahlzeit
               </th>
               {dates.map((date) => {
@@ -207,10 +207,10 @@ export default function TableView({
                 return (
                   <th
                     key={date}
-                    className="px-4 py-3 text-left font-display font-semibold text-sm border-b border-border min-w-[240px]"
+                    className="px-4 py-3.5 text-left font-display font-semibold text-base border-b border-border min-w-[240px]"
                   >
                     <div className="font-bold text-foreground">{weekday}</div>
-                    <div className="text-xs text-muted-foreground font-medium">{day}</div>
+                    <div className="text-sm text-muted-foreground font-medium">{day}</div>
                   </th>
                 );
               })}
@@ -223,12 +223,12 @@ export default function TableView({
                 <tr key={mealType}>
                   <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-sm border-r border-b border-border px-4 py-4 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-middle">
                     <div className={cn(
-                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold shadow-sm",
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-bold shadow-sm",
                       MEAL_TYPE_COLORS[mealType]?.bg || 'bg-muted',
                       MEAL_TYPE_COLORS[mealType]?.text || 'text-muted-foreground',
                       MEAL_TYPE_COLORS[mealType]?.border || 'border-muted'
                     )}>
-                      <IconComponent className="w-3.5 h-3.5 shrink-0" />
+                      <IconComponent className="w-4 h-4 shrink-0" />
                       <span>{MEAL_TYPE_LABELS[mealType] ?? mealType}</span>
                     </div>
                   </td>
@@ -260,11 +260,11 @@ export default function TableView({
                             className="border-b border-r border-border p-3 align-top min-h-[120px] bg-card hover:bg-muted/5 transition-colors"
                           >
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
                                 {normPortions} Port.
                               </span>
                               {isCreatingSlot === `${date}_${mealType}` ? (
-                                <div className="text-[10px] text-muted-foreground/60 animate-pulse">
+                                <div className="text-xs text-muted-foreground/60 animate-pulse">
                                   Wird erstellt...
                                 </div>
                               ) : (
@@ -339,7 +339,7 @@ export default function TableView({
                                 )
                               )}
                             </div>
-                            <div className="text-xs text-muted-foreground/30 italic py-2">—</div>
+                            <div className="text-sm text-muted-foreground/40 italic py-2">—</div>
                           </td>
                         );
                       }
@@ -362,21 +362,21 @@ export default function TableView({
                                 <div key={meal.id} className={cn(mealIdx > 0 && "pt-3")}>
                                   <div className="flex items-center justify-between gap-2 mb-2">
                                     <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                                      <span className="text-[10px] font-bold text-foreground truncate max-w-[120px]">
+                                      <span className="text-xs font-bold text-foreground truncate max-w-[120px]">
                                         {meal.display_name || MEAL_TYPE_LABELS[mealType] || mealType}
                                       </span>
                                       {(meal.start_datetime || meal.end_datetime) && (
-                                        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1 py-0.5 rounded">
-                                          <Clock className="w-2.5 h-2.5 shrink-0" />
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full">
+                                          <Clock className="w-3 h-3 shrink-0" />
                                           {formatMealTime(meal.start_datetime)}–{formatMealTime(meal.end_datetime)}
                                         </span>
                                       )}
-                                      <span className="text-[9px] font-semibold text-muted-foreground bg-muted/60 px-1 py-0.5 rounded shrink-0">
+                                      <span className="text-[11px] font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-full shrink-0">
                                         {portions} Port.
                                       </span>
                                     </div>
                                     {isCreatingSlot === `${date}_${mealType}` ? (
-                                      <div className="text-[10px] text-muted-foreground/60 animate-pulse">
+                                      <div className="text-xs text-muted-foreground/60 animate-pulse">
                                         Wird erstellt...
                                       </div>
                                     ) : (
@@ -430,9 +430,9 @@ export default function TableView({
                                           const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
 
                                           cells.push(
-                                            <div key={item.id} className="group flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
+                                            <div key={item.id} className="group flex items-center justify-between gap-1.5 p-2 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
                                               <div className="min-w-0 flex-1">
-                                                <div className="text-[11px] font-bold text-foreground truncate max-w-[150px] flex items-center gap-1" title={name}>
+                                                <div className="text-xs font-bold text-foreground truncate max-w-[150px] flex items-center gap-1" title={name}>
                                                   {item.recipe_id && item.recipe_slug ? (
                                                     <Link
                                                       to={`/recipes/${item.recipe_slug}`}
@@ -452,7 +452,7 @@ export default function TableView({
                                                   )}
                                                   <NutriTagBadge allergenTags={itemAllergenTags} />
                                                 </div>
-                                                <div className="text-[9px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
+                                                <div className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
                                                   {kcal != null && <span>{kcal} kcal</span>}
                                                   {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
                                                   {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
@@ -461,12 +461,12 @@ export default function TableView({
 
                                               <div className="flex items-center gap-1 shrink-0">
                                                 {item.ingredient_id && !item.recipe_id && item.portion_display ? (
-                                                  <span className={`text-[9px] font-extrabold px-1 py-0.5 rounded bg-muted/60 ${item.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                                                  <span className={`text-[11px] font-extrabold px-1.5 py-0.5 rounded-full bg-muted/60 ${item.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
                                                     {item.portion_display}
                                                     {item.is_per_norm_person && <span className="ml-0.5 text-muted-foreground/60">/ P.</span>}
                                                   </span>
                                                 ) : item.ingredient_id && !item.recipe_id && item.quantity != null ? (
-                                                  <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                  <span className="text-[11px] font-extrabold text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/60">
                                                     &times;{item.quantity}
                                                     {item.measuring_unit_name ? ` ${item.measuring_unit_name}` : ''}
                                                   </span>
@@ -477,7 +477,7 @@ export default function TableView({
                                                   />
                                                 ) : (
                                                   item.factor !== 1.0 && (
-                                                    <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                    <span className="text-[11px] font-extrabold text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/60">
                                                       &times;{item.factor.toFixed(1).replace('.', ',')}
                                                     </span>
                                                   )
@@ -562,8 +562,8 @@ export default function TableView({
                                       })()}
                                     </div>
                                   ) : (
-                                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-[9px] uppercase tracking-wider mb-2">
-                                      <AlertCircle className="w-2.5 h-2.5" />
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-xs uppercase tracking-wider mb-2">
+                                      <AlertCircle className="w-3.5 h-3.5" />
                                       Mahlzeit leer
                                     </div>
                                   )}
@@ -589,7 +589,7 @@ export default function TableView({
                                         }}
                                         placeholder="Notiz..."
                                         autoFocus
-                                        className="w-full px-2 py-1 text-[10px] border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
+                                        className="w-full px-2 py-1 text-xs border border-border rounded-lg bg-background focus:ring-1 focus:ring-primary/40 focus:border-primary focus:outline-none transition-all"
                                       />
                                     ) : meal.note ? (
                                       <div
@@ -600,12 +600,12 @@ export default function TableView({
                                           }
                                         }}
                                         className={cn(
-                                          "text-[10px] text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
+                                          "text-xs text-muted-foreground italic flex items-start gap-1 py-1 px-1.5 rounded-lg bg-muted/50 border border-transparent hover:bg-muted transition-all truncate max-w-full",
                                           canEdit && "cursor-pointer"
                                         )}
                                         title={meal.note}
                                       >
-                                        <FileText className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                                        <FileText className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground" />
                                         <span className="truncate">{meal.note}</span>
                                       </div>
                                     ) : null}
@@ -633,7 +633,7 @@ export default function TableView({
                                    }
                                 }}
                                 disabled={isCreatingSlot !== null}
-                                className="text-[10px] font-semibold text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer shadow-none"
+                                className="text-xs font-semibold text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer shadow-none"
                               >
                                 {isCreatingSlot === `${date}_${mealType}_add` ? 'Wird hinzugefügt...' : '+ Weiterer Snack'}
                               </button>
@@ -648,7 +648,7 @@ export default function TableView({
           </tbody>
           <tfoot>
             <tr>
-              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-4 py-4 font-bold text-xs text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
+              <td className="sticky left-0 z-10 bg-muted/95 backdrop-blur-sm border-r border-t border-border px-4 py-4 font-bold text-sm text-foreground shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] align-top">
                 Tagesbilanz
               </td>
               {dates.map((date) => {
@@ -672,37 +672,52 @@ export default function TableView({
                 }
 
                 const diff = hasBudget ? budget - costPerPerson : 0;
+                const kcalPercent = dailyTotal.targetKcal > 0 ? Math.min(100, Math.round((kcalPerPerson / dailyTotal.targetKcal) * 100)) : 0;
+                const costPercent = dailyTotal.targetCost > 0 ? Math.min(100, Math.round((costPerPerson / dailyTotal.targetCost) * 100)) : 0;
+                const barColor = (status: 'green' | 'yellow' | 'red' | 'overplanned') =>
+                  status === 'green' ? 'bg-primary' : status === 'yellow' ? 'bg-[hsl(var(--chart-4))]' : 'bg-destructive';
 
                 return (
-                  <td key={date} className="border-t border-r border-border bg-muted/40 p-3 text-xs align-top">
-                    <div className="flex flex-col gap-1.5 font-sans">
-                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-foreground">
-                        <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                        <span>Soll {dailyTotal.targetKcal} · {kcalPerPerson} kcal ({dailyTotal.targetKcal > 0 ? Math.round((kcalPerPerson / dailyTotal.targetKcal) * 100) : 0} %)</span>
-                      </div>
-                      <div className="text-[11px] font-semibold text-muted-foreground">
-                        Soll {dailyTotal.targetCost.toFixed(2).replace('.', ',')} € · {costPerPerson > 0 ? `${costPerPerson.toFixed(2).replace('.', ',')} €` : '0,00 €'} ({dailyTotal.targetCost > 0 ? Math.round((costPerPerson / dailyTotal.targetCost) * 100) : 0} %)
-                      </div>
-                      {/* Coverage Badge */}
+                  <td key={date} className="border-t border-r border-border bg-muted/40 p-3.5 text-sm align-top">
+                    <div className="flex flex-col gap-3 font-sans">
+                      {/* Coverage Badge — the one number that matters at a glance */}
                       <div className={cn(
-                        "inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border w-fit shadow-xs",
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full border w-fit shadow-xs",
                         badge.status === 'green' && "bg-primary/10 text-primary border-primary/20",
                         badge.status === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
                         (badge.status === 'red' || badge.status === 'overplanned') && "bg-destructive/10 text-destructive border-destructive/20"
                       )}>
+                        <TrendingUp className="w-3.5 h-3.5" />
                         {badge.label}
                       </div>
+
+                      {/* Kcal progress bar */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                          <span>Kalorien</span>
+                          <span className="font-semibold text-foreground">{kcalPerPerson} / {dailyTotal.targetKcal} kcal</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div className={cn("h-full rounded-full transition-all", barColor(badge.status))} style={{ width: `${kcalPercent}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Cost progress bar */}
                       {hasBudget && (
-                        <div className={cn(
-                          "inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border w-fit shadow-xs",
-                          budgetStatus === 'green' && "bg-primary/10 text-primary border-primary/20",
-                          budgetStatus === 'yellow' && "bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20",
-                          budgetStatus === 'red' && "bg-destructive/10 text-destructive border-destructive/20"
-                        )}>
-                          {diff >= 0
-                            ? `noch ${diff.toFixed(2).replace('.', ',')} €`
-                            : `+${Math.abs(diff).toFixed(2).replace('.', ',')} €`
-                          }
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                            <span>Kosten</span>
+                            <span className="font-semibold text-foreground">{costPerPerson.toFixed(2).replace('.', ',')} € / {dailyTotal.targetCost.toFixed(2).replace('.', ',')} €</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full transition-all", barColor(budgetStatus))} style={{ width: `${costPercent}%` }} />
+                          </div>
+                          <div className={cn("text-xs font-semibold", diff >= 0 ? "text-primary" : "text-destructive")}>
+                            {diff >= 0
+                              ? `noch ${diff.toFixed(2).replace('.', ',')} €`
+                              : `${Math.abs(diff).toFixed(2).replace('.', ',')} € über Budget`
+                            }
+                          </div>
                         </div>
                       )}
                     </div>

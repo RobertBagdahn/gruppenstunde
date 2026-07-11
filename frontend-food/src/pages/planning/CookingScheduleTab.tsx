@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMealPlan, useCookingSchedule } from '@/api/mealPlans';
-import { Loader2, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle, Users } from 'lucide-react';
+import { Loader2, ChefHat, Clock, ChevronDown, ChevronRight, UtensilsCrossed, ListChecks, AlertTriangle, Users, Printer, StickyNote, Euro } from 'lucide-react';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, MEAL_TYPE_ICONS_LUCIDE, MEAL_TYPE_COLORS } from '@/schemas/mealPlan';
 import type { CookingScheduleItem, CookingScheduleDay, CookingScheduleStep } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
@@ -25,11 +25,13 @@ function formatDate(dateStr: string): string {
 function AllergenChip({ name, isDangerous }: { name: string; isDangerous?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-        isDangerous ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${
+        isDangerous
+          ? 'bg-destructive/10 text-destructive border-destructive/20'
+          : 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20'
       }`}
     >
-      {isDangerous && <AlertTriangle className="w-3 h-3 mr-0.5" />}
+      {isDangerous && <AlertTriangle className="w-3.5 h-3.5 mr-1" />}
       {name}
     </span>
   );
@@ -123,7 +125,10 @@ function RecipeCardExpanded({ item }: { item: CookingScheduleItem }) {
           </span>
         )}
         {item.meal_note && (
-          <span className="text-xs text-amber-600 italic">📝 {item.meal_note}</span>
+          <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--chart-4))] italic">
+            <StickyNote className="w-3.5 h-3.5 shrink-0" />
+            {item.meal_note}
+          </span>
         )}
       </div>
     </div>
@@ -207,16 +212,16 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
     <section className="mb-8">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-3 pt-2 border-b border-border">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-base font-display font-bold text-foreground">
+          <h2 className="text-lg font-display font-bold text-foreground">
             {formatDate(day.date)}
           </h2>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="font-semibold flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" /> {day.portions} Personen
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="font-semibold flex items-center gap-1.5">
+              <Users className="w-4 h-4" /> {day.portions} Personen
             </span>
             {day.day_start_time && day.day_end_time && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> {day.day_start_time} – {day.day_end_time} ({day.day_duration_minutes} Min.)
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4" /> {day.day_start_time} – {day.day_end_time} ({day.day_duration_minutes} Min.)
               </span>
             )}
             {hasCost && (
@@ -239,11 +244,11 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
           if (!items || items.length === 0) return null;
           return (
             <div key={mealType} className="mb-4">
-              <h3 className={`flex items-center gap-2 text-sm font-display font-bold mb-2 px-3 py-1.5 rounded-lg transition-colors group hover:bg-muted/30 ${MEAL_TYPE_COLORS[mealType]?.text ?? 'text-foreground'}`}>
+              <h3 className={`flex items-center gap-2 text-base font-display font-bold mb-2 px-3 py-1.5 rounded-lg transition-colors group hover:bg-muted/30 ${MEAL_TYPE_COLORS[mealType]?.text ?? 'text-foreground'}`}>
                 {(() => {
                   const IconComponent = MEAL_TYPE_ICONS_LUCIDE[mealType];
                   if (!IconComponent) return null;
-                  return <IconComponent className="w-4 h-4 transition-transform group-hover:scale-105" aria-label={MEAL_TYPE_LABELS[mealType] ?? mealType} />;
+                  return <IconComponent className="w-5 h-5 transition-transform group-hover:scale-105" aria-label={MEAL_TYPE_LABELS[mealType] ?? mealType} />;
                 })()}
                 {MEAL_TYPE_LABELS[mealType] ?? mealType}
               </h3>
@@ -293,21 +298,27 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
     <div className="space-y-6">
       {/* Tab Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <ChefHat className="w-5 h-5 text-primary" />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-11 h-11 rounded-full bg-primary/10 shrink-0">
+            <ChefHat className="w-6 h-6 text-primary" />
+          </div>
           <div>
-            <h2 className="font-display font-bold text-foreground">Kochplan</h2>
+            <h2 className="font-display font-bold text-foreground text-xl">Kochplan</h2>
             {plan && (
-              <p className="text-xs text-muted-foreground">{plan.name}</p>
+              <p className="text-sm text-muted-foreground">{plan.name}</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground font-semibold">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground font-semibold">
           {plan && (
             <>
-              <span>👥 {plan.norm_portions.toFixed(1)} Personen</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Users className="w-4 h-4" /> {plan.norm_portions.toFixed(1)} Personen
+              </span>
               {totalCost > 0 && (
-                <span>{totalCost.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Euro className="w-4 h-4" /> {totalCost.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                </span>
               )}
             </>
           )}
@@ -315,17 +326,18 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
             href={`/meal-plans/${mealPlanId}/cooking-schedule/print`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
           >
-            🖨️ Drucken
+            <Printer className="w-4 h-4" />
+            Drucken
           </a>
         </div>
       </div>
 
       {/* Warning Banner */}
       {schedule.excluded_meal_count > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-[hsl(var(--chart-4))]/20 bg-[hsl(var(--chart-4))]/10 px-4 py-3 text-sm text-[hsl(var(--chart-4))]">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
           <span>
             {schedule.excluded_meal_count}{' '}
             {schedule.excluded_meal_count === 1 ? 'Mahlzeit wurde' : 'Mahlzeiten wurden'} nicht berücksichtigt.

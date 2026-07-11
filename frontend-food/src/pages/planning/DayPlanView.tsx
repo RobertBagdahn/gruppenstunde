@@ -119,12 +119,12 @@ export function DayPlanView({
           const dayTargetCost = budgetPerPersonPerDay ? group.meals.reduce((sum, m) => sum + budgetPerPersonPerDay * m.day_part_factor, 0) : 0;
 
           return (
-            <div key={group.date} className="rounded-xl border bg-card overflow-hidden">
+            <div key={group.date} className="rounded-2xl border bg-card overflow-hidden shadow-sm">
               {/* Day Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-muted/50 border-b gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 bg-primary/5 border-b gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-base sm:text-lg">{formatDate(group.date)}</h3>
+                    <h3 className="font-display font-bold text-lg sm:text-xl">{formatDate(group.date)}</h3>
                     {(() => {
                       const coverage = getDayCoverage(group.meals);
                       const badge = getCoverageBadge(coverage);
@@ -135,20 +135,20 @@ export function DayPlanView({
                         overplanned: 'bg-destructive/10 text-destructive border-destructive/20',
                       };
                       return (
-                        <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg border ${colorClasses[badge.status]}`}>
+                        <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full border ${colorClasses[badge.status]}`}>
                           {badge.label}
                         </span>
                       );
                     })()}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1 bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
-                      <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
+                      <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
                       <span>Kcal: Soll {dayTargetKcal} / {dayActualKcal} kcal</span>
                     </span>
                     {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
-                      <span className="inline-flex items-center gap-1 bg-background px-2 py-0.5 rounded border border-border/50 font-medium">
-                        <span className="material-symbols-outlined text-[14px]">payments</span>
+                      <span className="inline-flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-full border border-border/50 font-medium">
+                        <span className="material-symbols-outlined text-[16px]">payments</span>
                         <span>Preis: Soll {dayTargetCost.toFixed(2)} € / Ist {dayActualCost.toFixed(2)} €</span>
                       </span>
                     )}
@@ -157,10 +157,10 @@ export function DayPlanView({
                 {canEdit && (
                   <button
                     onClick={() => onDeleteDay(group.date)}
-                    className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors self-end sm:self-auto"
+                    className="p-1.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors self-end sm:self-auto"
                     title="Tag löschen"
                   >
-                    <Trash2 className="w-4.5 h-4.5" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 )}
               </div>
@@ -192,8 +192,8 @@ export function DayPlanView({
 
               {/* Add Meal */}
               {canEdit && (
-                <div className="px-4 py-2 border-t bg-muted/30">
-                  <div className="flex flex-wrap gap-1">
+                <div className="px-5 py-3 border-t bg-muted/20">
+                  <div className="flex flex-wrap gap-1.5">
                     {MEAL_TYPE_ORDER
                       .filter((mt) => mt !== 'snack' && !group.meals.some((m) => m.meal_type === mt))
                       .map((mt) => (
@@ -203,9 +203,9 @@ export function DayPlanView({
                             const newMeal = await onAddMealType(group.date, mt);
                             if (newMeal) setSearchDialogMeal(newMeal);
                           }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm text-primary hover:bg-primary/5 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
                         >
-                          <Plus className="w-3.5 h-3.5 text-primary" />
+                          <Plus className="w-4 h-4 text-primary" />
                           {MEAL_TYPE_LABELS[mt] || mt}
                         </button>
                       ))}
@@ -215,9 +215,9 @@ export function DayPlanView({
                         const newMeal = await onAddMealType(group.date, 'snack');
                         if (newMeal) setSearchDialogMeal(newMeal);
                       }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm text-primary hover:bg-primary/5 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
                     >
-                      <Plus className="w-3.5 h-3.5 text-primary" />
+                      <Plus className="w-4 h-4 text-primary" />
                       {MEAL_TYPE_LABELS.snack}
                     </button>
                   </div>
