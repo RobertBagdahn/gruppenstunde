@@ -30,6 +30,7 @@ export const BaseIngredientSchema = z.object({
   is_standalone_food: z.boolean(),
   standard_recipe_weight_g: z.number().nullable(),
   energy_kcal: z.number().nullable(),
+  price_per_kg: z.number().nullable(),
   portions: z.array(BreakfastPortionSchema),
 });
 export type BaseIngredient = z.infer<typeof BaseIngredientSchema>;
@@ -89,6 +90,7 @@ export const BreakfastCatalogSchema = z.object({
   base_ingredients: z.array(BaseIngredientSchema),
   topping_ingredients: z.array(ToppingIngredientSchema),
   fat_ingredients: z.array(FatIngredientSchema),
+  extra_ingredients: z.array(ToppingIngredientSchema),
   drink_ingredients: z.array(DrinkIngredientSchema),
   drink_recipes: z.array(DrinkRecipeSchema),
   warm_meal_recipes: z.array(WarmMealRecipeSchema),

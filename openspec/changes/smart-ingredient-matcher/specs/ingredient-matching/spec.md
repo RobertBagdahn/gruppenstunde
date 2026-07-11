@@ -40,13 +40,13 @@ The system SHALL provide a unified `IngredientMatcher` service with four cascadi
 - **WHEN** the matcher searches for "Fladenbrot" and DB has "Fladenbrot" (usage_count=42)
 - **THEN** Stage 1 SHALL compute Jaccard=1.0, exceed threshold 0.90, and return MATCH with confidence=1.0
 
-#### Scenario: Word reordering caught by Jaccard
+#### Scenario: Word form variation cascades to fuzzy
 - **WHEN** the matcher searches for "rote Zwiebel" and DB has "Zwiebel rot" as alias (usage_count=15)
-- **THEN** Stage 1 SHALL compute word-level Jaccard({rote, zwiebel}, {zwiebel, rot})=0.67, fail threshold 0.90, cascade to Stage 2
+- **THEN** Stage 1 SHALL compute Jaccard({rote, zwiebel}, {zwiebel, rot}) = 1/3 ≈ 0.33, fail threshold 0.90, cascade to Stage 2
 
 #### Scenario: Typo caught by fuzzy stage
-- **WHEN** the matcher searches for "Champignon" and DB has "Champignon" (typo)
-- **THEN** Stage 2 SHALL compute pg_trgm + Levenshtein weighted score ≥ 0.70 and return MATCH
+- **WHEN** the matcher searches for "Champninon" (typo) and DB has "Champignon" (usage_count=30)
+- **THEN** Stage 1 SHALL compute Jaccard {champninon} vs {champignon} ≈ word sets identical → Jaccard=1.0 but not exact string match, cascade to Stage 2; Stage 2 SHALL compute pg_trgm + Levenshtein weighted score ≥ 0.70 and return MATCH
 
 #### Scenario: Semantic match via embedding
 - **WHEN** the matcher searches for "Rinderhack" and DB has "Rindergehacktes" (no Jaccard/fuzzy match)

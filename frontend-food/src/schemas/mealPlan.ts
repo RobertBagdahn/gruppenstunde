@@ -251,6 +251,8 @@ export const PortionOptionSchema = z.object({
   name: z.string(),
   display: z.string(),
   is_default: z.boolean(),
+  weight_g: z.number().default(0),
+  count: z.number().default(0),
 });
 
 export const ShoppingListItemSchema = z.object({
@@ -1022,11 +1024,7 @@ export const IntelligentSuggestionSchema = z.object({
 export type IntelligentSuggestion = z.infer<typeof IntelligentSuggestionSchema>;
 
 export const IntelligentSuggestionsResponseSchema = z.object({
-  suggestions: z.object({
-    top_picks: z.array(IntelligentSuggestionSchema),
-    variety: z.array(IntelligentSuggestionSchema),
-    discovery: z.array(IntelligentSuggestionSchema),
-  }),
+  suggestions: z.record(z.array(IntelligentSuggestionSchema)),
   total: z.number().default(0),
   ai_enhanced: z.boolean().default(false),
   meal_type: z.string().default(''),

@@ -23,6 +23,7 @@
 
 ## 4. IngredientMatcher Service (Kern)
 
+- [ ] 4.0 Parser als Pre-Processing in `IngredientMatcher.match()` einbauen: raw string → `parse()` → `match()` mit bereinigtem Namen
 - [ ] 4.1 `MatchResult`-Pydantic-Schema definieren: ingredient_id, name, confidence, matched_via (jaccard|fuzzy|embed|gemini|new), note, needs_review
 - [ ] 4.2 `IngredientMatcher.match()` Grundgerüst erstellen (cascading loop durch Stages)
 - [ ] 4.3 Stage 1: Wort-Jaccard implementieren (Tokenize → Jaccard → Threshold 0.90)
@@ -42,13 +43,15 @@
 
 - [ ] 6.1 `ai_ingredients_service.RecipeAiIngredientsService.match_ingredients()` durch `IngredientMatcher.match()` ersetzen
 - [ ] 6.2 `_create_new_ingredients()`-Logik in Flow C entfernen (wird vom Matcher übernommen)
-- [ ] 6.3 Tests für Flow C aktualisieren
+- [ ] 6.3 `RecipeItem.note` aus `MatchResult.note` befüllen bei Item-Erstellung
+- [ ] 6.4 Tests für Flow C aktualisieren
 
 ## 7. Flow B umstellen: AI-Create-Recipe
 
 - [ ] 7.1 `recipe_ai_suggest_service._match_or_create_ingredient()` durch `IngredientMatcher.match()` ersetzen
-- [ ] 7.2 `_match_measuring_unit()` und `_resolve_or_create_portion()` bleiben (separate Logik)
-- [ ] 7.3 Tests für Flow B aktualisieren
+- [ ] 7.2 `_match_measuring_unit()` und `_resolve_or_create_portion()` bleiben (separate Logik); Portions erhalten wenn möglich `weight_g` aus Enrichment
+- [ ] 7.3 `RecipeItem.note` aus `MatchResult.note` befüllen
+- [ ] 7.4 Tests für Flow B aktualisieren
 
 ## 8. Flow A umstellen: URL-Import (Gemini-Teil)
 

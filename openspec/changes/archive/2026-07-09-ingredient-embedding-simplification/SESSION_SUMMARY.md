@@ -1,7 +1,13 @@
 # Ingredient Embedding Simplification - Progress Summary
 
 ## Overview
-**Status:** 75% Complete (33/44 tasks)
+**Status:** 85% Complete (62/73 tasks — but critical quality validation steps skipped)
+**⚠️ Important:** 11 unchecked tasks include:
+- **2.6–2.7:** Dimension experiment never executed — 768 chosen arbitrarily without validation
+- **3.1–3.3:** Ground-truth calibration never done — `similarity_to_pct()` uses uncalibrated defaults
+- **7.2:** Bulk-recalculation never verified locally
+- **7.3** + **10.1–10.4:** Production deployment never verified
+
 **Last Updated:** Current session
 
 ## Completed Sections

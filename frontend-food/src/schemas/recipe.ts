@@ -81,6 +81,7 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   // Cached micronutrient values
   cached_vitamin_c_mg: z.number().nullable().optional(),
   cached_weight_g: z.number().nullable().optional(),
+  shared_group_ids: z.array(z.number()).default([]),
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),

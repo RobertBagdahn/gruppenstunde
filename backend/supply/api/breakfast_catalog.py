@@ -317,14 +317,15 @@ def get_drink_recipes(request) -> list[dict]:
     if drink_tag:
         qs = qs.filter(tags=drink_tag)
 
-    drinks = qs.values("id", "title", "recipe_type", "cached_energy_total_kcal")
+    drinks = qs.values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g")
 
     return [
         {
             "id": d["id"],
             "title": d["title"],
             "recipe_type": d["recipe_type"],
-            "cached_energy_kcal": d["cached_energy_total_kcal"],
+            "cached_energy_total_kcal": d["cached_energy_total_kcal"],
+            "cached_weight_g": d["cached_weight_g"],
         }
         for d in drinks
     ]

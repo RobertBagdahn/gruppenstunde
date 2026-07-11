@@ -21,6 +21,8 @@ export const PortionOptionSchema = z.object({
   name: z.string(),
   display: z.string(),
   is_default: z.boolean(),
+  weight_g: z.number().default(0),
+  count: z.number().default(0),
 });
 
 export type PortionOption = z.output<typeof PortionOptionSchema>;

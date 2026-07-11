@@ -117,9 +117,10 @@ Genutzt von:
 -- Einmalige Daten-Migration
 ALTER TABLE supply_ingredient ADD COLUMN usage_count integer NOT NULL DEFAULT 0;
 
-UPDATE supply_ingredient SET usage_count = (
-  SELECT COUNT(*) FROM recipe_recipeitem 
-  WHERE recipe_recipeitem.ingredient_id = supply_ingredient.id
+UPDATE supply_ingredient si SET usage_count = (
+  SELECT COUNT(*) FROM recipe_recipeitem ri
+  JOIN supply_portion sp ON ri.portion_id = sp.id
+  WHERE sp.ingredient_id = si.id
 );
 ```
 
