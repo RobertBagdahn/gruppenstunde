@@ -19,7 +19,7 @@ from core.services.gemini import gemini_call
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 AI_TIMEOUT_SECONDS = 30
 
 

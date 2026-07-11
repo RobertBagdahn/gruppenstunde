@@ -78,6 +78,8 @@ function makePlan(overrides: Partial<MealPlanDetail> = {}): MealPlanDetail {
     slug: 'sommerlager-2026',
     description: 'Ein tolles Lager',
     norm_portions: 20,
+    previous_norm_portions: 20,
+    activity_factor: 1.5,
     reserve_factor: 1.15,
     budget_per_person_per_day: null,
     event_id: null,
@@ -100,6 +102,9 @@ function makePlan(overrides: Partial<MealPlanDetail> = {}): MealPlanDetail {
     nutritional_tag_ids: [],
     nutritional_tags: [],
     is_template: false,
+    has_group_members: false,
+    group_members_count: 0,
+    group_members: [],
     ...overrides,
   };
 }

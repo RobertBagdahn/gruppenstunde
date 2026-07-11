@@ -266,7 +266,7 @@ def gemini_call(
 
     Args:
         user: The authenticated user. Required unless bypass_limits=True.
-        model: Gemini model name (e.g. "gemini-3.1-flash-lite-preview").
+        model: Gemini model name (e.g. "gemini-3.1-flash-lite").
         contents: Prompt string or list of content parts.
         config: Optional GenerateContentConfig.
         bypass_limits: Skip auth and rate limit checks (for management commands).

@@ -356,7 +356,9 @@ class MealPlanOut(Schema):
     name: str
     slug: str
     description: str
-    norm_portions: int
+    norm_portions: float
+    previous_norm_portions: float = 10.0
+    activity_factor: float = 1.5
     reserve_factor: float
     budget_per_person_per_day: float | None = None
     event_id: int | None = None
@@ -378,6 +380,8 @@ class MealPlanOut(Schema):
     is_owner: bool = False
     collaborators_count: int = 0
     tags: list[MealPlanTagOut] = []
+    has_group_members: bool = False
+    group_members_count: int = 0
     meals_copied: int = 0
     items_copied: int = 0
     overrides_copied: int = 0
@@ -425,19 +429,28 @@ class MealPlanOut(Schema):
             return ann
         return obj.collaborators.count()
 
+    @staticmethod
+    def resolve_has_group_members(obj) -> bool:
+        return obj.group_members.exists()
+
+    @staticmethod
+    def resolve_group_members_count(obj) -> int:
+        return obj.group_members.count()
+
 
 class MealPlanDuplicateIn(Schema):
     name: str
     start_datetime: dt.datetime
     end_datetime: dt.datetime
-    norm_portions: int
+    norm_portions: float
 
 
 class MealPlanCreateIn(Schema):
     name: str
     description: str = ""
-    norm_portions: int = 10
+    norm_portions: float = 10.0
     reserve_factor: float = 1.1
+    activity_factor: float = 1.5
     event_id: int | None = None
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
@@ -449,8 +462,9 @@ class MealPlanCreateIn(Schema):
 class MealPlanUpdateIn(Schema):
     name: str | None = None
     description: str | None = None
-    norm_portions: int | None = None
+    norm_portions: float | None = None
     reserve_factor: float | None = None
+    activity_factor: float | None = None
     budget_per_person_per_day: float | None = None
     start_datetime: dt.datetime | None = None
     end_datetime: dt.datetime | None = None
@@ -505,7 +519,9 @@ class MealPlanDetailOut(Schema):
     name: str
     slug: str
     description: str
-    norm_portions: int
+    norm_portions: float
+    previous_norm_portions: float = 10.0
+    activity_factor: float = 1.5
     reserve_factor: float
     budget_per_person_per_day: float | None = None
     event_id: int | None = None
@@ -528,6 +544,9 @@ class MealPlanDetailOut(Schema):
     nutritional_tags: list[NutritionalTagOut] = []
     is_template: bool = False
     tags: list[MealPlanTagOut] = []
+    has_group_members: bool = False
+    group_members_count: int = 0
+    group_members: list["GroupMemberOut"] = []
     meals_copied: int = 0
     items_copied: int = 0
     overrides_copied: int = 0
@@ -558,6 +577,61 @@ class MealPlanDetailOut(Schema):
     def resolve_collaborators(obj) -> list:
         return obj.collaborators.select_related("user").all()
 
+    @staticmethod
+    def resolve_has_group_members(obj) -> bool:
+        return obj.group_members.exists()
+
+    @staticmethod
+    def resolve_group_members_count(obj) -> int:
+        return obj.group_members.count()
+
+    @staticmethod
+    def resolve_group_members(obj) -> list:
+        return obj.group_members.select_related("person").prefetch_related("nutritional_tags").all()
+
+
+# ==========================================================================
+# GroupMember Schemas
+# ==========================================================================
+
+
+class GroupMemberOut(Schema):
+    id: int
+    name: str | None = None
+    age: int
+    gender: str
+    nutritional_tags: list[NutritionalTagOut] = []
+    person_id: int | None = None
+    synced_from_event: bool = False
+
+    @staticmethod
+    def resolve_nutritional_tags(obj) -> list:
+        return obj.nutritional_tags.all()
+
+
+class GroupMemberCreateIn(Schema):
+    name: str | None = None
+    age: int
+    gender: Literal["male", "female", "no_answer"] = "no_answer"
+    nutritional_tag_ids: list[int] = []
+
+
+class GroupMemberUpdateIn(Schema):
+    name: str | None = None
+    age: int | None = None
+    gender: Literal["male", "female", "no_answer"] | None = None
+    nutritional_tag_ids: list[int] | None = None
+
+
+class GroupMemberBulkCreateIn(Schema):
+    count: int
+    stufe: Literal["woelflinge", "jungpfadfinder", "pfadfinder", "rover"] | None = None
+    default_age: int | None = None
+    gender: str = "no_answer"
+
+
+# ==========================================================================
+
 
 class NutritionSummaryOut(Schema):
     # Total values (entire MealPlan, all portions)
@@ -579,7 +653,7 @@ class NutritionSummaryOut(Schema):
     per_portion_salt_g: float = 0.0
 
     # Scaling metadata
-    norm_portions: int = 1
+    norm_portions: float = 1.0
     reserve_factor: float = 1.0
     scaling_factor: float = 1.0
 
@@ -650,7 +724,7 @@ class MealPlanCostSummaryOut(Schema):
     total_cost_with_reserve: Decimal
     reserve_factor: float
     cost_per_person: Decimal
-    norm_portions: int
+    norm_portions: float
     total_ingredients: int
     priced_ingredients: int
     days: list[DayCostOut] = []
@@ -843,7 +917,7 @@ class CookingScheduleOut(Schema):
     total_cost_eur: float = 0.0
     total_cost_with_reserve: float = 0.0
     total_energy_kcal: float = 0.0
-    norm_portions: int = 0
+    norm_portions: float = 0.0
 
 
 class CalculateIngredientKcalIn(Schema):

@@ -2,7 +2,8 @@
  * InlineIngredientEditor — Edit-Mode for recipe ingredients on the detail page.
  * Allows editing quantities, units, notes, adding/removing items, and AI estimation.
  */
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Scale, Sparkles, SlidersHorizontal } from 'lucide-react';
@@ -426,6 +427,7 @@ export default function InlineIngredientEditor({
   const [alternativeTargetId, setAlternativeTargetId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: user } = useCurrentUser();
 
   const updateRecipe = useUpdateRecipe(recipeId);
@@ -572,6 +574,39 @@ export default function InlineIngredientEditor({
     },
     [editItems],
   );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const rawSlug = params.get('newIngredientSlug');
+    if (!rawSlug) return;
+
+    const newSlug = rawSlug;
+    let cancelled = false;
+
+    async function handle() {
+      try {
+        const res = await fetch(`/api/ingredients/${encodeURIComponent(newSlug)}/`, { credentials: 'include' });
+        if (!res.ok) {
+          if (res.status === 404 || res.status === 403) {
+            navigate(window.location.pathname, { replace: true });
+          }
+          return;
+        }
+        const ingredient = await res.json();
+        if (cancelled) return;
+
+        handleAddIngredient({ id: ingredient.id, name: ingredient.name, slug: ingredient.slug });
+
+        navigate(window.location.pathname, { replace: true });
+      } catch {
+        navigate(window.location.pathname, { replace: true });
+      }
+    }
+
+    handle();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handles ingredient selection from the detail search dialog.
   // Unlike handleAddIngredient (which sets quantity=0), this adds the item with the
@@ -1106,7 +1141,8 @@ export default function InlineIngredientEditor({
               setInputValue('');
             }}
             onCreateNew={(name) => {
-              handleAddIngredient({ id: -Date.now(), name, slug: '' });
+              const currentUrl = `${window.location.pathname}${window.location.search}`;
+              navigate(`/ingredients/new?prefillName=${encodeURIComponent(name)}&redirectTo=${encodeURIComponent(currentUrl)}`);
               setInputValue('');
             }}
             placeholder="Zutat hinzufügen..."

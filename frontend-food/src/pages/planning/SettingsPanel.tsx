@@ -10,6 +10,8 @@ interface SettingsPanelProps {
     name: string;
     description: string;
     norm_portions: number;
+    previous_norm_portions?: number;
+    activity_factor?: number;
     reserve_factor: number;
     budget_per_person_per_day: number | null;
     start_datetime: string | null;
@@ -17,12 +19,15 @@ interface SettingsPanelProps {
     day_part_factors?: Record<string, number>;
     meal_default_times?: Record<string, string[]>;
     nutritional_tag_ids?: number[];
+    has_group_members?: boolean;
+    group_members_count?: number;
   };
     onSave: (data: {
     name?: string;
     description?: string;
     norm_portions?: number;
     reserve_factor?: number;
+    activity_factor?: number;
     budget_per_person_per_day?: number | null;
     start_datetime?: string | null;
     end_datetime?: string | null;
@@ -43,6 +48,7 @@ export default function SettingsPanel({
   const [description, setDescription] = useState(plan.description);
   const [portions, setPortions] = useState(plan.norm_portions);
   const [reserve, setReserve] = useState(plan.reserve_factor);
+  const [activityFactor, setActivityFactor] = useState(plan.activity_factor ?? 1.5);
   const [budget, setBudget] = useState(plan.budget_per_person_per_day ?? '');
   const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
   const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
@@ -101,14 +107,43 @@ export default function SettingsPanel({
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Portionen (Personen)</label>
-          <input
-            type="number"
-            min={1}
-            value={portions}
-            onChange={(e) => setPortions(Number(e.target.value))}
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            Portionen (Personen)
+          </label>
+          {plan.has_group_members ? (
+            <div className="space-y-1">
+              <div className="rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2.5 text-sm font-semibold">
+                <span className="text-muted-foreground line-through mr-2">{plan.previous_norm_portions}</span>
+                <span className="text-muted-foreground">→</span>
+                <span className="text-primary ml-2">{plan.norm_portions}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Berechnet aus {plan.group_members_count} {plan.group_members_count === 1 ? 'Person' : 'Personen'}
+              </p>
+            </div>
+          ) : (
+            <input
+              type="number"
+              min={1}
+              step={0.5}
+              value={portions}
+              onChange={(e) => setPortions(Number(e.target.value))}
+              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+            />
+          )}
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">PAL (Aktivitätsfaktor)</label>
+          <select
+            value={activityFactor}
+            onChange={(e) => setActivityFactor(Number(e.target.value))}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
-          />
+          >
+            <option value={1.2}>1.2 — wenig aktiv (Büro)</option>
+            <option value={1.5}>1.5 — normal (Standard)</option>
+            <option value={1.75}>1.75 — aktiv (Lager)</option>
+            <option value={2.0}>2.0 — sehr aktiv (Hajk)</option>
+          </select>
         </div>
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Reservefaktor</label>
@@ -274,6 +309,7 @@ export default function SettingsPanel({
             description,
             norm_portions: portions,
             reserve_factor: reserve,
+            activity_factor: activityFactor,
             budget_per_person_per_day: budget === '' ? null : Number(budget),
             start_datetime: startDatetime ? startDatetime + ':00' : null,
             end_datetime: endDatetime ? endDatetime + ':00' : null,

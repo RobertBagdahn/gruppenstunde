@@ -448,12 +448,12 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
 
 @router.post("/ai-create/", response=RecipeDetailOut)
 def ai_create(request, payload: RecipeAiCreateIn):
-    """Create a complete recipe from title/description using AI."""
+    """Create a complete recipe from a free-text prompt using AI."""
     _require_auth(request)
 
     from recipe.services.recipe_ai_suggest_service import ai_create_recipe
 
-    recipe = ai_create_recipe(payload.title, payload.description or None, user=request.user)
+    recipe = ai_create_recipe(payload.prompt, user=request.user)
     return recipe
 
 

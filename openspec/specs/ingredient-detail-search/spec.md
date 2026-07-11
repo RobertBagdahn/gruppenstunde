@@ -108,3 +108,31 @@ Der `IngredientQuantityDialog` SHALL das Gesamtgewicht in Gramm anzeigen, sofern
 #### Scenario: Gewichtsberechnung
 - **WHEN** der Nutzer eine Menge eingibt und die Portion ein `weight_g` hat
 - **THEN** SHALL `= X g` (Menge × weight_g) dynamisch neben der Einheitenauswahl angezeigt werden
+
+---
+
+### Requirement: Neue-Zutat-Button im Dialog
+Der `IngredientDetailSearchDialog` SHALL einen permanenten [+]-Button im Dialog-Header anzeigen, der die Navigation zur Zutaten-Erstellungsseite ermöglicht.
+
+#### Scenario: Button sichtbar und klickbar
+- **WHEN** der `IngredientDetailSearchDialog` geöffnet ist
+- **THEN** SHALL ein [+]-Button im Dialog-Header (neben dem Suchfeld oder in der Titelzeile) sichtbar sein
+- **THEN** der Button SHALL das Label "Neue Zutat" oder ein "+"-Icon mit Tooltip "Neue Zutat" anzeigen
+
+#### Scenario: Klick auf +-Button navigiert zur Erstellungsseite
+- **WHEN** der Nutzer auf den [+]-Button klickt
+- **THEN** SHALL das System zu `/ingredients/new?redirectTo=<aktuelle Seiten-URL>` navigieren
+- **THEN** der Dialog SHALL geschlossen werden
+
+### Requirement: Rückkehr aus Zutaten-Erstellung mit auto-add
+Wenn der Nutzer nach erfolgreicher Zutaten-Erstellung zurück zum Dialog kommt, SHALL die neu erstellte Zutat automatisch selektiert werden.
+
+#### Scenario: Rückkehr-Parameter enthält neue Zutat
+- **WHEN** die Seite einen `?newIngredientSlug=<slug>` Query-Parameter enthält und der Dialog sich öffnet (oder bereits offen ist)
+- **THEN** SHALL das System die Zutat per Slug laden (`GET /api/ingredients/<slug>/`)
+- **THEN** SHALL der `IngredientQuantityDialog` für diese Zutat geöffnet werden
+- **THEN** nach Bestätigung SHALL die Zutat mit gewählter Menge/Portion dem Rezept hinzugefügt werden
+
+#### Scenario: Ungültiger newIngredientSlug
+- **WHEN** der `newIngredientSlug` auf keine existierende Zutat verweist
+- **THEN** SHALL das System den Parameter still ignorieren (kein Fehler-Toast, kein Crash)

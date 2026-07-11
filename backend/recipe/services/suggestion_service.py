@@ -531,7 +531,7 @@ from core.services.gemini import gemini_call
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 AI_TIMEOUT_MS = 30_000
 CACHE_TTL_SECONDS = 60 * 60 * 24  # 24 hours
 RATE_LIMIT_MAX = 10

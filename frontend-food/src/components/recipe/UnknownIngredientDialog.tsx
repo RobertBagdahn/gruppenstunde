@@ -2,10 +2,9 @@
  * Dialog that suggests existing ingredients when a user types an unknown ingredient name.
  * Uses fuzzy matching via pg_trgm to prevent duplicates.
  *
- * "Neu anlegen" navigates to /ingredients/new so the user can create the ingredient
- * via the guided stepper flow.
+ * "Neu anlegen" triggers onCreateNew which navigates to /ingredients/new with
+ * prefillName and redirectTo params.
  */
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
@@ -42,7 +41,6 @@ export function UnknownIngredientDialog({
   onCreateNew,
   onClose,
 }: UnknownIngredientDialogProps) {
-  const navigate = useNavigate();
   const { data: suggestions, isLoading } = useQuery({
     queryKey: ['ingredient-suggest', query] as const,
     queryFn: async () => {
@@ -104,7 +102,7 @@ export function UnknownIngredientDialog({
             variant="default"
             onClick={() => {
               onCreateNew(query);
-              navigate('/ingredients/new');
+              onClose();
             }}
           >
             &quot;{query}&quot; neu anlegen

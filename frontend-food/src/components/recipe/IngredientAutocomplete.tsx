@@ -281,7 +281,7 @@ export function IngredientAutocomplete({
       )}
 
       {/* Dropdown */}
-      {isOpen && suggestions.length > 0 && (
+      {isOpen && (suggestions.length > 0 || debouncedQuery.length >= 2) && (
         <div
           ref={listRef}
           className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-md"
@@ -364,6 +364,27 @@ export function IngredientAutocomplete({
               </button>
             );
           })}
+          {/* Create new ingredient item */}
+          {suggestions.length > 0 && debouncedQuery.length >= 2 && (
+            <div className="border-t mx-1" />
+          )}
+          <button
+            className={cn(
+              'flex w-full items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-accent transition-colors',
+              suggestions.length === 0 && activeIndex === -1 && 'bg-accent'
+            )}
+            role="option"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onCreateNew?.(debouncedQuery);
+              setIsOpen(false);
+            }}
+          >
+            <Plus className="w-4 h-4 text-primary shrink-0" />
+            <span className="flex-1 text-primary font-medium">
+              &ldquo;{debouncedQuery}&rdquo; neu anlegen
+            </span>
+          </button>
         </div>
       )}
 

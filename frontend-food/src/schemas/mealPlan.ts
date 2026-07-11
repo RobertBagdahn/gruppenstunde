@@ -119,6 +119,8 @@ export const MealPlanSchema = z.object({
   slug: z.string(),
   description: z.string(),
   norm_portions: z.number(),
+  previous_norm_portions: z.number().default(10),
+  activity_factor: z.number().default(1.5),
   reserve_factor: z.number(),
   budget_per_person_per_day: z.number().nullable(),
   event_id: z.number().nullable(),
@@ -140,6 +142,8 @@ export const MealPlanSchema = z.object({
   is_owner: z.boolean().default(false),
   collaborators_count: z.number().default(0),
   tags: z.array(MealPlanTagSchema).default([]),
+  has_group_members: z.boolean().default(false),
+  group_members_count: z.number().default(0),
   meals_copied: z.number().optional(),
   items_copied: z.number().optional(),
   overrides_copied: z.number().optional(),
@@ -149,6 +153,45 @@ export type MealPlan = z.infer<typeof MealPlanSchema>;
 // ==========================================================================
 // MealPlan Detail (with nested meals/items)
 // ==========================================================================
+
+// ==========================================================================
+// GroupMember
+// ==========================================================================
+
+export const GroupMemberSchema = z.object({
+  id: z.number(),
+  name: z.string().nullable(),
+  age: z.number(),
+  gender: z.enum(['male', 'female', 'no_answer']),
+  nutritional_tags: z.array(NutritionalTagSchema).default([]),
+  person_id: z.number().nullable(),
+  synced_from_event: z.boolean().default(false),
+});
+export type GroupMember = z.infer<typeof GroupMemberSchema>;
+
+export const GroupMemberCreateSchema = z.object({
+  name: z.string().nullable().optional(),
+  age: z.number(),
+  gender: z.enum(['male', 'female', 'no_answer']).default('no_answer'),
+  nutritional_tag_ids: z.array(z.number()).default([]),
+});
+export type GroupMemberCreate = z.infer<typeof GroupMemberCreateSchema>;
+
+export const GroupMemberUpdateSchema = z.object({
+  name: z.string().nullable().optional(),
+  age: z.number().optional(),
+  gender: z.enum(['male', 'female', 'no_answer']).optional(),
+  nutritional_tag_ids: z.array(z.number()).optional(),
+});
+export type GroupMemberUpdate = z.infer<typeof GroupMemberUpdateSchema>;
+
+export const GroupMemberBulkCreateSchema = z.object({
+  count: z.number().min(1).max(50),
+  stufe: z.enum(['woelflinge', 'jungpfadfinder', 'pfadfinder', 'rover']).optional(),
+  default_age: z.number().optional(),
+  gender: z.string().default('no_answer'),
+});
+export type GroupMemberBulkCreate = z.infer<typeof GroupMemberBulkCreateSchema>;
 
 // ==========================================================================
 // Collaborator
@@ -177,6 +220,8 @@ export const MealPlanDetailSchema = z.object({
   slug: z.string(),
   description: z.string(),
   norm_portions: z.number(),
+  previous_norm_portions: z.number().default(10),
+  activity_factor: z.number().default(1.5),
   reserve_factor: z.number(),
   budget_per_person_per_day: z.number().nullable(),
   event_id: z.number().nullable(),
@@ -199,6 +244,9 @@ export const MealPlanDetailSchema = z.object({
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   is_template: z.boolean().default(false),
+  has_group_members: z.boolean().default(false),
+  group_members_count: z.number().default(0),
+  group_members: z.array(z.lazy(() => GroupMemberSchema)).default([]),
   meals_copied: z.number().optional(),
   items_copied: z.number().optional(),
   overrides_copied: z.number().optional(),

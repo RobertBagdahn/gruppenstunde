@@ -15,7 +15,7 @@ from recipe.models import Recipe
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 AI_TIMEOUT_SECONDS = 60
 
 

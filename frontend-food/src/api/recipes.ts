@@ -21,7 +21,9 @@ import {
   EstimateQuantitiesSchema,
   RecipeRulesSchema,
   RecipeTypeStatsSchema,
+  RecipeAiCreateInSchema,
   type RecipeFilter,
+  type RecipeAiCreateIn,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
 
@@ -231,6 +233,19 @@ export function useCreateRecipe() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: RecipeCreatePayload) => postJson(`${API_BASE}/`, payload, RecipeDetailSchema),
+    onSuccess: (newRecipe) => {
+      invalidateRecipeData(queryClient, newRecipe.id);
+    },
+  });
+}
+
+export function useRecipeAiCreate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: RecipeAiCreateIn) => {
+      RecipeAiCreateInSchema.parse(payload);
+      return postJson(`${API_BASE}/ai-create/`, payload, RecipeDetailSchema);
+    },
     onSuccess: (newRecipe) => {
       invalidateRecipeData(queryClient, newRecipe.id);
     },

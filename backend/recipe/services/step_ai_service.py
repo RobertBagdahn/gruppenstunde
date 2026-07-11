@@ -12,7 +12,7 @@ from recipe.models import RecipeItem, Recipe
 logger = logging.getLogger(__name__)
 
 # Gemini model to use for recipe steps
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 MAX_TOKENS = 2000
 
 
@@ -66,7 +66,7 @@ class AiStepService:
             unit = recipe_item.portion.measuring_unit
             
             ingredient_name = ingredient.name
-            unit_short = unit.short if unit else ""
+            unit_short = unit.unit if unit else ""
             quantity = recipe_item.quantity
             note = recipe_item.note or ""
             

@@ -34,7 +34,7 @@ from supply.models import Ingredient
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 
 class DescriptionMapping(BaseModel):

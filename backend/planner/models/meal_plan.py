@@ -75,8 +75,10 @@ class MealPlan(models.Model):
     name = models.CharField(max_length=200, verbose_name=_("Name"))
     slug = models.SlugField(max_length=220, unique=True, blank=True, verbose_name=_("Slug"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
-    norm_portions = models.IntegerField(default=10, verbose_name=_("Norm-Portionen"))
+    norm_portions = models.FloatField(default=10.0, verbose_name=_("Norm-Portionen"))
+    previous_norm_portions = models.FloatField(default=10.0, verbose_name=_("Vorherige Norm-Portionen"))
     reserve_factor = models.FloatField(default=1.1, verbose_name=_("Reservefaktor"))
+    activity_factor = models.FloatField(default=1.5, verbose_name=_("Aktivitätsfaktor (PAL)"))
     event = models.ForeignKey(
         "event.Event",
         null=True,
@@ -153,6 +155,40 @@ class MealPlan(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def has_group_members(self) -> bool:
+        return self.group_members.exists()
+
+    def recalculate_norm_portions(self) -> None:
+        from supply.services.norm_person_service import (
+            Gender,
+            PersonSpec,
+            calculate_group_norm_factor,
+        )
+
+        members = list(self.group_members.all())
+        if not members:
+            self.norm_portions = self.previous_norm_portions
+            return
+
+        persons = []
+        for member in members:
+            if member.gender == "no_answer":
+                male = calculate_group_norm_factor([
+                    PersonSpec(age=member.age, gender=Gender.MALE, pal=self.activity_factor)
+                ])
+                female = calculate_group_norm_factor([
+                    PersonSpec(age=member.age, gender=Gender.FEMALE, pal=self.activity_factor)
+                ])
+                persons.append(0.5 * (male + female))
+            else:
+                gender = Gender.MALE if member.gender == "male" else Gender.FEMALE
+                persons.append(PersonSpec(age=member.age, gender=gender, pal=self.activity_factor))
+
+        total = calculate_group_norm_factor([p for p in persons if isinstance(p, PersonSpec)])
+        total += sum(p for p in persons if isinstance(p, (int, float)))
+        self.norm_portions = round(total, 3)
 
     def save(self, *args, **kwargs) -> None:
         if self.pk is None and self.owner_id is None and self.created_by_id is not None:
@@ -602,3 +638,58 @@ class MealItemOverride(models.Model):
 
     def __str__(self):
         return f"{self.meal_item} → {self.recipe_item} (override)"
+
+
+class GroupMemberGenderChoices(models.TextChoices):
+    MALE = "male", _("Männlich")
+    FEMALE = "female", _("Weiblich")
+    NO_ANSWER = "no_answer", _("Keine Angabe")
+
+
+class MealPlanGroupMember(models.Model):
+    """A person in a meal plan group for automatic norm-portion calculation."""
+
+    meal_plan = models.ForeignKey(
+        MealPlan,
+        on_delete=models.CASCADE,
+        related_name="group_members",
+        verbose_name=_("Essensplan"),
+    )
+    name = models.CharField(max_length=200, blank=True, null=True, verbose_name=_("Name"))
+    age = models.IntegerField(verbose_name=_("Alter"))
+    gender = models.CharField(
+        max_length=10,
+        choices=GroupMemberGenderChoices.choices,
+        default=GroupMemberGenderChoices.NO_ANSWER,
+        verbose_name=_("Geschlecht"),
+    )
+    nutritional_tags = models.ManyToManyField(
+        "supply.NutritionalTag",
+        blank=True,
+        related_name="group_members",
+        verbose_name=_("Allergien / Besonderheiten"),
+    )
+    person = models.ForeignKey(
+        "event.Person",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="meal_plan_group_members",
+        verbose_name=_("Person"),
+    )
+    synced_from_event = models.BooleanField(default=False, verbose_name=_("Aus Event synchronisiert"))
+    date_ranges = models.JSONField(default=list, blank=True, verbose_name=_("Datumsbereiche"))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "planner_mealplangroupmember"
+        verbose_name = _("Gruppenmitglied")
+        verbose_name_plural = _("Gruppenmitglieder")
+        ordering = ["age", "name"]
+        indexes = [
+            models.Index(fields=["meal_plan"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.name or f"Person ({self.age})"

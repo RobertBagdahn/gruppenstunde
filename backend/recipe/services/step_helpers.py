@@ -57,8 +57,8 @@ def resolve_placeholders(step: RecipeStep, recipe_items_map: Optional[dict] = No
     
     def replace_name(match):
         name = match.group(1)
-        # Skip if it looks like it was already resolved (contains units/quantities)
-        if any(char in name for char in ['g', 'ml', 'l', 'x', 'Stück', 'EL', 'TL']):
+        # Skip if it looks like it was already resolved (contains quantity + unit pattern)
+        if re.match(r'\d+(\.\d+)?\s*(g|ml|l|stk|Stück|EL|TL)\b', name):
             return match.group(0)
         # Find matching recipe item by name
         for item in recipe_items_map.values():
@@ -88,7 +88,7 @@ def _format_quantity(recipe_item: RecipeItem) -> str:
         qty_str = f"{quantity:.1f}".rstrip('0').rstrip('.')
 
     # Format unit
-    unit_str = unit.short if unit else ""
+    unit_str = unit.unit if unit else ""
 
     # Combine
     result = f"{qty_str}{unit_str} {ingredient.name}"

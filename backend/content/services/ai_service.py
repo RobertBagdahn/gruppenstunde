@@ -70,7 +70,7 @@ class AiRateLimitError(Exception):
     error_code = "AI_RATE_LIMITED"
 
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
 
 # ---------------------------------------------------------------------------

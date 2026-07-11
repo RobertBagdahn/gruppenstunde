@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 
 # ---------------------------------------------------------------------------

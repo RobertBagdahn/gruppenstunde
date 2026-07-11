@@ -504,7 +504,7 @@ class IntelligentSuggestionsService:
 
             response, _interaction_id = gemini_call(
                 user=self.user,
-                model="gemini-3.1-flash-lite-preview",
+                model="gemini-3.1-flash-lite",
                 contents=prompt,
                 config=genai_types.GenerateContentConfig(
                     response_mime_type="application/json",

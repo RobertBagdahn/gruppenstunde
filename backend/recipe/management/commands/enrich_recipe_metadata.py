@@ -15,7 +15,7 @@ import time
 
 from django.core.management.base import BaseCommand
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 SYSTEM_PROMPT = """Du bist ein Koch-Experte. Schätze für jedes Rezept die folgenden Metadaten:
 

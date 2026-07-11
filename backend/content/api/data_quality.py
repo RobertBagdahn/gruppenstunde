@@ -187,7 +187,7 @@ def _ai_suggest_price(ingredient) -> dict:
 
         result, _interaction_id = gemini_call(
             user=None,
-            model="gemini-3.1-flash-lite-preview",
+            model="gemini-3.1-flash-lite",
             contents=prompt,
             bypass_limits=False,
         )

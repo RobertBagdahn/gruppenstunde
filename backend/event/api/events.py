@@ -435,7 +435,7 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
 
         response, _interaction_id = gemini_call(
             user=request.user,
-            model="gemini-3.1-flash-lite-preview",
+            model="gemini-3.1-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

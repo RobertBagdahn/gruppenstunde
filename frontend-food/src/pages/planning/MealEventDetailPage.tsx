@@ -46,6 +46,7 @@ import IngredientScanView from './IngredientScanView';
 import VariantSliderDialog from '@/components/meal/VariantSliderDialog';
 import { useRecipeItems } from '@/api/recipes';
 import MealPlanCollaboratorManager from '@/components/planner/MealPlanCollaboratorManager';
+import { GroupMemberPanel } from '@/components/groupMembers/GroupMemberPanel';
 import CookingScheduleTab from './CookingScheduleTab';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
@@ -130,6 +131,7 @@ export default function MealPlanDetailPage() {
   // Edit settings
   const [showSettings, setShowSettings] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showGroupMembers, setShowGroupMembers] = useState(false);
 
   // Group meals by date for display
   const dayGroups = useMemo(() => {
@@ -349,6 +351,14 @@ export default function MealPlanDetailPage() {
           >
             <Share2 className="w-5 h-5 text-primary" />
           </button>
+          <button
+            onClick={() => setShowGroupMembers(!showGroupMembers)}
+            className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+            aria-label="Gruppe verwalten"
+            title="Gruppe verwalten"
+          >
+            <Users className="w-5 h-5 text-primary" />
+          </button>
           {plan.can_edit && (
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -373,6 +383,15 @@ export default function MealPlanDetailPage() {
           <h3 className="font-display font-bold text-lg text-foreground">Essensplan teilen</h3>
           <MealPlanCollaboratorManager planId={mealPlanId} isOwner={plan.is_owner} />
         </div>
+      )}
+
+      {/* Group Members Panel */}
+      {showGroupMembers && (
+        <GroupMemberPanel
+          mealPlanId={mealPlanId}
+          hasEvent={!!plan.event_id}
+          eventName={plan.event_name || ''}
+        />
       )}
 
       {/* Tab Bar */}

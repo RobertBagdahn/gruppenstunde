@@ -23,7 +23,7 @@ from recipe.services.exceptions import NoRecipeFoundError
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 # Valid choice values for validation
 VALID_RECIPE_TYPES = {"breakfast", "warm_meal", "cold_meal", "dessert", "recipe_part", "drink", "snack"}

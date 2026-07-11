@@ -22,10 +22,10 @@ The system SHALL provide a POST endpoint at `/api/recipes/{id}/ai-suggest-all/` 
 ---
 
 ### Requirement: AI-powered recipe creation endpoint
-The system SHALL provide a POST endpoint at `/api/recipes/ai-create/` that creates a complete recipe (with metadata and ingredient items) from a title and optional description using Gemini with Google Search Grounding.
+The system SHALL provide a POST endpoint at `/api/recipes/ai-create/` that creates a complete recipe (with metadata and ingredient items) from a free-text prompt using Gemini with Google Search Grounding.
 
 #### Scenario: Successful recipe creation
-- **WHEN** an authenticated user sends POST to `/api/recipes/ai-create/` with `{ "title": "Kaiserschmarrn" }`
+- **WHEN** an authenticated user sends POST to `/api/recipes/ai-create/` with `{ "prompt": "Kaiserschmarrn mit Apfelmus für 4 Personen" }`
 - **THEN** the system SHALL create a Recipe with populated metadata, match or create Ingredients, create RecipeItems with quantities, and return the created recipe
 
 #### Scenario: Ingredient matching during creation
@@ -56,8 +56,8 @@ The system SHALL display a magic wand button on the recipe detail/edit view that
 ---
 
 ### Requirement: AI-powered recipe creation from Create flow
-The system SHALL provide a Zauberstab button in the recipe creation flow that creates a complete recipe from a title/description input.
+The system SHALL provide a Zauberstab button in the recipe creation flow that creates a complete recipe from a free-text prompt.
 
 #### Scenario: User creates recipe via Zauberstab
-- **WHEN** an authenticated user enters a title and clicks the Zauberstab in the create flow
+- **WHEN** an authenticated user enters a prompt and clicks the Zauberstab in the create flow
 - **THEN** the system SHALL call the ai-create endpoint and redirect to the newly created recipe's detail page

@@ -45,11 +45,11 @@ class RecipeStepIngredientOut(Schema):
 
     @staticmethod
     def resolve_unit_short(obj) -> str | None:
-        """Resolve from recipe_item.portion.unit.short."""
+        """Resolve from recipe_item.portion.measuring_unit.unit."""
         if obj.recipe_item:
             portion = obj.recipe_item.portion
-            if portion and portion.unit:
-                return portion.unit.short
+            if portion and portion.measuring_unit:
+                return portion.measuring_unit.unit
         return None
 
     @staticmethod

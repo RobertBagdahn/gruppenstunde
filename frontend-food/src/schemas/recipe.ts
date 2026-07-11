@@ -277,6 +277,13 @@ export const ImprovementListSchema = z.object({
 });
 export type ImprovementList = z.infer<typeof ImprovementListSchema>;
 
+// --- AI Create ---
+
+export const RecipeAiCreateInSchema = z.object({
+  prompt: z.string().min(1),
+});
+export type RecipeAiCreateIn = z.infer<typeof RecipeAiCreateInSchema>;
+
 // --- LLM Suggestion ---
 
 export const LlmSuggestionSchema = z.object({

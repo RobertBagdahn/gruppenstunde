@@ -21,15 +21,15 @@ class TestResolvePlaceholders:
         # Create measuring units
         gram_unit, _ = MeasuringUnit.objects.get_or_create(
             name="Gramm",
-            defaults={"quantity": 1.0, "short": "g"}
+            defaults={"quantity": 1.0, "unit": "g"}
         )
         liter_unit, _ = MeasuringUnit.objects.get_or_create(
             name="Liter",
-            defaults={"quantity": 1.0, "short": "l"}
+            defaults={"quantity": 1.0, "unit": "ml"}
         )
         piece_unit, _ = MeasuringUnit.objects.get_or_create(
             name="Stück",
-            defaults={"quantity": 1.0, "short": "Stück"}
+            defaults={"quantity": 1.0, "unit": "stk"}
         )
         
         # Create ingredients
@@ -142,7 +142,7 @@ class TestResolvePlaceholders:
         
         assert "500g Mehl" in result
         assert "200g Zucker" in result
-        assert "2 Stück Zwiebel" in result
+        assert "2stk Zwiebel" in result
 
     def test_resolve_mixed_placeholders(self, setup):
         """Test resolving both numeric and name-based placeholders together."""
@@ -151,7 +151,7 @@ class TestResolvePlaceholders:
         
         assert "500g Mehl" in result
         assert "200g Zucker" in result
-        assert "0.5l Milch" in result
+        assert "0.5ml Milch" in result
 
     def test_unresolved_placeholder_stays_as_is(self, setup):
         """Test that unresolved placeholders remain unchanged."""
@@ -176,7 +176,7 @@ class TestResolvePlaceholders:
         setup["step"].instruction = "Add {Milch}"
         result = resolve_placeholders(setup["step"])
         
-        assert "0.5l Milch" in result
+        assert "0.5ml Milch" in result
 
     def test_resolve_placeholders_case_insensitive(self, setup):
         """Test that name placeholders are matched case-insensitively."""
@@ -222,7 +222,7 @@ class TestGenerateDescriptionFromSteps:
         # Create ingredients and portions
         gram_unit, _ = MeasuringUnit.objects.get_or_create(
             name="Gramm",
-            defaults={"quantity": 1.0, "short": "g"}
+            defaults={"quantity": 1.0, "unit": "g"}
         )
         
         butter = Ingredient.objects.create(name="Butter")
@@ -309,10 +309,12 @@ class TestGenerateDescriptionFromSteps:
 
     def test_generate_description_with_sections(self):
         """Test description generation with step sections."""
-        recipe = RecipeFactory(name="Rezept mit Sektionen")
-        gram_unit = MeasuringUnitFactory(name="Gramm", short="g")
-        ingredient = IngredientFactory(name="Ingredienz")
-        portion = Portion.objects.create(ingredient=ingredient, measuring_unit=gram_unit, grams_per_unit=1)
+        recipe = make_recipe(title="Rezept mit Sektionen")
+        gram_unit, _ = MeasuringUnit.objects.get_or_create(
+            name="Gramm", defaults={"quantity": 1.0, "unit": "g"}
+        )
+        ingredient = Ingredient.objects.create(name="Ingredienz")
+        portion = Portion.objects.create(ingredient=ingredient, measuring_unit=gram_unit, quantity=1.0, weight_g=1.0)
         item = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=100)
         
         # Create steps in different sections
@@ -339,7 +341,7 @@ class TestGenerateDescriptionFromSteps:
 
     def test_generate_description_empty_recipe(self):
         """Test that empty recipes generate empty description."""
-        recipe = RecipeFactory(name="Empty Recipe")
+        recipe = make_recipe(title="Empty Recipe")
         description = generate_description_from_steps(recipe)
         
         assert description == ""
@@ -356,10 +358,12 @@ class TestGenerateDescriptionFromSteps:
 
     def test_generate_description_step_numbering(self):
         """Test that steps are numbered correctly."""
-        recipe = RecipeFactory(name="Rezept")
-        gram_unit = MeasuringUnitFactory(name="Gramm", short="g")
-        ingredient = IngredientFactory(name="Zutat")
-        portion = Portion.objects.create(ingredient=ingredient, measuring_unit=gram_unit, grams_per_unit=1)
+        recipe = make_recipe(title="Rezept")
+        gram_unit, _ = MeasuringUnit.objects.get_or_create(
+            name="Gramm", defaults={"quantity": 1.0, "unit": "g"}
+        )
+        ingredient = Ingredient.objects.create(name="Zutat")
+        portion = Portion.objects.create(ingredient=ingredient, measuring_unit=gram_unit, quantity=1.0, weight_g=1.0)
         item = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=100)
         
         for i in range(1, 4):
@@ -378,10 +382,12 @@ class TestGenerateDescriptionFromSteps:
 
     def test_generate_description_duration_display(self):
         """Test that durations are included in description."""
-        recipe = RecipeFactory(name="Rezept")
-        gram_unit = MeasuringUnitFactory(name="Gramm", short="g")
-        ingredient = IngredientFactory(name="Zutat")
-        portion = Portion.objects.create(ingredient=ingredient, measuring_unit=gram_unit, grams_per_unit=1)
+        recipe = make_recipe(title="Rezept")
+        gram_unit, _ = MeasuringUnit.objects.get_or_create(
+            name="Gramm", defaults={"quantity": 1.0, "unit": "g"}
+        )
+        ingredient = Ingredient.objects.create(name="Zutat")
+        portion = Portion.objects.create(ingredient=ingredient, measuring_unit=gram_unit, quantity=1.0, weight_g=1.0)
         item = RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=100)
         
         step = RecipeStep.objects.create(

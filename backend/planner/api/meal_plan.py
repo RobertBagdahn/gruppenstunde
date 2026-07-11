@@ -18,6 +18,7 @@ from planner.models import (
     MealPlan,
     MealPlanCollaborator,
     MealPlanCollaboratorRole,
+    MealPlanGroupMember,
     MealPlanTag,
     MealPlanVisibility,
 )
@@ -26,6 +27,10 @@ from planner.schemas import (
     CalculateIngredientKcalOut,
     CookingScheduleOut,
     CopyItemsFromPlanIn,
+    GroupMemberBulkCreateIn,
+    GroupMemberCreateIn,
+    GroupMemberOut,
+    GroupMemberUpdateIn,
     IntelligentSuggestionsResponse,
     MealCreateIn,
     MealDayBulkCreateIn,
@@ -433,11 +438,15 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
 
         smart_merge_days(meal_plan, new_start, new_end)
     else:
+        activity_changed = "activity_factor" in patch_data
         for field, value in patch_data.items():
             if field in ("start_datetime", "end_datetime") and value is not None and timezone.is_naive(value):
                 value = timezone.make_aware(value)
             setattr(meal_plan, field, value)
         meal_plan.save()
+        if activity_changed:
+            meal_plan.recalculate_norm_portions()
+            meal_plan.save(update_fields=["norm_portions"])
 
     if nutritional_tags_to_set is not None:
         meal_plan.nutritional_tags.set(nutritional_tags_to_set)
@@ -1885,8 +1894,6 @@ def search_recipes(
             if exclude_tag_ids:
                 ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
-        ing_qs = ing_qs.annotate(usage_count=Count("portions__recipe_items", distinct=True))
-
         ing_list = list(
             ing_qs.values(
                 "id",
@@ -2088,8 +2095,6 @@ def search_recipes(
         exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
         if exclude_tag_ids:
             ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
-
-    ing_qs = ing_qs.annotate(usage_count=Count("portions__recipe_items", distinct=True))
 
     ing_list = list(
         ing_qs.values(
@@ -2560,3 +2565,172 @@ def intelligent_suggestions(
         meal_type=meal.meal_type,
         day_number=max(day_number, 1),
     )
+
+
+# ==========================================================================
+# GroupMember Endpoints
+# ==========================================================================
+
+STUFEN_DEFAULT_AGES = {
+    "woelflinge": 8,
+    "jungpfadfinder": 11,
+    "pfadfinder": 14,
+    "rover": 18,
+}
+
+
+@meal_plan_router.get("/{meal_plan_id}/group-members/", response=list[GroupMemberOut])
+def list_group_members(request, meal_plan_id: int):
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+    return meal_plan.group_members.select_related("person").prefetch_related("nutritional_tags").all()
+
+
+@meal_plan_router.post("/{meal_plan_id}/group-members/", response=GroupMemberOut)
+def create_group_member(request, meal_plan_id: int, payload: GroupMemberCreateIn):
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    if payload.nutritional_tag_ids and not payload.name:
+        raise HttpError(400, "Name ist erforderlich, wenn Allergien oder Besonderheiten angegeben sind")
+
+    member = MealPlanGroupMember(
+        meal_plan=meal_plan,
+        name=payload.name or None,
+        age=payload.age,
+        gender=payload.gender,
+    )
+    member.save()
+
+    if payload.nutritional_tag_ids:
+        member.nutritional_tags.set(payload.nutritional_tag_ids)
+
+    meal_plan.recalculate_norm_portions()
+    meal_plan.save(update_fields=["norm_portions"])
+
+    return member
+
+
+@meal_plan_router.patch("/{meal_plan_id}/group-members/{member_id}/", response=GroupMemberOut)
+def update_group_member(request, meal_plan_id: int, member_id: int, payload: GroupMemberUpdateIn):
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    member = get_object_or_404(MealPlanGroupMember, id=member_id, meal_plan=meal_plan)
+
+    if payload.name is not None:
+        member.name = payload.name or None
+    if payload.age is not None:
+        member.age = payload.age
+    if payload.gender is not None:
+        member.gender = payload.gender
+
+    member.save()
+
+    if payload.nutritional_tag_ids is not None:
+        if payload.nutritional_tag_ids and not member.name:
+            raise HttpError(400, "Name ist erforderlich, wenn Allergien oder Besonderheiten angegeben sind")
+        member.nutritional_tags.set(payload.nutritional_tag_ids)
+
+    meal_plan.recalculate_norm_portions()
+    meal_plan.save(update_fields=["norm_portions"])
+
+    return member
+
+
+@meal_plan_router.delete("/{meal_plan_id}/group-members/{member_id}/")
+def delete_group_member(request, meal_plan_id: int, member_id: int):
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    member = get_object_or_404(MealPlanGroupMember, id=member_id, meal_plan=meal_plan)
+    member.delete()
+
+    if not meal_plan.group_members.exists():
+        meal_plan.norm_portions = meal_plan.previous_norm_portions
+        meal_plan.save(update_fields=["norm_portions"])
+    else:
+        meal_plan.recalculate_norm_portions()
+        meal_plan.save(update_fields=["norm_portions"])
+
+    return {"success": True}
+
+
+@meal_plan_router.post("/{meal_plan_id}/group-members/bulk/", response=list[GroupMemberOut])
+def bulk_create_group_members(request, meal_plan_id: int, payload: GroupMemberBulkCreateIn):
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    if payload.count < 1 or payload.count > 50:
+        raise HttpError(400, "Anzahl muss zwischen 1 und 50 liegen")
+
+    if payload.default_age is not None:
+        default_age = payload.default_age
+    elif payload.stufe and payload.stufe in STUFEN_DEFAULT_AGES:
+        default_age = STUFEN_DEFAULT_AGES[payload.stufe]
+    else:
+        raise HttpError(400, "Entweder 'stufe' oder 'default_age' muss angegeben sein")
+
+    members = []
+    for _ in range(payload.count):
+        member = MealPlanGroupMember(
+            meal_plan=meal_plan,
+            age=default_age,
+            gender=payload.gender,
+        )
+        member.save()
+        members.append(member)
+
+    meal_plan.recalculate_norm_portions()
+    meal_plan.save(update_fields=["norm_portions"])
+
+    return members
+
+
+@meal_plan_router.post("/{meal_plan_id}/sync-event-participants/", response=list[GroupMemberOut])
+def sync_event_participants(request, meal_plan_id: int):
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    if not meal_plan.event:
+        raise HttpError(400, "Kein Event mit diesem Essensplan verknüpft")
+
+    from event.models.core import Participant
+
+    participants = list(
+        Participant.objects.filter(
+            registration__event=meal_plan.event
+        ).select_related("person").prefetch_related("nutritional_tags")
+    )
+
+    meal_plan.group_members.filter(synced_from_event=False).delete()
+
+    members = []
+    for participant in participants:
+        age = None
+        if participant.birthday:
+            today = dt.date.today()
+            age = today.year - participant.birthday.year - (
+                (today.month, today.day) < (participant.birthday.month, participant.birthday.day)
+            )
+        member = MealPlanGroupMember(
+            meal_plan=meal_plan,
+            name=participant.scout_name or participant.first_name or None,
+            age=age or 15,
+            gender=participant.gender if participant.gender in ("male", "female") else "no_answer",
+            person_id=participant.person_id,
+            synced_from_event=True,
+        )
+        member.save()
+        if participant.nutritional_tags.exists():
+            member.nutritional_tags.set(participant.nutritional_tags.all())
+        members.append(member)
+
+    meal_plan.recalculate_norm_portions()
+    meal_plan.save(update_fields=["norm_portions"])
+
+    return members

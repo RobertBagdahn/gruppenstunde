@@ -1100,7 +1100,7 @@ Antworte nur auf Deutsch."""
     try:
         response, _interaction_id = gemini_call(
             user=user,
-            model="gemini-3.1-flash-lite-preview",
+            model="gemini-3.1-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

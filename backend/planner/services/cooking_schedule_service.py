@@ -150,7 +150,7 @@ class CookingScheduleResult:
     total_cost_eur: float = 0.0
     total_cost_with_reserve: float = 0.0
     total_energy_kcal: float = 0.0
-    norm_portions: int = 0
+    norm_portions: float = 0.0
 
 
 def parse_recipe_steps(markdown: str) -> list[CookingScheduleStep]:

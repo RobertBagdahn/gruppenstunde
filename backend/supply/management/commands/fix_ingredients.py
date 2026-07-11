@@ -51,7 +51,7 @@ class NutritionFillSchema(BaseModel):
     physical_viscosity: str | None = Field(None, description="'solid', 'beverage', oder 'powder'")
 
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 
 def is_ugly_name(name: str) -> bool:

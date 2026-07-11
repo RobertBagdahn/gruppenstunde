@@ -377,5 +377,4 @@ class RecipeSuggestAllOut(Schema):
 class RecipeAiCreateIn(Schema):
     """Input for AI recipe creation."""
 
-    title: str
-    description: str = ""
+    prompt: str

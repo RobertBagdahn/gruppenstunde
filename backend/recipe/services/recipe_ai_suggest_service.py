@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-3.1-flash-lite-preview"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 
 # ---------------------------------------------------------------------------
@@ -133,8 +133,8 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
     return result.model_dump()
 
 
-def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser | None = None) -> Recipe:
-    """Create a complete recipe from title/description using Gemini + Search Grounding.
+def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recipe:
+    """Create a complete recipe from a free-text prompt using Gemini + Search Grounding.
 
     Creates Recipe, matches/creates Ingredients, creates RecipeItems.
     Returns the created Recipe instance.
@@ -143,14 +143,7 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
 
     from recipe.models import Recipe, RecipeItem
 
-    prompt_parts = [f"Recherchiere das Rezept '{title}'."]
-    if description:
-        prompt_parts.append(f"Beschreibung: {description}")
-    prompt_parts.append(
-        "Gib alle Metadaten und eine vollständige Zutatenliste mit Mengen und Einheiten an. "
-        "Verwende gängige deutsche Lebensmittelbezeichnungen."
-    )
-    prompt = "\n".join(prompt_parts)
+    prompt_text = f"Erstelle ein vollständiges Rezept zu dieser Beschreibung: {prompt}"
 
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
@@ -161,7 +154,7 @@ def ai_create_recipe(title: str, description: str | None, user: AbstractBaseUser
     response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
-        contents=prompt,
+        contents=prompt_text,
         config=config,
         context="recipe_ai_create",
     )

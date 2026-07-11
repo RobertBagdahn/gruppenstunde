@@ -10,7 +10,7 @@
  * dann wird nur noch ein PATCH für eventuelle Änderungen aus Step 1 gemacht.
  */
 import { Fragment, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Pencil, Sparkles, Eye, Link } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
@@ -186,6 +186,10 @@ function UrlImportModal({
 // ---------------------------------------------------------------------------
 export default function CreateIngredientPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefillName = searchParams.get('prefillName') ?? '';
+  const redirectTo = searchParams.get('redirectTo') ?? '';
+
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const { data: retailSections } = useRetailSections();
 
@@ -198,8 +202,10 @@ export default function CreateIngredientPage() {
   const importUrl = useIngredientImportUrl();
   const { data: genericTerms } = useGenericTerms();
 
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState<IngredientFormData>(EMPTY_FORM);
+  const [step, setStep] = useState(prefillName ? 1 : 0);
+  const [formData, setFormData] = useState<IngredientFormData>(
+    prefillName ? { ...EMPTY_FORM, name: prefillName } : EMPTY_FORM,
+  );
   const [createdIngredient, setCreatedIngredient] = useState<{
     slug: string;
     name: string;
@@ -297,12 +303,20 @@ export default function CreateIngredientPage() {
       retail_section_id: formData.retail_section_id ?? undefined,
     };
 
+    function getRedirectUrl(slug: string): string {
+      if (redirectTo) {
+        const separator = redirectTo.includes('?') ? '&' : '?';
+        return `${redirectTo}${separator}newIngredientSlug=${slug}`;
+      }
+      return `/ingredients/${slug}`;
+    }
+
     if (createdIngredient) {
       // AI mode: ingredient already exists — PATCH with any edits from step 1
       updateIngredient.mutate(payload as Record<string, unknown>, {
         onSuccess: (updated) => {
           toast.success('Zutat gespeichert');
-          navigate(`/ingredients/${updated.slug}`);
+          navigate(getRedirectUrl(updated.slug));
         },
         onError: () => toast.error('Fehler beim Speichern'),
       });
@@ -318,7 +332,7 @@ export default function CreateIngredientPage() {
         {
           onSuccess: (ingredient) => {
             toast.success('Zutat erstellt');
-            navigate(`/ingredients/${ingredient.slug}`);
+            navigate(getRedirectUrl(ingredient.slug));
           },
           onError: () => toast.error('Fehler beim Erstellen der Zutat'),
         },

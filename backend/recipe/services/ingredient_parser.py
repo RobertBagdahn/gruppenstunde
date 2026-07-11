@@ -273,7 +273,7 @@ class IngredientNameParser:
 
             response, _ = gemini_call(
                 user=None,
-                model="gemini-3.1-flash-lite-preview",
+                model="gemini-3.1-flash-lite",
                 contents=f"Parse diese Zutatenangabe in Name, Note (Modifikator), Menge und Einheit:\n{raw}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

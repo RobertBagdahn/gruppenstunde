@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Sparkles, PenLine, Link, Loader2, ArrowRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { useRecipeImportUrl } from '@/api/recipeImport';
+import { useRecipeAiCreate } from '@/api/recipes';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 type CreationMethod = 'manual' | 'ai' | 'url' | null;
@@ -33,11 +34,11 @@ export default function WizardStepMethod({
 }: WizardStepMethodProps) {
   const [showAiInput, setShowAiInput] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
-  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const importMutation = useRecipeImportUrl();
+  const aiCreateMutation = useRecipeAiCreate();
   const [previewData, setPreviewData] = useState<Awaited<ReturnType<typeof importMutation.mutateAsync>> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -57,19 +58,8 @@ export default function WizardStepMethod({
 
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim()) return;
-    setIsAiGenerating(true);
     try {
-      const res = await fetch('/api/recipes/ai-create/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-        credentials: 'include',
-        body: JSON.stringify({ prompt: aiPrompt.trim() }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Generierung fehlgeschlagen' }));
-        throw new Error(err.detail || 'Generierung fehlgeschlagen');
-      }
-      const recipe = await res.json();
+      const recipe = await aiCreateMutation.mutateAsync({ prompt: aiPrompt.trim() });
       onCreated(recipe.id, recipe.slug);
       onTitleChange(recipe.title || '');
       onRecipeTypeChange(recipe.recipe_type || null);
@@ -79,8 +69,6 @@ export default function WizardStepMethod({
       toast.error('KI-Generierung fehlgeschlagen', {
         description: err instanceof Error ? err.message : 'Unbekannter Fehler',
       });
-    } finally {
-      setIsAiGenerating(false);
     }
   };
 
@@ -308,10 +296,10 @@ export default function WizardStepMethod({
             <button
               type="button"
               onClick={handleAiGenerate}
-              disabled={isAiGenerating || !aiPrompt.trim()}
+              disabled={aiCreateMutation.isPending || !aiPrompt.trim()}
               className="flex items-center gap-2 px-5 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
             >
-              {isAiGenerating ? (
+              {aiCreateMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Rezept wird generiert...

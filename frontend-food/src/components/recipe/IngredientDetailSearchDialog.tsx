@@ -1,5 +1,6 @@
 import { useState, useDeferredValue, useEffect } from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, SlidersHorizontal, X, Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -176,6 +177,7 @@ export default function IngredientDetailSearchDialog({
   onSelect,
   showQuantityDialog = true,
 }: IngredientDetailSearchDialogProps) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [selectedRetailSection, setSelectedRetailSection] = useState<number | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
@@ -273,7 +275,20 @@ export default function IngredientDetailSearchDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-display">
               <SlidersHorizontal className="w-5 h-5 text-primary" />
-              Zutat suchen
+              <span className="flex-1">Zutat suchen</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentUrl = `${window.location.pathname}${window.location.search}`;
+                  navigate(`/ingredients/new?redirectTo=${encodeURIComponent(currentUrl)}`);
+                  onOpenChange(false);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors text-sm font-medium text-primary"
+                title="Neue Zutat anlegen"
+              >
+                <Plus className="w-4 h-4" />
+                Neue Zutat
+              </button>
             </DialogTitle>
           </DialogHeader>
 
