@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("recipe", "0039_recipefolder_recipefolder_unique_folder_per_owner"),
+        ("recipe", "0047_add_embedding_text_hash"),
         ("profiles", "0001_initial"),
     ]
 
@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text="Gruppen, mit denen dieses Rezept geteilt wird",
                 related_name="shared_recipes",
-                to="profiles.group",
+                to="profiles.usergroup",
                 verbose_name="Geteilte Gruppen",
             ),
         ),

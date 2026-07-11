@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { MEAL_TYPE_LABELS } from '@/schemas/mealPlan';
+import { X, Plus } from 'lucide-react';
+import { MEAL_TYPE_LABELS, type MealPlanTag } from '@/schemas/mealPlan';
+import { useMealPlanTags, useCreateMealPlanTag, useDeleteMealPlanTag } from '@/api/mealPlans';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 
 interface SettingsPanelProps {
+  planId: number;
   plan: {
     name: string;
     description: string;
@@ -31,6 +34,7 @@ interface SettingsPanelProps {
 }
 
 export default function SettingsPanel({
+  planId,
   plan,
   onSave,
   isPending,
@@ -43,6 +47,10 @@ export default function SettingsPanel({
   const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
   const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
   const [nutritionalTagIds, setNutritionalTagIds] = useState<number[]>(plan.nutritional_tag_ids || []);
+  const [tagInput, setTagInput] = useState('');
+  const { data: tags = [] } = useMealPlanTags(planId);
+  const createTag = useCreateMealPlanTag(planId);
+  const deleteTag = useDeleteMealPlanTag(planId);
 
   const toggleTag = (tagId: number) => {
     setNutritionalTagIds(prev =>
@@ -207,6 +215,56 @@ export default function SettingsPanel({
       <div className="border-t border-border pt-5">
         <h4 className="font-display font-bold text-sm text-foreground mb-3">Ernährungseinschränkungen</h4>
         <NutritionalTagMultiSelect selectedTagIds={nutritionalTagIds} onToggle={toggleTag} />
+      </div>
+
+      <div className="border-t border-border pt-5">
+        <h4 className="font-display font-bold text-sm text-foreground mb-3">Kontext-Tags</h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          Tags helfen der KI, bessere Rezeptvorschläge zu machen (z.B. sommerlager, lagerfeuer, wenig_küche)
+        </p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {tags.map((tag: MealPlanTag) => (
+            <span
+              key={tag.id}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold"
+            >
+              {tag.name}
+              <button
+                onClick={() => deleteTag.mutate(tag.id)}
+                className="hover:text-accent transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && tagInput.trim()) {
+                createTag.mutate(tagInput.trim());
+                setTagInput('');
+              }
+            }}
+            placeholder="Tag eingeben..."
+            className="flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+          />
+          <button
+            onClick={() => {
+              if (tagInput.trim()) {
+                createTag.mutate(tagInput.trim());
+                setTagInput('');
+              }
+            }}
+            disabled={!tagInput.trim() || createTag.isPending}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex justify-end pt-2">

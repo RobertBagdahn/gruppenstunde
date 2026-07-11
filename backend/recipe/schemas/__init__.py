@@ -45,6 +45,14 @@ from .recipes import (
     RecipeUpdateIn,
     VisibilityUpdateIn,
 )
+from .steps import (
+    RecipeStepIngredientIn,
+    RecipeStepIngredientOut,
+    RecipeStepIn,
+    RecipeStepOut,
+    RecipeStepsBatchIn,
+    RecipeStepsListOut,
+)
 from .rules import (
     RuleIn,
     RuleOut,
@@ -100,6 +108,12 @@ __all__ = [
     "RecipeSimilarOut",
     "RecipeSuggestAllOut",
     "RecipeSuggestionOut",
+    "RecipeStepIngredientIn",
+    "RecipeStepIngredientOut",
+    "RecipeStepIn",
+    "RecipeStepOut",
+    "RecipeStepsBatchIn",
+    "RecipeStepsListOut",
     "RecipeTypeStatsOut",
     "RecipeTypeStatsRequest",
     "RecipeUpdateIn",

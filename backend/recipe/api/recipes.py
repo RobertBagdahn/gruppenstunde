@@ -467,6 +467,7 @@ def get_recipe(request, recipe_id: int):
         "recipe_items__portion__ingredient__retail_section",
         "recipe_items__portion__ingredient__portions__measuring_unit",
         "recipe_items__portion__measuring_unit",
+        "steps__step_ingredients__recipe_item__portion__ingredient",
         "authors__profile",
     )
     recipe = _get_visible_recipes_qs(request).prefetch_related(*prefetches).filter(id=recipe_id).first()
@@ -502,6 +503,7 @@ def get_recipe_by_slug(request, slug: str):
             "recipe_items__portion__ingredient__retail_section",
             "recipe_items__portion__ingredient__portions__measuring_unit",
             "recipe_items__portion__measuring_unit",
+            "steps__step_ingredients__recipe_item__portion__ingredient",
             "authors__profile",
         ),
         slug=slug,

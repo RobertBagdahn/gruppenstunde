@@ -214,7 +214,7 @@ class Ingredient(models.Model):
         help_text=_("Privat: nur für Owner + dessen Gruppe sichtbar. Geteilt: mit selected_groups"),
     )
     shared_groups = models.ManyToManyField(
-        "profiles.Group",
+        "profiles.UserGroup",
         blank=True,
         related_name="shared_ingredients",
         verbose_name=_("Geteilte Gruppen"),

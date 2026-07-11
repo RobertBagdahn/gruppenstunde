@@ -20,7 +20,32 @@ if TYPE_CHECKING:
     from recipe.models import Recipe
 
 from recipe.models import RecipeItem, Rule
-from supply.choices import RecipeTypeChoices
+from supply.choices import MeasuringUnitType, RecipeTypeChoices
+
+
+def _calculate_item_weight_g(item: RecipeItem) -> float:
+    """Calculate the weight in grams for a RecipeItem.
+
+    Uses portion.weight_g if available, otherwise falls back to
+    measuring_unit conversion with density adjustment for VOLUME units.
+    """
+    portion = item.portion
+    if not portion:
+        return 0.0
+
+    if portion.weight_g:
+        return item.quantity * float(portion.weight_g)
+
+    if portion.measuring_unit:
+        raw = item.quantity * float(portion.quantity) * float(portion.measuring_unit.quantity)
+
+        ingredient = getattr(portion, "ingredient", None)
+        if ingredient and portion.measuring_unit.unit == MeasuringUnitType.VOLUME:
+            density = getattr(ingredient, "physical_density", 1.0) or 1.0
+            raw *= density
+        return raw
+
+    return 0.0
 
 # Micronutrient fields tracked on Ingredient — used for aggregation
 MICRONUTRIENT_FIELDS = [
@@ -44,7 +69,7 @@ def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
     items = (
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
-        .select_related("portion", "portion__ingredient")
+        .select_related("portion", "portion__ingredient", "portion__measuring_unit")
     )
 
     total_weight_g = 0.0
@@ -76,12 +101,8 @@ def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
         if not ingredient:
             continue
 
-        weight_g = 0.0
-        if item.portion and item.portion.weight_g:
-            weight_g = item.quantity * item.portion.weight_g
-        elif item.portion and item.portion.measuring_unit:
-            weight_g = item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
-        else:
+        weight_g = _calculate_item_weight_g(item)
+        if not weight_g:
             continue
 
         total_weight_g += weight_g
@@ -119,10 +140,7 @@ def get_recipe_total_weight_g(recipe: Recipe) -> float:
     for item in items:
         if not (item.portion and item.portion.ingredient):
             continue
-        if item.portion.weight_g:
-            total_weight_g += item.quantity * item.portion.weight_g
-        elif item.portion.measuring_unit:
-            total_weight_g += item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
+        total_weight_g += _calculate_item_weight_g(item)
     return total_weight_g
 
 
@@ -390,15 +408,8 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
         if not (item.portion and item.portion.ingredient):
             continue
         ingredient = item.portion.ingredient
-        weight_g = 0.0
-        # Handle weight-based portions
-        if item.portion.weight_g:
-            weight_g = item.quantity * item.portion.weight_g
-            total_weight_g += float(weight_g)
-        # Handle measuring_unit-based portions
-        elif item.portion.measuring_unit:
-            weight_g = item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
-            total_weight_g += float(weight_g)
+        weight_g = _calculate_item_weight_g(item)
+        total_weight_g += float(weight_g)
 
         if ingredient.price_per_kg and weight_g:
             has_prices = True

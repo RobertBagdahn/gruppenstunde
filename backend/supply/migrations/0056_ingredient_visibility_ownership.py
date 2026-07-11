@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 help_text="Gruppen, mit denen diese Zutat geteilt wird",
                 related_name="shared_ingredients",
-                to="profiles.group",
+                to="profiles.usergroup",
                 verbose_name="Geteilte Gruppen",
             ),
         ),

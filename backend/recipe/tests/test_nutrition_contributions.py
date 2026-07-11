@@ -4,7 +4,8 @@ import pytest
 from django.test import Client
 
 from recipe.tests import make_recipe, make_recipe_item
-from supply.tests import make_ingredient, make_portion
+from supply.choices import MeasuringUnitType
+from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 
 @pytest.mark.django_db
@@ -133,6 +134,100 @@ class TestNutritionContributions:
                     f"Item {item['ingredient_name']}, param {contrib['parameter']}: "
                     f"contribution={contrib['absolute']}, field={item[field]}"
                 )
+
+    def test_density_adjusted_weight_for_volume(self):
+        """VOLUME-type measuring units use ingredient physical_density."""
+        from recipe.services.recipe_checks import _calculate_item_weight_g
+        from recipe.models import RecipeItem
+
+        oil = make_ingredient(name="Olivenöl", energy_kcal=900, physical_density=0.92, physical_viscosity="liquid")
+        ml_unit = make_measuring_unit(name="Milliliter", quantity=1.0, unit=MeasuringUnitType.VOLUME)
+        portion = make_portion(
+            ingredient=oil, name="100ml Öl", measuring_unit=ml_unit, quantity=1.0, weight_g=None
+        )
+        recipe = make_recipe(portions=1)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)
+
+        # Verify helper directly
+        ri = RecipeItem.objects.filter(recipe=recipe).select_related(
+            "portion", "portion__ingredient", "portion__measuring_unit"
+        ).first()
+        w = _calculate_item_weight_g(ri)
+        assert w == pytest.approx(0.92, abs=0.01), f"Expected 0.92g, got {w}"
+
+        # Full API test
+        client = Client()
+        resp = client.get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        assert len(data["items"]) == 1
+        item = data["items"][0]
+        # 1 × 1 × 1 × 0.92 = 0.92g, rounded to 1dp = 0.9
+        assert item["weight_g"] == 0.9
+        # 900 × 0.92 / 100 = 8.28 kcal, rounded to 1dp = 8.3
+        assert item["energy_kcal"] == 8.3
+        # Total should match per-serving when portions=1
+        assert data["per_serving_energy_kcal"] == 8.3
+        assert data["total_energy_kcal"] == 8.3
+
+    def test_weight_with_explicit_weight_g_ignores_density(self):
+        """Portions with explicit weight_g skip density adjustment."""
+        oil = make_ingredient(name="Olivenöl", energy_kcal=900, physical_density=0.92, physical_viscosity="liquid")
+        ml_unit = make_measuring_unit(name="Milliliter", quantity=1.0, unit=MeasuringUnitType.VOLUME)
+        portion = make_portion(
+            ingredient=oil,
+            name="200ml Öl (mit Gewicht)",
+            measuring_unit=ml_unit,
+            quantity=1.0,
+            weight_g=180.0,  # explicit weight, not density-derived
+        )
+        recipe = make_recipe(portions=1)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)
+
+        client = Client()
+        resp = client.get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        item = data["items"][0]
+        # weight_g from portion.weight_g directly: 1 × 180 = 180g, rounded
+        assert item["weight_g"] == 180.0
+        # 900 × 180 / 100 = 1620 kcal per serving
+        assert item["energy_kcal"] == 1620.0
+
+    def test_per_item_values_are_per_serving(self):
+        """Per-item values in breakdown match per_serving totals."""
+        recipe = self._make_recipe_with_items()
+        client = Client()
+        resp = client.get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        per_serving = data.get("per_serving_energy_kcal", 0)
+        item_sum = sum(item["energy_kcal"] for item in data["items"])
+        # Sum of per-item energy_kcal should match per_serving_energy_kcal
+        assert abs(item_sum - per_serving) < 0.15, (
+            f"Sum of per-item energy_kcal ({item_sum}) != per_serving_energy_kcal ({per_serving})"
+        )
+        # Each item value should be <= total (per-serving ≤ total when portions > 1)
+        for item in data["items"]:
+            assert item["energy_kcal"] <= data["total_energy_kcal"]
+
+    def test_contributions_stay_total_based(self):
+        """Contribution percentages stay correct after per-serving conversion."""
+        recipe = self._make_recipe_with_items()
+        client = Client()
+        resp = client.get(f"/api/recipes/{recipe.id}/nutrition-breakdown/")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        param_sums: dict[str, float] = {}
+        for item in data["items"]:
+            for c in item["contributions"]:
+                param_sums[c["parameter"]] = param_sums.get(c["parameter"], 0.0) + c["percent_of_recipe"]
+        for param, total in param_sums.items():
+            assert 99.0 <= total <= 101.0, f"{param}: sum={total}"
 
     def test_positive_traits_in_breakdown_response(self):
         """Breakdown response should include positive_traits field."""

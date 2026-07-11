@@ -326,6 +326,18 @@ export default function MealPlanDetailPage() {
                 {plan.event_name}
               </span>
             )}
+            {plan.tags && plan.tags.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 flex-wrap">
+                {plan.tags.map((tag: { id: number; name: string }) => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 self-start">
@@ -352,7 +364,7 @@ export default function MealPlanDetailPage() {
 
       {/* Settings Panel */}
       {showSettings && plan.can_edit && (
-        <SettingsPanel plan={plan} onSave={handleSaveSettings} isPending={updateMutation.isPending} />
+        <SettingsPanel planId={mealPlanId} plan={plan} onSave={handleSaveSettings} isPending={updateMutation.isPending} />
       )}
 
       {/* Share / Collaborator Panel */}

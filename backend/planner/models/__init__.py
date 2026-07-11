@@ -10,6 +10,7 @@ from .meal_plan import (
     MealPlan,
     MealPlanCollaborator,
     MealPlanCollaboratorRole,
+    MealPlanTag,
     MealPlanVisibility,
     MealTypeChoices,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "MealPlan",
     "MealPlanCollaborator",
     "MealPlanCollaboratorRole",
+    "MealPlanTag",
     "MealPlanVisibility",
     "MealTypeChoices",
     "Planner",

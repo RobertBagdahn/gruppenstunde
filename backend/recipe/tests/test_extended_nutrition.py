@@ -376,7 +376,8 @@ class TestNutritionBreakdownAPI:
         item = data["items"][0]
         assert "vitamin_c_mg" in item
         assert item["vitamin_c_mg"] is not None
-        assert item["vitamin_c_mg"] == pytest.approx(178.0, abs=0.5)
+        # portions=2, total 178.0 → per-serving 89.0
+        assert item["vitamin_c_mg"] == pytest.approx(89.0, abs=0.5)
 
     def test_nutrition_breakdown_dge_coverage_with_params(self, auth_client: Client):
         """DGE coverage should be populated when age and gender params are given."""

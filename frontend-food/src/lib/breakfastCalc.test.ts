@@ -369,13 +369,13 @@ describe('warmDishKcalFromRecipes', () => {
 
   it('calculates kcal from warm dish with factor', () => {
     const state = makeWizardState({ warmDishRecipeIds: [5], warmDishFactors: { '5': 2.0 } });
-    const map = new Map<number, RecipeEnergyData>([[5, { cached_energy_kcal: 300, portions: 1 }]]);
+    const map = new Map<number, RecipeEnergyData>([[5, { cached_energy_total_kcal: 300, cached_weight_g: null, portions: 1 }]]);
     expect(warmDishKcalFromRecipes(state, map)).toBeCloseTo(600);
   });
 
   it('skips recipes with null kcal', () => {
     const state = makeWizardState({ warmDishRecipeIds: [5], warmDishFactors: { '5': 1.0 } });
-    const map = new Map<number, RecipeEnergyData>([[5, { cached_energy_kcal: null, portions: 1 }]]);
+    const map = new Map<number, RecipeEnergyData>([[5, { cached_energy_total_kcal: null, cached_weight_g: null, portions: 1 }]]);
     expect(warmDishKcalFromRecipes(state, map)).toBe(0);
   });
 });
@@ -403,7 +403,7 @@ describe('extrasKcalPerPerson', () => {
 
   it('combines warm dish kcal and extra ingredient kcal', () => {
     const state = makeWizardState({ warmDishRecipeIds: [5], warmDishFactors: { '5': 1.0 } });
-    const warmMap = new Map<number, RecipeEnergyData>([[5, { cached_energy_kcal: 200, portions: 1 }]]);
+    const warmMap = new Map<number, RecipeEnergyData>([[5, { cached_energy_total_kcal: 200, cached_weight_g: null, portions: 1 }]]);
     const extraMap = new Map([[1, 75]]);
     expect(extrasKcalPerPerson(state, warmMap, extraMap)).toBeCloseTo(275);
   });

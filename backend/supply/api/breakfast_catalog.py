@@ -98,7 +98,8 @@ class DrinkRecipeOut(Schema):
     id: int
     title: str
     recipe_type: str
-    cached_energy_kcal: float | None = None
+    cached_energy_total_kcal: float | None = None
+    cached_weight_g: float | None = None
 
 
 class DrinkIngredientOut(Schema):
@@ -119,7 +120,8 @@ class WarmMealRecipeOut(Schema):
     id: int
     title: str
     recipe_type: str
-    cached_energy_kcal: float | None = None
+    cached_energy_total_kcal: float | None = None
+    cached_weight_g: float | None = None
 
 
 class BreakfastCatalogOut(Schema):
@@ -248,13 +250,14 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
             for tid in parsed_tag_ids:
                 drinks = drinks.filter(tags=tid)
 
-        drinks = drinks.values("id", "title", "recipe_type", "cached_energy_total_kcal")
+        drinks = drinks.values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g")
         drink_recipes = [
             {
                 "id": d["id"],
                 "title": d["title"],
                 "recipe_type": d["recipe_type"],
-                "cached_energy_kcal": d["cached_energy_total_kcal"],
+                "cached_energy_total_kcal": d["cached_energy_total_kcal"],
+                "cached_weight_g": d["cached_weight_g"],
             }
             for d in drinks
         ]
@@ -265,14 +268,15 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     warm_meal_recipes = []
     if warm_tag:
         warm = Recipe.objects.filter(tags=warm_tag, recipe_type="breakfast", status="approved").values(
-            "id", "title", "recipe_type", "cached_energy_total_kcal"
+            "id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g"
         )
         warm_meal_recipes = [
             {
                 "id": d["id"],
                 "title": d["title"],
                 "recipe_type": d["recipe_type"],
-                "cached_energy_kcal": d["cached_energy_total_kcal"],
+                "cached_energy_total_kcal": d["cached_energy_total_kcal"],
+                "cached_weight_g": d["cached_weight_g"],
             }
             for d in warm
         ]

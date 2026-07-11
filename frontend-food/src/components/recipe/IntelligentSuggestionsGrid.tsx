@@ -8,7 +8,7 @@ interface IntelligentSuggestionsGridProps {
   mealId: number;
   mealType: string;
   onSelect: (recipeId: number, recipeTitle?: string) => void;
-  aiEnhance?: boolean;
+  contextEnhance?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
@@ -104,9 +104,9 @@ export default function IntelligentSuggestionsGrid({
   mealId,
   mealType: _mealType,
   onSelect,
-  aiEnhance = false,
+  contextEnhance = true,
 }: IntelligentSuggestionsGridProps) {
-  const { data, isLoading, isError } = useIntelligentSuggestions(planId, mealId, aiEnhance);
+  const { data, isLoading, isError } = useIntelligentSuggestions(planId, mealId, contextEnhance);
 
   if (isLoading) {
     return <SkeletonGrid />;

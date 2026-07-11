@@ -60,7 +60,8 @@ export const DrinkRecipeSchema = z.object({
   id: z.number(),
   title: z.string(),
   recipe_type: z.string(),
-  cached_energy_kcal: z.number().nullable(),
+  cached_energy_total_kcal: z.number().nullable(),
+  cached_weight_g: z.number().nullable(),
 });
 export type DrinkRecipe = z.infer<typeof DrinkRecipeSchema>;
 
@@ -79,7 +80,8 @@ export const WarmMealRecipeSchema = z.object({
   id: z.number(),
   title: z.string(),
   recipe_type: z.string(),
-  cached_energy_kcal: z.number().nullable(),
+  cached_energy_total_kcal: z.number().nullable(),
+  cached_weight_g: z.number().nullable(),
 });
 export type WarmMealRecipe = z.infer<typeof WarmMealRecipeSchema>;
 

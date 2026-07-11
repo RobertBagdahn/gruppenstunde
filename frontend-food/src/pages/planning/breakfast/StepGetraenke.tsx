@@ -43,7 +43,7 @@ export default function StepGetraenke({ wiz }: StepGetraenkeProps) {
         name: recipe.title,
         sharePercent: defaultShare,
         locked: false,
-        energyKcal: recipe.cached_energy_kcal,
+        energyKcal: recipe.cached_energy_total_kcal,
       };
     });
 

@@ -404,8 +404,66 @@ class IntelligentSuggestionsService:
     # AI Reranking
     # ------------------------------------------------------------------
 
+    def _build_context(self) -> str:
+        """Build enriched context string for the Gemini prompt."""
+        parts = []
+
+        # Event context
+        event = self.meal_plan.event
+        if event:
+            parts.append("=== Veranstaltungskontext ===")
+            parts.append(f"Titel: {event.name}")
+            if event.description:
+                parts.append(f"Beschreibung: {event.description}")
+            parts.append(f"Zeitraum: {event.start_date} bis {event.end_date}")
+            if event.location:
+                parts.append(f"Ort: {event.location}")
+            parts.append("")
+
+        # MealPlan context
+        parts.append("=== Essensplan ===")
+        parts.append(f"Titel: {self.meal_plan.name}")
+        if self.meal_plan.description:
+            parts.append(f"Beschreibung: {self.meal_plan.description}")
+        parts.append(f"Mahlzeit: {self.meal.get_meal_type_display()}")
+        parts.append(f"Aktueller Monat: {timezone.now().month}")
+
+        # MealPlan tags
+        plan_tags = list(self.meal_plan.tags.all())
+        if plan_tags:
+            tag_names = [t.name for t in plan_tags]
+            parts.append(f"Tags vom Nutzer: {', '.join(tag_names)}")
+        parts.append("")
+
+        # Nutritional tags
+        nutritional_tags = list(self.meal_plan.nutritional_tags.all())
+        if nutritional_tags:
+            parts.append(f"Ernährungseinschränkungen: {', '.join(t.name for t in nutritional_tags)}")
+
+        # Budget context
+        budget = self.meal_plan.budget_per_person_per_day
+        if budget:
+            parts.append(f"Budget: {budget}€ pro Person und Tag")
+
+        # Already planned meals (full overview)
+        parts.append("")
+        parts.append("=== Bereits geplante Mahlzeiten ===")
+        meals_qs = self.meal_plan.meals.filter(is_reference=False).order_by("start_datetime")
+        for m in meals_qs:
+            date_str = m.start_datetime.strftime("%a %d.%m.") if m.start_datetime else "?"
+            item_titles = [
+                item.recipe.title
+                for item in m.items.select_related("recipe").all()
+                if item.recipe
+            ]
+            items_str = ", ".join(item_titles) if item_titles else "(leer)"
+            parts.append(f"- {date_str} {m.get_meal_type_display()}: {items_str}")
+        parts.append("")
+
+        return "\n".join(parts)
+
     def _ai_rerank(self, scored: list[ScoredRecipe]) -> list[ScoredRecipe] | None:
-        """Optionally rerank top candidates via Gemini. Returns None if unavailable."""
+        """Rerank top candidates via Gemini with enriched context. Returns None if unavailable."""
         try:
             from google.genai import types as genai_types
             from pydantic import BaseModel, Field
@@ -422,35 +480,26 @@ class IntelligentSuggestionsService:
                     description="Exactly 9 reranked recipe suggestions in display order"
                 )
 
-            # Build context prompt
-            plan_tags = list(self.meal_plan.nutritional_tags.all())
-            budget = self.meal_plan.budget_per_person_per_day
-            already_planned_titles = list(
-                self.meal_plan.meals.exclude(items__recipe__isnull=True)
-                .values_list("items__recipe__title", flat=True)
-                .distinct()
-            )
+            # Build enriched context
+            context_str = self._build_context()
 
             recipes_context = "\n".join(
                 f"- ID {s.recipe.id}: {s.recipe.title} ({s.recipe.recipe_type}, {s.recipe.usage_count}x verwendet, {s.total_score:.1f} Punkte)"
-                for s in scored[:15]
+                for s in scored[:30]
             )
 
             prompt = (
                 f"Du bist ein Koch-Assistent für Pfadfinder-Lager. Wähle aus den folgenden Rezepten "
                 f"die 9 besten für eine bestimmte Mahlzeit aus.\n\n"
-                f"Kontext:\n"
-                f"- Mahlzeit: {self.meal.meal_type}\n"
-                f"- Aktueller Monat: {timezone.now().month}\n"
-                f"- Ernährungstags: {', '.join(t.name for t in plan_tags) if plan_tags else 'Keine'}\n"
-                f"- Budget: {budget}€/Person/Tag\n"
-                f"- Bereits geplant: {', '.join(already_planned_titles[:5]) if already_planned_titles else 'Nichts'}\n\n"
-                f"Verfügbare Rezepte (nach Score sortiert):\n{recipes_context}\n\n"
+                f"{context_str}\n"
+                f"Verfügbare Rezepte (nach Eignung sortiert):\n{recipes_context}\n\n"
                 f"Wähle genau 9 Rezepte aus. Kategorisiere sie in:\n"
-                f"- top_pick: Die besten, passendsten Rezepte\n"
-                f"- variety: Rezepte, die für Abwechslung sorgen\n"
+                f"- top_pick: Die besten, passendsten Rezepte für diesen Kontext\n"
+                f"- variety: Rezepte, die für Abwechslung sorgen (andere Küche, andere Zutaten)\n"
                 f"- discovery: Überraschende, weniger bekannte Rezepte\n\n"
-                f"Gib pro Rezept einen kurzen deutschen Grund an (max 1 Satz)."
+                f"Gib pro Rezept einen kurzen deutschen Grund an (max 1 Satz). "
+                f"Berücksichtige bei der Auswahl: Lagertyp, Jahreszeit, Location, bereits Geplantes, "
+                f"Tags vom Nutzer und ob das Gericht zum Kontext passt."
             )
 
             response, _interaction_id = gemini_call(
@@ -493,9 +542,13 @@ class IntelligentSuggestionsService:
     # ------------------------------------------------------------------
 
     def get_suggestions(
-        self, ai_enhance: bool = False
+        self, context_enhance: bool = True
     ) -> dict[str, list[dict]]:
         """Generate 9 categorized recipe suggestions.
+
+        When context_enhance is True (default), Gemini receives enriched context
+        (event info, tags, meal plan) and top 30 candidates for intelligent selection.
+        Falls back to algorithmic scoring when Gemini is unavailable.
 
         Returns:
             dict with keys: top_picks, variety, discovery.
@@ -504,7 +557,10 @@ class IntelligentSuggestionsService:
         # 1. Get candidates (hard filters)
         candidates = self._get_candidate_recipes()
         if not candidates:
-            return {"top_picks": [], "variety": [], "discovery": []}
+            return {
+                "suggestions": {"top_picks": [], "variety": [], "discovery": []},
+                "ai_enhanced": False,
+            }
 
         # 2. Score each candidate
         month = timezone.now().month
@@ -523,16 +579,22 @@ class IntelligentSuggestionsService:
         # 3. Sort for AI reranking
         scored.sort(key=lambda s: s.total_score, reverse=True)
 
-        # 4. Optional AI reranking
-        if ai_enhance and len(scored) >= 9:
+        # 4. Context-enhanced suggestions via Gemini (default, with algorithmic fallback)
+        if context_enhance and len(scored) >= 9:
             reranked = self._ai_rerank(scored)
             if reranked is not None:
                 categorized = self._categorize_from_ai_result(reranked)
-                return self._to_dict(categorized, ai_enhanced=True)
+                return {
+                    "suggestions": self._to_dict(categorized, ai_enhanced=True),
+                    "ai_enhanced": True,
+                }
 
-        # 5. Algorithmic categorization
+        # 5. Pure algorithmic categorization
         categorized = self._categorize(scored)
-        return self._to_dict(categorized, ai_enhanced=False)
+        return {
+            "suggestions": self._to_dict(categorized, ai_enhanced=False),
+            "ai_enhanced": False,
+        }
 
     def _categorize_from_ai_result(
         self, reranked: list[ScoredRecipe]

@@ -83,7 +83,7 @@ class Recipe(Content):
         help_text=_("Optionaler Ordner für persönliche Rezepte"),
     )
     shared_groups = models.ManyToManyField(
-        "profiles.Group",
+        "profiles.UserGroup",
         blank=True,
         related_name="shared_recipes",
         verbose_name=_("Geteilte Gruppen"),

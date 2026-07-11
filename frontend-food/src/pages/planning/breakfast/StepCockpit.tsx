@@ -42,7 +42,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
   const drinkRecipeDataMap = useMemo(() => {
     const map = new Map<number, RecipeEnergyData>();
     for (const r of catalog?.drink_recipes ?? []) {
-      map.set(r.id, { cached_energy_kcal: r.cached_energy_kcal, portions: 1 });
+      map.set(r.id, { cached_energy_total_kcal: r.cached_energy_total_kcal, cached_weight_g: r.cached_weight_g, portions: 1 });
     }
     return map;
   }, [catalog?.drink_recipes]);
@@ -50,7 +50,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
   const warmDishDataMap = useMemo(() => {
     const map = new Map<number, RecipeEnergyData>();
     for (const r of catalog?.warm_meal_recipes ?? []) {
-      map.set(r.id, { cached_energy_kcal: r.cached_energy_kcal, portions: 1 });
+      map.set(r.id, { cached_energy_total_kcal: r.cached_energy_total_kcal, cached_weight_g: r.cached_weight_g, portions: 1 });
     }
     return map;
   }, [catalog?.warm_meal_recipes]);
@@ -268,7 +268,7 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
             const recipe = catalog?.warm_meal_recipes.find((r) => r.id === recipeId);
             const factor = state.warmDishFactors[String(recipeId)] ?? 1;
             const name = state.warmDishRecipeNames[String(recipeId)] || recipe?.title;
-            const itemKcal = recipe?.cached_energy_kcal ? recipe.cached_energy_kcal * factor : 0;
+            const itemKcal = recipe?.cached_energy_total_kcal ? recipe.cached_energy_total_kcal * factor : 0;
             return (
             <div key={`warm-${recipeId}`} className="grid grid-cols-2 sm:grid-cols-4 px-4 py-2">
               <span className="truncate">{name || `Rezept #${recipeId}`}</span>

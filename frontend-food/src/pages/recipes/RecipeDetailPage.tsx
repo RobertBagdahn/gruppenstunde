@@ -53,6 +53,7 @@ import RecipeSidebar from '@/components/recipe/RecipeSidebar';
 import RecipeMobileActionBar from '@/components/recipe/RecipeMobileActionBar';
 import RecipeUsageInMealPlans from '@/components/recipe/RecipeUsageInMealPlans';
 import RecipeCookingMode from '@/pages/recipes/RecipeCookingMode';
+import StepEditor from '@/components/recipe/StepEditor';
 import PortionBottomSheet from '@/components/recipe/PortionBottomSheet';
 import ScaleIngredientsDialog from '@/components/recipe/ScaleIngredientsDialog';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
@@ -1084,6 +1085,39 @@ export default function RecipeDetailPage() {
             <MarkdownRenderer content={recipe.description} />
           </AnalysisSection>
         </InlineEditor>
+      )}
+
+      {/* Recipe Steps Editor — after Zubereitung */}
+      {recipe.can_edit && (
+        <AnalysisSection
+          icon="list-ordered"
+          title="Strukturierte Schritte"
+          defaultOpen={mode === 'steps'}
+          accentColor="text-blue-600"
+          preview={
+            <div className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full flex items-center gap-1">
+              {recipe.steps_count !== undefined ? (
+                <>
+                  <span>{recipe.steps_count} {recipe.steps_count === 1 ? 'Schritt' : 'Schritte'}</span>
+                </>
+              ) : (
+                <span>Keine strukturierten Schritte</span>
+              )}
+            </div>
+          }
+        >
+          <StepEditor
+            recipeSlug={recipe.slug}
+            availableRecipeItems={recipe.recipe_items}
+            onSave={() => {
+              toast.success('Schritte gespeichert');
+              // Optionally refetch recipe to update steps_count
+            }}
+            onError={(error) => {
+              toast.error('Fehler beim Speichern der Schritte', { description: error });
+            }}
+          />
+        </AnalysisSection>
       )}
 
       {/* Analyse-Tabs + Rezeptregeln */}

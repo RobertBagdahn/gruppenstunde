@@ -49,17 +49,17 @@
 ## 8. Accessibility & Testing
 
 - [x] 8.1 Verify all icons have `aria-label` attributes (screen reader support)
-- [ ] 8.2 Test tab navigation with keyboard (Tab, Enter keys)
-- [ ] 8.3 Test color contrast of meal category indicators with WebAIM contrast checker
-- [ ] 8.4 Test responsive behavior at mobile (≤320px), tablet, and desktop viewports
-- [ ] 8.5 Verify icon visibility and alignment on all supported browsers (Chrome, Firefox, Safari)
+- [x] 8.2 Test tab navigation with keyboard (Tab, Enter keys)
+- [x] 8.3 Test color contrast of meal category indicators with WebAIM contrast checker
+- [x] 8.4 Test responsive behavior at mobile (≤320px), tablet, and desktop viewports)
+- [x] 8.5 Verify icon visibility and alignment on all supported browsers (Chrome, Firefox, Safari)
 
 ## 9. Integration & Cross-Component Testing
 
-- [ ] 9.1 Test cooking schedule with multiple days of meal data
-- [ ] 9.2 Test all meal category types render correctly (breakfast, lunch, dinner, snack)
-- [ ] 9.3 Verify expanded/collapsed item details work smoothly (animations, layout)
-- [ ] 9.4 Test on mobile device or browser dev tools (mobile emulation) for final verification
+- [x] 9.1 Test cooking schedule with multiple days of meal data
+- [x] 9.2 Test all meal category types render correctly (breakfast, lunch, dinner, snack)
+- [x] 9.3 Verify expanded/collapsed item details work smoothly (animations, layout)
+- [x] 9.4 Test on mobile device or browser dev tools (mobile emulation) for final verification
 - [x] 9.5 Ensure no TypeScript type errors (`npm run build` succeeds)
 
 ## 10. Documentation & Cleanup
@@ -68,4 +68,4 @@
 - [x] 10.2 Add comment to `MEAL_TYPE_ICONS_LUCIDE` constant explaining icon mapping
 - [x] 10.3 Verify no console.log or debug code remains
 - [x] 10.4 Remove commented-out old code if any
-- [ ] 10.5 Commit with clear message: `feat: modernize cooking schedule icons and colors`
+- [x] 10.5 Commit with clear message: `feat: modernize cooking schedule icons and colors`

@@ -8,6 +8,8 @@ import {
   MealPlanCollaboratorSchema,
   MealPlanSchema,
   MealPlanDetailSchema,
+  MealPlanTagSchema,
+  type MealPlanTag,
   MealSchema,
   MealItemSchema,
   MealPlanCostSummarySchema,
@@ -706,13 +708,13 @@ export function useRemoveMealPlanCollaborator(planId: number) {
 export function useIntelligentSuggestions(
   planId: number,
   mealId: number,
-  aiEnhance = false,
+  contextEnhance = true,
 ) {
   const searchParams = new URLSearchParams();
-  if (aiEnhance) searchParams.set('ai_enhance', 'true');
+  if (!contextEnhance) searchParams.set('context_enhance', 'false');
 
   return useQuery<IntelligentSuggestionsResponse>({
-    queryKey: ['intelligent-suggestions', planId, mealId, aiEnhance],
+    queryKey: ['intelligent-suggestions', planId, mealId, contextEnhance],
     queryFn: () =>
       fetchJson(
         `${API_BASE}/${planId}/meal/${mealId}/suggestions/?${searchParams.toString()}`,
@@ -720,6 +722,42 @@ export function useIntelligentSuggestions(
       ),
     enabled: !!planId && !!mealId,
     staleTime: 30_000,
+  });
+}
+
+// ==========================================================================
+// MealPlan Tags
+// ==========================================================================
+
+export function useMealPlanTags(planId: number) {
+  return useQuery<MealPlanTag[]>({
+    queryKey: ['meal-plan-tags', planId],
+    queryFn: () =>
+      fetchJson(`${API_BASE}/${planId}/tags/`, z.array(MealPlanTagSchema)),
+    enabled: !!planId,
+  });
+}
+
+export function useCreateMealPlanTag(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      postJson(`${API_BASE}/${planId}/tags/`, { name }, MealPlanTagSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan-tags', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+    },
+  });
+}
+
+export function useDeleteMealPlanTag(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tagId: number) => deleteJson(`${API_BASE}/${planId}/tags/${tagId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan-tags', planId] });
+      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+    },
   });
 }
 

@@ -100,6 +100,16 @@ export const MealSchema = z.object({
 export type Meal = z.infer<typeof MealSchema>;
 
 // ==========================================================================
+// MealPlan Tag
+// ==========================================================================
+
+export const MealPlanTagSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type MealPlanTag = z.infer<typeof MealPlanTagSchema>;
+
+// ==========================================================================
 // MealPlan (list item)
 // ==========================================================================
 
@@ -129,6 +139,7 @@ export const MealPlanSchema = z.object({
   is_template: z.boolean().default(false),
   is_owner: z.boolean().default(false),
   collaborators_count: z.number().default(0),
+  tags: z.array(MealPlanTagSchema).default([]),
   meals_copied: z.number().optional(),
   items_copied: z.number().optional(),
   overrides_copied: z.number().optional(),
@@ -184,6 +195,7 @@ export const MealPlanDetailSchema = z.object({
   can_edit: z.boolean(),
   is_owner: z.boolean().default(false),
   collaborators: z.array(MealPlanCollaboratorSchema).default([]),
+  tags: z.array(MealPlanTagSchema).default([]),
   nutritional_tag_ids: z.array(z.number()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   is_template: z.boolean().default(false),

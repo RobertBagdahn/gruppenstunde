@@ -58,7 +58,7 @@ Das System SHALL nach den harten Filtern (Status, Meal-Type, Nutritional Tags) u
 
 ### Requirement: KI-Kontext-Vorschläge (Standard)
 
-Statt optionalem KI-Reranking der Top 15, wird Gemini jetzt Standard und bekommt vollen Kontext plus Top 30 Kandidaten.
+Das System SHALL KI-Kontext-Vorschläge als Standard verwenden (statt optionalem KI-Reranking der Top 15). Gemini SHALL den vollen Kontext plus Top 30 Kandidaten erhalten.
 
 #### Scenario: Gemini Enhancement aktiv (Default)
 

@@ -4,6 +4,7 @@ from .folder import RecipeFolder
 from .items import RecipeItem, RecipeItemExchangeGroup
 from .recipe import Recipe, RecipeVisibility
 from .rule import Rule, RuleHintLevelChoices, RuleScopeChoices, RuleTypeChoices
+from .steps import RecipeStep, RecipeStepIngredient
 from .type_stats import RecipeTypeStats
 
 __all__ = [
@@ -11,6 +12,8 @@ __all__ = [
     "RecipeFolder",
     "RecipeItem",
     "RecipeItemExchangeGroup",
+    "RecipeStep",
+    "RecipeStepIngredient",
     "RecipeTypeStats",
     "RecipeVisibility",
     "Rule",

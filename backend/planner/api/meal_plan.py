@@ -18,6 +18,7 @@ from planner.models import (
     MealPlan,
     MealPlanCollaborator,
     MealPlanCollaboratorRole,
+    MealPlanTag,
     MealPlanVisibility,
 )
 from planner.schemas import (
@@ -43,6 +44,8 @@ from planner.schemas import (
     MealPlanDetailOut,
     MealPlanDuplicateIn,
     MealPlanOut,
+    MealPlanTagCreateIn,
+    MealPlanTagOut,
     MealPlanUpdateIn,
     MealUpdateIn,
     NutritionalTagScanOut,
@@ -218,7 +221,7 @@ def list_meal_plans(
 
     qs = (
         MealPlan.objects.select_related("event", "owner")
-        .prefetch_related("nutritional_tags")
+        .prefetch_related("nutritional_tags", "tags")
         .annotate(
             meals_count_ann=Count("meals", distinct=True),
             collaborators_count_ann=Count("collaborators", distinct=True),
@@ -379,6 +382,7 @@ def get_meal_plan(request, meal_plan_id: int):
             "meals__items__overrides",
             "nutritional_tags",
             "collaborators__user",
+            "tags",
         ),
         id=meal_plan_id,
     )
@@ -2455,6 +2459,56 @@ def calculate_ingredient_kcal(request, meal_plan_id: int, payload: CalculateIngr
 
 
 # ==========================================================================
+# MealPlan Tags CRUD
+# ==========================================================================
+
+
+@meal_plan_router.get(
+    "/{meal_plan_id}/tags/",
+    response=list[MealPlanTagOut],
+)
+def list_tags(request, meal_plan_id: int):
+    """List all tags for a meal plan."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+    return list(meal_plan.tags.all())
+
+
+@meal_plan_router.post(
+    "/{meal_plan_id}/tags/",
+    response={201: MealPlanTagOut},
+)
+def create_tag(request, meal_plan_id: int, payload: MealPlanTagCreateIn):
+    """Create a new tag for a meal plan."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    name = payload.name.strip().lower()
+    if MealPlanTag.objects.filter(meal_plan=meal_plan, name=name).exists():
+        raise HttpError(409, f"Tag «{name}» existiert bereits in diesem Essensplan")
+
+    tag = MealPlanTag.objects.create(meal_plan=meal_plan, name=name)
+    return 201, tag
+
+
+@meal_plan_router.delete(
+    "/{meal_plan_id}/tags/{tag_id}/",
+    response={204: None},
+)
+def delete_tag(request, meal_plan_id: int, tag_id: int):
+    """Delete a tag from a meal plan."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    tag = get_object_or_404(MealPlanTag, id=tag_id, meal_plan=meal_plan)
+    tag.delete()
+    return 204, None
+
+
+# ==========================================================================
 # Intelligent Recipe Suggestions
 # ==========================================================================
 
@@ -2467,12 +2521,14 @@ def intelligent_suggestions(
     request,
     meal_plan_id: int,
     meal_id: int,
-    ai_enhance: bool = False,
+    context_enhance: bool = True,
 ):
     """Get 9 context-aware recipe suggestions for a specific meal slot.
 
-    Uses algorithmic scoring (season, popularity, variety, recency, budget)
-    with optional Gemini reranking (ai_enhance=true).
+    By default (context_enhance=true), Gemini receives enriched context
+    (event info, tags, meal plan, top 30 candidates) for intelligent selection.
+    Falls back to algorithmic scoring when Gemini is unavailable.
+    Set context_enhance=false for pure algorithmic suggestions.
     """
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
@@ -2487,7 +2543,9 @@ def intelligent_suggestions(
         meal=meal,
         user=request.user,
     )
-    suggestions = service.get_suggestions(ai_enhance=ai_enhance)
+    result = service.get_suggestions(context_enhance=context_enhance)
+    suggestions = result["suggestions"]
+    ai_enhanced = result["ai_enhanced"]
 
     total = sum(len(v) for v in suggestions.values())
 
@@ -2498,7 +2556,7 @@ def intelligent_suggestions(
     return IntelligentSuggestionsResponse(
         suggestions=suggestions,
         total=total,
-        ai_enhanced=ai_enhance,
+        ai_enhanced=ai_enhanced,
         meal_type=meal.meal_type,
         day_number=max(day_number, 1),
     )

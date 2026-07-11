@@ -337,6 +337,20 @@ class MealDayBulkCreateIn(Schema):
     date: dt.date
 
 
+# ==========================================================================
+# MealPlan Tag Schemas
+# ==========================================================================
+
+
+class MealPlanTagOut(Schema):
+    id: int
+    name: str
+
+
+class MealPlanTagCreateIn(Schema):
+    name: str
+
+
 class MealPlanOut(Schema):
     id: int
     name: str
@@ -363,6 +377,7 @@ class MealPlanOut(Schema):
     is_template: bool = False
     is_owner: bool = False
     collaborators_count: int = 0
+    tags: list[MealPlanTagOut] = []
     meals_copied: int = 0
     items_copied: int = 0
     overrides_copied: int = 0
@@ -512,6 +527,7 @@ class MealPlanDetailOut(Schema):
     nutritional_tag_ids: list[int] = []
     nutritional_tags: list[NutritionalTagOut] = []
     is_template: bool = False
+    tags: list[MealPlanTagOut] = []
     meals_copied: int = 0
     items_copied: int = 0
     overrides_copied: int = 0

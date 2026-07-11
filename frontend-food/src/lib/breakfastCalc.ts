@@ -132,7 +132,8 @@ export function toppingWeightForIntensity(
 
 /** Minimal recipe data needed for kcal calculation. */
 export interface RecipeEnergyData {
-  cached_energy_kcal: number | null;
+  cached_energy_total_kcal: number | null;
+  cached_weight_g: number | null;
   portions: number | null;
 }
 
@@ -140,7 +141,7 @@ export interface RecipeEnergyData {
  * Total kcal per person from selected drink recipes.
  *
  * Each drink recipe contributes:
- *   kcal_per_serving = cached_energy_kcal  (already per-recipe-portion)
+ *   kcal_per_serving = cached_energy_total_kcal  (total energy for recipe)
  *   contribution = kcal_per_serving × factor
  *
  * `recipeDataMap` is keyed by recipe id and must include the recipes
@@ -162,7 +163,7 @@ export function drinkKcalFromRecipes(
  * Kcal per person from warm-dish recipes.
  *
  * `recipeDataMap` is keyed by recipe id and contains the energy data for each recipe.
- * Each recipe's contribution is: cached_energy_kcal × factor.
+ * Each recipe's contribution is: cached_energy_total_kcal × factor.
  */
 export function warmDishKcalFromRecipes(
   state: WizardState,
@@ -171,9 +172,9 @@ export function warmDishKcalFromRecipes(
   let kcal = 0;
   for (const id of state.warmDishRecipeIds) {
     const data = recipeDataMap.get(id);
-    if (!data?.cached_energy_kcal) continue;
+    if (!data?.cached_energy_total_kcal) continue;
     const factor = state.warmDishFactors[String(id)] ?? 1.0;
-    kcal += data.cached_energy_kcal * factor;
+    kcal += data.cached_energy_total_kcal * factor;
   }
   return kcal;
 }

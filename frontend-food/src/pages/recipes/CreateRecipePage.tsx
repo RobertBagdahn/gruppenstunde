@@ -26,6 +26,7 @@ export default function CreateRecipePage() {
 
   // Recipe-specific state
   const [recipeType, setRecipeType] = useState('warm_meal');
+  const [recipeCreationMode, setRecipeCreationMode] = useState<'markdown' | 'structured_steps'>('markdown');
 
   // URL import state
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -144,7 +145,7 @@ export default function CreateRecipePage() {
       const result = await createRecipe.mutateAsync({
         title: formData.title,
         summary: formData.summary,
-        description: formData.description,
+        description: recipeCreationMode === 'structured_steps' ? '' : formData.description,
         difficulty: formData.difficulty || undefined,
         execution_time: formData.executionTime || undefined,
         preparation_time: formData.preparationTime || undefined,
@@ -156,7 +157,11 @@ export default function CreateRecipePage() {
       });
 
       toast.success('Rezept erstellt!');
-      if (recipeItems) {
+      
+      // Redirect with appropriate query param based on creation mode
+      if (recipeCreationMode === 'structured_steps') {
+        navigate(`/recipes/${result.slug}?mode=steps`);
+      } else if (recipeItems) {
         navigate(`/recipes/${result.slug}`);
       } else {
         navigate(`/recipes/${result.slug}?edit=ingredients`);
@@ -279,6 +284,61 @@ export default function CreateRecipePage() {
                     </span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Creation mode selector */}
+            <div>
+              <label className="block text-xs text-muted-foreground mb-2">Rezept-Eingabe</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRecipeCreationMode('markdown')}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
+                    recipeCreationMode === 'markdown'
+                      ? 'border-primary bg-primary/10 shadow-md shadow-primary/10'
+                      : 'border-border hover:border-primary/30 hover:bg-primary/5'
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-outlined text-[24px] ${
+                      recipeCreationMode === 'markdown' ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    description
+                  </span>
+                  <span
+                    className={`font-medium text-xs ${
+                      recipeCreationMode === 'markdown' ? 'text-primary' : 'text-foreground'
+                    }`}
+                  >
+                    Mit Beschreibung
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecipeCreationMode('structured_steps')}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
+                    recipeCreationMode === 'structured_steps'
+                      ? 'border-primary bg-primary/10 shadow-md shadow-primary/10'
+                      : 'border-border hover:border-primary/30 hover:bg-primary/5'
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-outlined text-[24px] ${
+                      recipeCreationMode === 'structured_steps' ? 'text-primary' : 'text-muted-foreground'
+                    }`}
+                  >
+                    list_alt
+                  </span>
+                  <span
+                    className={`font-medium text-xs ${
+                      recipeCreationMode === 'structured_steps' ? 'text-primary' : 'text-foreground'
+                    }`}
+                  >
+                    Mit Schritten
+                  </span>
+                </button>
               </div>
             </div>
 

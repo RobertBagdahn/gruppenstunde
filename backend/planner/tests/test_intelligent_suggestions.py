@@ -254,3 +254,135 @@ class TestApiEndpoint:
         client.force_login(user)
         response = client.get("/api/meal-plans/99999/meal/1/suggestions/")
         assert response.status_code == 404
+
+
+# =============================================================================
+# Tests for context-enhanced suggestions
+# =============================================================================
+
+
+@pytest.mark.django_db
+class TestContextEnhancedSuggestions:
+    def test_build_context_includes_plan_name(self):
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+        plan = make_meal_plan(name="Sommerlager 2026")
+        meal = make_meal(meal_plan=plan)
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        context = service._build_context()
+        assert "Sommerlager 2026" in context
+
+    def test_build_context_includes_meal_plan_tags(self):
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+        from planner.models import MealPlanTag
+
+        plan = make_meal_plan()
+        MealPlanTag.objects.create(meal_plan=plan, name="sommerlager")
+        MealPlanTag.objects.create(meal_plan=plan, name="lagerfeuer")
+        meal = make_meal(meal_plan=plan)
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        context = service._build_context()
+        assert "sommerlager" in context
+        assert "lagerfeuer" in context
+
+    def test_build_context_includes_event_info(self):
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+        plan = make_meal_plan(name="Plan mit Event")
+        meal = make_meal(meal_plan=plan)
+        # Set event via the event FK (Event model)
+        from event.models import Event
+
+        event = Event.objects.create(
+            name="Sommerlager 2026",
+            description="Ein tolles Sommerlager am See",
+            start_date=timezone.now(),
+            end_date=timezone.now() + timezone.timedelta(days=7),
+            created_by=plan.created_by,
+        )
+        plan.event = event
+        plan.save()
+
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        context = service._build_context()
+        assert "Sommerlager 2026" in context
+        assert "Ein tolles Sommerlager am See" in context
+
+    def test_build_context_includes_planned_meals(self):
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+        from recipe.tests import make_recipe, make_recipe_item as make_ri
+
+        plan = make_meal_plan()
+        meal = make_meal(meal_plan=plan)
+        # Add a planned recipe to a dinner meal (different type = same day ok)
+        other_meal = make_meal(meal_plan=plan, meal_type="dinner", start_datetime=timezone.now() + timezone.timedelta(hours=6))
+        recipe = make_recipe(title="Nudelsalat")
+        make_ri(recipe)
+        make_meal_item(meal=other_meal, recipe=recipe)
+
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        context = service._build_context()
+        assert "Nudelsalat" in context
+
+    def test_get_suggestions_returns_dict_with_ai_enhanced_key(self):
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+        plan = make_meal_plan()
+        meal = make_meal(meal_plan=plan)
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        result = service.get_suggestions(context_enhance=False)
+        assert "suggestions" in result
+        assert "ai_enhanced" in result
+        assert result["ai_enhanced"] is False
+
+    def test_context_enhance_true_without_gemini_falls_back(self):
+        """When context_enhance=true but Gemini is unavailable, falls back to algorithmic."""
+        from unittest.mock import patch
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+        plan = make_meal_plan()
+        meal = make_meal(meal_plan=plan)
+        # Create enough recipes to trigger Gemini path
+        for i in range(5):
+            r = make_recipe(title=f"Test Recipe {i}")
+            make_recipe_item(r)
+
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+
+        # Monkey-patch _ai_rerank to return None (simulating Gemini failure)
+        with patch.object(service, "_ai_rerank", return_value=None):
+            result = service.get_suggestions(context_enhance=True)
+        assert result["ai_enhanced"] is False
+        assert "suggestions" in result
+
+    def test_context_enhance_false_returns_algorithmic(self):
+        """When context_enhance=false, should return algorithmic suggestions."""
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
+
+        plan = make_meal_plan()
+        meal = make_meal(meal_plan=plan)
+        for i in range(3):
+            r = make_recipe(title=f"Algo Recipe {i}")
+            make_recipe_item(r)
+
+        service = IntelligentSuggestionsService(plan, meal, plan.created_by)
+        result = service.get_suggestions(context_enhance=False)
+        assert result["ai_enhanced"] is False
+        assert "suggestions" in result
+
+    def test_api_returns_ai_enhanced_false_without_gemini(self):
+        """The API endpoint should return ai_enhanced=false when Gemini is unavailable."""
+        user = User.objects.create_user(username="test-context", password="pass")
+        plan = make_meal_plan(created_by=user)
+        meal = make_meal(meal_plan=plan)
+        for i in range(3):
+            r = make_recipe(title=f"API Recipe {i}")
+            make_recipe_item(r)
+
+        client = Client()
+        client.force_login(user)
+        response = client.get(f"/api/meal-plans/{plan.id}/meal/{meal.id}/suggestions/")
+        assert response.status_code == 200
+        data = response.json()
+        assert "ai_enhanced" in data
+        assert data["ai_enhanced"] is False  # No Gemini available in test

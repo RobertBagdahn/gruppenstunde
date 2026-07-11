@@ -540,6 +540,32 @@ class MealPlanCollaborator(models.Model):
         return f"{self.user} – {self.get_role_display()} ({self.meal_plan.name})"
 
 
+class MealPlanTag(models.Model):
+    """User-defined tags for meal plan context (e.g. 'sommerlager', 'lagerfeuer')."""
+
+    name = models.CharField(max_length=50, verbose_name=_("Tag"))
+    meal_plan = models.ForeignKey(
+        MealPlan,
+        on_delete=models.CASCADE,
+        related_name="tags",
+        verbose_name=_("Essensplan"),
+    )
+
+    class Meta:
+        verbose_name = _("Essensplan-Tag")
+        verbose_name_plural = _("Essensplan-Tags")
+        constraints = [
+            models.UniqueConstraint(fields=["meal_plan", "name"], name="unique_tag_per_meal_plan"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.meal_plan.name})"
+
+    def save(self, *args, **kwargs) -> None:
+        self.name = self.name.strip().lower()
+        super().save(*args, **kwargs)
+
+
 class MealItemOverride(models.Model):
     """Override a specific recipe ingredient within a meal item."""
 

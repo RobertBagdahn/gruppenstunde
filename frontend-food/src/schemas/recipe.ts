@@ -10,6 +10,7 @@ import {
   ContentDetailSchema,
 } from './content';
 import { NutritionalTagSchema, PortionSchema } from './supply';
+import { RecipeStepSchema } from './recipeStep';
 
 // --- RecipeItem ---
 
@@ -129,6 +130,10 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   recipe_items: z.array(RecipeItemSchema).default([]),
   next_best_recipes: z.array(RecipeSimilarSchema).default([]),
+  // Structured recipe steps (from OpenSpec change)
+  steps: z.array(RecipeStepSchema).default([]),
+  steps_count: z.number().default(0),
+  has_structured_steps: z.boolean().default(false),
 });
 export type RecipeDetail = z.output<typeof RecipeDetailSchema>;
 

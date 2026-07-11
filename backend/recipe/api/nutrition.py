@@ -6,6 +6,7 @@ from ninja import Router
 from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem
+from recipe.services.recipe_checks import _calculate_item_weight_g
 from recipe.schemas import (
     ImprovementListOut,
     LlmSuggestionOut,
@@ -133,12 +134,8 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
         if not ingredient:
             continue
 
-        weight_g = 0.0
-        if item.portion and item.portion.weight_g:
-            weight_g = item.quantity * item.portion.weight_g
-        elif item.portion and item.portion.measuring_unit:
-            weight_g = item.quantity * item.portion.quantity * item.portion.measuring_unit.quantity
-        else:
+        weight_g = _calculate_item_weight_g(item)
+        if not weight_g:
             continue
 
         # Price
@@ -177,31 +174,36 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             "ingredient_name": ingredient.name,
             "quantity": item.quantity,
             "portion_name": str(item.portion) if item.portion else "Stück",
-            "weight_g": round(weight_g, 1),
-            "price_eur": round(item_price, 2) if item_price is not None else None,
-            "energy_kcal": round(energy_kcal, 1),
-            "protein_g": round(item_nutrition["protein_g"], 1),
-            "fat_g": round(item_nutrition["fat_g"], 1),
-            "fat_sat_g": round(item_nutrition["fat_sat_g"], 1),
-            "carbohydrate_g": round(item_nutrition["carbohydrate_g"], 1),
-            "sugar_g": round(item_nutrition["sugar_g"], 1),
-            "fibre_g": round(item_nutrition["fibre_g"], 1),
-            "salt_g": round(item_nutrition["salt_g"], 1),
+            "weight_g": weight_g,
+            "price_eur": item_price,
+            "energy_kcal": energy_kcal,
+            "protein_g": item_nutrition["protein_g"],
+            "fat_g": item_nutrition["fat_g"],
+            "fat_sat_g": item_nutrition["fat_sat_g"],
+            "carbohydrate_g": item_nutrition["carbohydrate_g"],
+            "sugar_g": item_nutrition["sugar_g"],
+            "fibre_g": item_nutrition["fibre_g"],
+            "salt_g": item_nutrition["salt_g"],
             "weight_pct": 0.0,
         }
         # Add micronutrient values to item
         for field in MICRONUTRIENT_FIELDS:
             val = item_micro[field]
-            item_entry[field] = round(val, 3) if val is not None else None
+            item_entry[field] = val
 
         item_data.append(item_entry)
+
+    portions = recipe.portions or 1
+
+    portions = recipe.portions or 1
+    per_serving_totals = {k: v / portions for k, v in totals.items()} if portions else totals
 
     # Second pass: calculate weight percentages and contributions
     for item in item_data:
         if total_weight_g > 0:
             item["weight_pct"] = round(item["weight_g"] / total_weight_g * 100, 1)
 
-        # Compute per-item contributions for each nutritional parameter
+        # Compute per-item contributions from total values (correct ratio)
         contributions = []
         param_mapping = [
             ("energy", "energy_kcal"),
@@ -220,16 +222,32 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
             contributions.append(
                 {
                     "parameter": param_key,
-                    "absolute": round(item_val, 1),
+                    "absolute": round(item_val / portions, 1) if portions else 0.0,
                     "percent_of_recipe": pct,
                 }
             )
         item["contributions"] = contributions
 
+        # Convert item values to per-serving for consistent display
+        if portions:
+            item["weight_g"] = round(item["weight_g"] / portions, 1)
+            item["energy_kcal"] = round(item["energy_kcal"] / portions, 1)
+            item["protein_g"] = round(item["protein_g"] / portions, 1)
+            item["fat_g"] = round(item["fat_g"] / portions, 1)
+            item["fat_sat_g"] = round(item["fat_sat_g"] / portions, 1)
+            item["carbohydrate_g"] = round(item["carbohydrate_g"] / portions, 1)
+            item["sugar_g"] = round(item["sugar_g"] / portions, 1)
+            item["fibre_g"] = round(item["fibre_g"] / portions, 1)
+            item["salt_g"] = round(item["salt_g"] / portions, 1)
+            if item["price_eur"] is not None:
+                item["price_eur"] = round(item["price_eur"] / portions, 2)
+            for field in MICRONUTRIENT_FIELDS:
+                if item.get(field) is not None:
+                    item[field] = round(item[field] / portions, 3)
+
         result_items.append(item)
 
     total_energy_kcal = totals["energy_kcal"]
-    portions = recipe.portions or 1
 
     # Build DGE coverage if age/gender provided
     dge_coverage: dict[str, float | None] = {}

@@ -6,13 +6,13 @@ Defines the public API endpoint that returns the top N most similar ingredients 
 ## ADDED Requirements
 
 ### Requirement: Similar ingredients endpoint
-Das System SHALL einen öffentlichen Endpoint bereitstellen, der zu einer gegebenen Zutat die ähnlichsten Zutaten basierend auf Embedding-Cosine-Distance zurückgibt.
+Das System SHALL einen öffentlichen Endpoint bereitstellen, der zu einer gegebenen Zutat die ähnlichsten Zutaten basierend auf einer kalibrierten %-Ähnlichkeit der Embeddings zurückgibt.
 
 #### Scenario: Erfolgreiche Ähnlichkeitssuche
 - **WHEN** `GET /api/ingredients/{slug}/similar/?limit=10` aufgerufen wird
 - **THEN** SHALL die Antwort eine Liste von bis zu 10 ähnlichen Zutaten sein
-- **THEN** SHALL jedes Element `{id, name, slug, distance}` enthalten
-- **THEN** SHALL die Liste nach `distance` aufsteigend sortiert sein (niedrigste Distanz = ähnlichste)
+- **THEN** SHALL jedes Element `{id, name, slug, similarity_pct}` enthalten
+- **THEN** SHALL die Liste nach `similarity_pct` absteigend sortiert sein (höchste Ähnlichkeit zuerst)
 - **THEN** SHALL die Quell-Zutat selbst nicht in den Ergebnissen sein
 
 #### Scenario: Kein Embedding vorhanden
@@ -41,13 +41,18 @@ Das System SHALL einen öffentlichen Endpoint bereitstellen, der zu einer gegebe
 
 ### Requirement: Ähnlichkeitsschwelle verhindert falsche Duplikat-Vorschläge
 
-Die vektorbasierte Duplikaterkennung für Zutaten SHALL eine höhere Ähnlichkeitsschwelle verwenden, um falsche Positiv-Treffer zu vermeiden. Verschiedene Fleischstücke (z.B. Schweinebauch vs. Schweinenacken) DÜRFEN NICHT als Duplikate vorgeschlagen werden. Kein Auto-Merge — alle Vorschläge erfordern manuelle Bestätigung.
+Die embedding-basierte Duplikaterkennung für Zutaten SHALL eine kalibrierte %-Ähnlichkeitsschwelle verwenden, um falsche Positiv-Treffer zu vermeiden. Die Kalibrierung SHALL per Sigmoid-Funktion auf Cosine-Similarity erfolgen, deren Parameter auf mindestens 30 manuell bewerteten Ground-Truth-Paaren (ähnlich/unähnlich) gefittet werden. Verschiedene Fleischstücke (z.B. Schweinebauch vs. Schweinenacken) DÜRFEN NICHT als Duplikate vorgeschlagen werden. Kein Auto-Merge — alle Vorschläge erfordern manuelle Bestätigung.
 
 #### Scenario: Verschiedene Fleischstücke werden nicht zusammengelegt
 
 - **WHEN** die Ähnlichkeitsanalyse ausgeführt wird
 - **THEN** erscheinen „Schweinebauch" und „Schweinenacken" NICHT als Duplikat-Vorschlag
 - **THEN** erscheinen „Zwiebeln rot" und „Rote Zwiebeln" als Duplikat-Vorschlag (gleiche Zutat, anderer Name)
+
+#### Scenario: Ähnlichkeit wird als Prozentwert angezeigt
+
+- **WHEN** ein Duplikat-Vorschlag in der Datenqualitäts-Ansicht angezeigt wird
+- **THEN** SHALL die Ähnlichkeit als kalibrierter Prozentwert (z.B. "97% ähnlich") dargestellt werden, nicht als rohe Cosine-Distance
 
 #### Scenario: Manueller Bestätigungsschritt vor Zusammenführen
 

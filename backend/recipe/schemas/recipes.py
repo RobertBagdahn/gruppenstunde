@@ -12,6 +12,7 @@ from content.base_schemas import (
 )
 
 from .items import RecipeItemCreateIn, RecipeItemOut
+from .steps import RecipeStepOut
 
 # --- Reuse NutritionalTag schema ---
 
@@ -128,6 +129,9 @@ class RecipeDetailOut(ContentDetailOut):
     usage_in_meal_plans_count: int = 0
     nutritional_tags: list[NutritionalTagOut] = []
     recipe_items: list[RecipeItemOut] = []
+    has_structured_steps: bool = False
+    steps: list[RecipeStepOut] = []
+    steps_count: int = 0
     next_best_recipes: list[RecipeSimilarOut] = []
 
     @staticmethod
@@ -245,6 +249,27 @@ class RecipeDetailOut(ContentDetailOut):
         # Count distinct meal plans that use this recipe
         # Only count meal plans visible to the requesting user (simplified: public/approved)
         return MealItem.objects.filter(recipe=obj).values("meal__meal_plan").distinct().count()
+
+    @staticmethod
+    def resolve_has_structured_steps(obj) -> bool:
+        """Check if recipe has structured steps."""
+        if hasattr(obj, 'steps'):
+            return obj.steps.exists()
+        return False
+
+    @staticmethod
+    def resolve_steps(obj) -> list:
+        """Get all recipe steps ordered by sort_order."""
+        if hasattr(obj, 'steps'):
+            return list(obj.steps.all().order_by('sort_order'))
+        return []
+
+    @staticmethod
+    def resolve_steps_count(obj) -> int:
+        """Get count of structured recipe steps."""
+        if hasattr(obj, 'steps'):
+            return obj.steps.count()
+        return 0
 
 
 # --- Recipe Create / Update Schemas (extend Content base) ---

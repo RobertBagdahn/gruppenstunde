@@ -57,6 +57,29 @@ Das System SHALL vor dem Scoring harte Filter anwenden. Rezepte, die diese Filte
 - **WHEN** der MealPlan keine nutritional_tags hat
 - **THEN** werden keine tag-basierten Filter angewandt
 
+### Requirement: Kandidaten-Vorauswahl auf Top 30
+
+Das System SHALL nach Anwendung der harten Filter maximal 30 Kandidaten für das Scoring auswählen, um Performance zu gewährleisten.
+
+#### Scenario: Mehr als 30 Kandidaten verfügbar
+
+- **WHEN** nach harten Filtern mehr als 30 Rezepte übrig sind
+- **THEN** werden 30 Kandidaten ausgewählt
+- **THEN** die Auswahl erfolgt gemischt: 15 nach usage_count (höchste), 15 zufällig aus den verbleibenden
+- **THEN** Duplikate werden vermieden (falls ein Rezept in beiden Gruppen ist, wird es nur einmal gezählt und durch das nächste aus der Zufallsgruppe ersetzt)
+
+#### Scenario: 30 oder weniger Kandidaten
+
+- **WHEN** nach harten Filtern 30 oder weniger Rezepte übrig sind
+- **THEN** werden alle Kandidaten an das Scoring übergeben
+- **THEN** keine weitere Vorauswahl nötig
+
+#### Scenario: Gar keine Kandidaten
+
+- **WHEN** nach harten Filtern keine Rezepte übrig sind
+- **THEN** returned der Endpunkt 9 Platzhalter-Vorschläge (beliebte Rezepte ohne Filter)
+- **THEN** das Response-Feld `is_fallback` ist true
+
 ### Requirement: Scoring-Engine
 
 Das System SHALL eine Scoring-Engine bereitstellen, die Kandidaten-Rezepte nach 5 Dimensionen bewertet.
@@ -127,28 +150,69 @@ Das System SHALL die 9 Vorschläge in 3 Kategorien einteilen: top_picks, variety
 - **WHEN** nur 1 Rezept übrig ist
 - **THEN** wird es als top_picks kategorisiert, variety und discovery sind leer
 
-### Requirement: KI-Reranking (optional)
+### Requirement: KI-Kontext-Vorschläge (Standard)
 
-Das System SHALL optional ein KI-Reranking unterstützen, bei dem Gemini die Top 15 Scoring-Ergebnisse auf 9 reranked.
+Das System SHALL standardmäßig (default=true) KI-Kontext-Vorschläge aktivieren, bei denen Gemini die Top 30 Scoring-Ergebnisse auf 9 finale Vorschläge reduziert. Die KI erhält einen vollständigen Kontext-Prompt mit Event-Informationen, Meal-Plan-Tags und geplanten Mahlzeiten.
 
-#### Scenario: KI-Enhancement aktiv
+#### Scenario: Kontext-Enhancement aktiv (Default)
 
-- **WHEN** der Query-Parameter `ai_enhance=true` gesetzt ist
-- **THEN** werden die Top 15 Scoring-Ergebnisse an Gemini gesendet
-- **THEN** Gemini returned 9 rerankte Rezepte mit Kategorisierung und reason_text
-- **THEN** das Response-Feld `ai_enhanced` ist true
+- **WHEN** der Query-Parameter `context_enhance` nicht gesetzt oder `true` ist
+- **THEN** werden die Top 30 Scoring-Ergebnisse an Gemini gesendet
+- **THEN** Gemini erhält den vollständigen Kontext-Prompt (siehe Kontext-Prompt für Gemini)
+- **THEN** Gemini returned 9 final ausgewählte Rezepte mit Kategorisierung und reason_text
+- **THEN** das Response-Feld `context_enhanced` ist true
 
 #### Scenario: KI-Fehler (Fallback)
 
-- **WHEN** `ai_enhance=true` gesetzt, aber Gemini nicht erreichbar ist
-- **THEN** wird auf das rein algorithmische Scoring zurückgefallen
-- **THEN** das Response-Feld `ai_enhanced` ist false
+- **WHEN** `context_enhance=true` gesetzt (oder default), aber Gemini nicht erreichbar ist oder ein Fehler auftritt
+- **THEN** wird auf das rein algorithmische Scoring mit Kategorisierung zurückgefallen
+- **THEN** das Response-Feld `context_enhanced` ist false
+- **THEN** das Response-Feld `is_fallback` ist true
 
-#### Scenario: KI deaktiviert (Default)
+#### Scenario: KI deaktiviert
 
-- **WHEN** `ai_enhance` nicht gesetzt oder false ist
-- **THEN** werden rein algorithmische Vorschläge geliefert
-- **THEN** das Response-Feld `ai_enhanced` ist false
+- **WHEN** `context_enhance=false` gesetzt ist
+- **THEN** werden rein algorithmische Vorschläge mit Kategorisierung geliefert
+- **THEN** das Response-Feld `context_enhanced` ist false
+
+### Requirement: Kontext-Prompt für Gemini
+
+Das System SHALL einen strukturierten Kontext-Prompt an Gemini übergeben, der über die reine Scoring-Liste hinausgeht, um kontextbewusstere Vorschläge zu ermöglichen.
+
+#### Scenario: Prompt enthält Event-Kontext
+
+- **WHEN** die Mahlzeit zu einem MealPlan gehört, der mit einem Event verknüpft ist
+- **THEN** enthält der Prompt: Event-Name, Event-Typ (z.B. "Zeltlager", "Wochenendfahrt"), Teilnehmeranzahl, Event-Phase (z.B. "Aufbau", "Hauptphase", "Abbau")
+- **WHEN** der MealPlan keinem Event zugeordnet ist
+- **THEN** wird der Event-Kontext im Prompt weggelassen
+
+#### Scenario: Prompt enthält MealPlan-Tags
+
+- **WHEN** der MealPlan Tags hat (siehe meal-plan-tags Spec)
+- **THEN** werden alle Tags als kommagetrennte Liste in den Prompt aufgenommen
+- **THEN** Gemini wird angewiesen, Rezepte zu bevorzugen, die zu den Tags passen
+- **WHEN** der MealPlan keine Tags hat
+- **THEN** wird der Tags-Abschnitt im Prompt weggelassen
+
+#### Scenario: Prompt enthält geplante Mahlzeiten
+
+- **WHEN** Gemini Vorschläge generiert
+- **THEN** enthält der Prompt eine Übersicht der bereits im Plan enthaltenen Mahlzeiten mit Rezept-Titeln und recipe_types
+- **THEN** Gemini wird angewiesen, Abwechslung zu den bereits geplanten Gerichten zu empfehlen
+
+#### Scenario: Prompt enthält Kandidaten-Liste
+
+- **WHEN** Gemini die Top 30 Kandidaten erhält
+- **THEN** werden diese als strukturierte JSON-Liste mit id, title, recipe_type, season_score, popularity_score, variety_score, recency_score, budget_score, total_score, usage_count, price_per_serving übergeben
+- **THEN** Gemini wird angewiesen, genau 9 Rezepte auszuwählen und in die 3 Kategorien (top_picks, variety, discovery) einzuteilen
+- **THEN** jedes ausgewählte Rezept muss einen reason und reason_text enthalten
+
+#### Scenario: Prompt-Fallback bei Gemini-Fehler
+
+- **WHEN** Gemini nicht erreichbar ist oder einen ungültigen Response liefert
+- **THEN** wird auf das algorithmische Scoring mit Kategorisierung zurückgefallen
+- **THEN** das Response-Feld `context_enhanced` ist false
+- **THEN** das Response-Feld `is_fallback` ist true
 
 ### Requirement: Reason-Feld
 
@@ -215,7 +279,8 @@ Der Endpunkt SHALL ein einheitliches Response-Schema verwenden.
     "discovery": [...]
   },
   "total": 9,
-  "ai_enhanced": false,
+  "context_enhanced": true,
+  "is_fallback": false,
   "meal_type": "lunch",
   "day_number": 3
 }
