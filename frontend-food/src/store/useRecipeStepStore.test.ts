@@ -1,25 +1,32 @@
 /**
  * Tests for useRecipeStepStore (Zustand store)
- *
- * Tests cover:
- * - Setting and updating steps
- * - Adding and deleting steps
- * - Undo/redo functionality
- * - Store selectors and state transitions
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useRecipeStepStore } from '@/store/useRecipeStepStore';
-import type { RecipeStep } from '@/schemas/recipeStep';
+import type { RecipeStep, RecipeStepInput } from '@/schemas/recipeStep';
+
+function toStepInput(step: RecipeStep): RecipeStepInput {
+  return {
+    sort_order: step.sort_order,
+    instruction: step.instruction,
+    duration_minutes: step.duration_minutes ?? null,
+    section: step.section,
+    step_ingredients: step.step_ingredients.map((si) => ({
+      recipe_item_id: si.recipe_item_id,
+      quantity_modifier: si.quantity_modifier,
+      preparation: si.preparation,
+      sort_order: si.sort_order,
+    })),
+  };
+}
 
 describe('useRecipeStepStore', () => {
   beforeEach(() => {
-    // Reset store state before each test
     useRecipeStepStore.setState({
       steps: [],
       selectedStepId: null,
-      lastStates: [],
-      currentIndex: -1,
+      lastState: [],
     });
   });
 
@@ -60,17 +67,17 @@ describe('useRecipeStepStore', () => {
   describe('addStep', () => {
     it('should add new step to store', () => {
       const store = useRecipeStepStore.getState();
-      const step = createMockStep();
+      const step = toStepInput(createMockStep());
 
       store.addStep(step);
 
-      expect(store.steps).toContain(step);
+      expect(store.steps).toHaveLength(1);
     });
 
     it('should maintain sort order when adding steps', () => {
       const store = useRecipeStepStore.getState();
-      const step1 = createMockStep({ sort_order: 1 });
-      const step2 = createMockStep({ sort_order: 2 });
+      const step1 = toStepInput(createMockStep({ sort_order: 1 }));
+      const step2 = toStepInput(createMockStep({ sort_order: 2 }));
 
       store.addStep(step1);
       store.addStep(step2);
@@ -97,7 +104,7 @@ describe('useRecipeStepStore', () => {
       const step = createMockStep({ id: 123 });
 
       store.setSteps([step]);
-      store.deleteStep(999); // Non-existent ID
+      store.deleteStep(999);
 
       expect(store.steps).toHaveLength(1);
     });
@@ -131,14 +138,14 @@ describe('useRecipeStepStore', () => {
   });
 
   describe('reorderSteps', () => {
-    it('should reorder steps by sort_order', () => {
+    it('should reorder steps by fromIndex and toIndex', () => {
       const store = useRecipeStepStore.getState();
       const step1 = createMockStep({ id: 1, sort_order: 1 });
       const step2 = createMockStep({ id: 2, sort_order: 2 });
       const step3 = createMockStep({ id: 3, sort_order: 3 });
 
       store.setSteps([step1, step2, step3]);
-      store.reorderSteps([3, 1, 2]); // New sort order
+      store.reorderSteps(2, 0); // Move index 2 to index 0
 
       expect(store.steps[0].id).toBe(3);
       expect(store.steps[1].id).toBe(1);
@@ -147,27 +154,23 @@ describe('useRecipeStepStore', () => {
   });
 
   describe('undo/redo', () => {
-    it('should support undo operation', () => {
+    it('should support undo after adding a step', () => {
       const store = useRecipeStepStore.getState();
       const step1 = createMockStep({ sort_order: 1 });
-      const step2 = createMockStep({ sort_order: 2 });
+      const step2 = toStepInput(createMockStep({ sort_order: 2 }));
 
       store.setSteps([step1]);
-      store.setSteps([step1, step2]); // This should save state
+      store.addStep(step2); // This triggers undo state save
       store.undo();
 
-      // After undo, should be back to first state
-      expect(store.canUndo()).toBeDefined();
+      expect(store.steps).toHaveLength(1);
+      expect(store.steps[0]).toEqual(step1);
     });
 
-    it('should indicate undo availability', () => {
+    it('should have canUndo as boolean property', () => {
       const store = useRecipeStepStore.getState();
-      const step = createMockStep();
 
-      store.setSteps([step]);
-
-      // Should have history after making changes
-      expect(typeof store.canUndo() === 'boolean').toBe(true);
+      expect(typeof store.canUndo).toBe('boolean');
     });
   });
 
@@ -192,7 +195,7 @@ describe('useRecipeStepStore', () => {
     it('should maintain state across multiple operations', () => {
       const store = useRecipeStepStore.getState();
       const step1 = createMockStep({ id: 1 });
-      const step2 = createMockStep({ id: 2 });
+      const step2 = toStepInput(createMockStep({ id: 2 }));
 
       store.setSteps([step1]);
       store.addStep(step2);

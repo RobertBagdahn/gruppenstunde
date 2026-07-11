@@ -19,7 +19,7 @@ import {
   useImproveStepInstruction,
   useSuggestIngredientAssignment,
 } from '@/hooks/useRecipeSteps';
-import type { RecipeStep } from '@/schemas/recipeStep';
+import type { RecipeStep, RecipeStepInput } from '@/schemas/recipeStep';
 import React from 'react';
 
 // Mock fetch globally
@@ -47,6 +47,19 @@ const createMockStep = (overrides?: Partial<RecipeStep>): RecipeStep => ({
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   ...overrides,
+});
+
+const toStepInput = (step: RecipeStep): RecipeStepInput => ({
+  sort_order: step.sort_order,
+  instruction: step.instruction,
+  duration_minutes: step.duration_minutes ?? null,
+  section: step.section,
+  step_ingredients: step.step_ingredients.map((si) => ({
+    recipe_item_id: si.recipe_item_id,
+    quantity_modifier: si.quantity_modifier,
+    preparation: si.preparation,
+    sort_order: si.sort_order,
+  })),
 });
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -135,7 +148,7 @@ describe('Recipe Steps Hooks', () => {
 
       result.current.mutate({
         recipe_slug: 'test-recipe',
-        steps: mockSteps,
+        steps: mockSteps.map(toStepInput),
       });
 
       await waitFor(() => {
@@ -213,7 +226,7 @@ describe('Recipe Steps Hooks', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data?.steps).toEqual(generatedSteps);
+      expect(result.current.data).toEqual(generatedSteps);
     });
 
     it('should include CSRF token and correct endpoint', async () => {

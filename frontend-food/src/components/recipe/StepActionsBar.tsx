@@ -5,7 +5,6 @@
  * Save, Undo, Redo, Add Step, Generate from Items (AI)
  */
 
-import React from 'react';
 import { Save, Undo2, Redo2, Plus, Loader, Sparkles } from 'lucide-react';
 
 interface StepActionsBarProps {

@@ -13,11 +13,6 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
-import React from 'react';
 import type { RecipeStep, RecipeStepIngredient } from '@/schemas/recipeStep';
 import type { RecipeItem } from '@/schemas/recipe';
 
@@ -28,20 +23,6 @@ global.fetch = vi.fn();
 vi.mock('@/utils/csrf', () => ({
   getCsrfToken: () => 'test-csrf-token',
 }));
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: false },
-    mutations: { retry: false },
-  },
-});
-
-const createQueryWrapper = ({ children }: { children: React.ReactNode }) =>
-  React.createElement(
-    BrowserRouter,
-    {},
-    React.createElement(QueryClientProvider, { client: queryClient }, children)
-  );
 
 const createMockStep = (overrides?: Partial<RecipeStep>): RecipeStep => ({
   id: Date.now(),
@@ -55,17 +36,20 @@ const createMockStep = (overrides?: Partial<RecipeStep>): RecipeStep => ({
   ...overrides,
 });
 
-const createMockRecipeItem = (overrides?: Partial<RecipeItem>): RecipeItem => ({
+const createMockRecipeItem = (overrides?: Record<string, unknown>): RecipeItem => ({
   id: 1,
-  name: 'Test Ingredient',
+  ingredient_name: 'Test Ingredient',
   quantity: 100,
-  unit: 'g',
-  category: 'Grundzutaten',
-  generic: false,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+  sort_order: 0,
+  portion_id: 1,
+  weight_g: 100,
+  note: '',
+  ingredient_portions: [],
+  is_optional: false,
+  portion_display: '',
+  has_missing_weight: false,
   ...overrides,
-});
+} as RecipeItem);
 
 describe('Recipe Step E2E Workflows', () => {
   beforeEach(() => {
@@ -121,7 +105,7 @@ describe('Recipe Step E2E Workflows', () => {
 
       const newIngredient: RecipeStepIngredient = {
         id: Date.now(),
-        recipe_item: 1,
+        recipe_item_id: 1,
         quantity_modifier: 1.0,
         preparation: 'diced',
         sort_order: 1,
@@ -139,7 +123,7 @@ describe('Recipe Step E2E Workflows', () => {
     it('should modify ingredient quantity modifier', () => {
       const ingredient: RecipeStepIngredient = {
         id: 1,
-        recipe_item: 1,
+        recipe_item_id: 1,
         quantity_modifier: 1.0,
         preparation: 'diced',
         sort_order: 1,
@@ -156,7 +140,7 @@ describe('Recipe Step E2E Workflows', () => {
     it('should update preparation notes', () => {
       const ingredient: RecipeStepIngredient = {
         id: 1,
-        recipe_item: 1,
+        recipe_item_id: 1,
         quantity_modifier: 1.0,
         preparation: 'raw',
         sort_order: 1,
@@ -315,14 +299,14 @@ describe('Recipe Step E2E Workflows', () => {
         step_ingredients: [
           {
             id: 1,
-            recipe_item: 1,
+            recipe_item_id: 1,
             quantity_modifier: 1.0,
             preparation: 'sifted',
             sort_order: 1,
           },
           {
             id: 2,
-            recipe_item: 2,
+            recipe_item_id: 2,
             quantity_modifier: 0.5,
             preparation: 'room temperature',
             sort_order: 2,
@@ -336,33 +320,33 @@ describe('Recipe Step E2E Workflows', () => {
 
     it('should filter only current step ingredients', () => {
       const recipeItems = [
-        createMockRecipeItem({ id: 1, name: 'Flour' }),
-        createMockRecipeItem({ id: 2, name: 'Water' }),
-        createMockRecipeItem({ id: 3, name: 'Salt' }),
+        createMockRecipeItem({ id: 1, ingredient_name: 'Flour' }),
+        createMockRecipeItem({ id: 2, ingredient_name: 'Water' }),
+        createMockRecipeItem({ id: 3, ingredient_name: 'Salt' }),
       ];
 
       const step = createMockStep({
         step_ingredients: [
-          { id: 1, recipe_item: 1, quantity_modifier: 1.0, preparation: '', sort_order: 1 },
-          { id: 2, recipe_item: 2, quantity_modifier: 0.5, preparation: '', sort_order: 2 },
+          { id: 1, recipe_item_id: 1, quantity_modifier: 1.0, preparation: '', sort_order: 1 },
+          { id: 2, recipe_item_id: 2, quantity_modifier: 0.5, preparation: '', sort_order: 2 },
         ],
       });
 
       const stepIngredients = step.step_ingredients.map((si) =>
-        recipeItems.find((ri) => ri.id === si.recipe_item)
+        recipeItems.find((ri) => ri.id === si.recipe_item_id)
       );
 
       expect(stepIngredients).toHaveLength(2);
-      expect(stepIngredients[0]?.name).toBe('Flour');
-      expect(stepIngredients[1]?.name).toBe('Water');
+      expect(stepIngredients[0]?.ingredient_name).toBe('Flour');
+      expect(stepIngredients[1]?.ingredient_name).toBe('Water');
     });
 
     it('should calculate actual quantities with modifier', () => {
-      const recipeItem = createMockRecipeItem({ quantity: 200, unit: 'g' });
+      const recipeItem = createMockRecipeItem({ quantity: 200, measuring_unit_name: 'g' });
 
       const stepIngredient = {
         id: 1,
-        recipe_item: 1,
+        recipe_item_id: 1,
         quantity_modifier: 1.5,
         preparation: '',
         sort_order: 1,
@@ -391,7 +375,7 @@ describe('Recipe Step E2E Workflows', () => {
       const step = createMockStep({
         instruction: 'Mix ingredients',
         step_ingredients: [
-          { id: 1, recipe_item: 1, quantity_modifier: 1.0, preparation: 'diced', sort_order: 1 },
+          { id: 1, recipe_item_id: 1, quantity_modifier: 1.0, preparation: 'diced', sort_order: 1 },
         ],
       });
 
@@ -495,7 +479,6 @@ describe('Recipe Step E2E Workflows', () => {
 
   describe('Validation', () => {
     it('should validate sort_order uniqueness per recipe', () => {
-      const recipe = 'test-recipe';
       const steps = [
         createMockStep({ sort_order: 1 }),
         createMockStep({ sort_order: 2 }),
@@ -517,17 +500,17 @@ describe('Recipe Step E2E Workflows', () => {
       expect(invalidModifier.quantity_modifier > 0).toBe(false);
     });
 
-    it('should validate recipe_item_id references exist', () => {
+    it('should validate recipe_item_id_id references exist', () => {
       const ingredient: RecipeStepIngredient = {
         id: 1,
-        recipe_item: 999, // Non-existent ID
+        recipe_item_id: 999, // Non-existent ID
         quantity_modifier: 1.0,
         preparation: '',
         sort_order: 1,
       };
 
       // Backend should validate reference
-      expect(ingredient.recipe_item).toBe(999);
+      expect(ingredient.recipe_item_id).toBe(999);
     });
   });
 });

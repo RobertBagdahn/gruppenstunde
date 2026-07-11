@@ -138,7 +138,6 @@ export default function TitleImageEditor({
               onError: () => toast.error('KI-Bild konnte nicht gesetzt werden'),
             });
           }}
-          isSettingImage={setFromUrlMutation.isPending}
         />
       </>
     );
@@ -239,7 +238,6 @@ export default function TitleImageEditor({
             onError: () => toast.error('KI-Bild konnte nicht gesetzt werden'),
           });
         }}
-        isSettingImage={setFromUrlMutation.isPending}
       />
 
       {/* Delete confirmation */}
@@ -267,7 +265,6 @@ interface AiImageModalProps {
   title: string;
   summary?: string;
   onSelect: (url: string) => void;
-  isSettingImage: boolean;
 }
 
 function AiImageModal({
@@ -277,7 +274,6 @@ function AiImageModal({
   title,
   summary,
   onSelect,
-  isSettingImage,
 }: AiImageModalProps) {
   const [prompt, setPrompt] = useState('');
   const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);

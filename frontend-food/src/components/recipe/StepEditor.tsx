@@ -5,7 +5,7 @@
  * and inline editing of instructions and ingredients.
  */
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import {
   DndContext,
   closestCenter,

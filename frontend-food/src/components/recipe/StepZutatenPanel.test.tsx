@@ -14,8 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StepZutatenPanel } from '@/components/recipe/StepZutatenPanel';
-import type { RecipeItem } from '@/schemas/recipe';
+import StepZutatenPanel from '@/components/recipe/StepZutatenPanel';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,22 +27,14 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
 
-const createMockRecipeItem = (overrides?: Partial<RecipeItem>): RecipeItem => ({
+const createMockRecipeItem = (overrides?: Record<string, unknown>) => ({
   id: 1,
   name: 'Test Ingredient',
-  quantity: 100,
-  unit: 'g',
-  category: 'Grundzutaten',
-  generic: false,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
   ...overrides,
 });
 
 describe('StepZutatenPanel', () => {
-  const mockOnAddIngredients = vi.fn();
-  const mockOnRemoveIngredient = vi.fn();
-  const mockOnUpdateIngredient = vi.fn();
+  const mockOnUpdate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,14 +42,12 @@ describe('StepZutatenPanel', () => {
 
   const defaultProps = {
     stepIngredients: [],
+    onUpdate: mockOnUpdate,
     availableRecipeItems: [
       createMockRecipeItem({ id: 1, name: 'Flour' }),
       createMockRecipeItem({ id: 2, name: 'Water' }),
       createMockRecipeItem({ id: 3, name: 'Salt' }),
     ],
-    onAddIngredients: mockOnAddIngredients,
-    onRemoveIngredient: mockOnRemoveIngredient,
-    onUpdateIngredient: mockOnUpdateIngredient,
     stepInstruction: 'Mix flour with water',
     recipeSlug: 'test-recipe',
   };
@@ -84,14 +73,14 @@ describe('StepZutatenPanel', () => {
       stepIngredients: [
         {
           id: 1,
-          recipe_item: 1,
+          recipe_item_id: 1,
           quantity_modifier: 1.0,
           preparation: 'sifted',
           sort_order: 1,
         },
         {
           id: 2,
-          recipe_item: 2,
+          recipe_item_id: 2,
           quantity_modifier: 0.5,
           preparation: 'cold',
           sort_order: 2,
@@ -112,7 +101,7 @@ describe('StepZutatenPanel', () => {
       stepIngredients: [
         {
           id: 1,
-          recipe_item: 1,
+          recipe_item_id: 1,
           quantity_modifier: 2.0,
           preparation: '',
           sort_order: 1,
@@ -132,7 +121,7 @@ describe('StepZutatenPanel', () => {
       stepIngredients: [
         {
           id: 1,
-          recipe_item: 1,
+          recipe_item_id: 1,
           quantity_modifier: 1.0,
           preparation: 'finely diced',
           sort_order: 1,
@@ -248,7 +237,7 @@ describe('StepZutatenPanel', () => {
       stepIngredients: [
         {
           id: 1,
-          recipe_item: 1,
+          recipe_item_id: 1,
           quantity_modifier: 1.0,
           preparation: '',
           sort_order: 1,
@@ -269,7 +258,7 @@ describe('StepZutatenPanel', () => {
       stepIngredients: [
         {
           id: 1,
-          recipe_item: 1,
+          recipe_item_id: 1,
           quantity_modifier: 1.0,
           preparation: 'chopped',
           sort_order: 1,
@@ -290,14 +279,14 @@ describe('StepZutatenPanel', () => {
         stepIngredients: [
           {
             id: 1,
-            recipe_item: 1,
+            recipe_item_id: 1,
             quantity_modifier: 1.0,
             preparation: '',
             sort_order: 1,
           },
           {
             id: 2,
-            recipe_item: 2,
+            recipe_item_id: 2,
             quantity_modifier: 1.0,
             preparation: '',
             sort_order: 2,
@@ -325,7 +314,7 @@ describe('StepZutatenPanel', () => {
         stepIngredients: [
           {
             id: 1,
-            recipe_item: 1,
+            recipe_item_id: 1,
             quantity_modifier: 1.0,
             preparation: 'diced',
             sort_order: 1,
@@ -364,7 +353,7 @@ describe('StepZutatenPanel', () => {
         stepIngredients: [
           {
             id: 1,
-            recipe_item: 1,
+            recipe_item_id: 1,
             quantity_modifier: 1.0,
             preparation: '',
             sort_order: 1,
@@ -383,14 +372,14 @@ describe('StepZutatenPanel', () => {
         stepIngredients: [
           {
             id: 1,
-            recipe_item: 1,
+            recipe_item_id: 1,
             quantity_modifier: 0.1,
             preparation: '',
             sort_order: 1,
           },
           {
             id: 2,
-            recipe_item: 2,
+            recipe_item_id: 2,
             quantity_modifier: 5.0,
             preparation: '',
             sort_order: 2,

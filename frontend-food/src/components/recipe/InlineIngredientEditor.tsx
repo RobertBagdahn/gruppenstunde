@@ -54,6 +54,7 @@ interface AiIngredientSuggestion {
   portion_name: string;
   quantity: number;
   is_new_ingredient: boolean;
+  note: string;
 }
 
 interface InlineIngredientEditorProps {
@@ -711,9 +712,9 @@ export default function InlineIngredientEditor({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
           selected.map((s) => ({
-            ingredient_id: s.ingredient_id,
             portion_id: s.portion_id,
             quantity: s.quantity,
+            note: s.note || '',
           })),
         ),
       });
@@ -1055,7 +1056,7 @@ export default function InlineIngredientEditor({
               setAlternativeTargetId={setAlternativeTargetId}
               patchItem={patchItem}
               setEditItems={setEditItems}
-              user={user}
+              user={user ?? undefined}
             />
           );
 

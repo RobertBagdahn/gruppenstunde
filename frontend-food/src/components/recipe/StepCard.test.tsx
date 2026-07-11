@@ -11,8 +11,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { StepCard } from '@/components/recipe/StepCard';
+import StepCard from '@/components/recipe/StepCard';
 import type { RecipeStep } from '@/schemas/recipeStep';
 
 const createMockStep = (overrides?: Partial<RecipeStep>): RecipeStep => ({
@@ -30,13 +29,16 @@ const createMockStep = (overrides?: Partial<RecipeStep>): RecipeStep => ({
 describe('StepCard', () => {
   const mockOnUpdate = vi.fn();
   const mockOnDelete = vi.fn();
+  const mockOnSelect = vi.fn();
 
   it('should render step instruction', () => {
     const step = createMockStep({ instruction: 'Boil water' });
     render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -51,7 +53,9 @@ describe('StepCard', () => {
     render(
       <StepCard
         step={step}
-        stepNumber={3}
+        index={2}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -66,7 +70,9 @@ describe('StepCard', () => {
     render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -82,7 +88,9 @@ describe('StepCard', () => {
     render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -97,7 +105,9 @@ describe('StepCard', () => {
     const { container } = render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -112,7 +122,9 @@ describe('StepCard', () => {
     const { container } = render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="my-recipe"
@@ -127,7 +139,9 @@ describe('StepCard', () => {
     render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -143,7 +157,9 @@ describe('StepCard', () => {
     const { container } = render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -160,10 +176,12 @@ describe('StepCard', () => {
       'Mix the flour with water gradually while stirring constantly to avoid lumps, ensuring smooth and creamy consistency';
     const step = createMockStep({ instruction: longInstruction });
 
-    const { container } = render(
+    render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -178,7 +196,9 @@ describe('StepCard', () => {
     const { container } = render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -195,7 +215,9 @@ describe('StepCard', () => {
     const { container } = render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -212,7 +234,7 @@ describe('StepCard', () => {
       step_ingredients: [
         {
           id: 1,
-          recipe_item: 1,
+          recipe_item_id: 1,
           quantity_modifier: 1.0,
           preparation: 'diced',
           sort_order: 1,
@@ -223,7 +245,9 @@ describe('StepCard', () => {
     const { container } = render(
       <StepCard
         step={step}
-        stepNumber={1}
+        index={0}
+        isSelected={false}
+        onSelect={mockOnSelect}
         onUpdate={mockOnUpdate}
         onDelete={mockOnDelete}
         recipeSlug="test-recipe"
@@ -239,8 +263,10 @@ describe('StepCard', () => {
       render(
         <StepCard
           step={step}
-          stepNumber={1}
-          onUpdate={mockOnUpdate}
+          index={0}
+          isSelected={false}
+        onSelect={mockOnSelect}
+        onUpdate={mockOnUpdate}
           onDelete={mockOnDelete}
           recipeSlug="test-recipe"
         />
@@ -255,8 +281,10 @@ describe('StepCard', () => {
       const { container } = render(
         <StepCard
           step={step}
-          stepNumber={1}
-          onUpdate={mockOnUpdate}
+          index={0}
+          isSelected={false}
+        onSelect={mockOnSelect}
+        onUpdate={mockOnUpdate}
           onDelete={mockOnDelete}
           recipeSlug="test-recipe"
         />
@@ -273,8 +301,10 @@ describe('StepCard', () => {
       const { container } = render(
         <StepCard
           step={step}
-          stepNumber={1}
-          onUpdate={mockOnUpdate}
+          index={0}
+          isSelected={false}
+        onSelect={mockOnSelect}
+        onUpdate={mockOnUpdate}
           onDelete={mockOnDelete}
           recipeSlug="test-recipe"
         />
@@ -291,8 +321,10 @@ describe('StepCard', () => {
       const { container } = render(
         <StepCard
           step={step}
-          stepNumber={1}
-          onUpdate={mockOnUpdate}
+          index={0}
+          isSelected={false}
+        onSelect={mockOnSelect}
+        onUpdate={mockOnUpdate}
           onDelete={mockOnDelete}
           recipeSlug="test-recipe"
         />
@@ -308,8 +340,10 @@ describe('StepCard', () => {
       render(
         <StepCard
           step={step}
-          stepNumber={1}
-          onUpdate={mockOnUpdate}
+          index={0}
+          isSelected={false}
+        onSelect={mockOnSelect}
+        onUpdate={mockOnUpdate}
           onDelete={mockOnDelete}
           recipeSlug="test-recipe"
         />
@@ -323,8 +357,10 @@ describe('StepCard', () => {
       render(
         <StepCard
           step={step}
-          stepNumber={1}
-          onUpdate={mockOnUpdate}
+          index={0}
+          isSelected={false}
+        onSelect={mockOnSelect}
+        onUpdate={mockOnUpdate}
           onDelete={mockOnDelete}
           recipeSlug="test-recipe"
         />
@@ -338,8 +374,10 @@ describe('StepCard', () => {
       render(
         <StepCard
           step={step}
-          stepNumber={1}
-          onUpdate={mockOnUpdate}
+          index={0}
+          isSelected={false}
+        onSelect={mockOnSelect}
+        onUpdate={mockOnUpdate}
           onDelete={mockOnDelete}
           recipeSlug=""
         />

@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { useRandomRecipeSuggestion, useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
-import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import {
   MEAL_TYPE_LABELS,
   MEAL_TYPE_ICONS,

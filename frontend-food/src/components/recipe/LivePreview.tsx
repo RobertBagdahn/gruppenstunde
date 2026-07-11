@@ -5,7 +5,7 @@
  * Used in StepInstructionEditor for immediate feedback.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Eye } from 'lucide-react';
 import type { RecipeStep } from '@/schemas/recipeStep';
 import { resolveStepPlaceholders, type RecipeItemMap } from '@/services/stepHelpers';
