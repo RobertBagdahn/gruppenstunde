@@ -256,6 +256,46 @@ test.describe('Recipe Workflows', () => {
     expect(errors).toHaveLength(0);
   });
 
+  test('Create recipe with AI-Hilfe — "Holländische Käsenudeln mit Gouda"', async ({ page }) => {
+    test.setTimeout(120_000);
+    await login(page);
+    const errors = collector(page);
+
+    await page.goto(`${FOOD_URL}/recipes/new`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Step 0: Select "Mit KI-Hilfe" method
+    const kiCard = page.locator('.cursor-pointer:has-text("Mit KI-Hilfe")').first();
+    await expect(kiCard).toBeVisible({ timeout: 5000 });
+    await kiCard.click();
+    await page.waitForTimeout(500);
+
+    // Enter the recipe prompt
+    const textarea = page.locator('textarea[placeholder*="Nudelauflauf"]').first();
+    await expect(textarea).toBeVisible({ timeout: 3000 });
+    await textarea.fill('Holländische Käsenudeln mit Gouda');
+
+    // Trigger generation via the "Weiter" button (drives WizardStepMethod's primaryAction)
+    const weiterBtn = page.locator('button:has-text("Weiter")').last();
+    await expect(weiterBtn).toBeVisible({ timeout: 3000 });
+    await weiterBtn.click();
+
+    // Generation calls Gemini and can take a while
+    const titleInput = page.locator('input[placeholder="z.B. Nudelauflauf mit Hackfleisch"]');
+    await expect(titleInput).toBeVisible({ timeout: 60_000 });
+
+    // Title should have been prefilled by the AI-generated recipe
+    await expect(titleInput).not.toHaveValue('', { timeout: 10_000 });
+
+    // Ignore pre-existing/unrelated noise, but real 500s from ai-create should fail the test
+    const relevantErrors = errors.filter((e: string) =>
+      !e.includes('usage_count') &&
+      !e.includes('/api/ingredients')
+    );
+    expect(relevantErrors).toHaveLength(0);
+  });
+
   test('URL-Import flow — UI elements render correctly', async ({ page }) => {
     await login(page);
     const errors = collector(page);

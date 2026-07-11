@@ -267,9 +267,25 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: Abstr
             )
             ingredient.save()
 
-            for alias_name in nutrition.aliases:
+            for raw_alias_name in nutrition.aliases:
+                from django.db import IntegrityError
+                from django.db.models import Max
+
                 from supply.models import IngredientAlias
-                IngredientAlias.objects.get_or_create(ingredient=ingredient, name=alias_name)
+
+                alias_name = raw_alias_name.strip()
+                if not alias_name:
+                    continue
+                if IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=alias_name).exists():
+                    continue
+                next_rank = (
+                    IngredientAlias.objects.filter(ingredient=ingredient).aggregate(Max("rank"))["rank__max"] or 0
+                ) + 1
+                try:
+                    IngredientAlias.objects.create(ingredient=ingredient, name=alias_name, rank=next_rank)
+                except IntegrityError:
+                    # Alias name already taken globally (unique_alias_name_when_not_generic) — skip.
+                    continue
 
             unit = resolve_canonical_unit(nutrition.portion_name)
             if not unit:
@@ -350,15 +366,21 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         if portion:
             return portion
 
-        portion = Portion.objects.create(
+        # Portion names must be unique per ingredient (case-insensitive), regardless
+        # of measuring_unit — reuse an existing portion with the same name if present.
+        name = unit_str or measuring_unit.name
+        existing_by_name = Portion.objects.filter(ingredient=ingredient, name__iexact=name).first()
+        if existing_by_name:
+            return existing_by_name
+
+        return Portion.objects.create(
             ingredient=ingredient,
             measuring_unit=measuring_unit,
-            name=unit_str or measuring_unit.name,
+            name=name,
             quantity=1.0,
         )
-        return portion
 
-    # No measuring_unit matched → create a generic portion
+    # No measuring_unit matched → reuse any existing portion for this ingredient
     portion = Portion.objects.filter(ingredient=ingredient).first()
     if portion:
         return portion
@@ -369,10 +391,14 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
     if not fallback_unit:
         fallback_unit = MeasuringUnit.objects.create(name="Stück")
 
-    portion = Portion.objects.create(
+    name = "Stück"
+    existing_by_name = Portion.objects.filter(ingredient=ingredient, name__iexact=name).first()
+    if existing_by_name:
+        return existing_by_name
+
+    return Portion.objects.create(
         ingredient=ingredient,
         measuring_unit=fallback_unit,
-        name="Stück",
+        name=name,
         quantity=1.0,
     )
-    return portion
