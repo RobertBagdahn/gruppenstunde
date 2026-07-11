@@ -488,7 +488,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                 serving_time=serving_time,
                 note=meal.note or "",
                 override_portions=meal.override_portions,
-                total_portions=portions,
+                total_portions=int(portions),
                 recipe_blocks=recipe_blocks,
             )
             cooking_schedule_meals.append(cooking_meal)
@@ -564,7 +564,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                 day_start_time=day_start,
                 day_end_time=day_end,
                 day_duration_minutes=duration,
-                portions=meal_plan.norm_portions,
+                portions=int(meal_plan.norm_portions),
                 day_nutritional_tags=list(day_tags.values()),
                 total_cost_eur=day_cost,
                 total_energy_kcal=day_energy,

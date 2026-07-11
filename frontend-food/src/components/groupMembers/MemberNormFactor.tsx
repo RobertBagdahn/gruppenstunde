@@ -8,11 +8,12 @@ interface Props {
 }
 
 export function MemberNormFactor({ age, gender, pal }: Props) {
-  const { data, isLoading } = useNormPersonCalculation(age, gender, pal);
+  const calcGender = gender === 'no_answer' ? 'male' : gender;
+  const { data, isLoading } = useNormPersonCalculation(age, calcGender, pal);
 
   return (
     <Link
-      to={`/tools/norm-portion-simulator?pal=${pal}&age=${age}&gender=${gender}`}
+      to={`/tools/norm-portion-simulator?pal=${pal}&age=${age}&gender=${gender === 'no_answer' ? 'male' : gender}`}
       className="text-xs font-medium text-primary hover:underline whitespace-nowrap"
       title="Normportion-Simulator öffnen"
     >

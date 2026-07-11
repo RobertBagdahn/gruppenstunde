@@ -86,7 +86,6 @@ export default function SettingsPanel({
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
-      <h3 className="font-display font-bold text-lg text-foreground">Einstellungen</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>

@@ -25,8 +25,6 @@ export function GroupMemberPanel({ mealPlanId, hasEvent, eventName, activityFact
   return (
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
       <div className="flex items-center gap-2">
-        <Users className="w-5 h-5 text-primary" />
-        <h3 className="font-display font-bold text-lg text-foreground">Gruppe</h3>
         <span className="text-sm text-muted-foreground ml-auto">
           {members.length} {members.length === 1 ? 'Person' : 'Personen'}
         </span>

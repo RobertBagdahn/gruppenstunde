@@ -3,6 +3,12 @@ import { useParams, useNavigate, NavLink } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Calendar,
   Users,
   ShoppingCart,
@@ -129,9 +135,9 @@ export default function MealPlanDetailPage() {
   const [copyDialogTargetMealId, setCopyDialogTargetMealId] = useState<number | null>(null);
 
   // Edit settings
-  const [showSettings, setShowSettings] = useState(false);
-  const [showShare, setShowShare] = useState(false);
-  const [showGroupMembers, setShowGroupMembers] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showGroupMembersDialog, setShowGroupMembersDialog] = useState(false);
 
   // Group meals by date for display
   const dayGroups = useMemo(() => {
@@ -289,7 +295,7 @@ export default function MealPlanDetailPage() {
     updateMutation.mutate(data, {
       onSuccess: () => {
         toast.success('Einstellungen gespeichert');
-        setShowSettings(false);
+        setShowSettingsDialog(false);
       },
       onError: (err) => toast.error('Fehler', { description: err.message }),
     });
@@ -344,7 +350,7 @@ export default function MealPlanDetailPage() {
         </div>
         <div className="flex items-center gap-2 self-start">
           <button
-            onClick={() => setShowShare(!showShare)}
+            onClick={() => setShowShareDialog(true)}
             className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
             aria-label="Essensplan teilen"
             title="Essensplan teilen"
@@ -352,16 +358,16 @@ export default function MealPlanDetailPage() {
             <Share2 className="w-5 h-5 text-primary" />
           </button>
           <button
-            onClick={() => setShowGroupMembers(!showGroupMembers)}
+            onClick={() => setShowGroupMembersDialog(true)}
             className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
-            aria-label="Gruppe verwalten"
-            title="Gruppe verwalten"
+            aria-label="Teilnehmende verwalten"
+            title="Teilnehmende verwalten"
           >
             <Users className="w-5 h-5 text-primary" />
           </button>
           {plan.can_edit && (
             <button
-              onClick={() => setShowSettings(!showSettings)}
+              onClick={() => setShowSettingsDialog(true)}
               className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
               aria-label="Einstellungen"
               title="Einstellungen"
@@ -372,28 +378,51 @@ export default function MealPlanDetailPage() {
         </div>
       </div>
 
-      {/* Settings Panel */}
-      {showSettings && plan.can_edit && (
-        <SettingsPanel planId={mealPlanId} plan={plan} onSave={handleSaveSettings} isPending={updateMutation.isPending} />
-      )}
+      {/* Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-primary" />
+              Einstellungen
+            </DialogTitle>
+          </DialogHeader>
+          {plan.can_edit && (
+            <SettingsPanel planId={mealPlanId} plan={plan} onSave={handleSaveSettings} isPending={updateMutation.isPending} />
+          )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Share / Collaborator Panel */}
-      {showShare && (
-        <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
-          <h3 className="font-display font-bold text-lg text-foreground">Essensplan teilen</h3>
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-primary" />
+              Essensplan teilen
+            </DialogTitle>
+          </DialogHeader>
           <MealPlanCollaboratorManager planId={mealPlanId} isOwner={plan.is_owner} />
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Group Members Panel */}
-      {showGroupMembers && (
-        <GroupMemberPanel
-          mealPlanId={mealPlanId}
-          hasEvent={!!plan.event_id}
-          eventName={plan.event_name || ''}
-          activityFactor={plan.activity_factor}
-        />
-      )}
+      {/* Group Members Dialog */}
+      <Dialog open={showGroupMembersDialog} onOpenChange={setShowGroupMembersDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Teilnehmende
+            </DialogTitle>
+          </DialogHeader>
+          <GroupMemberPanel
+            mealPlanId={mealPlanId}
+            hasEvent={!!plan.event_id}
+            eventName={plan.event_name || ''}
+            activityFactor={plan.activity_factor}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Tab Bar */}
       <div className="flex gap-1 border-b border-border overflow-x-auto">
@@ -484,7 +513,7 @@ export default function MealPlanDetailPage() {
         <IngredientScanView
           mealPlanId={mealPlanId}
           canEdit={plan.can_edit}
-          onOpenSettings={() => setShowSettings(true)}
+          onOpenSettings={() => setShowSettingsDialog(true)}
           nutritionalTagsCount={plan.nutritional_tag_ids?.length || 0}
         />
       )}

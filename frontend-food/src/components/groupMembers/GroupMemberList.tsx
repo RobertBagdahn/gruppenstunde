@@ -40,12 +40,10 @@ export function GroupMemberList({ members, onDelete, isDeleting, activityFactor 
               <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
                 {GENDER_LABELS[member.gender] || 'k.A.'}
               </span>
-              {member.gender !== 'no_answer' && (
-                <MemberNormFactor age={member.age} gender={member.gender} pal={activityFactor} />
-              )}
+              <MemberNormFactor age={member.age} gender={member.gender} pal={activityFactor} />
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {member.nutritional_tags.length > 0 && (
+              {member.nutritional_tags.length > 0 ? (
                 <div className="hidden sm:flex gap-1">
                   {member.nutritional_tags.map((tag) => (
                     <span key={tag.id} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">
@@ -53,6 +51,10 @@ export function GroupMemberList({ members, onDelete, isDeleting, activityFactor 
                     </span>
                   ))}
                 </div>
+              ) : (
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-medium">
+                  Allesesser
+                </span>
               )}
               <button
                 onClick={() => onDelete(member.id)}
@@ -65,7 +67,7 @@ export function GroupMemberList({ members, onDelete, isDeleting, activityFactor 
               </button>
             </div>
           </div>
-          {member.nutritional_tags.length > 0 && (
+          {member.nutritional_tags.length > 0 ? (
             <div className="sm:hidden flex gap-1 mt-1 flex-wrap">
               {member.nutritional_tags.map((tag) => (
                 <span key={tag.id} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-semibold">
@@ -73,6 +75,10 @@ export function GroupMemberList({ members, onDelete, isDeleting, activityFactor 
                 </span>
               ))}
             </div>
+          ) : (
+            <span className="sm:hidden inline-flex mt-1 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-medium">
+              Allesesser
+            </span>
           )}
         </DataCardRow>
       ))}
