@@ -276,10 +276,12 @@ class Command(BaseCommand):
                 else:
                     self.report.ingredients_unmatched += 1
 
-            if not dry_run:
-                self._cleanup_portions(specs)
-                self._generate_aliases(specs)
-                self._generate_generic_aliases(generic_names)
+        if not dry_run:
+            self._deduplicate_ingredients()
+            self._fix_unrealistic_energy()
+            self._cleanup_portions(specs)
+            self._generate_aliases(specs)
+            self._generate_generic_aliases(generic_names)
 
         self._recalculate_recipe_caches(dry_run)
         self._recalculate_nutri_scores(dry_run)
@@ -482,17 +484,13 @@ class Command(BaseCommand):
         count = garbage1.update(deleted_at=now)
         self.report.portions_deleted += count
 
-        # Delete "ml" name with weight_g=1.0 on solids
-        garbage_ml = Portion.objects.filter(
+        # Delete "ml" name portions with weight_g <= 1.0 (useless on any ingredient)
+        garbage_ml_all = Portion.objects.filter(
             ingredient=ingredient, deleted_at__isnull=True,
-            name__iexact="ml", weight_g__lte=1.0
+            name__iexact="ml", weight_g__lte=1.0, rank=1
         )
-        for p in garbage_ml:
-            visc = ingredient.physical_viscosity
-            if visc and visc not in ("liquid", "beverage"):
-                p.deleted_at = now
-                p.save(update_fields=["deleted_at"])
-                self.report.portions_deleted += 1
+        count = garbage_ml_all.update(deleted_at=now)
+        self.report.portions_deleted += count
 
         # Delete "* in ml" pattern portions with weight_g=1.0
         garbage_in_ml = Portion.objects.filter(
