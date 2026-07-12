@@ -279,6 +279,7 @@ class Command(BaseCommand):
         if not dry_run:
             self._deduplicate_ingredients()
             self._fix_unrealistic_energy()
+            self._fix_zero_energy_vegetables()
             self._cleanup_portions(specs)
             self._generate_aliases(specs)
             self._generate_generic_aliases(generic_names)
@@ -291,6 +292,105 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     # Matching
     # ------------------------------------------------------------------
+
+    def _deduplicate_ingredients(self) -> None:
+        from django.db.models import Count
+        from supply.models import Ingredient
+
+        dupes = (
+            Ingredient.objects.values("name")
+            .annotate(cnt=Count("id"))
+            .filter(cnt__gt=1)
+        )
+        for entry in dupes:
+            name = entry["name"]
+            duplicates = list(Ingredient.objects.filter(name=name).order_by("id"))
+            keeper = duplicates[0]
+            for dup in duplicates[1:]:
+                keeper = self._merge_ingredients(keeper, dup)
+        self.stdout.write(f"  Deduplicated {len(dupes)} ingredient name groups")
+
+    def _merge_ingredients(self, keeper, duplicate) -> "Ingredient":
+        from supply.models import Portion, IngredientAlias
+        from django.utils import timezone
+
+        for field in [
+            "energy_kcal", "protein_g", "fat_g", "fat_sat_g",
+            "carbohydrate_g", "sugar_g", "fibre_g", "salt_g",
+        ]:
+            keeper_val = getattr(keeper, field) or 0
+            dup_val = getattr(duplicate, field) or 0
+            if not keeper_val and dup_val:
+                setattr(keeper, field, dup_val)
+
+        if not keeper.price_per_kg and duplicate.price_per_kg:
+            keeper.price_per_kg = duplicate.price_per_kg
+
+        if not keeper.description and duplicate.description:
+            keeper.description = duplicate.description
+
+        keeper.save()
+
+        for portion in Portion.objects.filter(ingredient=duplicate):
+            existing = Portion.objects.filter(
+                ingredient=keeper, name__iexact=portion.name
+            ).first()
+            if existing:
+                portion.deleted_at = timezone.now()
+                portion.save(update_fields=["deleted_at"])
+            # Always move to keeper
+            portion.ingredient = keeper
+            portion.save()
+
+        from supply.models import IngredientAlias
+        for alias in IngredientAlias.objects.filter(ingredient=duplicate):
+            if not IngredientAlias.objects.filter(
+                ingredient=keeper, name__iexact=alias.name
+            ).exists():
+                alias.ingredient = keeper
+                alias.save()
+            else:
+                alias.delete()
+
+        duplicate.delete()
+        return keeper
+
+    def _fix_unrealistic_energy(self) -> None:
+        from supply.models import Ingredient
+        # Energy per 100g cannot exceed pure fat (884 kcal)
+        # Values above this are likely per-package errors
+        bad = Ingredient.objects.filter(energy_kcal__gt=900)
+        count = bad.count()
+        bad.update(energy_kcal=None, nutri_score=None, nutri_class=None)
+        if count:
+            self.stdout.write(f"  Fixed {count} unrealistic energy values (>900 kcal -> null)")
+
+    def _fix_zero_energy_vegetables(self) -> None:
+        from supply.models import Ingredient
+        veggie_estimates = {
+            "Ingwer": 80, "Brokkoli": 34, "Champignons": 22, "Aubergine": 24,
+            "Blumenkohl": 25, "Suesskartoffel": 86, "Kohlrabi": 27, "Fenchel": 31,
+            "Chinakohl": 16, "Wirsing": 25, "Weisskohl": 25, "Rotkohl": 25,
+            "Eisbergsalat": 13, "Feldsalat": 20, "Rucola": 25, "Babyspinat": 19,
+            "Radieschen": 16, "Schalotten": 30, "Pastinake": 75,
+            "Schnittlauch": 30, "Limette": 30, "Birne": 57, "Mango": 60,
+            "Ananas": 55, "Himbeeren": 34, "Blaubeeren": 42, "Brombeeren": 32,
+            "Kirschen": 50, "Trauben": 69, "Kiwi": 61, "Spargel (weiss)": 18,
+            "Schmand": 240, "Creme Fraiche": 280, "Griechischer Joghurt": 57,
+            "Skyr": 66, "Quark (Magerquark)": 68, "Feta": 270, "Cheddar": 400,
+            "Bratwurst (frisch)": 320, "Haehnchenfiletsteaks (TK)": 105,
+            "Speckwuerfel": 370, "Hackfleisch": 230, "Fettreduziertes Rinderhack": 170,
+            "Schinkenwuerfel mager": 115, "Thunfisch (Dose)": 99,
+        }
+        updated = 0
+        for name, kcal in veggie_estimates.items():
+            matches = Ingredient.objects.filter(name=name).filter(
+                models.Q(energy_kcal__isnull=True) | models.Q(energy_kcal=0)
+            )
+            count = matches.update(energy_kcal=kcal)
+            updated += count
+        if updated:
+            self.stdout.write(f"  Filled energy for {updated} common food items")
 
     def _is_already_enriched(self, ingredient, generic_names: set[str]) -> bool:
         from supply.models import Portion
