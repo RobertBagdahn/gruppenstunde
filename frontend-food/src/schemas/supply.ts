@@ -680,3 +680,64 @@ export const IngredientImportUrlOutSchema = z.object({
   nutrition: IngredientNutritionDraftSchema.nullable(),
 });
 export type IngredientImportUrlOut = z.infer<typeof IngredientImportUrlOutSchema>;
+
+// ============================================================================
+// Equipment
+// ============================================================================
+
+export const EquipmentSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  sort_order: z.number(),
+});
+export type Equipment = z.infer<typeof EquipmentSchema>;
+
+export const EquipmentInSchema = z.object({
+  name: z.string().min(1, 'Name ist erforderlich'),
+  sort_order: z.number(),
+});
+export type EquipmentIn = z.infer<typeof EquipmentInSchema>;
+
+// ============================================================================
+// Tag Admin
+// ============================================================================
+
+export const TagAdminSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string(),
+  parent_id: z.string().nullable(),
+  parent_name: z.string().nullable(),
+  icon: z.string(),
+  group: z.string(),
+  sort_order: z.number(),
+  is_approved: z.boolean(),
+});
+export type TagAdmin = z.infer<typeof TagAdminSchema>;
+
+export const TagAdminInSchema = z.object({
+  name: z.string().min(1, 'Name ist erforderlich'),
+  description: z.string(),
+  parent_id: z.string().nullable(),
+  group: z.string(),
+  icon: z.string(),
+  sort_order: z.number(),
+});
+export type TagAdminIn = z.infer<typeof TagAdminInSchema>;
+
+export const TagDetailSchema = z.object({
+  tag: TagAdminSchema,
+  recipes: z.array(z.object({
+    id: z.number(),
+    title: z.string(),
+    slug: z.string(),
+  })),
+  ingredients: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    slug: z.string(),
+  })),
+});
+export type TagDetail = z.infer<typeof TagDetailSchema>;

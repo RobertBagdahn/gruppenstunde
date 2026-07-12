@@ -122,15 +122,13 @@ export function CreateIngredientModal({
   );
 }
 
-async function getTagIdForBreakfastTag(tagName: string): Promise<number> {
-  // This should be replaced with a proper tag lookup
-  // For now, return placeholder - tag IDs would be fetched from backend
-  const tagMap: Record<string, number> = {
-    'breakfast-base': 1,
-    'breakfast-topping': 2,
-    'breakfast-fat': 3,
-    'breakfast-extra': 4,
-    'breakfast-drink': 5,
+async function getTagIdForBreakfastTag(tagName: string): Promise<string> {
+  const tagMap: Record<string, string> = {
+    'breakfast-base': 'base',
+    'breakfast-topping': 'topping',
+    'breakfast-fat': 'fat',
+    'breakfast-extra': 'extra',
+    'breakfast-drink': 'drink',
   };
-  return tagMap[tagName] || 0;
+  return tagMap[tagName] || '';
 }

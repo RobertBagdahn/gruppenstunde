@@ -2,6 +2,8 @@
 Tag and ScoutLevel models for content classification.
 """
 
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -9,6 +11,7 @@ from django.db import models
 class Tag(models.Model):
     """Hierarchical content tag. Used by all content types via M2M."""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, max_length=120)
     parent = models.ForeignKey(
@@ -22,7 +25,7 @@ class Tag(models.Model):
     group = models.CharField(max_length=50, default="general", blank=True)
     sort_order = models.IntegerField(default=0)
     is_approved = models.BooleanField(default=True)
-    embedding = models.BinaryField(null=True, blank=True)
+    description = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ["sort_order", "name"]
@@ -37,12 +40,12 @@ class Tag(models.Model):
             descendants = descendants | child.get_descendants()
         return descendants
 
-    def get_ancestor_ids(self) -> list[int]:
+    def get_ancestor_ids(self) -> list:
         """Return list of ancestor tag IDs (from root to parent)."""
-        ancestors: list[int] = []
+        ancestors: list = []
         current = self.parent
         while current:
-            ancestors.insert(0, current.id)
+            ancestors.insert(0, str(current.id))
             current = current.parent
         return ancestors
 

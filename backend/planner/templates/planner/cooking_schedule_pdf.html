@@ -1,0 +1,93 @@
+{% load static %}<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>{{ meal_plan.name }} — Kochplan</title>
+<style>
+  {% include "planner/cooking_schedule_pdf.css" %}
+</style>
+</head>
+<body>
+
+{# ---- Deckblatt ---- #}
+<div class="cover-page">
+  {% if logo_path %}
+  <img src="file://{{ logo_path }}" class="logo" alt="Inspi Logo" />
+  {% endif %}
+  <h1>{{ meal_plan.name }}</h1>
+  <div class="subtitle">Kochplan</div>
+  <div class="meta">
+    <div class="meta-row">{{ date_label }}</div>
+    <div class="meta-row">{{ norm_portions }} Portionen · Reservefaktor {{ reserve_factor }}</div>
+    <div class="meta-row">Gesamtkosten: {{ total_cost }}</div>
+    <div class="meta-row">Gesamtenergie: {{ total_energy }} kcal / Person</div>
+  </div>
+  <div class="cover-days">
+    {{ day_count }} Tage: {{ day_labels|join:" · " }}
+  </div>
+</div>
+
+{# ---- Tage und Rezepte ---- #}
+{% for day in days %}
+<div class="day-section">
+  <div class="day-header">
+    <h2>{{ day.label }}</h2>
+    <div class="day-cost">{{ day.portions }} Personen · {{ day.time_range }} · {{ day.day_cost }}</div>
+  </div>
+
+  {% for recipe in day.recipes %}
+  <div class="recipe-card">
+    <div class="recipe-header">
+      <h3>{{ recipe.meal_type_label }}: {{ recipe.recipe_name }}</h3>
+      <div class="recipe-meta">
+        {{ recipe.portions_display }} · {{ recipe.start_time }} Uhr
+        {% if recipe.serving_time %} → Fertig {{ recipe.serving_time }} Uhr{% endif %}
+        {% if recipe.cost %} · {{ recipe.cost }}{% endif %}
+      </div>
+    </div>
+
+    {% if recipe.allergens %}
+    <div class="allergen-badges">
+      {% for allergen in recipe.allergens %}
+      <span class="allergen-badge {{ allergen.css_class }}">{{ allergen.name }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if recipe.note %}
+    <div class="note-box">{{ recipe.note }}</div>
+    {% endif %}
+
+    <div class="two-column">
+      <div class="ingredients-col">
+        <h4>Zutaten</h4>
+        <ul class="ingredient-list">
+        {% for ing in recipe.ingredients %}
+          <li>
+            <span class="ingredient-name">{{ ing.name }}</span>
+            <span class="ingredient-amount"> — {{ ing.amount }}</span>
+            {% if ing.optional %}<span class="optional"> (optional)</span>{% endif %}
+          </li>
+        {% endfor %}
+        </ul>
+      </div>
+      <div class="steps-col">
+        <h4>Zubereitung</h4>
+        <ol class="steps-list">
+        {% for step in recipe.steps %}
+          <li>{{ step }}</li>
+        {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<div class="footer">
+  {{ meal_plan.name }} · gruppenstunde.de/meal-plans/{{ meal_plan.slug }}
+</div>
+
+</body>
+</html>

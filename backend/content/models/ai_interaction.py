@@ -22,6 +22,13 @@ class AiInteraction(models.Model):
     duration_ms = models.IntegerField(null=True, blank=True)
     success = models.BooleanField(default=True)
     error_code = models.CharField(max_length=50, blank=True, default="")
+    prompt_tokens = models.IntegerField(null=True, blank=True)
+    completion_tokens = models.IntegerField(null=True, blank=True)
+    total_tokens = models.IntegerField(null=True, blank=True)
+    thoughts_tokens = models.IntegerField(null=True, blank=True)
+    cost_eur = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+    pricing_model = models.CharField(max_length=100, blank=True, default="")
+    is_background = models.BooleanField(default=False)
     vote = models.CharField(
         max_length=10,
         null=True,

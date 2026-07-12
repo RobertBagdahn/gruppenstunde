@@ -40,7 +40,7 @@ export const RecipeDraftSchema = z.object({
   execution_time_choice: z.string().optional().default('less_30'),
   preparation_time_choice: z.string().optional().default('none'),
   scout_level_ids: z.array(z.number()).optional().default([]),
-  tag_ids: z.array(z.number()).optional().default([]),
+  tag_ids: z.array(z.string()).optional().default([]),
   steps: z.array(z.string()),
   source_url: z.string(),
 });

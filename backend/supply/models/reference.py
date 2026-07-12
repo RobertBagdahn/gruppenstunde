@@ -36,14 +36,14 @@ class NutritionalTag(models.Model):
     name = models.CharField(
         max_length=255,
         verbose_name=_("Name"),
-        help_text=_("z.B. 'Fleisch', 'Alkohol', 'Nüsse', 'Scharf'"),
+        help_text=_("z.B. 'Vegan', 'Eiallergie', 'Laktoseunverträglichkeit'"),
     )
     name_opposite = models.CharField(
         max_length=255,
         blank=True,
         default="",
         verbose_name=_("Gegenbezeichnung"),
-        help_text=_("z.B. 'Vegan', 'Vegetarisch', 'Alkoholfrei'"),
+        help_text=_("z.B. 'Tierische Produkte', 'Ei und Eierzeugnisse', 'Laktose'"),
     )
     description = models.CharField(max_length=255, blank=True, default="")
     rank = models.IntegerField(default=1)

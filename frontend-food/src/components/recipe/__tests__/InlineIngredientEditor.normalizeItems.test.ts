@@ -1,144 +1,100 @@
 import { describe, it, expect } from 'vitest';
+import { normalizeItems, getItemWeightG, type EditableItem } from '../InlineIngredientEditor';
+import type { RecipeItem } from '@/schemas/recipe';
 
 /**
- * Mock normalizeItems function for testing the composite-portion label logic.
- * This mirrors the real function in InlineIngredientEditor.tsx.
- * 
- * KEY CHANGE: 
- * - Quantity is calculated using ORIGINAL portion (for correct save path)
- * - Label comes from rank=1 portion (for better UX showing nice labels)
- * - portion_id is NOT changed (stays as original)
- * This fixes the bug where composite portions (e.g. "1 Portion Nudeln" with
- * measuring_unit="Gramm") would be mislabeled as "Gramm".
+ * These tests exercise the REAL `normalizeItems`/`getItemWeightG` implementations
+ * from `InlineIngredientEditor.tsx` (not a hand-copied mock). A previous version
+ * of this file duplicated the logic locally, which silently drifted from the
+ * real code and let the "AI-Mengenschätzung zeigt falsche Alt-Werte" bug slip
+ * through undetected — the mock never exercised `getItemWeightG`, which is
+ * where the bug lived.
  */
-function normalizeItems(
-  items: Array<{
-    id: number;
-    quantity: number;
-    portion_id: number;
-    ingredient_portions: Array<{
-      id: number;
-      name: string;
-      quantity: number;
-      weight_g: number | null;
-      measuring_unit_name: string | null;
-      rank: number;
-    }>;
-  }>,
-  editPortions: number = 1
-): Array<{
-  id: number;
-  quantity: number;
-  portion_id: number;
-  measuring_unit_name: string | null;
-}> {
-  return items.map((item) => {
-    // Find current portion to get weight
-    const currentPortion = item.ingredient_portions.find((p) => p.id === item.portion_id);
-    const portionWeightG = currentPortion?.weight_g ?? 1;
-
-    // Convert to grams at editPortions scale
-    const quantityInGrams = item.quantity * portionWeightG;
-    const normalizedQty = editPortions > 1 ? Math.round((quantityInGrams / editPortions) * 100) / 100 : quantityInGrams;
-
-    // Quantity as multiplier of the ORIGINAL (saved) portion
-    // This ensures save path always works correctly
-    const quantityForOriginalPortion = portionWeightG > 0 
-      ? Math.round((normalizedQty / portionWeightG) * 100) / 100 
-      : normalizedQty;
-    const qty = quantityForOriginalPortion;
-
-    // Label: prefer rank=1 portion name only if it has a meaningful weight_g
-    // This improves UX by showing nice labels like "100g Würstchen" or "1 Portion Nudeln"
-    // but avoids confusing labels like "n. B." (nach Bedarf / as needed)
-    const sortedPortions = [...item.ingredient_portions].sort((a, b) => a.rank - b.rank);
-    const rank1Portion = sortedPortions.find((p) => p.rank === 1);
-    const shouldUseRank1Label = rank1Portion && 
-      rank1Portion.weight_g !== null && 
-      rank1Portion.weight_g !== undefined &&
-      (rank1Portion.quantity !== 1 || rank1Portion.weight_g !== currentPortion?.weight_g);
-    const label = shouldUseRank1Label && rank1Portion
-      ? rank1Portion.name
-      : currentPortion?.measuring_unit_name ?? 'g';
-
-    return {
-      id: item.id,
-      quantity: qty,
-      portion_id: item.portion_id, // Keep original portion_id for save
-      measuring_unit_name: label,
-    };
-  });
+function makeRecipeItem(overrides: Partial<RecipeItem> & { portion_id: number }): RecipeItem {
+  return {
+    id: 1,
+    portion_name: null,
+    ingredient_id: 1,
+    ingredient_name: 'Testzutat',
+    ingredient_slug: 'testzutat',
+    quantity: 1,
+    measuring_unit_id: null,
+    measuring_unit_name: null,
+    sort_order: 0,
+    note: '',
+    ingredient_portions: [],
+    ingredient_density: null,
+    ingredient_viscosity: null,
+    ingredient_price_per_kg: null,
+    ingredient_nutri_class: null,
+    ingredient_retail_section_id: null,
+    ingredient_retail_section_name: null,
+    weight_g: 0,
+    is_optional: false,
+    exchange_group_id: null,
+    exchange_position: null,
+    portion_display: '',
+    has_missing_weight: false,
+    ...overrides,
+  };
 }
 
 describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
+  const nudelnPortion = (rank: number) => ({
+    id: 423,
+    name: '1 Portion Nudeln',
+    quantity: 125,
+    weight_g: 125,
+    rank,
+    is_system: true,
+    measuring_unit_id: null,
+    measuring_unit_name: 'Gramm',
+  });
+
   describe('composite portions (quantity !== 1)', () => {
     it('labels with portion name, not measuring_unit_name', () => {
       const items = [
-        {
+        makeRecipeItem({
           id: 1,
           quantity: 2.24, // per 1 serving
           portion_id: 423,
-          ingredient_portions: [
-            {
-              id: 423,
-              name: '1 Portion Nudeln',
-              quantity: 125, // = 125g
-              weight_g: 125,
-              measuring_unit_name: 'Gramm',
-              rank: 1,
-            },
-          ],
-        },
+          weight_g: 280,
+          ingredient_portions: [nudelnPortion(1)],
+        }),
       ];
 
-      const result = normalizeItems(items);
+      const result = normalizeItems(items, 1);
       expect(result[0].measuring_unit_name).toBe('1 Portion Nudeln');
       expect(result[0].measuring_unit_name).not.toBe('Gramm');
     });
 
-    it('displays correct multiplier for composite portion', () => {
+    it('displays correct multiplier for composite portion (2.24 × 125g = 280g)', () => {
       const items = [
-        {
+        makeRecipeItem({
           id: 1,
           quantity: 2.24, // per 1 serving, which is 2.24 × 125g = 280g
           portion_id: 423,
-          ingredient_portions: [
-            {
-              id: 423,
-              name: '1 Portion Nudeln',
-              quantity: 125,
-              weight_g: 125,
-              measuring_unit_name: 'Gramm',
-              rank: 1,
-            },
-          ],
-        },
+          weight_g: 280,
+          ingredient_portions: [nudelnPortion(1)],
+        }),
       ];
 
-      const result = normalizeItems(items);
+      const result = normalizeItems(items, 1);
       expect(result[0].quantity).toBe(2.24);
       expect(result[0].measuring_unit_name).toBe('1 Portion Nudeln');
-      // Verify that 2.24 × 125 = 280g
-      expect(result[0].quantity * 125).toBe(280);
+      // getItemWeightG (not a hand-rolled `quantity * 125`) is the authoritative check.
+      expect(getItemWeightG(result[0])).toBe(280);
     });
 
     it('at 4 portions, scales correctly to 8.96 Portion Nudeln', () => {
       const items = [
-        {
+        makeRecipeItem({
           id: 1,
           quantity: 2.24, // per 1 serving
           portion_id: 423,
-          ingredient_portions: [
-            {
-              id: 423,
-              name: '1 Portion Nudeln',
-              quantity: 125,
-              weight_g: 125,
-              measuring_unit_name: 'Gramm',
-              rank: 1,
-            },
-          ],
-        },
+          weight_g: 280,
+          ingredient_portions: [nudelnPortion(1)],
+        }),
       ];
 
       const result = normalizeItems(items, 1); // portions is always 1 (DB constraint)
@@ -153,81 +109,113 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
   describe('direct-unit portions (quantity === 1)', () => {
     it('labels with measuring_unit_name for plain gram portions', () => {
       const items = [
-        {
+        makeRecipeItem({
           id: 1,
           quantity: 5, // 5 grams per 1 serving
           portion_id: 7229,
+          weight_g: 5,
           ingredient_portions: [
-            {
-              id: 7229,
-              name: 'Gramm',
-              quantity: 1, // direct unit
-              weight_g: 1,
-              measuring_unit_name: 'Gramm',
-              rank: 2,
-            },
-            {
-              id: 7856,
-              name: 'n. B.',
-              quantity: 1,
-              weight_g: 1,
-              measuring_unit_name: 'Gramm',
-              rank: 1,
-            },
+            { id: 7229, name: 'Gramm', quantity: 1, weight_g: 1, rank: 2, is_system: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 7856, name: 'n. B.', quantity: 1, weight_g: 1, rank: 1, is_system: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
           ],
-        },
+        }),
       ];
 
-      const result = normalizeItems(items);
+      const result = normalizeItems(items, 1);
       expect(result[0].measuring_unit_name).toBe('Gramm');
     });
 
     it('retains gram quantity correctly', () => {
       const items = [
-        {
+        makeRecipeItem({
           id: 1,
           quantity: 5,
           portion_id: 7229,
+          weight_g: 5,
           ingredient_portions: [
-            {
-              id: 7229,
-              name: 'Gramm',
-              quantity: 1,
-              weight_g: 1,
-              measuring_unit_name: 'Gramm',
-              rank: 1,
-            },
+            { id: 7229, name: 'Gramm', quantity: 1, weight_g: 1, rank: 1, is_system: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
           ],
-        },
+        }),
       ];
 
-      const result = normalizeItems(items);
+      const result = normalizeItems(items, 1);
       expect(result[0].quantity).toBe(5);
       expect(result[0].measuring_unit_name).toBe('Gramm');
+      expect(getItemWeightG(result[0])).toBe(5);
+    });
+  });
+
+  describe('regression: AI-Mengenschätzung "Alt" value bug (duplicate "Gramm"-labeled portions)', () => {
+    // Real-world case found on recipe "Müsli mit frischem Obst": the ingredient
+    // has TWO portions both displayed as "Gramm" — id 437 ("100g Haferflocken",
+    // weight_g=100, rank=1, the item's actual saved portion) and id 7001
+    // ("Gramm", weight_g=1, rank=3). The AI-estimate preview's "Alt" column used
+    // to recompute grams as `quantity * portion.weight_g` looked up via
+    // `ingredient_portions.find(p => p.id === portion_id)` — fragile whenever
+    // that lookup silently picked the wrong/missing entry. `getItemWeightG` must
+    // use the backend-authoritative `baseWeightG`/`baseQuantity` ratio instead.
+    it('getItemWeightG resolves the correct weight even with duplicate "Gramm" portions', () => {
+      const items = [
+        makeRecipeItem({
+          id: 1,
+          quantity: 0.6,
+          portion_id: 437,
+          weight_g: 60, // backend-authoritative: 0.6 × 100g
+          ingredient_portions: [
+            { id: 437, name: '100g Haferflocken', quantity: 1, weight_g: 100, rank: 1, is_system: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 7001, name: 'Gramm', quantity: 1, weight_g: 1, rank: 3, is_system: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+          ],
+        }),
+      ];
+
+      const result = normalizeItems(items, 1);
+      expect(result[0].quantity).toBe(0.6);
+      expect(getItemWeightG(result[0])).toBe(60);
+    });
+
+    it('getItemWeightG stays correct even when the current portion has weight_g=null (e.g. "Packung")', () => {
+      // Simulates the state produced by handlePortionChange when switching to a
+      // portion with a NULL weight_g — the ratio must use the carried-over
+      // authoritative grams instead of silently becoming 0.
+      const item: EditableItem = {
+        id: 1,
+        portion_id: 16213,
+        ingredient_id: 1,
+        ingredient_name: 'Bandnudeln',
+        quantity: 125,
+        quantityInput: '125',
+        measuring_unit_name: 'Packung',
+        note: '',
+        sort_order: 0,
+        is_optional: false,
+        exchange_group_id: null,
+        exchange_position: null,
+        ingredient_portions: [
+          { id: 16213, name: 'Packung', quantity: 1, weight_g: null, measuring_unit_name: 'g', rank: 4 },
+        ],
+        baseWeightG: 125,
+        baseQuantity: 125,
+      };
+
+      expect(getItemWeightG(item)).toBe(125);
     });
   });
 
   describe('piece-based portions', () => {
     it('labels with Stück for piece portions', () => {
       const items = [
-        {
+        makeRecipeItem({
           id: 1,
           quantity: 0.25, // quarter of a piece
           portion_id: 7836,
+          weight_g: 30,
           ingredient_portions: [
-            {
-              id: 7836,
-              name: '1 Portion',
-              quantity: 1,
-              weight_g: 120,
-              measuring_unit_name: 'Stück',
-              rank: 1,
-            },
+            { id: 7836, name: '1 Portion', quantity: 1, weight_g: 120, rank: 1, is_system: true, measuring_unit_id: null, measuring_unit_name: 'Stück' },
           ],
-        },
+        }),
       ];
 
-      const result = normalizeItems(items);
+      const result = normalizeItems(items, 1);
       expect(result[0].measuring_unit_name).toBe('Stück');
     });
   });
@@ -237,37 +225,24 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
       // Recipe #434 before fix: quantity=125 with "1 Portion Nudeln" portion
       // This would show as "125 Gramm" (wrong) instead of "1 Portion Nudeln"
       const items = [
-        {
+        makeRecipeItem({
           id: 3383,
           quantity: 2.24, // repaired value per 1 serving
           portion_id: 423,
+          weight_g: 280,
           ingredient_portions: [
-            {
-              id: 423,
-              name: '1 Portion Nudeln',
-              quantity: 125,
-              weight_g: 125,
-              measuring_unit_name: 'Gramm',
-              rank: 1,
-            },
-            {
-              id: 7288,
-              name: 'Gramm',
-              quantity: 1,
-              weight_g: 1,
-              measuring_unit_name: 'Gramm',
-              rank: 2,
-            },
+            nudelnPortion(1),
+            { id: 7288, name: 'Gramm', quantity: 1, weight_g: 1, rank: 2, is_system: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
           ],
-        },
+        }),
       ];
 
-      const result = normalizeItems(items);
+      const result = normalizeItems(items, 1);
       expect(result[0].measuring_unit_name).toBe('1 Portion Nudeln');
       expect(result[0].quantity).toBe(2.24);
       expect(result[0].measuring_unit_name).not.toBe('Gramm');
-      // Ensure 2.24 represents the correct gram amount
-      expect(result[0].quantity * 125).toBe(280);
+      // Ensure 2.24 represents the correct gram amount (via the authoritative helper)
+      expect(getItemWeightG(result[0])).toBe(280);
     });
 
     it('dropdown options are distinct: "1 Portion Nudeln" ≠ "Gramm"', () => {

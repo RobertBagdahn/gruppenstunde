@@ -16,6 +16,15 @@ class RecipeVisibility(models.TextChoices):
     PUBLIC = "public", _("Öffentlich")
 
 
+class PreparationMethod(models.TextChoices):
+    COOKING = "cooking", _("Kochen")
+    BAKING = "baking", _("Backen")
+    FRYING = "frying", _("Braten")
+    GRILLING = "grilling", _("Grillen")
+    RAW = "raw", _("Rohkost")
+    NONE = "none", _("Keine Zubereitung")
+
+
 class Recipe(Content):
     """
     Standalone recipe model — inherits shared fields from Content.
@@ -170,6 +179,21 @@ class Recipe(Content):
         related_name="manual_recipes",
         verbose_name=_("Ernährungstags (manuell)"),
         help_text=_("Manuell gesetzte Ernährungshinweise, bleiben bei Sync erhalten"),
+    )
+
+    # --- Preparation method and equipment ---
+    preparation_method = models.CharField(
+        max_length=50,
+        choices=PreparationMethod.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Zubereitungsart"),
+    )
+    equipment = models.ManyToManyField(
+        "supply.Equipment",
+        blank=True,
+        related_name="recipes",
+        verbose_name=_("Equipment"),
     )
 
     class Meta(Content.Meta):

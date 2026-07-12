@@ -93,6 +93,7 @@ class Command(BaseCommand):
                     response_schema=NormalizationOutput,
                 ),
                 bypass_limits=True,
+                is_background=True,
                 context="normalize_portions",
             )
             if response is None:

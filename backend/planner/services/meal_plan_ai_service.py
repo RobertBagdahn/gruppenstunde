@@ -93,7 +93,7 @@ class MealPlanAiService:
             "- Use date format YYYY-MM-DD for each day starting from the given start_date.\n"
         )
 
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=system_prompt,

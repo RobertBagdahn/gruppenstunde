@@ -469,6 +469,7 @@ export type AiSuggestDay = z.infer<typeof AiSuggestDaySchema>;
 
 export const AiSuggestOutSchema = z.object({
   days: z.array(AiSuggestDaySchema),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiSuggestOut = z.infer<typeof AiSuggestOutSchema>;
 

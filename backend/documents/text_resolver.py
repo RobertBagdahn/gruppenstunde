@@ -196,6 +196,7 @@ Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
             model="gemini-3.1-flash-lite",
             contents=prompt,
             bypass_limits=True,
+            is_background=True,
             context="document_text_generation",
         )
         if response is None:

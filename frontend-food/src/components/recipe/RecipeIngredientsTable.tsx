@@ -34,7 +34,7 @@ const UNIT_SHORT: Record<string, string> = {
   'Messerspitze': 'Msp.',
 };
 
-export default function RecipeIngredientsTable({ items, portions = 1 }: RecipeIngredientsTableProps) {
+export default function RecipeIngredientsTable({ items, portions: _portions = 1 }: RecipeIngredientsTableProps) {
   if (!items || items.length === 0) {
     return (
       <div className="text-center py-4 text-muted-foreground">

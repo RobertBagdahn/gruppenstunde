@@ -15,10 +15,6 @@ vi.mock('@/api/tags', () => ({
   useScoutLevels: vi.fn(() => ({ data: [] })),
 }));
 
-vi.mock('@/api/breakfast', () => ({
-  useBreakfastDays: vi.fn(() => ({ data: [] })),
-}));
-
 vi.mock('@/api/auth', () => ({
   useCurrentUser: vi.fn(),
 }));

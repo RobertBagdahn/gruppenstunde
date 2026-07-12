@@ -8,12 +8,19 @@ import { z } from 'zod';
 import {
   RetailSectionSchema,
   NutritionalTagSchema,
+  EquipmentSchema,
+  TagAdminSchema,
+  TagDetailSchema,
   type RetailSectionIn,
   type NutritionalTagIn,
+  type EquipmentIn,
+  type TagAdminIn,
 } from '@/schemas/supply';
 
 const RETAIL_SECTION_BASE = `${API_BASE_URL}/api/retail-sections`;
 const NUTRITIONAL_TAG_BASE = `${API_BASE_URL}/api/nutritional-tags`;
+const EQUIPMENT_BASE = `${API_BASE_URL}/api/supply/equipment`;
+const TAG_ADMIN_BASE = `${API_BASE_URL}/api/admin/tags`;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -164,6 +171,109 @@ export function useDeleteNutritionalTag() {
       qc.invalidateQueries({ queryKey: ['admin', 'nutritional-tags'] });
       qc.invalidateQueries({ queryKey: ['nutritional-tags'] });
     },
+  });
+}
+
+// ===========================================================================
+// Equipment Admin Hooks
+// ===========================================================================
+
+export function useAdminEquipment() {
+  return useQuery({
+    queryKey: ['admin', 'equipment'],
+    queryFn: () => fetchJson(`${EQUIPMENT_BASE}/`, z.array(EquipmentSchema)),
+  });
+}
+
+export function useCreateEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: EquipmentIn) =>
+      postJson(`${EQUIPMENT_BASE}/`, data, EquipmentSchema),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'equipment'] });
+    },
+  });
+}
+
+export function useUpdateEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<EquipmentIn> }) =>
+      patchJson(`${EQUIPMENT_BASE}/${id}/`, data, EquipmentSchema),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'equipment'] });
+    },
+  });
+}
+
+export function useDeleteEquipment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteJson(`${EQUIPMENT_BASE}/${id}/`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'equipment'] });
+    },
+  });
+}
+
+// ===========================================================================
+// Tag Admin Hooks
+// ===========================================================================
+
+const PaginatedTagAdminSchema = z.object({
+  items: z.array(TagAdminSchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+
+export function useAdminTags(page = 1, pageSize = 20) {
+  return useQuery({
+    queryKey: ['admin', 'tags', page, pageSize],
+    queryFn: () =>
+      fetchJson(`${TAG_ADMIN_BASE}/?page=${page}&page_size=${pageSize}`, PaginatedTagAdminSchema),
+  });
+}
+
+export function useCreateTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: TagAdminIn) =>
+      postJson(`${TAG_ADMIN_BASE}/`, data, TagAdminSchema),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'tags'] });
+    },
+  });
+}
+
+export function useUpdateTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<TagAdminIn> }) =>
+      patchJson(`${TAG_ADMIN_BASE}/${id}/`, data, TagAdminSchema),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'tags'] });
+    },
+  });
+}
+
+export function useDeleteTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteJson(`${TAG_ADMIN_BASE}/${id}/`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'tags'] });
+    },
+  });
+}
+
+export function useTagDetail(tagId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'tag-detail', tagId],
+    queryFn: () => fetchJson(`${TAG_ADMIN_BASE}/${tagId}/detail/`, TagDetailSchema),
+    enabled: !!tagId,
   });
 }
 

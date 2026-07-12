@@ -12,6 +12,9 @@ from __future__ import annotations
 # Standard norm for a typical person's daily caloric requirement (kcal)
 # Used as baseline for meal plan energy calculations
 NORM_PERSON_DAILY_KCAL = 2335
+NORM_PERSON_DAILY_PROTEIN_G = 58
+NORM_PERSON_DAILY_FAT_G = 78
+NORM_PERSON_DAILY_CARBS_G = 292
 
 
 # Age group key: (min_age, max_age) inclusive

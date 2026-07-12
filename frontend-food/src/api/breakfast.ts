@@ -16,7 +16,6 @@ import {
   type DrinkRecipe,
   type WizardItemsResponse,
 } from '@/schemas/breakfast';
-import { BreakfastDaySchema, type BreakfastDay } from '@/schemas/breakfast';
 import { RefMealSchema, type RefMeal } from '@/schemas/mealPlan';
 
 const SUPPLY_BASE = `${API_BASE_URL}/api/supply`;
@@ -206,99 +205,6 @@ export function useSaveDirectMeal(planId: number) {
 }
 
 // ============================================================================
-// Breakfast Day Tags (6.1–6.4)
-// ============================================================================
-
-async function fetchBreakfastDays(): Promise<BreakfastDay[]> {
-  const res = await fetch(`${SUPPLY_BASE}/breakfast-days/`, {
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  const data = await res.json();
-  return z.array(BreakfastDaySchema).parse(data);
-}
-
-export function useBreakfastDays() {
-  return useQuery({
-    queryKey: ['breakfast-days'],
-    queryFn: fetchBreakfastDays,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-async function createBreakfastDay(name: string): Promise<BreakfastDay> {
-  const res = await fetch(`${SUPPLY_BASE}/breakfast-days/`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-    },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return BreakfastDaySchema.parse(await res.json());
-}
-
-export function useCreateBreakfastDay() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (name: string) => createBreakfastDay(name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['breakfast-days'] });
-    },
-  });
-}
-
-async function updateBreakfastDay(tagId: number, name: string): Promise<BreakfastDay> {
-  const res = await fetch(`${SUPPLY_BASE}/breakfast-days/${tagId}/`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-    },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return BreakfastDaySchema.parse(await res.json());
-}
-
-export function useUpdateBreakfastDay() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ tagId, name }: { tagId: number; name: string }) => updateBreakfastDay(tagId, name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['breakfast-days'] });
-    },
-  });
-}
-
-async function deleteBreakfastDay(tagId: number, force = false): Promise<{ deleted: boolean; recipe_count: number }> {
-  const res = await fetch(`${SUPPLY_BASE}/breakfast-days/${tagId}/?force=${force}`, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: {
-      'X-CSRFToken': getCsrfToken(),
-    },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
-export function useDeleteBreakfastDay() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ tagId, force = false }: { tagId: number; force?: boolean }) => deleteBreakfastDay(tagId, force),
-    onSuccess: (data) => {
-      if (data.deleted) {
-        queryClient.invalidateQueries({ queryKey: ['breakfast-days'] });
-      }
-    },
-  });
-}
-
-// ============================================================================
 // Calculate Ingredient Kcal (for extra ingredients)
 // ============================================================================
 
@@ -347,7 +253,7 @@ interface CreateIngredientPayload {
   description?: string;
   visibility?: 'private' | 'shared';
   shared_group_ids?: number[];
-  tag_ids?: number[];
+  tag_ids?: string[];
 }
 
 async function createIngredient(
@@ -393,7 +299,7 @@ interface CreateRecipePayload {
   portions?: number;
   visibility?: 'private' | 'shared' | 'group' | 'public';
   shared_group_ids?: number[];
-  tag_ids?: number[];
+  tag_ids?: string[];
   recipe_items?: any[];
   website?: string;
   form_loaded_at?: number;

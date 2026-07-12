@@ -36,7 +36,7 @@ export interface ContentFormData {
   difficulty: string;
   executionTime: string;
   preparationTime: string;
-  selectedTagIds: number[];
+  selectedTagIds: string[];
   selectedScoutIds: number[];
 }
 
@@ -244,7 +244,7 @@ export default function ContentStepper({
   }
 
   // Helper to get tag/scout level labels
-  function getTagName(id: number) {
+  function getTagName(id: string) {
     return allTags?.find((t) => t.id === id)?.name ?? `Tag ${id}`;
   }
   function getScoutLevelName(id: number) {

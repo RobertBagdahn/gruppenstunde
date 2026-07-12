@@ -12,6 +12,7 @@ class AiImproveTextIn(Schema):
 
 class AiImproveTextOut(Schema):
     improved_text: str
+    ai_interaction_id: str | None = None
 
 
 class AiSuggestTagsIn(Schema):
@@ -22,6 +23,7 @@ class AiSuggestTagsIn(Schema):
 class AiSuggestTagsOut(Schema):
     tag_ids: list[int]
     tag_names: list[str]
+    ai_interaction_id: str | None = None
 
 
 class AiRefurbishIn(Schema):
@@ -64,11 +66,13 @@ class AiRefurbishOut(Schema):
     image_prompt: str = ""
     processing_time_seconds: float = 0
     suggested_ingredients: list["AiIngredientSuggestionOut"] = []
+    ai_interaction_id: str | None = None
 
 
 class AiErrorOut(Schema):
     detail: str
     error_code: str
+    ai_interaction_id: str | None = None
 
 
 class AiGenerateImageIn(Schema):
@@ -81,6 +85,7 @@ class AiGenerateImageIn(Schema):
 
 class AiGenerateImageOut(Schema):
     image_urls: list[str] = []
+    ai_interaction_id: str | None = None
 
 
 class AiSuggestSuppliesIn(Schema):
@@ -115,3 +120,4 @@ class AiSuggestSuppliesOut(Schema):
     materials: list[AiMaterialSuggestionOut] = []
     ingredients: list[AiIngredientSuggestionOut] = []
     kitchen_equipment: list[AiMaterialSuggestionOut] = []
+    ai_interaction_id: str | None = None

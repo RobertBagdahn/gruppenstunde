@@ -11,6 +11,7 @@ compatibility with ``from content.tags_api import tags_router``.
 from ninja import Router
 
 from .admin import router as admin_router
+from .admin_tags import admin_tags_router
 from .ai import router as ai_router
 from .collaborators import router as collaborators_router
 from .content_links import router as content_links_router
@@ -52,6 +53,7 @@ router.add_router("", content_links_router)
 router.add_router("", featured_router)
 
 __all__ = [
+    "admin_tags_router",
     "router",
     "scout_levels_router",
     "tags_router",

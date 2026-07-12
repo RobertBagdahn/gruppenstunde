@@ -97,3 +97,22 @@ class DgeReferenceOut(Schema):
     sodium_mg_max: float | None
     # Vitamins
     vitamin_c_mg: float | None
+
+
+class EquipmentOut(Schema):
+    """Output schema for kitchen equipment."""
+
+    id: int
+    name: str
+    slug: str
+    sort_order: int
+
+    class Config:
+        from_attributes = True
+
+
+class EquipmentIn(Schema):
+    """Input schema for creating/updating equipment."""
+
+    name: str
+    sort_order: int = 0

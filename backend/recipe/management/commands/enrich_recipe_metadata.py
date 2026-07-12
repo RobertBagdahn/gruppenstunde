@@ -123,6 +123,7 @@ class Command(BaseCommand):
             contents=prompt,
             config=config,
             bypass_limits=True,
+            is_background=True,
             context="enrich_recipe_metadata",
         )
 

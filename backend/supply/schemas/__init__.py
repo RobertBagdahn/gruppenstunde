@@ -39,6 +39,8 @@ from .norm_person import (
 )
 from .reference import (
     DgeReferenceOut,
+    EquipmentIn,
+    EquipmentOut,
     IngredientGroupOut,
     MeasuringUnitOut,
     NutritionalTagIn,
@@ -55,6 +57,8 @@ __all__ = [
     "ContentMaterialItemOut",
     "DgeReferenceOut",
     "DgeReferencePointOut",
+    "EquipmentIn",
+    "EquipmentOut",
     "IngredientGroupOut",
     "IngredientAiCreateIn",
     "IngredientAliasOut",

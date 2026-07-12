@@ -171,6 +171,29 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Inspi <inspirator.testma
 GOOGLE_CLOUD_PROJECT = env("GOOGLE_CLOUD_PROJECT", default="")
 VERTEX_AI_LOCATION = env("VERTEX_AI_LOCATION", default="global")
 
+# Gemini Pricing (Vertex AI Global, USD per 1M tokens, July 2026)
+GEMINI_PRICING = {
+    "gemini-3.1-flash-lite": {
+        "type": "text",
+        "input_per_1m_usd": 0.25,
+        "output_per_1m_usd": 1.50,
+    },
+    "gemini-3.1-flash-image-preview": {
+        "type": "image",
+        "input_per_1m_usd": 0.25,
+        "output_per_1m_usd": 1.50,
+        "image_output_per_1m_usd": 30.0,
+    },
+    "gemini-embedding-001": {
+        "type": "embedding",
+        "input_per_1m_usd": 0.00015,
+    },
+}
+USD_TO_EUR = env.float("USD_TO_EUR", default=0.92)
+
+# Inspi Logo for PDF exports
+INSPI_LOGO_PATH = env("INSPI_LOGO_PATH", default=str(BASE_DIR / "static" / "img" / "inspi-logo.png"))
+
 # WhatsApp (neonize)
 WHATSAPP_RATE_LIMIT_PER_HOUR = env.int("WHATSAPP_RATE_LIMIT_PER_HOUR", default=50)
 

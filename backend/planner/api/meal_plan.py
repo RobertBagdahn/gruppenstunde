@@ -1854,7 +1854,6 @@ def search_recipes(
     recipe_badge: str | None = None,
     nutritional_tag_ids: str | None = None,
     exclude_nutritional_tag_ids: str | None = None,
-    tag_ids: str | None = None,
     limit: int = 8,
 ):
     """Search for recipes and standalone ingredients to add to meals.
@@ -1990,12 +1989,6 @@ def search_recipes(
         exclude_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
         if exclude_tag_ids:
             qs = qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
-
-    # Filter by content tags (e.g., breakfast day tags)
-    if tag_ids:
-        parsed_tag_ids = [int(t) for t in tag_ids.split(",") if t.strip().isdigit()]
-        for tid in parsed_tag_ids:
-            qs = qs.filter(tags=tid)
 
     if type_filter:
         primary_qs = qs.filter(recipe_type__in=type_filter)
@@ -2164,20 +2157,61 @@ def search_recipes(
 
 
 @meal_plan_router.get("/{meal_plan_id}/export/pdf/")
-def export_pdf(request, meal_plan_id: int, include_notes: bool = False):
-    """Export meal plan as PDF."""
+def export_pdf(
+    request,
+    meal_plan_id: int,
+    include_notes: bool = True,
+    exclude_shopping_list: bool = False,
+    exclude_nutrition: bool = False,
+    exclude_allergens: bool = False,
+    compact_mode: bool = False,
+    page_format: str = "A4",
+):
+    """Export meal plan as PDF with all sections configurable via query parameters."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_access(meal_plan, request.user)
+
+    if page_format not in ("A4", "letter"):
+        raise HttpError(422, "Ungültiges Seitenformat. Erlaubt: A4, letter")
 
     from django.http import HttpResponse
 
     from planner.services.pdf_export import generate_meal_plan_pdf
 
-    pdf_bytes = generate_meal_plan_pdf(meal_plan, include_notes=include_notes)
+    pdf_bytes = generate_meal_plan_pdf(
+        meal_plan,
+        include_notes=include_notes,
+        exclude_shopping_list=exclude_shopping_list,
+        exclude_nutrition=exclude_nutrition,
+        exclude_allergens=exclude_allergens,
+        compact_mode=compact_mode,
+        page_format=page_format,
+    )
 
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{meal_plan.slug}-essensplan.pdf"'
+    response["Content-Disposition"] = f'inline; filename="{meal_plan.slug}-essensplan.pdf"'
+    return response
+
+
+@meal_plan_router.get("/{meal_plan_id}/cooking-schedule/export/pdf/")
+def export_cooking_schedule_pdf(request, meal_plan_id: int, page_format: str = "A4"):
+    """Export cooking schedule (Kochplan) as PDF."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+
+    if page_format not in ("A4", "letter"):
+        raise HttpError(422, "Ungültiges Seitenformat. Erlaubt: A4, letter")
+
+    from django.http import HttpResponse
+
+    from planner.services.cooking_schedule_pdf import generate_cooking_schedule_pdf
+
+    pdf_bytes = generate_cooking_schedule_pdf(meal_plan, page_format=page_format)
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{meal_plan.slug}-kochplan.pdf"'
     return response
 
 

@@ -502,7 +502,7 @@ class IntelligentSuggestionsService:
                 f"Tags vom Nutzer und ob das Gericht zum Kontext passt."
             )
 
-            response, _interaction_id = gemini_call(
+            response, interaction_id = gemini_call(
                 user=self.user,
                 model="gemini-3.1-flash-lite",
                 contents=prompt,

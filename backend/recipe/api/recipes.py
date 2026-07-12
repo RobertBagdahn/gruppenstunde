@@ -33,6 +33,7 @@ from recipe.schemas import (
     RecipeSimilarOut,
     RecipeSuggestAllOut,
     RecipeUpdateIn,
+    VerifyRequestIn,
     VisibilityUpdateIn,
 )
 from recipe.schemas.import_schemas import (
@@ -248,7 +249,13 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
         )
 
     if filters.recipe_type:
-        qs = qs.filter(recipe_type=filters.recipe_type)
+        qs = qs.filter(recipe_type__in=filters.recipe_type)
+
+    if filters.preparation_method:
+        qs = qs.filter(preparation_method__in=filters.preparation_method)
+
+    if filters.equipment_slug:
+        qs = qs.filter(equipment__slug=filters.equipment_slug)
 
     if filters.scout_level_ids:
         qs = qs.filter(scout_levels__id__in=filters.scout_level_ids).distinct()
@@ -258,7 +265,7 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
             qs = qs.filter(tags__slug=slug)
 
     if filters.difficulty:
-        qs = qs.filter(difficulty=filters.difficulty)
+        qs = qs.filter(difficulty__in=filters.difficulty)
 
     if filters.costs_min is not None:
         qs = qs.filter(cached_price_total__gte=filters.costs_min)
@@ -266,16 +273,20 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
         qs = qs.filter(cached_price_total__lte=filters.costs_max)
 
     if filters.execution_time:
-        qs = qs.filter(execution_time=filters.execution_time)
+        qs = qs.filter(execution_time__in=filters.execution_time)
 
-    # Origin filter (verified/community/mine)
-    if filters.origin and filters.origin != "all":
-        if filters.origin == "verified":
-            qs = qs.filter(owner__isnull=True)
-        elif filters.origin == "community":
-            qs = qs.filter(owner__isnull=False, visibility="public", status="approved")
-        elif filters.origin == "mine" and request.user.is_authenticated:
-            qs = qs.filter(owner=request.user)
+    # Origin filter (verified/community/mine) — default to verified only
+    origin_values = filters.origin if filters.origin else ["verified"]
+    origin_q = Q()
+    for origin in origin_values:
+        if origin == "verified":
+            origin_q |= Q(owner__isnull=True)
+        elif origin == "community":
+            origin_q |= Q(owner__isnull=False, visibility="public", status="approved")
+        elif origin == "mine" and request.user.is_authenticated:
+            origin_q |= Q(owner=request.user)
+    if origin_q:
+        qs = qs.filter(origin_q)
 
     # Sorting
     sort_map = {
@@ -283,12 +294,16 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
         "oldest": "created_at",
         "most_liked": "-like_score",
         "popular": "-view_count",
+        "use_count": "-usage_count",
     }
-    order = sort_map.get(filters.sort, "-created_at")
     if filters.sort == "random":
         qs = qs.order_by("?")
+    elif filters.sort == "use_count":
+        qs = qs.order_by("-usage_count", "-created_at")
+    elif filters.sort in sort_map:
+        qs = qs.order_by(sort_map[filters.sort])
     else:
-        qs = qs.order_by(order)
+        qs = qs.order_by("-usage_count", "-created_at")
 
     result = paginate_queryset(qs, filters.page, filters.page_size)
     enrich_list_with_permissions(request, result["items"])
@@ -523,6 +538,30 @@ def get_recipe_by_slug(request, slug: str):
     return recipe
 
 
+@router.get("/by-slug/{slug}/export/pdf/")
+def export_recipe_pdf(request, slug: str, page_format: str = "A4"):
+    """Export recipe as PDF."""
+    _require_auth(request)
+
+    if page_format not in ("A4", "letter"):
+        raise HttpError(422, "Ungültiges Seitenformat. Erlaubt: A4, letter")
+
+    from django.http import HttpResponse
+
+    from recipe.services.pdf_export import generate_recipe_pdf
+
+    recipe = get_object_or_404(
+        _get_visible_recipes_qs(request),
+        slug=slug,
+    )
+
+    pdf_bytes = generate_recipe_pdf(recipe, page_format=page_format)
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{recipe.slug}-rezept.pdf"'
+    return response
+
+
 def _attach_similar_recipes(recipe: Recipe):
     """Attach similar recipes to a recipe object (embedding-based)."""
     from content.services.embedding_service import find_similar_recipes
@@ -550,6 +589,7 @@ def create_recipe(request, payload: RecipeCreateIn):
         summary_long=payload.summary_long,
         description=payload.description,
         recipe_type=payload.recipe_type,
+        preparation_method=payload.preparation_method,
         portions=1,  # Always store per-1-portion
         execution_time=payload.execution_time,
         preparation_time=payload.preparation_time,
@@ -569,6 +609,8 @@ def create_recipe(request, payload: RecipeCreateIn):
         recipe.scout_levels.set(valid_ids)
     if payload.tag_ids:
         recipe.tags.set(payload.tag_ids)
+    if payload.equipment_ids:
+        recipe.equipment.set(payload.equipment_ids)
 
     recipe.authors.add(request.user)
 
@@ -654,6 +696,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
     nutritional_tag_ids = data.pop("nutritional_tag_ids", None)
+    equipment_ids = data.pop("equipment_ids", None)
     recipe_items_data = data.pop("recipe_items", None)
     authors_ids = data.pop("authors_ids", None)
     shared_group_ids = data.pop("shared_group_ids", None)
@@ -671,6 +714,8 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         recipe.scout_levels.set(valid_ids)
     if tag_ids is not None:
         recipe.tags.set(tag_ids)
+    if equipment_ids is not None:
+        recipe.equipment.set(equipment_ids)
     if authors_ids is not None:
         from django.contrib.auth import get_user_model
 
@@ -951,6 +996,37 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
     fork.next_best_recipes = []
 
     return fork
+
+
+# ===========================================================================
+# Verification
+# ===========================================================================
+
+
+@router.post("/{recipe_id}/verify/")
+def verify_recipe_endpoint(request, recipe_id: int, payload: VerifyRequestIn):
+    """Verify a recipe. Staff-only. Checks rules and required fields, warns if not all met."""
+    _require_auth(request)
+    if not request.user.is_staff:
+        raise HttpError(403, "Nur Staff-User dürfen Rezepte verifizieren")
+
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+
+    from recipe.services.verification_service import verify_recipe
+
+    result = verify_recipe(recipe, reviewer=request.user, confirm=payload.confirm)
+    return result.to_dict()
+
+
+@router.get("/{recipe_id}/verification-status/")
+def get_verification_status(request, recipe_id: int):
+    """Get the verification readiness status for a recipe."""
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+
+    from recipe.services.verification_service import check_verification_readiness
+
+    result = check_verification_readiness(recipe)
+    return result.to_dict()
 
 
 @router.patch("/{recipe_id}/visibility/")

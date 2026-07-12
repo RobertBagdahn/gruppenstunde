@@ -174,7 +174,7 @@ class ContentAIService:
     # improve_text
     # ------------------------------------------------------------------
 
-    def improve_text(self, text: str, context: str = "", user: AbstractBaseUser | None = None) -> str:
+    def improve_text(self, text: str, context: str = "", user: AbstractBaseUser | None = None) -> tuple[str, str | None]:
         """Improve text: grammar, style, clarity. Content-type agnostic."""
         from google.genai import types
 
@@ -188,7 +188,7 @@ class ContentAIService:
             f"Text:\n{text}\n\n"
         )
 
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -200,17 +200,17 @@ class ContentAIService:
             context="improve_text",
         )
         if response is None:
-            return text
+            return text, None
 
         result = ImproveTextOutput.model_validate_json(response.text)
         logger.info("AI improve_text result: %s", result.text[:200])
-        return result.text
+        return result.text, str(interaction_id)
 
     # ------------------------------------------------------------------
     # suggest_tags
     # ------------------------------------------------------------------
 
-    def suggest_tags(self, text: str, user: AbstractBaseUser | None = None) -> dict[str, Any]:
+    def suggest_tags(self, text: str, user: AbstractBaseUser | None = None) -> tuple[dict[str, Any], str | None]:
         """Analyze text and suggest matching tags from the content.Tag database."""
         from google.genai import types
 
@@ -227,7 +227,7 @@ class ContentAIService:
             "Antworte NUR mit den passenden Tag-IDs."
         )
 
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -239,7 +239,7 @@ class ContentAIService:
             context="suggest_tags",
         )
         if response is None:
-            return {"tag_ids": [], "tag_names": []}
+            return {"tag_ids": [], "tag_names": []}, None
 
         result = TagSuggestionOutput.model_validate_json(response.text)
         logger.info("AI suggest_tags raw response: %s", response.text)
@@ -248,7 +248,7 @@ class ContentAIService:
         return {
             "tag_ids": [t.id for t in valid_tags],
             "tag_names": [t.name for t in valid_tags],
-        }
+        }, str(interaction_id)
 
     # ------------------------------------------------------------------
     # refurbish (content-type aware)
@@ -256,7 +256,7 @@ class ContentAIService:
 
     def refurbish(
         self, raw_text: str, content_type: str = "session", user: AbstractBaseUser | None = None
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], str | None]:
         """
         Convert raw unstructured text into a structured content item.
 
@@ -304,7 +304,7 @@ class ContentAIService:
 
         logger.info("AI refurbish prompt (first 300 chars): %s", prompt[:300])
 
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -317,7 +317,7 @@ class ContentAIService:
         )
         if response is None:
             logger.warning("AI client not available - returning fallback")
-            return self._refurbish_fallback(raw_text, content_type)
+            return self._refurbish_fallback(raw_text, content_type), None
 
         raw_response = response.text
         logger.info("AI refurbish raw response: %s", raw_response)
@@ -330,7 +330,7 @@ class ContentAIService:
 
         # Also suggest tags
         try:
-            tags = self.suggest_tags(raw_text, user=user)
+            tags, _tags_interaction_id = self.suggest_tags(raw_text, user=user)
         except Exception:
             logger.warning("Tag suggestion failed during refurbish, continuing without tags")
             tags = {"tag_ids": [], "tag_names": []}
@@ -388,7 +388,7 @@ class ContentAIService:
             "season": structured.season,
             "image_prompt": structured.image_prompt,
             "processing_time_seconds": round(processing_time, 2),
-        }
+        }, str(interaction_id)
 
     def _refurbish_fallback(self, raw_text: str, content_type: str) -> dict[str, Any]:
         """Fallback when AI client is not available."""
@@ -424,7 +424,7 @@ class ContentAIService:
         content_type: str = "session",
         ingredients: list[dict] | None = None,
         user: AbstractBaseUser | None = None,
-    ) -> list[str]:
+    ) -> tuple[list[str], str | None]:
         """
         Generate a title image using Gemini native image generation.
 
@@ -484,10 +484,11 @@ class ContentAIService:
 
         max_retries = 3
         response = None
+        interaction_id: str | None = None
 
         for attempt in range(1, max_retries + 1):
             try:
-                response, _interaction_id = gemini_image_call(
+                response, interaction_id = gemini_image_call(
                     user=user,
                     model=GEMINI_IMAGE_MODEL,
                     contents=[full_prompt],
@@ -501,6 +502,7 @@ class ContentAIService:
                     ),
                     context="image_generation",
                 )
+                interaction_id = str(interaction_id) if interaction_id else None
                 break
             except GeminiUnavailableError as exc:
                 code = getattr(exc, "status_code", 0)
@@ -518,7 +520,7 @@ class ContentAIService:
                 raise
 
         if response is None:
-            return []
+            return [], None
 
         # Upload subfolder based on content type
         upload_folder = f"content/{content_type}"
@@ -543,18 +545,18 @@ class ContentAIService:
                     saved_path = default_storage.save(filename, ContentFile(webp_data))
                     image_url = default_storage.url(saved_path)
                     logger.info("AI generated image saved: %s", image_url)
-                    return [image_url]
+                    return [image_url], interaction_id
         except Exception:
             logger.exception("AI image post-processing error")
 
-        return []
+        return [], None
 
     def generate_image(
         self, prompt: str, content_type: str = "session", user: AbstractBaseUser | None = None
-    ) -> str | None:
+    ) -> tuple[str | None, str | None]:
         """Generate a single title image. Delegates to generate_images."""
-        urls = self.generate_images(prompt=prompt, content_type=content_type, user=user)
-        return urls[0] if urls else None
+        urls, interaction_id = self.generate_images(prompt=prompt, content_type=content_type, user=user)
+        return (urls[0] if urls else None), interaction_id
 
     # ------------------------------------------------------------------
     # embeddings

@@ -43,6 +43,8 @@ from .recipes import (
     RecipeSimilarOut,
     RecipeSuggestAllOut,
     RecipeUpdateIn,
+    VerifyRequestIn,
+    VerifyStatusOut,
     VisibilityUpdateIn,
 )
 from .steps import (
@@ -123,5 +125,7 @@ __all__ = [
     "SuggestedIngredientOut",
     "SuggestionDashboardOut",
     "SuggestionOut",
+    "VerifyRequestIn",
+    "VerifyStatusOut",
     "VisibilityUpdateIn",
 ]

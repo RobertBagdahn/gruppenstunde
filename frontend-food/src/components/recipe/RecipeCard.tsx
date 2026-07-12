@@ -7,6 +7,7 @@ import {
 } from '@/schemas/recipe';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import RecipeBadge from './RecipeBadge';
+import SearchHighlight from './SearchHighlight';
 import { cn } from '@/lib/utils';
 
 const TAG_COLORS = [
@@ -19,6 +20,7 @@ const TAG_COLORS = [
 
 interface RecipeCardProps {
   recipe: RecipeListItem;
+  searchQuery?: string;
   canEdit?: boolean;
   canDelete?: boolean;
   onEdit?: () => void;
@@ -26,7 +28,7 @@ interface RecipeCardProps {
   onClone?: () => void;
 }
 
-export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelete, onClone }: RecipeCardProps) {
+export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, onEdit, onDelete, onClone }: RecipeCardProps) {
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
   const timeLabel =
@@ -73,7 +75,10 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
         {/* Nutri-Score & Recipe badge */}
         <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
           {recipe.recipe_badge && recipe.recipe_badge !== 'verified' && (
-            <RecipeBadge badge={(recipe.recipe_badge as 'draft' | 'verified' | 'community') ?? 'community'} />
+            <RecipeBadge badge={recipe.recipe_badge as 'draft' | 'verified' | 'community'} />
+          )}
+          {recipe.status === 'draft' && (
+            <RecipeBadge badge="draft" />
           )}
           {nutriColors && (
             <div className={`flex items-center justify-center w-6 h-6 rounded-full ${nutriColors.bg} ${nutriColors.text} text-[10px] font-extrabold shadow-md`}>
@@ -129,11 +134,13 @@ export default function RecipeCard({ recipe, canEdit, canDelete, onEdit, onDelet
 
       <div className="p-3">
         <h3 className="font-extrabold text-sm group-hover:text-primary transition-colors truncate">
-          {recipe.title}
+          <SearchHighlight text={recipe.title} query={searchQuery} />
         </h3>
 
         {recipe.summary && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{recipe.summary}</p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+            <SearchHighlight text={recipe.summary} query={searchQuery} />
+          </p>
         )}
 
         {/* Tags */}

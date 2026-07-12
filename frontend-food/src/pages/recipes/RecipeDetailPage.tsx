@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Sparkles, Smile, GitFork, UtensilsCrossed, Printer, Pencil, Trash2 } from 'lucide-react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { BackButton } from '@/components/shared/BackButton';
 import { EntityLink } from '@/components/shared/EntityLink';
+import { PdfExportDialog } from '@/components/PdfExportDialog';
+import { API_BASE_URL } from '@/lib/api';
 import { EntityLinkContext } from '@/components/shared/EntityLinkContext';
 import { Button } from '@/components/ui/button';
 import { useBlocker } from '@/hooks/useBlocker';
@@ -114,6 +115,7 @@ export default function RecipeDetailPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get('mode');
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
 
   const { data: recipe, isLoading, error, refetch } = useRecipeBySlug(slug ?? '');
   const recipeId = recipe?.id ?? 0;
@@ -373,29 +375,8 @@ export default function RecipeDetailPage() {
     <EntityLinkContext.Provider value="detail">
     <article
       className="container py-8 mx-auto max-w-7xl lg:grid lg:grid-cols-[1fr_320px] lg:gap-8 pb-20 lg:pb-0"
-      {...(mode === 'print' ? { 'data-mode': 'print' } : {})}
     >
       <main className="min-w-0 max-w-3xl">
-      {/* Print toolbar */}
-      {mode === 'print' && (
-        <div className="no-print flex items-center justify-between gap-4 mb-6 p-3 bg-muted rounded-lg border">
-          <BackButton onClick={() => {
-              setSearchParams((prev) => {
-                const next = new URLSearchParams(prev);
-                next.delete('mode');
-                return next;
-              }, { replace: true });
-            }} />
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[18px]">print</span>
-            Drucken
-          </button>
-        </div>
-      )}
       {/* Delete Confirmation */}
       <ConfirmDialog
         open={showDeleteConfirm}
@@ -451,18 +432,17 @@ export default function RecipeDetailPage() {
           )}
         </div>
 
-        {/* Edit + Delete + Print Buttons */}
+        {/* Edit + Delete + PDF Buttons */}
         <div className="flex items-center justify-end gap-1.5 shrink-0">
-          <a
-            href={`/recipes/${recipe.slug}/print?portions=${displayedPortions}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => setPdfDialogOpen(true)}
             className="flex items-center justify-center w-9 h-9 rounded-lg border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            title="Druckansicht öffnen"
-            aria-label="Drucken"
+            title="Als PDF öffnen"
+            aria-label="Als PDF öffnen"
           >
             <Printer className="w-4 h-4" />
-          </a>
+          </button>
           {recipe.can_edit && (
             <Link
               to={`/recipes/${recipe.slug}/edit`}
@@ -773,6 +753,7 @@ export default function RecipeDetailPage() {
               size="sm"
               onClick={() => setIsInlineEditMode(true)}
               title="Zutaten bearbeiten"
+              data-testid="ingredients-edit-trigger"
             >
               <Pencil className="w-4 h-4 mr-1.5" />
               Bearbeiten
@@ -1243,6 +1224,7 @@ export default function RecipeDetailPage() {
       <RecipeMobileActionBar
         onOpenShoppingList={handleOpenShoppingList}
         onOpenPortions={() => setPortionSheetOpen(true)}
+        recipeSlug={slug}
       />
 
       {/* Portion Bottom Sheet (Mobile) */}
@@ -1253,6 +1235,12 @@ export default function RecipeDetailPage() {
         onPortionsChange={setPortionsMultiplier}
       />
 
+      <PdfExportDialog
+        open={pdfDialogOpen}
+        onOpenChange={setPdfDialogOpen}
+        baseUrl={`${API_BASE_URL}/api/recipes/by-slug/${slug}/export/pdf/`}
+        optionType="recipe"
+      />
 
     </article>
     </EntityLinkContext.Provider>

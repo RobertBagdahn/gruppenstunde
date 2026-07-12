@@ -24,14 +24,9 @@ import IngredientStatisticsPage from './pages/ingredients/statistics/IngredientS
 import MealPlanLandingPage from './pages/tools/MealEventLandingPage';
 import MealPlanListPage from './pages/planning/MealEventListPage';
 import MealPlanDetailPage from './pages/planning/MealEventDetailPage';
-import MealPlanPrintPage from './pages/planning/MealPlanPrintPage';
-import CookingSchedulePrintPage from './pages/planning/CookingSchedulePrintPage';
 import RefMealEditorPage from './pages/planning/RefMealEditorPage';
 import BreakfastWizardPage from './pages/planning/breakfast/BreakfastWizardPage';
 import MealPlanWizardPage from './pages/planning/wizard/MealPlanWizardPage';
-
-// Print pages (no layout)
-import RecipePrintPage from './pages/recipes/RecipePrintPage';
 
 // Shopping list pages
 import ShoppingListPage from './pages/shopping/ShoppingListPage';
@@ -42,6 +37,7 @@ import NormPortionSimulatorPage from './pages/tools/NormPortionSimulatorPage';
 
 // Admin
 import AdminPage from './pages/admin/AdminPage';
+import TagDetailPage from './pages/admin/TagDetailPage';
 import DataQualityPage from './pages/admin/DataQualityPage';
 import StaffGuard from './components/admin/StaffGuard';
 
@@ -69,11 +65,6 @@ export default function App() {
       {/* Auth routes (no layout) */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-
-      {/* Print routes (no layout — standalone druckoptimierte Ansichten) */}
-      <Route path="/recipes/:slug/print" element={<RecipePrintPage />} />
-      <Route path="/meal-plans/:id/print" element={<MealPlanPrintPage />} />
-      <Route path="/meal-plans/:id/cooking-schedule/print" element={<CookingSchedulePrintPage />} />
 
       {/* Main layout routes */}
       <Route element={<FoodLayout />}>
@@ -126,6 +117,7 @@ export default function App() {
 
         {/* Admin */}
         <Route path="/admin" element={<StaffGuard><AdminPage /></StaffGuard>} />
+        <Route path="/admin/tag/:id" element={<StaffGuard><TagDetailPage /></StaffGuard>} />
         <Route path="/admin/:section" element={<StaffGuard><AdminPage /></StaffGuard>} />
         <Route path="/admin/data-quality" element={<StaffGuard><DataQualityPage /></StaffGuard>} />
         <Route path="/admin/data-quality/:section" element={<StaffGuard><DataQualityPage /></StaffGuard>} />

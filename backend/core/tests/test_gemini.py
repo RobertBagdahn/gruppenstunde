@@ -54,7 +54,7 @@ class TestAuthEnforcement:
     def test_bypass_limits_skips_auth(self):
         with patch("core.services.gemini._get_client") as mock:
             mock.return_value = None
-            result, interaction_id = gemini_call(user=None, model="test", contents="hello", bypass_limits=True)
+            result, interaction_id = gemini_call(user=None, model="test", contents="hello", bypass_limits=True, is_background=True)
             assert result is None
             assert interaction_id is not None
 
@@ -79,7 +79,7 @@ class TestGlobalRateLimit:
         cache.set(CACHE_KEY, GLOBAL_LIMIT, timeout=WINDOW_SECONDS)
         with patch("core.services.gemini._get_client") as mock:
             mock.return_value = None
-            result, interaction_id = gemini_call(user=None, model="test", contents="hello", bypass_limits=True)
+            result, interaction_id = gemini_call(user=None, model="test", contents="hello", bypass_limits=True, is_background=True)
             assert result is None
             assert interaction_id is not None
 

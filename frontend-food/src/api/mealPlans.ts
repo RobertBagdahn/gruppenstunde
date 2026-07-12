@@ -463,7 +463,7 @@ export interface RecipeSearchParams {
   recipe_badge?: 'verified' | 'community' | null;
   nutritional_tag_ids?: number[];
   exclude_nutritional_tag_ids?: number[];
-  tag_ids?: number[];
+  tag_ids?: string[];
   limit?: number;
 }
 

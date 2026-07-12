@@ -1,6 +1,8 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
+import { PdfExportDialog } from '@/components/PdfExportDialog';
+import { API_BASE_URL } from '@/lib/api';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -20,6 +22,7 @@ import {
   ShieldAlert,
   ChefHat,
   Share2,
+  Printer,
 } from 'lucide-react';
 import {
   useMealPlan,
@@ -140,6 +143,7 @@ export default function MealPlanDetailPage() {
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showGroupMembersDialog, setShowGroupMembersDialog] = useState(false);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
 
   // Group meals by date for display
   const dayGroups = useMemo(() => {
@@ -386,6 +390,14 @@ export default function MealPlanDetailPage() {
               <Settings className="w-5 h-5 text-primary" />
             </button>
           )}
+          <button
+            onClick={() => setPdfDialogOpen(true)}
+            className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
+            aria-label="Als PDF öffnen"
+            title="Als PDF öffnen"
+          >
+            <Printer className="w-5 h-5 text-primary" />
+          </button>
         </div>
       </div>
 
@@ -608,6 +620,13 @@ export default function MealPlanDetailPage() {
         onClose={() => setVariantDialog((prev) => ({ ...prev, open: false }))}
         isLoading={variantDialogLoading}
         isFetching={variantDialogFetching}
+      />
+
+      <PdfExportDialog
+        open={pdfDialogOpen}
+        onOpenChange={setPdfDialogOpen}
+        baseUrl={`${API_BASE_URL}/api/meal-plans/${mealPlanId}/export/pdf/`}
+        optionType="meal_plan"
       />
     </div>
   );

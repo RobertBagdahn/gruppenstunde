@@ -8,17 +8,31 @@ import { z } from 'zod';
 
 // --- Tag (shared across all content types) ---
 
-export const TagSchema = z.object({
-  id: z.number(),
+export interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  group: string;
+  sort_order: number;
+  parent_id: string | null;
+  parent_name: string | null;
+  description?: string;
+  children?: Tag[];
+}
+
+export const TagSchema: z.ZodType<Tag> = z.object({
+  id: z.string(),
   name: z.string(),
   slug: z.string(),
   icon: z.string(),
   group: z.string(),
   sort_order: z.number(),
-  parent_id: z.number().nullable(),
+  parent_id: z.string().nullable(),
   parent_name: z.string().nullable(),
+  description: z.string().optional(),
+  children: z.lazy(() => z.array(TagSchema)).optional(),
 });
-export type Tag = z.infer<typeof TagSchema>;
 
 export const ScoutLevelSchema = z.object({
   id: z.number(),
@@ -199,12 +213,14 @@ export const EMOTION_TYPES = [
 
 export const AiImproveTextSchema = z.object({
   improved_text: z.string(),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiImproveText = z.infer<typeof AiImproveTextSchema>;
 
 export const AiSuggestTagsSchema = z.object({
   tag_ids: z.array(z.number()),
   tag_names: z.array(z.string()),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiSuggestTags = z.infer<typeof AiSuggestTagsSchema>;
 
@@ -250,12 +266,14 @@ export const AiRefurbishSchema = z.object({
     portion_id: z.number().nullable().optional().default(null),
     portion_name: z.string().nullable().optional().default(null),
   })).optional().default([]),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiRefurbish = z.output<typeof AiRefurbishSchema>;
 
 export const AiErrorSchema = z.object({
   detail: z.string(),
   error_code: z.string(),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiError = z.infer<typeof AiErrorSchema>;
 

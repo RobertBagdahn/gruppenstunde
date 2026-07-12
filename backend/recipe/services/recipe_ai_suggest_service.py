@@ -146,7 +146,7 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -182,7 +182,7 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt_text,
@@ -386,23 +386,43 @@ def _duration_to_execution_time_choice(minutes: int) -> str:
 
 
 def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
-    """Find or create a Portion for the given ingredient + measuring_unit combo."""
+    """Find or create a Portion for the given ingredient + measuring_unit combo.
+
+    `item.quantity` from the AI is a raw amount *in `unit_str`* (e.g. "100" for
+    unit "g"), which is stored as `RecipeItem.quantity` — a multiplier on
+    whichever Portion is returned here. Matching on `measuring_unit` alone
+    (ignoring `Portion.quantity`) is unsafe: an ingredient can have several
+    portions sharing one measuring_unit at very different scales (e.g.
+    "Packung" with weight_g=None/900 vs a canonical "1g" portion, both using
+    measuring_unit "g"). Picking the wrong one silently multiplies/divides the
+    stored quantity by that scale factor, producing nonsensical amounts (e.g.
+    "125 Packungen Nudeln" or "0.11g Gouda" instead of "125g"/"100g").
+    Prefer an exact name match first, then a canonical (quantity == 1) portion
+    for the measuring_unit — never an arbitrary multiplier portion.
+    """
     from supply.models import Portion
 
+    name = unit_str or (measuring_unit.name if measuring_unit else "Stück")
+
+    # Exact name match is the most precise signal (unambiguous regardless of unit).
+    existing_by_name = Portion.objects.filter(ingredient=ingredient, name__iexact=name).first()
+    if existing_by_name:
+        return existing_by_name
+
     if measuring_unit:
-        portion = Portion.objects.filter(
-            ingredient=ingredient,
-            measuring_unit=measuring_unit,
-        ).first()
+        # Canonical portion: one "count" equals exactly one `measuring_unit`
+        # (quantity == 1). Avoids matching "Packung"-style multiplier portions.
+        portion = (
+            Portion.objects.filter(
+                ingredient=ingredient,
+                measuring_unit=measuring_unit,
+                quantity=1,
+            )
+            .order_by("rank")
+            .first()
+        )
         if portion:
             return portion
-
-        # Portion names must be unique per ingredient (case-insensitive), regardless
-        # of measuring_unit — reuse an existing portion with the same name if present.
-        name = unit_str or measuring_unit.name
-        existing_by_name = Portion.objects.filter(ingredient=ingredient, name__iexact=name).first()
-        if existing_by_name:
-            return existing_by_name
 
         return Portion.objects.create(
             ingredient=ingredient,

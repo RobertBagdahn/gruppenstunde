@@ -279,6 +279,8 @@ class IngredientNameParser:
                     response_mime_type="application/json",
                     response_schema=_GeminiParseResult,
                 ),
+                bypass_limits=True,
+                is_background=True,
                 context="ingredient_parser",
             )
             if response is None:

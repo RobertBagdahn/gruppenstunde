@@ -236,16 +236,6 @@ export const WizardItemsResponseSchema = z.object({
 });
 export type WizardItemsResponse = z.infer<typeof WizardItemsResponseSchema>;
 
-/** Breakfast day tag */
-export const BreakfastDaySchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  slug: z.string(),
-  sort_order: z.number(),
-  recipe_count: z.number().optional(),
-});
-export type BreakfastDay = z.infer<typeof BreakfastDaySchema>;
-
 /** Default empty wizard state */
 export function defaultWizardState(): WizardState {
   return {

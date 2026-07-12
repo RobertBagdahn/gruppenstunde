@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import PortionScaler from './PortionScaler';
 import RecipeMetaCard from './RecipeMetaCard';
 import type { RecipeDetail } from '@/schemas/recipe';
+import { PdfExportDialog } from '@/components/PdfExportDialog';
+import { useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface RecipeSidebarProps {
   recipe: RecipeDetail;
@@ -31,6 +34,7 @@ export default function RecipeSidebar({
   hidePortionScaler = false,
 }: RecipeSidebarProps) {
   const navigate = useNavigate();
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const handleShare = async () => {
     // Get current URL safely
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -91,12 +95,12 @@ export default function RecipeSidebar({
         <div className="grid grid-cols-3 gap-1.5">
           <button
             type="button"
-            onClick={() => window.print()}
-            title="Drucken"
+            onClick={() => setPdfDialogOpen(true)}
+            title="Als PDF öffnen"
             className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium border rounded-lg hover:bg-muted transition-colors"
           >
             <Printer className="w-4 h-4" />
-            <span className="hidden xl:inline">Drucken</span>
+            <span className="hidden xl:inline">PDF</span>
           </button>
           <button
             type="button"
@@ -118,6 +122,12 @@ export default function RecipeSidebar({
           </button>
         </div>
       </div>
+      <PdfExportDialog
+        open={pdfDialogOpen}
+        onOpenChange={setPdfDialogOpen}
+        baseUrl={`${API_BASE_URL}/api/recipes/by-slug/${recipe.slug}/export/pdf/`}
+        optionType="recipe"
+      />
     </aside>
   );
 }

@@ -19,6 +19,7 @@ Das System MUSS ein Management Command bereitstellen das realistische Beispielda
 - **THEN** MÜSSEN 3 Drink-Rezepte mit Tag `breakfast-drink` existieren
 - **THEN** MÜSSEN 6 Drink-Zutaten (Milch, Sahne, Hafermilch, Orangensaft, Apfelsaft, Kondensmilch) als `supply.Ingredient` existieren
 - **THEN** MÜSSEN 5 warme Frühstücksrezepte (Rührei, Pfannkuchen, Omelett, Porridge, Gekochte Eier) mit Tag `breakfast-warm-meal` existieren
+- **THEN** MÜSSEN 30 standardisierte NutritionalTag-Einträge mit konsistenter name/name_opposite-Semantik existieren (siehe `nutritional-tag-seed-standardization`)
 
 #### Scenario: Idempotenz
 - **WHEN** das Command mehrfach ausgeführt wird
@@ -191,3 +192,20 @@ Das Export-Skript `bin/export_prod_data.py` SHALL das `tags`-M2M-Feld für `Ingr
 #### Scenario: Import stellt Tags wieder her
 - **WHEN** `uv run python manage.py import_prod_data --flush` ausgeführt wird (nach korrektem Export)
 - **THEN** HABEN alle Ingredients die gleichen Tags wie in der Produktion
+
+### Requirement: NutritionalTag fixtures are standardized
+
+Die NutritionalTag-Fixtures in `backend/data/masterdata/supply_nutritionaltag.json` MÜSSEN die standardisierte name/name_opposite-Semantik aus `nutritional-tag-seed-standardization` verwenden.
+
+#### Scenario: Fixture-Datei enthält neue Semantik
+- **WHEN** die Fixture-Datei `supply_nutritionaltag.json` eingelesen wird
+- **THEN** MUSS jedes `name`-Feld ein menschliches Merkmal beschreiben (z.B. "Vegan", "Eiallergie", "Glutenunverträglichkeit (Zöliakie)")
+- **THEN** MUSS jedes `name_opposite`-Feld einen konkreten Inhaltsstoff beschreiben (z.B. "Tierische Produkte", "Ei und Eierzeugnisse", "Gluten")
+- **THEN** DÜRFEN keine Einträge mit `name="Halal"` oder `name="Koscher"` existieren
+- **THEN** MUSS es genau einen Eintrag mit `name="Nussallergie"` geben (keine separaten Einträge für "nussfrei" und "Schalenfrüchte")
+- **THEN** MÜSSEN Einträge für "Milchallergie" und "Schalentierallergie" existieren
+
+#### Scenario: Import via import_prod_data funktioniert
+- **WHEN** `uv run python manage.py import_prod_data --only food` ausgeführt wird
+- **THEN** MÜSSEN die NutritionalTags mit den neuen Namen importiert werden
+- **THEN** DÜRFEN keine Fehler wegen ungültiger Daten auftreten

@@ -120,11 +120,9 @@ export function CreateRecipeModal({
   );
 }
 
-async function getTagIdForRecipeType(recipeType: string): Promise<number> {
-  // This should be replaced with a proper tag lookup
-  // For now, return placeholder - tag IDs would be fetched from backend
-  const tagMap: Record<string, number> = {
-    'drink': 5,
+async function getTagIdForRecipeType(recipeType: string): Promise<string> {
+  const tagMap: Record<string, string> = {
+    'drink': 'drink',
   };
-  return tagMap[recipeType] || 0;
+  return tagMap[recipeType] || '';
 }

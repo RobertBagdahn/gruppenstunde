@@ -90,6 +90,7 @@ Zutaten zur Klassifizierung:
                 config=config,
                 context="classify_ingredients",
                 bypass_limits=True,
+                is_background=True,
             )
             
             if response:

@@ -210,12 +210,14 @@ export const EMOTION_TYPES = [
 
 export const AiImproveTextSchema = z.object({
   improved_text: z.string(),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiImproveText = z.infer<typeof AiImproveTextSchema>;
 
 export const AiSuggestTagsSchema = z.object({
   tag_ids: z.array(z.number()),
   tag_names: z.array(z.string()),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiSuggestTags = z.infer<typeof AiSuggestTagsSchema>;
 
@@ -258,13 +260,17 @@ export const AiRefurbishSchema = z.object({
     ingredient_id: z.number().nullable().optional().default(null),
     ingredient_slug: z.string().nullable().optional().default(null),
     matched_name: z.string().nullable().optional().default(null),
+    portion_id: z.number().nullable().optional().default(null),
+    portion_name: z.string().nullable().optional().default(null),
   })).optional().default([]),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiRefurbish = z.output<typeof AiRefurbishSchema>;
 
 export const AiErrorSchema = z.object({
   detail: z.string(),
   error_code: z.string(),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiError = z.infer<typeof AiErrorSchema>;
 

@@ -5,6 +5,8 @@ import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, MEAL_TYPE_ICONS_LUCIDE, MEAL_TYPE_CO
 import type { CookingScheduleItem, CookingScheduleDay, CookingScheduleStep } from '@/schemas/mealPlan';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { PdfExportDialog } from '@/components/PdfExportDialog';
+import { API_BASE_URL } from '@/lib/api';
 
 function formatTime(isoString: string): string {
   try {
@@ -273,6 +275,7 @@ interface CookingScheduleTabProps {
 export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabProps) {
   const { data: plan, isLoading: planLoading } = useMealPlan(mealPlanId);
   const { data: schedule, isLoading: scheduleLoading, error } = useCookingSchedule(mealPlanId);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
 
   const isLoading = planLoading || scheduleLoading;
 
@@ -322,15 +325,14 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
               )}
             </>
           )}
-          <a
-            href={`/meal-plans/${mealPlanId}/cooking-schedule/print`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => setPdfDialogOpen(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm font-bold bg-card hover:bg-muted/50 transition-all shadow-soft"
           >
             <Printer className="w-4 h-4" />
-            Drucken
-          </a>
+            Als PDF öffnen
+          </button>
         </div>
       </div>
 
@@ -361,6 +363,12 @@ export default function CookingScheduleTab({ mealPlanId }: CookingScheduleTabPro
           ))}
         </div>
       )}
+      <PdfExportDialog
+        open={pdfDialogOpen}
+        onOpenChange={setPdfDialogOpen}
+        baseUrl={`${API_BASE_URL}/api/meal-plans/${mealPlanId}/cooking-schedule/export/pdf/`}
+        optionType="cooking_schedule"
+      />
     </div>
   );
 }

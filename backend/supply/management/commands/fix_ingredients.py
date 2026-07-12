@@ -99,6 +99,7 @@ def clean_name_via_ai(name: str) -> str | None:
             config=config,
             context="fix_ingredient_name",
             bypass_limits=True,
+            is_background=True,
         )
         if response:
             result = CleanNameSchema.model_validate_json(response.text)
@@ -164,6 +165,7 @@ def fill_missing_data_via_ai(ingredient: Ingredient) -> dict | None:
             config=config,
             context="fix_ingredient_fill",
             bypass_limits=True,
+            is_background=True,
         )
         if response:
             result = NutritionFillSchema.model_validate_json(response.text)

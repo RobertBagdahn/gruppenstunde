@@ -617,7 +617,7 @@ Antworte ausschließlich im angegebenen JSON-Format."""
         response_schema=GeminiRecipeExtraction,
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -696,7 +696,7 @@ Antworte ausschließlich im angegebenen JSON-Format."""
         response_schema=GeminiRecipeExtraction,
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,

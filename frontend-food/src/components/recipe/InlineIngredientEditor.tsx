@@ -29,7 +29,7 @@ import type { EstimateQuantityItem } from '@/schemas/recipe';
 
 // --- Types ---
 
-interface EditableItem {
+export interface EditableItem {
   id: number;
   portion_id: number;
   ingredient_id: number | null;
@@ -123,7 +123,28 @@ function formatGramsShort(grams: number): string {
   return `${Math.round(grams * 10) / 10}g`;
 }
 
-function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
+/** Authoritative gram weight for an item's *current* quantity.
+ *
+ *  Prefers the backend-computed `baseWeightG`/`baseQuantity` ratio over a
+ *  client-side `ingredient_portions[].weight_g` lookup by `portion_id`. That
+ *  lookup can silently return the wrong value (or `undefined`, defaulting to
+ *  `0`/`1`) when an ingredient has multiple portions sharing the same
+ *  measuring_unit/label (e.g. two portions both labeled "Gramm" with
+ *  different `weight_g`, or a "Packung" portion with `weight_g: null`) — this
+ *  was the cause of the AI-Mengenschätzung preview showing wrong "Alt" values
+ *  and units appearing to "jump" between renders. `baseWeightG` is set once
+ *  from the backend's `RecipeItemOut.weight_g` (always correct, since the
+ *  backend resolves it from the item's actual `portion` FK, not by name) and
+ *  is kept in sync whenever `quantity` or `portion_id` changes. */
+export function getItemWeightG(item: EditableItem): number {
+  if (item.baseQuantity > 0) {
+    return (item.baseWeightG / item.baseQuantity) * item.quantity;
+  }
+  const portion = item.ingredient_portions.find((p) => p.id === item.portion_id);
+  return item.quantity * (portion?.weight_g ?? 0);
+}
+
+export function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
   const s = portions ?? 1;
   return items.map((item) => {
     // Find the weight_g of the current portion
@@ -257,12 +278,14 @@ function IngredientRow({
         value={item.quantityInput}
         onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
         onBlur={() => handleQuantityBlur(item.id)}
+        data-testid={`item-quantity-${item.id}`}
         className="w-20 px-2 py-1.5 text-sm text-right border rounded-md"
       />
       {item.ingredient_portions.length > 1 ? (
         <select
           value={item.portion_id}
           onChange={(e) => handlePortionChange(item.id, parseInt(e.target.value))}
+          data-testid={`item-portion-${item.id}`}
           className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
         >
           {item.ingredient_portions.map((p) => {
@@ -583,6 +606,8 @@ export default function InlineIngredientEditor({
             is_optional: false,
             exchange_group_id: null,
             exchange_position: null,
+            baseWeightG: bestPortion.weight_g ?? 0,
+            baseQuantity: 1,
             isNew: true,
             isDirty: true,
           },
@@ -1046,11 +1071,12 @@ export default function InlineIngredientEditor({
             onClick={handleEstimate}
             disabled={estimateQuantities.isPending}
             className="text-primary border-primary/30 hover:bg-primary/10 hover:text-primary"
+            data-testid="ai-estimate-trigger"
           >
             <span className="material-symbols-outlined text-[16px] mr-1.5">auto_fix_high</span>
             {estimateQuantities.isPending ? 'Schätze...' : 'Mengen schätzen'}
           </Button>
-          <Button type="button" size="sm" onClick={handleSave} disabled={isSaving}>
+          <Button type="button" size="sm" onClick={handleSave} disabled={isSaving} data-testid="ingredient-editor-save">
             <span className="material-symbols-outlined text-[16px] mr-1.5">save</span>
             {isSaving ? 'Speichert...' : 'Speichern'}
           </Button>
@@ -1063,22 +1089,6 @@ export default function InlineIngredientEditor({
       {/* Ingredient Rows */}
       <div className="space-y-2">
         {(() => {
-          // Weight (in grams) of an item — used to sort the list descending by
-          // weight, matching the read-only view (`IngredientList`). Recomputed
-          // live so the order always reflects the current (possibly just-edited)
-          // quantity. Uses the backend-computed `baseWeightG`/`baseQuantity`
-          // ratio rather than looking up `ingredient_portions[].weight_g` by
-          // `portion_id` — that lookup can silently return nothing (and fall
-          // back to a wrong default) when `portion_id` isn't present in the
-          // item's own `ingredient_portions` list.
-          const getItemWeightG = (item: EditableItem) => {
-            if (item.baseQuantity > 0) {
-              return (item.baseWeightG / item.baseQuantity) * item.quantity;
-            }
-            const portion = item.ingredient_portions.find((p) => p.id === item.portion_id);
-            return item.quantity * (portion?.weight_g ?? 0);
-          };
-
           const standaloneItems = activeItems.filter(item => item.exchange_group_id == null);
           const exchangeSources = activeItems.filter(
             item => item.exchange_group_id != null && item.exchange_position === 0
@@ -1217,12 +1227,10 @@ export default function InlineIngredientEditor({
               <tbody>
                 {estimateResult.map((est) => {
                   const currentItem = editItems.find((i) => i.id === est.item_id);
-                  const currentPortion = currentItem?.ingredient_portions.find(
-                    (p) => p.id === currentItem.portion_id,
-                  );
+                  const currentItemGrams = currentItem ? getItemWeightG(currentItem) : 0;
                   const altGramsText =
-                    currentItem && currentItem.quantity > 0 && currentPortion?.weight_g != null
-                      ? ` (${formatGramsShort(currentItem.quantity * currentPortion.weight_g)})`
+                    currentItem && currentItem.quantity > 0 && currentItemGrams > 0
+                      ? ` (${formatGramsShort(currentItemGrams)})`
                       : '';
                   const altValue = currentItem && currentItem.quantity > 0
                     ? `${currentItem.quantity} ${currentItem.measuring_unit_name || 'g'}${altGramsText}`
@@ -1279,6 +1287,7 @@ export default function InlineIngredientEditor({
                 type="button"
                 onClick={handleApplyEstimate}
                 disabled={selectedEstimates.size === 0}
+                data-testid="ai-estimate-apply"
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Übernehmen ({selectedEstimates.size})

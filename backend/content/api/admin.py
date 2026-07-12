@@ -6,6 +6,7 @@ import logging
 import math
 
 from django.contrib.contenttypes.models import ContentType
+from django.db import models
 from ninja import Router
 from ninja.errors import HttpError
 
@@ -21,7 +22,12 @@ from content.schemas.admin import (
     PaginatedEmbeddingFeedbackOut,
     PaginatedEmbeddingStatusOut,
 )
-from content.schemas.ai_interaction import AiInteractionStatsOut
+from content.schemas.ai_interaction import (
+    AiInteractionDetailOut,
+    AiInteractionItemOut,
+    AiInteractionStatsOut,
+    UserCostOut,
+)
 
 router = Router(tags=["content"])
 
@@ -359,19 +365,35 @@ def admin_ai_interaction_stats(request):
     from content.choices import AiContextChoices
     from content.models import AiInteraction
 
+    include_background = request.GET.get("include_background", "").lower() == "true"
     today = timezone.now().date()
 
-    total_calls = AiInteraction.objects.count()
-    calls_today = AiInteraction.objects.filter(created_at__date=today).count()
-    voted_calls = AiInteraction.objects.filter(vote__isnull=False).count()
+    base_qs = AiInteraction.objects.all()
+    if not include_background:
+        base_qs = base_qs.filter(is_background=False)
+
+    total_calls = base_qs.count()
+    calls_today = base_qs.filter(created_at__date=today).count()
+    voted_calls = base_qs.filter(vote__isnull=False).count()
     vote_rate = round(voted_calls / total_calls * 100, 1) if total_calls else 0
+
+    token_agg = base_qs.aggregate(
+        total_tokens=models.Sum("total_tokens"),
+        total_cost_eur=models.Sum("cost_eur"),
+    )
+    total_tokens_all = token_agg["total_tokens"] or 0
+    total_cost_eur = float(token_agg["total_cost_eur"] or 0)
 
     by_context = []
     for choice in AiContextChoices:
-        qs = AiInteraction.objects.filter(context=choice.value)
+        qs = base_qs.filter(context=choice.value)
         total = qs.count()
         if total == 0:
             continue
+        ctx_agg = qs.aggregate(
+            ctx_tokens=models.Sum("total_tokens"),
+            ctx_cost=models.Sum("cost_eur"),
+        )
         success_count = qs.filter(success=True).count()
         error_count = qs.filter(success=False).count()
         thumbs_up = qs.filter(vote="up").count()
@@ -387,6 +409,8 @@ def admin_ai_interaction_stats(request):
                 "thumbs_up": thumbs_up,
                 "thumbs_down": thumbs_down,
                 "vote_rate": ctx_vote_rate,
+                "total_tokens": ctx_agg["ctx_tokens"] or 0,
+                "total_cost_eur": float(ctx_agg["ctx_cost"] or 0),
             }
         )
 
@@ -395,7 +419,7 @@ def admin_ai_interaction_stats(request):
     timeline = []
     for i in range(29, -1, -1):
         day = today - timedelta(days=i)
-        day_qs = AiInteraction.objects.filter(created_at__date=day)
+        day_qs = base_qs.filter(created_at__date=day)
         total_day = day_qs.count()
         thumbs_up_day = day_qs.filter(vote="up").count()
         thumbs_down_day = day_qs.filter(vote="down").count()
@@ -414,6 +438,154 @@ def admin_ai_interaction_stats(request):
         "calls_today": calls_today,
         "voted_calls": voted_calls,
         "vote_rate": vote_rate,
+        "total_tokens_all": total_tokens_all,
+        "total_cost_eur": total_cost_eur,
         "by_context": by_context,
         "timeline": timeline,
     }
+
+
+# ---------------------------------------------------------------------------
+# AI Interaction Log Viewer
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/admin/ai-interactions/",
+    url_name="content_admin_ai_interactions_list",
+)
+def admin_ai_interactions_list(request, page: int = 1, page_size: int = 20, context: str = "",
+                                user_id: int | None = None, success: str = "", is_background: str = "",
+                                has_vote: str = "", date_from: str = "", date_to: str = "",
+                                search: str = ""):
+    """Paginated list of AI interactions (admin only)."""
+    _require_admin(request)
+
+    from content.models import AiInteraction
+
+    qs = AiInteraction.objects.select_related("user").order_by("-created_at")
+
+    if context:
+        qs = qs.filter(context=context)
+    if user_id:
+        qs = qs.filter(user_id=user_id)
+    if success in ("true", "false"):
+        qs = qs.filter(success=(success == "true"))
+    if is_background in ("true", "false"):
+        qs = qs.filter(is_background=(is_background == "true"))
+    if has_vote == "true":
+        qs = qs.filter(vote__isnull=False)
+    elif has_vote == "false":
+        qs = qs.filter(vote__isnull=True)
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+    if search:
+        qs = qs.filter(models.Q(response__icontains=search) | models.Q(error_code__icontains=search))
+
+    total = qs.count()
+    offset = (page - 1) * page_size
+    items = []
+    for interaction in qs[offset : offset + page_size]:
+        items.append({
+            "id": str(interaction.id),
+            "context": interaction.context,
+            "model": interaction.model,
+            "user_name": interaction.user.username if interaction.user else None,
+            "created_at": interaction.created_at,
+            "total_tokens": interaction.total_tokens,
+            "cost_eur": float(interaction.cost_eur) if interaction.cost_eur is not None else None,
+            "duration_ms": interaction.duration_ms,
+            "success": interaction.success,
+            "error_code": interaction.error_code,
+            "vote": interaction.vote,
+            "is_background": interaction.is_background,
+        })
+
+    total_pages = math.ceil(total / page_size) if total else 0
+    return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+
+
+@router.get(
+    "/admin/ai-interactions/{interaction_id}/",
+    url_name="content_admin_ai_interactions_detail",
+)
+def admin_ai_interactions_detail(request, interaction_id: str):
+    """Detail view with full prompt and response (admin only)."""
+    _require_admin(request)
+
+    from uuid import UUID
+
+    from content.models import AiInteraction
+
+    try:
+        uid = UUID(interaction_id)
+    except ValueError:
+        raise HttpError(404, "Interaktion nicht gefunden")
+
+    try:
+        interaction = AiInteraction.objects.select_related("user").get(id=uid)
+    except AiInteraction.DoesNotExist:
+        raise HttpError(404, "Interaktion nicht gefunden")
+
+    return {
+        "id": str(interaction.id),
+        "context": interaction.context,
+        "model": interaction.model,
+        "user_name": interaction.user.username if interaction.user else None,
+        "created_at": interaction.created_at,
+        "total_tokens": interaction.total_tokens,
+        "cost_eur": float(interaction.cost_eur) if interaction.cost_eur is not None else None,
+        "duration_ms": interaction.duration_ms,
+        "success": interaction.success,
+        "error_code": interaction.error_code,
+        "vote": interaction.vote,
+        "is_background": interaction.is_background,
+        "prompt": interaction.prompt,
+        "response": interaction.response,
+    }
+
+
+@router.get(
+    "/admin/ai-interactions/user-costs/",
+    url_name="content_admin_ai_interactions_user_costs",
+)
+def admin_ai_interactions_user_costs(request):
+    """Per-user cost aggregation (admin only)."""
+    _require_admin(request)
+
+    from django.utils import timezone
+
+    from content.models import AiInteraction
+
+    thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+
+    base_qs = AiInteraction.objects.filter(is_background=False, user__isnull=False)
+
+    users_agg = base_qs.values("user_id", "user__username").annotate(
+        total_calls=models.Count("id"),
+        total_tokens=models.Sum("total_tokens"),
+        total_cost_eur=models.Sum("cost_eur"),
+    ).order_by("-total_cost_eur")
+
+    result = []
+    for row in users_agg:
+        cost_30d = (
+            base_qs.filter(user_id=row["user_id"], created_at__gte=thirty_days_ago)
+            .aggregate(cost=models.Sum("cost_eur"))["cost"]
+        )
+        voted = base_qs.filter(user_id=row["user_id"], vote__isnull=False).count()
+        vote_rate = round(voted / row["total_calls"] * 100, 1) if row["total_calls"] else 0
+
+        result.append({
+            "user_id": row["user_id"],
+            "user_name": row["user__username"],
+            "total_calls": row["total_calls"],
+            "total_tokens": row["total_tokens"] or 0,
+            "total_cost_eur": float(row["total_cost_eur"] or 0),
+            "cost_30d_eur": float(cost_30d or 0),
+            "vote_rate": vote_rate,
+        })
+
+    return result

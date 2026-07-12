@@ -22,8 +22,10 @@ import {
   RecipeRulesSchema,
   RecipeTypeStatsSchema,
   RecipeAiCreateInSchema,
+  VerifyStatusSchema,
   type RecipeFilter,
   type RecipeAiCreateIn,
+  type VerifyRequest,
 } from '@/schemas/recipe';
 import { ContentCommentSchema } from '@/schemas/content';
 
@@ -138,12 +140,23 @@ async function deleteJson(url: string): Promise<void> {
 function buildFilterParams(filters: Partial<RecipeFilter>): string {
   const params = new URLSearchParams();
   if (filters.q) params.set('q', filters.q);
-  if (filters.recipe_type) params.set('recipe_type', filters.recipe_type);
-  if (filters.difficulty) params.set('difficulty', filters.difficulty);
+  if (filters.recipe_type?.length) {
+    filters.recipe_type.forEach((v) => params.append('recipe_type', v));
+  }
+  if (filters.preparation_method?.length) {
+    filters.preparation_method.forEach((v) => params.append('preparation_method', v));
+  }
+  if (filters.difficulty?.length) {
+    filters.difficulty.forEach((v) => params.append('difficulty', v));
+  }
   if (filters.costs_min !== undefined) params.set('costs_min', String(filters.costs_min));
   if (filters.costs_max !== undefined) params.set('costs_max', String(filters.costs_max));
-  if (filters.execution_time) params.set('execution_time', filters.execution_time);
-  if (filters.origin) params.set('origin', filters.origin);
+  if (filters.execution_time?.length) {
+    filters.execution_time.forEach((v) => params.append('execution_time', v));
+  }
+  if (filters.origin?.length) {
+    filters.origin.forEach((v) => params.append('origin', v));
+  }
   if (filters.sort) params.set('sort', filters.sort);
   if (filters.page) params.set('page', String(filters.page));
   if (filters.page_size) params.set('page_size', String(filters.page_size));
@@ -210,6 +223,26 @@ export function useRecipeBySlug(slug: string) {
   });
 }
 
+export function useVerificationStatus(recipeId: number) {
+  return useQuery({
+    queryKey: ['recipe-verification-status', recipeId] as const,
+    queryFn: () => fetchJson(`${API_BASE}/${recipeId}/verification-status/`, VerifyStatusSchema),
+    enabled: recipeId > 0,
+  });
+}
+
+export function useVerifyRecipe(recipeId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: VerifyRequest) =>
+      postJson(`${API_BASE}/${recipeId}/verify/`, payload, z.any()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-verification-status', recipeId] });
+    },
+  });
+}
+
 // ==========================================================================
 // Similar Recipes
 // ==========================================================================
@@ -233,11 +266,14 @@ export interface RecipeCreatePayload {
   description?: string;
   recipe_type?: string;
   portions?: number;
+  preparation_method?: string;
+  equipment_ids?: number[];
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;
   scout_level_ids?: number[];
-  tag_ids?: number[];
+  tag_ids?: string[];
+  shared_group_ids?: number[];
   nutritional_tag_ids?: number[];
   recipe_items?: Array<{
     portion_id?: number | null;
@@ -250,6 +286,7 @@ export interface RecipeCreatePayload {
   }>;
   website?: string;
   form_loaded_at?: number;
+  visibility?: string;
 }
 
 export function useCreateRecipe() {
@@ -282,12 +319,15 @@ export interface RecipeUpdatePayload {
   description?: string;
   recipe_type?: string;
   portions?: number;
+  preparation_method?: string;
+  equipment_ids?: number[];
   execution_time?: string;
   preparation_time?: string;
   difficulty?: string;
   status?: string;
   scout_level_ids?: number[];
-  tag_ids?: number[];
+  tag_ids?: string[];
+  shared_group_ids?: number[];
   nutritional_tag_ids?: number[];
   source_url?: string;
   authors_ids?: number[];

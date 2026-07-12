@@ -1,0 +1,127 @@
+{% load static %}<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>{{ recipe.title }} — Rezept</title>
+<style>
+  {% include "recipe/recipe_pdf.css" %}
+</style>
+</head>
+<body>
+
+<div class="recipe-header">
+  <h1>{{ recipe.title }}</h1>
+  <div class="meta">
+    <span>{{ portions }} Portionen</span>
+    {% if recipe.preparation_time_min %}
+    <span> · {{ recipe.preparation_time_min }} Min. Zubereitung</span>
+    {% endif %}
+    {% if recipe.recipe_type_label %}
+    <span> · {{ recipe.recipe_type_label }}</span>
+    {% endif %}
+    {% if recipe.difficulty_label %}
+    <span> · {{ recipe.difficulty_label }}</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if image_path %}
+<img src="file://{{ image_path }}" class="recipe-image" alt="{{ recipe.title }}" />
+{% endif %}
+
+{% if recipe.description_plain %}
+<div class="description">{{ recipe.description_plain }}</div>
+{% endif %}
+
+<h2>Zutaten</h2>
+<ul class="ingredient-list">
+{% for item in ingredients %}
+  <li>
+    <span class="ingredient-name">{{ item.name }}</span>
+    <span class="ingredient-amount"> — {{ item.amount }}</span>
+    {% if item.note %}
+    <span class="ingredient-note"> ({{ item.note }})</span>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+
+<h2>Zubereitung</h2>
+{% if steps %}
+<ol class="steps">
+{% for step in steps %}
+  <li>{{ step }}</li>
+{% endfor %}
+</ol>
+{% else %}
+<p class="empty-state">Keine Zubereitungsschritte vorhanden</p>
+{% endif %}
+
+<h2>Nährwerte</h2>
+<table class="nutrition-table">
+  <thead>
+    <tr>
+      <th></th>
+      <th>pro 100 g</th>
+      <th>pro Portion</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Energie</td>
+      <td>{{ nutrition.energy_kcal_per100 }} kcal</td>
+      <td>{{ nutrition.energy_kcal_per_portion }} kcal</td>
+    </tr>
+    <tr>
+      <td>Eiweiß</td>
+      <td>{{ nutrition.protein_per100 }} g</td>
+      <td>{{ nutrition.protein_per_portion }} g</td>
+    </tr>
+    <tr>
+      <td>Fett</td>
+      <td>{{ nutrition.fat_per100 }} g</td>
+      <td>{{ nutrition.fat_per_portion }} g</td>
+    </tr>
+    <tr>
+      <td>Kohlenhydrate</td>
+      <td>{{ nutrition.carbs_per100 }} g</td>
+      <td>{{ nutrition.carbs_per_portion }} g</td>
+    </tr>
+    {% if nutrition.sugar_per100 is not None %}
+    <tr>
+      <td>davon Zucker</td>
+      <td>{{ nutrition.sugar_per100 }} g</td>
+      <td>{{ nutrition.sugar_per_portion }} g</td>
+    </tr>
+    {% endif %}
+    {% if nutrition.fibre_per100 is not None %}
+    <tr>
+      <td>Ballaststoffe</td>
+      <td>{{ nutrition.fibre_per100 }} g</td>
+      <td>{{ nutrition.fibre_per_portion }} g</td>
+    </tr>
+    {% endif %}
+    {% if nutrition.salt_per100 is not None %}
+    <tr>
+      <td>Salz</td>
+      <td>{{ nutrition.salt_per100 }} g</td>
+      <td>{{ nutrition.salt_per_portion }} g</td>
+    </tr>
+    {% endif %}
+  </tbody>
+</table>
+
+<div class="allergen-info{% if not allergens %} no-allergens{% endif %}">
+  {% if allergens %}
+  <strong>Enthält:</strong> {{ allergens|join:", " }}
+  {% else %}
+  Keine kennzeichnungspflichtigen Allergene
+  {% endif %}
+</div>
+
+<div class="footer">
+  {{ recipe.title }} · gruppenstunde.de/recipes/{{ recipe.slug }}
+</div>
+
+</body>
+</html>

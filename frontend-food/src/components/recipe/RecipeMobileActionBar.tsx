@@ -1,19 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { PdfExportDialog } from '@/components/PdfExportDialog';
+import { API_BASE_URL } from '@/lib/api';
 
 interface RecipeMobileActionBarProps {
   onOpenShoppingList: () => void;
   onOpenPortions: () => void;
+  recipeSlug?: string;
 }
 
 export default function RecipeMobileActionBar({
   onOpenShoppingList,
   onOpenPortions,
+  recipeSlug,
 }: RecipeMobileActionBarProps) {
   const navigate = useNavigate();
   const [isTextareaFocused, setIsTextareaFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -121,11 +126,11 @@ export default function RecipeMobileActionBar({
             </button>
             <button
               type="button"
-              onClick={() => { window.print(); setMenuOpen(false); }}
+              onClick={() => { setPdfDialogOpen(true); setMenuOpen(false); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">print</span>
-              Drucken
+              Als PDF öffnen
             </button>
             <button
               type="button"
@@ -138,6 +143,14 @@ export default function RecipeMobileActionBar({
           </div>
         )}
       </div>
+      {recipeSlug && (
+        <PdfExportDialog
+          open={pdfDialogOpen}
+          onOpenChange={setPdfDialogOpen}
+          baseUrl={`${API_BASE_URL}/api/recipes/by-slug/${recipeSlug}/export/pdf/`}
+          optionType="recipe"
+        />
+      )}
     </div>
   );
 }

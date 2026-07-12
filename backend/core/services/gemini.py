@@ -210,8 +210,33 @@ def _handle_gemini_exception(exc: Exception, context: str = "") -> None:
 
 
 # ---------------------------------------------------------------------------
-# Public API
+# Helpers — interaction logging
 # ---------------------------------------------------------------------------
+
+
+def _truncate_prompt(contents: str | list) -> str | list:
+    """Strip base64 image data from prompts before DB storage.
+
+    Image generation calls may contain large binary payloads that would
+    blow up the AiInteraction.prompt JSONField. This replaces them with
+    a placeholder while preserving text parts for the log viewer.
+    """
+    if isinstance(contents, str):
+        return contents
+    if isinstance(contents, list):
+        result = []
+        for part in contents:
+            if isinstance(part, dict):
+                if "inline_data" in part:
+                    inline = part["inline_data"]
+                    size_bytes = len(inline.get("data", ""))
+                    result.append({**part, "inline_data": {**inline, "data": f"[Bilddaten: {size_bytes} Bytes]"}})
+                else:
+                    result.append(part)
+            else:
+                result.append(part)
+        return result
+    return contents
 
 
 def _create_interaction(
@@ -220,19 +245,63 @@ def _create_interaction(
     model: str,
     contents: str | list,
     context: str = "",
+    is_background: bool = False,
 ) -> tuple[AiInteraction, uuid.UUID]:
     """Create an AiInteraction record and return (record, id)."""
-    kwargs = {}
+    kwargs: dict = {"is_background": is_background}
     if user and user.is_authenticated:
         kwargs["user"] = user
     interaction = AiInteraction.objects.create(
         context=context,
-        prompt=contents,
+        prompt=_truncate_prompt(contents),
         model=model,
         success=False,
         **kwargs,
     )
     return interaction, interaction.id
+
+
+def _extract_usage_metadata(source) -> dict:
+    """Extract token counts from a GenerateContentResponse or exception.
+
+    Returns a dict with keys matching AiInteraction token fields,
+    or empty dict if usage_metadata is unavailable.
+    """
+    try:
+        um = source.usage_metadata if hasattr(source, "usage_metadata") else None
+        if um is None:
+            return {}
+        return {
+            "prompt_tokens": um.prompt_token_count,
+            "completion_tokens": um.candidates_token_count,
+            "total_tokens": um.total_token_count,
+            "thoughts_tokens": getattr(um, "thoughts_token_count", None),
+        }
+    except Exception:
+        return {}
+
+
+def _calculate_cost_eur(model: str, usage_metadata) -> str | None:
+    """Calculate cost in EUR from token usage and Gemini pricing table.
+
+    Returns a Decimal string (for .update()) or None if pricing unknown.
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+
+    pricing = getattr(settings, "GEMINI_PRICING", {}).get(model)
+    if not pricing or usage_metadata is None:
+        return None
+
+    input_tokens = usage_metadata.prompt_token_count or 0
+    output_tokens = (usage_metadata.candidates_token_count or 0) + (getattr(usage_metadata, "thoughts_token_count", 0) or 0)
+
+    input_cost = input_tokens / 1_000_000 * pricing["input_per_1m_usd"]
+    output_cost = output_tokens / 1_000_000 * pricing.get("output_per_1m_usd", 0)
+
+    usd_to_eur = Decimal(str(getattr(settings, "USD_TO_EUR", 0.92)))
+    cost_usd = Decimal(str(input_cost + output_cost))
+    cost_eur = (cost_usd * usd_to_eur).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+    return str(cost_eur)
 
 
 def _update_interaction(
@@ -242,14 +311,79 @@ def _update_interaction(
     response_text: str = "",
     error_code: str = "",
     duration_ms: int | None = None,
+    tokens: dict | None = None,
+    cost_eur: str | None = None,
+    pricing_model: str = "",
 ) -> None:
     """Update an existing AiInteraction record after completion."""
-    update_kwargs = {"success": success, "response": response_text}
+    update_kwargs: dict = {"success": success, "response": response_text}
     if error_code:
         update_kwargs["error_code"] = error_code
     if duration_ms is not None:
         update_kwargs["duration_ms"] = duration_ms
+    if tokens:
+        for field in ("prompt_tokens", "completion_tokens", "total_tokens", "thoughts_tokens"):
+            if field in tokens:
+                update_kwargs[field] = tokens[field]
+    if cost_eur is not None:
+        update_kwargs["cost_eur"] = cost_eur
+    if pricing_model:
+        update_kwargs["pricing_model"] = pricing_model
     AiInteraction.objects.filter(id=interaction.id).update(**update_kwargs)
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def _execute_gemini_call(
+    *,
+    client,
+    model: str,
+    contents: str | list,
+    config=None,
+    interaction: AiInteraction,
+    interaction_id: uuid.UUID,
+    context: str = "",
+) -> tuple:
+    """Shared logic for gemini_call / gemini_image_call."""
+    start = time.monotonic()
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config,
+        )
+        duration = int((time.monotonic() - start) * 1000)
+        response_text = (response.text or "") if response else ""
+        tokens = _extract_usage_metadata(response)
+        cost = _calculate_cost_eur(model, response.usage_metadata if hasattr(response, "usage_metadata") else None)
+        _update_interaction(
+            interaction,
+            success=True,
+            response_text=response_text,
+            duration_ms=duration,
+            tokens=tokens,
+            cost_eur=cost,
+            pricing_model=model,
+        )
+        return response, interaction_id
+    except Exception as exc:
+        duration = int((time.monotonic() - start) * 1000)
+        error_code = _map_exception_to_error_code(exc)
+        tokens = _extract_usage_metadata(exc)
+        cost = _calculate_cost_eur(model, getattr(exc, "usage_metadata", None))
+        _update_interaction(
+            interaction,
+            success=False,
+            error_code=error_code,
+            duration_ms=duration,
+            tokens=tokens,
+            cost_eur=cost,
+            pricing_model=model,
+        )
+        _handle_gemini_exception(exc, context)
 
 
 def gemini_call(
@@ -259,6 +393,7 @@ def gemini_call(
     contents: str | list,
     config=None,
     bypass_limits: bool = False,
+    is_background: bool = False,
     context: str = "",
 ):
     """
@@ -270,6 +405,7 @@ def gemini_call(
         contents: Prompt string or list of content parts.
         config: Optional GenerateContentConfig.
         bypass_limits: Skip auth and rate limit checks (for management commands).
+        is_background: Mark as system/background call (excluded from user costs).
         context: Label for logging (e.g. "improve_text", "suggest_tags").
 
     Returns:
@@ -282,40 +418,27 @@ def gemini_call(
         GeminiUpstreamRateLimitError: If Google returns 429.
         GeminiUnavailableError: If Gemini is unreachable.
     """
-    interaction, interaction_id = _create_interaction(user=user, model=model, contents=contents, context=context)
+    _check_auth(user, bypass_limits=bypass_limits)
+    _check_global_limit(bypass_limits=bypass_limits)
 
-    try:
-        _check_auth(user, bypass_limits=bypass_limits)
-    except HttpError:
-        _update_interaction(interaction, success=False, error_code="auth_error")
-        raise
-
-    try:
-        _check_global_limit(bypass_limits=bypass_limits)
-    except HttpError:
-        _update_interaction(interaction, success=False, error_code="rate_limit")
-        raise
+    interaction, interaction_id = _create_interaction(
+        user=user, model=model, contents=contents, context=context, is_background=is_background
+    )
 
     client = _get_client()
     if not client:
+        _update_interaction(interaction, success=False, error_code="client_unavailable")
         return None, interaction_id
 
-    start = time.monotonic()
-    try:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config,
-        )
-        duration = int((time.monotonic() - start) * 1000)
-        response_text = (response.text or "") if response else ""
-        _update_interaction(interaction, success=True, response_text=response_text, duration_ms=duration)
-        return response, interaction_id
-    except Exception as exc:
-        duration = int((time.monotonic() - start) * 1000)
-        error_code = _map_exception_to_error_code(exc)
-        _update_interaction(interaction, success=False, error_code=error_code, duration_ms=duration)
-        _handle_gemini_exception(exc, context)
+    return _execute_gemini_call(
+        client=client,
+        model=model,
+        contents=contents,
+        config=config,
+        interaction=interaction,
+        interaction_id=interaction_id,
+        context=context,
+    )
 
 
 def _map_exception_to_error_code(exc: Exception) -> str:
@@ -345,6 +468,7 @@ def gemini_image_call(
     contents: str | list,
     config=None,
     bypass_limits: bool = False,
+    is_background: bool = False,
     context: str = "image_generation",
 ):
     """
@@ -355,40 +479,27 @@ def gemini_image_call(
     Returns:
         Tuple of (GenerateContentResponse | None, UUID).
     """
-    interaction, interaction_id = _create_interaction(user=user, model=model, contents=contents, context=context)
+    _check_auth(user, bypass_limits=bypass_limits)
+    _check_global_limit(bypass_limits=bypass_limits)
 
-    try:
-        _check_auth(user, bypass_limits=bypass_limits)
-    except HttpError:
-        _update_interaction(interaction, success=False, error_code="auth_error")
-        raise
-
-    try:
-        _check_global_limit(bypass_limits=bypass_limits)
-    except HttpError:
-        _update_interaction(interaction, success=False, error_code="rate_limit")
-        raise
+    interaction, interaction_id = _create_interaction(
+        user=user, model=model, contents=contents, context=context, is_background=is_background
+    )
 
     client = _get_image_client()
     if not client:
+        _update_interaction(interaction, success=False, error_code="client_unavailable")
         return None, interaction_id
 
-    start = time.monotonic()
-    try:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config,
-        )
-        duration = int((time.monotonic() - start) * 1000)
-        response_text = (response.text or "") if response else ""
-        _update_interaction(interaction, success=True, response_text=response_text, duration_ms=duration)
-        return response, interaction_id
-    except Exception as exc:
-        duration = int((time.monotonic() - start) * 1000)
-        error_code = _map_exception_to_error_code(exc)
-        _update_interaction(interaction, success=False, error_code=error_code, duration_ms=duration)
-        _handle_gemini_exception(exc, context)
+    return _execute_gemini_call(
+        client=client,
+        model=model,
+        contents=contents,
+        config=config,
+        interaction=interaction,
+        interaction_id=interaction_id,
+        context=context,
+    )
 
 
 def gemini_embed(
@@ -402,6 +513,10 @@ def gemini_embed(
     """
     Create a text embedding via Vertex AI.
 
+    Embedding calls are logged internally as is_background=True records.
+    The function signature and return type (list[float] | None) remain
+    unchanged to avoid breaking existing callers.
+
     Args:
         user: Optional user for analytics
         model: Model name (default: "gemini-embedding-001" for Vertex AI)
@@ -413,21 +528,25 @@ def gemini_embed(
     """
     _check_embedding_limit(bypass_limits=bypass_limits)
 
+    interaction, _interaction_id = _create_interaction(
+        user=user, model=model, contents=contents, is_background=True
+    )
+
     client = _get_client()
     if not client:
+        _update_interaction(interaction, success=False, error_code="client_unavailable")
         return None
 
+    start = time.monotonic()
     try:
         from google import genai
-        
-        # Build config with output_dimensionality if specified
+
         embed_config = None
         if output_dimensionality is not None:
             embed_config = genai.types.EmbedContentConfig(
                 output_dimensionality=output_dimensionality
             )
-        
-        # Call embed_content with optional config
+
         if embed_config:
             response = client.models.embed_content(
                 model=model,
@@ -439,9 +558,26 @@ def gemini_embed(
                 model=model,
                 contents=contents,
             )
-        
+
         if response.embeddings:
+            duration = int((time.monotonic() - start) * 1000)
+            tokens = _extract_usage_metadata(response)
+            cost = _calculate_cost_eur(model, response.usage_metadata if hasattr(response, "usage_metadata") else None)
+            _update_interaction(
+                interaction,
+                success=True,
+                response_text=f"[embedding: {len(response.embeddings[0].values)} dims]",
+                duration_ms=duration,
+                tokens=tokens,
+                cost_eur=cost,
+                pricing_model=model,
+            )
             return response.embeddings[0].values
+        else:
+            duration = int((time.monotonic() - start) * 1000)
+            _update_interaction(interaction, success=False, error_code="empty_embedding", duration_ms=duration)
     except Exception:
+        duration = int((time.monotonic() - start) * 1000)
+        _update_interaction(interaction, success=False, error_code="embedding_error", duration_ms=duration)
         logger.warning("Embedding creation failed", exc_info=True)
     return None

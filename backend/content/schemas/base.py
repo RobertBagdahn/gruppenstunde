@@ -17,14 +17,15 @@ from ninja import Schema
 class TagOut(Schema):
     """Tag output schema."""
 
-    id: int
+    id: str
     name: str
     slug: str
     icon: str
     group: str = "general"
     sort_order: int
-    parent_id: int | None
+    parent_id: str | None
     parent_name: str | None = None
+    description: str = ""
     children: list["TagOut"] = []
 
     class Config:
@@ -34,13 +35,13 @@ class TagOut(Schema):
 class TagTreeOut(Schema):
     """Flat tag with content count for tree rendering."""
 
-    id: int
+    id: str
     name: str
     slug: str
     icon: str
     group: str = "general"
     sort_order: int
-    parent_id: int | None
+    parent_id: str | None
     content_count: int = 0
 
 
@@ -48,7 +49,44 @@ class TagSuggestIn(Schema):
     """Input schema for tag suggestion."""
 
     name: str
-    parent_id: int | None = None
+    parent_id: str | None = None
+
+
+class TagAdminIn(Schema):
+    """Admin input schema for creating/updating tags."""
+
+    name: str
+    description: str = ""
+    parent_id: str | None = None
+    group: str = "general"
+    icon: str = ""
+    sort_order: int = 0
+
+
+class TagAdminOut(Schema):
+    """Admin output schema for tags."""
+
+    id: str
+    name: str
+    slug: str
+    description: str
+    parent_id: str | None
+    parent_name: str | None = None
+    icon: str
+    group: str
+    sort_order: int
+    is_approved: bool
+
+    class Config:
+        from_attributes = True
+
+
+class TagDetailOut(Schema):
+    """Tag detail with linked recipes and ingredients."""
+
+    tag: TagAdminOut
+    recipes: list[dict] = []
+    ingredients: list[dict] = []
 
 
 class ScoutLevelOut(Schema):
@@ -105,12 +143,12 @@ class ContentListOut(Schema):
     def resolve_tags(obj) -> list:
         return [
             {
-                "id": t.id,
+                "id": str(t.id),
                 "name": t.name,
                 "slug": t.slug,
                 "icon": t.icon,
                 "sort_order": t.sort_order,
-                "parent_id": t.parent_id,
+                "parent_id": str(t.parent_id) if t.parent_id else None,
                 "parent_name": t.parent.name if t.parent else None,
             }
             for t in obj.tags.select_related("parent").all()
@@ -155,12 +193,12 @@ class ContentDetailOut(Schema):
     def resolve_tags(obj) -> list:
         return [
             {
-                "id": t.id,
+                "id": str(t.id),
                 "name": t.name,
                 "slug": t.slug,
                 "icon": t.icon,
                 "sort_order": t.sort_order,
-                "parent_id": t.parent_id,
+                "parent_id": str(t.parent_id) if t.parent_id else None,
                 "parent_name": t.parent.name if t.parent else None,
             }
             for t in obj.tags.select_related("parent").all()
@@ -196,7 +234,7 @@ class ContentCreateIn(Schema):
     execution_time: str = "less_30"
     preparation_time: str = "none"
     difficulty: str = "easy"
-    tag_ids: list[int] = []
+    tag_ids: list[str] = []
     scout_level_ids: list[int] = []
 
 
@@ -211,7 +249,7 @@ class ContentUpdateIn(Schema):
     preparation_time: str | None = None
     difficulty: str | None = None
     status: str | None = None
-    tag_ids: list[int] | None = None
+    tag_ids: list[str] | None = None
     scout_level_ids: list[int] | None = None
 
 

@@ -73,7 +73,7 @@ def suggest_materials(
     description: str,
     content_type: str = "session",
     user: AbstractBaseUser | None = None,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], str | None]:
     """
     Suggest materials for a content item based on its title and description.
 
@@ -96,7 +96,7 @@ def suggest_materials(
     from google.genai import types
 
     try:
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -108,19 +108,19 @@ def suggest_materials(
             context="suggest_materials",
         )
         if response is None:
-            return []
+            return [], None
         result = MaterialSuggestionsOutput.model_validate_json(response.text)
-        return [m.model_dump() for m in result.materials]
+        return [m.model_dump() for m in result.materials], str(interaction_id)
     except Exception:
         logger.warning("AI material suggestion failed", exc_info=True)
-        return []
+        return [], None
 
 
 def suggest_recipe_supplies(
     title: str,
     description: str,
     user: AbstractBaseUser | None = None,
-) -> dict[str, list[dict[str, Any]]]:
+) -> tuple[dict[str, list[dict[str, Any]]], str | None]:
     """
     Suggest ingredients and kitchen equipment for a recipe.
 
@@ -141,7 +141,7 @@ def suggest_recipe_supplies(
     from google.genai import types
 
     try:
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,
@@ -153,15 +153,15 @@ def suggest_recipe_supplies(
             context="suggest_recipe_supplies",
         )
         if response is None:
-            return {"ingredients": [], "kitchen_equipment": []}
+            return {"ingredients": [], "kitchen_equipment": []}, None
         result = RecipeSupplySuggestionsOutput.model_validate_json(response.text)
         return {
             "ingredients": [i.model_dump() for i in result.ingredients],
             "kitchen_equipment": [m.model_dump() for m in result.kitchen_equipment],
-        }
+        }, str(interaction_id)
     except Exception:
         logger.warning("AI recipe supply suggestion failed", exc_info=True)
-        return {"ingredients": [], "kitchen_equipment": []}
+        return {"ingredients": [], "kitchen_equipment": []}, None
 
 
 def match_materials_to_database(suggestions: list[dict[str, Any]]) -> list[dict[str, Any]]:

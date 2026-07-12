@@ -269,3 +269,31 @@ The Recipe model SHALL enforce `servings=1` at the API level. All recipe quantit
 #### Scenario: API enforces servings=1 on update
 - **WHEN** a recipe is updated via API with any `servings` value
 - **THEN** the saved recipe SHALL have `servings=1`
+
+### Requirement: Recipe preparation_method field
+
+Das Recipe-Modell SHALL ein `preparation_method`-Feld (CharField, max_length=50, blank=True, choices) besitzen mit den folgenden Choices: cooking (Kochen), baking (Backen), frying (Braten), grilling (Grillen), raw (Rohkost), none (Keine Zubereitung).
+
+#### Scenario: Preparation method in API response
+- **WHEN** `GET /api/recipes/{id}/` aufgerufen wird
+- **THEN** enthält die Response `preparation_method` mit dem gesetzten Wert oder leerem String
+
+#### Scenario: Preparation method filter
+- **WHEN** `GET /api/recipes/?preparation_method=baking` aufgerufen wird
+- **THEN** werden nur Rezepte mit preparation_method="baking" zurückgegeben
+
+### Requirement: Recipe equipment M2M
+
+Das Recipe-Modell SHALL eine M2M-Relation `equipment` zum `supply.Equipment`-Modell besitzen. Ein Rezept KANN mehrere Equipment-Einträge haben.
+
+#### Scenario: Equipment in API response
+- **WHEN** `GET /api/recipes/{id}/` aufgerufen wird
+- **THEN** enthält die Response `equipment: [{id, name, slug}, ...]`
+
+#### Scenario: Equipment beim Erstellen setzen
+- **WHEN** `POST /api/recipes/` mit `equipment_ids: [1, 3]` aufgerufen wird
+- **THEN** werden die Equipment-Verknüpfungen gespeichert
+
+#### Scenario: Equipment filter
+- **WHEN** `GET /api/recipes/?equipment_slug=ofen` aufgerufen wird
+- **THEN** werden nur Rezepte mit Equipment "ofen" zurückgegeben

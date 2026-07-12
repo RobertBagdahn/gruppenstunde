@@ -40,11 +40,11 @@ def ai_improve_text(request, payload: AiImproveTextIn):
 
     service = ContentAIService()
     try:
-        result = service.improve_text(payload.text, payload.context, user=request.user)
+        result, interaction_id = service.improve_text(payload.text, payload.context, user=request.user)
     except AiRateLimitError as exc:
         logger.warning("AI improve-text rate limited: %s", exc)
         return HttpResponse(
-            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code, "ai_interaction_id": None}),
             status=429,
             content_type="application/json",
         )
@@ -57,12 +57,13 @@ def ai_improve_text(request, payload: AiImproveTextIn):
                 {
                     "detail": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
                     "error_code": "AI_INTERNAL_ERROR",
+                    "ai_interaction_id": None,
                 }
             ),
             status=500,
             content_type="application/json",
         )
-    return {"improved_text": result}
+    return {"improved_text": result, "ai_interaction_id": interaction_id}
 
 
 @router.post("/ai/suggest-tags/", response=AiSuggestTagsOut, url_name="content_ai_suggest_tags")
@@ -72,7 +73,8 @@ def ai_suggest_tags(request, payload: AiSuggestTagsIn):
 
     text = f"{payload.title}\n{payload.description}".strip()
     service = ContentAIService()
-    return service.suggest_tags(text, user=request.user)
+    result, interaction_id = service.suggest_tags(text, user=request.user)
+    return {"tag_ids": result["tag_ids"], "tag_names": result["tag_names"], "ai_interaction_id": interaction_id}
 
 
 @router.post(
@@ -95,25 +97,25 @@ def ai_refurbish(request, payload: AiRefurbishIn):
 
     service = ContentAIService()
     try:
-        result = service.refurbish(payload.raw_text, content_type=payload.content_type, user=request.user)
+        result, interaction_id = service.refurbish(payload.raw_text, content_type=payload.content_type, user=request.user)
     except AiTimeoutError as exc:
         logger.warning("AI refurbish timeout: %s", exc)
         return HttpResponse(
-            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code, "ai_interaction_id": None}),
             status=504,
             content_type="application/json",
         )
     except AiUnavailableError as exc:
         logger.warning("AI refurbish unavailable: %s", exc)
         return HttpResponse(
-            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code, "ai_interaction_id": None}),
             status=503,
             content_type="application/json",
         )
     except AiInvalidResponseError as exc:
         logger.warning("AI refurbish invalid response: %s", exc)
         return HttpResponse(
-            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code, "ai_interaction_id": None}),
             status=502,
             content_type="application/json",
         )
@@ -126,11 +128,15 @@ def ai_refurbish(request, payload: AiRefurbishIn):
                 {
                     "detail": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
                     "error_code": "AI_INTERNAL_ERROR",
+                    "ai_interaction_id": None,
                 }
             ),
             status=500,
             content_type="application/json",
         )
+
+    result["suggested_ingredients"] = []
+    result["ai_interaction_id"] = interaction_id
 
     # For recipes, also extract ingredient suggestions using existing supply service
     if payload.content_type == "recipe":
@@ -140,7 +146,7 @@ def ai_refurbish(request, payload: AiRefurbishIn):
                 suggest_recipe_supplies,
             )
 
-            raw = suggest_recipe_supplies(
+            raw, _supply_interaction_id = suggest_recipe_supplies(
                 title=result.get("title", ""),
                 description=result.get("description", ""),
                 user=request.user,
@@ -175,7 +181,7 @@ def ai_generate_image(request, payload: AiGenerateImageIn):
 
     service = ContentAIService()
     try:
-        image_urls = service.generate_images(
+        image_urls, interaction_id = service.generate_images(
             prompt=payload.prompt,
             title=payload.title,
             summary=payload.summary,
@@ -186,21 +192,21 @@ def ai_generate_image(request, payload: AiGenerateImageIn):
     except AiTimeoutError as exc:
         logger.warning("AI image generation timeout: %s", exc)
         return HttpResponse(
-            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code, "ai_interaction_id": None}),
             status=504,
             content_type="application/json",
         )
     except AiUnavailableError as exc:
         logger.warning("AI image generation unavailable: %s", exc)
         return HttpResponse(
-            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code, "ai_interaction_id": None}),
             status=503,
             content_type="application/json",
         )
     except AiInvalidResponseError as exc:
         logger.warning("AI image generation invalid response: %s", exc)
         return HttpResponse(
-            json.dumps({"detail": exc.detail, "error_code": exc.error_code}),
+            json.dumps({"detail": exc.detail, "error_code": exc.error_code, "ai_interaction_id": None}),
             status=502,
             content_type="application/json",
         )
@@ -213,13 +219,14 @@ def ai_generate_image(request, payload: AiGenerateImageIn):
                 {
                     "detail": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
                     "error_code": "AI_INTERNAL_ERROR",
+                    "ai_interaction_id": None,
                 }
             ),
             status=500,
             content_type="application/json",
         )
 
-    return {"image_urls": image_urls}
+    return {"image_urls": image_urls, "ai_interaction_id": interaction_id}
 
 
 @router.post(
@@ -240,18 +247,17 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
 
     try:
         if payload.content_type == "recipe":
-            # Recipes get both ingredients and kitchen equipment
-            raw = suggest_recipe_supplies(title=payload.title, description=payload.description, user=request.user)
+            raw, interaction_id = suggest_recipe_supplies(title=payload.title, description=payload.description, user=request.user)
             ingredients = match_ingredients_to_database(raw.get("ingredients", []))
             kitchen_equipment = match_materials_to_database(raw.get("kitchen_equipment", []))
             return {
                 "materials": [],
                 "ingredients": ingredients,
                 "kitchen_equipment": kitchen_equipment,
+                "ai_interaction_id": interaction_id,
             }
         else:
-            # Sessions, games, etc. get material suggestions
-            raw_materials = suggest_materials(
+            raw_materials, interaction_id = suggest_materials(
                 title=payload.title,
                 description=payload.description,
                 content_type=payload.content_type,
@@ -262,6 +268,7 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
                 "materials": materials,
                 "ingredients": [],
                 "kitchen_equipment": [],
+                "ai_interaction_id": interaction_id,
             }
     except HttpError:
         raise
@@ -272,6 +279,7 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
                 {
                     "detail": "Fehler bei der KI-Materialvorschlag-Erstellung.",
                     "error_code": "AI_SUPPLY_ERROR",
+                    "ai_interaction_id": None,
                 }
             ),
             status=500,

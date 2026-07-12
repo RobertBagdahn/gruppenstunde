@@ -70,6 +70,12 @@ gcloud run deploy inspi-backend \
 
 Only add explicit flags when you need to **change** configuration. Using all flags risks overwriting secrets or env vars.
 
+**⚠️ WICHTIG: Traffic muss explizit umgeleitet werden!** `gcloud run deploy --image` erstellt zwar eine neue Revision, routet aber den Traffic nicht immer zuverlässig auf die neueste Revision um. Nach **jedem** Deploy IMMER ausführen:
+
+```bash
+gcloud run services update-traffic <SERVICE> --region europe-west1 --to-latest
+```
+
 ### Frontend: nginx reverse proxy for API
 
 Frontends call the backend through nginx reverse proxy (same origin). The `VITE_API_URL` is intentionally empty:
@@ -234,7 +240,11 @@ gcloud run deploy inspi-backend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
   --region europe-west1
 
-# 3.3 Verify
+# 3.3 Ensure traffic routes to the new revision
+# (gcloud run deploy --image doesn't always update traffic automatically)
+gcloud run services update-traffic inspi-backend --region=europe-west1 --to-latest
+
+# 3.4 Verify
 BACKEND_URL=$(gcloud run services describe inspi-backend --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 ```
@@ -350,7 +360,10 @@ gcloud run deploy inspi-frontend \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest \
   --region europe-west1
 
-# 7.3 Verify
+# 7.3 Ensure traffic routes to the new revision
+gcloud run services update-traffic inspi-frontend --region=europe-west1 --to-latest
+
+# 7.4 Verify
 FRONTEND_URL=$(gcloud run services describe inspi-frontend --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_URL}/"
 ```
@@ -377,7 +390,10 @@ gcloud run deploy inspi-frontend-food \
   --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest \
   --region europe-west1
 
-# 8.3 Verify
+# 8.3 Ensure traffic routes to the new revision
+gcloud run services update-traffic inspi-frontend-food --region=europe-west1 --to-latest
+
+# 8.4 Verify
 FRONTEND_FOOD_URL=$(gcloud run services describe inspi-frontend-food --region=europe-west1 --format="value(status.url)")
 curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_FOOD_URL}/"
 ```

@@ -2,17 +2,19 @@ import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import RetailSectionTab from './RetailSectionTab';
 import NutritionalTagTab from './NutritionalTagTab';
+import EquipmentTab from './EquipmentTab';
+import TagTab from './TagTab';
 import RuleTab from './RuleTab';
 import ApprovalTab from './ApprovalTab';
 import AiFeedbackTab from './AiFeedbackTab';
-import BreakfastDayManager from '@/components/breakfast/BreakfastDayManager';
 
 const TABS = [
   { key: 'approvals', label: 'Freigaben' },
   { key: 'retail-sections', label: 'Abteilungen' },
+  { key: 'equipment', label: 'Equipment' },
   { key: 'nutritional-tags', label: 'Ernährungstags' },
+  { key: 'tags', label: 'Tags' },
   { key: 'rules', label: 'Regeln' },
-  { key: 'breakfast-days', label: 'Frühstückstage' },
   { key: 'ai-feedback', label: 'KI Feedback' },
   { key: 'data-quality', label: 'Datenqualität', href: '/admin/data-quality/ingredients' },
 ] as const;
@@ -59,18 +61,10 @@ export default function AdminPage() {
       {activeTab === 'approvals' && <ApprovalTab />}
       {activeTab === 'ai-feedback' && <AiFeedbackTab />}
       {activeTab === 'retail-sections' && <RetailSectionTab />}
+      {activeTab === 'equipment' && <EquipmentTab />}
       {activeTab === 'nutritional-tags' && <NutritionalTagTab />}
+      {activeTab === 'tags' && <TagTab />}
       {activeTab === 'rules' && <RuleTab />}
-      {activeTab === 'breakfast-days' && (
-        <div className="space-y-4">
-          <h2 className="font-display font-semibold text-xl">Frühstückstage</h2>
-          <p className="text-sm text-muted-foreground">
-            Frühstückstage werden als Tags mit der Gruppe "breakfast_day" gespeichert
-            und im Frühstücks-Assistenten als Filter-Option verwendet.
-          </p>
-          <BreakfastDayManager />
-        </div>
-      )}
     </div>
   );
 }

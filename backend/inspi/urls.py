@@ -7,6 +7,7 @@ from ninja import NinjaAPI
 from blog.api import router as blog_router
 from content.admin_api import router as admin_router
 from content.api import router as content_router
+from content.api.admin_tags import admin_tags_router
 from content.api.collaborators import router as content_collaborators_router
 from content.api.data_quality import admin_router as dq_admin_router
 from content.api.data_quality import public_router as dq_public_router
@@ -35,8 +36,8 @@ from session.api import router as session_router
 from shopping.api import kitchen_reminder_router, shopping_router
 from supply.api import (
     breakfast_catalog_router,
-    breakfast_days_router,
     dge_reference_router,
+    equipment_router,
     ingredient_group_router,
     ingredient_router,
     ingredient_statistics_router,
@@ -58,6 +59,7 @@ api = NinjaAPI(
 api.add_router("/auth/", auth_router)
 api.add_router("/users/", users_router)
 api.add_router("/admin/", admin_router)
+api.add_router("/admin/tags/", admin_tags_router)
 api.add_router("/admin/data-quality/", dq_admin_router)
 api.add_router("/data-quality/", dq_public_router)
 api.add_router("/planner/", planner_router)
@@ -91,7 +93,7 @@ api.add_router("/supplies/", supply_router)
 api.add_router("/norm-person/", norm_person_router)
 api.add_router("/dge-references/", dge_reference_router)
 api.add_router("/supply/", breakfast_catalog_router)
-api.add_router("/supply/", breakfast_days_router)
+api.add_router("/supply/", equipment_router)
 api.add_router("/blogs/", blog_router)
 api.add_router("/games/", game_router)
 api.add_router("/tags/", tags_router)

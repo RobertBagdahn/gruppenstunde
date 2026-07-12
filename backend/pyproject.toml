@@ -32,13 +32,14 @@ dependencies = [
     "protobuf>=7.34.1",
     "pyyaml>=6.0,<7.0",
     "beautifulsoup4>=4.12,<5.0",
-    "weasyprint>=62.0,<63.0",
+    "weasyprint>=62.0,<64.0",
     "httpx>=0.28,<1.0",
     "django-debug-toolbar>=4.4.6",
     "model-bakery>=1.23.3",
     "pytest>=8.4.2",
     "pytest-django>=4.12.0",
     "snowballstemmer>=3.1.1",
+    "babel>=2.15,<3.0",
 ]
 
 [project.optional-dependencies]

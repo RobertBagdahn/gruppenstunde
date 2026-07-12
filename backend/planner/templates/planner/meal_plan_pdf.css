@@ -1,0 +1,418 @@
+@page {
+  margin: 2cm;
+  size: A4;
+
+  @top-left {
+    content: string(plan-name);
+    font-size: 8pt;
+    color: #666;
+    font-family: sans-serif;
+  }
+
+  @top-right {
+    content: string(day-label);
+    font-size: 8pt;
+    color: #666;
+    font-family: sans-serif;
+  }
+
+  @bottom-left {
+    content: string(footer-ref);
+    font-size: 7pt;
+    color: #999;
+    font-family: sans-serif;
+  }
+
+  @bottom-right {
+    content: "Seite " counter(page) " von " counter(pages);
+    font-size: 7pt;
+    color: #999;
+    font-family: sans-serif;
+  }
+}
+
+@page letter {
+  size: letter;
+}
+
+body {
+  font-family: 'Source Sans Pro', 'Segoe UI', sans-serif;
+  font-size: 11pt;
+  line-height: 1.4;
+  color: #000;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 24pt;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 4pt 0;
+}
+
+h2 {
+  font-size: 18pt;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 12pt 0;
+}
+
+h3 {
+  font-size: 14pt;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 4pt 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 4pt 8pt;
+  text-align: left;
+  vertical-align: top;
+}
+
+.cover-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 600pt;
+  text-align: center;
+  page-break-after: always;
+}
+
+.cover-page .logo {
+  max-width: 120pt;
+  max-height: 120pt;
+  margin-bottom: 24pt;
+}
+
+.cover-page h1 {
+  font-size: 28pt;
+  margin-bottom: 8pt;
+}
+
+.cover-page .meta {
+  font-size: 12pt;
+  color: #555;
+  line-height: 1.6;
+}
+
+.day-section {
+  page-break-before: always;
+}
+
+.day-section:first-of-type {
+  page-break-before: auto;
+}
+
+.compact .day-section {
+  page-break-before: auto;
+}
+
+.day-header {
+  string-set: day-label "Tag " counter(day-counter) ": " attr(data-label);
+  font-size: 18pt;
+  font-weight: 700;
+  color: hsl(142, 76%, 36%);
+  border-bottom: 2pt solid hsl(142, 76%, 36%);
+  padding-bottom: 4pt;
+  margin-bottom: 12pt;
+}
+
+.meal-row {
+  display: flex;
+  gap: 6pt;
+  margin-bottom: 12pt;
+  break-inside: avoid;
+}
+
+.meal-box {
+  flex: 1;
+  border: 2pt solid #d4d4d8;
+  padding: 8pt 12pt;
+  background: white;
+}
+
+.meal-box-wide {
+  border: 2pt solid #d4d4d8;
+  padding: 8pt 12pt;
+  background: white;
+  margin-bottom: 12pt;
+  break-inside: avoid;
+}
+
+.meal-box h3 {
+  font-size: 14pt;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 4pt;
+  text-transform: uppercase;
+}
+
+.meal-box .meal-icon {
+  font-size: 12pt;
+  vertical-align: middle;
+}
+
+.meal-box .meal-time {
+  font-weight: 400;
+  text-transform: none;
+  font-size: 10pt;
+  color: #666;
+}
+
+.recipe-title {
+  font-weight: 700;
+  font-size: 12pt;
+  color: #000;
+  margin-bottom: 2pt;
+}
+
+.variant-block {
+  margin: 4pt 0 8pt 12pt;
+  padding: 4pt 8pt;
+  border-left: 3pt solid hsl(142, 76%, 36%);
+}
+
+.variant-label {
+  font-weight: 700;
+  font-size: 11pt;
+  color: #333;
+  margin-bottom: 2pt;
+}
+
+.ingredient-list {
+  margin-top: 4pt;
+}
+
+.ingredient-list p {
+  font-size: 10pt;
+  line-height: 1.4;
+  color: #000;
+  margin: 1pt 0;
+}
+
+.notes-box {
+  width: 3.5cm;
+  min-width: 3cm;
+  max-width: 4cm;
+  border: 1pt solid #d4d4d8;
+  background: hsl(240, 5%, 96%);
+  padding: 6pt;
+}
+
+.notes-label {
+  font-size: 7pt;
+  color: #999;
+  text-transform: uppercase;
+  margin-bottom: 12pt;
+}
+
+.day-end-notes {
+  margin-top: 6pt;
+  margin-bottom: 12pt;
+}
+
+.day-end-notes hr {
+  border: none;
+  border-top: 0.5pt solid #ccc;
+  margin: 6pt 0;
+}
+
+.person-table {
+  margin-bottom: 24pt;
+  font-size: 10pt;
+}
+
+.person-table th {
+  background: #f5f5f5;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 8pt;
+  border-bottom: 2pt solid #d4d4d8;
+}
+
+.person-table td {
+  border-bottom: 0.5pt solid #e5e5e5;
+}
+
+.cooking-timeline {
+  margin-top: 12pt;
+  margin-bottom: 12pt;
+  padding: 8pt;
+  background: #f9fafb;
+  border: 1pt solid #e5e5e5;
+}
+
+.cooking-timeline h4 {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 0 0 6pt 0;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 8pt;
+  padding: 3pt 0;
+  font-size: 10pt;
+}
+
+.timeline-time {
+  font-weight: 700;
+  color: #555;
+  min-width: 40pt;
+}
+
+.shopping-list {
+  margin-top: 24pt;
+  padding-top: 12pt;
+  border-top: 2pt solid #000;
+}
+
+.shopping-list h2 {
+  font-size: 18pt;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 8pt;
+}
+
+.shopping-list h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  color: #333;
+  margin-top: 8pt;
+  margin-bottom: 4pt;
+}
+
+.shopping-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.shopping-list li {
+  font-size: 10pt;
+  line-height: 1.5;
+  color: #000;
+  padding-left: 12pt;
+  position: relative;
+}
+
+.shopping-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #666;
+}
+
+.fresh-marker {
+  font-size: 8pt;
+  color: hsl(142, 76%, 36%);
+  margin-left: 4pt;
+}
+
+.per-day-section {
+  margin-bottom: 12pt;
+}
+
+.allergen-matrix {
+  margin-top: 24pt;
+  padding-top: 12pt;
+  border-top: 2pt solid #000;
+}
+
+.allergen-matrix h2 {
+  font-size: 18pt;
+  font-weight: 700;
+  margin-bottom: 8pt;
+}
+
+.allergen-matrix th {
+  background: #f5f5f5;
+  font-weight: 700;
+  font-size: 8pt;
+  border: 0.5pt solid #ddd;
+  padding: 3pt 6pt;
+  text-align: center;
+}
+
+.allergen-matrix td {
+  font-size: 9pt;
+  border: 0.5pt solid #ddd;
+  padding: 3pt 6pt;
+  text-align: center;
+}
+
+.allergen-matrix .allergen-name {
+  text-align: left;
+  font-weight: 600;
+}
+
+.allergen-matrix .mark {
+  font-weight: 700;
+  color: hsl(0, 76%, 50%);
+}
+
+.nutrition-table-section {
+  margin-top: 24pt;
+  padding-top: 12pt;
+  border-top: 2pt solid #000;
+}
+
+.nutrition-table-section h2 {
+  font-size: 18pt;
+  font-weight: 700;
+  margin-bottom: 8pt;
+}
+
+.nutrition-table-section .day-nutrition {
+  margin-bottom: 16pt;
+}
+
+.nutrition-table-section h4 {
+  font-size: 11pt;
+  font-weight: 700;
+  margin-bottom: 4pt;
+}
+
+.nutrition-table-section th {
+  background: #f5f5f5;
+  font-weight: 700;
+  font-size: 8pt;
+  border: 0.5pt solid #ddd;
+  padding: 3pt 6pt;
+  text-align: center;
+}
+
+.nutrition-table-section td {
+  font-size: 9pt;
+  border: 0.5pt solid #ddd;
+  padding: 3pt 6pt;
+  text-align: right;
+}
+
+.nutrition-table-section .row-label {
+  text-align: left;
+  font-weight: 600;
+}
+
+.nutrition-table-section .delta-positive {
+  color: hsl(142, 76%, 36%);
+}
+
+.nutrition-table-section .delta-negative {
+  color: hsl(0, 76%, 50%);
+}
+
+.empty-state {
+  padding: 24pt;
+  text-align: center;
+  color: #999;
+  font-size: 12pt;
+}

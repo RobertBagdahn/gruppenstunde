@@ -1,0 +1,170 @@
+@page {
+  margin: 2cm;
+  size: A4;
+}
+
+@page letter {
+  size: letter;
+}
+
+body {
+  font-family: 'Source Sans Pro', 'Segoe UI', sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #000;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: 24pt;
+  font-weight: 700;
+  color: #000;
+  margin: 0 0 4pt 0;
+}
+
+h2 {
+  font-size: 16pt;
+  font-weight: 700;
+  color: #333;
+  margin: 16pt 0 8pt 0;
+  border-bottom: 1pt solid #d4d4d8;
+  padding-bottom: 4pt;
+}
+
+.recipe-header {
+  margin-bottom: 16pt;
+}
+
+.recipe-header .meta {
+  font-size: 10pt;
+  color: #666;
+  margin-top: 4pt;
+}
+
+.recipe-image {
+  max-width: 100%;
+  max-height: 8cm;
+  margin: 12pt 0;
+  border-radius: 4pt;
+  object-fit: cover;
+}
+
+.description {
+  font-size: 11pt;
+  color: #444;
+  font-style: italic;
+  margin-bottom: 12pt;
+  line-height: 1.5;
+}
+
+.ingredient-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ingredient-list li {
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #000;
+  padding: 2pt 0;
+  border-bottom: 0.5pt solid #f0f0f0;
+  break-inside: avoid;
+}
+
+.ingredient-list .ingredient-name {
+  font-weight: 600;
+}
+
+.ingredient-list .ingredient-amount {
+  color: #555;
+}
+
+.ingredient-list .ingredient-note {
+  font-size: 9pt;
+  color: #999;
+  font-style: italic;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  counter-reset: step-counter;
+  list-style: none;
+}
+
+.steps li {
+  counter-increment: step-counter;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #000;
+  margin-bottom: 8pt;
+  padding-left: 24pt;
+  position: relative;
+  break-inside: avoid;
+}
+
+.steps li::before {
+  content: counter(step-counter) ".";
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+  color: hsl(142, 76%, 36%);
+}
+
+.nutrition-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8pt;
+  font-size: 10pt;
+}
+
+.nutrition-table th {
+  background: #f5f5f5;
+  font-weight: 700;
+  font-size: 8pt;
+  text-transform: uppercase;
+  border: 0.5pt solid #ddd;
+  padding: 4pt 8pt;
+  text-align: center;
+}
+
+.nutrition-table th:first-child {
+  text-align: left;
+}
+
+.nutrition-table td {
+  border: 0.5pt solid #ddd;
+  padding: 3pt 8pt;
+  text-align: right;
+}
+
+.nutrition-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+
+.allergen-info {
+  margin-top: 12pt;
+  padding: 8pt;
+  background: #fef2f2;
+  border: 1pt solid #fecaca;
+  font-size: 10pt;
+  color: #991b1b;
+}
+
+.allergen-info.no-allergens {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.footer {
+  margin-top: 24pt;
+  padding-top: 8pt;
+  border-top: 0.5pt solid #666;
+  font-size: 8pt;
+  color: #999;
+  text-align: center;
+}

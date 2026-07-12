@@ -79,6 +79,7 @@ def clean_names_batch(items: list[dict[str, str]]) -> dict[str, str] | None:
             config=config,
             context="rename_rewe_batch",
             bypass_limits=True,
+            is_background=True,
         )
         if response:
             result = BatchCleanNamesSchema.model_validate_json(response.text)

@@ -185,13 +185,14 @@ def _ai_suggest_price(ingredient) -> dict:
             prompt += f"Energie: {ingredient.energy_kcal} kcal/100g\n"
         prompt += "Antworte NUR mit dem Preis als Zahl in Euro pro kg (z.B. 3.49), sonst nichts."
 
-        result, _interaction_id = gemini_call(
+        result, interaction_id = gemini_call(
             user=None,
             model="gemini-3.1-flash-lite",
             contents=prompt,
-            bypass_limits=False,
+            bypass_limits=True,
+            is_background=True,
         )
-        price_str = result.strip().replace(",", ".").replace("€", "").strip() if result else None
+        price_str = result.text.strip().replace(",", ".").replace("€", "").strip() if result and result.text else None
         if price_str:
             try:
                 float(price_str)

@@ -24,8 +24,6 @@ FAT_TAG_SLUG = "breakfast-fat"
 DRINK_TAG_SLUG = "breakfast-drink"
 WARM_MEAL_TAG_SLUG = "breakfast-warm-meal"
 
-BREAKFAST_DAY_NAMES = ["Tag 1", "Tag 2", "Tag 3", "Tag 4", "Tag 5"]
-
 # Existing generic bread ingredients to tag with breakfast-base when --tag-existing is used.
 EXISTING_BREAD_SLUGS = [
     "brot", "brotchen", "brot-vollkorn", "toastbrot", "vollkorn-toast",
@@ -95,7 +93,7 @@ def _get_or_create_tag(slug: str, name: str) -> Tag:
 
 
 class Command(BaseCommand):
-    help = "Seed complete breakfast catalog: tags, base/topping/drink ingredients, drink recipes, breakfast days."
+    help = "Seed complete breakfast catalog: tags, base/topping/drink ingredients, drink recipes."
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
@@ -120,18 +118,6 @@ class Command(BaseCommand):
             }
             for slug, tag in tags.items():
                 self.stdout.write(f"  Tag ready: {slug} (id={tag.id})")
-
-            # Breakfast day tags
-            for i, day_name in enumerate(BREAKFAST_DAY_NAMES):
-                slug = f"breakfast-day-{i + 1}"
-                tag, created = Tag.objects.get_or_create(
-                    slug=slug,
-                    defaults={"name": day_name, "group": "breakfast_day", "sort_order": i},
-                )
-                if created or tag.group != "breakfast_day":
-                    tag.group = "breakfast_day"
-                    tag.save(update_fields=["group"])
-                self.stdout.write(f"  Breakfast day tag: {day_name} (slug={slug}, id={tag.id})")
 
         base_tag = _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base")
         topping_tag = _get_or_create_tag(TOPPING_TAG_SLUG, "breakfast-topping")

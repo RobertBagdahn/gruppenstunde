@@ -26,6 +26,12 @@ class NutritionalTagOut(Schema):
     is_dangerous: bool
 
 
+class EquipmentOut(Schema):
+    id: int
+    name: str
+    slug: str
+
+
 # --- Recipe List Schema (extends ContentListOut) ---
 
 
@@ -103,6 +109,8 @@ class RecipeDetailOut(ContentDetailOut):
 
     recipe_type: str
     portions: int | None
+    preparation_method: str = ""
+    equipment: list[EquipmentOut] = []
     cached_energy_kcal: float | None = None
     cached_protein_g: float | None = None
     cached_fat_g: float | None = None
@@ -251,6 +259,13 @@ class RecipeDetailOut(ContentDetailOut):
         return MealItem.objects.filter(recipe=obj).values("meal__meal_plan").distinct().count()
 
     @staticmethod
+    def resolve_equipment(obj) -> list:
+        return [
+            {"id": e.id, "name": e.name, "slug": e.slug}
+            for e in obj.equipment.all()
+        ]
+
+    @staticmethod
     def resolve_has_structured_steps(obj) -> bool:
         """Check if recipe has structured steps."""
         if hasattr(obj, 'steps'):
@@ -280,6 +295,8 @@ class RecipeCreateIn(ContentCreateIn):
 
     recipe_type: str = ""
     portions: int = 1
+    preparation_method: str = ""
+    equipment_ids: list[int] = []
     nutritional_tag_ids: list[int] = []
     recipe_items: list[RecipeItemCreateIn] = []
     # Ownership & Sharing (for breakfast wizard)
@@ -299,6 +316,8 @@ class RecipeUpdateIn(ContentUpdateIn):
 
     recipe_type: str | None = None
     portions: int | None = None
+    preparation_method: str | None = None
+    equipment_ids: list[int] | None = None
     nutritional_tag_ids: list[int] | None = None
     recipe_items: list[RecipeItemCreateIn] | None = None
     # Ownership & Sharing
@@ -314,17 +333,34 @@ class RecipeUpdateIn(ContentUpdateIn):
 
 class RecipeFilterIn(Schema):
     q: str | None = None
-    recipe_type: str | None = None
+    recipe_type: list[str] | None = None
+    preparation_method: list[str] | None = None
+    equipment_slug: str | None = None
     scout_level_ids: list[int] | None = None
     tag_slugs: list[str] | None = None
-    difficulty: str | None = None
+    difficulty: list[str] | None = None
     costs_min: float | None = None
     costs_max: float | None = None
-    execution_time: str | None = None
-    origin: str | None = None  # "all" | "verified" | "community" | "mine"
-    sort: str = "newest"
+    execution_time: list[str] | None = None
+    origin: list[str] | None = None  # ["verified"] | ["community"] | ["mine"] or combinations
+    sort: str = "use_count"
     page: int = 1
     page_size: int = 20
+
+
+# --- Verification ---
+
+
+class VerifyRequestIn(Schema):
+    confirm: bool = False
+
+
+class VerifyStatusOut(Schema):
+    can_verify: bool
+    rules_passed: int
+    rules_total: int
+    warnings: list[dict]
+    missing_fields: list[str]
 
 
 class ForkRecipeIn(Schema):

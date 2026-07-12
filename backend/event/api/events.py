@@ -433,7 +433,7 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
         class InvitationOutput(BaseModel):
             text: str = Field(min_length=100, max_length=5000)
 
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=request.user,
             model="gemini-3.1-flash-lite",
             contents=prompt,
@@ -444,12 +444,12 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
             context="generate_invitation",
         )
         if response is None:
-            return {"invitation_text": _build_fallback_invitation(payload)}
+            return {"invitation_text": _build_fallback_invitation(payload), "ai_interaction_id": None}
         result = InvitationOutput.model_validate_json(response.text)
-        return {"invitation_text": result.text}
+        return {"invitation_text": result.text, "ai_interaction_id": str(interaction_id) if interaction_id else None}
     except Exception:
         logger.exception("AI invitation generation failed")
-        return {"invitation_text": _build_fallback_invitation(payload)}
+        return {"invitation_text": _build_fallback_invitation(payload), "ai_interaction_id": None}
 
 
 def _build_fallback_invitation(payload: GenerateInvitationIn) -> str:

@@ -86,7 +86,7 @@ const WizardStepPreview = forwardRef<WizardStepPreviewHandle, WizardStepPreviewP
 
           {recipe.tags && recipe.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-3">
-              {recipe.tags.map((tag: { id: number; name: string; slug: string }) => (
+              {recipe.tags.map((tag: { id: string; name: string; slug: string }) => (
                 <Badge key={tag.id} variant="secondary" className="text-xs">{tag.name}</Badge>
               ))}
             </div>

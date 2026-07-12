@@ -105,6 +105,12 @@ export type RecipeSimilar = z.infer<typeof RecipeSimilarSchema>;
 export const RecipeDetailSchema = ContentDetailSchema.extend({
   recipe_type: z.string(),
   portions: z.number().nullable(),
+  preparation_method: z.string().default(''),
+  equipment: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    slug: z.string(),
+  })).default([]),
   // Cached nutritional values (denormalized, per-100g)
   cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
@@ -162,19 +168,36 @@ export type PaginatedRecipeSimilar = z.infer<typeof PaginatedRecipeSimilarSchema
 
 export const RecipeFilterSchema = z.object({
   q: z.string().optional(),
-  recipe_type: z.string().optional(),
+  recipe_type: z.array(z.string()).optional(),
+  preparation_method: z.array(z.string()).optional(),
   scout_level_ids: z.array(z.number()).optional(),
   tag_slugs: z.array(z.string()).optional(),
-  difficulty: z.string().optional(),
+  difficulty: z.array(z.string()).optional(),
   costs_min: z.number().optional(),
   costs_max: z.number().optional(),
-  execution_time: z.string().optional(),
-  origin: z.string().optional(), // "all" | "verified" | "community" | "mine"
-  sort: z.string().default('newest'),
+  execution_time: z.array(z.string()).optional(),
+  origin: z.array(z.string()).optional(), // ["verified"] | ["community"] | ["mine"] or combinations
+  sort: z.string().default('use_count'),
   page: z.number().default(1),
   page_size: z.number().default(20),
 });
 export type RecipeFilter = z.infer<typeof RecipeFilterSchema>;
+
+// --- Verification ---
+
+export const VerifyRequestSchema = z.object({
+  confirm: z.boolean(),
+});
+export type VerifyRequest = z.infer<typeof VerifyRequestSchema>;
+
+export const VerifyStatusSchema = z.object({
+  can_verify: z.boolean(),
+  rules_passed: z.number(),
+  rules_total: z.number(),
+  warnings: z.array(z.record(z.unknown())),
+  missing_fields: z.array(z.string()),
+});
+export type VerifyStatus = z.infer<typeof VerifyStatusSchema>;
 
 // --- Nutri-Score ---
 
@@ -223,18 +246,26 @@ export const RECIPE_PREPARATION_TIME_OPTIONS = [
 ] as const;
 
 export const RECIPE_ORIGIN_OPTIONS = [
-  { value: 'all', label: 'Alle', icon: 'public' },
   { value: 'verified', label: 'Inspi-verifiziert', icon: 'verified' },
   { value: 'community', label: 'Community', icon: 'groups' },
   { value: 'mine', label: 'Meine Rezepte', icon: 'person' },
 ] as const;
 
 export const RECIPE_SORT_OPTIONS = [
+  { value: 'use_count', label: 'Beliebteste' },
   { value: 'newest', label: 'Neueste' },
   { value: 'oldest', label: 'Älteste' },
-  { value: 'most_liked', label: 'Beliebteste' },
+  { value: 'most_liked', label: 'Meiste Likes' },
   { value: 'popular', label: 'Meistgesehen' },
   { value: 'random', label: 'Zufällig' },
+] as const;
+
+export const RECIPE_PREPARATION_METHOD_OPTIONS = [
+  { value: 'cooking', label: 'Kochen' },
+  { value: 'baking', label: 'Backen' },
+  { value: 'frying', label: 'Braten' },
+  { value: 'grilling', label: 'Grillen' },
+  { value: 'raw', label: 'Roh' },
 ] as const;
 
 export const RECIPE_EMOTION_OPTIONS = [

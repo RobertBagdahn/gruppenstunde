@@ -57,7 +57,7 @@ def enrich_ingredient(
     try:
         from google.genai import types
 
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,

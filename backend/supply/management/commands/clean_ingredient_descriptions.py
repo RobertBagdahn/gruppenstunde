@@ -100,6 +100,7 @@ def clean_descriptions_batch(items: list[dict[str, str]]) -> dict[int, str] | No
             config=config,
             context="clean_ingredient_descriptions_batch",
             bypass_limits=True,
+            is_background=True,
         )
         if response:
             result = BatchCleanDescriptionsSchema.model_validate_json(response.text)
