@@ -12,6 +12,7 @@
  */
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { useImproveText } from '@/api/ai';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import { toast } from 'sonner';
 
@@ -62,6 +63,7 @@ export default function InlineEditor(props: InlineEditorProps) {
   const { label, canEdit, onSave, isSaving = false, aiField, children, className = '' } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [editValue, setEditValue] = useState('');
+  const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const improveText = useImproveText();
 
@@ -97,7 +99,10 @@ export default function InlineEditor(props: InlineEditorProps) {
     improveText.mutate(
       { text: editValue, field: aiField },
       {
-        onSuccess: (data) => setEditValue(data.improved_text),
+        onSuccess: (data) => {
+          setEditValue(data.improved_text);
+          setAiInteractionId(data.ai_interaction_id ?? null);
+        },
         onError: () => toast.error('KI-Verbesserung fehlgeschlagen'),
       },
     );
@@ -183,15 +188,20 @@ export default function InlineEditor(props: InlineEditorProps) {
             <div className="flex items-center justify-between">
               <div>
                 {aiField && props.mode !== 'select' && (
-                  <button
-                    type="button"
-                    onClick={handleAiImprove}
-                    disabled={!editValue.trim() || improveText.isPending}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-sm"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-                    {improveText.isPending ? 'Verbessert...' : 'KI-Vorschlag'}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleAiImprove}
+                      disabled={!editValue.trim() || improveText.isPending}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50 text-sm"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                      {improveText.isPending ? 'Verbessert...' : 'KI-Vorschlag'}
+                    </button>
+                    {aiInteractionId && (
+                      <AiVoteButtons interactionId={aiInteractionId} />
+                    )}
+                  </>
                 )}
               </div>
 

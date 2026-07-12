@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { toast } from 'sonner';
 import {
   usePackingList,
@@ -1074,6 +1075,9 @@ function SuggestionPanel({
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             KI-Vorschlag
           </span>
+          {aiSuggest.data?.ai_interaction_id && (
+            <AiVoteButtons interactionId={aiSuggest.data.ai_interaction_id} />
+          )}
         </div>
 
         {aiSuggest.data && aiSuggest.data.items.length > 0 && (

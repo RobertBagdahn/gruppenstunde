@@ -8,6 +8,7 @@ import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { type UseMutationResult } from '@tanstack/react-query';
 import { useGenerateImage } from '@/api/ai';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import {
   Dialog,
   DialogContent,
@@ -245,6 +246,7 @@ function AiImageModal({
 }: AiImageModalProps) {
   const [prompt, setPrompt] = useState('');
   const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);
+  const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
   const generateImage = useGenerateImage();
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -259,6 +261,7 @@ function AiImageModal({
       {
         onSuccess: (data) => {
           setGeneratedUrls(data.image_urls);
+          setAiInteractionId(data.ai_interaction_id ?? null);
           // Auto-select the first generated image and close dialog
           if (data.image_urls.length > 0) {
             onSelect(data.image_urls[0]);
@@ -322,6 +325,12 @@ function AiImageModal({
               <p className="text-sm text-muted-foreground mb-2">
                 ✓ Bild wird übernommen...
               </p>
+              {aiInteractionId && (
+                <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                  <span>Hilfreich?</span>
+                  <AiVoteButtons interactionId={aiInteractionId} />
+                </div>
+              )}
               <div className="max-w-xs mx-auto">
                 {generatedUrls.slice(0, 1).map((url) => (
                   <div

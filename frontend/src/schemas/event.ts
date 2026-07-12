@@ -500,6 +500,7 @@ export type MailResult = z.infer<typeof MailResultSchema>;
 
 export const GenerateInvitationSchema = z.object({
   invitation_text: z.string(),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type GenerateInvitation = z.infer<typeof GenerateInvitationSchema>;
 

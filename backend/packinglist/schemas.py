@@ -359,6 +359,7 @@ class AiSuggestOut(Schema):
     """Response for AI-powered item suggestions."""
 
     items: list[SuggestionItemOut]
+    ai_interaction_id: str | None = None
 
 
 class AiSuggestErrorOut(Schema):

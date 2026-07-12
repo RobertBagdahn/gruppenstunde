@@ -153,6 +153,7 @@ export type RandomSuggestions = z.infer<typeof RandomSuggestionsSchema>;
 
 export const AiSuggestionsSchema = z.object({
   items: z.array(SuggestionItemSchema),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 export type AiSuggestions = z.infer<typeof AiSuggestionsSchema>;
 

@@ -20,12 +20,14 @@ const API_BASE = `${API_BASE_URL}/api/content/ai`;
 export class AiApiError extends Error {
   error_code: string;
   status: number;
+  ai_interaction_id: string | null;
 
-  constructor(message: string, error_code: string, status: number) {
+  constructor(message: string, error_code: string, status: number, ai_interaction_id: string | null = null) {
     super(message);
     this.name = 'AiApiError';
     this.error_code = error_code;
     this.status = status;
+    this.ai_interaction_id = ai_interaction_id;
   }
 }
 
@@ -46,7 +48,7 @@ async function postJson<S extends z.ZodTypeAny>(
     // Try to parse structured AI error
     const parsed = AiErrorSchema.safeParse(errBody);
     if (parsed.success) {
-      throw new AiApiError(parsed.data.detail, parsed.data.error_code, res.status);
+      throw new AiApiError(parsed.data.detail, parsed.data.error_code, res.status, parsed.data.ai_interaction_id);
     }
     const detail = errBody?.detail ?? `${res.status} ${res.statusText}`;
     throw new AiApiError(detail, 'UNKNOWN', res.status);
@@ -77,6 +79,7 @@ export function useRefurbish() {
 
 const AiGenerateImageSchema = z.object({
   image_urls: z.array(z.string()),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
 });
 type AiGenerateImage = z.infer<typeof AiGenerateImageSchema>;
 

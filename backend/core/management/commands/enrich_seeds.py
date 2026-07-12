@@ -27,7 +27,7 @@ from typing import Any
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
+from django.db import models, transaction
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
 
@@ -48,18 +48,22 @@ PORTION_DEFAULTS: dict[str, list[dict]] = {
     "Gemüse": [
         {"name": "1 Stück (150g)", "quantity": 1.0, "weight_g": 150.0, "rank": 1, "unit": "stk"},
         {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+        {"name": "1 kg (Netz)", "quantity": 1000.0, "weight_g": 1000.0, "rank": 8, "unit": "g"},
     ],
     "Obst": [
         {"name": "1 Stück (150g)", "quantity": 1.0, "weight_g": 150.0, "rank": 1, "unit": "stk"},
         {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+        {"name": "1 kg (Schale)", "quantity": 1000.0, "weight_g": 1000.0, "rank": 8, "unit": "g"},
     ],
     "Gewürze & Kräuter": [
         {"name": "1 TL (2g)", "quantity": 2.0, "weight_g": 2.0, "rank": 1, "unit": "g"},
         {"name": "1 Prise (0,5g)", "quantity": 0.5, "weight_g": 0.5, "rank": 2, "unit": "g"},
+        {"name": "50g (Streuer)", "quantity": 50.0, "weight_g": 50.0, "rank": 8, "unit": "g"},
     ],
     "Fleisch & Wurst": [
         {"name": "1 Portion (150g)", "quantity": 150.0, "weight_g": 150.0, "rank": 1, "unit": "g"},
         {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+        {"name": "500g (Packung)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
     ],
     "Fisch & Meeresfrüchte": [
         {"name": "1 Portion (150g)", "quantity": 150.0, "weight_g": 150.0, "rank": 1, "unit": "g"},
@@ -68,26 +72,42 @@ PORTION_DEFAULTS: dict[str, list[dict]] = {
     "Milchprodukte & Käse": [
         {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 1, "unit": "g"},
         {"name": "200g", "quantity": 200.0, "weight_g": 200.0, "rank": 2, "unit": "g"},
+        {"name": "500g (Becher)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
     ],
     "Öle & Soßen": [
         {"name": "1 EL (10ml)", "quantity": 10.0, "weight_g": 10.0, "rank": 1, "unit": "ml"},
         {"name": "100 ml", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "ml"},
+        {"name": "500 ml (Flasche)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "ml"},
     ],
     "Nudeln & Reis & Getreide": [
         {"name": "1 Portion trocken (100g)", "quantity": 100.0, "weight_g": 100.0, "rank": 1, "unit": "g"},
         {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+        {"name": "500g (Packung)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
     ],
     "Brot & Backwaren": [
         {"name": "1 Scheibe (50g)", "quantity": 50.0, "weight_g": 50.0, "rank": 1, "unit": "g"},
         {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+        {"name": "500g (Laib)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
     ],
     "Getränke": [
         {"name": "200 ml", "quantity": 200.0, "weight_g": 200.0, "rank": 1, "unit": "ml"},
         {"name": "1 Liter", "quantity": 1000.0, "weight_g": 1000.0, "rank": 2, "unit": "ml"},
+        {"name": "1,5 Liter (Flasche)", "quantity": 1500.0, "weight_g": 1500.0, "rank": 8, "unit": "ml"},
     ],
     "Hülsenfrüchte & Nüsse": [
         {"name": "1 Handvoll (30g)", "quantity": 30.0, "weight_g": 30.0, "rank": 1, "unit": "g"},
         {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+        {"name": "500g (Packung)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
+    ],
+    "Konserven & Gläser": [
+        {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 1, "unit": "g"},
+        {"name": "200g", "quantity": 200.0, "weight_g": 200.0, "rank": 2, "unit": "g"},
+        {"name": "400g (Dose)", "quantity": 400.0, "weight_g": 400.0, "rank": 8, "unit": "g"},
+    ],
+    "Süßwaren": [
+        {"name": "1 Stück (25g)", "quantity": 25.0, "weight_g": 25.0, "rank": 1, "unit": "g"},
+        {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+        {"name": "100g (Tafel)", "quantity": 100.0, "weight_g": 100.0, "rank": 8, "unit": "g"},
     ],
 }
 
@@ -257,7 +277,7 @@ class Command(BaseCommand):
                     self.report.ingredients_unmatched += 1
 
             if not dry_run:
-                self._cleanup_portions()
+                self._cleanup_portions(specs)
                 self._generate_aliases(specs)
                 self._generate_generic_aliases(generic_names)
 
@@ -405,16 +425,28 @@ class Command(BaseCommand):
     # Portions
     # ------------------------------------------------------------------
 
-    def _cleanup_portions(self) -> None:
+    def _cleanup_portions(self, specs: list) -> None:
         from supply.models import Ingredient, MeasuringUnit, Portion
-        from recipe.models import RecipeItem
 
         g_unit = MeasuringUnit.objects.filter(name="g").first()
+        spec_by_name = {s.canonical_name.lower(): s for s in specs}
 
         ingredients = Ingredient.objects.all()
-        for ingredient in ingredients:
-            specs = self._get_spec_for_ingredient(ingredient)
-            spec = specs[0] if specs else None
+        total = ingredients.count()
+        for idx, ingredient in enumerate(ingredients):
+            if (idx + 1) % 1000 == 0:
+                self.stdout.write(f"  Portions: {idx + 1}/{total}...")
+
+            name_lower = ingredient.name.lower().strip()
+            spec = spec_by_name.get(name_lower)
+            if not spec:
+                for s in specs:
+                    if name_lower in [n.lower() for n in s.aliases]:
+                        spec = s
+                        break
+                    if name_lower in [n.lower() for n in s.generic_names]:
+                        spec = s
+                        break
 
             self._delete_garbage_portions(ingredient)
 
@@ -422,7 +454,7 @@ class Command(BaseCommand):
                 self._replace_with_spec_portions(ingredient, spec, g_unit)
             elif not spec:
                 has_good_portions = Portion.objects.filter(
-                    ingredient=ingredient, deleted_at__isnull=True, rank=1, weight_g__gt=1.0
+                    ingredient=ingredient, deleted_at__isnull=True, rank__lte=3, weight_g__gt=1.0
                 ).exists()
                 if not has_good_portions:
                     self._add_default_portions(ingredient, g_unit)
@@ -431,32 +463,64 @@ class Command(BaseCommand):
 
     def _delete_garbage_portions(self, ingredient) -> None:
         from supply.models import Portion
+        from django.utils import timezone
+
+        now = timezone.now()
 
         # Delete rank=9999 sentinels
         sentinels = Portion.objects.filter(
             ingredient=ingredient, deleted_at__isnull=True, rank=9999
         )
         self.report.portions_deleted += sentinels.count()
-        sentinels.update(deleted_at=__import__("django").utils.timezone.now())
+        sentinels.update(deleted_at=now)
 
-        # Delete portions with names that indicate garbage: "ml" on non-liquid,
-        # "Gramm" with weight_g=1.0, "Stück" with weight_g=None, etc.
-        garbage_names = {"ml", "Gramm", "Stück", "Packung", "Becher", "Glas", "evtl."}
-        garbage = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True
-        ).filter(name__in=garbage_names)
+        # Delete "1 Portion" with weight_g <= 1.0 (generic placeholder)
+        garbage1 = Portion.objects.filter(
+            ingredient=ingredient, deleted_at__isnull=True,
+            name__iexact="1 Portion", weight_g__lte=1.0
+        )
+        count = garbage1.update(deleted_at=now)
+        self.report.portions_deleted += count
 
-        for p in garbage:
-            if p.name == "ml":
-                visc = ingredient.physical_viscosity
-                if visc and visc not in ("liquid", "beverage"):
-                    p.deleted_at = __import__("django").utils.timezone.now()
-                    p.save(update_fields=["deleted_at"])
-                    self.report.portions_deleted += 1
-            elif p.weight_g is None or p.weight_g <= 1.0:
-                p.deleted_at = __import__("django").utils.timezone.now()
+        # Delete "ml" name with weight_g=1.0 on solids
+        garbage_ml = Portion.objects.filter(
+            ingredient=ingredient, deleted_at__isnull=True,
+            name__iexact="ml", weight_g__lte=1.0
+        )
+        for p in garbage_ml:
+            visc = ingredient.physical_viscosity
+            if visc and visc not in ("liquid", "beverage"):
+                p.deleted_at = now
                 p.save(update_fields=["deleted_at"])
                 self.report.portions_deleted += 1
+
+        # Delete "* in ml" pattern portions with weight_g=1.0
+        garbage_in_ml = Portion.objects.filter(
+            ingredient=ingredient, deleted_at__isnull=True,
+            name__icontains=" in ml", weight_g__lte=1.0
+        )
+        count = garbage_in_ml.update(deleted_at=now)
+        self.report.portions_deleted += count
+
+        # Delete known garbage names
+        garbage_names = {"Gramm", "evtl.", "große"}
+        garbage = Portion.objects.filter(
+            ingredient=ingredient, deleted_at__isnull=True, name__in=garbage_names
+        )
+        for p in garbage:
+            p.deleted_at = now
+            p.save(update_fields=["deleted_at"])
+            self.report.portions_deleted += 1
+
+        # Delete "Stück"/"Packung"/"Becher"/"Glas" with weight_g=None or <= 1.0
+        for name in ("Stück", "Packung", "Becher", "Glas"):
+            garbage_empty = Portion.objects.filter(
+                ingredient=ingredient, deleted_at__isnull=True, name__iexact=name
+            ).filter(
+                models.Q(weight_g__isnull=True) | models.Q(weight_g__lte=1.0)
+            )
+            count = garbage_empty.update(deleted_at=now)
+            self.report.portions_deleted += count
 
     def _replace_with_spec_portions(self, ingredient, spec, g_unit) -> None:
         from supply.models import MeasuringUnit, Portion
@@ -485,7 +549,7 @@ class Command(BaseCommand):
 
     def _get_spec_for_ingredient(self, ingredient) -> list:
         from supply.data.ingredient_specs import get_all_specs
-        specs = get_all_specs()
+        specs = get_all_specs(data_dir=str(self._data_dir))
         result = []
         name_lower = ingredient.name.lower().strip()
         for s in specs:
@@ -493,7 +557,58 @@ class Command(BaseCommand):
                 result.append(s)
             elif name_lower in [n.lower() for n in s.aliases]:
                 result.append(s)
+            elif name_lower in [n.lower() for n in s.generic_names]:
+                result.append(s)
         return result
+
+    def _add_default_portions(self, ingredient, g_unit) -> None:
+        from supply.models import MeasuringUnit, Portion
+
+        section_name = None
+        if ingredient.retail_section:
+            section_name = ingredient.retail_section.name
+
+        defaults = None
+        for pattern, portion_defs in PORTION_DEFAULTS.items():
+            if section_name and pattern in section_name:
+                defaults = portion_defs
+                break
+
+        if not defaults:
+            visc = ingredient.physical_viscosity
+            if visc in ("liquid", "beverage"):
+                defaults = [
+                    {"name": "100 ml", "quantity": 100.0, "weight_g": 100.0, "rank": 1, "unit": "ml"},
+                    {"name": "200 ml", "quantity": 200.0, "weight_g": 200.0, "rank": 2, "unit": "ml"},
+                    {"name": "1 Liter (Flasche)", "quantity": 1000.0, "weight_g": 1000.0, "rank": 8, "unit": "ml"},
+                ]
+            elif visc == "powder":
+                defaults = [
+                    {"name": "1 TL (3g)", "quantity": 3.0, "weight_g": 3.0, "rank": 1, "unit": "g"},
+                    {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 2, "unit": "g"},
+                    {"name": "500g (Packung)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
+                ]
+            else:
+                defaults = [
+                    {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 1, "unit": "g"},
+                    {"name": "500g (Packung)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
+                ]
+
+        for pd in defaults:
+            mu_name = pd.get("unit", "g")
+            mu = MeasuringUnit.objects.filter(name=mu_name).first() or g_unit
+            _, created = Portion.objects.get_or_create(
+                ingredient=ingredient,
+                name=pd["name"],
+                defaults={
+                    "measuring_unit": mu,
+                    "quantity": pd["quantity"],
+                    "weight_g": pd["weight_g"],
+                    "rank": pd["rank"],
+                },
+            )
+            if created:
+                self.report.portions_created += 1
 
     def _ensure_g_portions(self, ingredient, g_unit) -> None:
         from supply.models import Portion

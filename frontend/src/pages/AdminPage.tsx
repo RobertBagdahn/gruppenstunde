@@ -17,6 +17,8 @@ import {
 const ApprovalQueuePage = lazy(() => import('./admin/ApprovalQueuePage'));
 const EmbeddingViewerPage = lazy(() => import('./admin/EmbeddingViewerPage'));
 const EmbeddingFeedbackPage = lazy(() => import('./admin/EmbeddingFeedbackPage'));
+const KiLogPage = lazy(() => import('./admin/KiLogPage'));
+const KiKostenPage = lazy(() => import('./admin/KiKostenPage'));
 
 
 /** Map content_type to content URL prefix */
@@ -30,7 +32,7 @@ function contentUrlForSlug(slug: string, contentType?: string): string {
   return `${prefix}/${slug}`;
 }
 
-type AdminSection = 'dashboard' | 'moderation' | 'materials' | 'units' | 'users' | 'approvals' | 'embeddings' | 'embedding-feedback';
+type AdminSection = 'dashboard' | 'moderation' | 'materials' | 'units' | 'users' | 'approvals' | 'embeddings' | 'embedding-feedback' | 'ki-log' | 'ki-kosten';
 
 /** Material Symbol helper for menu items */
 function MenuIcon({ name }: { name: string }) {
@@ -46,6 +48,8 @@ const MENU_ITEMS: { key: AdminSection; label: string; icon: ReactNode }[] = [
   { key: 'users', label: 'Benutzer', icon: <MenuIcon name="group" /> },
   { key: 'embeddings', label: 'Embeddings', icon: <MenuIcon name="psychology" /> },
   { key: 'embedding-feedback', label: 'Feedback', icon: <MenuIcon name="feedback" /> },
+  { key: 'ki-log', label: 'KI-Log', icon: <MenuIcon name="monitoring" /> },
+  { key: 'ki-kosten', label: 'KI-Kosten', icon: <MenuIcon name="euro" /> },
 ];
 
 const VALID_SECTIONS: AdminSection[] = ['dashboard', 'moderation', 'materials', 'units', 'users', 'approvals', 'embeddings', 'embedding-feedback'];
@@ -739,6 +743,20 @@ export default function AdminPage() {
           {activeSection === 'embedding-feedback' && (
             <Suspense fallback={<div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-16" />)}</div>}>
               <EmbeddingFeedbackPage />
+            </Suspense>
+          )}
+
+          {/* KI-Log */}
+          {activeSection === 'ki-log' && (
+            <Suspense fallback={<div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-12" />)}</div>}>
+              <KiLogPage />
+            </Suspense>
+          )}
+
+          {/* KI-Kosten */}
+          {activeSection === 'ki-kosten' && (
+            <Suspense fallback={<div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="rounded-lg border bg-muted animate-pulse h-16" />)}</div>}>
+              <KiKostenPage />
             </Suspense>
           )}
 

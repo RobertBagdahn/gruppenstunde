@@ -741,7 +741,7 @@ def get_ai_suggestions(request, packing_list_id: int, payload: AiSuggestIn):
     from .services.suggestion_service import get_ai_suggestions as _get_ai
 
     try:
-        items = _get_ai(
+        items, interaction_id = _get_ai(
             packing_list_title=packing_list.title,
             packing_list_description=packing_list.description,
             existing_items=existing_items,
@@ -749,17 +749,17 @@ def get_ai_suggestions(request, packing_list_id: int, payload: AiSuggestIn):
             count=payload.count,
             user=request.user,
         )
-        return {"items": items}
+        return {"items": items, "ai_interaction_id": interaction_id}
     except PackingListAISuggestionError as exc:
         return HttpResponse(
-            json.dumps({"detail": str(exc), "error_code": "ai_error"}),
+            json.dumps({"detail": str(exc), "error_code": "ai_error", "ai_interaction_id": None}),
             status=503,
             content_type="application/json",
         )
     except Exception:
         logger.exception("Unexpected AI suggestion error")
         return HttpResponse(
-            json.dumps({"detail": "KI-Vorschlag fehlgeschlagen", "error_code": "ai_error"}),
+            json.dumps({"detail": "KI-Vorschlag fehlgeschlagen", "error_code": "ai_error", "ai_interaction_id": None}),
             status=500,
             content_type="application/json",
         )

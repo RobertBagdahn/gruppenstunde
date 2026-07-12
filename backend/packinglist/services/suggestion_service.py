@@ -1113,7 +1113,7 @@ Antworte nur auf Deutsch."""
             raise PackingListAISuggestionError("AI client not available")
 
         result = SuggestionResponse.model_validate_json(response.text)
-        return [item.model_dump() for item in result.items]
+        return [item.model_dump() for item in result.items], str(interaction_id) if interaction_id else None
 
     except Exception as exc:
         logger.warning("AI suggestion failed: %s", exc)

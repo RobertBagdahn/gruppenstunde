@@ -16,6 +16,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { useRefurbish, useImproveText, useSuggestTags } from '@/api/ai';
 import { useTags, useScoutLevels } from '@/api/tags';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import {
@@ -116,6 +117,7 @@ export default function ContentStepper({
   const [step0Mode, setStep0Mode] = useState<'choose' | 'ai' | 'cancelled'>('choose');
   const [rawText, setRawText] = useState('');
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
+  const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Form state (internal or controlled)
@@ -172,6 +174,7 @@ export default function ContentStepper({
             selectedTagIds: data.suggested_tag_ids,
             selectedScoutIds: data.suggested_scout_level_ids ?? [],
           });
+          setAiInteractionId(data.ai_interaction_id ?? null);
           onRefurbishComplete?.(data);
           setStep(1);
         },
@@ -200,7 +203,10 @@ export default function ContentStepper({
     improveText.mutate(
       { text, field },
       {
-        onSuccess: (data) => setter(data.improved_text),
+        onSuccess: (data) => {
+          setter(data.improved_text);
+          setAiInteractionId(data.ai_interaction_id ?? null);
+        },
         onError: () => toast.error('KI-Verbesserung fehlgeschlagen'),
       },
     );
@@ -286,6 +292,13 @@ export default function ContentStepper({
           </button>
         ))}
       </div>
+
+      {aiInteractionId && (
+        <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
+          <span>War diese KI-Hilfe nützlich?</span>
+          <AiVoteButtons interactionId={aiInteractionId} />
+        </div>
+      )}
 
       {/* Honeypot (bot protection) */}
       <div className="sr-only" aria-hidden="true">

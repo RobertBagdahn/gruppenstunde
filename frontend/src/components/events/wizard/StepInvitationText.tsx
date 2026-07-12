@@ -6,12 +6,14 @@ import { useEventWizardStore } from '@/store/eventWizardStore';
 import { useGenerateInvitation } from '@/api/events';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 
 export default function StepInvitationText() {
   const { data, updateStep7, setStepValid } = useEventWizardStore();
   const generateInvitation = useGenerateInvitation();
   const [specialNotes, setSpecialNotes] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [aiInteractionId, setAiInteractionId] = useState<string | null>(null);
 
   // Always valid (optional step)
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function StepInvitationText() {
       {
         onSuccess: (result) => {
           updateStep7({ invitation_text: result.invitation_text });
+          setAiInteractionId(result.ai_interaction_id ?? null);
         },
       },
     );
@@ -75,6 +78,12 @@ export default function StepInvitationText() {
           <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
           {generateInvitation.isPending ? 'KI generiert...' : 'Einladungstext generieren'}
         </button>
+        {aiInteractionId && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span>Hilfreich?</span>
+            <AiVoteButtons interactionId={aiInteractionId} />
+          </div>
+        )}
         {generateInvitation.isError && (
           <p className="text-xs text-destructive">{generateInvitation.error.message}</p>
         )}
