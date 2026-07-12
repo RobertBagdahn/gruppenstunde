@@ -5,7 +5,13 @@ import {
   AiVoteInSchema,
   AiVoteOutSchema,
   AiInteractionStatsSchema,
+  UserCostSchema,
+  PaginatedAiInteractionsSchema,
+  GeminiPricingSchema,
   type AiInteractionStats,
+  type UserCost,
+  type PaginatedAiInteractions,
+  type GeminiPricing,
 } from '@/schemas/aiInteraction';
 
 const API_BASE = `${API_BASE_URL}/api/content`;
@@ -59,16 +65,76 @@ export function useVoteAiInteraction() {
   });
 }
 
-export function useAiInteractionStats() {
+interface StatsFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  includeBackground?: boolean;
+}
+
+export function useAiInteractionStats(filters?: StatsFilters) {
+  const params = new URLSearchParams();
+  if (filters?.dateFrom) params.set('date_from', filters.dateFrom);
+  if (filters?.dateTo) params.set('date_to', filters.dateTo);
+  if (filters?.includeBackground) params.set('include_background', 'true');
+  const qs = params.toString();
+
   return useQuery<AiInteractionStats>({
-    queryKey: ['ai-interaction-stats'],
+    queryKey: ['ai-interaction-stats', filters?.dateFrom, filters?.dateTo, filters?.includeBackground],
     queryFn: async () => {
       return fetchJson(
-        `${API_BASE}/admin/ai-interactions/stats/`,
+        `${API_BASE}/admin/ai-interactions/stats/${qs ? '?' + qs : ''}`,
         AiInteractionStatsSchema,
       );
     },
     staleTime: 60_000,
+    retry: false,
+  });
+}
+
+export function useAiUserCosts(filters?: { dateFrom?: string; dateTo?: string; includeBackground?: boolean }) {
+  const params = new URLSearchParams();
+  if (filters?.dateFrom) params.set('date_from', filters.dateFrom);
+  if (filters?.dateTo) params.set('date_to', filters.dateTo);
+  if (filters?.includeBackground) params.set('include_background', 'true');
+  const qs = params.toString();
+
+  return useQuery<UserCost[]>({
+    queryKey: ['ai-user-costs', filters?.dateFrom, filters?.dateTo, filters?.includeBackground],
+    queryFn: async () => {
+      return fetchJson(
+        `${API_BASE}/admin/ai-interactions/user-costs/${qs ? '?' + qs : ''}`,
+        z.array(UserCostSchema),
+      );
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+export function useAiUserInteractions(userId: number, page: number = 1) {
+  return useQuery<PaginatedAiInteractions>({
+    queryKey: ['ai-user-interactions', userId, page],
+    queryFn: async () => {
+      return fetchJson(
+        `${API_BASE}/admin/ai-interactions/?user_id=${userId}&page=${page}&page_size=20`,
+        PaginatedAiInteractionsSchema,
+      );
+    },
+    staleTime: 30_000,
+    enabled: userId > 0 && page > 0,
+  });
+}
+
+export function useAiPricing() {
+  return useQuery<GeminiPricing>({
+    queryKey: ['ai-pricing'],
+    queryFn: async () => {
+      return fetchJson(
+        `${API_BASE}/admin/ai-pricing/`,
+        GeminiPricingSchema,
+      );
+    },
+    staleTime: 5 * 60_000,
     retry: false,
   });
 }

@@ -262,3 +262,252 @@ class TestAiInteractionStats:
             assert "total" in entry
             assert "thumbs_up" in entry
             assert "thumbs_down" in entry
+
+
+# ---------------------------------------------------------------------------
+# Pricing Endpoint
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestAiPricing:
+    PRICING_URL = "/api/content/admin/ai-pricing/"
+
+    def test_staff_gets_pricing(self, client, staff_user):
+        client.force_login(staff_user)
+        res = client.get(self.PRICING_URL)
+        assert res.status_code == 200
+        data = res.json()
+        assert "pricing" in data
+        assert "usd_to_eur" in data
+        assert isinstance(data["pricing"], list)
+        assert len(data["pricing"]) >= 1
+        entry = data["pricing"][0]
+        assert "model" in entry
+        assert "type" in entry
+        assert "input_per_1m_usd" in entry
+
+    def test_non_staff_returns_403(self, client, owner_user):
+        client.force_login(owner_user)
+        res = client.get(self.PRICING_URL)
+        assert res.status_code == 403
+
+    def test_unauthenticated_returns_403(self, client):
+        res = client.get(self.PRICING_URL)
+        assert res.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Stats Endpoint with Date Filtering
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestAiInteractionStatsWithDateFilter:
+    STATS_URL = "/api/content/admin/ai-interactions/stats/"
+
+    def test_date_from_filters_old_entries(self, client, staff_user):
+        from datetime import date, timedelta
+
+        from content.models import AiInteraction
+
+        old_date = date.today() - timedelta(days=60)
+        old = AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "old"},
+            response="old resp",
+            model="gemini-flash",
+            success=True,
+        )
+        AiInteraction.objects.filter(id=old.id).update(created_at=old_date)
+
+        new = AiInteraction.objects.create(
+            context="recipe_ai_create",
+            prompt={"input": "new"},
+            response="new resp",
+            model="gemini-flash",
+            success=True,
+        )
+        AiInteraction.objects.filter(id=new.id).update(created_at=date.today())
+
+        client.force_login(staff_user)
+        res = client.get(self.STATS_URL + "?date_from=" + (date.today() - timedelta(days=7)).isoformat())
+        assert res.status_code == 200
+        data = res.json()
+        assert data["total_calls"] == 1
+
+    def test_date_to_filters_future_entries(self, client, staff_user, owner_user):
+        from datetime import date
+
+        from content.models import AiInteraction
+
+        AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "today"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+        )
+
+        client.force_login(staff_user)
+        past_date = (date.today() - date.resolution).isoformat()
+        res = client.get(self.STATS_URL + "?date_to=" + past_date)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["total_calls"] == 0
+
+    def test_invalid_date_format_returns_400(self, client, staff_user):
+        client.force_login(staff_user)
+        res = client.get(self.STATS_URL + "?date_from=invalid-date")
+        assert res.status_code == 400
+
+    def test_date_from_and_date_to_together(self, client, staff_user, owner_user):
+        from datetime import date, timedelta
+
+        from content.models import AiInteraction
+
+        for days_ago in [1, 5, 10, 20]:
+            d = date.today() - timedelta(days=days_ago)
+            obj = AiInteraction.objects.create(
+                context="recipe_ai_create",
+                prompt={"input": f"day{days_ago}"},
+                response="resp",
+                model="gemini-flash",
+                user=owner_user,
+                success=True,
+            )
+            AiInteraction.objects.filter(id=obj.id).update(created_at=d)
+
+        client.force_login(staff_user)
+        res = client.get(
+            self.STATS_URL
+            + "?date_from=" + (date.today() - timedelta(days=7)).isoformat()
+            + "&date_to=" + (date.today() - timedelta(days=3)).isoformat()
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["total_calls"] == 1
+
+    def test_backward_compatible_no_date_params(self, client, staff_user, interaction):
+        client.force_login(staff_user)
+        res = client.get(self.STATS_URL)
+        assert res.status_code == 200
+        data = res.json()
+        assert "total_calls" in data
+
+
+# ---------------------------------------------------------------------------
+# User-Costs Endpoint with Filtering
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestAiUserCosts:
+    USER_COSTS_URL = "/api/content/admin/ai-interactions/user-costs/"
+
+    def test_staff_gets_user_costs(self, client, staff_user, owner_user):
+        from content.models import AiInteraction
+
+        AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "test"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+            total_tokens=100,
+            cost_eur=0.05,
+        )
+
+        client.force_login(staff_user)
+        res = client.get(self.USER_COSTS_URL)
+        assert res.status_code == 200
+        data = res.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        entry = data[0]
+        assert entry["user_name"] == "owner"
+        assert "total_calls" in entry
+        assert "total_tokens" in entry
+        assert "total_cost_eur" in entry
+        assert "cost_30d_eur" in entry
+        assert "vote_rate" in entry
+
+    def test_include_background(self, client, staff_user, owner_user):
+        from content.models import AiInteraction
+
+        AiInteraction.objects.create(
+            context="embedding",
+            prompt={"input": "bg"},
+            response="resp",
+            model="gemini-embedding-001",
+            user=owner_user,
+            success=True,
+            is_background=True,
+            total_tokens=50,
+            cost_eur=0.01,
+        )
+        AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "fg"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+            is_background=False,
+            total_tokens=100,
+            cost_eur=0.05,
+        )
+
+        client.force_login(staff_user)
+
+        res_no_bg = client.get(self.USER_COSTS_URL)
+        assert res_no_bg.status_code == 200
+        data_no_bg = res_no_bg.json()
+        user_entry = next(e for e in data_no_bg if e["user_name"] == "owner")
+        assert user_entry["total_calls"] == 1
+
+        res_with_bg = client.get(self.USER_COSTS_URL + "?include_background=true")
+        assert res_with_bg.status_code == 200
+        data_with_bg = res_with_bg.json()
+        user_entry_bg = next(e for e in data_with_bg if e["user_name"] == "owner")
+        assert user_entry_bg["total_calls"] == 2
+
+    def test_date_filter(self, client, staff_user, owner_user):
+        from datetime import date, timedelta
+
+        from content.models import AiInteraction
+
+        old_date = date.today() - timedelta(days=60)
+        old = AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "old"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+        )
+        AiInteraction.objects.filter(id=old.id).update(created_at=old_date)
+
+        new = AiInteraction.objects.create(
+            context="recipe_ai_create",
+            prompt={"input": "new"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+        )
+        AiInteraction.objects.filter(id=new.id).update(created_at=date.today())
+
+        client.force_login(staff_user)
+        res = client.get(self.USER_COSTS_URL + "?date_from=" + (date.today() - timedelta(days=7)).isoformat())
+        assert res.status_code == 200
+        data = res.json()
+        user_entry = next(e for e in data if e["user_name"] == "owner")
+        assert user_entry["total_calls"] == 1
+
+    def test_non_staff_returns_403(self, client, owner_user):
+        client.force_login(owner_user)
+        res = client.get(self.USER_COSTS_URL)
+        assert res.status_code == 403

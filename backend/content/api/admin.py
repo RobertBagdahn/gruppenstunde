@@ -26,6 +26,7 @@ from content.schemas.ai_interaction import (
     AiInteractionDetailOut,
     AiInteractionItemOut,
     AiInteractionStatsOut,
+    GeminiPricingOut,
     UserCostOut,
 )
 
@@ -356,9 +357,11 @@ def admin_embedding_feedback(
     response=AiInteractionStatsOut,
     url_name="content_admin_ai_interaction_stats",
 )
-def admin_ai_interaction_stats(request):
+def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
     """Aggregated AI interaction statistics (admin only)."""
     _require_admin(request)
+
+    from datetime import date, timedelta
 
     from django.utils import timezone
 
@@ -372,8 +375,21 @@ def admin_ai_interaction_stats(request):
     if not include_background:
         base_qs = base_qs.filter(is_background=False)
 
+    if date_from:
+        try:
+            parsed_from = date.fromisoformat(date_from)
+        except (ValueError, TypeError):
+            raise HttpError(400, f"Ungültiges Datum für date_from: {date_from}. Erwartet: YYYY-MM-DD.")
+        base_qs = base_qs.filter(created_at__date__gte=parsed_from)
+    if date_to:
+        try:
+            parsed_to = date.fromisoformat(date_to)
+        except (ValueError, TypeError):
+            raise HttpError(400, f"Ungültiges Datum für date_to: {date_to}. Erwartet: YYYY-MM-DD.")
+        base_qs = base_qs.filter(created_at__date__lte=parsed_to)
+
     total_calls = base_qs.count()
-    calls_today = base_qs.filter(created_at__date=today).count()
+    calls_today = base_qs.filter(created_at__date=today).count() if not date_from and not date_to else 0
     voted_calls = base_qs.filter(vote__isnull=False).count()
     vote_rate = round(voted_calls / total_calls * 100, 1) if total_calls else 0
 
@@ -414,24 +430,40 @@ def admin_ai_interaction_stats(request):
             }
         )
 
-    from datetime import timedelta
+    if date_from or date_to:
+        timeline_start = parsed_from if date_from else today - timedelta(days=29)
+        timeline_end = parsed_to if date_to else today
+    else:
+        timeline_start = today - timedelta(days=29)
+        timeline_end = today
 
     timeline = []
-    for i in range(29, -1, -1):
-        day = today - timedelta(days=i)
-        day_qs = base_qs.filter(created_at__date=day)
+    day = timeline_end
+    while day >= timeline_start:
+        day_qs = AiInteraction.objects.filter(created_at__date=day)
+        if not include_background:
+            day_qs = day_qs.filter(is_background=False)
         total_day = day_qs.count()
+        if total_day == 0:
+            day -= timedelta(days=1)
+            continue
+        day_agg = day_qs.aggregate(
+            day_cost=models.Sum("cost_eur"),
+            day_tokens=models.Sum("total_tokens"),
+        )
         thumbs_up_day = day_qs.filter(vote="up").count()
         thumbs_down_day = day_qs.filter(vote="down").count()
-        if total_day or thumbs_up_day or thumbs_down_day:
-            timeline.append(
-                {
-                    "date": day.isoformat(),
-                    "total": total_day,
-                    "thumbs_up": thumbs_up_day,
-                    "thumbs_down": thumbs_down_day,
-                }
-            )
+        timeline.append(
+            {
+                "date": day.isoformat(),
+                "total": total_day,
+                "thumbs_up": thumbs_up_day,
+                "thumbs_down": thumbs_down_day,
+                "total_cost_eur": float(day_agg["day_cost"] or 0),
+                "total_tokens": day_agg["day_tokens"] or 0,
+            }
+        )
+        day -= timedelta(days=1)
 
     return {
         "total_calls": total_calls,
@@ -508,6 +540,72 @@ def admin_ai_interactions_list(request, page: int = 1, page_size: int = 20, cont
 
 
 @router.get(
+    "/admin/ai-interactions/user-costs/",
+    url_name="content_admin_ai_interactions_user_costs",
+)
+def admin_ai_interactions_user_costs(request, date_from: str = "", date_to: str = ""):
+    """Per-user cost aggregation (admin only)."""
+    _require_admin(request)
+
+    from datetime import date
+
+    from django.utils import timezone
+
+    from content.models import AiInteraction
+
+    include_background = request.GET.get("include_background", "").lower() == "true"
+    thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+
+    base_qs = AiInteraction.objects.filter(user__isnull=False)
+    if not include_background:
+        base_qs = base_qs.filter(is_background=False)
+
+    if date_from:
+        try:
+            parsed_from = date.fromisoformat(date_from)
+        except (ValueError, TypeError):
+            raise HttpError(400, f"Ungültiges Datum für date_from: {date_from}. Erwartet: YYYY-MM-DD.")
+        base_qs = base_qs.filter(created_at__date__gte=parsed_from)
+    if date_to:
+        try:
+            parsed_to = date.fromisoformat(date_to)
+        except (ValueError, TypeError):
+            raise HttpError(400, f"Ungültiges Datum für date_to: {date_to}. Erwartet: YYYY-MM-DD.")
+        base_qs = base_qs.filter(created_at__date__lte=parsed_to)
+
+    users_agg = base_qs.values("user_id", "user__username").annotate(
+        total_calls=models.Count("id"),
+        total_tokens=models.Sum("total_tokens"),
+        total_cost_eur=models.Sum("cost_eur"),
+    ).order_by("-total_cost_eur")
+
+    result = []
+    for row in users_agg:
+        cost_30d = (
+            AiInteraction.objects.filter(
+                user_id=row["user_id"],
+                created_at__gte=thirty_days_ago,
+            )
+            .exclude(is_background=True)
+            .aggregate(cost=models.Sum("cost_eur"))["cost"]
+        )
+        voted = base_qs.filter(user_id=row["user_id"], vote__isnull=False).count()
+        vote_rate = round(voted / row["total_calls"] * 100, 1) if row["total_calls"] else 0
+
+        result.append({
+            "user_id": row["user_id"],
+            "user_name": row["user__username"],
+            "total_calls": row["total_calls"],
+            "total_tokens": row["total_tokens"] or 0,
+            "total_cost_eur": float(row["total_cost_eur"] or 0),
+            "cost_30d_eur": float(cost_30d or 0),
+            "vote_rate": vote_rate,
+        })
+
+    return result
+
+
+@router.get(
     "/admin/ai-interactions/{interaction_id}/",
     url_name="content_admin_ai_interactions_detail",
 )
@@ -547,45 +645,33 @@ def admin_ai_interactions_detail(request, interaction_id: str):
     }
 
 
+# ---------------------------------------------------------------------------
+# Gemini Pricing Endpoint
+# ---------------------------------------------------------------------------
+
+
 @router.get(
-    "/admin/ai-interactions/user-costs/",
-    url_name="content_admin_ai_interactions_user_costs",
+    "/admin/ai-pricing/",
+    response=GeminiPricingOut,
+    url_name="content_admin_ai_pricing",
 )
-def admin_ai_interactions_user_costs(request):
-    """Per-user cost aggregation (admin only)."""
+def admin_ai_pricing(request):
+    """Current Gemini pricing configuration (admin only)."""
     _require_admin(request)
 
-    from django.utils import timezone
+    from django.conf import settings
 
-    from content.models import AiInteraction
-
-    thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
-
-    base_qs = AiInteraction.objects.filter(is_background=False, user__isnull=False)
-
-    users_agg = base_qs.values("user_id", "user__username").annotate(
-        total_calls=models.Count("id"),
-        total_tokens=models.Sum("total_tokens"),
-        total_cost_eur=models.Sum("cost_eur"),
-    ).order_by("-total_cost_eur")
-
-    result = []
-    for row in users_agg:
-        cost_30d = (
-            base_qs.filter(user_id=row["user_id"], created_at__gte=thirty_days_ago)
-            .aggregate(cost=models.Sum("cost_eur"))["cost"]
-        )
-        voted = base_qs.filter(user_id=row["user_id"], vote__isnull=False).count()
-        vote_rate = round(voted / row["total_calls"] * 100, 1) if row["total_calls"] else 0
-
-        result.append({
-            "user_id": row["user_id"],
-            "user_name": row["user__username"],
-            "total_calls": row["total_calls"],
-            "total_tokens": row["total_tokens"] or 0,
-            "total_cost_eur": float(row["total_cost_eur"] or 0),
-            "cost_30d_eur": float(cost_30d or 0),
-            "vote_rate": vote_rate,
+    pricing_entries = []
+    for model, config in getattr(settings, "GEMINI_PRICING", {}).items():
+        pricing_entries.append({
+            "model": model,
+            "type": config.get("type", ""),
+            "input_per_1m_usd": config.get("input_per_1m_usd", 0),
+            "output_per_1m_usd": config.get("output_per_1m_usd"),
+            "image_output_per_1m_usd": config.get("image_output_per_1m_usd"),
         })
 
-    return result
+    return {
+        "pricing": pricing_entries,
+        "usd_to_eur": float(getattr(settings, "USD_TO_EUR", 0.92)),
+    }

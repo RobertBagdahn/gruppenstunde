@@ -29,6 +29,8 @@ export const AiTimelineEntrySchema = z.object({
   total: z.number(),
   thumbs_up: z.number(),
   thumbs_down: z.number(),
+  total_cost_eur: z.number(),
+  total_tokens: z.number(),
 });
 export type AiTimelineEntry = z.infer<typeof AiTimelineEntrySchema>;
 
@@ -85,3 +87,18 @@ export const PaginatedAiInteractionsSchema = z.object({
   total_pages: z.number(),
 });
 export type PaginatedAiInteractions = z.infer<typeof PaginatedAiInteractionsSchema>;
+
+export const GeminiPricingEntrySchema = z.object({
+  model: z.string(),
+  type: z.string(),
+  input_per_1m_usd: z.number(),
+  output_per_1m_usd: z.number().nullable(),
+  image_output_per_1m_usd: z.number().nullable(),
+});
+export type GeminiPricingEntry = z.infer<typeof GeminiPricingEntrySchema>;
+
+export const GeminiPricingSchema = z.object({
+  pricing: z.array(GeminiPricingEntrySchema),
+  usd_to_eur: z.number(),
+});
+export type GeminiPricing = z.infer<typeof GeminiPricingSchema>;

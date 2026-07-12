@@ -30,6 +30,8 @@ class AiTimelineEntryOut(Schema):
     total: int
     thumbs_up: int
     thumbs_down: int
+    total_cost_eur: float = 0
+    total_tokens: int = 0
 
 
 class AiInteractionStatsOut(Schema):
@@ -74,3 +76,16 @@ class UserCostOut(Schema):
     total_cost_eur: float
     cost_30d_eur: float
     vote_rate: float
+
+
+class GeminiPricingEntryOut(Schema):
+    model: str
+    type: str
+    input_per_1m_usd: float
+    output_per_1m_usd: float | None = None
+    image_output_per_1m_usd: float | None = None
+
+
+class GeminiPricingOut(Schema):
+    pricing: list[GeminiPricingEntryOut]
+    usd_to_eur: float

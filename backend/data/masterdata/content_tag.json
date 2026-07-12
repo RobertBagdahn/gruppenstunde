@@ -1,203 +1,77 @@
 [
 {
   "model": "content.tag",
-  "pk": 57,
+  "pk": "04fde434-cce8-4a30-a169-a2b3a4ffc22b",
   "fields": {
     "name": "Kochen",
     "slug": "kochen",
     "parent": null,
-    "icon": "restaurant",
+    "icon": "",
     "group": "general",
-    "sort_order": 1,
+    "sort_order": 0,
     "is_approved": true,
-    "embedding": null
+    "description": ""
   }
 },
 {
   "model": "content.tag",
-  "pk": 58,
+  "pk": "058e7081-bb7d-4412-a67c-a828052c3910",
+  "fields": {
+    "name": "Abendessen",
+    "slug": "abendessen",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "10145bcd-cb30-410d-8d9c-d2046234f09d",
   "fields": {
     "name": "Anlass",
     "slug": "anlass",
     "parent": null,
-    "icon": "calendar_month",
-    "group": "general",
-    "sort_order": 2,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 59,
-  "fields": {
-    "name": "Ernährung",
-    "slug": "ernaehrung",
-    "parent": null,
-    "icon": "favorite",
-    "group": "general",
-    "sort_order": 3,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 60,
-  "fields": {
-    "name": "Lagerfeuer",
-    "slug": "lagerfeuer",
-    "parent": 57,
     "icon": "",
     "group": "general",
-    "sort_order": 1,
+    "sort_order": 0,
     "is_approved": true,
-    "embedding": null
+    "description": ""
   }
 },
 {
   "model": "content.tag",
-  "pk": 61,
-  "fields": {
-    "name": "Wanderproviant",
-    "slug": "wanderproviant",
-    "parent": 57,
-    "icon": "",
-    "group": "general",
-    "sort_order": 2,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 62,
-  "fields": {
-    "name": "Gruppenkochen",
-    "slug": "gruppenkochen",
-    "parent": 57,
-    "icon": "",
-    "group": "general",
-    "sort_order": 3,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 63,
+  "pk": "179c13fc-33c2-4da4-8215-59f820bff03b",
   "fields": {
     "name": "Schnell & Einfach",
     "slug": "schnell-einfach",
-    "parent": 57,
+    "parent": null,
     "icon": "",
     "group": "general",
-    "sort_order": 4,
+    "sort_order": 0,
     "is_approved": true,
-    "embedding": null
+    "description": ""
   }
 },
 {
   "model": "content.tag",
-  "pk": 64,
-  "fields": {
-    "name": "Frühstück",
-    "slug": "fruehstueck",
-    "parent": 58,
-    "icon": "",
-    "group": "general",
-    "sort_order": 1,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 65,
-  "fields": {
-    "name": "Mittagessen",
-    "slug": "mittagessen",
-    "parent": 58,
-    "icon": "",
-    "group": "general",
-    "sort_order": 2,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 66,
-  "fields": {
-    "name": "Abendessen",
-    "slug": "abendessen",
-    "parent": 58,
-    "icon": "",
-    "group": "general",
-    "sort_order": 3,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 67,
-  "fields": {
-    "name": "Dessert & Snack",
-    "slug": "dessert-snack",
-    "parent": 58,
-    "icon": "",
-    "group": "general",
-    "sort_order": 4,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 68,
-  "fields": {
-    "name": "Gesund",
-    "slug": "gesund",
-    "parent": 59,
-    "icon": "",
-    "group": "general",
-    "sort_order": 1,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 69,
+  "pk": "1be96ad1-7e2b-4c71-a26b-1899f900dce9",
   "fields": {
     "name": "Vegetarisch",
     "slug": "vegetarisch",
-    "parent": 59,
+    "parent": null,
     "icon": "",
     "group": "general",
-    "sort_order": 2,
+    "sort_order": 0,
     "is_approved": true,
-    "embedding": null
+    "description": ""
   }
 },
 {
   "model": "content.tag",
-  "pk": 70,
-  "fields": {
-    "name": "Vegan",
-    "slug": "vegan",
-    "parent": 59,
-    "icon": "",
-    "group": "general",
-    "sort_order": 3,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 71,
+  "pk": "47d6e509-8d2e-40be-bd41-06e27c512e93",
   "fields": {
     "name": "breakfast-base",
     "slug": "breakfast-base",
@@ -206,26 +80,12 @@
     "group": "general",
     "sort_order": 0,
     "is_approved": true,
-    "embedding": null
+    "description": ""
   }
 },
 {
   "model": "content.tag",
-  "pk": 72,
-  "fields": {
-    "name": "breakfast-topping",
-    "slug": "breakfast-topping",
-    "parent": null,
-    "icon": "",
-    "group": "general",
-    "sort_order": 0,
-    "is_approved": true,
-    "embedding": null
-  }
-},
-{
-  "model": "content.tag",
-  "pk": 73,
+  "pk": "5d8d80c9-223d-4a0e-a2e0-8a5a7157d858",
   "fields": {
     "name": "breakfast-drink",
     "slug": "breakfast-drink",
@@ -234,12 +94,110 @@
     "group": "general",
     "sort_order": 0,
     "is_approved": true,
-    "embedding": null
+    "description": ""
   }
 },
 {
   "model": "content.tag",
-  "pk": 74,
+  "pk": "5e9f07da-a5fd-4813-b711-cf24b0a694a3",
+  "fields": {
+    "name": "Mittagessen",
+    "slug": "mittagessen",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "61b1786b-394b-4497-a606-a5fe1a5bc141",
+  "fields": {
+    "name": "breakfast-topping",
+    "slug": "breakfast-topping",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "7ad90a80-c825-4711-ad56-e260a577339c",
+  "fields": {
+    "name": "Frühstück",
+    "slug": "fruehstueck",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "83ac04c5-9efc-4940-b4f6-f7a9ebcb5141",
+  "fields": {
+    "name": "Dessert & Snack",
+    "slug": "dessert-snack",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "9bf8eeee-361c-459b-8fee-ae913e6d02b2",
+  "fields": {
+    "name": "Wanderproviant",
+    "slug": "wanderproviant",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "b15c5e14-4107-4124-86e3-43b83dc0977f",
+  "fields": {
+    "name": "Gruppenkochen",
+    "slug": "gruppenkochen",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "c6f532cc-f299-4861-ac6b-dc777c548eba",
+  "fields": {
+    "name": "Lagerfeuer",
+    "slug": "lagerfeuer",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "cd65c5f2-0c1d-4667-aaec-6da77d646823",
   "fields": {
     "name": "breakfast-warm-meal",
     "slug": "breakfast-warm-meal",
@@ -248,7 +206,49 @@
     "group": "general",
     "sort_order": 0,
     "is_approved": true,
-    "embedding": null
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "d3254aed-de2b-48b8-8b80-214eefe70e9e",
+  "fields": {
+    "name": "Gesund",
+    "slug": "gesund",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "d38387fd-f43e-42bd-8fd6-eaacd0d94af8",
+  "fields": {
+    "name": "Vegan",
+    "slug": "vegan",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
+  }
+},
+{
+  "model": "content.tag",
+  "pk": "de8c5ef2-e698-4519-9463-8584ea209fe9",
+  "fields": {
+    "name": "Ernährung",
+    "slug": "ernaehrung",
+    "parent": null,
+    "icon": "",
+    "group": "general",
+    "sort_order": 0,
+    "is_approved": true,
+    "description": ""
   }
 }
 ]
