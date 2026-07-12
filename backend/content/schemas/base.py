@@ -8,6 +8,7 @@ via imports like ``from content.schemas import ContentListOut``.
 from datetime import date, datetime
 
 from ninja import Schema
+from pydantic import field_validator
 
 # ---------------------------------------------------------------------------
 # Shared Sub-Schemas (Tag, ScoutLevel, Author)
@@ -28,6 +29,11 @@ class TagOut(Schema):
     description: str = ""
     children: list["TagOut"] = []
 
+    @field_validator("id", "parent_id", mode="before")
+    @classmethod
+    def _coerce_uuid_to_str(cls, value: object) -> object:
+        return str(value) if value is not None else None
+
     class Config:
         from_attributes = True
 
@@ -43,6 +49,11 @@ class TagTreeOut(Schema):
     sort_order: int
     parent_id: str | None
     content_count: int = 0
+
+    @field_validator("id", "parent_id", mode="before")
+    @classmethod
+    def _coerce_uuid_to_str(cls, value: object) -> object:
+        return str(value) if value is not None else None
 
 
 class TagSuggestIn(Schema):
@@ -76,6 +87,11 @@ class TagAdminOut(Schema):
     group: str
     sort_order: int
     is_approved: bool
+
+    @field_validator("id", "parent_id", mode="before")
+    @classmethod
+    def _coerce_uuid_to_str(cls, value: object) -> object:
+        return str(value) if value is not None else None
 
     class Config:
         from_attributes = True
