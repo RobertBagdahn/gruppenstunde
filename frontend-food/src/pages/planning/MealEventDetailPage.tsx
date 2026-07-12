@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, NavLink } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { toast } from 'sonner';
 import {
@@ -15,7 +15,6 @@ import {
   Sparkles,
   Settings,
   Grid3X3,
-  Scale,
   DollarSign,
   Lightbulb,
   ShieldAlert,
@@ -40,11 +39,10 @@ import { MEAL_TYPE_ORDER, minutesToHHMM, getMealDefaultTimes } from '@/schemas/m
 import type { Meal } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { SuggestionDashboard } from '@/components/suggestions';
 import TableView from './TableView';
 import CostDashboard from './CostDashboard';
 import SettingsPanel from './SettingsPanel';
-import NutritionView from './NutritionView';
+import SuggestionsView from './SuggestionsView';
 import ShoppingView from './ShoppingView';
 import { DayPlanView } from './DayPlanView';
 import { CopyFromPlanDialog } from './CopyFromPlanDialog';
@@ -99,8 +97,9 @@ export default function MealPlanDetailPage() {
   const scaleMealMutation = useScaleMealToTarget(mealPlanId);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const TAB_KEYS = ['plan', 'table', 'cooking-schedule', 'nutrition', 'costs', 'shopping', 'suggestions', 'ingredient-scan'] as const;
+  const TAB_KEYS = ['plan', 'table', 'cooking-schedule', 'costs', 'shopping', 'suggestions', 'ingredient-scan'] as const;
   type TabKey = typeof TAB_KEYS[number];
 
   const tabPath = useParams()['*'] || '';
@@ -108,6 +107,9 @@ export default function MealPlanDetailPage() {
   useEffect(() => {
     if (!tabPath) {
       navigate(`/meal-plans/${mealPlanId}/plan`, { replace: true });
+    } else if (tabPath === 'nutrition') {
+      // Legacy route: nutrition was merged into the suggestions tab
+      navigate(`/meal-plans/${mealPlanId}/suggestions`, { replace: true });
     }
   }, [tabPath, navigate, mealPlanId]);
 
@@ -150,6 +152,16 @@ export default function MealPlanDetailPage() {
       navigate(`/meal-plans/${mealPlanId}/plan`, { replace: true });
     }
   }, [activeTab, plan?.nutritional_tag_ids, navigate, mealPlanId]);
+
+  // Scroll to the day/meal anchor referenced by the URL hash (e.g. coming from a suggestion card)
+  useEffect(() => {
+    if (activeTab !== 'plan' || !location.hash || !plan) return;
+    const id = location.hash.slice(1);
+    const t = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [activeTab, location.hash, plan]);
 
   const handleUpdateItemFactor = useCallback((itemId: number, factor: number) => {
     updateMealItemMutation.mutate(
@@ -305,7 +317,6 @@ export default function MealPlanDetailPage() {
     plan: Calendar,
     table: Grid3X3,
     'cooking-schedule': ChefHat,
-    nutrition: Scale,
     costs: DollarSign,
     shopping: ShoppingCart,
     suggestions: Lightbulb,
@@ -430,10 +441,9 @@ export default function MealPlanDetailPage() {
           { key: 'plan' as const, label: 'Tagesplan' },
           { key: 'table' as const, label: 'Tabelle' },
           { key: 'cooking-schedule' as const, label: 'Kochplan' },
-          { key: 'nutrition' as const, label: 'Nährwerte' },
           { key: 'costs' as const, label: 'Kosten' },
           { key: 'shopping' as const, label: 'Einkaufsliste' },
-          { key: 'suggestions' as const, label: 'Vorschläge' },
+          { key: 'suggestions' as const, label: 'Vorschläge & Nährwerte' },
           { key: 'ingredient-scan' as const, label: 'Zutaten-Radar' },
         ] as const).filter(tab => tab.key !== 'ingredient-scan' || (plan.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)).map((tab) => {
           const IconComponent = TAB_ICONS[tab.key];
@@ -484,7 +494,6 @@ export default function MealPlanDetailPage() {
           nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
         />
       )}
-      {activeTab === 'nutrition' && <NutritionView mealPlanId={mealPlanId} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
       {activeTab === 'table' && (
         <TableView
           meals={plan.meals}
@@ -508,7 +517,7 @@ export default function MealPlanDetailPage() {
       {activeTab === 'cooking-schedule' && <CookingScheduleTab mealPlanId={mealPlanId} />}
        {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
       {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
-      {activeTab === 'suggestions' && <SuggestionDashboard mealPlanId={mealPlanId} />}
+      {activeTab === 'suggestions' && <SuggestionsView mealPlanId={mealPlanId} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
       {activeTab === 'ingredient-scan' && (
         <IngredientScanView
           mealPlanId={mealPlanId}

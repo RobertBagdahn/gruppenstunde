@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MEAL_TYPE_LABELS } from "@/schemas/mealPlan";
 
 export const RuleSchema = z.object({
   id: z.number(),
@@ -80,6 +81,25 @@ export const SuggestionDashboardSchema = z.object({
 });
 
 export type SuggestionDashboard = z.infer<typeof SuggestionDashboardSchema>;
+
+/** Extracts the day number (1-based) from a scope_label like "Tag 2: Energie" or "Tag 3 Mittagessen". */
+export function getSuggestionDayNumber(suggestion: Suggestion): number | null {
+  const match = suggestion.scope_label.match(/^Tag (\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Extracts the meal_type (e.g. "lunch") from a scope_label like "Tag 2 Mittagessen"
+ * or "Tag 2 Mittagessen: Energie". Returns null for day-/event-scoped labels
+ * such as "Tag 2: Energie" or "Gesamt: Energie".
+ */
+export function getSuggestionMealType(suggestion: Suggestion): string | null {
+  const match = suggestion.scope_label.match(/^Tag \d+ ([^:]+)/);
+  if (!match) return null;
+  const label = match[1].trim();
+  const entry = Object.entries(MEAL_TYPE_LABELS).find(([, l]) => l === label);
+  return entry ? entry[0] : null;
+}
 
 export const SUGGESTION_STATUS_COLORS = {
   green: "text-green-600",

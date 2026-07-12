@@ -102,31 +102,32 @@ export default function SollIstBar({
       </div>
 
       <div className="relative h-2.5 w-full bg-muted rounded-full overflow-hidden">
-        {/* Underlay representing the target green zone */}
+        {/* Current status value bar fill */}
+        <div
+          className={cn("absolute top-0 bottom-0 rounded-full transition-all duration-300", activeColor.bar)}
+          style={{ width: `${currentPct}%` }}
+        />
+
+        {/* Target green zone — rendered on top so the Soll-range stays visible even when the Ist-bar covers it */}
         {maxGreenPct !== null && (
           <div
-            className="absolute top-0 bottom-0 bg-primary/20 opacity-70"
+            className="absolute top-0 bottom-0 z-10 bg-primary/40 border-x-2 border-primary/70 pointer-events-none"
             style={{
               left: `${minGreenPct ?? 0}%`,
-              width: `${maxGreenPct - (minGreenPct ?? 0)}%`,
+              width: `${Math.max(maxGreenPct - (minGreenPct ?? 0), 1.5)}%`,
             }}
+            title={`Zielbereich: ${formatVal(min_green ?? 0)} – ${formatVal(max_green ?? 0)}`}
           />
         )}
 
         {/* Ideal center/midpoint indicator */}
         {targetMidPct !== null && (
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-muted-foreground/50 z-10 opacity-80"
+            className="absolute top-0 bottom-0 w-0.5 bg-foreground/60 z-20 opacity-90"
             style={{ left: `${targetMidPct}%` }}
             title="Zielwert"
           />
         )}
-
-        {/* Current status value bar fill */}
-        <div
-          className={cn("absolute top-0 bottom-0 rounded-full transition-all duration-300", activeColor.bar)}
-          style={{ width: `${currentPct}%` }}
-        />
       </div>
     </div>
   );

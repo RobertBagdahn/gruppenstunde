@@ -24,6 +24,35 @@ logger = logging.getLogger(__name__)
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 
+# The AI schemas below prompt Gemini with a free-text recipe-type vocabulary
+# ('main', 'side', 'soup', ...) that does not match `supply.choices.RecipeTypeChoices`
+# ('warm_meal', 'recipe_part', ...). Map AI output to a valid choice before saving,
+# otherwise the stored recipe_type is invalid and things like the type-stats
+# endpoint (GET /api/recipes/type-stats/{recipe_type}/) 404 forever.
+RECIPE_TYPE_MAPPING = {
+    "main": "warm_meal",
+    "side": "recipe_part",
+    "soup": "warm_meal",
+    "salad": "cold_meal",
+    "baking": "dessert",
+    "dessert": "dessert",
+    "snack": "snack",
+    "drink": "drink",
+    "breakfast": "breakfast",
+}
+RECIPE_TYPE_FALLBACK = "warm_meal"
+
+
+def _map_recipe_type(value: str | None) -> str | None:
+    """Map an AI-suggested recipe_type string to a valid RecipeTypeChoices value.
+
+    Returns None if `value` is None (so optional-suggestion callers can keep
+    treating "no suggestion" as None), otherwise always a valid choice.
+    """
+    if value is None:
+        return None
+    return RECIPE_TYPE_MAPPING.get(value.lower(), RECIPE_TYPE_FALLBACK)
+
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas for structured output
@@ -130,7 +159,9 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
         return {}
 
     result = RecipeSuggestAllSchema.model_validate_json(response.text)
-    return result.model_dump()
+    suggestion = result.model_dump()
+    suggestion["recipe_type"] = _map_recipe_type(suggestion.get("recipe_type"))
+    return suggestion
 
 
 def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recipe:
@@ -184,7 +215,7 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         difficulty=data.difficulty,
         execution_time=execution_time,
         portions=data.portions,
-        recipe_type=data.recipe_type,
+        recipe_type=_map_recipe_type(data.recipe_type),
         status="draft",
         owner=user if user and user.is_authenticated else None,
         created_by=user if user and user.is_authenticated else None,

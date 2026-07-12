@@ -119,7 +119,7 @@ export function DayPlanView({
           const dayTargetCost = budgetPerPersonPerDay ? group.meals.reduce((sum, m) => sum + budgetPerPersonPerDay * m.day_part_factor, 0) : 0;
 
           return (
-            <div key={group.date} className="rounded-2xl border bg-card overflow-hidden shadow-sm">
+            <div key={group.date} id={`day-${group.date}`} className="rounded-2xl border bg-card overflow-hidden shadow-sm scroll-mt-24">
               {/* Day Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 bg-primary/5 border-b gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
@@ -168,25 +168,26 @@ export function DayPlanView({
               {/* Meals */}
               <div className="divide-y">
                 {group.meals.map((meal) => (
-                  <MealSlot
-                    key={meal.id}
-                    meal={meal}
-                    canEdit={canEdit}
-                    normPortions={normPortions}
-                    budgetPerPersonPerDay={budgetPerPersonPerDay}
-                    siblingMeals={group.meals}
-                    onDeleteMeal={onDeleteMeal}
-                    onAddRecipe={onAddRecipe}
-                    onAddIngredient={onAddIngredient}
-                    onDeleteItem={onDeleteItem}
-                    onUpdateItemFactor={onUpdateItemFactor}
-                    onUpdateItemQuantity={onUpdateItemQuantity}
-                    onUpdateMeal={onUpdateMeal}
-                    onScaleMeal={onScaleMeal}
-                    onCopyFromPlan={onCopyFromPlan}
-                    nutritionalTagIds={nutritionalTagIds}
-                    nutritionalTagNames={nutritionalTagNames}
-                  />
+                  <div key={meal.id} id={`meal-${group.date}-${meal.meal_type}`} className="scroll-mt-24">
+                    <MealSlot
+                      meal={meal}
+                      canEdit={canEdit}
+                      normPortions={normPortions}
+                      budgetPerPersonPerDay={budgetPerPersonPerDay}
+                      siblingMeals={group.meals}
+                      onDeleteMeal={onDeleteMeal}
+                      onAddRecipe={onAddRecipe}
+                      onAddIngredient={onAddIngredient}
+                      onDeleteItem={onDeleteItem}
+                      onUpdateItemFactor={onUpdateItemFactor}
+                      onUpdateItemQuantity={onUpdateItemQuantity}
+                      onUpdateMeal={onUpdateMeal}
+                      onScaleMeal={onScaleMeal}
+                      onCopyFromPlan={onCopyFromPlan}
+                      nutritionalTagIds={nutritionalTagIds}
+                      nutritionalTagNames={nutritionalTagNames}
+                    />
+                  </div>
                 ))}
               </div>
 

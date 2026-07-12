@@ -1,10 +1,16 @@
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Suggestion } from '@/schemas/suggestions';
 import SollIstBar from '../shared/SollIstBar';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Plus, Scale, ChefHat } from 'lucide-react';
 
 interface SuggestionCardProps {
   suggestion: Suggestion;
+  mealPlanId?: number;
+  /** Anchor id (e.g. "meal-2026-07-12-lunch" or "day-2026-07-12") to jump directly to the right spot in the Tagesplan. */
+  planAnchor?: string;
+  /** Navigate to another tab within the same meal plan (e.g. to add/scale a recipe). */
+  onSelectTab?: (tab: 'plan' | 'table') => void;
 }
 
 function getUnitForSuggestion(suggestion: Suggestion): string {
@@ -50,7 +56,7 @@ function getScopeBadgeConfig(suggestion: Suggestion): { text: string; color: str
   return scopeBadgeConfig[suggestion.scope] || null;
 }
 
-export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
+export default function SuggestionCard({ suggestion, mealPlanId, planAnchor, onSelectTab }: SuggestionCardProps) {
   const hasSollIst =
     suggestion.current_value !== null &&
     (suggestion.min_green !== null ||
@@ -59,6 +65,20 @@ export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
 
   const style = suggestionStyles[suggestion.status];
   const scopeBadge = getScopeBadgeConfig(suggestion);
+
+  const isEmptyMeal = suggestion.category === 'completeness' && suggestion.status === 'red';
+  const isTooHigh =
+    suggestion.category === 'nutrition' &&
+    suggestion.status !== 'green' &&
+    suggestion.current_value !== null &&
+    suggestion.target_mid !== null &&
+    suggestion.current_value > suggestion.target_mid;
+  const isBreakfast = /frühstück/i.test(suggestion.scope_label) || /frühstück/i.test(suggestion.message);
+
+  const showAddRecipe = isEmptyMeal && (!!onSelectTab || (!!mealPlanId && !!planAnchor));
+  const showScaleDown = isTooHigh && !!onSelectTab && !isEmptyMeal;
+  const showBreakfastWizard = isBreakfast && !!mealPlanId;
+  const hasActions = showAddRecipe || showScaleDown || showBreakfastWizard;
 
   return (
     <Card className={`${style.card} shadow-sm rounded-xl overflow-hidden`}>
@@ -109,6 +129,50 @@ export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
                     <ArrowUpRight className="w-3.5 h-3.5 opacity-60 shrink-0" />
                   </a>
                 ))}
+              </div>
+            )}
+
+            {hasActions && (
+              <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap gap-2">
+                {showAddRecipe && (
+                  mealPlanId && planAnchor ? (
+                    <Link
+                      to={`/meal-plans/${mealPlanId}/plan#${planAnchor}`}
+                      className="text-xs bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
+                      Rezept hinzufügen
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onSelectTab?.('plan')}
+                      className="text-xs bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
+                      Rezept hinzufügen
+                    </button>
+                  )
+                )}
+                {showScaleDown && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectTab?.('table')}
+                    className="text-xs bg-card/80 dark:bg-zinc-800/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all shadow-sm"
+                  >
+                    <Scale className="w-3.5 h-3.5 shrink-0" />
+                    Portion skalieren
+                  </button>
+                )}
+                {showBreakfastWizard && (
+                  <a
+                    href={`/meal-plans/${mealPlanId}/ref-meals/breakfast/wizard`}
+                    className="text-xs bg-card/80 dark:bg-zinc-800/80 hover:bg-card border border-border text-foreground hover:text-primary rounded-lg px-2.5 py-1.5 font-semibold inline-flex items-center gap-1 transition-all shadow-sm"
+                  >
+                    <ChefHat className="w-3.5 h-3.5 shrink-0" />
+                    Frühstücks-Assistent
+                  </a>
+                )}
               </div>
             )}
           </div>

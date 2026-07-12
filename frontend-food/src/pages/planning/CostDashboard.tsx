@@ -11,7 +11,7 @@ interface CostDashboardProps {
   mealPlanId: number;
   budgetPerPersonPerDay?: number | null;
   meals?: Meal[];
-  onSelectTab?: (tab: 'plan' | 'schedule' | 'table' | 'nutrition' | 'costs' | 'shopping' | 'suggestions' | 'ingredient-scan') => void;
+  onSelectTab?: (tab: 'plan' | 'schedule' | 'table' | 'costs' | 'shopping' | 'suggestions' | 'ingredient-scan') => void;
 }
 
 function formatEur(value: number): string {
