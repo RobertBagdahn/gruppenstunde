@@ -42,3 +42,6 @@ pgdata/
 
 # GCP
 cloud-sql-proxy
+
+# sql dump
+*.sql
