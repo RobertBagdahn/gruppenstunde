@@ -10,3 +10,4 @@ node_modules/
 .env*
 docker-compose.yml
 backend/data/
+*.sql

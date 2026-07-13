@@ -191,7 +191,7 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     - Authenticated: system items + own items + items shared with user's groups
     """
     from supply.models import MeasuringUnit
-    from profiles.models import Group
+    from profiles.models import UserGroup
     from django.db.models import Q
 
     def _get_visible_ingredients(tag_filters: Q | None = None) -> list[dict]:
@@ -209,7 +209,7 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
             base_qs = base_qs.filter(owner__isnull=True, status="approved")
         else:
             # Authenticated: system + own + shared items
-            user_groups = Group.objects.filter(members=request.user)
+            user_groups = UserGroup.objects.filter(memberships__user=request.user)
             system_q = Q(owner__isnull=True, status="approved")
             own_q = Q(owner=request.user)
             shared_q = Q(visibility="shared", shared_groups__in=user_groups)

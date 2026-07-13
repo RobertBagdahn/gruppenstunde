@@ -23,8 +23,8 @@ export interface FormattedQuantity {
 /**
  * Smart rounding based on quantity magnitude.
  * - Under 1: round to nearest 0.1 (minimum 0.1 for positive values)
- * - 1-10: round to nearest 1
- * - 10-100: round to nearest 5
+ * - 1-50: round to nearest 1
+ * - 50-100: round to nearest 5
  * - 100-999: round to nearest 10
  * - 1000+: round to nearest 50
  */
@@ -34,7 +34,7 @@ function smartRound(value: number): number {
     const rounded = Math.round(value * 10) / 10;
     return rounded > 0 ? rounded : 0.1;
   }
-  if (value < 10) {
+  if (value < 50) {
     return Math.round(value);
   }
   if (value < 100) {

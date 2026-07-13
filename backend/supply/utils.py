@@ -14,8 +14,8 @@ def format_weight(grams: float) -> str:
 
     Tiers:
         < 1g    → mg  (e.g. 300mg)
-        1–9g    → 1g steps (e.g. 4g)
-        10–99g  → 5g steps (e.g. 45g)
+        1–49g   → 1g steps (e.g. 12g)
+        50–99g  → 5g steps (e.g. 55g)
         100–999g → 10g steps (e.g. 150g)
         ≥ 1000g → kg with 1 decimal, comma separator (e.g. 1,5 kg)
     """
@@ -32,7 +32,7 @@ def format_weight(grams: float) -> str:
         # Use conventional rounding (0.5 rounds up), not Python's banker's rounding
         rounded = math.floor(grams / 10 + 0.5) * 10
         return f"{int(rounded)}g"
-    if grams >= 10:
+    if grams >= 50:
         rounded = math.floor(grams / 5 + 0.5) * 5
         return f"{int(rounded)}g"
     return f"{round(grams)}g"

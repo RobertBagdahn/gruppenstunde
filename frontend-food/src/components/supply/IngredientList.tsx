@@ -182,8 +182,11 @@ export default function IngredientList({
 
           // When the portion subline uses a non-gram unit (e.g. Stück, Wrap, EL),
           // additionally show the gram weight per unit so the quantity stays comparable.
-          const isGramUnit = highPrioUnitName === 'g' || highPrioUnitName === 'kg'
-            || highPrioUnitName === 'ml' || highPrioUnitName === 'l';
+          // gramDisplay is only useful when the portion name is a non-numeric
+          // unit (e.g. "Tasse", "EL"). For numeric unit portions (e.g. "100 ml",
+          // "200g"), gramDisplay would just repeat the same unit → skip it.
+          const portionIsNumericUnit = /^\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l)\b/i.test(highPrioPortion?.name ?? '');
+          const isGramUnit = GRAM_UNIT_NAMES.has(highPrioUnitName ?? '') || portionIsNumericUnit;
           const gramDisplay = highPrioDisplay && !isGramUnit && highPrioPortion?.weight_g
             ? formatQuantity(highPrioPortion.weight_g, item.ingredient_viscosity, item.ingredient_density).display
             : null;

@@ -3,8 +3,8 @@
  *
  * Tiers (mirrors backend supply.utils.format_weight):
  * - < 1g    → mg  (e.g. "300 mg")
- * - 1–9g    → 1g steps (e.g. "4 g")
- * - 10–99g  → 5g steps (e.g. "45 g")
+ * - 1–49g   → 1g steps (e.g. "12 g")
+ * - 50–99g  → 5g steps (e.g. "55 g")
  * - 100–999g → 10g steps (e.g. "150 g")
  * - >= 1000g → kg with 1 decimal, German comma (e.g. "1,5 kg")
  */
@@ -23,7 +23,7 @@ export function formatWeight(grams: number): string {
     const rounded = Math.round(grams / 10) * 10;
     return `${rounded} g`;
   }
-  if (grams >= 10) {
+  if (grams >= 50) {
     const rounded = Math.round(grams / 5) * 5;
     return `${rounded} g`;
   }

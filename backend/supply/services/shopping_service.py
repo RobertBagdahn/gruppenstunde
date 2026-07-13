@@ -329,7 +329,7 @@ def _format_weight(weight_g: float) -> str:
     if weight_g >= 100:
         rounded = round(weight_g / 10) * 10
         return f"{int(rounded)} g"
-    if weight_g >= 10:
+    if weight_g >= 50:
         rounded = round(weight_g / 5) * 5
         return f"{int(rounded)} g"
     if weight_g >= 1:

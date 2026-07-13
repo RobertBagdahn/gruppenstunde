@@ -32,10 +32,14 @@ class TestFormatWeight:
         assert format_weight(1.1) == "1g"
         assert format_weight(8.9) == "9g"
 
-    def test_10_to_99g_rounds_to_5g(self):
-        assert format_weight(47.0) == "45g"
-        assert format_weight(53.0) == "55g"
+    def test_under_50g_rounds_to_1g(self):
+        assert format_weight(47.0) == "47g"
         assert format_weight(10.0) == "10g"
+        assert format_weight(12.0) == "12g"
+
+    def test_50_to_99g_rounds_to_5g(self):
+        assert format_weight(53.0) == "55g"
+        assert format_weight(67.0) == "65g"
 
     def test_100_to_999g_rounds_to_10g(self):
         assert format_weight(145.0) == "150g"
