@@ -81,6 +81,10 @@ resource "google_storage_bucket" "media" {
   location      = var.region
   force_destroy = !local.is_prod
 
+  lifecycle {
+    ignore_changes = [location]
+  }
+
   uniform_bucket_level_access = true
 
   depends_on = [google_project_service.apis["storage.googleapis.com"]]
@@ -126,8 +130,8 @@ resource "google_secret_manager_secret_version" "db_password" {
 # -----------------------------------------------
 
 resource "google_sql_database_instance" "db" {
-  name             = "${local.env_prefix}-db"
-  database_version = "POSTGRES_15"
+  name             = "${local.env_prefix}-db-west1"
+  database_version = "POSTGRES_17"
   region           = var.region
 
   settings {
@@ -142,17 +146,16 @@ resource "google_sql_database_instance" "db" {
       enabled = false
     }
 
-    database_flags {
-      name  = "cloudsql.enable_pgvector"
-      value = "on"
-    }
-
     ip_configuration {
       ipv4_enabled = true
     }
   }
 
   deletion_protection = local.is_prod
+
+  lifecycle {
+    ignore_changes = [settings[0].disk_type]
+  }
 
   depends_on = [google_project_service.apis["sqladmin.googleapis.com"]]
 }
@@ -175,6 +178,10 @@ resource "google_sql_user" "inspi" {
 resource "google_cloud_run_v2_service" "backend" {
   name     = "${local.env_prefix}-backend"
   location = var.region
+
+  lifecycle {
+    ignore_changes = [template]
+  }
 
   template {
     containers {
@@ -328,10 +335,11 @@ resource "google_project_iam_member" "cloudbuild_secret_accessor" {
 resource "google_cloudbuild_trigger" "deploy" {
   count    = var.cloudbuild_repo != "" ? 1 : 0
   name     = "${local.env_prefix}-deploy"
-  location = var.region
+  location = var.cloudbuild_region
 
-  repository_event_config {
-    repository = var.cloudbuild_repo
+  github {
+    owner = "RobertBagdahn"
+    name  = "gruppenstunde"
     push {
       branch = var.cloudbuild_branch
     }
@@ -353,10 +361,11 @@ resource "google_cloudbuild_trigger" "deploy" {
 resource "google_cloudbuild_trigger" "pr_check" {
   count    = var.cloudbuild_repo != "" && local.is_prod ? 1 : 0
   name     = "${local.env_prefix}-pr-check"
-  location = var.region
+  location = var.cloudbuild_region
 
-  repository_event_config {
-    repository = var.cloudbuild_repo
+  github {
+    owner = "RobertBagdahn"
+    name  = "gruppenstunde"
     pull_request {
       branch = "^main$"
     }

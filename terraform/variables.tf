@@ -66,6 +66,12 @@ variable "backend_memory" {
   default     = "512Mi"
 }
 
+variable "cloudbuild_region" {
+  description = "Cloud Build region (must match GitHub connection region)"
+  type        = string
+  default     = "europe-west3"
+}
+
 variable "db_tier" {
   description = "Cloud SQL machine tier"
   type        = string
