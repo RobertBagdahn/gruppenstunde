@@ -403,6 +403,7 @@ export const EstimateQuantityItemSchema = z.object({
   item_id: z.number(),
   ingredient_name: z.string(),
   quantity_per_portion: z.number(),
+  portion_id: z.number(),
   unit: z.string(),
   grams_total: z.number(),
 });

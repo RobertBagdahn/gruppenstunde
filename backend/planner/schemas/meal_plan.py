@@ -32,7 +32,7 @@ class MealItemOut(Schema):
     recipe_id: int | None = None
     recipe_title: str = ""
     recipe_slug: str = ""
-    recipe_image: str | None = None
+    image_url: str | None = None
     ingredient_id: int | None = None
     ingredient_name: str = ""
     ingredient_slug: str = ""
@@ -62,7 +62,7 @@ class MealItemOut(Schema):
         return obj.recipe.slug if obj.recipe else ""
 
     @staticmethod
-    def resolve_recipe_image(obj) -> str | None:
+    def resolve_image_url(obj) -> str | None:
         if obj.recipe and obj.recipe.image:
             return obj.recipe.image.url
         return None
@@ -385,6 +385,8 @@ class MealPlanOut(Schema):
     meals_copied: int = 0
     items_copied: int = 0
     overrides_copied: int = 0
+    can_edit: bool = False
+    can_delete: bool = False
 
     @staticmethod
     def resolve_event_name(obj) -> str:
@@ -762,6 +764,8 @@ class RefMealOut(Schema):
     synced_meals_count: int = 0
     total_meals_count: int = 0
     synced_meal_count: int | None = None
+    can_edit: bool = False
+    can_delete: bool = False
 
     @staticmethod
     def resolve_synced_meals_count(obj) -> int:
@@ -854,7 +858,7 @@ class CookingScheduleRecipeBlockOut(Schema):
     recipe_id: int
     recipe_title: str
     recipe_slug: str
-    recipe_image: str | None = None
+    image_url: str | None = None
     nutritional_tags: list[NutritionalTagOut] = []
     variants: list[CookingScheduleVariantOut]
 
@@ -937,6 +941,129 @@ class CalculateIngredientKcalOut(Schema):
     """Response for ingredient kcal calculation."""
 
     items: list[IngredientKcalItemOut]
+
+
+# ==========================================================================
+# Recipe Search (standalone recipes + ingredients)
+# ==========================================================================
+
+
+class NutritionalTagPreviewOut(Schema):
+    """Lightweight nutritional tag representation for recipe/ingredient previews."""
+
+    id: int
+    name: str
+
+
+class RecipeSearchResultOut(Schema):
+    """A single recipe result within the unified recipe/ingredient search."""
+
+    id: int
+    title: str
+    slug: str
+    recipe_type: str
+    image_url: str | None = None
+    portions: int | None = None
+    cached_energy_kcal: float | None = None
+    cached_protein_g: float | None = None
+    cached_fat_g: float | None = None
+    cached_carbohydrate_g: float | None = None
+    cached_price_total: float | None = None
+    cached_nutri_class: int | None = None
+    nutritional_tags: list[NutritionalTagPreviewOut] = []
+    usage_count: int = 0
+    description: str | None = None
+    ingredients_preview: list[str] = []
+    recipe_badge: str = "community"
+    price_per_serving: float | None = None
+
+
+class IngredientPortionPreviewOut(Schema):
+    """A portion option shown alongside an ingredient search result."""
+
+    id: int
+    name: str
+    measuring_unit: str | None = None
+    measuring_unit_id: int | None = None
+    quantity: float | None = None
+    weight_g: float | None = None
+
+
+class IngredientSearchResultOut(Schema):
+    """A single standalone-ingredient result within the unified search."""
+
+    id: int
+    name: str
+    slug: str
+    energy_kcal: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    carbohydrate_g: float | None = None
+    nutri_class: int | None = None
+    price_per_kg: float | None = None
+    usage_count: int = 0
+    description: str | None = None
+    status: str = ""
+    nutritional_tags: list[NutritionalTagPreviewOut] = []
+    portions: list[IngredientPortionPreviewOut] = []
+
+
+class SearchRecipesResponseOut(Schema):
+    """Response for the unified recipe/ingredient search used in meal planning."""
+
+    recipes: list[RecipeSearchResultOut] = []
+    ingredients: list[IngredientSearchResultOut] = []
+    fallback_applied: bool = False
+
+
+# ==========================================================================
+# Popular Recipes
+# ==========================================================================
+
+
+class RecipePopularItemOut(Schema):
+    """A single recipe within the popular-recipes personal/community rankings."""
+
+    id: int
+    title: str
+    recipe_type: str
+    image_url: str | None = None
+    usage_count: int = 0
+    recipe_badge: str = "community"
+    price_per_serving: float | None = None
+
+
+class PopularRecipesResponseOut(Schema):
+    """Response for the popular-recipes endpoint."""
+
+    personal: list[RecipePopularItemOut] = []
+    community: list[RecipePopularItemOut] = []
+
+
+# ==========================================================================
+# Recently Used Recipes
+# ==========================================================================
+
+
+class RecipeRecentlyUsedOut(Schema):
+    """A single recipe within the recently-used-recipes list."""
+
+    id: int
+    title: str
+    slug: str
+    recipe_type: str
+    image_url: str | None = None
+    portions: int | None = None
+    usage_count: int = 0
+    recipe_badge: str = "community"
+    price_per_serving: float | None = None
+    nutritional_tags: list[NutritionalTagPreviewOut] = []
+
+
+class RecentlyUsedRecipesResponseOut(Schema):
+    """Response for the recently-used-recipes endpoint."""
+
+    recipes: list[RecipeRecentlyUsedOut] = []
 
 
 # ==========================================================================

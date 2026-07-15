@@ -1,5 +1,9 @@
-## MODIFIED Requirements
+# ingredient-database Specification
 
+## Purpose
+
+This specification defines the ingredient data model, API schemas, permissions, and frontend behavior for the ingredient database feature.
+## Requirements
 ### Requirement: Ingredient is standalone model
 Ingredient SHALL be a standalone Django model (`models.Model`), NOT inheriting from the abstract `Supply` base class. This is because Ingredient has 30+ nutritional/score fields that have nothing in common with Supply (which provides name, slug, description, image). The model SHALL live in the `supply` app. `price_per_kg` (DecimalField) SHALL be the sole price field — no separate Price model.
 
@@ -104,8 +108,6 @@ The DGE reference model and static data SHALL only include `vitamin_c_mg` as mic
 - **WHEN** norm portion nutritional targets are calculated
 - **THEN** only `vitamin_c_mg` is included as micronutrient target
 
-## ADDED Requirements
-
 ### Requirement: Supply-aware AI autocomplete
 The AI autocomplete for ingredient data SHALL also suggest Material entries when relevant (e.g., suggesting "Schneidebrett" when creating a recipe that involves chopping).
 
@@ -116,7 +118,7 @@ The AI autocomplete for ingredient data SHALL also suggest Material entries when
 
 ### Requirement: Zutatenpreise pflegen
 
-Alle Basis-Zutaten MÜSSEN einen realistischen `price_per_kg` Wert haben.
+Alle Basis-Zutaten MUST einen realistischen `price_per_kg` Wert haben.
 
 #### Scenario: Preis bei Seed-Zutaten
 - **WHEN** eine Zutat über das Seed-Command erstellt wird
@@ -158,15 +160,28 @@ The system SHALL restrict ingredient update and delete to users who are either t
 - **THEN** the system MUST return HTTP 403
 
 ### Requirement: Frontend edit visibility
-The frontend SHALL only show edit/delete controls when the current user is the ingredient creator or has staff status.
+The frontend SHALL only show edit/delete controls when `can_edit` or `can_delete` is `true` in the API response. The frontend SHALL NOT compute edit permissions by comparing `user.id === created_by_id` or checking `user.is_staff` client-side.
 
 #### Scenario: Creator views their ingredient detail
 - **WHEN** the ingredient creator views `/ingredients/:slug`
-- **THEN** edit and delete buttons MUST be visible
+- **THEN** `can_edit` SHALL be `true` in the API response
+- **THEN** edit and delete buttons SHALL be visible in the header
+- **THEN** PortionCard edit/delete buttons SHALL be visible
+- **THEN** Portion drag handles (GripVertical) SHALL be visible
+- **THEN** DndContext for portion reordering SHALL be active
 
 #### Scenario: Regular user views another user's ingredient
 - **WHEN** a non-staff user who is not the creator views `/ingredients/:slug`
-- **THEN** edit and delete buttons MUST NOT be visible
+- **THEN** `can_edit` SHALL be `false` in the API response
+- **THEN** edit and delete buttons in the header SHALL NOT be visible
+- **THEN** PortionCard edit/delete buttons SHALL NOT be visible
+- **THEN** Portion drag handles SHALL NOT be visible
+- **THEN** DndContext SHALL NOT be active (no drag-and-drop)
+
+#### Scenario: Regular user views ingredient list
+- **WHEN** a non-staff user views `/ingredients`
+- **THEN** delete buttons on ingredient cards SHALL NOT be visible for ingredients where `can_delete` is `false`
+- **THEN** delete buttons on ingredient cards SHALL be visible for ingredients where `can_delete` is `true`
 
 ### Requirement: API exposes created_by_id
 The ingredient API response schema SHALL include `created_by_id: int | null`.
@@ -176,7 +191,7 @@ The ingredient API response schema SHALL include `created_by_id: int | null`.
 - **THEN** the response MUST include `created_by_id` (integer or null)
 
 ### Requirement: REWE Artikelnummer über API exponieren
-Das Feld `nan_art_id_rewe` wird in den API-Response- und Request-Schemas für Ingredients aufgenommen.
+Das Feld `nan_art_id_rewe` SHALL be included in the ingredient API response and request schemas.
 
 #### Scenario: Ingredient abrufen mit REWE Artikelnummer
 - **WHEN** ein Ingredient mit gesetzter `nan_art_id_rewe` über GET `/api/supply/ingredients/{id}` abgerufen wird
@@ -191,6 +206,7 @@ Das Feld `nan_art_id_rewe` wird in den API-Response- und Request-Schemas für In
 - **THEN** wird der Wert gespeichert
 
 ### Requirement: REWE Artikelnummer im UI anzeigen
+The ingredient detail page SHALL display the `nan_art_id_rewe` value when present.
 
 #### Scenario: Detail-Seite mit REWE Artikelnummer
 - **WHEN** ein Ingredient mit `nan_art_id_rewe` auf der Detail-Seite angezeigt wird
@@ -201,6 +217,7 @@ Das Feld `nan_art_id_rewe` wird in den API-Response- und Request-Schemas für In
 - **THEN** wird die Zeile nicht angezeigt
 
 ### Requirement: REWE Artikelnummer im Formular editierbar
+The ingredient create/edit form SHALL include an input field for `nan_art_id_rewe`.
 
 #### Scenario: Create/Edit-Formular
 - **WHEN** das Ingredient-Formular angezeigt wird
@@ -228,3 +245,34 @@ The `IngredientDetailPage` SHALL display all six scout fields in an organized se
 #### Scenario: camp_suitable indicator
 - **WHEN** an ingredient has `camp_suitable=true`
 - **THEN** a tent/camp icon or badge SHALL be displayed near the ingredient name
+
+### Requirement: API exposes can_edit and can_delete
+The ingredient API response schemas (`IngredientDetailOut` and `IngredientListItemOut`) SHALL include `can_edit: bool` and `can_delete: bool` fields resolved server-side via `_can_edit_ingredient()` and the existing delete permission logic. The `created_by_id` field SHALL remain in the schema for display purposes.
+
+#### Scenario: Ingredient detail response includes permission fields
+- **WHEN** a client fetches `GET /api/ingredients/{slug}/`
+- **THEN** the response MUST include `can_edit` (boolean) and `can_delete` (boolean)
+
+#### Scenario: Ingredient list response includes permission fields
+- **WHEN** a client fetches `GET /api/ingredients/`
+- **THEN** each item in the response MUST include `can_edit` and `can_delete`
+
+### Requirement: Recipes-with-ingredient section reuses RecipeCard
+On `IngredientDetailPage`, the "Rezepte mit dieser Zutat" section (`RecipesSection`) SHALL render each recipe using the shared `RecipeCard` component instead of a bespoke minimal card, and SHALL display recipe images (or the shared fallback) consistently with the rest of the recipe list pages.
+
+#### Scenario: Recipe with an image is displayed
+- **WHEN** the "Rezepte mit dieser Zutat" section renders a recipe that has an uploaded image
+- **THEN** the recipe SHALL be displayed via `RecipeCard`, showing the recipe's image with `object-cover`
+
+#### Scenario: Recipe without an image shows the shared fallback
+- **WHEN** the "Rezepte mit dieser Zutat" section renders a recipe without an image
+- **THEN** `RecipeCard` SHALL display the placeholder image `/images/inspi_cook.png` (via `RecipeThumbnail`), not an icon-only fallback
+
+#### Scenario: Section retains existing empty and loading states
+- **WHEN** no recipes reference the ingredient, or the recipes are still loading
+- **THEN** the existing empty-state message ("Noch kein Rezept mit dieser Zutat") and loading skeleton SHALL continue to be displayed unchanged
+
+#### Scenario: Mobile layout remains usable at 320px
+- **WHEN** the "Rezepte mit dieser Zutat" section is rendered on a 320px-wide viewport
+- **THEN** the `RecipeCard` grid SHALL remain legible and MUST NOT overflow horizontally, adjusting the number of grid columns if needed
+

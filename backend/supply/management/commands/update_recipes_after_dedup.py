@@ -145,11 +145,14 @@ class Command(BaseCommand):
                     f"  Portion {orphan_portion.pk} ('{portion_name}', ing {old_ing_pk}) → "
                     f"using existing Portion {new_portion.pk} (ing {new_ing_pk})"
                 )
-                # Redirect all RecipeItems from orphan to new portion
-                recipe_items = RecipeItem.objects.filter(portion_id=orphan_portion.pk)
-                recipe_items.update(portion_id=new_portion.pk)
-                updated += len(recipe_items)
-                
+                # Redirect all RecipeItems from orphan to new portion via the
+                # guarded rebind helper (preserves gram amounts, never a raw
+                # portion_id write — see supply.services.portion_integrity).
+                from supply.services.portion_integrity import rebind_recipe_items_to_portion
+
+                updated_ids = rebind_recipe_items_to_portion(orphan_portion, new_portion)
+                updated += len(updated_ids)
+
                 # Delete orphan portion
                 orphan_portion.delete()
                 deleted += 1

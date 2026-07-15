@@ -28,6 +28,7 @@ import RecipePreviewDialog from './RecipePreviewDialog';
 import { FactorInput } from './FactorInput';
 import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
+import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 
 export function MealSlot({
   meal,
@@ -118,7 +119,7 @@ export function MealSlot({
           title: s.title,
           slug: '',
           recipe_type: s.recipe_type ?? '',
-          image: s.image_thumbnail,
+          image_url: s.image_thumbnail,
           recipe_badge: (s.recipe_badge as RecipeSearchResult['recipe_badge']) ?? 'community',
           price_per_serving: s.price_per_serving ?? null,
           usage_count: s.usage_count,
@@ -340,7 +341,7 @@ export function MealSlot({
                 <div key={it.id} className="pl-7 py-1">
                   <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30 group ${meal.is_synced ? 'text-muted-foreground' : ''}`}>
                     <div className="flex items-start gap-3">
-                      {it.recipe_image && <img src={it.recipe_image} alt={dName} className="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" />}
+                      {it.recipe_id && <RecipeThumbnail imageUrl={it.image_url} title={dName} size="xs" imgClassName="rounded" className="rounded" />}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {it.recipe_id && it.recipe_slug ? <Link to={`/recipes/${it.recipe_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{dName}</Link>
@@ -395,7 +396,7 @@ export function MealSlot({
                 <div key={first.variant_group_id} className="pl-7 py-1">
                   <div className={`rounded-lg p-3 border ${mealColors.bg} ${mealColors.border}/30`}>
                     <div className="flex items-center gap-2 mb-1">
-                      {first.recipe_image && <img src={first.recipe_image} alt={first.recipe_title} className="w-10 h-10 rounded object-cover flex-shrink-0" loading="lazy" />}
+                      {first.recipe_id && <RecipeThumbnail imageUrl={first.image_url} title={first.recipe_title} size="xs" imgClassName="rounded" className="rounded" />}
                       <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5 flex-wrap">{first.recipe_id && first.recipe_slug ? <Link to={`/recipes/${first.recipe_slug}`} className="text-base hover:text-primary transition-colors truncate block font-medium">{first.recipe_title}</Link> : <span className="text-base truncate block font-medium">{first.recipe_title}</span>}<NutriTagBadge allergenTags={allTags} /></div></div>
                     </div>
                     <div className="space-y-1">

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { User, Utensils, ShoppingCart, CalendarDays, ChevronDown, Clock } from 'lucide-react';
 import { usePublicProfile } from '@/api/profile';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 
 function relativeTime(dateStr: string): string {
   const now = Date.now();
@@ -118,13 +119,13 @@ export default function ProfilePage() {
                 to={`/recipes/${recipe.slug}`}
                 className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md transition-all"
               >
-                {recipe.image_url && (
-                  <img
-                    src={recipe.image_url}
-                    alt={recipe.title}
-                    className="w-16 h-16 rounded-lg object-cover shrink-0"
-                  />
-                )}
+                <RecipeThumbnail
+                  imageUrl={recipe.image_url}
+                  title={recipe.title}
+                  size="lg"
+                  imgClassName="rounded-lg"
+                  className="rounded-lg"
+                />
                 <div className="min-w-0">
                   <h3 className="font-display font-semibold text-foreground truncate">{recipe.title}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-1">{recipe.summary}</p>

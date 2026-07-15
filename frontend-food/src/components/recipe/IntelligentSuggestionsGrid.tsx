@@ -1,7 +1,8 @@
-import { BookOpen, Sparkles, Lightbulb, Compass, AlertCircle } from 'lucide-react';
+import { Sparkles, Lightbulb, Compass, AlertCircle } from 'lucide-react';
 import { useIntelligentSuggestions } from '@/api/mealPlans';
 import type { IntelligentSuggestion } from '@/schemas/mealPlan';
 import RecipeBadge from './RecipeBadge';
+import RecipeThumbnail from './RecipeThumbnail';
 
 interface IntelligentSuggestionsGridProps {
   planId: number;
@@ -42,18 +43,14 @@ function SuggestionCard({
       className="flex flex-col rounded-xl border border-border bg-card hover:shadow-md transition-all overflow-hidden text-left group"
     >
       <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-        {suggestion.image_url ? (
-          <img
-            src={suggestion.image_url}
-            alt={suggestion.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <BookOpen className="w-8 h-8 text-muted-foreground/40" />
-          </div>
-        )}
+        <RecipeThumbnail
+          imageUrl={suggestion.image_url}
+          title={suggestion.title}
+          size="md"
+          aspectRatio="4/3"
+          className="absolute inset-0"
+          imgClassName="group-hover:scale-105 transition-transform duration-300"
+        />
         <div className="absolute top-1.5 right-1.5">
           <RecipeBadge badge={suggestion.recipe_badge as 'draft' | 'verified' | 'community' | 'personal'} />
         </div>

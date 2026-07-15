@@ -30,6 +30,8 @@ export const MaterialSchema = z.object({
   image_url: z.string().nullable(),
   purchase_links: z.array(z.unknown()).default([]),
   created_at: z.string(),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
 });
 export type Material = z.infer<typeof MaterialSchema>;
 
@@ -39,6 +41,8 @@ export const MaterialListItemSchema = z.object({
   slug: z.string(),
   material_category: z.string(),
   is_consumable: z.boolean(),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
 });
 export type MaterialListItem = z.infer<typeof MaterialListItemSchema>;
 
@@ -180,6 +184,8 @@ export const IngredientListItemSchema = z.object({
   quality_score: z.number().int().nullable().optional(),
   usage_count: z.number().int(),
   groups: z.array(IngredientGroupSchema),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
 });
 export type IngredientListItem = z.infer<typeof IngredientListItemSchema>;
 
@@ -255,6 +261,8 @@ export const IngredientDetailSchema = z.object({
   created_by_id: z.number().nullable(),
   quality_score: z.number().int().nullable().optional(),
   quality_score_updated_at: z.string().nullable().optional(),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
 });
 export type IngredientDetail = z.infer<typeof IngredientDetailSchema>;
 
@@ -353,14 +361,34 @@ export type PaginatedMaterialNames = z.infer<typeof PaginatedMaterialNamesSchema
 
 // --- AI Suggest ---
 
+export const PortionTypeSchema = z.enum(['system_gramm', 'rezeptportion', 'packung', 'belag', 'backmenge']);
+export type PortionType = z.infer<typeof PortionTypeSchema>;
+
 export const PortionSuggestionSchema = z.object({
   name: z.string(),
   weight_g: z.number(),
-  // Backend PortionSuggestionOut does not send this field; keep optional to avoid parse failures.
-  measuring_unit_name: z.string().optional(),
+  quantity: z.number().default(1),
+  measuring_unit_name: z.string(),
   rank: z.number().int().default(1),
+  portion_type: PortionTypeSchema,
 });
 export type PortionSuggestion = z.infer<typeof PortionSuggestionSchema>;
+
+export const IngredientPortionSuggestSchema = z.object({
+  system_gramm: PortionSuggestionSchema,
+  rezeptportionen: z.array(PortionSuggestionSchema).default([]),
+  packungen: z.array(PortionSuggestionSchema).default([]),
+  belag: z.array(PortionSuggestionSchema).default([]),
+  backmengen: z.array(PortionSuggestionSchema).default([]),
+});
+export type IngredientPortionSuggest = z.infer<typeof IngredientPortionSuggestSchema>;
+
+// Request-Body für POST /{slug}/portions/ai-apply/
+export const PortionApplyInSchema = z.object({
+  replace_all: z.boolean().default(false),
+  selected: z.array(PortionSuggestionSchema).default([]),
+});
+export type PortionApplyIn = z.infer<typeof PortionApplyInSchema>;
 
 export const IngredientSuggestAllSchema = z.object({
   ai_interaction_id: z.string().nullable().optional(),
@@ -399,9 +427,7 @@ export const IngredientSuggestAllSchema = z.object({
 
   price_per_kg: z.number().nullable(),
 
-  portions: z.array(PortionSuggestionSchema).default([]),
-  stueck_weight_g: z.number().nullable(),
-  packung_weight_g: z.number().nullable(),
+  portions: IngredientPortionSuggestSchema,
   aliases: z.array(z.string()).default([]),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
 });

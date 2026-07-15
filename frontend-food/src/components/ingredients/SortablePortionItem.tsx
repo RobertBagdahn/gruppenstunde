@@ -8,16 +8,18 @@ interface SortablePortionItemProps {
   portion: Portion;
   children: React.ReactNode;
   isDragging?: boolean;
+  canEdit?: boolean;
 }
 
 /**
  * A sortable portion list item with drag handle.
  * The 'g' portion is excluded from sorting (always last).
+ * Drag is disabled when canEdit is false.
  */
-export function SortablePortionItem({ portion, children, isDragging }: SortablePortionItemProps) {
+export function SortablePortionItem({ portion, children, isDragging, canEdit = false }: SortablePortionItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: portion.id,
-    disabled: portion.name === 'g', // Can't drag the g portion
+    disabled: portion.name === 'g' || !canEdit,
   });
 
   const style = {
@@ -36,7 +38,7 @@ export function SortablePortionItem({ portion, children, isDragging }: SortableP
         isStandard ? 'bg-emerald-50 border-emerald-200' : 'bg-card border-border hover:bg-muted/50'
       }`}
     >
-      {portion.name !== 'g' && (
+      {portion.name !== 'g' && canEdit && (
         <div
           {...attributes}
           {...listeners}

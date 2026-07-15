@@ -182,7 +182,7 @@ class TestBuildPackageDisplay:
     def _make_unit(self, name: str = "Pkg") -> MeasuringUnit:
         return baker.make(MeasuringUnit, name=name, quantity=1.0, unit="g")
 
-    def _make_package_portion(self, ingredient, weight_g: float, name: str = "") -> Portion:
+    def _make_package_portion(self, ingredient, weight_g: float, name: str = "", rank: int = 1) -> Portion:
         unit = self._make_unit()
         if not name:
             name = f"{int(weight_g)}g Packung"
@@ -194,6 +194,7 @@ class TestBuildPackageDisplay:
             weight_g=weight_g,
             quantity=1.0,
             is_system=False,
+            rank=rank,
         )
 
     def test_no_package_portions_returns_empty(self):
@@ -215,7 +216,7 @@ class TestBuildPackageDisplay:
         # With 250g and 500g packages, 750g → 3×250g (smallest fits better).
         ingredient = self._make_ingredient()
         self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
-        self._make_package_portion(ingredient, weight_g=500.0, name="500g Packung")
+        self._make_package_portion(ingredient, weight_g=500.0, name="500g Packung", rank=2)
         result = build_package_display(750.0, ingredient)
         # Smallest non-system portion wins: 3×250g
         assert "250g" in result

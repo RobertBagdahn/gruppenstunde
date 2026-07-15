@@ -15,6 +15,11 @@ from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
 from core.services.gemini import GeminiUnavailableError, gemini_call
+from supply.services.portion_knowledge import (
+    IngredientPortionSuggestSchema,
+    PortionSuggestion,
+    build_portion_prompt_section,
+)
 
 if TYPE_CHECKING:
     from supply.models import Ingredient
@@ -26,26 +31,30 @@ GEMINI_MODEL = "gemini-3.1-flash-lite"
 # Model that supports structured output + Google Search together
 GEMINI_MODEL_WITH_SEARCH = "gemini-3.1-flash-lite"
 
+# Re-exported for backward compatibility with existing callers/tests that
+# import PortionSuggestion from this module. Single Source of Truth lives in
+# `portion_knowledge.py`.
+__all__ = [
+    "PortionSuggestion",
+    "IngredientPortionSuggestSchema",
+    "IngredientSuggestAllSchema",
+    "IngredientAiCreateSchema",
+    "suggest_all_fields",
+    "ai_create_ingredient",
+]
+
+
+def _ingredient_portion_tags(ingredient: Ingredient) -> tuple[bool, bool]:
+    """Return (is_breakfast_topping, is_baking_ingredient) for an ingredient's tags."""
+    if not ingredient.pk:
+        return False, False
+    tag_slugs = set(ingredient.tags.values_list("slug", flat=True))
+    return "breakfast-topping" in tag_slugs, "baking-ingredient" in tag_slugs
+
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas for structured output
 # ---------------------------------------------------------------------------
-
-
-class PortionSuggestion(BaseModel):
-    """A suggested portion for an ingredient."""
-
-    name: str = Field(description="Name der Portion, z.B. '1 Packung (500g)' oder '125g'")
-    weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
-    measuring_unit_name: str = Field(
-        description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Tasse', 'Esslöffel', 'Stück'"
-    )
-    rank: int = Field(
-        default=1,
-        description=(
-            "Rang (Sortierung): 1 = Standard/Normalportion, 2,3,... = weitere Portionen in Sortierreihenfolge"
-        ),
-    )
 
 
 class IngredientSuggestAllSchema(BaseModel):
@@ -92,16 +101,8 @@ class IngredientSuggestAllSchema(BaseModel):
     # Preis
     price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg")
 
-    # Portionen
-    portions: list[PortionSuggestion] = Field(
-        default_factory=list, description="Typische Portionsgrößen (erste Portion = Normalportion/rank=1)"
-    )
-    stueck_weight_g: float | None = Field(
-        None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll, z.B. Salz)"
-    )
-    packung_weight_g: float | None = Field(
-        None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll, z.B. Wasser)"
-    )
+    # Portionen (strukturiert: system_gramm/rezeptportionen/packungen/belag/backmengen)
+    portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portionsvorschläge")
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Mind. 3 spezifische Aliase")
@@ -147,16 +148,8 @@ class IngredientAiCreateSchema(BaseModel):
         description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen"
     )
 
-    # Portionen
-    portions: list[PortionSuggestion] = Field(
-        default_factory=list, description="Typische Portionsgrößen (erste = Normalportion/rank=1)"
-    )
-    stueck_weight_g: float | None = Field(
-        None, description="Geschätztes Gewicht für 1 Stück (null wenn nicht sinnvoll)"
-    )
-    packung_weight_g: float | None = Field(
-        None, description="Geschätztes Gewicht für 1 Packung (null wenn nicht sinnvoll)"
-    )
+    # Portionen (strukturiert, siehe IngredientSuggestAllSchema)
+    portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portionsvorschläge")
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Alternative Bezeichnungen")
@@ -180,25 +173,15 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
     """
     from google.genai import types
 
+    is_breakfast_topping, is_baking_ingredient = _ingredient_portion_tags(ingredient)
+
     prompt = (
         f"Recherchiere die vollständigen Nährwerte, Bewertungen und physikalischen Eigenschaften "
         f"für das Lebensmittel '{ingredient.name}'. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen.\n\n"
         f"Schlage einen präziseren Namen vor, falls aktuell zu generisch. "
         f"Keine Marken, keine Mengenangaben. Z.B. 'Kuhmilch 3,5% Fett' statt 'Milch'.\n\n"
-        f"Gib außerdem typische Portionsgrößen mit dem jeweiligen Gewicht in Gramm an. "
-        f"Die ERSTE Portion im Array ist immer die Normalportion (rank=1): die typische Menge pro Person in einem Standardrezept. "
-        f"Z.B. für Nudeln: '80g', für Hähnchenbrust: '150g', für Butter: '10g'.\n"
-        f"Weitere Portionen (rank=2,3,...) sind zusätzliche gängige Größen wie Packungen, Stücke oder Haushaltsmaße.\n\n"
-        f"Gib für jede Portion folgendes an:\n"
-        f"- name: Z.B. '80g Portion', '1 Packung (500g)', '1 Stück (150g)', '1 Esslöffel (15g)'\n"
-        f"- weight_g: Gewicht in Gramm (PFLICHTFELD, auch für Getränke in Gramm konvertieren)\n"
-        f"- measuring_unit_name: Z.B. 'Gramm', 'Milliliter', 'Stück', 'Esslöffel', 'Tasse'\n"
-        f"- rank: Startet mit 1 für Normalportion, dann 2,3,... (NICHT 'priority'!)\n\n"
-        f"Wichtig: Generiere mindestens 3-5 Portionen pro Zutat.\n\n"
-        f"Zusätzlich gib Schätzungen an für:\n"
-        f"- stueck_weight_g: Durchschnittliches Gewicht von 1 Stück dieser Zutat (null wenn nicht sinnvoll, z.B. Salz, Öl)\n"
-        f"- packung_weight_g: Durchschnittliches Gewicht einer Standardpackung (null wenn nicht sinnvoll, z.B. Wasser, Obst)\n\n"
+        f"{build_portion_prompt_section(is_breakfast_topping=is_breakfast_topping, is_baking_ingredient=is_baking_ingredient)}\n\n"
         f"Gib mindestens 3 alternative Bezeichnungen/Aliase für die Zutat an. "
         f"Die Aliase sollen spezifischer sein als der Zutatenname. "
         f"Z.B. für 'Nudeln': 'Nudeln (Fusilli)', 'Nudeln (Makkaroni)', 'Nudeln (Spaghetti)'.\n\n"
@@ -279,18 +262,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         f"typische Portionsgrößen, alternative Bezeichnungen, zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', 'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig') und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen. "
         f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren.\n\n"
-        f"PORTIONEN: Die ERSTE Portion im Array MUSS die Normalportion (rank=1) sein – die typische Menge pro Person in einem Standardrezept. "
-        f"Z.B. für Nudeln: '80g Portion', für Hähnchenbrust: '150g Filet', für Butter: '10g Portion'. "
-        f"Weitere Portionen (rank=2,3,...) sind zusätzliche gängige Größen wie Packungen, Stücke oder Haushaltsmaße.\n\n"
-        f"Für JEDE Portion gib an:\n"
-        f"- name: Aussagekräftiger Name, z.B. '125g', '1 Packung (500g)', '1 Stück (150g)', '1 Esslöffel (15g)'\n"
-        f"- weight_g: Gewicht in Gramm (PFLICHTFELD, auch Flüssigkeiten als Gramm angeben)\n"
-        f"- measuring_unit_name: 'Gramm', 'Milliliter', 'Stück', 'Esslöffel', 'Tasse', etc.\n"
-        f"- rank: Startet mit 1 (Normalportion), dann 2, 3, ... (NICHT 'priority'!)\n\n"
-        f"Gib mindestens 3-5 Portionen an.\n\n"
-        f"ZUSÄTZLICH:\n"
-        f"- stueck_weight_g: Geschätztes Durchschnittsgewicht von 1 Stück (null wenn nicht sinnvoll, z.B. für Salz, Öl)\n"
-        f"- packung_weight_g: Geschätztes Gewicht einer Standardpackung (null wenn nicht sinnvoll, z.B. für Wasser, loses Obst)"
+        f"{build_portion_prompt_section(is_breakfast_topping=False, is_baking_ingredient=False)}"
     )
 
     config = types.GenerateContentConfig(
@@ -364,15 +336,34 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         return mu_cache[name]
 
     # Create portions from AI suggestions
-    for i, portion in enumerate(data.portions):
+    # Create portions from structured AI suggestions. The first rezeptportion
+    # keeps the AI's own rank=1 (Normalportion); all other suggestions get
+    # ascending ranks after the system portions (Stück=2, Packung=3) to avoid
+    # violating the unique_rank1_portion_per_ingredient constraint.
+    portions_data = data.portions
+    non_primary = [*portions_data.rezeptportionen[1:], *portions_data.packungen, *portions_data.belag, *portions_data.backmengen]
+
+    if portions_data.rezeptportionen:
+        primary = portions_data.rezeptportionen[0]
+        mu = _get_mu(primary.measuring_unit_name)
+        Portion.objects.create(
+            ingredient=ingredient,
+            name=primary.name,
+            measuring_unit=mu,
+            quantity=primary.quantity,
+            weight_g=primary.weight_g,
+            rank=1,
+        )
+
+    for i, portion in enumerate(non_primary):
         mu = _get_mu(portion.measuring_unit_name)
         Portion.objects.create(
             ingredient=ingredient,
             name=portion.name,
             measuring_unit=mu,
-            quantity=1.0,
+            quantity=portion.quantity,
             weight_g=portion.weight_g,
-            rank=i + 1,
+            rank=4 + i,
         )
 
     # Ensure system portions (g/ml, Packung, Stück) exist
@@ -380,17 +371,11 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
 
     _create_system_portions(ingredient)
 
-    # Set weight_g for Stück and Packung system portions from AI suggestions
-    if data.stueck_weight_g is not None and data.stueck_weight_g > 0:
-        stueck_portion = Portion.objects.filter(ingredient=ingredient, name="Stück").first()
-        if stueck_portion:
-            stueck_portion.weight_g = data.stueck_weight_g
-            stueck_portion.save(update_fields=["weight_g"])
-
-    if data.packung_weight_g is not None and data.packung_weight_g > 0:
+    # Apply the first packung suggestion's weight_g to the "Packung" system portion
+    if portions_data.packungen:
         packung_portion = Portion.objects.filter(ingredient=ingredient, name="Packung").first()
-        if packung_portion:
-            packung_portion.weight_g = data.packung_weight_g
+        if packung_portion and portions_data.packungen[0].weight_g > 0:
+            packung_portion.weight_g = portions_data.packungen[0].weight_g
             packung_portion.save(update_fields=["weight_g"])
 
     # Create aliases

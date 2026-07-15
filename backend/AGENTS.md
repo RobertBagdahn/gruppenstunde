@@ -209,5 +209,20 @@ Bei bestehenden Datenbanken (nicht frisch via `migrate` angelegt):
        with connection.cursor() as cursor:
            cursor.execute("SELECT to_regclass(%s)", [model._meta.db_table])
            if cursor.fetchone()[0] is None:
-               print("FEHLT:", model._meta.db_table)
-   ```
+                print("FEHLT:", model._meta.db_table)
+    ```
+
+## Permission-Felder in Schemas (`can_edit` / `can_delete`)
+
+Jedes Resource-Schema (Detail + List), das editierbare Inhalte exponiert, MUSS die Felder `can_edit: bool = False` und `can_delete: bool = False` enthalten. Die Werte werden server-seitig aufgelöst und via API an das Frontend ausgeliefert.
+
+- **Base Mixin**: `core.schemas.HasPermissions` stellt die Felder bereit
+- **Detail-Endpoints**: Vor dem Return das Objekt annotieren: `obj.can_edit = _can_edit_...(obj, request.user)`
+- **List-Endpoints**: Jedes Item annotieren: `for item in items: item.can_edit = ...`
+- **Frontend**: Darf NIE client-seitig Permissions berechnen (kein `user.id === created_by_id`)
+
+Das Frontend verwendet `can_edit` und `can_delete` ausschließlich aus der API-Response, um Edit-Controls, Buttons und Drag-and-Drop zu steuern.
+
+## Rezeptbild-Feldname (`image_url`)
+
+Jedes Pydantic-Schema, das ein Rezeptbild (oder das Bild eines rezeptbezogenen Objekts wie `MealItem`) zurückgibt, MUSS das Feld einheitlich `image_url: str | None` nennen — niemals `image` oder `recipe_image` (auch nicht bei Präfix-Konventionen wie `recipe_title`/`recipe_slug`, App-weite Konsistenz hat hier Vorrang). Endpunkte, die Rezept-Vorschaudaten zurückgeben, MÜSSEN ein typisiertes Pydantic-`Out`-Schema verwenden (kein `response=dict`). Frontend-seitig ist `RecipeThumbnail` (siehe `frontend-food/AGENTS.md`) die kanonische Darstellungskomponente für dieses Feld.

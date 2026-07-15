@@ -238,4 +238,4 @@ class TestExtendedSearchResponse:
         assert r is not None
         assert r["cached_energy_kcal"] is None
         assert r["cached_price_total"] is None
-        assert r["image"] is None
+        assert r["image_url"] is None

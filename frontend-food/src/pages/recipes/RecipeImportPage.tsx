@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 
 const ImportedIngredientSchema = z.object({
   name: z.string(),
@@ -149,13 +150,13 @@ export default function RecipeImportPage() {
             )}
           </CardHeader>
           <CardContent className="space-y-4">
-            {preview.image_url && (
-              <img
-                src={preview.image_url}
-                alt={preview.title}
-                className="w-full max-h-64 object-cover rounded-md"
-              />
-            )}
+            <RecipeThumbnail
+              imageUrl={preview.image_url}
+              title={preview.title}
+              size="full"
+              imgClassName="rounded-md"
+              className="rounded-md"
+            />
 
             <div className="flex gap-4 text-sm text-muted-foreground">
               <span>{preview.servings} Portionen</span>

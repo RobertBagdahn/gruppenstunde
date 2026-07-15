@@ -42,6 +42,10 @@ def list_materials(request, filters: Query[MaterialFilterIn]):
     offset = (filters.page - 1) * filters.page_size
     items = qs[offset : offset + filters.page_size]
 
+    for item in items:
+        item.can_edit = request.user.is_staff
+        item.can_delete = request.user.is_staff
+
     return {
         "items": items,
         "total": total,
@@ -62,13 +66,19 @@ def search_materials(request, q: str = ""):
 @router.get("/materials/by-slug/{slug}/", response=MaterialOut)
 def get_material_by_slug(request, slug: str):
     """Get a material by slug."""
-    return get_object_or_404(Material, slug=slug)
+    material = get_object_or_404(Material, slug=slug)
+    material.can_edit = request.user.is_staff
+    material.can_delete = request.user.is_staff
+    return material
 
 
 @router.get("/materials/{material_id}/", response=MaterialOut)
 def get_material(request, material_id: int):
     """Get a material by ID."""
-    return get_object_or_404(Material, id=material_id)
+    material = get_object_or_404(Material, id=material_id)
+    material.can_edit = request.user.is_staff
+    material.can_delete = request.user.is_staff
+    return material
 
 
 @router.post("/materials/", response={201: MaterialOut})
@@ -84,6 +94,8 @@ def create_material(request, payload: MaterialCreateIn):
         is_consumable=payload.is_consumable,
         created_by=request.user,
     )
+    material.can_edit = request.user.is_staff
+    material.can_delete = request.user.is_staff
     return 201, material
 
 
@@ -108,6 +120,8 @@ def update_material(request, material_id: int, payload: MaterialUpdateIn):
     if update_fields:
         material.save(update_fields=update_fields)
 
+    material.can_edit = request.user.is_staff
+    material.can_delete = request.user.is_staff
     return material
 
 

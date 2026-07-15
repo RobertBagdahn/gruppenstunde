@@ -115,11 +115,15 @@ class TestPortionReorderAPI:
         p2 = make_portion(ing, name="B", rank=2, measuring_unit=mu)
         p3 = make_portion(ing, name="C", rank=3, measuring_unit=mu)
 
-        # Reorder using direct update (simulating API call)
+        # Reorder using direct update (simulating API call). Applied in an
+        # order that never transiently leaves two rows at rank=1 at the same
+        # time — required since fix-portion-integrity-and-ai-estimate added a
+        # DB-level uniqueness constraint on (ingredient, rank=1, not deleted).
+        # The row moving INTO rank=1 must be updated last.
         orders = [
-            {"id": p3.id, "rank": 1},
             {"id": p1.id, "rank": 2},
             {"id": p2.id, "rank": 3},
+            {"id": p3.id, "rank": 1},
         ]
 
         for order in orders:

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from core.services.gemini import GeminiUnavailableError, gemini_call
 from recipe.schemas.enrichment import GeminiNewIngredient
+from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
@@ -50,8 +51,8 @@ def enrich_ingredient(
         "- nutri_class: 1=A (sehr gut) bis 5=E (weniger gut)\n"
         "- physical_viscosity: 'solid' oder 'beverage'\n"
         "- portion_name und portion_weight_g für eine typische Portion (z.B. Stück, 80g)\n"
-        "- estimated_portion_weight_g: Gewicht einer typischen Einheit "
-        "(z.B. 1 Zwiebel=80g, 1 EL=15g, 1 Tomate=120g)"
+        f"- estimated_portion_weight_g: Gewicht einer typischen Einheit. {TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT} "
+        "Zusätzlich ingredient-spezifisch (z.B. 1 Zwiebel=80g, 1 Tomate=120g)"
     )
 
     try:

@@ -79,6 +79,8 @@ export const ShoppingListSchema = z.object({
   collaborators_count: z.number().default(0),
   created_at: z.string(),
   updated_at: z.string(),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
 });
 
 export type ShoppingList = z.output<typeof ShoppingListSchema>;

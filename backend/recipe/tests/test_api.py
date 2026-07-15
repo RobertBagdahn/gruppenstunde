@@ -698,6 +698,7 @@ def test_recipe_item_out_weight_g_calculation(db, portion):
         name="Tasse Mehl",
         quantity=2.0,
         weight_g=None,
+        rank=2,
     )
     item2 = RecipeItem.objects.create(recipe=recipe, portion=portion2, quantity=3, sort_order=1)
     data2 = RecipeItemOut.from_orm(item2)

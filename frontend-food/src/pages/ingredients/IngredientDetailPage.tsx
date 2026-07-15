@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, Clock, Plus } from 'lucide-react';
+import { ChefHat, Plus } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -30,11 +30,12 @@ import {
   useCreateAlias,
   useDeleteAlias,
   useAiSuggestIngredientAll,
+  useApplyAiPortionSuggestions,
   useMeasuringUnits,
   useRecipesByIngredient,
 } from '@/api/supplies';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
-import type { Portion, MeasuringUnit } from '@/schemas/supply';
+import type { Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape } from '@/schemas/supply';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
 type IngredientDetail = NonNullable<ReturnType<typeof useIngredient>['data']>;
 import { ApiDeleteError } from '@/api/supplies';
@@ -44,6 +45,7 @@ import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSug
 import { IngredientBenchmarkSection } from '@/components/ingredient/IngredientBenchmarkSection';
 
 import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
+import RecipeCard from '@/components/recipe/RecipeCard';
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -154,9 +156,11 @@ function CollapsibleNutritionGroup({
 function PortionCard({
   portion,
   slug,
+  canEdit = false,
 }: {
   portion: Portion;
   slug: string;
+  canEdit?: boolean;
 }) {
   const updatePortion = useUpdatePortion(slug);
   const deletePortion = useDeletePortion(slug);
@@ -297,7 +301,7 @@ function PortionCard({
           )}
         </div>
 
-        {!editing && (
+        {!editing && canEdit && (
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setEditing(true)}
@@ -319,6 +323,13 @@ function PortionCard({
                 <span className="material-symbols-outlined text-sm">delete</span>
               </button>
             )}
+          </div>
+        )}
+        {!editing && !canEdit && portion.is_system && (
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-muted-foreground/30 p-1 cursor-not-allowed" title="System-Portion">
+              <span className="material-symbols-outlined text-sm">lock</span>
+            </span>
           </div>
         )}
       </div>
@@ -350,18 +361,6 @@ function PortionCard({
 // ---------------------------------------------------------------------------
 // RecipesSection — shows recipes that use this ingredient
 // ---------------------------------------------------------------------------
-const DIFFICULTY_LABELS: Record<string, string> = {
-  easy: 'Einfach',
-  medium: 'Mittel',
-  hard: 'Schwer',
-};
-
-const EXECUTION_TIME_LABELS: Record<string, string> = {
-  less_30: '< 30 Min',
-  '30_60': '30 – 60 Min',
-  '60_90': '60 – 90 Min',
-  more_90: '> 90 Min',
-};
 
 function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName: string }) {
   const navigate = useNavigate();
@@ -416,43 +415,9 @@ function RecipesSection({ slug, ingredientName }: { slug: string; ingredientName
 
       {/* Recipe grid */}
       {!isLoading && !error && data && data.items.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {data.items.map((recipe) => (
-            <Link
-              key={recipe.id}
-              to={`/recipes/${recipe.slug}`}
-              className="group block rounded-xl border bg-card overflow-hidden shadow-soft hover:shadow-md hover:border-primary/30 transition-all"
-            >
-              {recipe.image_url ? (
-                <div className="aspect-[16/9] overflow-hidden">
-                  <img
-                    src={recipe.image_url}
-                    alt={recipe.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                </div>
-              ) : (
-                <div className="aspect-[16/9] bg-muted flex items-center justify-center">
-                  <ChefHat className="text-muted-foreground/40" size={32} />
-                </div>
-              )}
-              <div className="p-3 space-y-1.5">
-                <h3 className="text-sm font-semibold leading-tight line-clamp-2">
-                  {recipe.title}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <ChefHat size={12} />
-                    {DIFFICULTY_LABELS[recipe.difficulty] ?? recipe.difficulty ?? '\u2014'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={12} />
-                    {EXECUTION_TIME_LABELS[recipe.execution_time] ?? recipe.execution_time ?? '\u2014'}
-                  </span>
-                </div>
-              </div>
-            </Link>
+            <RecipeCard key={recipe.id} recipe={recipe as unknown as import('@/schemas/recipe').RecipeListItem} />
           ))}
         </div>
       )}
@@ -642,17 +607,27 @@ function PortionsSection({
 
       {ingredient.portions.length === 0 && <p className="text-sm text-muted-foreground italic">Keine Portionen definiert.</p>}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={portionIds} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
-            {sortedPortions.map((portion) => (
-              <SortablePortionItem key={portion.id} portion={portion}>
-                <PortionCard portion={portion} slug={ingredient.slug} />
-              </SortablePortionItem>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {canEdit ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={portionIds} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {sortedPortions.map((portion) => (
+                <SortablePortionItem key={portion.id} portion={portion} canEdit={canEdit}>
+                  <PortionCard portion={portion} slug={ingredient.slug} canEdit={canEdit} />
+                </SortablePortionItem>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <div className="space-y-3">
+          {sortedPortions.map((portion) => (
+            <SortablePortionItem key={portion.id} portion={portion} canEdit={canEdit}>
+              <PortionCard portion={portion} slug={ingredient.slug} canEdit={canEdit} />
+            </SortablePortionItem>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -669,7 +644,7 @@ export default function IngredientDetailPage() {
   const updateIngredient = useUpdateIngredient(slug || '');
   const deleteIngredient = useDeleteIngredient();
   const createPortion = useCreatePortion(slug || '');
-  const updatePortionForAi = useUpdatePortion(slug || '');
+  const applyAiPortions = useApplyAiPortionSuggestions(slug || '');
 
   const createAlias = useCreateAlias(slug || '');
   const deleteAlias = useDeleteAlias(slug || '');
@@ -690,9 +665,10 @@ export default function IngredientDetailPage() {
 
   // AI Suggest
   const [showAiSuggest, setShowAiSuggest] = useState(false);
+  const [replacePortions, setReplacePortions] = useState(false);
   const aiSuggest = useAiSuggestIngredientAll(slug || '');
 
-  const canEdit = !!user && (user.is_staff || user.id === ingredient?.created_by_id);
+  const canEdit = ingredient?.can_edit ?? false;
   const canAiSuggest = !!user && user.is_staff;
 
   // --- Loading / error states ---
@@ -727,14 +703,37 @@ export default function IngredientDetailPage() {
 
     const data = aiSuggest.data;
     const scalarUpdates: Record<string, unknown> = {};
-    const portionsToCreate: Array<{ name: string; weight_g: number; rank?: number }> = [];
+    const selectedPortions: PortionSuggestionShape[] = [];
     const aliasesToCreate: string[] = [];
     const tagsToAssign: number[] = [];
 
+    const portionsByKey: Record<string, PortionSuggestionShape> = {};
+    if (data.portions) {
+      const normalize = (p: {
+        name: string;
+        weight_g: number;
+        measuring_unit_name: string;
+        portion_type: string;
+        quantity?: number;
+        rank?: number;
+      }): PortionSuggestionShape => ({
+        name: p.name,
+        weight_g: p.weight_g,
+        measuring_unit_name: p.measuring_unit_name,
+        portion_type: p.portion_type as PortionSuggestionShape['portion_type'],
+        quantity: p.quantity ?? 1,
+        rank: p.rank ?? 1,
+      });
+      if (data.portions.system_gramm) portionsByKey['portion_system_gramm'] = normalize(data.portions.system_gramm);
+      (data.portions.rezeptportionen ?? []).forEach((p, i) => { portionsByKey[`portion_rezeptportion_${i}`] = normalize(p); });
+      (data.portions.packungen ?? []).forEach((p, i) => { portionsByKey[`portion_packung_${i}`] = normalize(p); });
+      (data.portions.belag ?? []).forEach((p, i) => { portionsByKey[`portion_belag_${i}`] = normalize(p); });
+      (data.portions.backmengen ?? []).forEach((p, i) => { portionsByKey[`portion_backmenge_${i}`] = normalize(p); });
+    }
+
     for (const key of selectedKeys) {
       if (key.startsWith('portion_')) {
-        const idx = parseInt(key.replace('portion_', ''), 10);
-        if (data.portions?.[idx]) portionsToCreate.push(data.portions[idx]);
+        if (portionsByKey[key]) selectedPortions.push(portionsByKey[key]);
       } else if (key.startsWith('alias_')) {
         const idx = parseInt(key.replace('alias_', ''), 10);
         if (data.aliases?.[idx]) aliasesToCreate.push(data.aliases[idx]);
@@ -761,23 +760,6 @@ export default function IngredientDetailPage() {
       );
     }
 
-    // Handle system portion weight updates (Stück and Packung)
-    const systemPortionUpdates: Array<{ portionName: string; weight_g: number }> = [];
-    if (selectedKeys.includes('stueck_weight_g')) {
-      const val = (data as Record<string, unknown>)['stueck_weight_g'];
-      if (typeof val === 'number' && val > 0) {
-        systemPortionUpdates.push({ portionName: 'Stück', weight_g: val });
-      }
-      delete scalarUpdates['stueck_weight_g'];
-    }
-    if (selectedKeys.includes('packung_weight_g')) {
-      const val = (data as Record<string, unknown>)['packung_weight_g'];
-      if (typeof val === 'number' && val > 0) {
-        systemPortionUpdates.push({ portionName: 'Packung', weight_g: val });
-      }
-      delete scalarUpdates['packung_weight_g'];
-    }
-
     const promises: Promise<unknown>[] = [];
     if (Object.keys(scalarUpdates).length > 0) {
       promises.push(
@@ -787,35 +769,18 @@ export default function IngredientDetailPage() {
       );
     }
 
-    // PATCH system portions (Stück, Packung) with weight_g from AI
-    for (const { portionName, weight_g } of systemPortionUpdates) {
-      const sysPortion = ingredient.portions.find((p) => p.name === portionName);
-      if (sysPortion) {
-        promises.push(
-          new Promise((resolve, reject) =>
-            updatePortionForAi.mutate(
-              { portionId: sysPortion.id, data: { weight_g } },
-              { onSuccess: resolve, onError: reject }
-            )
+    // Selected portions (incl. optional replace_all) go through the atomic
+    // backend endpoint, which resolves measuring_unit_name server-side and
+    // handles the mandatory "g" system portion recreation in one transaction.
+    if (selectedPortions.length > 0 || replacePortions) {
+      promises.push(
+        new Promise((resolve, reject) =>
+          applyAiPortions.mutate(
+            { replace_all: replacePortions, selected: selectedPortions },
+            { onSuccess: resolve, onError: reject }
           )
-        );
-      }
-    }
-
-    const existingPortionNames = new Set(
-      ingredient.portions.map((p) => p.name.toLowerCase())
-    );
-    for (const p of portionsToCreate) {
-      if (!existingPortionNames.has(p.name.toLowerCase())) {
-        promises.push(
-          new Promise((resolve, reject) =>
-            createPortion.mutate(
-              { name: p.name, quantity: 1, weight_g: p.weight_g },
-              { onSuccess: resolve, onError: reject }
-            )
-          )
-        );
-      }
+        )
+      );
     }
 
     for (const alias of aliasesToCreate) {
@@ -827,6 +792,7 @@ export default function IngredientDetailPage() {
     }
 
     setShowAiSuggest(false);
+    setReplacePortions(false);
 
     Promise.all(promises)
       .then(() => {
@@ -1349,7 +1315,14 @@ export default function IngredientDetailPage() {
         onApply={(selectedKeys) => {
           handleApplyAiSuggestions(selectedKeys);
         }}
-        isApplying={updateIngredient.isPending || createPortion.isPending || createAlias.isPending}
+        isApplying={updateIngredient.isPending || createPortion.isPending || createAlias.isPending || applyAiPortions.isPending}
+        perGroupSelectAll
+        extraCheckbox={{
+          label: 'Alte Portionen ersetzen',
+          checked: replacePortions,
+          onChange: setReplacePortions,
+          warning: `${ingredient.portions.length} bestehende Portion${ingredient.portions.length === 1 ? '' : 'en'} werden ersetzt (inkl. System- und Belag-Portionen).`,
+        }}
       />
     </div>
   );
@@ -1490,48 +1463,50 @@ function buildIngredientSuggestionFields(
     });
   }
 
-  // Portions — sort by rank ascending (rank=1 should be first)
-  const suggestedPortions = (suggestions.portions as Array<{ name: string; weight_g: number; rank?: number }>) || [];
-  const sortedPortions = [...suggestedPortions].sort((a, b) => (a.rank ?? 1) - (b.rank ?? 1));
-  const existingNames = new Set(ingredient.portions.map((p) => p.name.toLowerCase()));
-  sortedPortions.forEach((p, i) => {
-    if (!existingNames.has(p.name.toLowerCase())) {
-      const rank = p.rank ?? 1;
+  // Portions — grouped by portion_type (System, Rezeptportion, Packungen, Belag, Backmengen)
+  const portionSuggestions = suggestions.portions as
+    | {
+        system_gramm: PortionSuggestionShape;
+        rezeptportionen: PortionSuggestionShape[];
+        packungen: PortionSuggestionShape[];
+        belag: PortionSuggestionShape[];
+        backmengen: PortionSuggestionShape[];
+      }
+    | undefined;
+  const existingPortionNames = new Set(ingredient.portions.map((p) => p.name.toLowerCase()));
 
+  const portionGroups: Array<{ groupLabel: string; keyPrefix: string; items: PortionSuggestionShape[] }> = [
+    { groupLabel: 'Rezeptportion', keyPrefix: 'rezeptportion', items: portionSuggestions?.rezeptportionen ?? [] },
+    { groupLabel: 'Packungen', keyPrefix: 'packung', items: portionSuggestions?.packungen ?? [] },
+    { groupLabel: 'Belag', keyPrefix: 'belag', items: portionSuggestions?.belag ?? [] },
+    { groupLabel: 'Backmengen', keyPrefix: 'backmenge', items: portionSuggestions?.backmengen ?? [] },
+  ];
+
+  for (const { groupLabel, keyPrefix, items } of portionGroups) {
+    items.forEach((p, i) => {
+      if (existingPortionNames.has(p.name.toLowerCase())) return;
       fields.push({
-        key: `portion_${i}`,
+        key: `portion_${keyPrefix}_${i}`,
         label: p.name,
-        group: 'Portionen',
+        group: groupLabel,
         currentValue: null,
         suggestedValue: p,
         type: 'list',
-        priority: rank === 1 ? 100 : 10, // Highlight standard portion (rank=1)
+        priority: p.rank === 1 ? 100 : 10,
       });
-    }
-  });
-
-  // System portion weights (Stück and Packung)
-  const stueckWeightG = suggestions.stueck_weight_g as number | undefined;
-  if (stueckWeightG && stueckWeightG > 0) {
-    fields.push({
-      key: 'stueck_weight_g',
-      label: 'Stück-Gewicht (g)',
-      group: 'System-Portionen',
-      currentValue: null,
-      suggestedValue: stueckWeightG,
-      type: 'scalar',
     });
   }
 
-  const packungWeightG = suggestions.packung_weight_g as number | undefined;
-  if (packungWeightG && packungWeightG > 0) {
+  // System-Portion "g" — always shown as informational, mandatory on apply
+  if (portionSuggestions?.system_gramm && !existingPortionNames.has('g')) {
     fields.push({
-      key: 'packung_weight_g',
-      label: 'Packung-Gewicht (g)',
-      group: 'System-Portionen',
+      key: 'portion_system_gramm',
+      label: portionSuggestions.system_gramm.name,
+      group: 'System',
       currentValue: null,
-      suggestedValue: packungWeightG,
-      type: 'scalar',
+      suggestedValue: portionSuggestions.system_gramm,
+      type: 'list',
+      priority: 100,
     });
   }
 

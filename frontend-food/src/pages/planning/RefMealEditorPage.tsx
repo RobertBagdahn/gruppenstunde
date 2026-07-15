@@ -75,6 +75,8 @@ export default function RefMealEditorPage() {
     [refMeals, currentMealType]
   );
 
+  const canEdit = plan?.can_edit ?? false;
+
   // Local state for items being edited
   const [localItems, setLocalItems] = useState<RefMealItemIn[]>([]);
   const [initialized, setInitialized] = useState(false);
@@ -280,19 +282,27 @@ export default function RefMealEditorPage() {
               Noch keine Referenz-Mahlzeit für {mealTypeLabel} vorhanden.
             </p>
             {isBreakfast ? (
-              <button
-                onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-              >
-                Frühstücksassistent starten
-              </button>
+              canEdit ? (
+                <button
+                  onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                >
+                  Frühstücksassistent starten
+                </button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Keine Berechtigung zum Erstellen von Referenz-Mahlzeiten.</p>
+              )
             ) : (
-              <button
-                onClick={handleCreateRefMeal}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-              >
-                Referenz-Mahlzeit erstellen
-              </button>
+              canEdit ? (
+                <button
+                  onClick={handleCreateRefMeal}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                >
+                  Referenz-Mahlzeit erstellen
+                </button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Keine Berechtigung zum Erstellen von Referenz-Mahlzeiten.</p>
+              )
             )}
           </CardContent>
         </Card>
@@ -370,27 +380,29 @@ export default function RefMealEditorPage() {
           </Card>
 
           {/* Action buttons */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={handleSync}
-              disabled={syncRefMeal.isPending}
-              className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
-            >
-              Für alle übernehmen
-            </button>
-            <button
-              onClick={handleLinkAll}
-              disabled={linkAllMeals.isPending}
-              className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
-            >
-              Alle {mealTypeLabel} verknüpfen
-            </button>
-          </div>
+          {canEdit && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleSync}
+                disabled={syncRefMeal.isPending}
+                className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+              >
+                Für alle übernehmen
+              </button>
+              <button
+                onClick={handleLinkAll}
+                disabled={linkAllMeals.isPending}
+                className="px-4 py-2 border rounded-md hover:bg-accent text-sm disabled:opacity-50"
+              >
+                Alle {mealTypeLabel} verknüpfen
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Non-Breakfast RefMeal Editor (existing Baukasten) */}
-      {refMeal && !isBreakfast && (
+      {refMeal && !isBreakfast && canEdit && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Recipe Picker (Baukasten) */}
           <div className="space-y-4">
@@ -548,6 +560,14 @@ export default function RefMealEditorPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {refMeal && !isBreakfast && !canEdit && (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">Keine Berechtigung zum Bearbeiten dieser Referenz-Mahlzeit.</p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Confirmation dialog before destructive auto-sync */}

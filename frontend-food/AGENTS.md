@@ -39,7 +39,15 @@ Der integrierte interaktive Styleguide unter `/styleguide` dient als „Single S
 * Vorlagen für Lade- und leere Zustände.
 Bei der Entwicklung neuer Komponenten oder Seiten muss immer zuerst der `/styleguide` herangezogen und als visuelle Referenz verwendet werden.
 
-## Frühstücksassistent (Breakfast Wizard)
+### 6. Rezeptbilder & Fallback
+
+`<RecipeThumbnail>` (`src/components/recipe/RecipeThumbnail.tsx`) ist die kanonische Komponente für die Darstellung von Rezeptbildern. Direkte `<img>`-Tags mit manueller Fallback-Logik (`src={x || '/images/inspi_cook.png'}` oder Icon-Fallbacks) für Rezeptbilder sind zu vermeiden — stattdessen `RecipeThumbnail` mit passendem `size`- (`xs`/`sm`/`lg`/`md`/`full`) und `aspectRatio`-Prop (`square`/`16/9`/`4/3`) verwenden.
+
+* **Fallback:** Fehlt `imageUrl` (`null`/`undefined`/leerer String), zeigt die Komponente automatisch `/images/inspi_cook.png` mit `object-contain` an — nie ein kaputtes Bild-Icon oder einen reinen Icon-Platzhalter.
+* **Backend-Feldname:** Alle API-Responses, die ein Rezeptbild liefern, verwenden einheitlich `image_url` (nie `image` oder `recipe_image`).
+* Aktuelle Verwender: `RecipeCard`, `RecipeTableRow`, `IntelligentSuggestionsGrid`, `IngredientDetailPage.RecipesSection`, `MealSlot`, `RecipePreviewInline`, `RecipePreviewDialog`, `ProfilePage`, `RecipeImportPage`.
+
+
 
 ### Konventionen
 - **Belag-Portionen**: Jede Belag-Zutat hat 3 Portionen: `"Belag knapp"`, `"Belag normal"` (Default), `"Belag üppig"` + eine `"Packung (Xg)"` für Reste-Kalkulation.
@@ -59,3 +67,26 @@ Bei der Entwicklung neuer Komponenten oder Seiten muss immer zuerst der `/styleg
 ### Einstieg
 - Kein bestehendes Frühstücks-RefMeal → `RefMealEditorPage` zeigt „Frühstücksassistent starten"-Button
 - Bestehendes RefMeal → „Frühstücksassistent öffnen"-Button oben rechts in `RefMealEditorPage`
+
+## Permission-Felder in Schemas (`can_edit` / `can_delete`)
+
+Jedes Zod-Resource-Schema (Detail + List) MUSS `can_edit: z.boolean()` und `can_delete: z.boolean()` enthalten. Die Base-Schemas liegen in `src/schemas/base.ts`:
+
+```typescript
+import { permissionBaseSchema } from '@/schemas/base';
+```
+
+Das Frontend darf NIE client-seitig Permissions berechnen. Es verwendet ausschließlich `can_edit` und `can_delete` aus der API-Response, um Edit-Controls, Drag-and-Drop, Action-Buttons und Dropdown-Menüs zu steuern.
+
+**Verboten:**
+```typescript
+// ❌ Client-seitige Permission-Berechnung
+const canEdit = user.id === resource.created_by_id || user.is_staff;
+```
+
+**Erlaubt:**
+```typescript
+// ✅ Server-provided Permission-Felder
+const canEdit = resource.can_edit ?? false;
+const canDelete = resource.can_delete ?? false;
+```

@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from ninja import Query, Router
 from ninja.errors import HttpError
 
@@ -32,10 +33,17 @@ from supply.schemas import (
     IngredientSuggestAllOut,
     IngredientUpdateIn,
     PaginatedIngredientOut,
+    PortionApplyIn,
     PortionCreateIn,
     PortionOut,
     PortionReorderIn,
     PortionUpdateIn,
+)
+from supply.services.portion_integrity import (
+    create_replacement_portion,
+    is_referenced_by_recipe_items,
+    rebind_recipe_items_to_rank1,
+    would_change_weight_g,
 )
 
 from .helpers import require_auth
@@ -342,8 +350,12 @@ def list_ingredients(
     offset = (page - 1) * page_size
     items = list(qs[offset : offset + page_size])
 
+    user = request.user if request.user.is_authenticated else None
+    for item in items:
+        item.can_edit = _can_edit_ingredient(item, user)
+        item.can_delete = _can_edit_ingredient(item, user)
+
     if name:
-        user = request.user if request.user.is_authenticated else None
         log_search(name, total, user)
         log_search_structured(name, total, "ingredient_list", user)
 
@@ -384,6 +396,8 @@ def ai_create(request, payload: IngredientAiCreateIn):
     from supply.services.ingredient_ai_suggest_service import ai_create_ingredient
 
     ingredient = ai_create_ingredient(payload.name, user=request.user)
+    ingredient.can_edit = True
+    ingredient.can_delete = True
     return ingredient
 
 
@@ -399,16 +413,19 @@ def get_ingredient(request, slug: str):
         ),
         slug=slug,
     )
-    
+
     # Check old permission model
-    if _can_view_ingredient(ingredient, request):
-        return ingredient
-    
-    # Check new breakfast wizard visibility model
-    if _can_view_ingredient_breakfast(ingredient, request.user):
-        return ingredient
-    
-    raise HttpError(404, "Zutat nicht gefunden")
+    visible = _can_view_ingredient(ingredient, request)
+    if not visible:
+        visible = _can_view_ingredient_breakfast(ingredient, request.user)
+
+    if not visible:
+        raise HttpError(404, "Zutat nicht gefunden")
+
+    ingredient.can_edit = _can_edit_ingredient(ingredient, request.user)
+    ingredient.can_delete = _can_edit_ingredient(ingredient, request.user)
+
+    return ingredient
 
 
 @ingredient_router.post("/", response=IngredientDetailOut)
@@ -472,6 +489,8 @@ def create_ingredient(request, payload: IngredientCreateIn):
             pass
 
     ingredient.refresh_from_db()
+    ingredient.can_edit = True
+    ingredient.can_delete = True
     return ingredient
 
 
@@ -566,12 +585,14 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
             pass
 
     ingredient.refresh_from_db()
+    ingredient.can_edit = _can_edit_ingredient(ingredient, request.user)
+    ingredient.can_delete = _can_edit_ingredient(ingredient, request.user)
     return ingredient
 
 
 @ingredient_router.delete("/{slug}/")
 def delete_ingredient(request, slug: str):
-    """Delete an ingredient if no RecipeItems reference it."""
+    """Soft-delete an ingredient if no RecipeItems reference it."""
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
@@ -594,7 +615,7 @@ def delete_ingredient(request, slug: str):
             status=409,
         )
 
-    ingredient.delete()
+    ingredient.soft_delete()
     return {"success": True}
 
 
@@ -668,7 +689,14 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
             raise HttpError(422, "Die 'g'-Portion muss immer rank=9999 haben und kann nicht verschoben werden.")
 
     with transaction.atomic():
-        for order in payload.orders:
+        # Apply the order whose target rank is 1 LAST. This guarantees no two
+        # portions transiently hold rank=1 at once mid-loop, which would
+        # violate the unique_rank1_portion_per_ingredient DB constraint (added
+        # in fix-portion-integrity-and-ai-estimate) even inside this
+        # transaction.atomic() block (SQLite/Postgres check non-deferrable
+        # partial unique indexes immediately, not at COMMIT).
+        ordered = sorted(payload.orders, key=lambda o: o.rank == 1)
+        for order in ordered:
             Portion.objects.filter(id=order.id, ingredient=ingredient).update(rank=order.rank)
 
     # Return updated list sorted by rank
@@ -679,11 +707,117 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
     )
 
 
+@ingredient_router.post("/{slug}/portions/ai-apply/", response=list[PortionOut])
+def ai_apply_portions(request, slug: str, payload: PortionApplyIn):
+    """Atomically apply selected KI-Portionsvorschläge for an ingredient.
+
+    Resolves `measuring_unit_name` to `measuring_unit_id` server-side (the
+    client never sends measuring_unit_id here — this closes the bug where the
+    old client-side create-portion flow left `measuring_unit` unset and
+    crashed on save). If `replace_all=True`, ALL existing (non-deleted)
+    portions — including system and Belag portions — are soft-deleted first,
+    and a fresh "g" system portion is mandatorily (re-)created, all within
+    the same transaction so no intermediate state without an active "g"
+    portion is ever visible.
+    """
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat anzulegen")
+
+    from supply.signals import _create_system_portions
+
+    try:
+        with transaction.atomic():
+            if payload.replace_all:
+                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).update(
+                    deleted_at=timezone.now()
+                )
+                _create_system_portions(ingredient)
+            elif not Portion.objects.filter(ingredient=ingredient, name__iexact="g", deleted_at__isnull=True).exists():
+                # Even without replace_all, the "g" system portion is a hard
+                # requirement — ensure it exists (idempotent, get_or_create-based).
+                _create_system_portions(ingredient)
+
+            existing_names = set(
+                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list("name", flat=True)
+            )
+            existing_names_lower = {n.lower() for n in existing_names}
+            has_active_rank1 = Portion.objects.filter(
+                ingredient=ingredient, rank=1, deleted_at__isnull=True
+            ).exists()
+
+            mu_cache: dict[str, MeasuringUnit] = {}
+
+            def _get_mu(name: str) -> MeasuringUnit:
+                key = name.strip().lower()
+                if key not in mu_cache:
+                    mu = MeasuringUnit.objects.filter(name__iexact=name).first()
+                    if mu is None:
+                        mu, _created = MeasuringUnit.objects.get_or_create(
+                            name="Gramm", defaults={"unit": "g", "quantity": 1.0}
+                        )
+                    mu_cache[key] = mu
+                return mu_cache[key]
+
+            created_portions = []
+            for suggestion in payload.selected:
+                name = suggestion.name.strip()
+                if not name or name.lower() in existing_names_lower:
+                    continue
+
+                rank = suggestion.rank
+                if rank == 1 and has_active_rank1:
+                    # Only one active rank=1 portion allowed per ingredient
+                    # (unique_rank1_portion_per_ingredient). Append this
+                    # suggestion at the end instead of colliding.
+                    max_rank = (
+                        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+                        .exclude(rank=9999)
+                        .order_by("-rank")
+                        .values_list("rank", flat=True)
+                        .first()
+                        or 0
+                    )
+                    rank = max_rank + 1
+                elif rank == 1:
+                    has_active_rank1 = True
+
+                portion = Portion.objects.create(
+                    ingredient=ingredient,
+                    name=name,
+                    measuring_unit=_get_mu(suggestion.measuring_unit_name),
+                    quantity=suggestion.quantity,
+                    weight_g=suggestion.weight_g,
+                    rank=rank,
+                    created_by=request.user,
+                )
+                created_portions.append(portion)
+                existing_names_lower.add(name.lower())
+    except IntegrityError:
+        raise HttpError(422, "Mindestens eine Portion konnte wegen eines Namenskonflikts nicht angelegt werden.")
+
+    return list(
+        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+        .order_by("rank", "id")
+        .select_related("measuring_unit")
+    )
+
+
 @ingredient_router.patch("/{slug}/portions/{portion_id}/", response=PortionOut)
 def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn):
     """Update a portion.
 
     If updating name, validates that new name is unique per ingredient (case-insensitive).
+
+    Guard-rail: if the portion is already referenced by at least one RecipeItem
+    and this update would change its resolved `weight_g`, the update is NOT
+    applied in place. Instead, a brand-new Portion is created with the
+    requested attributes, and the original (referenced) portion is left
+    completely untouched. This prevents silently corrupting gram amounts of
+    existing recipes (see openspec change `fix-portion-integrity-and-ai-estimate`).
     """
     require_auth(request)
 
@@ -694,6 +828,7 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
         raise HttpError(403, "Keine Berechtigung, diese Portion zu bearbeiten")
 
     data = payload.dict(exclude_unset=True)
+    new_name = portion.name
     if "name" in data:
         if not payload.name or not payload.name.strip():
             raise HttpError(422, "Portionsname darf nicht leer sein.")
@@ -707,26 +842,49 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
         ):
             raise HttpError(422, f"Portionsname '{new_name}' existiert bereits für diese Zutat (case-insensitive).")
 
-        portion.name = new_name
         data.pop("name")
 
     unit_id = data.pop("measuring_unit_id", None)
     explicit_weight_g = data.pop("weight_g", None)
+    weight_g_was_set = "weight_g" in payload.dict(exclude_unset=True)
+    new_unit = get_object_or_404(MeasuringUnit, id=unit_id) if unit_id is not None else portion.measuring_unit
+    new_quantity = data.get("quantity", portion.quantity)
 
-    # If quantity or unit changes and weight_g is not explicitly patched,
-    # reset weight_g to None so save() recalculates it.
-    if ("quantity" in data or unit_id is not None) and "weight_g" not in payload.dict(exclude_unset=True):
-        portion.weight_g = None
+    # Compute what weight_g WOULD resolve to after this update, without
+    # mutating the persisted portion, so we can guard against changing it
+    # in place while referenced.
+    scratch = Portion(
+        ingredient=ingredient,
+        name=new_name,
+        quantity=new_quantity,
+        measuring_unit=new_unit,
+        weight_g=explicit_weight_g if weight_g_was_set else (None if ("quantity" in data or unit_id is not None) else portion.weight_g),
+    )
+    prospective_weight_g = scratch.compute_weight_g(scratch.weight_g)
+
+    if would_change_weight_g(portion, prospective_weight_g) and is_referenced_by_recipe_items(portion):
+        replacement = create_replacement_portion(
+            portion,
+            name=new_name,
+            quantity=new_quantity,
+            measuring_unit=new_unit,
+            weight_g=prospective_weight_g,
+            rank=portion.rank,
+            created_by=request.user,
+        )
+        return replacement
 
     for field, value in data.items():
         setattr(portion, field, value)
+    portion.name = new_name
 
     if unit_id is not None:
-        unit = get_object_or_404(MeasuringUnit, id=unit_id)
-        portion.measuring_unit = unit
+        portion.measuring_unit = new_unit
 
-    if "weight_g" in payload.dict(exclude_unset=True):
+    if weight_g_was_set:
         portion.weight_g = explicit_weight_g
+    elif "quantity" in data or unit_id is not None:
+        portion.weight_g = None
 
     portion.updated_by = request.user
     portion.save()
@@ -735,7 +893,14 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
 @ingredient_router.delete("/{slug}/portions/{portion_id}/")
 def delete_portion(request, slug: str, portion_id: int):
-    """Soft-delete a portion. System-portions (g, Packung, Stück) können nicht gelöscht werden."""
+    """Soft-delete a portion. System-portions (g, Packung, Stück) können nicht gelöscht werden.
+
+    Guard-rail: if the portion is still referenced by RecipeItems, they are
+    automatically rebound onto the ingredient's current active rank=1 portion
+    (gram amount preserved) before the portion is soft-deleted. If the portion
+    being deleted is itself the ingredient's only active rank=1 portion, there
+    is no rebind target and the deletion is rejected.
+    """
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
@@ -743,6 +908,17 @@ def delete_portion(request, slug: str, portion_id: int):
 
     if portion.is_system:
         raise HttpError(422, "System-Portionen (g, Packung, Stück) können nicht gelöscht werden.")
+
+    if is_referenced_by_recipe_items(portion):
+        try:
+            rebind_recipe_items_to_rank1(portion, updated_by=request.user)
+        except ValueError:
+            raise HttpError(
+                422,
+                "Diese Portion wird von Rezepten verwendet und ist die einzige aktive "
+                "Normalportion dieser Zutat. Bitte zuerst eine andere Normalportion "
+                "(rank=1) anlegen, bevor diese gelöscht wird.",
+            )
 
     portion.soft_delete()
     return {"success": True}
@@ -779,8 +955,13 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
 
     with transaction.atomic():
         portion.rank, swap_with.rank = swap_with.rank, portion.rank
-        portion.save(update_fields=["rank"])
-        swap_with.save(update_fields=["rank"])
+        # Save whichever one is NOT ending up at rank=1 first, so at no point
+        # do both rows transiently hold rank=1 (would violate the
+        # unique_rank1_portion_per_ingredient DB constraint, see
+        # fix-portion-integrity-and-ai-estimate).
+        first, second = (portion, swap_with) if portion.rank != 1 else (swap_with, portion)
+        first.save(update_fields=["rank"])
+        second.save(update_fields=["rank"])
 
     return list(
         Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)

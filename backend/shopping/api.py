@@ -130,7 +130,17 @@ def list_shopping_lists(
     )
     if q:
         qs = qs.filter(name__icontains=q)
-    return paginate_queryset(qs, page, page_size)
+    result = paginate_queryset(qs, page, page_size)
+    for item in result["items"]:
+        if item.owner_id == request.user.id:
+            item.can_edit = True
+            item.can_delete = True
+        else:
+            collab = item.collaborators.filter(user=request.user).first()
+            if collab and collab.role in (CollaboratorRole.ADMIN, CollaboratorRole.EDITOR):
+                item.can_edit = True
+            item.can_delete = False
+    return result
 
 
 @shopping_router.post("/", response=ShoppingListOut)

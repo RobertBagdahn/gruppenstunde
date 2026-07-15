@@ -6,6 +6,7 @@ import {
 } from '@/schemas/recipe';
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
+import RecipeThumbnail from './RecipeThumbnail';
 
 interface RecipeTableRowProps {
   recipe: RecipeListItem;
@@ -31,11 +32,12 @@ export default function RecipeTableRow({ recipe, searchQuery, onDelete, onClone 
       to={`/recipes/${recipe.slug}`}
       className="group flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all"
     >
-      <img
-        src={recipe.image_url || '/images/inspi_cook.png'}
-        alt={recipe.title}
-        className="w-12 h-12 rounded-lg object-cover shrink-0 bg-muted"
-        loading="lazy"
+      <RecipeThumbnail
+        imageUrl={recipe.image_url}
+        title={recipe.title}
+        size="sm"
+        imgClassName="rounded-lg"
+        className="rounded-lg"
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">

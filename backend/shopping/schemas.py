@@ -205,6 +205,8 @@ class ShoppingListOut(Schema):
     collaborators_count: int = 0
     created_at: datetime
     updated_at: datetime
+    can_edit: bool = False
+    can_delete: bool = False
 
     @staticmethod
     def resolve_owner_username(obj) -> str:

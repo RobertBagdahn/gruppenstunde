@@ -8,7 +8,7 @@ import {
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
-import { cn } from '@/lib/utils';
+import RecipeThumbnail from './RecipeThumbnail';
 
 const TAG_COLORS = [
   'bg-primary/10 text-primary border border-primary/20',
@@ -50,14 +50,13 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
     >
       {/* Image with gradient overlay */}
       <div className="relative overflow-hidden aspect-square">
-        <img
-          src={recipe.image_url || '/images/inspi_cook.png'}
-          alt={recipe.title}
-          loading="lazy"
-          className={cn(
-            "w-full h-full transition-transform duration-500 group-hover:scale-110",
-            recipe.image_url ? "object-cover" : "object-contain p-4 bg-muted/30"
-          )}
+        <RecipeThumbnail
+          imageUrl={recipe.image_url}
+          title={recipe.title}
+          size="md"
+          aspectRatio="square"
+          className="absolute inset-0"
+          imgClassName="transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-amber-500/10" />
         {/* Like badge */}

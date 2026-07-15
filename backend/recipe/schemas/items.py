@@ -171,6 +171,11 @@ class RecipeItemUpdateIn(Schema):
     is_optional: bool | None = None
     exchange_group_id: int | None = None
     exchange_position: int | None = None
+    # Optional: set by the frontend when applying an AI quantity estimate, so
+    # the backend can verify `quantity * portion.weight_g` matches the AI's
+    # intended gram amount (safety net against portion/quantity mismatches,
+    # see openspec change `fix-portion-integrity-and-ai-estimate`).
+    expected_grams_total: float | None = None
 
 
 class RecipeItemExchangeGroupCreateIn(Schema):
@@ -244,6 +249,7 @@ class EstimateQuantityItemOut(Schema):
     item_id: int
     ingredient_name: str
     quantity_per_portion: float
+    portion_id: int
     unit: str
     grams_total: float
 

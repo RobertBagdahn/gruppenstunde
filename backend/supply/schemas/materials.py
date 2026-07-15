@@ -17,6 +17,8 @@ class MaterialOut(Schema):
     image_url: str | None
     purchase_links: list
     created_at: datetime
+    can_edit: bool = False
+    can_delete: bool = False
 
     @staticmethod
     def resolve_image_url(obj) -> str | None:
@@ -51,6 +53,8 @@ class MaterialListOut(Schema):
     slug: str
     material_category: str
     is_consumable: bool
+    can_edit: bool = False
+    can_delete: bool = False
 
 
 class ContentMaterialItemOut(Schema):

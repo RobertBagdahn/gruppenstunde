@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from core.services.gemini import GeminiUnavailableError, gemini_call
 from recipe.services.exceptions import NoRecipeFoundError
+from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT
 
 logger = logging.getLogger(__name__)
 
@@ -586,7 +587,7 @@ AUFGABEN:
 3. Für jede Zutat:
    a) Prüfe ob ein Kandidat aus der DB passt (semantisch, nicht nur String-Match). Wenn ja: setze matched_ingredient_id
    b) Wenn kein Match: erstelle new_ingredient mit ALLEN Feldern (Nährwerte pro 100g, Scores, physikalische Eigenschaften)
-   c) estimated_portion_weight_g: Gewicht einer Einheit in Gramm (z.B. 1 EL = 15g, 1 TL = 5g, 1 Stück Zwiebel = 80g, 1 Stück Tomate = 120g, 1 Stück Champignon = 20g, 1 Stück Paprika = 150g, 1 Zehe Knoblauch = 4g, 1 Ei = 60g, 1 g = 1g, 1 ml = 1g, 1 Prise = 0.3g, 1 Schuss = 10g, 1 Packung/Pck. = Packungsgewicht z.B. 200g bei Feta, 400g bei Dosentomaten)
+   c) estimated_portion_weight_g: Gewicht einer Einheit in Gramm. {TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT} Zusätzlich ingredient-spezifisch schätzen (z.B. 1 Stück Zwiebel = 80g, 1 Stück Tomate = 120g, 1 Stück Champignon = 20g, 1 Stück Paprika = 150g, 1 Packung/Pck. = Packungsgewicht z.B. 200g bei Feta, 400g bei Dosentomaten)
 4. Nährwerte müssen realistisch und korrekt sein (recherchiere via Google wenn nötig)
 5. quantity und unit aus dem Rezept-Kontext korrekt parsen:
    - "2 rote Zwiebeln" → quantity=2, unit="Stück", note="rot"
@@ -687,7 +688,7 @@ AUFGABEN:
    - "0.25 Pck. Feta" → quantity=0.25, unit="Packung"
    - "200g Mehl" → quantity=200, unit="g"
    - Abkürzungen auflösen: Pck.=Packung, Bd.=Bund, EL=Esslöffel, TL=Teelöffel
-   - estimated_portion_weight_g schätzen (z.B. 1 Zwiebel=80g, 1 EL=15g)
+   - estimated_portion_weight_g schätzen. {TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT} Zusätzlich ingredient-spezifisch (z.B. 1 Zwiebel=80g)
 
 Antworte ausschließlich im angegebenen JSON-Format."""
 

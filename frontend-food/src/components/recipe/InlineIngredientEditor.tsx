@@ -53,6 +53,13 @@ export interface EditableItem {
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
+  /** Set when an AI quantity estimate was just applied to this row, holding
+   *  the AI's intended total gram amount. Sent to the backend as
+   *  `expected_grams_total` on save so it can reject the update if the
+   *  resulting quantity/portion combination doesn't match (safety net —
+   *  see fix-portion-integrity-and-ai-estimate). Cleared on any further
+   *  manual edit of quantity or portion. */
+  aiExpectedGramsTotal?: number;
 }
 
 interface AiIngredientSuggestion {
@@ -144,12 +151,52 @@ export function getItemWeightG(item: EditableItem): number {
   return item.quantity * (portion?.weight_g ?? 0);
 }
 
+/** Merges an AI quantity estimate into an EditableItem, applying `portion_id`
+ *  and `quantity` atomically. Extracted as a pure function so the fix for the
+ *  "AI-Mengenschätzung corrupts data" bug is independently unit-testable
+ *  (see __tests__/InlineIngredientEditor.applyEstimate.test.ts).
+ *
+ *  Never leaves the item on its previous portion while only updating
+ *  quantity: the backend always resolves `estimate.portion_id` to the
+ *  ingredient's current active rank=1 portion, which may differ from
+ *  `item.portion_id` (e.g. item was stored on "1 Prise" while the estimate
+ *  targets "100g Salz"). Applying only `quantity` would silently multiply
+ *  the gram amount by the wrong portion's weight_g on save. */
+export function applyEstimateToItem(item: EditableItem, estimate: EstimateQuantityItem): EditableItem {
+  return {
+    ...item,
+    portion_id: estimate.portion_id,
+    measuring_unit_name: estimate.unit,
+    quantity: estimate.quantity_per_portion,
+    quantityInput: String(estimate.quantity_per_portion),
+    // Keep the grams-per-unit ratio consistent with the new portion, so
+    // getItemWeightG() and any further edits stay correct.
+    baseWeightG: estimate.grams_total,
+    baseQuantity: estimate.quantity_per_portion,
+    aiExpectedGramsTotal: estimate.grams_total,
+    isDirty: true,
+  };
+}
+
 export function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
   const s = portions ?? 1;
   return items.map((item) => {
-    // Find the weight_g of the current portion
+    // Find the weight_g of the current portion (used for the displayed LABEL
+    // only — see below for why the gram-per-unit ratio does NOT come from here).
     const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
-    const portionWeightG = currentPortion?.weight_g ?? 1;
+
+    // Gram-per-unit ratio: ALWAYS derived from the backend-authoritative
+    // `item.weight_g` (RecipeItemOut.weight_g, resolved server-side from the
+    // item's actual portion FK), never from a client-side lookup in
+    // `ingredient_portions`. That lookup silently returns `undefined` — and
+    // falls back to `weight_g ?? 1` — whenever the item's current portion is
+    // missing from the list (e.g. soft-deleted, as observed for a Jodsalz
+    // RecipeItem in recipe #59 "Linsensuppe"), producing a wildly wrong
+    // editable quantity (was showing ~100x too small). See getItemWeightG(),
+    // which already used this correct approach for the AI-estimate "Alt"
+    // column — normalizeItems() must use the same authoritative source for
+    // the actual editable value, not just for that one preview column.
+    const portionWeightG = item.quantity > 0 ? item.weight_g / item.quantity : (currentPortion?.weight_g ?? 1);
 
     // Convert to grams: quantity × portion.weight_g
     const quantityInGrams = item.quantity * portionWeightG;
@@ -175,6 +222,10 @@ export function normalizeItems(items: RecipeItem[], portions: number | null): Ed
       (rank1Portion.quantity !== 1 || rank1Portion.weight_g !== currentPortion?.weight_g);
     const label = shouldUseRank1Label && rank1Portion
       ? rank1Portion.name
+      // Fall back to the current portion's own measuring_unit_name; if the
+      // current portion isn't even in ingredient_portions (soft-deleted),
+      // fall back to plain "g" — the quantity itself (computed above) is
+      // still correct in grams regardless of this label.
       : currentPortion?.measuring_unit_name ?? 'g';
     
     return {
@@ -483,7 +534,15 @@ export default function InlineIngredientEditor({
     setEditItems((prev) =>
       prev.map((item) =>
         item.id === id
-          ? { ...item, quantityInput: raw, quantity: isValid ? parsed : item.quantity, isDirty: true }
+          ? {
+              ...item,
+              quantityInput: raw,
+              quantity: isValid ? parsed : item.quantity,
+              isDirty: true,
+              // Any manual edit invalidates the AI-estimate expectation —
+              // the plausibility check must only apply right after "Übernehmen".
+              aiExpectedGramsTotal: undefined,
+            }
           : item,
       ),
     );
@@ -543,6 +602,8 @@ export default function InlineIngredientEditor({
           baseWeightG: quantityInGrams,
           baseQuantity: newQuantity,
           isDirty: true,
+          // Manual portion change invalidates any pending AI-estimate expectation.
+          aiExpectedGramsTotal: undefined,
         };
       }),
     );
@@ -744,10 +805,7 @@ export default function InlineIngredientEditor({
       prev.map((item) => {
         if (!selectedEstimates.has(item.id)) return item;
         const estimate = estimateResult.find((e) => e.item_id === item.id);
-        if (estimate) {
-          return { ...item, quantity: estimate.quantity_per_portion, quantityInput: String(estimate.quantity_per_portion), isDirty: true };
-        }
-        return item;
+        return estimate ? applyEstimateToItem(item, estimate) : item;
       }),
     );
     setShowEstimate(false);
@@ -1008,6 +1066,12 @@ export default function InlineIngredientEditor({
               quantity: toBasePerServing(item.quantity, scale),
               note: item.note,
               sort_order: item.sort_order,
+              // Only present right after an AI estimate was applied to this
+              // row — lets the backend verify the resulting gram amount
+              // matches the AI's intent before persisting (safety net).
+              ...(item.aiExpectedGramsTotal !== undefined
+                ? { expected_grams_total: toBasePerServing(item.aiExpectedGramsTotal, scale) }
+                : {}),
             },
           }),
         );
@@ -1228,14 +1292,22 @@ export default function InlineIngredientEditor({
                 {estimateResult.map((est) => {
                   const currentItem = editItems.find((i) => i.id === est.item_id);
                   const currentItemGrams = currentItem ? getItemWeightG(currentItem) : 0;
-                  const altGramsText =
-                    currentItem && currentItem.quantity > 0 && currentItemGrams > 0
-                      ? ` (${formatGramsShort(currentItemGrams)})`
+                  // Primary: always the plain gram amount (unambiguous, no
+                  // "0.01 Gramm (1g)"-style confusion). Secondary: the portion
+                  // context in parentheses, only shown when the portion isn't
+                  // itself a plain gram unit (e.g. "0,8 × 100g Linsen (rot)").
+                  const altPortionContext =
+                    currentItem && currentItem.quantity > 0 && currentItem.measuring_unit_name
+                      ? ` (${currentItem.quantity} ${currentItem.measuring_unit_name})`
                       : '';
-                  const altValue = currentItem && currentItem.quantity > 0
-                    ? `${currentItem.quantity} ${currentItem.measuring_unit_name || 'g'}${altGramsText}`
+                  const altValue = currentItem && currentItemGrams > 0
+                    ? `${formatGramsShort(currentItemGrams)}${altPortionContext}`
                     : '—';
-                  const hasChange = !currentItem || currentItem.quantity !== est.quantity_per_portion;
+                  const newPortionContext = est.unit && est.unit !== 'g' && est.unit !== 'Gramm'
+                    ? ` (${est.quantity_per_portion} ${est.unit})`
+                    : '';
+                  const newValue = `${formatGramsShort(est.grams_total)}${newPortionContext}`;
+                  const hasChange = !currentItem || Math.abs(currentItemGrams - est.grams_total) > 0.05;
                   return (
                     <tr
                       key={est.item_id}
@@ -1264,7 +1336,7 @@ export default function InlineIngredientEditor({
                         {altValue}
                       </td>
                       <td className="py-2 text-right font-medium">
-                        {est.quantity_per_portion} {est.unit} ({formatGramsShort(est.grams_total)})
+                        {newValue}
                       </td>
                     </tr>
                   );

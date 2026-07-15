@@ -82,7 +82,7 @@ class CookingScheduleRecipeBlock:
     recipe_id: int
     recipe_title: str
     recipe_slug: str
-    recipe_image: str | None
+    image_url: str | None
     nutritional_tags: list[dict]
     variants: list[CookingScheduleVariant]
 
@@ -471,7 +471,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                     recipe_id=recipe.id,
                     recipe_title=recipe.title,
                     recipe_slug=recipe.slug,
-                    recipe_image=recipe.image.url if recipe.image else None,
+                    image_url=recipe.image.url if recipe.image else None,
                     nutritional_tags=_collect_nutritional_tags(recipe),
                     variants=variants,
                 )

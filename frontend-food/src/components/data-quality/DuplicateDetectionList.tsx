@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2, GitMerge, EyeOff, AlertTriangle, ArrowRight, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
 
 interface DuplicateDetectionListProps {
   type: 'ingredient' | 'recipe';
@@ -51,6 +52,10 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
   // Merge dialog state
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [mergePair, setMergePair] = useState<{ sourceId: number; targetId: number; sourceName: string; targetName: string } | null>(null);
+  // Ingredient merge dialog state (separate for shared component)
+  const [ingredientMergeOpen, setIngredientMergeOpen] = useState(false);
+  const [ingredientMergeTarget, setIngredientMergeTarget] = useState<{ id: number; name: string; slug: string } | null>(null);
+  const [ingredientMergeSource, setIngredientMergeSource] = useState<{ id: number; name: string; slug: string } | null>(null);
 
   const ingredientMergePreviewQuery = useMergePreview(mergePair?.sourceId ?? 0, mergePair?.targetId ?? 0);
   const recipeMergePreviewQuery = useRecipeMergePreview(mergePair?.sourceId ?? 0, mergePair?.targetId ?? 0);
@@ -73,9 +78,15 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
     }
   };
 
-  const handleOpenMerge = (aId: number, aName: string, bId: number, bName: string) => {
-    setMergePair({ sourceId: aId, targetId: bId, sourceName: aName, targetName: bName });
-    setMergeDialogOpen(true);
+  const handleOpenMerge = (aId: number, aName: string, aSlug: string, bId: number, bName: string, bSlug: string) => {
+    if (isIngredient) {
+      setIngredientMergeSource({ id: aId, name: aName, slug: aSlug });
+      setIngredientMergeTarget({ id: bId, name: bName, slug: bSlug });
+      setIngredientMergeOpen(true);
+    } else {
+      setMergePair({ sourceId: aId, targetId: bId, sourceName: aName, targetName: bName });
+      setMergeDialogOpen(true);
+    }
   };
 
   const handleConfirmMerge = async () => {
@@ -142,8 +153,10 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
                         handleOpenMerge(
                           pair.ingredient_a.id,
                           pair.ingredient_a.name,
+                          pair.ingredient_a.slug,
                           pair.ingredient_b.id,
                           pair.ingredient_b.name,
+                          pair.ingredient_b.slug,
                         )
                       }
                     >
@@ -172,8 +185,23 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
         <div className="text-muted-foreground py-4">Keine {entityLabel}-Duplikate gefunden</div>
       )}
 
-      {/* Merge Preview Dialog */}
-      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+      {/* Ingredient Merge Dialog (shared component) */}
+      {ingredientMergeSource && ingredientMergeTarget && (
+        <IngredientMergeDialog
+          open={ingredientMergeOpen}
+          onOpenChange={setIngredientMergeOpen}
+          currentIngredient={ingredientMergeTarget}
+          preSelectedTarget={ingredientMergeSource}
+          onMergeComplete={() => {
+            setIngredientMergeOpen(false);
+            setIngredientMergeSource(null);
+            setIngredientMergeTarget(null);
+          }}
+        />
+      )}
+
+      {/* Recipe Merge Preview Dialog */}
+      <Dialog open={mergeDialogOpen && !isIngredient} onOpenChange={setMergeDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{type === 'ingredient' ? 'Zutaten' : 'Rezepte'} zusammenführen</DialogTitle>

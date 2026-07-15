@@ -1,7 +1,9 @@
 # shopping-list Specification
 
-## MODIFIED Requirements
+## Purpose
 
+This specification defines the shopping list data model, API schemas, permissions, and frontend behavior for collaborative shopping lists.
+## Requirements
 ### Requirement: Direktzutat-Gewicht über kanonischen Helper
 
 Das System SHALL für Direktzutaten (`MealItem.ingredient`) im Shopping Service `_resolve_ingredient_weight_g` aus `planner/services/meal_item_helpers.py` verwenden statt einer eigenen Inline-Berechnung. `measuring_unit.quantity` DARF NICHT als Gewicht verwendet werden.
@@ -26,3 +28,13 @@ Das System SHALL für Direktzutaten (`MealItem.ingredient`) im Shopping Service 
 - **AND** `norm_portions=10`, `reserve_factor=1.1`
 - **WHEN** Einkaufsliste generiert wird
 - **THEN** SHALL `total_quantity_g = 200 * 1.03 * 1.0 * 11 = 2266g` sein
+
+### Requirement: List schema exposes can_edit and can_delete
+The shopping list list item response schema (`ShoppingListOut` in list endpoints) SHALL include `can_edit: bool` and `can_delete: bool` fields resolved server-side based on the user's relationship to the shopping list (owner, collaborator role, staff status).
+
+#### Scenario: Shopping list list includes permission fields
+- **WHEN** a client fetches `GET /api/shopping-lists/`
+- **THEN** each item in the response MUST include `can_edit` and `can_delete`
+- **THEN** `can_edit` SHALL be `true` for lists where the user has editor or admin access
+- **THEN** `can_edit` SHALL be `false` for lists where the user only has viewer access or no access
+

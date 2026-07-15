@@ -201,6 +201,48 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
     });
   });
 
+  describe('regression: recipe #59 "Linsensuppe" — soft-deleted current portion (fix-portion-integrity-and-ai-estimate)', () => {
+    // Real-world case: a Jodsalz RecipeItem's stored portion (id 442, "100g
+    // Salz", weight_g=100) had been soft-deleted server-side. The backend
+    // correctly excludes deleted portions from `ingredient_portions`
+    // (resolve_ingredient_portions filters deleted_at__isnull=True), so the
+    // item's OWN portion_id is not present in the list it receives. The old
+    // `normalizeItems()` looked up `ingredient_portions.find(p => p.id ===
+    // portion_id)`, got `undefined`, and fell back to `weight_g ?? 1` — turning
+    // a true 7.3g quantity into a displayed/editable ~0.07g. The fix must
+    // instead derive the gram-per-unit ratio from the backend-authoritative
+    // `item.weight_g`, which is always correct regardless of whether the
+    // current portion is still listed.
+    it('computes the correct editable quantity even when portion_id is missing from ingredient_portions', () => {
+      const items = [
+        makeRecipeItem({
+          id: 3309,
+          quantity: 0.073, // stored per-1-portion value
+          portion_id: 442, // soft-deleted — NOT present in ingredient_portions below
+          weight_g: 7.3128, // backend-authoritative total: 0.073 * 100
+          ingredient_portions: [
+            // Only the OTHER (live) portions of the ingredient are listed —
+            // portion 442 itself is absent because it was soft-deleted.
+            { id: 32744, name: 'Prise', quantity: 1, weight_g: 0.3, rank: 1, is_system: false, measuring_unit_id: null, measuring_unit_name: 'Prise' },
+          ],
+        }),
+      ];
+
+      const result = normalizeItems(items, 1);
+
+      // Must reflect the true ~7.3g, NOT the buggy fallback (0.073 * 1 = 0.073).
+      // Note: the editable `quantity` is rounded to 2 decimals by existing
+      // normalizeItems logic (unrelated to this fix), so a tiny amount of
+      // precision loss for very small per-portion quantities is expected —
+      // the important assertion is that it's in the ~7g ballpark, not ~0.07g.
+      expect(getItemWeightG(result[0])).toBeGreaterThan(6.5);
+      expect(getItemWeightG(result[0])).toBeLessThan(7.5);
+      // Explicit regression guard: must NOT collapse to the old fallback
+      // value (weight_g=1 fallback would have produced ~0.073g here).
+      expect(getItemWeightG(result[0])).toBeGreaterThan(1);
+    });
+  });
+
   describe('piece-based portions', () => {
     it('labels with Stück for piece portions', () => {
       const items = [

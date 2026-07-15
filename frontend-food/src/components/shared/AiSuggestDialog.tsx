@@ -42,6 +42,15 @@ interface AiSuggestDialogProps {
   error?: string | null;
   /** Optional AI interaction ID for thumbs-up/down feedback */
   interactionId?: string | null;
+  /** Show an "Alle auswählen"/"Keine auswählen" toggle per group (in addition to the global one). */
+  perGroupSelectAll?: boolean;
+  /** Optional extra checkbox rendered above the footer (e.g. "Alte Portionen ersetzen"). */
+  extraCheckbox?: {
+    label: string;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    warning?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +67,8 @@ export function AiSuggestDialog({
   isApplying = false,
   error = null,
   interactionId = null,
+  perGroupSelectAll = false,
+  extraCheckbox,
 }: AiSuggestDialogProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -66,8 +77,12 @@ export function AiSuggestDialog({
     return fields.filter((f) => {
       if (f.suggestedValue === null || f.suggestedValue === undefined) return false;
       if (f.type === 'list') {
-        const arr = f.suggestedValue as unknown[];
-        return arr.length > 0;
+        // list-type suggestedValue can be either an array (aliases, tags) or
+        // a single object (one portion suggestion per field) — both count as
+        // "present" when non-empty. A bare array-length check previously
+        // silently hid every single-object list field (e.g. all portions).
+        if (Array.isArray(f.suggestedValue)) return f.suggestedValue.length > 0;
+        return true;
       }
       // Scalar: show if suggestion differs from current
       // Treat null/undefined as equivalent to 0 for comparison
@@ -125,6 +140,22 @@ export function AiSuggestDialog({
     });
   }
 
+  function toggleGroup(groupFields: SuggestionField[]) {
+    const keys = groupFields.map((f) => f.key);
+    const allGroupSelected = keys.every((k) => selected.has(k));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const k of keys) {
+        if (allGroupSelected) {
+          next.delete(k);
+        } else {
+          next.add(k);
+        }
+      }
+      return next;
+    });
+  }
+
   function handleApply() {
     onApply(Array.from(selected));
   }
@@ -166,9 +197,20 @@ export function AiSuggestDialog({
                 key={groupName}
                 className={groupName === 'Name' ? 'md:col-span-2 lg:col-span-3' : ''}
               >
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                  {groupName}
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    {groupName}
+                  </h4>
+                  {perGroupSelectAll && groupFields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(groupFields)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {groupFields.every((f) => selected.has(f.key)) ? 'Keine auswählen' : 'Alle auswählen'}
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-2">
                   {groupFields.map((field) => (
                     <label
@@ -215,6 +257,23 @@ export function AiSuggestDialog({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {extraCheckbox && !isLoading && !error && (
+          <div className="border-t pt-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={extraCheckbox.checked}
+                onChange={(e) => extraCheckbox.onChange(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="text-sm font-medium">{extraCheckbox.label}</span>
+            </label>
+            {extraCheckbox.checked && extraCheckbox.warning && (
+              <p className="mt-1 ml-7 text-xs text-destructive">{extraCheckbox.warning}</p>
+            )}
           </div>
         )}
 

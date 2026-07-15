@@ -137,6 +137,7 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
     item = get_object_or_404(RecipeItem, id=item_id, recipe=recipe)
 
     data = payload.dict(exclude_unset=True)
+    expected_grams_total = data.pop("expected_grams_total", None)
 
     # Determine resulting optional/exchange state to validate mutual exclusion.
     result_is_optional = data.get("is_optional", item.is_optional)
@@ -154,6 +155,30 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
             409,
             "Diese Zutat wird in aktiven Essensplänen mit Varianten verwendet und kann nicht geändert werden.",
         )
+
+    # Plausibility check (safety net): if the client tells us what gram total
+    # it intended (e.g. when applying an AI quantity estimate), verify the
+    # resulting quantity * portion.weight_g matches within a small tolerance.
+    # Prevents silently persisting a portion/quantity mismatch even if a
+    # future client bug re-introduces the class of bug this change fixes.
+    if expected_grams_total is not None:
+        result_portion_id = data.get("portion_id", item.portion_id)
+        result_quantity = data.get("quantity", item.quantity)
+        portion = (
+            item.portion
+            if result_portion_id == item.portion_id
+            else get_object_or_404(Portion, id=result_portion_id)
+        )
+        resulting_weight_g = portion.weight_g if (portion.weight_g and portion.weight_g > 0) else 1.0
+        resulting_grams = result_quantity * resulting_weight_g
+        tolerance = max(abs(expected_grams_total) * 0.01, 0.01)
+        if abs(resulting_grams - expected_grams_total) > tolerance:
+            raise HttpError(
+                422,
+                "Die resultierende Menge weicht von der erwarteten Gramm-Menge ab "
+                f"(erwartet {expected_grams_total}g, ergäbe {resulting_grams:.2f}g). "
+                "Speichern abgebrochen, um eine falsche Portion/Menge-Kombination zu verhindern.",
+            )
 
     for field, value in data.items():
         setattr(item, field, value)

@@ -11,6 +11,7 @@ import {
   type PriceApplyRequest,
   PaginatedDuplicatePairSchema,
   MergePreviewSchema,
+  MergeResponseSchema,
   RecipeMergePreviewSchema,
   type MergeRequest,
   type RecipeDismissRequest,
@@ -189,7 +190,10 @@ export function useMergePreview(sourceId: number, targetId: number) {
 export function useMergeIngredients() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: MergeRequest) => postJson(`${ADMIN_DQ}/ingredients/merge/`, data),
+    mutationFn: (data: MergeRequest) =>
+      postJson(`${ADMIN_DQ}/ingredients/merge/`, data).then((d) =>
+        MergeResponseSchema.parse(d)
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-duplicates'] });
     },

@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { RecipeSearchResult } from '@/schemas/mealPlan';
+import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 
 const RECIPE_TYPE_LABELS: Record<string, string> = {
   breakfast: 'Frühstück',
@@ -72,14 +73,14 @@ export default function RecipePreviewDialog({
 
         <div className="space-y-4">
           {/* Image */}
-          {recipe.image && (
-            <img
-              src={recipe.image}
-              alt={recipe.title}
-              className="w-full max-h-[200px] rounded-lg object-cover"
-              loading="lazy"
-            />
-          )}
+          <RecipeThumbnail
+            imageUrl={recipe.image_url}
+            title={recipe.title}
+            size="full"
+            eager
+            imgClassName="rounded-lg"
+            className="rounded-lg"
+          />
 
           {/* Type + Servings */}
           <div className="flex items-center gap-3 text-sm">

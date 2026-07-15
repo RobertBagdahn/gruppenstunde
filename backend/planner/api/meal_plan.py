@@ -55,7 +55,13 @@ from planner.schemas import (
     MealUpdateIn,
     NutritionalTagScanOut,
     NutritionSummaryOut,
+    PopularRecipesResponseOut,
+    RecentlyUsedRecipesResponseOut,
+    RecipePopularItemOut,
+    RecipeRecentlyUsedOut,
+    RecipeSearchResultOut,
     RecipeSuggestionOut,
+    SearchRecipesResponseOut,
     ShoppingListItemOut,
     WizardItemsIn,
     WizardItemsOut,
@@ -286,7 +292,12 @@ def list_meal_plans(
     else:
         qs = qs.order_by("-start_datetime", "-created_at")
 
-    return qs
+    items = list(qs)
+    for plan in items:
+        role = _get_user_role(plan, request.user)
+        plan.can_edit = role in ("owner", MealPlanCollaboratorRole.ADMIN, MealPlanCollaboratorRole.EDITOR)
+        plan.can_delete = role == "owner"
+    return items
 
 
 @meal_plan_router.post("/", response=MealPlanOut)
@@ -1708,7 +1719,7 @@ def recipe_suggestions(
 # ==========================================================================
 
 
-@meal_plan_router.get("/recipes/popular/", response=dict)
+@meal_plan_router.get("/recipes/popular/", response=PopularRecipesResponseOut)
 def popular_recipes(
     request,
     meal_type: str | None = None,
@@ -1735,7 +1746,7 @@ def popular_recipes(
             "id": r.id,
             "title": r.title,
             "recipe_type": r.recipe_type,
-            "image": r.image.url if r.image else None,
+            "image_url": r.image.url if r.image else None,
             "usage_count": r.usage_count,
             "recipe_badge": _resolve_recipe_badge(r, request.user),
             "price_per_serving": (
@@ -1776,7 +1787,7 @@ def popular_recipes(
                             "id": r.id,
                             "title": r.title,
                             "recipe_type": r.recipe_type,
-                            "image": r.image.url if r.image else None,
+                            "image_url": r.image.url if r.image else None,
                             "usage_count": counts_map[rid],
                             "recipe_badge": badge,
                             "price_per_serving": pps,
@@ -1791,7 +1802,7 @@ def popular_recipes(
 # ==========================================================================
 
 
-@meal_plan_router.get("/recipes/recently-used/", response=dict)
+@meal_plan_router.get("/recipes/recently-used/", response=RecentlyUsedRecipesResponseOut)
 def recently_used_recipes(
     request,
     limit: int = 5,
@@ -1829,7 +1840,7 @@ def recently_used_recipes(
                         "title": r.title,
                         "slug": r.slug,
                         "recipe_type": r.recipe_type,
-                        "image": r.image.url if r.image else None,
+                        "image_url": r.image.url if r.image else None,
                         "usage_count": r.usage_count,
                         "recipe_badge": badge,
                         "price_per_serving": pps,
@@ -1845,7 +1856,7 @@ def recently_used_recipes(
 # ==========================================================================
 
 
-@meal_plan_router.get("/recipes/search/", response=dict)
+@meal_plan_router.get("/recipes/search/", response=SearchRecipesResponseOut)
 def search_recipes(
     request,
     q: str = "",
@@ -2054,7 +2065,7 @@ def search_recipes(
                 "title": r.title,
                 "slug": r.slug,
                 "recipe_type": r.recipe_type,
-                "image": r.image.url if r.image else None,
+                "image_url": r.image.url if r.image else None,
                 "portions": r.portions,
                 "cached_energy_kcal": r.cached_energy_kcal,
                 "cached_protein_g": r.cached_protein_g,

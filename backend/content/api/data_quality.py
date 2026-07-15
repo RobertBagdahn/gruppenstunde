@@ -485,6 +485,9 @@ def undismiss_duplicate(request, body: DismissRequestIn):
 @admin_router.get("/ingredients/merge/preview/", response=MergePreviewOut)
 def merge_preview(request, source_id: int, target_id: int):
     _require_staff(request)
+    if source_id == target_id:
+        raise HttpError(400, "Quell- und Ziel-Zutat dürfen nicht identisch sein")
+
     try:
         source = Ingredient.objects.get(id=source_id)
         target = Ingredient.objects.get(id=target_id)
@@ -516,30 +519,122 @@ def merge_ingredients(request, body: MergeRequestIn):
     if body.source_id == body.target_id:
         raise HttpError(400, "Quell- und Ziel-Zutat dürfen nicht identisch sein")
 
+    from django.contrib.contenttypes.models import ContentType
+
+    from content.models import ContentLink
+    from supply.models import IngredientAlias
+
     try:
-        source = Ingredient.objects.get(id=body.source_id)
+        source = Ingredient.all_objects.get(id=body.source_id)
         target = Ingredient.objects.get(id=body.target_id)
     except Ingredient.DoesNotExist:
         raise HttpError(404, "Zutat nicht gefunden")
 
-    # Add source name as alias to target
-    from supply.models import IngredientAlias
+    if source.is_deleted:
+        raise HttpError(400, "Quell-Zutat wurde bereits zusammengeführt")
 
-    IngredientAlias.objects.get_or_create(
-        ingredient=target,
-        name=source.name,
-        defaults={"rank": 1, "created_by": request.user},
-    )
+    ct = ContentType.objects.get_for_model(Ingredient)
 
-    # Rebind RecipeItems
+    if ContentLink.objects.filter(
+        source_content_type=ct,
+        source_object_id=source.id,
+        target_content_type=ct,
+        target_object_id=target.id,
+        link_type="duplicate_merged",
+    ).exists():
+        raise HttpError(400, "Dieses Zutaten-Paar wurde bereits zusammengeführt")
+
+    from django.db import transaction
+
     from recipe.models import RecipeItem
+    from supply.models import UnitConversion
+    from supply.services.portion_integrity import rebind_recipe_items_to_portion
 
-    RecipeItem.objects.filter(portion__ingredient=source).update(portion_id=None)
-    # Delete source portions and soft-delete source
-    source.portions.all().delete()
-    source.delete()
+    with transaction.atomic():
+        affected = RecipeItem.objects.filter(portion__ingredient=source).count()
 
-    return {"success": True}
+        target_max_alias_rank = (
+            IngredientAlias.objects.filter(ingredient=target)
+            .aggregate(m=db_models.Max("rank"))["m"] or 0
+        )
+
+        IngredientAlias.objects.get_or_create(
+            ingredient=target,
+            name=source.name,
+            defaults={
+                "rank": target_max_alias_rank + 1,
+                "is_generic": True,
+                "created_by": request.user,
+            },
+        )
+        aliases_added = 1
+
+        for alias in source.aliases.all():
+            _, created = IngredientAlias.objects.get_or_create(
+                ingredient=target,
+                name=alias.name,
+                defaults={
+                    "rank": target_max_alias_rank + 2 + alias.rank,
+                    "is_generic": True,
+                    "created_by": request.user,
+                },
+            )
+            if created:
+                aliases_added += 1
+
+        source_portions = list(source.portions.filter(deleted_at__isnull=True))
+        portions_moved = 0
+
+        target_portion_names = {
+            p.name.lower(): p
+            for p in target.portions.filter(deleted_at__isnull=True)
+        }
+        max_target_rank = target.portions.aggregate(
+            m=db_models.Max("rank")
+        )["m"] or 1
+
+        for source_portion in source_portions:
+            existing = target_portion_names.get(source_portion.name.lower())
+            if existing is not None:
+                if RecipeItem.objects.filter(portion=source_portion).exists():
+                    rebind_recipe_items_to_portion(source_portion, existing)
+                source_portion.delete()
+            else:
+                if source_portion.rank == 1:
+                    max_target_rank += 1
+                    source_portion.rank = max_target_rank
+                source_portion.ingredient = target
+                source_portion.save(update_fields=["ingredient", "rank"])
+                portions_moved += 1
+
+        from planner.models import MealItem
+        MealItem.objects.filter(ingredient=source).update(ingredient=target)
+
+        UnitConversion.objects.filter(ingredient=source).delete()
+
+        from content.services.embedding_service import update_ingredient_embedding
+        try:
+            update_ingredient_embedding(target, force=True)
+        except Exception:
+            pass
+
+        source.soft_delete()
+
+        ContentLink.objects.create(
+            source_content_type=ct,
+            source_object_id=source.id,
+            target_content_type=ct,
+            target_object_id=target.id,
+            link_type="duplicate_merged",
+            created_by=request.user,
+        )
+
+    return {
+        "success": True,
+        "affected_recipe_items": affected,
+        "portions_moved": portions_moved,
+        "aliases_added": aliases_added,
+    }
 
 
 # ============================================================================

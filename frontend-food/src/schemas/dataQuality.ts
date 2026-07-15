@@ -78,6 +78,14 @@ export const MergePreviewSchema = z.object({
 });
 export type MergePreview = z.infer<typeof MergePreviewSchema>;
 
+export const MergeResponseSchema = z.object({
+  success: z.boolean(),
+  affected_recipe_items: z.number(),
+  portions_moved: z.number(),
+  aliases_added: z.number(),
+});
+export type MergeResponse = z.infer<typeof MergeResponseSchema>;
+
 export const RecipeMergePreviewSchema = z.object({
   source_id: z.number(),
   source_name: z.string(),

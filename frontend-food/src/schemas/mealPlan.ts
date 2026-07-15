@@ -50,7 +50,7 @@ export const MealItemSchema = z.object({
   recipe_id: z.number().nullable(),
   recipe_title: z.string(),
   recipe_slug: z.string(),
-  recipe_image: z.string().nullable(),
+  image_url: z.string().nullable(),
   ingredient_id: z.number().nullable(),
   ingredient_name: z.string(),
   ingredient_slug: z.string(),
@@ -147,6 +147,8 @@ export const MealPlanSchema = z.object({
   meals_copied: z.number().optional(),
   items_copied: z.number().optional(),
   overrides_copied: z.number().optional(),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
 });
 export type MealPlan = z.infer<typeof MealPlanSchema>;
 
@@ -330,7 +332,7 @@ export const RecipeSearchResultSchema = z.object({
   title: z.string(),
   slug: z.string(),
   recipe_type: z.string(),
-  image: z.string().nullable().optional(),
+  image_url: z.string().nullable().optional(),
   portions: z.number().nullable().optional(),
   cached_energy_kcal: z.number().nullable().optional(),
   cached_protein_g: z.number().nullable().optional(),
@@ -355,7 +357,7 @@ export const RecipePopularItemSchema = z.object({
   id: z.number(),
   title: z.string(),
   recipe_type: z.string(),
-  image: z.string().nullable(),
+  image_url: z.string().nullable(),
   usage_count: z.number(),
   recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
   price_per_serving: z.number().nullable().optional(),
@@ -395,7 +397,7 @@ export const RecipeRecentlyUsedSchema = z.object({
   title: z.string(),
   slug: z.string(),
   recipe_type: z.string(),
-  image: z.string().nullable(),
+  image_url: z.string().nullable(),
   portions: z.number().nullable().optional(),
   usage_count: z.number().optional(),
   recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
@@ -800,6 +802,8 @@ export const RefMealSchema = z.object({
   synced_meals_count: z.number(),
   total_meals_count: z.number(),
   synced_meal_count: z.number().nullable().optional(),
+  can_edit: z.boolean(),
+  can_delete: z.boolean(),
 });
 export type RefMeal = z.infer<typeof RefMealSchema>;
 
@@ -951,7 +955,7 @@ export const CookingScheduleRecipeBlockSchema = z.object({
   recipe_id: z.number(),
   recipe_title: z.string(),
   recipe_slug: z.string(),
-  recipe_image: z.string().nullable(),
+  image_url: z.string().nullable(),
   nutritional_tags: z.array(NutritionalTagSchema).default([]),
   variants: z.array(CookingScheduleVariantSchema),
 });

@@ -193,7 +193,7 @@ export default function IngredientListPage() {
                 <IngredientCard
                   key={ingredient.id}
                   ingredient={ingredient}
-                  onDelete={() => setDeleteTarget(ingredient.slug)}
+                  onDelete={ingredient.can_delete ? () => setDeleteTarget(ingredient.slug) : undefined}
                 />
               ))}
             </div>

@@ -79,6 +79,30 @@ class PortionReorderIn(Schema):
     orders: list[PortionReorderItem]
 
 
+class PortionApplySuggestionIn(Schema):
+    """A single portion suggestion selected by the user to be applied."""
+
+    name: str
+    weight_g: float
+    quantity: float = 1.0
+    measuring_unit_name: str
+    rank: int = 1
+    portion_type: str
+
+
+class PortionApplyIn(Schema):
+    """Input for the atomic ai-apply endpoint.
+
+    `replace_all=True` soft-deletes all existing (non-deleted) portions of
+    the ingredient — including system and Belag portions — before the
+    selected suggestions (plus a mandatory fresh "g" system portion) are
+    created, all within a single DB transaction.
+    """
+
+    replace_all: bool = False
+    selected: list[PortionApplySuggestionIn] = []
+
+
 class IngredientListOut(Schema):
     """Compact ingredient for list views."""
 
@@ -97,6 +121,8 @@ class IngredientListOut(Schema):
     quality_score: int | None = None
     usage_count: int = 0
     groups: list[IngredientGroupOut] = []
+    can_edit: bool = False
+    can_delete: bool = False
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
@@ -192,6 +218,8 @@ class IngredientDetailOut(Schema):
     created_by_id: int | None = None
     quality_score: int | None = None
     quality_score_updated_at: datetime | None = None
+    can_edit: bool = False
+    can_delete: bool = False
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
@@ -414,7 +442,20 @@ class PortionSuggestionOut(Schema):
 
     name: str
     weight_g: float
+    quantity: float = 1.0
+    measuring_unit_name: str
     rank: int = 1
+    portion_type: str
+
+
+class IngredientPortionSuggestOut(Schema):
+    """Strukturierte Portionsvorschläge, gruppiert nach portion_type."""
+
+    system_gramm: PortionSuggestionOut
+    rezeptportionen: list[PortionSuggestionOut] = []
+    packungen: list[PortionSuggestionOut] = []
+    belag: list[PortionSuggestionOut] = []
+    backmengen: list[PortionSuggestionOut] = []
 
 
 class IngredientSuggestAllOut(Schema):
@@ -465,9 +506,7 @@ class IngredientSuggestAllOut(Schema):
     price_per_kg: float | None = None
 
     # Portionen und Aliase
-    portions: list[PortionSuggestionOut] = []
-    stueck_weight_g: float | None = None
-    packung_weight_g: float | None = None
+    portions: IngredientPortionSuggestOut
     aliases: list[str] = []
     nutritional_tags: list[NutritionalTagOut] = []
 

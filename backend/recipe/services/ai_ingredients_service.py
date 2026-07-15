@@ -322,11 +322,17 @@ class AiQuantityEstimatesOutput(BaseModel):
 class RecipeQuantityEstimationService:
     """Estimates realistic quantities for existing recipe items via Gemini."""
 
-    def estimate_quantities(self, recipe: Recipe, user: Any = None) -> list[dict] | None:
+    def estimate_quantities(
+        self, recipe: Recipe, user: Any = None, *, bypass_limits: bool = False,
+    ) -> list[dict] | None:
         """Estimate quantities for all existing recipe items.
 
         Returns list of dicts with item_id, ingredient_name,
         quantity_per_person, quantity_total, unit.
+
+        `bypass_limits=True` skips the auth/rate-limit check in `gemini_call` —
+        used by the `repair_portion_integrity` management command, which runs
+        without an authenticated request user.
         """
         from recipe.models import RecipeItem
 
@@ -353,6 +359,7 @@ class RecipeQuantityEstimationService:
                     response_schema=AiQuantityEstimatesOutput,
                 ),
                 context="ai_quantity_estimation",
+                bypass_limits=bypass_limits,
             )
             if response is None:
                 return None
@@ -381,7 +388,19 @@ class RecipeQuantityEstimationService:
         items: list,
         servings: int,
     ) -> list[dict]:
-        """Build response dicts from AI output."""
+        """Build response dicts from AI output.
+
+        Target portion resolution (fix-portion-integrity-and-ai-estimate):
+        Always resolves to the ingredient's currently ACTIVE (non-deleted)
+        rank=1 portion — never the RecipeItem's stored portion, and never a
+        soft-deleted portion. `portion_id` is included in every result so the
+        frontend can apply `portion_id` and `quantity_per_portion` atomically
+        instead of only overwriting `quantity` on the item's old (potentially
+        mismatched or deleted) portion — the root cause of a reproducible data
+        corruption bug (see design.md for the recipe #59 "Linsensuppe" case).
+        """
+        from supply.services.portion_integrity import get_active_rank1_portion
+
         estimates_by_id = {e.item_id: e for e in ai_output.items}
         results = []
 
@@ -394,19 +413,20 @@ class RecipeQuantityEstimationService:
             if item.portion and item.portion.ingredient:
                 ingredient_name = item.portion.ingredient.name
 
-            target_portion = item.portion
+            target_portion = None
             if item.portion and item.portion.ingredient_id:
-                # Use rank=1 portion (Normalportion/default) if available
-                default_portion = (
-                    item.portion.ingredient.portions.filter(
-                        deleted_at__isnull=True,
-                        rank=1,
-                    )
-                    .select_related("measuring_unit")
-                    .first()
+                target_portion = get_active_rank1_portion(item.portion.ingredient)
+
+            if target_portion is None:
+                # No active rank=1 portion exists for this ingredient (e.g. all
+                # candidates soft-deleted) — nothing safe to estimate against.
+                logger.warning(
+                    "AI quantity estimation: no active rank=1 portion for item %s "
+                    "(ingredient '%s') — skipping",
+                    item.id,
+                    ingredient_name,
                 )
-                if default_portion:
-                    target_portion = default_portion
+                continue
 
             # Composite-portion labeling rule (same as frontend normalizeItems(),
             # fixed for recipe #434): portions with quantity != 1 are pre-scaled
@@ -414,23 +434,23 @@ class RecipeQuantityEstimationService:
             # MUST be used as the label — using the underlying measuring_unit
             # name ("Gramm") is misleading, since quantity_per_portion here is a
             # count of that portion, not a gram amount.
-            unit = "g"
-            if target_portion:
-                if target_portion.quantity != 1 and target_portion.name:
-                    unit = target_portion.name
-                elif target_portion.measuring_unit:
-                    unit = target_portion.measuring_unit.name
+            if target_portion.quantity != 1 and target_portion.name:
+                unit = target_portion.name
+            elif target_portion.measuring_unit:
+                unit = target_portion.measuring_unit.name
+            else:
+                unit = "g"
 
             # Convert AI grams into the editable unit. Use consistent logic with
             # assign_portions (line 238): check weight_g > 0, not just falsy.
             # This prevents items with weight_g=0 from incorrectly falling back to 1.0.
-            weight_g = target_portion.weight_g if (target_portion and target_portion.weight_g and target_portion.weight_g > 0) else 1.0
-            
+            weight_g = target_portion.weight_g if (target_portion.weight_g and target_portion.weight_g > 0) else 1.0
+
             # Use the AI estimate directly without clamping to 1.0.
             # Small amounts (0.1-0.5g) for spices should pass through unchanged.
             # Clamping contradicts assign_portions (line 239) which uses no clamping.
             estimated_grams = max(estimate.estimated_grams_per_person, 0)
-            
+
             # Avoid division by zero and ensure we always return a valid quantity
             if estimated_grams <= 0 or weight_g <= 0:
                 quantity_per_portion = 1.0
@@ -448,7 +468,14 @@ class RecipeQuantityEstimationService:
                 {
                     "item_id": item.id,
                     "ingredient_name": ingredient_name,
-                    "quantity_per_portion": round(quantity_per_portion, 2),
+                    # Clamp away from exactly 0 after rounding: RecipeItem.quantity
+                    # has a DB check constraint (> 0). A tiny estimated_grams
+                    # against a large weight_g portion could otherwise round to
+                    # 0.00 at 2 decimals and fail to save (observed live during
+                    # the production repair rollout for a different rebind path —
+                    # same class of issue, guarded here too for consistency).
+                    "quantity_per_portion": max(round(quantity_per_portion, 2), 0.01),
+                    "portion_id": target_portion.id,
                     "unit": unit,
                     "grams_total": grams_total,
                 }
@@ -488,3 +515,60 @@ class RecipeQuantityEstimationService:
             "- Flüssigkeiten (Milch, Brühe): 100-250ml\n\n"
             "Gib die item_id und estimated_grams_per_person für jedes Item zurück."
         )
+
+    # -------------------------------------------------------------------
+    # Bulk plausibility check + repair (used by `repair_portion_integrity`)
+    # -------------------------------------------------------------------
+
+    #: Total recipe weight per portion outside this range is considered
+    #: implausible and triggers an automatic AI re-estimate.
+    PLAUSIBLE_WEIGHT_PER_PORTION_RANGE_G = (30.0, 1500.0)
+
+    def compute_weight_per_portion_g(self, recipe: Recipe) -> float:
+        """Total recipe weight in grams divided by the number of portions,
+        computed fresh from RecipeItems (does NOT rely on `cached_weight_g`,
+        which may itself be stale/derived from the same bad data)."""
+        from recipe.models import RecipeItem
+
+        items = RecipeItem.objects.filter(recipe=recipe).select_related("portion", "portion__ingredient")
+        total_g = 0.0
+        for item in items:
+            if item.portion and item.portion.weight_g:
+                total_g += item.quantity * item.portion.weight_g
+        servings = recipe.portions or 1
+        return total_g / servings if servings else total_g
+
+    def is_implausible(self, recipe: Recipe) -> bool:
+        low, high = self.PLAUSIBLE_WEIGHT_PER_PORTION_RANGE_G
+        weight = self.compute_weight_per_portion_g(recipe)
+        return weight <= 0 or weight < low or weight > high
+
+    def check_and_repair_recipe(self, recipe: Recipe, user: Any = None, *, bypass_limits: bool = False) -> bool:
+        """If `recipe`'s total weight per portion is implausible, re-estimate
+        realistic quantities via Gemini and persist them automatically
+        (portion_id + quantity together, per-item, no manual approval).
+
+        Returns True if the recipe was changed.
+        """
+        from recipe.models import RecipeItem
+
+        if not self.is_implausible(recipe):
+            return False
+
+        results = self.estimate_quantities(recipe, user=user, bypass_limits=bypass_limits)
+        if not results:
+            logger.warning("AI plausibility repair: no estimate available for recipe '%s'", recipe.title)
+            return False
+
+        changed = False
+        for entry in results:
+            item = RecipeItem.objects.filter(id=entry["item_id"]).first()
+            if not item:
+                continue
+            if item.portion_id != entry["portion_id"] or item.quantity != entry["quantity_per_portion"]:
+                item.portion_id = entry["portion_id"]
+                item.quantity = entry["quantity_per_portion"]
+                item.save(update_fields=["portion", "quantity"])
+                changed = True
+
+        return changed

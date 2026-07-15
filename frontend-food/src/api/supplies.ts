@@ -17,6 +17,7 @@ import {
   RetailSectionSchema,
   PaginatedIngredientSchema,
   PortionSchema,
+  type PortionSuggestion,
   IngredientAliasSchema,
   DistributionOutSchema,
   RankingsOutSchema,
@@ -291,6 +292,24 @@ export function useReorderPortions(slug: string) {
         { orders },
         z.array(PortionSchema),
       ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+/**
+ * Atomically apply selected AI portion suggestions (POST /{slug}/portions/ai-apply/).
+ * Server resolves measuring_unit_name -> measuring_unit_id and, when
+ * replace_all=true, soft-deletes all existing portions (incl. system/Belag)
+ * before mandatorily recreating the "g" system portion, all in one transaction.
+ */
+export function useApplyAiPortionSuggestions(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { replace_all: boolean; selected: PortionSuggestion[] }) =>
+      postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/ai-apply/`, data, z.array(PortionSchema)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });

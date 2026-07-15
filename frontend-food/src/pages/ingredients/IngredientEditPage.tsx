@@ -10,6 +10,9 @@ import {
 } from '@/api/supplies';
 import type { NutritionalTag } from '@/schemas/supply';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
+import { GitMerge } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Entwurf' },
@@ -72,7 +75,9 @@ export default function IngredientEditPage() {
   const { data: retailSections } = useRetailSections();
   const { data: nutritionalTags } = useNutritionalTags();
 
-  const canEdit = !!user && (user.is_staff || user.id === ingredient?.created_by_id);
+  const canEdit = ingredient?.can_edit ?? false;
+
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -311,6 +316,17 @@ export default function IngredientEditPage() {
       <h1 className="text-2xl font-display font-bold text-foreground mb-6 flex items-center gap-3">
         <span className="material-symbols-outlined text-primary text-2xl">egg_alt</span>
         Zutat bearbeiten
+        {user?.is_staff && ingredient && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMergeDialogOpen(true)}
+            className="ml-auto"
+          >
+            <GitMerge className="h-4 w-4 mr-1" />
+            Zutat zusammenführen
+          </Button>
+        )}
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -599,6 +615,21 @@ export default function IngredientEditPage() {
           </button>
         </div>
       </form>
+
+      {ingredient && (
+        <IngredientMergeDialog
+          open={mergeDialogOpen}
+          onOpenChange={setMergeDialogOpen}
+          currentIngredient={{
+            id: ingredient.id,
+            name: ingredient.name,
+            slug: ingredient.slug,
+          }}
+          onMergeComplete={() => {
+            setMergeDialogOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

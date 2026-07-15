@@ -9,7 +9,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from pgvector.django import VectorField
 
-from content.models import Tag
+from content.models import SoftDeleteModel, Tag
 
 from ..choices import IngredientStatusChoices, PhysicalViscosityChoices, StorageTypeChoices
 from .reference import NutritionalTag, RetailSection
@@ -39,9 +39,11 @@ class IngredientGroup(models.Model):
         super().save(*args, **kwargs)
 
 
-class Ingredient(models.Model):
+class Ingredient(SoftDeleteModel):
     """
     Ingredient for recipes (Zutat).
+
+    Inherits SoftDeleteModel for soft-delete support (deleted_at).
 
     Standalone model — does NOT inherit from Supply because Ingredient has
     30+ nutritional/score fields that have nothing in common with Material.
@@ -445,6 +447,11 @@ class Portion(models.Model):
                 condition=Q(deleted_at__isnull=True),
                 name="unique_portion_name_per_ingredient",
             ),
+            models.UniqueConstraint(
+                fields=["ingredient"],
+                condition=Q(rank=1, deleted_at__isnull=True),
+                name="unique_rank1_portion_per_ingredient",
+            ),
         ]
 
     def compute_weight_g(self, explicit: float | None = None) -> float | None:
@@ -482,6 +489,16 @@ class Portion(models.Model):
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
+
+    def is_referenced_by_recipe_items(self) -> bool:
+        """Whether at least one RecipeItem currently points to this portion.
+
+        Referenced portions are integrity-protected: their `weight_g` MUST NOT
+        change in place (see `supply.services.portion_integrity`).
+        """
+        from recipe.models import RecipeItem
+
+        return RecipeItem.objects.filter(portion=self).exists()
 
     @classmethod
     def system_portion_names(cls) -> set[str]:

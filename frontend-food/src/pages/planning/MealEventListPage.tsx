@@ -318,7 +318,7 @@ function MealPlanListPageInner() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
-              {plan.start_datetime && plan.end_datetime && (
+              {plan.start_datetime && plan.end_datetime && (plan.can_edit || plan.is_owner) && (
                 <DropdownMenuItem
                   className="font-semibold text-xs"
                   onClick={(e) => {
@@ -337,16 +337,18 @@ function MealPlanListPageInner() {
                   Als Vorlage verwenden
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteId(plan.id);
-                }}
-                className="text-destructive focus:text-destructive font-semibold text-xs"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Löschen
-              </DropdownMenuItem>
+              {(plan.can_delete || plan.is_owner) && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteId(plan.id);
+                  }}
+                  className="text-destructive focus:text-destructive font-semibold text-xs"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Löschen
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

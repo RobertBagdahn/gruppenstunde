@@ -1,7 +1,9 @@
 # meal-plan Specification
 
-## MODIFIED Requirements
+## Purpose
 
+This specification defines the meal plan data model, API schemas, permissions, and frontend behavior for the meal planning feature.
+## Requirements
 ### Requirement: cost_summary recipe cost_per_person nutzt effective_portions
 
 Das System SHALL `cost_per_person` pro Rezept im `cost_summary`-Endpunkt auf Basis der `effective_portions` der jeweiligen Mahlzeit berechnen — nicht durch das globale `norm_portions` des Plans teilen.
@@ -123,3 +125,48 @@ Das System SHALL ein `activity_factor` FloatField (Default: 1.5) am `MealPlan`-M
 - **WHEN** der Nutzer PATCH `/api/meal-plans/{id}/` mit `{"activity_factor": 1.75}` sendet
 - **THEN** SHALL `activity_factor` auf 1.75 aktualisiert werden
 - **AND** falls GroupMembers existieren, SHALL `norm_portions` mit dem neuen PAL neu berechnet werden
+
+### Requirement: List schema exposes can_edit and can_delete
+The meal plan list item response schema SHALL include `can_edit: bool` and `can_delete: bool` fields in addition to the existing `is_owner` field. Values SHALL be resolved server-side based on the user's relationship to the meal plan (ownership, collaborator role, staff status).
+
+#### Scenario: Meal plan list includes permission fields
+- **WHEN** a client fetches `GET /api/meal-plans/`
+- **THEN** each item in the response MUST include `can_edit` and `can_delete`
+- **THEN** `can_edit` SHALL be `true` for plans the user can edit
+- **THEN** `can_delete` SHALL be `true` for plans the user can delete
+- **THEN** the existing `is_owner` field SHALL remain unchanged
+
+### Requirement: List page guards actions with permissions
+The meal plan list page SHALL only show destructive or privileged actions in the card dropdown menu when the user has the appropriate permission. The dropdown menu items "Löschen" and "Als Vorlage verwenden" SHALL be hidden when the user lacks permission.
+
+#### Scenario: Owner views their plan card
+- **WHEN** the plan owner views the meal plan list
+- **THEN** the three-dot dropdown menu SHALL show "Als Vorlage verwenden" and "Löschen"
+
+#### Scenario: Non-owner views another's plan card
+- **WHEN** a non-owner user views the meal plan list
+- **THEN** the three-dot dropdown menu SHALL NOT show "Löschen"
+- **THEN** the three-dot dropdown menu SHALL NOT show "Als Vorlage verwenden" (unless they have editor/collaborator access)
+
+### Requirement: MealItem schema exposes recipe image as image_url
+`MealItemOut` and `CookingScheduleRecipeBlockOut` (`backend/planner/schemas/meal_plan.py`) SHALL expose the linked recipe's image under the field name `image_url` (not `recipe_image`), consistent with `RecipeListOut`/`ContentListOut` elsewhere in the platform.
+
+#### Scenario: MealItem with a recipe that has an image
+- **WHEN** a `MealItem` references a `Recipe` that has an uploaded image
+- **THEN** the API response SHALL include `image_url` set to the recipe's image URL
+
+#### Scenario: MealItem with a recipe that has no image
+- **WHEN** a `MealItem` references a `Recipe` without an image
+- **THEN** the API response SHALL include `image_url` set to `null`
+
+#### Scenario: Cooking schedule recipe block exposes image_url
+- **WHEN** a `CookingScheduleRecipeBlockOut` is serialized for the kitchen dashboard or PDF export
+- **THEN** it SHALL expose the recipe's image under `image_url`, matching the same naming as `MealItemOut`
+
+### Requirement: Cooking schedule PDF export service uses image_url naming
+The `cooking_schedule_service.py` dataclass used for PDF export generation SHALL name its recipe-image field `image_url`, consistent with the API schema naming.
+
+#### Scenario: PDF export dataclass field renamed
+- **WHEN** the cooking schedule PDF export service builds its internal recipe-block dataclass
+- **THEN** the image field SHALL be named `image_url` instead of `recipe_image`
+

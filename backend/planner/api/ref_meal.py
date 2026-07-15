@@ -5,12 +5,13 @@ from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from planner.api.meal_plan import _require_access, _require_auth, _require_edit
+from planner.api.meal_plan import _get_user_role, _require_access, _require_auth, _require_edit
 from planner.models import (
     MEAL_TYPE_DAY_FACTORS,
     Meal,
     MealItem,
     MealPlan,
+    MealPlanCollaboratorRole,
 )
 from planner.schemas import (
     LinkMealIn,
@@ -144,7 +145,11 @@ def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
 def get_ref_meal(request, plan_id: int, ref_meal_id: int):
     _require_auth(request)
     plan = _get_plan(plan_id, request.user)
-    return _get_ref_meal(plan, ref_meal_id)
+    ref_meal = _get_ref_meal(plan, ref_meal_id)
+    role = _get_user_role(plan, request.user)
+    ref_meal.can_edit = role in ("owner", MealPlanCollaboratorRole.ADMIN, MealPlanCollaboratorRole.EDITOR)
+    ref_meal.can_delete = role == "owner"
+    return ref_meal
 
 
 @ref_meal_router.put(
