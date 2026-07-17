@@ -215,6 +215,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("DRY RUN — no changes will be made"))
         else:
             self._ensure_data_loaded(self._data_dir)
+            self._verify_data_loaded()
 
         self._run_enrichment(dry_run, skip_embeddings)
 
@@ -240,7 +241,23 @@ class Command(BaseCommand):
             self.stdout.write("Importing fixtures...")
             with _silence_signals():
                 call_command("import_prod_data", data_dir=str(data_dir), only="masterdata")
+                call_command("import_prod_data", data_dir=str(data_dir), only="users")
                 call_command("import_prod_data", data_dir=str(data_dir), only="food")
+
+    def _verify_data_loaded(self) -> None:
+        """Abort before enrichment/export if the import didn't actually load
+        the expected data — exporting now would overwrite good fixtures with
+        empty/broken ones (see incident where a failed FK import silently
+        wiped out all seed data on export)."""
+        from supply.models import Ingredient
+
+        count = Ingredient.objects.count()
+        if count < 100:
+            raise CommandError(
+                f"Only {count} ingredients loaded after import — aborting to avoid "
+                "overwriting fixtures with incomplete data. Check import errors above "
+                "(likely a missing dependency group or FK constraint violation)."
+            )
 
     # ------------------------------------------------------------------
     # Enrichment
@@ -621,7 +638,25 @@ class Command(BaseCommand):
             self.report.portions_deleted += count
 
     def _replace_with_spec_portions(self, ingredient, spec, g_unit) -> None:
+        from django.utils import timezone
+
         from supply.models import MeasuringUnit, Portion
+
+        spec_names_lower = {ps.name.lower() for ps in spec.portions}
+
+        # Soft-delete pre-existing active portions (rank < 9999, i.e. not the
+        # "g" sentinel) that are not part of the spec's portion list. Leaving
+        # them active alongside spec portions can create multiple active
+        # rank=1 portions, violating unique_rank1_portion_per_ingredient.
+        now = timezone.now()
+        conflicting = Portion.objects.filter(
+            ingredient=ingredient, deleted_at__isnull=True
+        ).exclude(rank=9999)
+        for p in conflicting:
+            if p.name.lower() not in spec_names_lower:
+                p.deleted_at = now
+                p.save(update_fields=["deleted_at"])
+                self.report.portions_deleted += 1
 
         for ps in spec.portions:
             mu = MeasuringUnit.objects.filter(name=ps.measuring_unit).first() or g_unit
@@ -660,6 +695,8 @@ class Command(BaseCommand):
         return result
 
     def _add_default_portions(self, ingredient, g_unit) -> None:
+        from django.utils import timezone
+
         from supply.models import MeasuringUnit, Portion
 
         section_name = None
@@ -691,6 +728,20 @@ class Command(BaseCommand):
                     {"name": "100g", "quantity": 100.0, "weight_g": 100.0, "rank": 1, "unit": "g"},
                     {"name": "500g (Packung)", "quantity": 500.0, "weight_g": 500.0, "rank": 8, "unit": "g"},
                 ]
+
+        default_names_lower = {pd["name"].lower() for pd in defaults}
+
+        # Soft-delete pre-existing active rank=1 portions not covered by the
+        # new defaults to avoid violating unique_rank1_portion_per_ingredient.
+        now = timezone.now()
+        conflicting_rank1 = Portion.objects.filter(
+            ingredient=ingredient, deleted_at__isnull=True, rank=1
+        )
+        for p in conflicting_rank1:
+            if p.name.lower() not in default_names_lower:
+                p.deleted_at = now
+                p.save(update_fields=["deleted_at"])
+                self.report.portions_deleted += 1
 
         for pd in defaults:
             mu_name = pd.get("unit", "g")
@@ -841,8 +892,10 @@ class Command(BaseCommand):
         self.stdout.write("\nExporting fixtures...")
         for model_label, filename in export_models:
             out_path = food_dir / filename
-            with open(out_path, "w") as f:
+            tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
+            with open(tmp_path, "w") as f:
                 call_command("dumpdata", model_label, stdout=f, indent=2)
+            tmp_path.replace(out_path)
             self.stdout.write(f"  ✓ {filename}")
 
         if not skip_embeddings:
@@ -871,6 +924,8 @@ class Command(BaseCommand):
             })
 
         out_path = food_dir / "supply_ingredient_embeddings.json"
-        with open(out_path, "w") as f:
+        tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
+        with open(tmp_path, "w") as f:
             json.dump(embeddings, f, indent=2, ensure_ascii=False)
+        tmp_path.replace(out_path)
         self.stdout.write(f"  ✓ supply_ingredient_embeddings.json ({len(embeddings)} entries)")

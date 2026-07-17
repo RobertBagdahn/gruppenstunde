@@ -1,18 +1,42 @@
-## MODIFIED Requirements
-
 ### Requirement: AI-powered ingredient data suggestion endpoint
 
-The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-all/` that returns suggested values for all fields of an ingredient (nutrition, ratings, physical properties, scout fields, name suggestion, portions, aliases, nutritional tags) using Gemini with structured output in a single call. The response SHALL always include a `normalportion` suggestion (rank=1), estimated `stueck_weight_g` (or null), and estimated `packung_weight_g` (or null). The `portions`, `aliases`, and `nutritional_tags` fields SHALL be required (non-optional) in the structured output schema to ensure Gemini always returns them.
+The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-all/` that returns suggested values for all fields of an ingredient (nutrition, ratings, physical properties, scout fields, name suggestion, portions, aliases, nutritional tags) using Gemini with structured output in a single call. Portion suggestions SHALL be returned as a structured `IngredientPortionSuggestSchema` object (not a flat array) with a required `portion_type` per entry (`system_gramm`, `rezeptportion`, `packung`, `belag`, `backmenge`). The response SHALL always include exactly one `system_gramm` suggestion (name „g", `weight_g=1`), at least one `rezeptportion` (typical per-person quantity, rank=1), and at least one `packung` suggestion. `belag`-Vorschläge SHALL nur enthalten sein, wenn die Zutat den Tag `breakfast-topping` trägt; `backmenge`-Vorschläge SHALL nur enthalten sein, wenn die Zutat den Tag `baking-ingredient` trägt. Portion names SHALL NOT contain any digits; weight and quantity information SHALL be conveyed exclusively via the `weight_g` and `quantity` fields. The `aliases` and `nutritional_tags` fields SHALL be required (non-optional) in the structured output schema to ensure Gemini always returns them.
 
-#### Scenario: Successful suggestion includes Normalportion
+#### Scenario: Successful suggestion includes required portion groups
 
 - **WHEN** an authenticated user sends POST to `/api/ingredients/{slug}/ai-suggest-all/`
 - **THEN** the system SHALL return a JSON object with suggested values for all fields
-- **THEN** `portions` SHALL always be an array with the first element being the Normalportion (rank=1, typical per-person quantity)
-- **THEN** `stueck_weight_g` SHALL be in the response (number or null)
-- **THEN** `packung_weight_g` SHALL be in the response (number or null)
+- **THEN** the response SHALL include exactly one `system_gramm` entry with `name="g"` and `weight_g=1`
+- **THEN** the response SHALL include at least one `rezeptportion` entry (rank=1 is the typical per-person quantity)
+- **THEN** the response SHALL include at least one `packung` entry
 - **THEN** `aliases` SHALL always be an array (may be empty)
 - **THEN** `nutritional_tags` SHALL always be an array (may be empty)
+
+#### Scenario: Portion names never contain digits
+
+- **WHEN** Gemini returns a portion suggestion (any `portion_type`)
+- **THEN** the system SHALL validate that `name` contains no digit characters
+- **THEN** if a digit is found, the system SHALL reject the value and retry the Gemini call with an explicit correction instruction
+
+#### Scenario: Multiple package sizes use descriptive names
+
+- **WHEN** the ingredient has more than one plausible typical package size
+- **THEN** the `packung`-Array SHALL contain multiple entries distinguished by descriptive adjectives (e.g. „Packung", „Großpackung", „Kleine Packung") rather than by embedding the weight in the name
+- **THEN** each entry's actual weight SHALL be conveyed solely via its `weight_g` field
+
+#### Scenario: Belag-Vorschläge nur bei breakfast-topping-Tag
+
+- **WHEN** eine Zutat den Tag `breakfast-topping` trägt
+- **THEN** SHALL das Antwortschema ein `belag`-Array mit Vorschlägen für „Belag knapp", „Belag normal" und „Belag üppig" enthalten (rank aufsteigend nach Menge)
+- **WHEN** eine Zutat den Tag `breakfast-topping` nicht trägt
+- **THEN** SHALL das `belag`-Array leer sein
+
+#### Scenario: Backmengen-Vorschläge nur bei baking-ingredient-Tag
+
+- **WHEN** eine Zutat den Tag `baking-ingredient` trägt
+- **THEN** SHALL das Antwortschema ein `backmengen`-Array mit mindestens einem Vorschlag für eine typische Backmenge enthalten
+- **WHEN** eine Zutat den Tag `baking-ingredient` nicht trägt
+- **THEN** SHALL das `backmengen`-Array leer sein
 
 #### Scenario: Unauthenticated user
 
@@ -33,31 +57,26 @@ The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-
 
 ### Requirement: AI-powered ingredient creation endpoint
 
-The system SHALL provide a POST endpoint at `/api/ingredients/ai-create/` that creates a complete ingredient (with portions and aliases) from just a name using Gemini with Google Search Grounding. The AI SHALL always suggest a Normalportion (rank=1) as the first portion, and SHALL provide `stueck_weight_g` and `packung_weight_g` estimates. After creation, system portions (g, Packung, Stück) SHALL be created with the AI-estimated weights applied.
+The system SHALL provide a POST endpoint at `/api/ingredients/ai-create/` that creates a complete ingredient (with portions and aliases) from just a name using Gemini with Google Search Grounding. Portion suggestions SHALL use the shared `IngredientPortionSuggestSchema` (same structure and naming rules as the `ai-suggest-all` endpoint). After creation, the `system_gramm` portion SHALL always be created together with the remaining system portions (Packung, Stück); AI-estimated weights from the `packung`/`rezeptportion` groups SHALL be applied where applicable.
 
-#### Scenario: Successful ingredient creation with Normalportion
+#### Scenario: Successful ingredient creation with required portion groups
 
 - **WHEN** an authenticated user sends POST to `/api/ingredients/ai-create/` with `{ "name": "Nudeln" }`
 - **THEN** the system SHALL create an Ingredient with all fields populated
-- **THEN** SHALL a Normalportion with rank=1 (e.g., „125g", weight_g=125) be created
-- **THEN** SHALL System-Portionen (g, Packung, Stück) be created with AI-estimated weight_g where applicable
+- **THEN** SHALL a `rezeptportion` with rank=1 (e.g., name „Portion", weight_g=125) be created without digits in its name
+- **THEN** SHALL System-Portionen (g, Packung, Stück) be created, with the `system_gramm` suggestion always applied to „g"
 - **THEN** SHALL associated Portions and Aliases be created
 - **THEN** SHALL the created ingredient detail be returned
 
-#### Scenario: stueck_weight_g applied to Stück system portion
+#### Scenario: packung-Vorschlag wird auf Packung-Systemportion angewendet
 
-- **WHEN** `ai-create` returns `stueck_weight_g: 180` for „Apfel"
-- **THEN** SHALL the „Stück" system portion be created with `weight_g=180`
+- **WHEN** `ai-create` einen `packung`-Vorschlag mit `weight_g=500` für „Nudeln" zurückgibt
+- **THEN** SHALL die „Packung"-Systemportion mit `weight_g=500` angelegt werden
 
-#### Scenario: packung_weight_g applied to Packung system portion
+#### Scenario: Kein Rezeptportion-Vorschlag verfügbar
 
-- **WHEN** `ai-create` returns `packung_weight_g: 500` for „Nudeln"
-- **THEN** SHALL the „Packung" system portion be created with `weight_g=500`
-
-#### Scenario: null stueck_weight_g leaves Stück empty
-
-- **WHEN** `ai-create` returns `stueck_weight_g: null` for „Salz"
-- **THEN** SHALL the „Stück" system portion be created without `weight_g` (null)
+- **WHEN** `ai-create` für eine Zutat wie „Salz" keinen sinnvollen `rezeptportion`-Vorschlag liefern kann
+- **THEN** SHALL das Schema dennoch mindestens einen `rezeptportion`-Eintrag enthalten (z.B. „Prise" mit geschätztem `weight_g`)
 
 #### Scenario: Unauthenticated user
 
@@ -86,7 +105,7 @@ The system SHALL display a magic wand button in the ingredient detail page heade
 
 ### Requirement: AI suggestion dialog with individual field acceptance
 
-The system SHALL display a dialog showing all non-null suggestions with the current value for comparison, allowing the user to select individual fields via checkboxes and apply only selected suggestions. The dialog SHALL use a CSS Grid 3-column layout on desktop (896px wide), collapsing to single column on mobile. Portions, aliases, and nutritional tags SHALL be shown as lists that can be individually selected. The dialog SHALL also show `stueck_weight_g` and `packung_weight_g` suggestions for applying to system portions.
+The system SHALL display a dialog showing all non-null suggestions with the current value for comparison, allowing the user to select individual fields via checkboxes and apply only selected suggestions. The dialog SHALL use a CSS Grid 3-column layout on desktop (896px wide), collapsing to single column on mobile. Portion suggestions SHALL be grouped and displayed by `portion_type` (System, Rezeptportion, Packungen, Belag, Backmengen), each group offering an „Alle auswählen"/„Keine auswählen" toggle in addition to individual checkboxes. The dialog SHALL additionally offer an opt-in „Alte Portionen ersetzen"-Checkbox (default: deaktiviert). Aliases and nutritional tags SHALL be shown as lists that can be individually selected.
 
 #### Scenario: Dialog layout is multi-column on desktop
 
@@ -109,18 +128,24 @@ The system SHALL display a dialog showing all non-null suggestions with the curr
 - **WHEN** the AI returns suggestions
 - **THEN** the dialog SHALL only display fields where the suggested value differs from the current value or where the current value is null/0
 
+#### Scenario: Portionen nach portion_type gruppiert angezeigt
+
+- **WHEN** die KI Portionsvorschläge zurückgibt
+- **THEN** SHALL der Dialog sie in getrennten Gruppen anzeigen: „System", „Rezeptportion", „Packungen", „Belag" (nur falls vorhanden), „Backmengen" (nur falls vorhanden)
+- **THEN** SHALL jede Gruppe eine „Alle auswählen"/„Keine auswählen"-Option sowie Einzelauswahl-Checkboxen pro Portion anbieten
+
 #### Scenario: User selects and applies individual suggestions
 
 - **WHEN** the user checks specific field checkboxes and clicks „Ausgewählte übernehmen"
-- **THEN** the system SHALL send a PATCH request for scalar fields (including name_suggestion) and create Portions/Aliases for selected list items
+- **THEN** the system SHALL send a PATCH request for scalar fields (including name_suggestion) and SHALL call the atomic `ai-apply`-Endpoint for selected Portions
 
 #### Scenario: Portion suggestions avoid duplicates
 
-- **WHEN** a suggested portion name already exists for the ingredient (case-insensitive)
+- **WHEN** a suggested portion name already exists for the ingredient (case-insensitive) and „Alte Portionen ersetzen" ist NICHT aktiviert
 - **THEN** SHALL the dialog show the suggestion as already-existing (greyed out or pre-checked) and not re-create it
 
-#### Scenario: Stück und Packung weight_g suggestions anzeigen
+#### Scenario: Alte Portionen ersetzen-Checkbox verfügbar
 
-- **WHEN** die KI `stueck_weight_g` oder `packung_weight_g` zurückgibt
-- **THEN** SHALL der Dialog diese als Vorschläge für die jeweiligen System-Portionen anzeigen
-- **THEN** KANN der User diese separat akzeptieren oder ablehnen
+- **WHEN** der Zauberstab-Dialog Portionsvorschläge anzeigt
+- **THEN** SHALL eine Checkbox „Alte Portionen ersetzen" angezeigt werden (standardmäßig deaktiviert)
+- **THEN** SHALL bei Aktivierung ein Warnhinweis erscheinen, wie viele bestehende Portionen ersetzt würden

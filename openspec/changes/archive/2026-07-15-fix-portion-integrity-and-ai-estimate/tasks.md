@@ -41,7 +41,7 @@
 - [x] 5.2 Sicherstellen, dass Label/Einheit weiterhin korrekt auf die (ggf. nicht mehr in `ingredient_portions` gelistete) aktuelle Portion referenziert, ohne auf `weight_g=1`-Fallback zurückzufallen
 - [x] 5.3 `getItemWeightG()` auf Konsistenz mit der neuen `normalizeItems()`-Logik prüfen (keine doppelte/abweichende Berechnung mehr nötig)
 - [x] 5.4 Frontend-Unit-Test: RecipeItem mit `portion_id`, das nicht in `ingredient_portions` enthalten ist (soft-gelöscht) → korrekter Gramm-Wert aus `item.weight_g`, nicht `weight_g=1`-Fallback
-- [ ] 5.5 Manuelle Verifikation im Browser: Rezept 59 im Edit-Mode öffnen, Jodsalz-Zeile zeigt plausible Gramm-Menge
+- [x] 5.5 Manuelle Verifikation im Browser: Rezept 59 im Edit-Mode öffnen, Jodsalz-Zeile zeigt plausible Gramm-Menge
 
 ## 6. Rollout & Validierung
 

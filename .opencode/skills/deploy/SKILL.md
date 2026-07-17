@@ -20,12 +20,12 @@ Interactive, step-by-step deployment for the Inspi platform to Google Cloud Run.
 | Key | Value |
 |-----|-------|
 | Project ID | `inspi-441320` |
-| Artifact Registry / Cloud Build Region | `europe-west3` |
+| Artifact Registry / Cloud Build Region | `europe-west1` |
 | Cloud Run Region (alle Services) | `europe-west1` |
-| Artifact Registry | `europe-west3-docker.pkg.dev/inspi-441320/inspi` |
-| Backend Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest` |
-| Frontend Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest` |
-| Frontend Food Image | `europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest` |
+| Artifact Registry | `europe-west1-docker.pkg.dev/inspi-441320/inspi` |
+| Backend Image | `europe-west1-docker.pkg.dev/inspi-441320/inspi/backend:latest` |
+| Frontend Image | `europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend:latest` |
+| Frontend Food Image | `europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest` |
 | Cloud SQL Instance | `inspi-db-west1` |
 | Cloud SQL Connection | `inspi-441320:europe-west1:inspi-db-west1` |
 | Backend Service | `inspi-backend` |
@@ -33,7 +33,7 @@ Interactive, step-by-step deployment for the Inspi platform to Google Cloud Run.
 | Frontend Service | `inspi-frontend` |
 | Frontend Food Service | `inspi-frontend-food` |
 
-**Alle Services laufen in `europe-west1`.** Images werden in `europe-west3` Artifact Registry gebaut und gespeichert.
+**Alle Services laufen in `europe-west1`.** Images werden in `europe-west1` Artifact Registry gebaut und gespeichert.
 
 ---
 
@@ -55,7 +55,7 @@ images:
   - '<IMAGE_TAG>'
 EOF
 
-gcloud builds submit --config=/tmp/cloudbuild.yaml --region=europe-west3 .
+gcloud builds submit --config=/tmp/cloudbuild.yaml --region=europe-west1 .
 ```
 
 ### Deploy: Minimal flags — preserve existing config
@@ -64,7 +64,7 @@ When deploying a new image to an existing service, use **only `--image` and `--r
 
 ```bash
 gcloud run deploy inspi-backend \
-  --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
+  --image europe-west1-docker.pkg.dev/inspi-441320/inspi/backend:latest \
   --region europe-west1
 ```
 
@@ -142,7 +142,7 @@ gcloud auth list --filter=status:ACTIVE --format="value(account)"
 gcloud config get-value project
 
 # 1.3 Artifact Registry exists?
-gcloud artifacts repositories describe inspi --location=europe-west3 --format="value(name)"
+gcloud artifacts repositories describe inspi --location=europe-west1 --format="value(name)"
 
 # 1.4 Cloud SQL instance exists and running?
 gcloud sql instances describe inspi-db-west1 --format="value(state)"
@@ -156,7 +156,7 @@ Present results as a checklist:
 Pre-Flight Results:
 [x] gcloud authenticated as: <email>
 [x] Project: inspi-441320
-[x] Artifact Registry: inspi (europe-west3)
+[x] Artifact Registry: inspi (europe-west1)
 [x] Cloud SQL: inspi-db-west1 (RUNNABLE)
 [x] Cloud Run services: inspi-backend, inspi-frontend, inspi-frontend-food
 ```
@@ -229,15 +229,15 @@ Ask: "Backend deployen? (build + push + deploy)" — proceed only on confirmatio
 cat > /tmp/cloudbuild-backend.yaml <<'EOF'
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest', '-f', 'Dockerfile.backend', '.']
+    args: ['build', '-t', 'europe-west1-docker.pkg.dev/inspi-441320/inspi/backend:latest', '-f', 'Dockerfile.backend', '.']
 images:
-  - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest'
+  - 'europe-west1-docker.pkg.dev/inspi-441320/inspi/backend:latest'
 EOF
-gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=europe-west3 .
+gcloud builds submit --config=/tmp/cloudbuild-backend.yaml --region=europe-west1 .
 
 # 3.2 Deploy (minimal flags — preserves existing env/secrets/scaling)
 gcloud run deploy inspi-backend \
-  --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
+  --image europe-west1-docker.pkg.dev/inspi-441320/inspi/backend:latest \
   --region europe-west1
 
 # 3.3 Ensure traffic routes to the new revision
@@ -253,7 +253,7 @@ curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/api/docs"
 ```bash
 DB_HOST=$(gcloud sql instances describe inspi-db-west1 --format="value(ipAddresses[0].ipAddress)")
 gcloud run deploy inspi-backend \
-  --image europe-west3-docker.pkg.dev/inspi-441320/inspi/backend:latest \
+  --image europe-west1-docker.pkg.dev/inspi-441320/inspi/backend:latest \
   --region europe-west1 \
   --port 8000 \
   --cpu 1 --memory 512Mi \
@@ -298,7 +298,7 @@ DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python ma
 **Option B: Via Cloud Run Jobs**
 
 ```bash
-gcloud run jobs execute inspi-add-users --region europe-west3 --wait
+gcloud run jobs execute inspi-add-users --region europe-west1 --wait
 ```
 
 The `add_users` command creates:
@@ -324,7 +324,7 @@ DATABASE_URL="postgres://inspi:<PASSWORD>@localhost:5433/inspi" uv run python ma
 **Option B: Via Cloud Run Jobs**
 
 ```bash
-gcloud run jobs execute inspi-seed --region europe-west3 --wait
+gcloud run jobs execute inspi-seed --region europe-west1 --wait
 ```
 
 The `seed_all` command seeds:
@@ -349,15 +349,15 @@ Ask: "Frontend deployen? (build + push + deploy)" — proceed only on confirmati
 cat > /tmp/cloudbuild-frontend.yaml <<EOF
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest', '-f', 'Dockerfile.frontend', '.']
+    args: ['build', '-t', 'europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend:latest', '-f', 'Dockerfile.frontend', '.']
 images:
-  - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest'
+  - 'europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend:latest'
 EOF
-gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=europe-west3 .
+gcloud builds submit --config=/tmp/cloudbuild-frontend.yaml --region=europe-west1 .
 
 # 7.2 Deploy (minimal flags)
 gcloud run deploy inspi-frontend \
-  --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend:latest \
+  --image europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend:latest \
   --region europe-west1
 
 # 7.3 Ensure traffic routes to the new revision
@@ -379,15 +379,15 @@ Ask: "Food Frontend deployen? (build + push + deploy)" — proceed only on confi
 cat > /tmp/cloudbuild-frontend-food.yaml <<EOF
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest', '-f', 'Dockerfile.frontend-food', '.']
+    args: ['build', '-t', 'europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest', '-f', 'Dockerfile.frontend-food', '.']
 images:
-  - 'europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest'
+  - 'europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest'
 EOF
-gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=europe-west3 .
+gcloud builds submit --config=/tmp/cloudbuild-frontend-food.yaml --region=europe-west1 .
 
 # 8.2 Deploy to the Food Frontend region (minimal flags)
 gcloud run deploy inspi-frontend-food \
-  --image europe-west3-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest \
+  --image europe-west1-docker.pkg.dev/inspi-441320/inspi/frontend-food:latest \
   --region europe-west1
 
 # 8.3 Ensure traffic routes to the new revision
