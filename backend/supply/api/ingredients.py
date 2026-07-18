@@ -414,7 +414,7 @@ def get_ingredient(request, slug: str):
     """
     ingredient = get_object_or_404(
         Ingredient.objects.select_related("retail_section", "owner").prefetch_related(
-            "nutritional_tags", "portions__measuring_unit", "packages", "aliases", "shared_groups"
+            "nutritional_tags", "portions__measuring_unit", "packages", "aliases", "shared_groups", "tags", "groups"
         ),
         slug=slug,
     )

@@ -253,42 +253,22 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     dge_coverage: dict[str, float | None] = {}
     dge_reference: dict[str, float | None] = {}
     if age is not None and gender:
-        from supply.models import DgeReference
+        from supply.data.dge_reference import get_dge_reference
 
-        ref = DgeReference.objects.filter(
-            age_min__lte=age,
-            age_max__gte=age,
-            gender=gender,
-        ).first()
+        ref = get_dge_reference(age, gender)
         if ref:
-            # All fields we can compute coverage for
             coverage_fields = [
                 "energy_kcal",
                 "protein_g",
                 "fat_g",
-                "fat_sat_g_max",
                 "carbohydrate_g",
-                "sugar_g_max",
                 "fibre_g",
-                "salt_g_max",
-            ] + MICRONUTRIENT_FIELDS
+            ]
             for field in coverage_fields:
-                ref_val = getattr(ref, field, None)
+                ref_val = ref.get(field)
                 if ref_val and ref_val > 0:
-                    # Map max fields to the corresponding total field
-                    if field == "fat_sat_g_max":
-                        total_key = "fat_sat_g"
-                    elif field == "sugar_g_max":
-                        total_key = "sugar_g"
-                    elif field == "salt_g_max":
-                        total_key = "salt_g"
-                    else:
-                        total_key = field
-
-                    if total_key in totals:
-                        actual = totals[total_key]
-                    else:
-                        actual = micro_totals.get(total_key, 0.0)
+                    total_key = field
+                    actual = totals.get(total_key, 0.0)
                     dge_coverage[total_key] = round(actual / ref_val * 100, 1)
                     dge_reference[total_key] = round(ref_val, 1)
 

@@ -4,13 +4,11 @@ from .equipment import Equipment
 from .ingredient import Ingredient, IngredientAlias, IngredientGroup, Package, Portion
 from .ingredient_season import IngredientSeason
 from .material import ContentMaterialItem, Material, Supply
-from .reference import DgeGenderChoices, DgeReference, MeasuringUnit, NutritionalTag, RetailSection
+from .reference import MeasuringUnit, NutritionalTag, RetailSection
 from .unit_conversion import UnitConversion
 
 __all__ = [
     "ContentMaterialItem",
-    "DgeGenderChoices",
-    "DgeReference",
     "Equipment",
     "Ingredient",
     "IngredientSeason",

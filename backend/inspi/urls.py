@@ -36,7 +36,6 @@ from session.api import router as session_router
 from shopping.api import kitchen_reminder_router, shopping_router
 from supply.api import (
     breakfast_catalog_router,
-    dge_reference_router,
     equipment_router,
     ingredient_group_router,
     ingredient_router,
@@ -91,7 +90,6 @@ api.add_router("/", dashboard_router)
 api.add_router("/sessions/", session_router)
 api.add_router("/supplies/", supply_router)
 api.add_router("/norm-person/", norm_person_router)
-api.add_router("/dge-references/", dge_reference_router)
 api.add_router("/supply/", breakfast_catalog_router)
 api.add_router("/supply/", equipment_router)
 api.add_router("/blogs/", blog_router)

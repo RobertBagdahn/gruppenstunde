@@ -4,7 +4,6 @@ from django.contrib import admin
 
 from .models import (
     ContentMaterialItem,
-    DgeReference,
     Ingredient,
     IngredientAlias,
     Material,
@@ -188,31 +187,3 @@ class PackageAdmin(admin.ModelAdmin):
     list_per_page = 25
 
 
-# ---------------------------------------------------------------------------
-# DGE Reference Values
-# ---------------------------------------------------------------------------
-
-
-@admin.register(DgeReference)
-class DgeReferenceAdmin(admin.ModelAdmin):
-    list_display = ["age_min", "age_max", "gender", "energy_kcal", "protein_g", "vitamin_c_mg"]
-    list_filter = ["gender"]
-    search_fields = ["gender"]
-    list_per_page = 25
-    fieldsets = (
-        (None, {"fields": ("age_min", "age_max", "gender")}),
-        (
-            "Makronährstoffe (pro Tag)",
-            {"fields": ("energy_kcal", "protein_g", "fat_g", "carbohydrate_g", "fibre_g")},
-        ),
-        (
-            "Obergrenzen (pro Tag)",
-            {"fields": ("sugar_g_max", "salt_g_max", "fat_sat_g_max", "sodium_mg_max")},
-        ),
-        (
-            "Vitamine (pro Tag)",
-            {
-                "fields": ("vitamin_c_mg",),
-            },
-        ),
-    )

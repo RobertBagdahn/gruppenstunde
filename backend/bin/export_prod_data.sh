@@ -69,7 +69,7 @@ echo "=== Export Produktionsdaten ==="
 echo ""
 
 GROUPS=(
-    "masterdata:content.Tag content.ScoutLevel supply.MeasuringUnit supply.RetailSection supply.NutritionalTag supply.UnitConversion supply.DgeReference"
+    "masterdata:content.Tag content.ScoutLevel supply.MeasuringUnit supply.RetailSection supply.NutritionalTag supply.UnitConversion"
     "users:auth.User auth.Group account"
     "food:supply.Ingredient supply.Portion recipe.Recipe recipe.RecipeItem recipe.Rule recipe.RecipeFolder"
     "planner:planner"

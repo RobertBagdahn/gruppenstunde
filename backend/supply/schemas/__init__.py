@@ -47,7 +47,6 @@ from .norm_person import (
     NormPersonResultOut,
 )
 from .reference import (
-    DgeReferenceOut,
     EquipmentIn,
     EquipmentOut,
     IngredientGroupOut,
@@ -65,7 +64,6 @@ __all__ = [
     "AliasCreateIn",
     "ContentMaterialItemIn",
     "ContentMaterialItemOut",
-    "DgeReferenceOut",
     "DgeReferencePointOut",
     "EquipmentIn",
     "EquipmentOut",

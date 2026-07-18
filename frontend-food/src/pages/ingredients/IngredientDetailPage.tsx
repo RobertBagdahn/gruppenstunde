@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, Plus } from 'lucide-react';
+import { ChefHat, Plus, X, Search, CheckCircle } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -19,6 +19,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { useCurrentUser } from '@/api/auth';
+import { useTags } from '@/api/tags';
+import type { Tag } from '@/schemas/content';
 import {
   useIngredient,
   useUpdateIngredient,
@@ -29,13 +31,16 @@ import {
   useReorderPortions,
   useCreateAlias,
   useDeleteAlias,
+  useCreatePackage,
+  useUpdatePackage,
+  useDeletePackage,
   useAiSuggestIngredientAll,
   useApplyAiSuggestions,
   useMeasuringUnits,
   useRecipesByIngredient,
 } from '@/api/supplies';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
-import type { Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
+import type { Package, Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
 type IngredientDetail = NonNullable<ReturnType<typeof useIngredient>['data']>;
 import { ApiDeleteError } from '@/api/supplies';
@@ -146,6 +151,105 @@ function CollapsibleNutritionGroup({
         </span>
       </button>
       {open && <div className="px-3 pb-2">{children}</div>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Package Row
+// ---------------------------------------------------------------------------
+function PackageRow({
+  pkg,
+  canEdit = false,
+  updatePackage,
+  deletePackage,
+}: {
+  pkg: Package;
+  canEdit?: boolean;
+  updatePackage: ReturnType<typeof useUpdatePackage>;
+  deletePackage: ReturnType<typeof useDeletePackage>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(pkg.name);
+  const [editWeight, setEditWeight] = useState(pkg.weight_g?.toString() || '');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    setEditName(pkg.name);
+    setEditWeight(pkg.weight_g?.toString() || '');
+  }, [pkg]);
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 p-3 border border-border rounded-xl bg-card">
+        <input
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          className="flex-1 px-2 py-1 text-sm border border-border rounded bg-background"
+        />
+        <input
+          value={editWeight}
+          onChange={(e) => setEditWeight(e.target.value)}
+          type="number"
+          placeholder="g"
+          className="w-24 px-2 py-1 text-sm border border-border rounded bg-background"
+        />
+        <button
+          onClick={() => {
+            updatePackage.mutate({
+              packageId: pkg.id,
+              data: { name: editName, weight_g: editWeight ? parseFloat(editWeight) : null },
+            });
+            setEditing(false);
+          }}
+          className="text-xs text-primary hover:underline"
+        >
+          OK
+        </button>
+        <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:underline">
+          Abbrechen
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 p-3 border border-border rounded-xl bg-card">
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium text-foreground">{pkg.name}</span>
+        {pkg.weight_g && (
+          <span className="text-xs text-muted-foreground ml-2">{pkg.weight_g}g</span>
+        )}
+      </div>
+      {canEdit && (
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setEditing(true)}
+            className="p-1 text-muted-foreground hover:text-foreground"
+          >
+            <span className="material-symbols-outlined text-sm">edit</span>
+          </button>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="p-1 text-muted-foreground hover:text-destructive"
+          >
+            <span className="material-symbols-outlined text-sm">delete</span>
+          </button>
+        </div>
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          open={confirmDelete}
+          title="Packung löschen"
+          description={`"${pkg.name}" wirklich löschen?`}
+          onConfirm={() => {
+            deletePackage.mutate(pkg.id);
+            setConfirmDelete(false);
+          }}
+          onCancel={() => setConfirmDelete(false)}
+          loading={deletePackage.isPending}
+        />
+      )}
     </div>
   );
 }
@@ -631,6 +735,19 @@ export default function IngredientDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteAliasId, setDeleteAliasId] = useState<number | null>(null);
 
+  // Package hooks
+  const createPackage = useCreatePackage(slug || '');
+  const updatePackage = useUpdatePackage(slug || '');
+  const deletePackage = useDeletePackage(slug || '');
+  const [showAddPackage, setShowAddPackage] = useState(false);
+  const [newPackageName, setNewPackageName] = useState('');
+  const [newPackageWeight, setNewPackageWeight] = useState('');
+
+  // Tag state
+  const { data: allTags } = useTags();
+  const [showTagPicker, setShowTagPicker] = useState(false);
+  const [tagSearch, setTagSearch] = useState('');
+
   // Portion add
   const [showAddPortion, setShowAddPortion] = useState(false);
   const [newPortionName, setNewPortionName] = useState('');
@@ -880,14 +997,30 @@ export default function IngredientDetailPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground truncate">{ingredient.name}</h1>
-            {ingredient.status !== 'verified' && (
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 border ${
-                ingredient.status === 'draft'
-                  ? 'bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]'
-                  : 'bg-[hsl(var(--chart-5))]/10 border-[hsl(var(--chart-5))]/20 text-[hsl(var(--chart-5))]'
-              }`}>
-                {STATUS_OPTIONS.find((s) => s.value === ingredient.status)?.label ?? ingredient.status}
+            {ingredient.status === 'verified' ? (
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 border bg-emerald-50 border-emerald-200 text-emerald-700 flex items-center gap-1">
+                <CheckCircle size={12} />
+                Inspi Verified
               </span>
+            ) : (
+              <>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 border ${
+                  ingredient.status === 'draft'
+                    ? 'bg-[hsl(var(--chart-4))]/10 border-[hsl(var(--chart-4))]/20 text-[hsl(var(--chart-4))]'
+                    : 'bg-[hsl(var(--chart-5))]/10 border-[hsl(var(--chart-5))]/20 text-[hsl(var(--chart-5))]'
+                }`}>
+                  {STATUS_OPTIONS.find((s) => s.value === ingredient.status)?.label ?? ingredient.status}
+                </span>
+                {user?.is_staff && (
+                  <button
+                    onClick={() => updateIngredient.mutate({ status: 'verified' } as Record<string, unknown>)}
+                    disabled={updateIngredient.isPending}
+                    className="text-[10px] px-2 py-0.5 rounded-full font-medium border border-emerald-200 text-emerald-700 hover:bg-emerald-50 shrink-0"
+                  >
+                    Verifizieren
+                  </button>
+                )}
+              </>
             )}
           </div>
           {ingredient.description && (
@@ -972,6 +1105,84 @@ export default function IngredientDetailPage() {
           ))}
         </div>
       )}
+
+      {/* Tags (content.Tag) */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">Tags</h3>
+          {canEdit && (
+            <button
+              onClick={() => setShowTagPicker(!showTagPicker)}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <Plus size={14} />
+              Tag hinzufügen
+            </button>
+          )}
+        </div>
+        {showTagPicker && canEdit && (
+          <div className="mb-3">
+            <div className="relative">
+              <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                placeholder="Tag suchen..."
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg bg-background"
+              />
+            </div>
+            {tagSearch && (
+              <div className="mt-1 border border-border rounded-lg max-h-40 overflow-y-auto bg-card">
+                {(allTags || [])
+                  .filter((t) => !(ingredient.tags || []).some((it: Tag) => it.id === t.id) && t.name.toLowerCase().includes(tagSearch.toLowerCase()))
+                  .slice(0, 10)
+                  .map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        const newTagIds = [...(ingredient.tags || []).map((t: Tag) => t.id), tag.id];
+                        updateIngredient.mutate({ tag_ids: newTagIds } as Record<string, unknown>);
+                        setTagSearch('');
+                        setShowTagPicker(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted flex items-center gap-2"
+                    >
+                      <span className="text-xs">{tag.icon}</span>
+                      <span>{tag.name}</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto">{tag.group}</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {(ingredient.tags || []).length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Keine Tags</p>
+          ) : (
+            (ingredient.tags || []).map((tag) => (
+              <span
+                key={tag.id}
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-muted border border-border"
+              >
+                <span>{tag.icon}</span>
+                <span>{tag.name}</span>
+                {canEdit && (
+                  <button
+                    onClick={() => {
+                      const newTagIds = (ingredient.tags || []).filter((t: Tag) => t.id !== tag.id).map((t: Tag) => t.id);
+                      updateIngredient.mutate({ tag_ids: newTagIds } as Record<string, unknown>);
+                    }}
+                    className="ml-0.5 hover:text-destructive"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -1153,6 +1364,81 @@ export default function IngredientDetailPage() {
         onAddPortion={handleAddPortion}
         isAddingPortion={createPortion.isPending}
       />
+
+      {/* Packages Section */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">inventory_2</span>
+            Packungen
+          </h2>
+          {canEdit && (
+            <button
+              onClick={() => setShowAddPackage(!showAddPackage)}
+              className="flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              <span className="material-symbols-outlined text-lg">add</span>
+              Packung hinzufügen
+            </button>
+          )}
+        </div>
+
+        {showAddPackage && canEdit && (
+          <div className="flex flex-col gap-2 mb-4">
+            <div className="flex gap-2">
+              <input
+                value={newPackageName}
+                onChange={(e) => setNewPackageName(e.target.value)}
+                placeholder="Name (z.B. 500g Packung)"
+                className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              />
+              <input
+                value={newPackageWeight}
+                onChange={(e) => setNewPackageWeight(e.target.value)}
+                placeholder="Gewicht (g)"
+                type="number"
+                className="w-32 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              />
+              <button
+                onClick={() => {
+                  if (!newPackageName.trim()) return;
+                  const weight = newPackageWeight ? parseFloat(newPackageWeight) : undefined;
+                  createPackage.mutate(
+                    { name: newPackageName.trim(), weight_g: weight || null },
+                    {
+                      onSuccess: () => {
+                        setNewPackageName('');
+                        setNewPackageWeight('');
+                        setShowAddPackage(false);
+                      },
+                    }
+                  );
+                }}
+                disabled={createPackage.isPending || !newPackageName.trim()}
+                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+              >
+                {createPackage.isPending ? '...' : 'Hinzufügen'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(ingredient.packages || []).length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">Keine Packungen definiert</p>
+        ) : (
+          <div className="space-y-2">
+            {(ingredient.packages || []).map((pkg) => (
+              <PackageRow
+                key={pkg.id}
+                pkg={pkg}
+                canEdit={canEdit}
+                updatePackage={updatePackage}
+                deletePackage={deletePackage}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Aliases Section */}
       <div className="mb-8">

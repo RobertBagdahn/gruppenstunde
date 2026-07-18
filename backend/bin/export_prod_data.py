@@ -46,7 +46,6 @@ GROUPS: dict[str, list[tuple[str, str, str, list[str]]]] = {
         ("supply", "RetailSection", "id", []),
         ("supply", "NutritionalTag", "id", []),
         ("supply", "UnitConversion", "id", []),
-        ("supply", "DgeReference", "id", []),
     ],
     "food": [
         ("supply", "Ingredient", "id", ["nutritional_tags", "tags"]),

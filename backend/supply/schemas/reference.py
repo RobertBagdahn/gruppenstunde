@@ -77,28 +77,6 @@ class IngredientGroupOut(Schema):
     slug: str
 
 
-class DgeReferenceOut(Schema):
-    """Output schema for a DGE reference value entry."""
-
-    id: int
-    age_min: int
-    age_max: int
-    gender: str
-    # Macronutrients
-    energy_kcal: float | None
-    protein_g: float | None
-    fat_g: float | None
-    carbohydrate_g: float | None
-    fibre_g: float | None
-    # Max limits
-    sugar_g_max: float | None
-    salt_g_max: float | None
-    fat_sat_g_max: float | None
-    sodium_mg_max: float | None
-    # Vitamins
-    vitamin_c_mg: float | None
-
-
 class EquipmentOut(Schema):
     """Output schema for kitchen equipment."""
 

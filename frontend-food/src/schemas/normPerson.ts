@@ -56,33 +56,6 @@ export const DgeReferencePointSchema = z.object({
 export type DgeReferencePoint = z.infer<typeof DgeReferencePointSchema>;
 
 // ---------------------------------------------------------------------------
-// DGE Reference (full model with all macro/vitamin/mineral values)
-// Matches backend DgeReferenceOut schema
-// ---------------------------------------------------------------------------
-
-export const DgeReferenceSchema = z.object({
-  id: z.number(),
-  age_min: z.number(),
-  age_max: z.number(),
-  gender: z.string(),
-  // Macronutrients
-  energy_kcal: z.number().nullable(),
-  protein_g: z.number().nullable(),
-  fat_g: z.number().nullable(),
-  carbohydrate_g: z.number().nullable(),
-  fibre_g: z.number().nullable(),
-  // Max limits
-  sugar_g_max: z.number().nullable(),
-  salt_g_max: z.number().nullable(),
-  fat_sat_g_max: z.number().nullable(),
-  sodium_mg_max: z.number().nullable(),
-  // Vitamins
-  vitamin_c_mg: z.number().nullable(),
-});
-
-export type DgeReference = z.infer<typeof DgeReferenceSchema>;
-
-// ---------------------------------------------------------------------------
 // Curves response (with DGE reference array)
 // ---------------------------------------------------------------------------
 

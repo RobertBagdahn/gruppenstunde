@@ -8,9 +8,8 @@ import { z } from 'zod';
 import {
   NormPersonResultSchema,
   NormPersonCurvesSchema,
-  DgeReferencePointSchema,
 } from '@/schemas/normPerson';
-import type { NormPersonResult, NormPersonCurves, DgeReferencePoint } from '@/schemas/normPerson';
+import type { NormPersonResult, NormPersonCurves } from '@/schemas/normPerson';
 
 const NORM_PERSON_BASE = `${API_BASE_URL}/api/norm-person`;
 
@@ -62,14 +61,3 @@ export function useNormPersonCurves(pal: number) {
   });
 }
 
-export function useDgeReference() {
-  return useQuery<DgeReferencePoint[]>({
-    queryKey: ['norm-person', 'dge-reference'],
-    queryFn: () =>
-      fetchJson(
-        `${NORM_PERSON_BASE}/dge-reference`,
-        z.array(DgeReferencePointSchema),
-      ),
-    staleTime: 30 * 60 * 1000, // DGE data is static
-  });
-}

@@ -7,6 +7,8 @@
  */
 import { z } from 'zod';
 
+import { TagSchema } from './content';
+
 // --- Material Category Options ---
 
 export const MATERIAL_CATEGORY_OPTIONS = [
@@ -262,6 +264,7 @@ export const IngredientDetailSchema = z.object({
   nutritional_tags: z.array(NutritionalTagSchema),
   portions: z.array(PortionSchema),
   packages: z.array(PackageSchema).default([]),
+  tags: z.array(TagSchema).default([]),
   aliases: z.array(IngredientAliasSchema),
   groups: z.array(IngredientGroupSchema),
 

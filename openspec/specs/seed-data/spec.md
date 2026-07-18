@@ -47,10 +47,7 @@ The default rule set SHALL include:
 **Meal event rules:**
 - Rules for average daily energy, protein, sugar, fibre, price, and average `nutri_class` across the whole MealPlan
 
-**DgeReference entries:**
-- 10 age groups x 2 genders
-- All macronutrient reference values from the existing DGE reference data
-- All supported vitamin and mineral reference values
+**Note**: DgeReference database objects are NOT seeded. DGE reference values are exclusively managed as static data in `supply/data/dge_reference.py`.
 
 #### Scenario: Seed creates recipe rules
 - **WHEN** `uv run python manage.py seed_rules` or `uv run python manage.py seed_all` is executed
@@ -65,14 +62,9 @@ The default rule set SHALL include:
 - **WHEN** `uv run python manage.py seed_rules` or `uv run python manage.py seed_all` is executed
 - **THEN** day-scope and meal_event-scope Rule objects SHALL be created for aggregate nutrition quality, price, weight where meaningful, and average Nutri-Score
 
-#### Scenario: Seed creates DGE references
-- **WHEN** `uv run python manage.py seed_all` is executed
-- **THEN** 20 DgeReference objects SHALL be created (10 age groups x 2 genders)
-- **AND** each entry SHALL have supported vitamin and mineral reference values populated
-
 #### Scenario: Seed is idempotent
 - **WHEN** `uv run python manage.py seed_rules` or `uv run python manage.py seed_all` is executed twice
-- **THEN** no duplicate Rule or DgeReference objects SHALL be created
+- **THEN** no duplicate Rule objects SHALL be created
 
 #### Scenario: Existing user-edited rules
 - **WHEN** a seeded rule already exists and has been edited by an admin

@@ -4,6 +4,8 @@ from datetime import datetime
 
 from ninja import Schema
 
+from content.schemas.base import TagOut
+
 from .reference import IngredientGroupOut, NutritionalTagOut
 
 
@@ -260,6 +262,7 @@ class IngredientDetailOut(Schema):
     nutritional_tags: list[NutritionalTagOut] = []
     portions: list[PortionOut] = []
     packages: list[PackageOut] = []
+    tags: list[TagOut] = []
     aliases: list[IngredientAliasOut] = []
     groups: list[IngredientGroupOut] = []
 
@@ -331,6 +334,20 @@ class IngredientDetailOut(Schema):
     @staticmethod
     def resolve_groups(obj) -> list:
         return [{"id": g.id, "name": g.name, "slug": g.slug} for g in obj.groups.all()]
+
+    @staticmethod
+    def resolve_tags(obj) -> list:
+        return [
+            {
+                "id": t.id,
+                "name": t.name,
+                "slug": t.slug,
+                "icon": t.icon,
+                "group": t.group,
+                "sort_order": t.sort_order,
+            }
+            for t in obj.tags.all()
+        ]
     
     @staticmethod
     def resolve_owner_name(obj) -> str | None:

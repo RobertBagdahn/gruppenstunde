@@ -188,31 +188,19 @@ The nutrient balance chart (NutrientBalanceChart) SHALL display side-by-side or 
 - **THEN** the tooltip SHALL display both the actual value (Ist) and the recommended target/range value (Soll)
 
 
-### Requirement: DGE reference values as database model
-The system SHALL provide a `DgeReference` model in the supply app with the following fields:
-- `age_min` (IntegerField) — Lower bound of age group
-- `age_max` (IntegerField) — Upper bound of age group
-- `gender` (CharField) — "male" or "female"
-- All macronutrient reference values: energy_kcal, protein_g, fat_g, carbohydrate_g, fibre_g
-- Micronutrient reference: vitamin_c_mg
-- `sugar_g_max` (FloatField) — Maximum recommended sugar per day
-- `salt_g_max` (FloatField) — Maximum recommended salt per day
-- `fat_sat_g_max` (FloatField) — Maximum recommended saturated fat per day
-- `sodium_mg_max` (FloatField) — Maximum recommended sodium per day
+### Requirement: DGE reference values
 
-The model SHALL be admin-manageable and initially seeded with official DGE D-A-CH reference values.
+The system SHALL provide DGE reference values for daily nutritional requirements as static data in `supply/data/dge_reference.py`. The data SHALL include energy (kcal), protein (g), fat (g), carbohydrate (g), and fibre (g) for 10 age groups (1-3, 4-6, 7-9, 10-12, 13-14, 15-18, 19-24, 25-50, 51-64, 65-99) and both genders (male, female). A lookup function `get_dge_reference(age: int, gender: str)` SHALL return the reference values for a given age and gender by matching the age to the appropriate age group.
+
+The data SHALL be sourceable from the DGE, ÖGE, SGE D-A-CH Referenzwerte für die Nährstoffzufuhr.
 
 #### Scenario: Retrieve DGE reference for age group
-- **WHEN** querying DGE references for age 14 and gender "male"
-- **THEN** the system SHALL return the matching age group (13-14) reference values
+- **WHEN** querying `get_dge_reference(age=14, gender="male")`
+- **THEN** the system SHALL return the matching age group (13-14) reference values containing energy_kcal, protein_g, fat_g, carbohydrate_g, fibre_g
 
-#### Scenario: List all DGE references via API
-- **WHEN** a GET request is made to `/api/dge-references/`
-- **THEN** the system SHALL return all DGE reference entries as a flat list
-
-#### Scenario: Admin edits DGE reference
-- **WHEN** an admin modifies a DGE reference value in the Django admin
-- **THEN** the updated value SHALL be used in all subsequent DGE calculations
+#### Scenario: Retrieve DGE reference for age outside range
+- **WHEN** querying `get_dge_reference(age=0, gender="female")`
+- **THEN** the system SHALL return `None`
 
 
 

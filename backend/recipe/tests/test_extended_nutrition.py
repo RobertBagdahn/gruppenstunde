@@ -2,7 +2,6 @@
 
 Covers:
 - Ingredient vitamin_c_mg field (9.1)
-- DgeReference model (9.2)
 - recalculate_recipe_cache with micronutrients (9.3)
 - Rule matching with vitamin_c_mg parameter (9.4)
 - Nutrition breakdown API with DGE coverage (9.5)
@@ -31,8 +30,6 @@ from recipe.services.recipe_checks import (
     recalculate_recipe_cache,
 )
 from recipe.tests import make_health_rule, make_recipe, make_recipe_hint, make_recipe_item
-from supply.models import DgeReference
-from supply.models.reference import DgeGenderChoices
 from supply.tests import make_ingredient, make_portion
 
 # ---------------------------------------------------------------------------
@@ -60,75 +57,6 @@ class TestIngredientMicronutrientFields:
         ing.save()
         ing.refresh_from_db()
         assert ing.vitamin_c_mg == 80.0
-
-
-# ---------------------------------------------------------------------------
-# 9.2 — DgeReference model
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestDgeReferenceModel:
-    """Verify DgeReference creation and querying."""
-
-    def test_create_dge_reference(self):
-        ref = DgeReference.objects.create(
-            age_min=10,
-            age_max=13,
-            gender=DgeGenderChoices.MALE,
-            energy_kcal=2390,
-            protein_g=48.0,
-            fat_g=75.0,
-            carbohydrate_g=275.0,
-            fibre_g=20.0,
-            vitamin_c_mg=90.0,
-        )
-        assert ref.pk is not None
-        assert ref.age_min == 10
-        assert ref.age_max == 13
-        assert ref.gender == "male"
-        assert ref.vitamin_c_mg == 90.0
-
-    def test_dge_reference_str(self):
-        ref = DgeReference.objects.create(
-            age_min=14,
-            age_max=18,
-            gender=DgeGenderChoices.FEMALE,
-            energy_kcal=2271,
-        )
-        assert "14-18" in str(ref)
-        assert "DGE" in str(ref)
-
-    def test_dge_reference_unique_together(self):
-        DgeReference.objects.create(age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kcal=2390)
-        with pytest.raises(Exception):
-            DgeReference.objects.create(age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kcal=2151)
-
-    def test_dge_reference_vitamin_c_nullable(self):
-        ref = DgeReference.objects.create(
-            age_min=19,
-            age_max=25,
-            gender=DgeGenderChoices.FEMALE,
-            energy_kcal=2199,
-        )
-        assert ref.vitamin_c_mg is None
-
-    def test_dge_reference_lookup_by_age_and_gender(self):
-        DgeReference.objects.create(
-            age_min=10, age_max=13, gender=DgeGenderChoices.MALE, energy_kcal=2390, vitamin_c_mg=90.0
-        )
-        DgeReference.objects.create(
-            age_min=10, age_max=13, gender=DgeGenderChoices.FEMALE, energy_kcal=2271, vitamin_c_mg=90.0
-        )
-        DgeReference.objects.create(
-            age_min=14, age_max=18, gender=DgeGenderChoices.MALE, energy_kcal=2868, vitamin_c_mg=105.0
-        )
-
-        # Lookup for a 12-year-old male
-        ref = DgeReference.objects.filter(age_min__lte=12, age_max__gte=12, gender="male").first()
-        assert ref is not None
-        assert ref.energy_kcal == 2390.0
-        assert ref.vitamin_c_mg == 90.0
 
 
 # ---------------------------------------------------------------------------
@@ -383,19 +311,6 @@ class TestNutritionBreakdownAPI:
         """DGE coverage should be populated when age and gender params are given."""
         recipe = self._setup_recipe_with_micronutrients()
 
-        # Create a DGE reference for a 12-year-old male
-        DgeReference.objects.create(
-            age_min=10,
-            age_max=13,
-            gender="male",
-            energy_kcal=2390,
-            protein_g=48.0,
-            fat_g=75.0,
-            carbohydrate_g=275.0,
-            fibre_g=20.0,
-            vitamin_c_mg=90.0,
-        )
-
         resp = auth_client.get(
             f"/api/recipes/{recipe.id}/nutrition-breakdown/",
             {"age": 12, "gender": "male"},
@@ -406,9 +321,9 @@ class TestNutritionBreakdownAPI:
         dge = data["dge_coverage"]
         assert len(dge) > 0
 
-        # Vitamin C coverage: 178.0 / 90.0 * 100 = ~197.8%
-        assert "vitamin_c_mg" in dge
-        assert dge["vitamin_c_mg"] == pytest.approx(197.8, abs=1.0)
+        # Macro coverage should be present (static DGE data has male 10-12 values)
+        assert "energy_kcal" in dge
+        assert "protein_g" in dge
 
     def test_nutrition_breakdown_no_dge_without_params(self, auth_client: Client):
         """Without age/gender params, dge_coverage should be empty."""
