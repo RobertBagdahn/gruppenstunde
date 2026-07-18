@@ -3,7 +3,7 @@
 import pytest
 from model_bakery import baker
 
-from supply.models import Ingredient, MeasuringUnit, Portion
+from supply.models import Ingredient, MeasuringUnit, Package, Portion
 from supply.utils import build_package_display, build_portion_display, format_weight
 
 # ---------------------------------------------------------------------------
@@ -179,29 +179,19 @@ class TestBuildPackageDisplay:
     def _make_ingredient(self) -> Ingredient:
         return baker.make(Ingredient, name="Quark", slug="quark", status="approved")
 
-    def _make_unit(self, name: str = "Pkg") -> MeasuringUnit:
-        return baker.make(MeasuringUnit, name=name, quantity=1.0, unit="g")
-
-    def _make_package_portion(self, ingredient, weight_g: float, name: str = "", rank: int = 1) -> Portion:
-        unit = self._make_unit()
+    def _make_package_portion(self, ingredient, weight_g: float, name: str = "", rank: int = 1) -> Package:
         if not name:
             name = f"{int(weight_g)}g Packung"
         return baker.make(
-            Portion,
+            Package,
             ingredient=ingredient,
-            measuring_unit=unit,
             name=name,
             weight_g=weight_g,
-            quantity=1.0,
-            is_system=False,
             rank=rank,
         )
 
     def test_no_package_portions_returns_empty(self):
         ingredient = self._make_ingredient()
-        # No non-system portions with weight_g > 0 exist (only system "g"/"Packung"/"Stück")
-        # build_package_display should return "" when no user-defined package portions exist
-        Portion.objects.filter(ingredient=ingredient, is_system=False).delete()
         result = build_package_display(750.0, ingredient)
         assert result == ""
 
@@ -218,7 +208,7 @@ class TestBuildPackageDisplay:
         self._make_package_portion(ingredient, weight_g=250.0, name="250g Packung")
         self._make_package_portion(ingredient, weight_g=500.0, name="500g Packung", rank=2)
         result = build_package_display(750.0, ingredient)
-        # Smallest non-system portion wins: 3×250g
+        # Smallest package portion wins: 3×250g
         assert "250g" in result
         assert result != ""
 

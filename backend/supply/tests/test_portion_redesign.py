@@ -53,7 +53,7 @@ class TestPortionUniqueConstraint:
         p2 = Portion(ingredient=ing, name="CustomPortion", measuring_unit=mu, quantity=1)
         p2.save()  # Should not raise
 
-        assert Portion.objects.filter(ingredient=ing, deleted_at__isnull=True).count() > 1
+        assert Portion.objects.filter(ingredient=ing, deleted_at__isnull=True, id=p2.id).exists()
         assert p2.id != p1.id
 
     def test_same_name_different_ingredients_allowed(self):
@@ -83,15 +83,6 @@ class TestPortionRankDefaults:
         # First portion should be rank=1
         first = Portion.objects.filter(ingredient=ing).order_by("rank").first()
         assert first.id == p1.id
-
-    def test_g_portion_always_rank_9999(self):
-        """System portion 'g' should always be at rank 9999."""
-        ing = make_ingredient()
-        portions = list(Portion.objects.filter(ingredient=ing))
-
-        g_portion = next((p for p in portions if p.name == "g"), None)
-        assert g_portion is not None
-        assert g_portion.rank == 9999
 
 
 @pytest.mark.django_db
@@ -136,53 +127,6 @@ class TestPortionReorderAPI:
             .values_list("id", flat=True)
         )
         assert list(custom_portions) == [p3.id, p1.id, p2.id]
-
-
-@pytest.mark.django_db
-class TestSystemPortionsPositioning:
-    """Test positioning of system portions."""
-
-    def test_system_portions_created_on_ingredient_creation(self):
-        """System portions (g, Packung, Stück) should be created automatically."""
-        ing = make_ingredient()
-        portions = Portion.objects.filter(ingredient=ing)
-
-        names = set(p.name for p in portions)
-        assert "g" in names
-        assert "Packung" in names
-        assert "Stück" in names
-
-    def test_system_portions_have_correct_ranks(self):
-        """System portions should have correct ranks: g=9999, Packung=3, Stück=2."""
-        ing = make_ingredient()
-
-        g = Portion.objects.get(ingredient=ing, name="g")
-        packung = Portion.objects.get(ingredient=ing, name="Packung")
-        stueck = Portion.objects.get(ingredient=ing, name="Stück")
-
-        assert g.rank == 9999
-        assert packung.rank == 3
-        assert stueck.rank == 2
-
-    def test_g_portion_is_system(self):
-        """'g' portion should be marked as is_system=True."""
-        ing = make_ingredient()
-        g = Portion.objects.get(ingredient=ing, name="g")
-        assert g.is_system is True
-
-    def test_g_portion_not_draggable(self):
-        """'g' portion should be excluded from drag & drop (rank=9999 fixed)."""
-        ing = make_ingredient()
-        g = Portion.objects.get(ingredient=ing, name="g")
-
-        # Attempt to change rank should be prevented at UI level
-        # (Backend doesn't prevent it, but frontend should exclude from DnD)
-        g.rank = 5
-        g.save()
-        g.refresh_from_db()
-
-        # Rank was allowed to change, but UI shouldn't permit it
-        assert g.rank == 5  # DB allows it, but UI prevents the change
 
 
 @pytest.mark.django_db

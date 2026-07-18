@@ -46,7 +46,8 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
     quantity: 125,
     weight_g: 125,
     rank,
-  measuring_unit_id: null,
+    is_default: rank === 1,
+    measuring_unit_id: null,
     measuring_unit_name: 'Gramm',
   });
 
@@ -114,8 +115,8 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
           portion_id: 7229,
           weight_g: 5,
           ingredient_portions: [
-            { id: 7229, name: 'Gramm', quantity: 1, weight_g: 1, rank: 2, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
-            { id: 7856, name: 'n. B.', quantity: 1, weight_g: 1, rank: 1, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 7229, name: 'Gramm', quantity: 1, weight_g: 1, rank: 2, is_default: false, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 7856, name: 'n. B.', quantity: 1, weight_g: 1, rank: 1, is_default: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
           ],
         }),
       ];
@@ -132,7 +133,7 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
           portion_id: 7229,
           weight_g: 5,
           ingredient_portions: [
-            { id: 7229, name: 'Gramm', quantity: 1, weight_g: 1, rank: 1, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 7229, name: 'Gramm', quantity: 1, weight_g: 1, rank: 1, is_default: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
           ],
         }),
       ];
@@ -161,8 +162,8 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
           portion_id: 437,
           weight_g: 60, // backend-authoritative: 0.6 × 100g
           ingredient_portions: [
-            { id: 437, name: '100g Haferflocken', quantity: 1, weight_g: 100, rank: 1, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
-            { id: 7001, name: 'Gramm', quantity: 1, weight_g: 1, rank: 3, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 437, name: '100g Haferflocken', quantity: 1, weight_g: 100, rank: 1, is_default: true, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 7001, name: 'Gramm', quantity: 1, weight_g: 1, rank: 3, is_default: false, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
           ],
         }),
       ];
@@ -222,7 +223,7 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
           ingredient_portions: [
             // Only the OTHER (live) portions of the ingredient are listed —
             // portion 442 itself is absent because it was soft-deleted.
-            { id: 32744, name: 'Prise', quantity: 1, weight_g: 0.3, rank: 1, measuring_unit_id: null, measuring_unit_name: 'Prise' },
+            { id: 32744, name: 'Prise', quantity: 1, weight_g: 0.3, rank: 1, is_default: true, measuring_unit_id: null, measuring_unit_name: 'Prise' },
           ],
         }),
       ];
@@ -251,7 +252,7 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
           portion_id: 7836,
           weight_g: 30,
           ingredient_portions: [
-            { id: 7836, name: '1 Portion', quantity: 1, weight_g: 120, rank: 1, measuring_unit_id: null, measuring_unit_name: 'Stück' },
+            { id: 7836, name: '1 Portion', quantity: 1, weight_g: 120, rank: 1, is_default: true, measuring_unit_id: null, measuring_unit_name: 'Stück' },
           ],
         }),
       ];
@@ -273,7 +274,7 @@ describe('InlineIngredientEditor.normalizeItems - Unit Label Fix', () => {
           weight_g: 280,
           ingredient_portions: [
             nudelnPortion(1),
-            { id: 7288, name: 'Gramm', quantity: 1, weight_g: 1, rank: 2, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
+            { id: 7288, name: 'Gramm', quantity: 1, weight_g: 1, rank: 2, is_default: false, measuring_unit_id: null, measuring_unit_name: 'Gramm' },
           ],
         }),
       ];

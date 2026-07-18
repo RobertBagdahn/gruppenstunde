@@ -121,18 +121,102 @@ def _deduplicate_portions():
 def _drop_portion_unique_index():
     with connection.cursor() as cursor:
         cursor.execute("DROP INDEX IF EXISTS unique_portion_name_per_ingredient")
+        cursor.execute("DROP INDEX IF EXISTS unique_rank1_portion_per_ingredient")
     try:
         yield
     finally:
         dedup_count = _deduplicate_portions()
+        rank1_dedup = _deduplicate_rank1_portions()
         with connection.cursor() as cursor:
             cursor.execute("""
                 CREATE UNIQUE INDEX unique_portion_name_per_ingredient
                 ON supply_portion (LOWER(name), ingredient_id)
                 WHERE deleted_at IS NULL
             """)
+            cursor.execute("""
+                CREATE UNIQUE INDEX unique_rank1_portion_per_ingredient
+                ON supply_portion (ingredient_id)
+                WHERE deleted_at IS NULL AND rank = 1
+            """)
         if dedup_count:
-            print(f"  ↻ {dedup_count} doppelte Portionen als gelöscht markiert")
+            print(f"  ↻ {dedup_count} doppelte Portionen (Name) als gelöscht markiert")
+        if rank1_dedup:
+            print(f"  ↻ {rank1_dedup} doppelte Portionen (Rank 1) als gelöscht markiert")
+
+
+def _deduplicate_ingredient_aliases():
+    from supply.models.ingredient import IngredientAlias
+    from django.db.models import Count, Min
+
+    dupes = (
+        IngredientAlias.objects
+        .values("ingredient_id", "rank")
+        .annotate(cnt=Count("id"), min_id=Min("id"))
+        .filter(cnt__gt=1)
+    )
+    total = 0
+    for dupe in dupes:
+        ids = (
+            IngredientAlias.objects
+            .filter(ingredient_id=dupe["ingredient_id"], rank=dupe["rank"])
+            .exclude(id=dupe["min_id"])
+            .values_list("id", flat=True)
+        )
+        count, _ = IngredientAlias.objects.filter(id__in=list(ids)).delete()
+        total += count
+    return total
+
+
+def _deduplicate_rank1_portions():
+    from django.db.models import Count, Min
+    from supply.models.ingredient import Portion
+
+    dupes = (
+        Portion.objects.filter(deleted_at__isnull=True, rank=1)
+        .values("ingredient_id")
+        .annotate(cnt=Count("id"), min_id=Min("id"))
+        .filter(cnt__gt=1)
+    )
+    total = 0
+    for dupe in dupes:
+        ids = (
+            Portion.objects
+            .filter(deleted_at__isnull=True, ingredient_id=dupe["ingredient_id"], rank=1)
+            .exclude(id=dupe["min_id"])
+            .values_list("id", flat=True)
+        )
+        from django.utils import timezone
+        count = Portion.objects.filter(id__in=list(ids)).update(deleted_at=timezone.now())
+        total += count
+    return total
+
+
+@contextmanager
+def _drop_ingredientalias_unique_indexes():
+    with connection.cursor() as cursor:
+        cursor.execute("ALTER TABLE supply_ingredientalias DROP CONSTRAINT IF EXISTS supply_ingredientalias_ingredient_id_rank_e49b396a_uniq")
+        cursor.execute("DROP INDEX IF EXISTS unique_alias_name_per_ingredient")
+        cursor.execute("DROP INDEX IF EXISTS unique_alias_name_when_not_generic")
+    try:
+        yield
+    finally:
+        alias_dedup = _deduplicate_ingredient_aliases()
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                ALTER TABLE supply_ingredientalias
+                ADD CONSTRAINT supply_ingredientalias_ingredient_id_rank_e49b396a_uniq
+                UNIQUE (ingredient_id, rank)
+            """)
+            cursor.execute("""
+                CREATE UNIQUE INDEX unique_alias_name_per_ingredient
+                ON supply_ingredientalias (LOWER(name), ingredient_id)
+            """)
+            cursor.execute("""
+                CREATE UNIQUE INDEX unique_alias_name_when_not_generic
+                ON supply_ingredientalias (LOWER(name)) WHERE NOT is_generic
+            """)
+        if alias_dedup:
+            print(f"  ↻ {alias_dedup} doppelte IngredientAliases gelöscht")
 
 
 class Command(BaseCommand):
@@ -218,7 +302,12 @@ class Command(BaseCommand):
             self.stdout.flush()
 
             try:
-                ctx = _drop_portion_unique_index() if short_name == "supply_portion" else _noop_context()
+                if short_name == "supply_portion":
+                    ctx = _drop_portion_unique_index()
+                elif short_name == "supply_ingredientalias":
+                    ctx = _drop_ingredientalias_unique_indexes()
+                else:
+                    ctx = _noop_context()
                 with ctx:
                     with transaction.atomic():
                         call_command("loaddata", str(fixture_file), verbosity=0, skip_checks=True)

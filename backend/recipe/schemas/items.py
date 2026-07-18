@@ -87,7 +87,6 @@ class RecipeItemOut(Schema):
                 "quantity": p.quantity,
                 "weight_g": p.weight_g,
                 "rank": p.rank,
-                "is_default": p.rank == 1,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
             }

@@ -75,8 +75,8 @@ def shopping_list(user):
 @pytest.fixture
 def shopping_list_with_rewe_items(shopping_list, ingredient_with_rewe, ingredient_without_rewe):
     mu = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
-    make_portion(ingredient=ingredient_with_rewe, name="Packung (500g)", weight_g=500, is_system=False, measuring_unit=mu)
-    make_portion(ingredient=ingredient_without_rewe, name="Packung (1000g)", weight_g=1000, is_system=False, measuring_unit=mu)
+    make_portion(ingredient=ingredient_with_rewe, name="Packung (500g)", weight_g=500, measuring_unit=mu)
+    make_portion(ingredient=ingredient_without_rewe, name="Packung (1000g)", weight_g=1000, measuring_unit=mu)
 
     ShoppingListItem.objects.create(
         shopping_list=shopping_list,

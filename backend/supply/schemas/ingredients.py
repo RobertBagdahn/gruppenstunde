@@ -32,8 +32,15 @@ class PortionOut(Schema):
     quantity: float
     weight_g: float | None
     rank: int
+    is_default: bool
     measuring_unit_id: int | None
     measuring_unit_name: str | None = None
+
+    @staticmethod
+    def resolve_is_default(obj) -> bool:
+        if isinstance(obj, dict):
+            return obj.get("is_default", obj.get("rank", 0) == 1)
+        return getattr(obj, "rank", 0) == 1
 
     @staticmethod
     def resolve_measuring_unit_name(obj) -> str | None:
