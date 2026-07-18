@@ -45,7 +45,7 @@ class Command(BaseCommand):
                     for portion in dups:
                         self.stdout.write(
                             f"    - ID: {portion.id}, Name: '{portion.name}', rank: {portion.rank}, "
-                            f"weight_g: {portion.weight_g}, is_system: {portion.is_system}"
+                            f"weight_g: {portion.weight_g}"
                         )
 
         if not duplicates_found:
@@ -61,7 +61,7 @@ class Command(BaseCommand):
                 no_default_found = True
                 portions_info = list(
                     ingredient.portions.filter(deleted_at__isnull=True)
-                    .values("id", "name", "rank", "weight_g", "is_system")
+                    .values("id", "name", "rank", "weight_g")
                     .order_by("rank")[:5]
                 )
                 self.stdout.write(

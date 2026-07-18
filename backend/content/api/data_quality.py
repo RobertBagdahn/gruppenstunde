@@ -838,30 +838,20 @@ def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
 
 @admin_router.get("/ingredients/missing-system-portions/")
 def missing_system_portions(request, page: int = 1, page_size: int = 20):
-    """Ingredients die eine oder mehrere System-Portionen (g/ml, Packung, Stück) vermissen."""
+    """Ingredients without any portions."""
     _require_staff(request)
-    from supply.models import Portion
 
-    system_names = Portion.system_portion_names()
     qs = Ingredient.objects.all().prefetch_related("portions")
 
     items: list = []
     for ing in qs:
-        existing = set(p.name for p in ing.portions.filter(deleted_at__isnull=True))
-        # g oder ml als Basis-System-Portion akzeptieren
-        has_base = "g" in existing or "ml" in existing
-        missing = [name for name in sorted(system_names) if name not in existing]
-        if not has_base:
-            missing = ["g/ml"] + missing
-        elif "g" not in existing:
-            missing = [m for m in missing if m != "g"]
-        if missing:
+        if not ing.portions.filter(deleted_at__isnull=True).exists():
             items.append(
                 MissingSystemPortionOut(
                     id=ing.id,
                     name=ing.name,
                     slug=ing.slug,
-                    missing_portions=missing,
+                    missing_portions=["Keine Portionen"],
                 )
             )
 

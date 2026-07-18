@@ -6,7 +6,7 @@ import math
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from supply.models.ingredient import Ingredient, Portion
+    from supply.models.ingredient import Ingredient, Package, Portion
 
 
 def format_weight(grams: float) -> str:
@@ -118,28 +118,13 @@ def build_portion_display(
     return base, has_missing_weight
 
 
-def get_shopping_portion(ingredient: Ingredient) -> Portion | None:
-    """Get the most suitable portion for shopping list display.
+def get_shopping_portion(ingredient: Ingredient) -> Package | None:
+    """Get the default package for shopping list display.
 
-    Returns the portion with the smallest weight_g that:
-    - Is not deleted
-    - Has weight_g > 0
-    - Is not the 'g' base unit
-
-    This is typically a reasonable "packung" (package) or similar portion
-    that can be bought as a unit.
+    Returns the rank=1 (default) package for this ingredient.
     """
     try:
-        portion = (
-            ingredient.portions.filter(
-                deleted_at__isnull=True,
-                weight_g__gt=0,
-                is_system=False,
-            )
-            .order_by("weight_g")
-            .first()
-        )
-        return portion
+        return ingredient.packages.filter(deleted_at__isnull=True, rank=1).first()
     except Exception:
         return None
 
@@ -147,28 +132,26 @@ def get_shopping_portion(ingredient: Ingredient) -> Portion | None:
 def build_package_display(quantity_g: float, ingredient: Ingredient) -> str:
     """Build the package options string for a shopping list item.
 
-    Finds the best portion for shopping (smallest with weight_g > 0, excluding 'g'),
-    then calculates how many units are needed.
+    Uses the ingredient's rank=1 package to calculate how many units are needed.
 
     Rounding rule:
-        - Compute exact count = quantity_g / portion.weight_g
+        - Compute exact count = quantity_g / package.weight_g
         - Always round up — better to buy slightly more than run short
 
-    Returns empty string when no suitable portion exists.
+    Returns empty string when no suitable package exists.
     """
     if not quantity_g or quantity_g <= 0:
         return ""
 
-    portion = get_shopping_portion(ingredient)
-    if not portion or not portion.weight_g or portion.weight_g <= 0:
+    package = get_shopping_portion(ingredient)
+    if not package or not package.weight_g or package.weight_g <= 0:
         return ""
 
-    exact = quantity_g / portion.weight_g
-    # Always round up — better to buy slightly more than run short
+    exact = quantity_g / package.weight_g
     count = math.ceil(exact)
 
     if count <= 0:
         return ""
 
-    pkg_label = format_weight(portion.weight_g)
+    pkg_label = format_weight(package.weight_g)
     return f"{count}×{pkg_label}"

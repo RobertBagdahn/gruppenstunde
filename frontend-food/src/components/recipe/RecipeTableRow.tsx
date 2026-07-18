@@ -41,7 +41,7 @@ export default function RecipeTableRow({ recipe, searchQuery, onDelete, onClone 
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="font-semibold text-sm truncate">
+          <span className="font-semibold text-sm line-clamp-2">
             <SearchHighlight text={recipe.title} query={searchQuery} />
           </span>
           {isDraft && (

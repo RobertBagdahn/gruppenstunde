@@ -379,8 +379,10 @@ def calculate_breakfast_leftovers(request, data: BreakfastLeftoversIn) -> dict[s
     ing_ids = [t.ingredient_id for t in data.toppings]
     ingredients = {ing.id: ing for ing in Ingredient.objects.filter(id__in=ing_ids)}
 
-    package_portions: dict[int, Portion] = {}
-    for p in Portion.objects.filter(ingredient_id__in=ing_ids, name__startswith="Packung", is_system=False):
+    from supply.models import Package
+
+    package_portions: dict[int, Package] = {}
+    for p in Package.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True, rank=1):
         if p.ingredient_id not in package_portions:
             package_portions[p.ingredient_id] = p
 

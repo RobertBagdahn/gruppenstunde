@@ -158,9 +158,10 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
 
     # Plausibility check (safety net): if the client tells us what gram total
     # it intended (e.g. when applying an AI quantity estimate), verify the
-    # resulting quantity * portion.weight_g matches within a small tolerance.
-    # Prevents silently persisting a portion/quantity mismatch even if a
-    # future client bug re-introduces the class of bug this change fixes.
+    # resulting quantity * portion.weight_g matches within a generous tolerance
+    # (15% or 2g). The wide tolerance allows legitimate cooking-portion
+    # variations and floating-point noise while still catching catastrophic
+    # mismatches (factor 10+ errors from client bugs).
     if expected_grams_total is not None:
         result_portion_id = data.get("portion_id", item.portion_id)
         result_quantity = data.get("quantity", item.quantity)
@@ -171,7 +172,7 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
         )
         resulting_weight_g = portion.weight_g if (portion.weight_g and portion.weight_g > 0) else 1.0
         resulting_grams = result_quantity * resulting_weight_g
-        tolerance = max(abs(expected_grams_total) * 0.01, 0.01)
+        tolerance = max(abs(expected_grams_total) * 0.15, 2.0)
         if abs(resulting_grams - expected_grams_total) > tolerance:
             raise HttpError(
                 422,

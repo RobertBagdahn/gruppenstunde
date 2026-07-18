@@ -19,9 +19,11 @@ from supply.models import (
     IngredientAlias,
     IngredientGroup,
     MeasuringUnit,
+    Package,
     Portion,
 )
 from supply.schemas import (
+    AiApplyIn,
     AliasCreateIn,
     IngredientAiCreateIn,
     IngredientAliasOut,
@@ -32,8 +34,11 @@ from supply.schemas import (
     IngredientSimilarOut,
     IngredientSuggestAllOut,
     IngredientUpdateIn,
+    PackageCreateIn,
+    PackageOut,
+    PackageReorderIn,
+    PackageUpdateIn,
     PaginatedIngredientOut,
-    PortionApplyIn,
     PortionCreateIn,
     PortionOut,
     PortionReorderIn,
@@ -409,7 +414,7 @@ def get_ingredient(request, slug: str):
     """
     ingredient = get_object_or_404(
         Ingredient.objects.select_related("retail_section", "owner").prefetch_related(
-            "nutritional_tags", "portions__measuring_unit", "aliases", "shared_groups"
+            "nutritional_tags", "portions__measuring_unit", "packages", "aliases", "shared_groups"
         ),
         slug=slug,
     )
@@ -653,6 +658,16 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     if Portion.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
         raise HttpError(422, f"Portionsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
 
+    if payload.rank == 1 and Portion.objects.filter(
+        ingredient=ingredient, rank=1, deleted_at__isnull=True
+    ).exists():
+        raise HttpError(
+            422,
+            "Es existiert bereits eine Normalportion (Rang 1) für diese Zutat. "
+            "Nur eine Portion pro Zutat kann Rang 1 haben. "
+            "Bitte ändere den Rang der bestehenden Normalportion zuerst oder wähle einen anderen Rang.",
+        )
+
     portion = Portion(
         ingredient=ingredient,
         name=name,
@@ -664,9 +679,25 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     if payload.measuring_unit_id:
         unit = get_object_or_404(MeasuringUnit, id=payload.measuring_unit_id)
         portion.measuring_unit = unit
+    else:
+        raise HttpError(422, "Bitte wähle eine Maßeinheit aus.")
 
     portion.weight_g = payload.weight_g
-    portion.save()
+    try:
+        portion.save()
+    except IntegrityError as e:
+        if "unique_rank1_portion_per_ingredient" in str(e):
+            raise HttpError(
+                422,
+                "Es existiert bereits eine Normalportion (Rang 1) für diese Zutat. "
+                "Nur eine Portion pro Zutat kann Rang 1 haben.",
+            )
+        if "unique_portion_name_per_ingredient" in str(e):
+            raise HttpError(
+                422,
+                f"Portionsname '{name}' existiert bereits für diese Zutat (case-insensitive).",
+            )
+        raise
     return portion
 
 
@@ -675,31 +706,16 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
     """Reorder multiple portions atomically.
 
     Body: { orders: [{id: int, rank: int}, ...] }
-
-    Atomically updates all portion ranks. The 'g' portion must remain at rank 9999.
     """
     require_auth(request)
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
 
-    # Validate: 'g' portion (rank 9999) should never be moved
-    for order in payload.orders:
-        portion = Portion.objects.filter(id=order.id, ingredient=ingredient).first()
-        if portion and portion.name == "g" and order.rank != 9999:
-            raise HttpError(422, "Die 'g'-Portion muss immer rank=9999 haben und kann nicht verschoben werden.")
-
     with transaction.atomic():
-        # Apply the order whose target rank is 1 LAST. This guarantees no two
-        # portions transiently hold rank=1 at once mid-loop, which would
-        # violate the unique_rank1_portion_per_ingredient DB constraint (added
-        # in fix-portion-integrity-and-ai-estimate) even inside this
-        # transaction.atomic() block (SQLite/Postgres check non-deferrable
-        # partial unique indexes immediately, not at COMMIT).
         ordered = sorted(payload.orders, key=lambda o: o.rank == 1)
         for order in ordered:
             Portion.objects.filter(id=order.id, ingredient=ingredient).update(rank=order.rank)
 
-    # Return updated list sorted by rank
     return list(
         Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
         .order_by("rank")
@@ -707,18 +723,12 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
     )
 
 
-@ingredient_router.post("/{slug}/portions/ai-apply/", response=list[PortionOut])
-def ai_apply_portions(request, slug: str, payload: PortionApplyIn):
-    """Atomically apply selected KI-Portionsvorschläge for an ingredient.
+@ingredient_router.post("/{slug}/ai-apply/", response=dict)
+def ai_apply(request, slug: str, payload: AiApplyIn):
+    """Atomically apply selected KI suggestions for portions AND packages.
 
-    Resolves `measuring_unit_name` to `measuring_unit_id` server-side (the
-    client never sends measuring_unit_id here — this closes the bug where the
-    old client-side create-portion flow left `measuring_unit` unset and
-    crashed on save). If `replace_all=True`, ALL existing (non-deleted)
-    portions — including system and Belag portions — are soft-deleted first,
-    and a fresh "g" system portion is mandatorily (re-)created, all within
-    the same transaction so no intermediate state without an active "g"
-    portion is ever visible.
+    If `replace_all=True`, ALL existing portions and packages are soft-deleted
+    before the selected suggestions are created, all within a single transaction.
     """
     require_auth(request)
 
@@ -727,25 +737,30 @@ def ai_apply_portions(request, slug: str, payload: PortionApplyIn):
     if not _can_edit_portions(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat anzulegen")
 
-    from supply.signals import _create_system_portions
-
     try:
         with transaction.atomic():
             if payload.replace_all:
                 Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).update(
                     deleted_at=timezone.now()
                 )
-                _create_system_portions(ingredient)
-            elif not Portion.objects.filter(ingredient=ingredient, name__iexact="g", deleted_at__isnull=True).exists():
-                # Even without replace_all, the "g" system portion is a hard
-                # requirement — ensure it exists (idempotent, get_or_create-based).
-                _create_system_portions(ingredient)
+                Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).update(
+                    deleted_at=timezone.now()
+                )
 
-            existing_names = set(
-                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list("name", flat=True)
-            )
-            existing_names_lower = {n.lower() for n in existing_names}
+            existing_portion_names_lower = {
+                n.lower() for n in
+                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+                .values_list("name", flat=True)
+            }
+            existing_package_names_lower = {
+                n.lower() for n in
+                Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+                .values_list("name", flat=True)
+            }
             has_active_rank1 = Portion.objects.filter(
+                ingredient=ingredient, rank=1, deleted_at__isnull=True
+            ).exists()
+            has_active_pkg_rank1 = Package.objects.filter(
                 ingredient=ingredient, rank=1, deleted_at__isnull=True
             ).exists()
 
@@ -762,20 +777,16 @@ def ai_apply_portions(request, slug: str, payload: PortionApplyIn):
                     mu_cache[key] = mu
                 return mu_cache[key]
 
-            created_portions = []
-            for suggestion in payload.selected:
+            # Create portions
+            for suggestion in payload.portions:
                 name = suggestion.name.strip()
-                if not name or name.lower() in existing_names_lower:
+                if not name or name.lower() in existing_portion_names_lower:
                     continue
 
                 rank = suggestion.rank
                 if rank == 1 and has_active_rank1:
-                    # Only one active rank=1 portion allowed per ingredient
-                    # (unique_rank1_portion_per_ingredient). Append this
-                    # suggestion at the end instead of colliding.
                     max_rank = (
                         Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-                        .exclude(rank=9999)
                         .order_by("-rank")
                         .values_list("rank", flat=True)
                         .first()
@@ -785,7 +796,7 @@ def ai_apply_portions(request, slug: str, payload: PortionApplyIn):
                 elif rank == 1:
                     has_active_rank1 = True
 
-                portion = Portion.objects.create(
+                Portion.objects.create(
                     ingredient=ingredient,
                     name=name,
                     measuring_unit=_get_mu(suggestion.measuring_unit_name),
@@ -794,16 +805,49 @@ def ai_apply_portions(request, slug: str, payload: PortionApplyIn):
                     rank=rank,
                     created_by=request.user,
                 )
-                created_portions.append(portion)
-                existing_names_lower.add(name.lower())
-    except IntegrityError:
-        raise HttpError(422, "Mindestens eine Portion konnte wegen eines Namenskonflikts nicht angelegt werden.")
+                existing_portion_names_lower.add(name.lower())
 
-    return list(
-        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-        .order_by("rank", "id")
-        .select_related("measuring_unit")
-    )
+            # Create packages
+            for suggestion in payload.packages:
+                name = suggestion.name.strip()
+                if not name or name.lower() in existing_package_names_lower:
+                    continue
+
+                rank = suggestion.rank
+                if rank == 1 and has_active_pkg_rank1:
+                    max_rank = (
+                        Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+                        .order_by("-rank")
+                        .values_list("rank", flat=True)
+                        .first()
+                        or 0
+                    )
+                    rank = max_rank + 1
+                elif rank == 1:
+                    has_active_pkg_rank1 = True
+
+                Package.objects.create(
+                    ingredient=ingredient,
+                    name=name,
+                    weight_g=suggestion.weight_g,
+                    rank=rank,
+                    created_by=request.user,
+                )
+                existing_package_names_lower.add(name.lower())
+    except IntegrityError:
+        raise HttpError(422, "Mindestens ein Vorschlag konnte wegen eines Namenskonflikts nicht angelegt werden.")
+
+    return {
+        "portions": list(
+            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+            .order_by("rank", "id")
+            .select_related("measuring_unit")
+        ),
+        "packages": list(
+            Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+            .order_by("rank", "id")
+        ),
+    }
 
 
 @ingredient_router.patch("/{slug}/portions/{portion_id}/", response=PortionOut)
@@ -844,6 +888,18 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
         data.pop("name")
 
+    new_rank = data.get("rank", portion.rank)
+    if new_rank == 1 and new_rank != portion.rank:
+        if Portion.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exclude(
+            id=portion.id
+        ).exists():
+            raise HttpError(
+                422,
+                "Es existiert bereits eine Normalportion (Rang 1) für diese Zutat. "
+                "Nur eine Portion pro Zutat kann Rang 1 haben. "
+                "Bitte ändere den Rang der bestehenden Normalportion zuerst oder wähle einen anderen Rang.",
+            )
+
     unit_id = data.pop("measuring_unit_id", None)
     explicit_weight_g = data.pop("weight_g", None)
     weight_g_was_set = "weight_g" in payload.dict(exclude_unset=True)
@@ -863,16 +919,30 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
     prospective_weight_g = scratch.compute_weight_g(scratch.weight_g)
 
     if would_change_weight_g(portion, prospective_weight_g) and is_referenced_by_recipe_items(portion):
-        replacement = create_replacement_portion(
-            portion,
-            name=new_name,
-            quantity=new_quantity,
-            measuring_unit=new_unit,
-            weight_g=prospective_weight_g,
-            rank=portion.rank,
-            created_by=request.user,
-        )
-        return replacement
+        try:
+            replacement = create_replacement_portion(
+                portion,
+                name=new_name,
+                quantity=new_quantity,
+                measuring_unit=new_unit,
+                weight_g=prospective_weight_g,
+                rank=new_rank,
+                created_by=request.user,
+            )
+            return replacement
+        except IntegrityError as e:
+            if "unique_rank1_portion_per_ingredient" in str(e):
+                raise HttpError(
+                    422,
+                    "Es existiert bereits eine Normalportion (Rang 1) für diese Zutat. "
+                    "Nur eine Portion pro Zutat kann Rang 1 haben.",
+                )
+            if "unique_portion_name_per_ingredient" in str(e):
+                raise HttpError(
+                    422,
+                    f"Portionsname '{new_name}' existiert bereits für diese Zutat (case-insensitive).",
+                )
+            raise
 
     for field, value in data.items():
         setattr(portion, field, value)
@@ -887,13 +957,27 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
         portion.weight_g = None
 
     portion.updated_by = request.user
-    portion.save()
+    try:
+        portion.save()
+    except IntegrityError as e:
+        if "unique_rank1_portion_per_ingredient" in str(e):
+            raise HttpError(
+                422,
+                "Es existiert bereits eine Normalportion (Rang 1) für diese Zutat. "
+                "Nur eine Portion pro Zutat kann Rang 1 haben.",
+            )
+        if "unique_portion_name_per_ingredient" in str(e):
+            raise HttpError(
+                422,
+                f"Portionsname '{new_name}' existiert bereits für diese Zutat (case-insensitive).",
+            )
+        raise
     return portion
 
 
 @ingredient_router.delete("/{slug}/portions/{portion_id}/")
 def delete_portion(request, slug: str, portion_id: int):
-    """Soft-delete a portion. System-portions (g, Packung, Stück) können nicht gelöscht werden.
+    """Soft-delete a portion.
 
     Guard-rail: if the portion is still referenced by RecipeItems, they are
     automatically rebound onto the ingredient's current active rank=1 portion
@@ -905,9 +989,6 @@ def delete_portion(request, slug: str, portion_id: int):
 
     ingredient = get_object_or_404(Ingredient, slug=slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
-
-    if portion.is_system:
-        raise HttpError(422, "System-Portionen (g, Packung, Stück) können nicht gelöscht werden.")
 
     if is_referenced_by_recipe_items(portion):
         try:
@@ -968,6 +1049,139 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
         .order_by("rank", "id")
         .select_related("measuring_unit")
     )
+
+
+# ===========================================================================
+# Packages
+# ===========================================================================
+
+
+@ingredient_router.get("/{slug}/packages/", response=list[PackageOut])
+def list_packages(request, slug: str):
+    """List packages for an ingredient."""
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+    return Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+
+
+@ingredient_router.post("/{slug}/packages/", response=PackageOut)
+def create_package(request, slug: str, payload: PackageCreateIn):
+    """Create a package for an ingredient."""
+    require_auth(request)
+
+    if not payload.name or not payload.name.strip():
+        raise HttpError(422, "Packungsname darf nicht leer sein.")
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+    name = payload.name.strip()
+
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Packungen für diese Zutat anzulegen")
+
+    if Package.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
+        raise HttpError(422, f"Packungsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
+
+    if payload.rank == 1 and Package.objects.filter(
+        ingredient=ingredient, rank=1, deleted_at__isnull=True
+    ).exists():
+        raise HttpError(
+            422,
+            "Es existiert bereits eine Standardpackung (Rang 1) für diese Zutat. "
+            "Nur eine Packung pro Zutat kann Rang 1 haben.",
+        )
+
+    try:
+        package = Package.objects.create(
+            ingredient=ingredient,
+            name=name,
+            weight_g=payload.weight_g,
+            rank=payload.rank,
+            created_by=request.user,
+        )
+    except IntegrityError as e:
+        if "unique_rank1_package_per_ingredient" in str(e):
+            raise HttpError(422, "Es existiert bereits eine Standardpackung (Rang 1) für diese Zutat.")
+        if "unique_package_name_per_ingredient" in str(e):
+            raise HttpError(422, f"Packungsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
+        raise
+    return package
+
+
+@ingredient_router.post("/{slug}/packages/reorder/", response=list[PackageOut])
+def reorder_packages(request, slug: str, payload: PackageReorderIn):
+    """Reorder multiple packages atomically."""
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+
+    with transaction.atomic():
+        ordered = sorted(payload.orders, key=lambda o: o.rank == 1)
+        for order in ordered:
+            Package.objects.filter(id=order.id, ingredient=ingredient).update(rank=order.rank)
+
+    return list(
+        Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank")
+    )
+
+
+@ingredient_router.patch("/{slug}/packages/{package_id}/", response=PackageOut)
+def update_package(request, slug: str, package_id: int, payload: PackageUpdateIn):
+    """Update a package."""
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+    package = get_object_or_404(Package, id=package_id, ingredient=ingredient)
+
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, diese Packung zu bearbeiten")
+
+    if payload.name is not None:
+        if not payload.name.strip():
+            raise HttpError(422, "Packungsname darf nicht leer sein.")
+        new_name = payload.name.strip()
+        if (
+            Package.objects.filter(ingredient=ingredient, name__iexact=new_name, deleted_at__isnull=True)
+            .exclude(id=package.id)
+            .exists()
+        ):
+            raise HttpError(422, f"Packungsname '{new_name}' existiert bereits für diese Zutat (case-insensitive).")
+        package.name = new_name
+
+    if payload.rank is not None:
+        if payload.rank == 1 and payload.rank != package.rank:
+            if Package.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exclude(
+                id=package.id
+            ).exists():
+                raise HttpError(
+                    422,
+                    "Es existiert bereits eine Standardpackung (Rang 1) für diese Zutat.",
+                )
+        package.rank = payload.rank
+
+    if payload.weight_g is not None:
+        package.weight_g = payload.weight_g
+
+    package.updated_by = request.user
+    try:
+        package.save()
+    except IntegrityError as e:
+        if "unique_rank1_package_per_ingredient" in str(e):
+            raise HttpError(422, "Es existiert bereits eine Standardpackung (Rang 1) für diese Zutat.")
+        if "unique_package_name_per_ingredient" in str(e):
+            raise HttpError(422, "Packungsname existiert bereits für diese Zutat (case-insensitive).")
+        raise
+    return package
+
+
+@ingredient_router.delete("/{slug}/packages/{package_id}/")
+def delete_package(request, slug: str, package_id: int):
+    """Soft-delete a package."""
+    require_auth(request)
+
+    ingredient = get_object_or_404(Ingredient, slug=slug)
+    package = get_object_or_404(Package, id=package_id, ingredient=ingredient)
+
+    package.soft_delete()
+    return {"success": True}
 
 
 # ===========================================================================

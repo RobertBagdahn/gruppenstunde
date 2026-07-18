@@ -33,15 +33,20 @@ Das System SHALL das Feld `is_generic` in den Pydantic-Alias-Schemas (Lesen und 
 - **THEN** SHALL das System den Alias als generisch speichern
 
 ### Requirement: Liste generischer Begriffe als Single Source of Truth
-Das System SHALL die Menge der generischen Begriffe aus allen `IngredientAlias` mit `is_generic = true` ableiten (distinct, case-insensitive über `name`). Diese Liste dient sowohl der Namens-Validierung als auch der Import-Konkretisierung.
+The list of generic terms SHALL be derived from all `IngredientAlias` rows with `is_generic = true` (distinct, case-insensitive). This list serves as the single source of truth for generic term classification, name validation, and import concretization.
 
-#### Scenario: Begriffsliste abrufbar
-- **WHEN** das System die Liste generischer Begriffe ermittelt
-- **THEN** SHALL sie jeden generischen Alias-Namen genau einmal (case-insensitive dedupliziert) enthalten
+The seed data SHALL contain ~70-90 generic terms (all single-word food names without qualifiers), distributed 1:N across all matching concrete ingredients. This replaces the previous minimum of 6 terms.
 
-#### Scenario: Seed initialer Begriffe
-- **WHEN** das Seed-/Management-Command für generische Begriffe ausgeführt wird
-- **THEN** SHALL eine initiale Menge generischer Begriffe (mindestens „Salz", „Pfeffer", „Nudeln", „Wasser", „Öl", „Mehl") als generische Aliase vorhanden sein
+#### Scenario: Generic terms populated from seed data
+- **WHEN** `import_prod_data --only food` is executed
+- **THEN** `IngredientAlias.objects.filter(is_generic=True)` returns ~70-90 distinct names
+- **AND** each generic term exists on ALL matching concrete ingredients (e.g., "Salz" on Jodsalz, Meersalz, Steinsalz)
+
+#### Scenario: Generic term spans multiple ingredients
+- **WHEN** the generic term "Nudeln" exists as a generic alias
+- **THEN** it is attached to Fusilli trocken, Spaghetti, Penne, Farfalle, and other pasta variants
+- **AND** all carry `is_generic=True`
+- **AND** searching "Nudeln" returns all of them
 
 ### Requirement: Eindeutigkeit pro Zutat
 Das System SHALL verhindern, dass für dieselbe Zutat zweimal derselbe Alias-Name (case-insensitive) angelegt wird — unabhängig vom `is_generic`-Flag. Dies wird durch einen Datenbank-`UniqueConstraint` auf (`ingredient`, `Lower(name)`) durchgesetzt, nicht nur durch eine applikationsseitige Prüfung.
@@ -61,4 +66,20 @@ Das System SHALL verhindern, dass für dieselbe Zutat zweimal derselbe Alias-Nam
 - **WHEN** ein generischer Alias „Nudeln" (`is_generic = true`) für die Zutat „Fusilli trocken" existiert
 - **AND** derselbe generische Alias „Nudeln" für die Zutat „Spaghetti" angelegt wird
 - **THEN** SHALL das System beide Aliase akzeptieren (unverändert gegenüber bestehendem Verhalten — die neue Constraint gilt pro Zutat, nicht global)
+
+### Requirement: Generic Aliases in Fixtures
+Generic aliases SHALL be stored directly in the `supply_ingredientalias.json` fixture file, not created at runtime by a separate seed command.
+
+#### Scenario: Aliases loaded from fixture
+- **WHEN** `import_prod_data` imports food data
+- **THEN** all generic and non-generic aliases are loaded from supply_ingredientalias.json
+- **AND** no additional seed command is needed
+
+### Requirement: Non-Generic Alias Completeness
+Every ingredient SHALL have comprehensive non-generic aliases including synonyms, plural forms, regional variants, and REWE product names where applicable.
+
+#### Scenario: Ingredient has synonym aliases
+- **WHEN** viewing aliases for "gemahlener schwarzer Pfeffer"
+- **THEN** non-generic aliases include "schwarzer Pfeffer", "Pfeffer gemahlen"
+- **AND** if REWE products match, their names are added as aliases
 

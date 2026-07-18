@@ -387,7 +387,7 @@ class IngredientAlias(models.Model):
 
 
 class Portion(models.Model):
-    """A specific portion/packaging of an ingredient with a measuring unit."""
+    """A specific portion of an ingredient with a measuring unit."""
 
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     measuring_unit = models.ForeignKey(
@@ -411,13 +411,7 @@ class Portion(models.Model):
         help_text=_("Gewicht einer Portion in Gramm. NULL = unbekannt."),
     )
     rank = models.IntegerField(default=1, verbose_name=_("Rang (1 = Normalportion)"))
-    is_system = models.BooleanField(
-        default=False,
-        verbose_name=_("System-Portion"),
-        help_text=_("Von der App erstellte Standardportionen (g, Packung, Stück) – nicht löschbar"),
-    )
 
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -500,10 +494,81 @@ class Portion(models.Model):
 
         return RecipeItem.objects.filter(portion=self).exists()
 
-    @classmethod
-    def system_portion_names(cls) -> set[str]:
-        return {"g", "Packung", "Stück"}
-
     def __str__(self):
         unit = self.measuring_unit.name if self.measuring_unit else ""
         return f"{self.name} / {self.quantity} {unit} / {self.ingredient.name}"
+
+
+class Package(models.Model):
+    """A packaging size of an ingredient for shopping contexts."""
+
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    weight_g = models.FloatField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name=_("Gewicht (g)"),
+        validators=[MinValueValidator(0.01)],
+        help_text=_("Gewicht einer Packung in Gramm. NULL = unbekannt."),
+    )
+    rank = models.IntegerField(default=1, verbose_name=_("Rang (1 = Standardpackung)"))
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name="packages",
+        verbose_name=_("Zutat"),
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="packages_created",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="packages_updated",
+    )
+
+    class Meta:
+        verbose_name = _("Packung")
+        verbose_name_plural = _("Packungen")
+        ordering = ["rank"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("name"),
+                "ingredient_id",
+                condition=Q(deleted_at__isnull=True),
+                name="unique_package_name_per_ingredient",
+            ),
+            models.UniqueConstraint(
+                fields=["ingredient"],
+                condition=Q(rank=1, deleted_at__isnull=True),
+                name="unique_rank1_package_per_ingredient",
+            ),
+        ]
+
+    def soft_delete(self):
+        from django.utils import timezone
+
+        self.deleted_at = timezone.now()
+        self.save(update_fields=["deleted_at"])
+
+    def restore(self):
+        self.deleted_at = None
+        self.save(update_fields=["deleted_at"])
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+
+    def __str__(self):
+        w = f" ({self.weight_g}g)" if self.weight_g else ""
+        return f"{self.name}{w} / {self.ingredient.name}"

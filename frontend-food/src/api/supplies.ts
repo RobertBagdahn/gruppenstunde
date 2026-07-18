@@ -17,7 +17,9 @@ import {
   RetailSectionSchema,
   PaginatedIngredientSchema,
   PortionSchema,
+  PackageSchema,
   type PortionSuggestion,
+  type PackageSuggestion,
   IngredientAliasSchema,
   DistributionOutSchema,
   RankingsOutSchema,
@@ -300,18 +302,82 @@ export function useReorderPortions(slug: string) {
 }
 
 /**
- * Atomically apply selected AI portion suggestions (POST /{slug}/portions/ai-apply/).
- * Server resolves measuring_unit_name -> measuring_unit_id and, when
- * replace_all=true, soft-deletes all existing portions (incl. system/Belag)
- * before mandatorily recreating the "g" system portion, all in one transaction.
+ * Atomically apply selected AI suggestions for portions AND packages (POST /{slug}/ai-apply/).
  */
-export function useApplyAiPortionSuggestions(slug: string) {
+export function useApplyAiSuggestions(slug: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { replace_all: boolean; selected: PortionSuggestion[] }) =>
-      postJsonRaw(`${INGREDIENT_BASE}/${slug}/portions/ai-apply/`, data, z.array(PortionSchema)),
+    mutationFn: (data: { replace_all: boolean; portions: PortionSuggestion[]; packages: PackageSuggestion[] }) =>
+      postJsonRaw(`${INGREDIENT_BASE}/${slug}/ai-apply/`, data, z.object({
+        portions: z.array(PortionSchema),
+        packages: z.array(PackageSchema),
+      })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-portions', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+// ==========================================================================
+// Package Hooks
+// ==========================================================================
+
+export function useIngredientPackages(slug: string) {
+  return useQuery({
+    queryKey: ['ingredient-packages', slug] as const,
+    queryFn: () => fetchJson(`${INGREDIENT_BASE}/${slug}/packages/`, z.array(PackageSchema)),
+    enabled: !!slug,
+    staleTime: 60_000,
+  });
+}
+
+export function useCreatePackage(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; weight_g?: number | null; rank?: number }) =>
+      postJsonRaw(`${INGREDIENT_BASE}/${slug}/packages/`, data, PackageSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-packages', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function useUpdatePackage(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ packageId, data }: { packageId: number; data: Record<string, unknown> }) =>
+      patchJsonRaw(`${INGREDIENT_BASE}/${slug}/packages/${packageId}/`, data, PackageSchema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-packages', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function useDeletePackage(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (packageId: number) => deleteJsonRaw(`${INGREDIENT_BASE}/${slug}/packages/${packageId}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-packages', slug] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
+    },
+  });
+}
+
+export function useReorderPackages(slug: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (orders: Array<{ id: number; rank: number }>) =>
+      postJsonRaw(
+        `${INGREDIENT_BASE}/${slug}/packages/reorder/`,
+        { orders },
+        z.array(PackageSchema),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredient-packages', slug] });
       queryClient.invalidateQueries({ queryKey: ['ingredient', slug] });
     },
   });

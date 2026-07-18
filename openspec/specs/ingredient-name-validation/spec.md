@@ -1,5 +1,8 @@
-## ADDED Requirements
+# ingredient-name-validation Specification
 
+## Purpose
+Warnt Nutzer nicht-blockierend, wenn ein Zutatenname zu generisch ist (z.B. „Nudeln" statt „Fusilli trocken"), sowohl beim Anlegen von Zutaten als auch im URL-Import-Review.
+## Requirements
 ### Requirement: Erkennung zu generischer Zutatennamen
 Das System SHALL einen Service bereitstellen, der prüft, ob ein Zutatenname (getrimmt, case-insensitive) exakt einem generischen Begriff aus der Liste generischer Begriffe entspricht. Die Prüfung ist nicht-blockierend und dient ausschließlich der Warnung.
 
@@ -42,3 +45,18 @@ Das System SHALL im URL-Import-Review-Schritt (`frontend-food/src/pages/recipes/
 - **WHEN** die KI im Import eine neue Zutat „Zwiebel" vorschlägt und „Zwiebel" ein generischer Begriff ist
 - **THEN** SHALL das Review-Element eine Warnung anzeigen
 - **AND** SHALL der Nutzer die Möglichkeit haben, eine konkrete Zutat zu wählen oder den Namen anzupassen, bevor er den Import bestätigt
+
+### Requirement: Generic Names Prohibited as Ingredient Names
+Generic single-word food names without qualifiers SHALL NOT be used as ingredient names in the seed data. Such names indicate incomplete data and are replaced with concrete, specific names during enrichment.
+
+#### Scenario: Generic name flagged during enrichment
+- **WHEN** enrich_seeds processes an ingredient named "Salz" with energy_kcal=0
+- **THEN** the ingredient is classified as "needs renaming"
+- **AND** is matched against the IngredientSpec knowledge base
+- **AND** renamed to the concrete canonical name (e.g., "Jodsalz")
+
+#### Scenario: Generic name with data kept as alias
+- **WHEN** ingredient "Milch" has complete nutritional data (energy_kcal=65)
+- **THEN** the ingredient may be kept but the generic name "Milch" becomes an alias
+- **AND** the ingredient name is updated to be more specific if possible (e.g., "Kuhmilch 3,5 % Fett")
+

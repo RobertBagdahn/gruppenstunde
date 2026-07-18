@@ -53,8 +53,11 @@ class RecipeItem(models.Model):
     portion = models.ForeignKey(
         "supply.Portion",
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="recipe_items",
         verbose_name=_("Portion"),
+        help_text=_("NULL = Gramm (quantity wird direkt als Gramm interpretiert)"),
     )
     quantity = models.FloatField(default=1, verbose_name=_("Menge"))
     sort_order = models.IntegerField(default=0, verbose_name=_("Reihenfolge"))

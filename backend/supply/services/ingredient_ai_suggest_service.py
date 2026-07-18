@@ -101,8 +101,8 @@ class IngredientSuggestAllSchema(BaseModel):
     # Preis
     price_per_kg: float | None = Field(None, description="Geschätzter Preis in EUR pro kg")
 
-    # Portionen (strukturiert: system_gramm/rezeptportionen/packungen/belag/backmengen)
-    portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portionsvorschläge")
+    # Create portion info as commentary in the prompt
+    portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portions- und Package-Vorschläge")
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Mind. 3 spezifische Aliase")
@@ -148,8 +148,8 @@ class IngredientAiCreateSchema(BaseModel):
         description="Geschätzter Preis in EUR pro kg, basierend auf typischen Supermarktpreisen"
     )
 
-    # Portionen (strukturiert, siehe IngredientSuggestAllSchema)
-    portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portionsvorschläge")
+    # Portionen + Packages (strukturiert)
+    portions: IngredientPortionSuggestSchema = Field(description="Strukturierte Portions- und Package-Vorschläge")
 
     # Aliase
     aliases: list[str] = Field(default_factory=list, description="Alternative Bezeichnungen")
@@ -218,6 +218,15 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
     result = IngredientSuggestAllSchema.model_validate_json(response.text)
     data = result.model_dump()
 
+    portions_raw = data.pop("portions")
+    data["ai_suggest"] = {
+        "portions": [*portions_raw["rezeptportionen"], *portions_raw["belag"], *portions_raw.get("backmengen", [])],
+        "packages": [
+            {"name": p["name"], "weight_g": p["weight_g"], "rank": p.get("rank", 1), "package_type": "packung"}
+            for p in portions_raw["packungen"]
+        ],
+    }
+
     # Resolve nutritional tags names/opposites to database objects
     from supply.models import NutritionalTag
 
@@ -254,7 +263,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
     """
     from google.genai import types
 
-    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Portion
+    from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Package, Portion
 
     prompt = (
         f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
@@ -335,13 +344,9 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
             mu_cache[name] = mu
         return mu_cache[name]
 
-    # Create portions from AI suggestions
-    # Create portions from structured AI suggestions. The first rezeptportion
-    # keeps the AI's own rank=1 (Normalportion); all other suggestions get
-    # ascending ranks after the system portions (Stück=2, Packung=3) to avoid
-    # violating the unique_rank1_portion_per_ingredient constraint.
+    # Create portions from AI suggestions (rezeptportionen, belag, backmengen)
     portions_data = data.portions
-    non_primary = [*portions_data.rezeptportionen[1:], *portions_data.packungen, *portions_data.belag, *portions_data.backmengen]
+    non_primary = [*portions_data.rezeptportionen[1:], *portions_data.belag, *portions_data.backmengen]
 
     if portions_data.rezeptportionen:
         primary = portions_data.rezeptportionen[0]
@@ -366,17 +371,14 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
             rank=4 + i,
         )
 
-    # Ensure system portions (g/ml, Packung, Stück) exist
-    from supply.signals import _create_system_portions
-
-    _create_system_portions(ingredient)
-
-    # Apply the first packung suggestion's weight_g to the "Packung" system portion
-    if portions_data.packungen:
-        packung_portion = Portion.objects.filter(ingredient=ingredient, name="Packung").first()
-        if packung_portion and portions_data.packungen[0].weight_g > 0:
-            packung_portion.weight_g = portions_data.packungen[0].weight_g
-            packung_portion.save(update_fields=["weight_g"])
+    # Create packages from AI suggestions
+    for i, pkg in enumerate(portions_data.packungen):
+        Package.objects.create(
+            ingredient=ingredient,
+            name=pkg.name,
+            weight_g=pkg.weight_g,
+            rank=1 if i == 0 else i + 2,
+        )
 
     # Create aliases
     for i, alias_name in enumerate(data.aliases):

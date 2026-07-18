@@ -132,7 +132,7 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
       </div>
 
       <div className="p-3">
-        <h3 className="font-extrabold text-sm group-hover:text-primary transition-colors truncate">
+        <h3 className="font-extrabold text-sm group-hover:text-primary transition-colors line-clamp-2">
           <SearchHighlight text={recipe.title} query={searchQuery} />
         </h3>
 

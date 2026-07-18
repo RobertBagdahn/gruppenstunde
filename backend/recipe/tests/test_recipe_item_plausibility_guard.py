@@ -34,25 +34,24 @@ class TestRecipeItemPlausibilityGuard:
         assert item.quantity == 0.03
 
     def test_mismatched_update_is_rejected(self, auth_client):
-        """Regression: reproduces the exact Jodsalz corruption scenario — a
-        client attempting to apply quantity=10 against a "100g Salz"
-        (weight_g=100) portion while the AI intended 3g must be rejected,
-        instead of silently persisting 1000g."""
+        """A quantity that produces grams outside the 15%/2g tolerance must be
+        rejected. quantity=0.5 on a weight_g=100 portion yields 50g while the AI
+        intended 3g — diff 47g > max(3×0.15, 2)=2g."""
         recipe = make_recipe(portions=1, created_by=auth_client._user)
         ingredient = make_ingredient(name="Jodsalz")
         unit = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
-        wrong_portion = make_portion(
+        portion = make_portion(
             ingredient=ingredient,
             measuring_unit=unit,
             name="100g Salz",
             weight_g=100.0,
             rank=1,
         )
-        item = make_recipe_item(recipe=recipe, portion=wrong_portion, quantity=0.073)
+        item = make_recipe_item(recipe=recipe, portion=portion, quantity=0.073)
 
         resp = auth_client.patch(
             f"/api/recipes/{recipe.id}/recipe-items/{item.id}/",
-            data=json.dumps({"quantity": 10.0, "expected_grams_total": 3.0}),
+            data=json.dumps({"quantity": 0.5, "expected_grams_total": 3.0}),
             content_type="application/json",
         )
         assert resp.status_code == 422
@@ -113,3 +112,39 @@ class TestRecipeItemPlausibilityGuard:
         item.refresh_from_db()
         assert item.portion_id == new_portion.id
         assert item.quantity == 1.0
+
+    def test_legitimate_portion_variation_passes_check(self, auth_client):
+        """A small cooking-portion variation (e.g. 48g vs 50g expected, 4%
+        difference) must be accepted with the relaxed 15% tolerance."""
+        recipe = make_recipe(portions=1, created_by=auth_client._user)
+        ingredient = make_ingredient(name="Karotte")
+        unit = make_measuring_unit(name="Stück", quantity=1.0, unit="stk")
+        portion = make_portion(ingredient=ingredient, measuring_unit=unit, name="1 Stück Karotte", weight_g=24.0, rank=1)
+        item = make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/recipe-items/{item.id}/",
+            data=json.dumps({"quantity": 2.0, "expected_grams_total": 50.0}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        item.refresh_from_db()
+        assert item.quantity == 2.0
+
+    def test_floating_point_noise_passes_check(self, auth_client):
+        """Sub-gram floating-point noise (e.g. 0.99g vs 1.0g expected) must
+        be accepted — the 2g absolute tolerance floor covers this."""
+        recipe = make_recipe(portions=1, created_by=auth_client._user)
+        ingredient = make_ingredient(name="Salz")
+        unit = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
+        portion = make_portion(ingredient=ingredient, measuring_unit=unit, name="1g Salz", weight_g=1.0, rank=1)
+        item = make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/recipe-items/{item.id}/",
+            data=json.dumps({"quantity": 0.99, "expected_grams_total": 1.0}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        item.refresh_from_db()
+        assert item.quantity == 0.99

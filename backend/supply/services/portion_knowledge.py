@@ -49,7 +49,6 @@ _DIGIT_RE = re.compile(r"\d")
 class PortionType(str, Enum):
     """Kategorie eines Portionsvorschlags."""
 
-    SYSTEM_GRAMM = "system_gramm"
     REZEPTPORTION = "rezeptportion"
     PACKUNG = "packung"
     BELAG = "belag"
@@ -86,14 +85,12 @@ class PortionSuggestion(BaseModel):
 
 
 class IngredientPortionSuggestSchema(BaseModel):
-    """Strukturierter Portions-Vorschlag für eine Zutat.
+    """Strukturierter Portions- und Package-Vorschlag für eine Zutat.
 
-    Verpflichtende Mindestabdeckung: genau eine System-Gramm-Portion,
-    mindestens eine Rezeptportion, mindestens eine Packungsgröße.
+    Mindestens eine Rezeptportion und eine Packungsgröße.
     `belag`/`backmengen` sind nur befüllt, wenn die Zutat den jeweiligen Tag trägt.
     """
 
-    system_gramm: PortionSuggestion = Field(description="Immer: name='g', weight_g=1, portion_type=system_gramm")
     rezeptportionen: list[PortionSuggestion] = Field(
         min_length=1, description="Typische Menge pro Person in einem Standardrezept (rank=1 ist die Normalportion)"
     )
@@ -109,24 +106,24 @@ class IngredientPortionSuggestSchema(BaseModel):
 
     def all_portions(self) -> list[PortionSuggestion]:
         """Flache Liste aller enthaltenen Portionsvorschläge."""
-        return [self.system_gramm, *self.rezeptportionen, *self.packungen, *self.belag, *self.backmengen]
+        return [*self.rezeptportionen, *self.belag, *self.backmengen]
+
+    def all_packages(self) -> list[PortionSuggestion]:
+        """Packungen als separate Liste."""
+        return self.packungen
 
 
 def build_portion_prompt_section(*, is_breakfast_topping: bool, is_baking_ingredient: bool) -> str:
-    """Baut den Portions-Abschnitt des Gemini-Prompts, abhängig von Zutat-Tags.
-
-    Wird von allen KI-Portions-Erzeugungsstellen genutzt, damit Beispiele und
-    Regeln konsistent bleiben.
-    """
+    """Baut den Portions- und Package-Abschnitt des Gemini-Prompts."""
     lines = [
-        "Gib Portionsvorschläge als strukturiertes Objekt zurück:",
-        "- system_gramm: IMMER genau ein Eintrag mit name='g', weight_g=1, portion_type='system_gramm'.",
+        "Gib Portions- und Packungsvorschläge als strukturiertes Objekt zurück:",
         "- rezeptportionen: MINDESTENS 1 Eintrag — die typische Menge pro Person in einem Standardrezept "
         "(rank=1 ist die Normalportion). Z.B. für Nudeln: name='Portion', weight_g=80; "
         "für Butter: name='Portion', weight_g=10.",
         "- packungen: MINDESTENS 1 Eintrag — typische Packungsgröße(n) aus dem Supermarkt. "
         "Bei mehreren plausiblen Größen mehrere Einträge mit deskriptiven Namen wie "
-        "'Packung', 'Großpackung', 'Kleine Packung' verwenden (NIEMALS Zahlen im Namen).",
+        "'Packung', 'Großpackung', 'Kleine Packung' verwenden (NIEMALS Zahlen im Namen). "
+        "Packungen werden später als Package-Model gespeichert (nicht als Portion).",
         "",
         "WICHTIG: name darf NIEMALS Ziffern enthalten (kein '125g', kein '1 Packung'). "
         "Das Gewicht steckt ausschließlich in weight_g, die Menge in quantity.",

@@ -100,6 +100,10 @@ def create_replacement_portion(old_portion, **new_attrs):
 
     Auto-suffixes the name if it collides with the (untouched) old portion's
     name, since the unique-per-ingredient-name constraint would otherwise reject it.
+
+    If rank=1 would collide with an existing active rank=1 portion (e.g. the
+    untouched old portion), automatically assigns the next free rank to avoid
+    a unique-constraint violation.
     """
     from supply.models import Portion
 
@@ -108,12 +112,25 @@ def create_replacement_portion(old_portion, **new_attrs):
     if Portion.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
         name = f"{name} (neu)"
 
+    rank = new_attrs.get("rank", old_portion.rank)
+    if rank == 1 and Portion.objects.filter(
+        ingredient=ingredient, rank=1, deleted_at__isnull=True
+    ).exists():
+        taken_ranks = set(
+            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list(
+                "rank", flat=True
+            )
+        )
+        rank = 2
+        while rank in taken_ranks:
+            rank += 1
+
     portion = Portion(
         ingredient=ingredient,
         name=name,
         quantity=new_attrs.get("quantity", old_portion.quantity),
         measuring_unit=new_attrs.get("measuring_unit", old_portion.measuring_unit),
-        rank=new_attrs.get("rank", old_portion.rank),
+        rank=rank,
         created_by=new_attrs.get("created_by"),
     )
     portion.weight_g = new_attrs.get("weight_g")

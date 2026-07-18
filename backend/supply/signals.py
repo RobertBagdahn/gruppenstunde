@@ -1,12 +1,10 @@
-"""Signals for supply app — Portion weight_g calculation, Ingredient base portion,
-embedding generation, quality score calculation, and audit logging."""
+"""Signals for supply app — Portion weight_g calculation, embedding generation, quality score calculation, and audit logging."""
 
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from core.services.background import run_in_background
-from .choices import MeasuringUnitType, PhysicalViscosityChoices
 from .models.ingredient import Ingredient, Portion
 
 
@@ -14,85 +12,6 @@ from .models.ingredient import Ingredient, Portion
 def calculate_portion_weight_g(sender, instance: Portion, **kwargs):
     """Auto-calculate weight_g based on quantity, measuring_unit, and ingredient density."""
     instance.weight_g = instance.compute_weight_g(instance.weight_g)
-
-
-def _create_system_portions(ingredient: Ingredient):
-    """Erstelle die drei System-Portionen (g, Packung, Stück) für eine Zutat.
-
-    - g: rank=9999 (immer am Ende, technischer Fallback)
-    - Stück: rank=2 (sortierbar)
-    - Packung: rank=3 (sortierbar)
-    """
-    from .models.reference import MeasuringUnit
-
-    weight_g = 1.0
-    if ingredient.physical_viscosity == PhysicalViscosityChoices.BEVERAGE:
-        weight_g = ingredient.physical_density or 1.0
-
-    # Base unit (Gramm) - rank=9999, nicht sortierbar
-    mu = MeasuringUnit.objects.filter(unit=MeasuringUnitType.MASS, quantity=1).first()
-    if not mu:
-        mu = MeasuringUnit.objects.create(name="g", quantity=1, unit=MeasuringUnitType.MASS)
-    Portion.objects.get_or_create(
-        ingredient=ingredient,
-        name="g",
-        deleted_at__isnull=True,
-        defaults={
-            "measuring_unit": mu,
-            "quantity": 1,
-            "weight_g": weight_g,
-            "rank": 9999,
-            "is_system": True,
-        },
-    )
-
-    # Packung - rank=3, sortierbar
-    mu_packung = MeasuringUnit.objects.filter(name__iexact="Packung").first()
-    if not mu_packung:
-        mu_packung = MeasuringUnit.objects.create(name="Packung", quantity=1, unit=MeasuringUnitType.PIECE)
-    packung, packung_created = Portion.objects.get_or_create(
-        ingredient=ingredient,
-        name="Packung",
-        deleted_at__isnull=True,
-        defaults={
-            "measuring_unit": mu_packung,
-            "quantity": 1,
-            "rank": 3,
-            "is_system": True,
-        },
-    )
-    # weight_g ist unbekannt bis eine echte Packungsgröße gepflegt wird — der
-    # pre_save-Hook errechnet sonst fälschlich 1g aus quantity=1 × Einheit=1.
-    if packung_created and packung.weight_g is not None:
-        Portion.objects.filter(pk=packung.pk).update(weight_g=None)
-
-    # Stück - rank=2, sortierbar
-    mu_stueck = MeasuringUnit.objects.filter(name__iexact="Stück").first()
-    if not mu_stueck:
-        mu_stueck = MeasuringUnit.objects.create(name="Stück", quantity=1, unit=MeasuringUnitType.PIECE)
-    stueck, stueck_created = Portion.objects.get_or_create(
-        ingredient=ingredient,
-        name="Stück",
-        deleted_at__isnull=True,
-        defaults={
-            "measuring_unit": mu_stueck,
-            "quantity": 1,
-            "rank": 2,
-            "is_system": True,
-        },
-    )
-    # weight_g ist unbekannt bis ein echtes Stück-Gewicht gepflegt wird (siehe oben).
-    if stueck_created and stueck.weight_g is not None:
-        Portion.objects.filter(pk=stueck.pk).update(weight_g=None)
-
-
-@receiver(post_save, sender=Ingredient, dispatch_uid="supply.create_base_portion_for_ingredient")
-def create_base_portion_for_ingredient(sender, instance: Ingredient, created: bool, **kwargs):
-    """Ensure every Ingredient has system portions (g/ml, Packung, Stück)."""
-    if not created:
-        return
-
-    _create_system_portions(instance)
 
 
 # ---------------------------------------------------------------------------

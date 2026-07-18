@@ -19,7 +19,7 @@ interface SortablePortionItemProps {
 export function SortablePortionItem({ portion, children, isDragging, canEdit = false }: SortablePortionItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: portion.id,
-    disabled: portion.name === 'g' || !canEdit,
+    disabled: !canEdit,
   });
 
   const style = {

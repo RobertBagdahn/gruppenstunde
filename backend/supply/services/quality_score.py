@@ -10,16 +10,15 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     Calculate a 0-100 quality score for an Ingredient.
 
     Categories and weights:
-    - Nutrition (40%): Filled nutritional fields
+    - Nutrition (42%): Filled nutritional fields
     - Price (15%): Has price_per_kg
     - Physical data (15%): Physical properties filled
     - Classification (15%): Retail section + nutritional tags
-    - Scout fields (10%): Camp suitability, season, prep time
-    - Portions (5%): Has at least one portion
+    - Scout fields (13%): Camp suitability, season, prep time
     """
     scores = []
 
-    # Nutrition (40%)
+    # Nutrition (42%)
     nutrition_fields = [
         ingredient.energy_kcal,
         ingredient.protein_g,
@@ -36,7 +35,7 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     ]
     filled = sum(1 for v in nutrition_fields if v is not None and v > 0)
     nutrition_score = (filled / len(nutrition_fields)) * 100
-    scores.append(("nutrition", 0.40, nutrition_score))
+    scores.append(("nutrition", 0.42, nutrition_score))
 
     # Price (15%)
     price_score = 100.0 if ingredient.price_per_kg is not None else 0.0
@@ -63,7 +62,7 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     class_score = (class_filled / len(classification_fields)) * 100 if classification_fields else 0
     scores.append(("classification", 0.15, class_score))
 
-    # Scout fields (10%)
+    # Scout fields (13%)
     scout_fields = [
         ingredient.camp_suitable,
         ingredient.season_start is not None and ingredient.season_end is not None,
@@ -71,22 +70,7 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     ]
     scout_filled = sum(1 for v in scout_fields if v)
     scout_score = (scout_filled / len(scout_fields)) * 100 if scout_fields else 0
-    scores.append(("scout", 0.10, scout_score))
-
-    # Portions (5%) – prüft ob alle System-Portionen (g/ml, Packung, Stück) existieren
-    from supply.models import Portion
-
-    existing = set(
-        ingredient.portions.filter(
-            deleted_at__isnull=True, name__in=Portion.system_portion_names() | {"ml"}
-        ).values_list("name", flat=True)
-    )
-    has_base = "g" in existing or "ml" in existing
-    has_packung = "Packung" in existing
-    has_stueck = "Stück" in existing
-    present = sum([has_base, has_packung, has_stueck])
-    portion_score = (present / 3) * 100
-    scores.append(("portions", 0.05, portion_score))
+    scores.append(("scout", 0.13, scout_score))
 
     total = sum(weight * score for _, weight, score in scores)
     return int(round(total))

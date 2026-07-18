@@ -32,13 +32,11 @@ class PortionOut(Schema):
     quantity: float
     weight_g: float | None
     rank: int
-    is_system: bool = False
     measuring_unit_id: int | None
     measuring_unit_name: str | None = None
 
     @staticmethod
     def resolve_measuring_unit_name(obj) -> str | None:
-        # Support both ORM objects and dicts (from resolve_ingredient_portions)
         if isinstance(obj, dict):
             return obj.get("measuring_unit_name")
         if hasattr(obj, "measuring_unit") and obj.measuring_unit:
@@ -87,20 +85,64 @@ class PortionApplySuggestionIn(Schema):
     quantity: float = 1.0
     measuring_unit_name: str
     rank: int = 1
-    portion_type: str
 
 
-class PortionApplyIn(Schema):
-    """Input for the atomic ai-apply endpoint.
+class PackageApplySuggestionIn(Schema):
+    """A single package suggestion selected by the user to be applied."""
 
-    `replace_all=True` soft-deletes all existing (non-deleted) portions of
-    the ingredient — including system and Belag portions — before the
-    selected suggestions (plus a mandatory fresh "g" system portion) are
-    created, all within a single DB transaction.
+    name: str
+    weight_g: float
+    rank: int = 1
+
+
+class AiApplyIn(Schema):
+    """Input for the atomic ai-apply endpoint — portions + packages together.
+
+    `replace_all=True` soft-deletes all existing portions and packages before
+    applying the selected suggestions, all within a single DB transaction.
     """
 
     replace_all: bool = False
-    selected: list[PortionApplySuggestionIn] = []
+    portions: list[PortionApplySuggestionIn] = []
+    packages: list[PackageApplySuggestionIn] = []
+
+
+class PackageOut(Schema):
+    """Output schema for a package."""
+
+    id: int
+    name: str
+    weight_g: float | None
+    rank: int
+
+
+class PackageCreateIn(Schema):
+    """Input schema for creating a package."""
+
+    name: str
+    weight_g: float | None = None
+    rank: int = 1
+
+
+class PackageUpdateIn(Schema):
+    """Input schema for updating a package."""
+
+    name: str | None = None
+    weight_g: float | None = None
+    rank: int | None = None
+
+
+class PackageReorderItem(Schema):
+    """Single item in package reorder request."""
+
+    id: int
+    rank: int
+
+
+class PackageReorderIn(Schema):
+    """Input schema for reordering multiple packages."""
+
+    orders: list[PackageReorderItem]
 
 
 class IngredientListOut(Schema):
@@ -210,6 +252,7 @@ class IngredientDetailOut(Schema):
     retail_section_name: str | None = None
     nutritional_tags: list[NutritionalTagOut] = []
     portions: list[PortionOut] = []
+    packages: list[PackageOut] = []
     aliases: list[IngredientAliasOut] = []
     groups: list[IngredientGroupOut] = []
 
@@ -250,11 +293,22 @@ class IngredientDetailOut(Schema):
                 "quantity": p.quantity,
                 "weight_g": p.weight_g,
                 "rank": p.rank,
-                "is_system": p.is_system,
                 "measuring_unit_id": p.measuring_unit_id,
                 "measuring_unit_name": p.measuring_unit.name if p.measuring_unit else None,
             }
             for p in obj.portions.select_related("measuring_unit").filter(deleted_at__isnull=True)
+        ]
+
+    @staticmethod
+    def resolve_packages(obj) -> list:
+        return [
+            {
+                "id": p.id,
+                "name": p.name,
+                "weight_g": p.weight_g,
+                "rank": p.rank,
+            }
+            for p in obj.packages.filter(deleted_at__isnull=True)
         ]
 
     @staticmethod
@@ -448,23 +502,27 @@ class PortionSuggestionOut(Schema):
     portion_type: str
 
 
-class IngredientPortionSuggestOut(Schema):
-    """Strukturierte Portionsvorschläge, gruppiert nach portion_type."""
+class PackageSuggestionOut(Schema):
+    """A suggested package."""
 
-    system_gramm: PortionSuggestionOut
-    rezeptportionen: list[PortionSuggestionOut] = []
-    packungen: list[PortionSuggestionOut] = []
-    belag: list[PortionSuggestionOut] = []
-    backmengen: list[PortionSuggestionOut] = []
+    name: str
+    weight_g: float
+    rank: int = 1
+    package_type: str = "packung"
+
+
+class IngredientAiSuggestOut(Schema):
+    """Structured AI suggestions for portions and packages."""
+
+    portions: list[PortionSuggestionOut] = []
+    packages: list[PackageSuggestionOut] = []
 
 
 class IngredientSuggestAllOut(Schema):
     """Response schema for AI-powered ingredient suggestions."""
 
-    # AI interaction tracking
     ai_interaction_id: str | None = None
 
-    # Nährwerte
     energy_kcal: float | None = None
     protein_g: float | None = None
     fat_g: float | None = None
@@ -477,7 +535,6 @@ class IngredientSuggestAllOut(Schema):
     fructose_g: float | None = None
     lactose_g: float | None = None
 
-    # Bewertungen
     nutri_score: int | None = None
     nova_score: int | None = None
     child_score: int | None = None
@@ -485,16 +542,13 @@ class IngredientSuggestAllOut(Schema):
     environmental_score: int | None = None
     fruit_factor: float | None = None
 
-    # Name suggestion
     name_suggestion: str | None = None
 
-    # Physik
     physical_density: float | None = None
     physical_viscosity: str | None = None
     durability_in_days: int | None = None
     max_storage_temperature: int | None = None
 
-    # Scout/camp fields
     storage_type: str | None = None
     cooking_factor: float | None = None
     camp_suitable: bool | None = None
@@ -502,11 +556,9 @@ class IngredientSuggestAllOut(Schema):
     season_start: int | None = None
     season_end: int | None = None
 
-    # Preis
     price_per_kg: float | None = None
 
-    # Portionen und Aliase
-    portions: IngredientPortionSuggestOut
+    ai_suggest: IngredientAiSuggestOut
     aliases: list[str] = []
     nutritional_tags: list[NutritionalTagOut] = []
 

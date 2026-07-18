@@ -30,12 +30,12 @@ import {
   useCreateAlias,
   useDeleteAlias,
   useAiSuggestIngredientAll,
-  useApplyAiPortionSuggestions,
+  useApplyAiSuggestions,
   useMeasuringUnits,
   useRecipesByIngredient,
 } from '@/api/supplies';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
-import type { Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape } from '@/schemas/supply';
+import type { Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
 type IngredientDetail = NonNullable<ReturnType<typeof useIngredient>['data']>;
 import { ApiDeleteError } from '@/api/supplies';
@@ -277,25 +277,18 @@ function PortionCard({
                   Standard
                 </span>
               )}
-              {portion.is_system && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border/60">
-                  System
+              {portion.weight_g ? (
+                <span className="text-xs text-muted-foreground">
+                  ≈ {portion.weight_g}g
                 </span>
-              )}
-              {!(portion.name === 'g' && portion.weight_g === 1) && (
-                portion.weight_g ? (
-                  <span className="text-xs text-muted-foreground">
-                    ≈ {portion.weight_g}g
-                  </span>
-                ) : (
-                  <span
-                    className="inline-flex items-center gap-1 text-[11px] bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] font-medium px-1.5 py-0.5 rounded border border-[hsl(var(--chart-4))]/20"
-                    title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
-                  >
-                    <span className="material-symbols-outlined text-[12px]">warning</span>
-                    Kein Gewicht
-                  </span>
-                )
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] font-medium px-1.5 py-0.5 rounded border border-[hsl(var(--chart-4))]/20"
+                  title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
+                >
+                  <span className="material-symbols-outlined text-[12px]">warning</span>
+                  Kein Gewicht
+                </span>
               )}
             </div>
           )}
@@ -310,26 +303,13 @@ function PortionCard({
             >
               <span className="material-symbols-outlined text-sm">edit</span>
             </button>
-            {portion.is_system ? (
-              <span className="text-muted-foreground/30 p-1 cursor-not-allowed" title="System-Portion (kann nicht gelöscht werden)">
-                <span className="material-symbols-outlined text-sm">lock</span>
-              </span>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="text-destructive/60 hover:text-destructive rounded p-1 transition"
-                title="Löschen"
-              >
-                <span className="material-symbols-outlined text-sm">delete</span>
-              </button>
-            )}
-          </div>
-        )}
-        {!editing && !canEdit && portion.is_system && (
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-muted-foreground/30 p-1 cursor-not-allowed" title="System-Portion">
-              <span className="material-symbols-outlined text-sm">lock</span>
-            </span>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-destructive/60 hover:text-destructive rounded p-1 transition"
+              title="Löschen"
+            >
+              <span className="material-symbols-outlined text-sm">delete</span>
+            </button>
           </div>
         )}
       </div>
@@ -644,7 +624,7 @@ export default function IngredientDetailPage() {
   const updateIngredient = useUpdateIngredient(slug || '');
   const deleteIngredient = useDeleteIngredient();
   const createPortion = useCreatePortion(slug || '');
-  const applyAiPortions = useApplyAiPortionSuggestions(slug || '');
+  const applyAiSuggestions = useApplyAiSuggestions(slug || '');
 
   const createAlias = useCreateAlias(slug || '');
   const deleteAlias = useDeleteAlias(slug || '');
@@ -704,12 +684,14 @@ export default function IngredientDetailPage() {
     const data = aiSuggest.data;
     const scalarUpdates: Record<string, unknown> = {};
     const selectedPortions: PortionSuggestionShape[] = [];
+    const selectedPackages: PackageSuggestionShape[] = [];
     const aliasesToCreate: string[] = [];
     const tagsToAssign: number[] = [];
 
     const portionsByKey: Record<string, PortionSuggestionShape> = {};
-    if (data.portions) {
-      const normalize = (p: {
+    const packagesByKey: Record<string, PackageSuggestionShape> = {};
+    if (data.ai_suggest) {
+      const normalizePortion = (p: {
         name: string;
         weight_g: number;
         measuring_unit_name: string;
@@ -724,16 +706,24 @@ export default function IngredientDetailPage() {
         quantity: p.quantity ?? 1,
         rank: p.rank ?? 1,
       });
-      if (data.portions.system_gramm) portionsByKey['portion_system_gramm'] = normalize(data.portions.system_gramm);
-      (data.portions.rezeptportionen ?? []).forEach((p, i) => { portionsByKey[`portion_rezeptportion_${i}`] = normalize(p); });
-      (data.portions.packungen ?? []).forEach((p, i) => { portionsByKey[`portion_packung_${i}`] = normalize(p); });
-      (data.portions.belag ?? []).forEach((p, i) => { portionsByKey[`portion_belag_${i}`] = normalize(p); });
-      (data.portions.backmengen ?? []).forEach((p, i) => { portionsByKey[`portion_backmenge_${i}`] = normalize(p); });
+      (data.ai_suggest.portions ?? []).forEach((p, i) => {
+        portionsByKey[`portion_rezeptportion_${i}`] = normalizePortion(p);
+      });
+      (data.ai_suggest.packages ?? []).forEach((p, i) => {
+        packagesByKey[`package_${i}`] = {
+          name: p.name,
+          weight_g: p.weight_g,
+          rank: p.rank ?? 1,
+          package_type: p.package_type ?? 'packung',
+        };
+      });
     }
 
     for (const key of selectedKeys) {
       if (key.startsWith('portion_')) {
         if (portionsByKey[key]) selectedPortions.push(portionsByKey[key]);
+      } else if (key.startsWith('package_')) {
+        if (packagesByKey[key]) selectedPackages.push(packagesByKey[key]);
       } else if (key.startsWith('alias_')) {
         const idx = parseInt(key.replace('alias_', ''), 10);
         if (data.aliases?.[idx]) aliasesToCreate.push(data.aliases[idx]);
@@ -772,11 +762,11 @@ export default function IngredientDetailPage() {
     // Selected portions (incl. optional replace_all) go through the atomic
     // backend endpoint, which resolves measuring_unit_name server-side and
     // handles the mandatory "g" system portion recreation in one transaction.
-    if (selectedPortions.length > 0 || replacePortions) {
+    if (selectedPortions.length > 0 || selectedPackages.length > 0 || replacePortions) {
       promises.push(
         new Promise((resolve, reject) =>
-          applyAiPortions.mutate(
-            { replace_all: replacePortions, selected: selectedPortions },
+          applyAiSuggestions.mutate(
+            { replace_all: replacePortions, portions: selectedPortions, packages: selectedPackages },
             { onSuccess: resolve, onError: reject }
           )
         )
@@ -1315,7 +1305,7 @@ export default function IngredientDetailPage() {
         onApply={(selectedKeys) => {
           handleApplyAiSuggestions(selectedKeys);
         }}
-        isApplying={updateIngredient.isPending || createPortion.isPending || createAlias.isPending || applyAiPortions.isPending}
+        isApplying={updateIngredient.isPending || createPortion.isPending || createAlias.isPending || applyAiSuggestions.isPending}
         perGroupSelectAll
         extraCheckbox={{
           label: 'Alte Portionen ersetzen',
@@ -1337,6 +1327,7 @@ function buildIngredientSuggestionFields(
     [key: string]: unknown;
     name: string;
     portions: Array<{ name: string }>;
+    packages?: Array<{ name: string }>;
     aliases: Array<{ name: string }>;
     nutritional_tags?: Array<{ id: number; name: string }>;
   },
@@ -1463,52 +1454,43 @@ function buildIngredientSuggestionFields(
     });
   }
 
-  // Portions — grouped by portion_type (System, Rezeptportion, Packungen, Belag, Backmengen)
-  const portionSuggestions = suggestions.portions as
+  // Portions and Packages — from ai_suggest
+  const aiSuggest = suggestions.ai_suggest as
     | {
-        system_gramm: PortionSuggestionShape;
-        rezeptportionen: PortionSuggestionShape[];
-        packungen: PortionSuggestionShape[];
-        belag: PortionSuggestionShape[];
-        backmengen: PortionSuggestionShape[];
+        portions: PortionSuggestionShape[];
+        packages: PackageSuggestionShape[];
       }
     | undefined;
   const existingPortionNames = new Set(ingredient.portions.map((p) => p.name.toLowerCase()));
+  const existingPackageNames = new Set((ingredient.packages ?? []).map((p) => p.name.toLowerCase()));
 
-  const portionGroups: Array<{ groupLabel: string; keyPrefix: string; items: PortionSuggestionShape[] }> = [
-    { groupLabel: 'Rezeptportion', keyPrefix: 'rezeptportion', items: portionSuggestions?.rezeptportionen ?? [] },
-    { groupLabel: 'Packungen', keyPrefix: 'packung', items: portionSuggestions?.packungen ?? [] },
-    { groupLabel: 'Belag', keyPrefix: 'belag', items: portionSuggestions?.belag ?? [] },
-    { groupLabel: 'Backmengen', keyPrefix: 'backmenge', items: portionSuggestions?.backmengen ?? [] },
-  ];
-
-  for (const { groupLabel, keyPrefix, items } of portionGroups) {
-    items.forEach((p, i) => {
-      if (existingPortionNames.has(p.name.toLowerCase())) return;
-      fields.push({
-        key: `portion_${keyPrefix}_${i}`,
-        label: p.name,
-        group: groupLabel,
-        currentValue: null,
-        suggestedValue: p,
-        type: 'list',
-        priority: p.rank === 1 ? 100 : 10,
-      });
-    });
-  }
-
-  // System-Portion "g" — always shown as informational, mandatory on apply
-  if (portionSuggestions?.system_gramm && !existingPortionNames.has('g')) {
+  // Portion suggestions
+  (aiSuggest?.portions ?? []).forEach((p, i) => {
+    if (existingPortionNames.has(p.name.toLowerCase())) return;
     fields.push({
-      key: 'portion_system_gramm',
-      label: portionSuggestions.system_gramm.name,
-      group: 'System',
+      key: `portion_${i}`,
+      label: p.name,
+      group: 'Portionen',
       currentValue: null,
-      suggestedValue: portionSuggestions.system_gramm,
+      suggestedValue: p,
       type: 'list',
-      priority: 100,
+      priority: p.rank === 1 ? 100 : 10,
     });
-  }
+  });
+
+  // Package suggestions
+  (aiSuggest?.packages ?? []).forEach((p, i) => {
+    if (existingPackageNames.has(p.name.toLowerCase())) return;
+    fields.push({
+      key: `package_${i}`,
+      label: p.name,
+      group: 'Packungen',
+      currentValue: null,
+      suggestedValue: p,
+      type: 'list',
+      priority: p.rank === 1 ? 100 : 10,
+    });
+  });
 
   // Aliases
   const suggestedAliases = (suggestions.aliases as string[]) || [];

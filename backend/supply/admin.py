@@ -10,6 +10,7 @@ from .models import (
     Material,
     MeasuringUnit,
     NutritionalTag,
+    Package,
     Portion,
     RetailSection,
 )
@@ -81,11 +82,15 @@ class IngredientAliasInline(admin.TabularInline):
 class PortionInline(admin.TabularInline):
     model = Portion
     extra = 1
-    readonly_fields = ["is_system"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("measuring_unit")
+
+
+class PackageInline(admin.TabularInline):
+    model = Package
+    extra = 1
 
 
 @admin.register(Ingredient)
@@ -95,7 +100,7 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ["nutritional_tags"]
-    inlines = [IngredientAliasInline, PortionInline]
+    inlines = [IngredientAliasInline, PortionInline, PackageInline]
     list_per_page = 25
     fieldsets = (
         (None, {"fields": ("name", "slug", "description", "status", "retail_section")}),
@@ -171,10 +176,15 @@ class IngredientAdmin(admin.ModelAdmin):
 
 @admin.register(Portion)
 class PortionAdmin(admin.ModelAdmin):
-    list_display = ["name", "ingredient", "quantity", "measuring_unit", "is_system"]
-    list_filter = ["is_system"]
+    list_display = ["name", "ingredient", "quantity", "measuring_unit"]
     search_fields = ["name", "ingredient__name"]
-    readonly_fields = ["is_system"]
+    list_per_page = 25
+
+
+@admin.register(Package)
+class PackageAdmin(admin.ModelAdmin):
+    list_display = ["name", "ingredient", "weight_g", "rank"]
+    search_fields = ["name", "ingredient__name"]
     list_per_page = 25
 
 
