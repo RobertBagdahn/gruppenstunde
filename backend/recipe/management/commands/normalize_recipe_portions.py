@@ -122,9 +122,18 @@ class Command(BaseCommand):
                     normalized.index,
                 )
                 continue
+            clamped_qty = max(0.1, min(normalized.quantity_g, 5000))
+            if clamped_qty != normalized.quantity_g:
+                logger.warning(
+                    "Clamping quantity_g=%.1f -> %.1f for recipe %s index %d",
+                    normalized.quantity_g,
+                    clamped_qty,
+                    recipe.title,
+                    normalized.index,
+                )
             item = items[normalized.index]
             old_qty = item.quantity
-            new_qty = normalized.quantity_g
+            new_qty = clamped_qty
             ing_name = item.portion.ingredient.name if item.portion and item.portion.ingredient else "?"
 
             self.stdout.write(f"  {ing_name:<30} {old_qty:>10.1f} {new_qty:>10.1f}")

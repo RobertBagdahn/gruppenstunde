@@ -63,6 +63,16 @@ class IngredientSuggestAllSchema(BaseModel):
     # Name suggestion
     name_suggestion: str | None = Field(None, description="Spezifischerer Name, falls aktuell generisch. Keine Marken.")
 
+    # Beschreibung
+    description: str | None = Field(
+        None,
+        description=(
+            "Aussagekräftige, detaillierte Beschreibung der Zutat. Mindestens 100 Zeichen. "
+            "Beschreibe Geschmack, Textur, typische Verwendung, Herkunft, Lagerung und "
+            "Besonderheiten. Wird für semantische Suche und Embeddings verwendet."
+        ),
+    )
+
     # Nährwerte pro 100g
     energy_kcal: float | None = Field(None, description="Energie in kcal pro 100g")
     protein_g: float | None = Field(None, description="Eiweiß in g pro 100g")
@@ -115,7 +125,14 @@ class IngredientAiCreateSchema(BaseModel):
     """Schema for creating a complete ingredient from a name."""
 
     name: str = Field(description="Standardisierter Name der Zutat")
-    description: str = Field(description="Kurzbeschreibung (1-2 Sätze)")
+    description: str = Field(
+        min_length=100,
+        description=(
+            "Aussagekräftige, detaillierte Beschreibung (mindestens 100 Zeichen). "
+            "Beschreibe Geschmack, Textur, typische Verwendung, Herkunft, Lagerung und "
+            "Besonderheiten. Wird für semantische Suche und Embeddings verwendet."
+        ),
+    )
 
     # Nährwerte pro 100g
     energy_kcal: float = Field(description="Energie in kcal pro 100g")
@@ -179,6 +196,11 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
         f"Recherchiere die vollständigen Nährwerte, Bewertungen und physikalischen Eigenschaften "
         f"für das Lebensmittel '{ingredient.name}'. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen.\n\n"
+        f"Schreibe eine aussagekräftige, detaillierte Beschreibung (mindestens 100 Zeichen) für diese Zutat. "
+        f"Beschreibe: Geschmack, Textur/Konsistenz, Aussehen, typische Verwendung in der Küche, "
+        f"Herkunft, Lagerungshinweise und kulinarische Besonderheiten. "
+        f"Dieser Text wird für die semantische Suche (Embeddings) verwendet und soll die Zutat "
+        f"möglichst präzise charakterisieren, damit ähnliche Zutaten gut gefunden werden können.\n\n"
         f"Schlage einen präziseren Namen vor, falls aktuell zu generisch. "
         f"Keine Marken, keine Mengenangaben. Z.B. 'Kuhmilch 3,5% Fett' statt 'Milch'.\n\n"
         f"{build_portion_prompt_section(is_breakfast_topping=is_breakfast_topping, is_baking_ingredient=is_baking_ingredient)}\n\n"
@@ -267,6 +289,10 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
 
     prompt = (
         f"Recherchiere alle Informationen zum Lebensmittel '{name}'. "
+        f"Schreibe eine aussagekräftige, detaillierte Beschreibung (mindestens 100 Zeichen): "
+        f"Geschmack, Textur/Konsistenz, Aussehen, typische Verwendung in der Küche, "
+        f"Herkunft, Lagerungshinweise und kulinarische Besonderheiten. "
+        f"Dieser Text wird für die semantische Suche (Embeddings) verwendet.\n\n"
         f"Gib vollständige Nährwerte pro 100g, Bewertungen, physikalische Eigenschaften, "
         f"typische Portionsgrößen, alternative Bezeichnungen, zutreffende Ernährungstags (z.B. 'vegan', 'vegetarisch', 'laktosefrei', 'glutenfrei', 'nussfrei', 'eifrei', 'sojafrei', 'Halal', 'Koscher', 'Scharf', 'Knoblauch', 'Koffeinhaltig') und den geschätzten Preis pro kg (price_per_kg in EUR) an. "
         f"Verwende offizielle Nährwert-Datenbanken und Produktinformationen. "

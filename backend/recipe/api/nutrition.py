@@ -81,7 +81,7 @@ def get_recipe_rules(request, recipe_id: int):
 def get_llm_suggestions(request, recipe_id: int, body: LlmSuggestionRequestIn):
     """Get LLM-generated ingredient suggestions for a recipe improvement objective."""
     if not request.user.is_authenticated:
-        raise HttpError(401, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+        raise HttpError(403, "Anmeldung erforderlich")
 
     from recipe.services.suggestion_service import get_suggestions
 

@@ -11,6 +11,8 @@ Provides:
 import logging
 import random
 
+from ninja.errors import HttpError
+
 logger = logging.getLogger(__name__)
 
 
@@ -1115,6 +1117,8 @@ Antworte nur auf Deutsch."""
         result = SuggestionResponse.model_validate_json(response.text)
         return [item.model_dump() for item in result.items], str(interaction_id) if interaction_id else None
 
+    except HttpError:
+        raise
     except Exception as exc:
         logger.warning("AI suggestion failed: %s", exc)
         raise PackingListAISuggestionError(str(exc)) from exc

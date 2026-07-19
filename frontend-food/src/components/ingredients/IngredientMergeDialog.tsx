@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Loader2, GitMerge, ArrowRight, ArrowLeftRight, AlertTriangle, Search, XCircle } from 'lucide-react';
+import { Loader2, GitMerge, ArrowRight, ArrowLeftRight, ArrowLeft, AlertTriangle, Search, XCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface InlineIngredient {
@@ -70,7 +70,8 @@ export default function IngredientMergeDialog({
 
   const similarQuery = useSimilarIngredients(currentIngredient.slug);
   const searchQuery = useIngredientSearch(
-    searchText.length >= 2 ? { name: searchText, page_size: 10 } : {}
+    { name: searchText, page_size: 10 },
+    searchText.length >= 2,
   );
   const mergePreviewQuery = useMergePreview(
     sourceIngredient.id === targetIngredient.id ? 0 : sourceIngredient.id,
@@ -125,6 +126,10 @@ export default function IngredientMergeDialog({
     onOpenChange(open);
   }, [onOpenChange, reset]);
 
+  const handleGoBack = useCallback(() => {
+    setStep('search');
+  }, []);
+
   const suggestions = useMemo(() => {
     if (searchText.length >= 2) {
       const items = searchQuery.data?.items || [];
@@ -169,7 +174,7 @@ export default function IngredientMergeDialog({
               />
             </div>
 
-            {searchText.length < 2 && !searchQuery.isLoading && (
+            {searchText.length < 2 && (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Ähnliche Zutaten (Embedding-basiert):</p>
                 {similarQuery.isLoading && (
@@ -265,6 +270,22 @@ export default function IngredientMergeDialog({
               </div>
             )}
 
+            {mergePreviewQuery.isError && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 text-sm text-red-800 dark:text-red-300">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span className="flex-1">Fehler beim Laden der Vorschau: {mergePreviewQuery.error instanceof Error ? mergePreviewQuery.error.message : 'Unbekannter Fehler'}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-0 px-2 text-red-800 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950/40"
+                  onClick={() => mergePreviewQuery.refetch()}
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                  Wiederholen
+                </Button>
+              </div>
+            )}
+
             {preview && (
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
@@ -300,12 +321,19 @@ export default function IngredientMergeDialog({
         )}
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">
-              <XCircle className="h-4 w-4 mr-1" />
-              {step === 'search' ? 'Abbrechen' : 'Zurück'}
+          {step === 'confirm' ? (
+            <Button variant="outline" onClick={handleGoBack}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Zurück
             </Button>
-          </DialogClose>
+          ) : (
+            <DialogClose asChild>
+              <Button variant="outline">
+                <XCircle className="h-4 w-4 mr-1" />
+                Abbrechen
+              </Button>
+            </DialogClose>
+          )}
           {step === 'confirm' && (
             <Button
               variant="default"
@@ -313,12 +341,13 @@ export default function IngredientMergeDialog({
               disabled={
                 mergeMutation.isPending ||
                 mergePreviewQuery.isLoading ||
+                mergePreviewQuery.isError ||
                 !preview ||
                 (needsWarning && !confirmed) ||
                 sourceIngredient.id === targetIngredient.id
               }
             >
-              {mergeMutation.isPending ? (
+              {mergeMutation.isPending || mergePreviewQuery.isLoading ? (
                 <Loader2 className="animate-spin h-4 w-4 mr-1" />
               ) : (
                 <GitMerge className="h-4 w-4 mr-1" />

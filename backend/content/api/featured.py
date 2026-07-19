@@ -32,7 +32,7 @@ def _resolve_featured(fc: FeaturedContent) -> dict:
         slug = getattr(obj, "slug", "")
         summary = getattr(obj, "summary", "")[:300]
         image_url = obj.image.url if hasattr(obj, "image") and obj.image else None
-    except Exception:
+    except (ContentType.DoesNotExist, AttributeError):
         title, slug, summary, image_url = "", "", "", None
 
     url_prefix = _URL_PREFIXES.get(ct.model, f"/{ct.model}/")

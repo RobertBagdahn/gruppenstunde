@@ -16,6 +16,10 @@ vi.mock('@/api/supplies', () => ({
   useNutritionalTags: vi.fn(() => ({ data: [] })),
 }));
 
+vi.mock('@/api/tags', () => ({
+  useTags: vi.fn(() => ({ data: [] })),
+}));
+
 import { useCurrentUser } from '@/api/auth';
 import { useIngredient, useUpdateIngredient } from '@/api/supplies';
 

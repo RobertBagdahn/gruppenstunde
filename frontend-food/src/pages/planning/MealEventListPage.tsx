@@ -165,7 +165,7 @@ function MealPlanListPageInner() {
     };
     setCreateEndDatetime(fmt(newEnd));
     setCreatePortions(copySource.norm_portions);
-  }, [copySourceId]);
+  }, [copySource, createStartDatetime]);
 
   const toggleTag = (tagId: number) => {
     setNutritionalTagIds(prev =>

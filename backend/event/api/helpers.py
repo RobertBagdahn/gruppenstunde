@@ -1,10 +1,8 @@
 """Helper functions shared across event API modules."""
 
 import hashlib
-import time
-from collections import defaultdict
-from threading import Lock
 
+from django.core.cache import cache
 from ninja.errors import HttpError
 
 from event.models import Event
@@ -22,27 +20,21 @@ def require_event_manager(event: Event, user):
         raise HttpError(403, "Nur Verantwortliche können diese Aktion ausführen")
 
 
-# Simple in-memory rate limiter (no external dependency)
-_rate_limit_store: dict[str, list[float]] = defaultdict(list)
-_rate_limit_lock = Lock()
-
-
 def check_rate_limit(request, max_requests: int = 10, window_seconds: int = 3600) -> None:
-    """Check rate limit based on hashed client IP. Raises HttpError(429) if exceeded."""
+    """Check rate limit based on hashed client IP. Uses django.core.cache so it
+    works across multiple instances (e.g. Cloud Run). Raises HttpError(429) if exceeded."""
     ip = _get_client_ip(request)
     ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
-    now = time.time()
+    key = f"ratelimit:{ip_hash}"
 
-    with _rate_limit_lock:
-        timestamps = _rate_limit_store[ip_hash]
-        # Remove expired entries
-        _rate_limit_store[ip_hash] = [t for t in timestamps if now - t < window_seconds]
-        timestamps = _rate_limit_store[ip_hash]
+    try:
+        count = cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, timeout=window_seconds)
+        count = 1
 
-        if len(timestamps) >= max_requests:
-            raise HttpError(429, "Zu viele Anfragen. Bitte versuche es später erneut.")
-
-        timestamps.append(now)
+    if count > max_requests:
+        raise HttpError(429, "Zu viele Anfragen. Bitte warte einen Moment.")
 
 
 def _get_client_ip(request) -> str:

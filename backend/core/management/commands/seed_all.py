@@ -2076,7 +2076,7 @@ class Command(BaseCommand):
         schwarztee = Ingredient.objects.filter(name="Schwarzer Tee").first()
         mineralwasser = Ingredient.objects.filter(name="Mineralwasser").first()
 
-        gram_unit = MeasuringUnit.objects.filter(name__in=["Gramm", "g"]).first()
+        gram_unit = MeasuringUnit.objects.filter(name="Gramm").first()
 
         # Map recipe -> [(ingredient, quantity_g, note)]
         # All quantities normalized to 1 Normportion (portions=1)

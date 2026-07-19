@@ -40,8 +40,9 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
         totals[field] = 0.0
 
     if meal.is_external:
+        effective_portions = meal.effective_portions if hasattr(meal, "effective_portions") else 1
         if meal.external_energy_kcal is not None:
-            totals["energy_kcal"] = meal.external_energy_kcal
+            totals["energy_kcal"] = meal.external_energy_kcal * effective_portions
         else:
             totals["energy_kcal"] = NORM_PERSON_DAILY_KCAL * meal.day_part_factor
         return totals
@@ -139,7 +140,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
             weight_g = 0.0
             if item.quantity and item.measuring_unit:
                 name_lower = item.measuring_unit.name.lower()
-                if name_lower == "g":
+                if name_lower in ("g", "gramm"):
                     weight_g = float(item.quantity)
                 elif name_lower == "ml":
                     density = getattr(ingredient, "physical_density", 1.0) or 1.0

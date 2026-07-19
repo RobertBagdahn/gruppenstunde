@@ -132,7 +132,9 @@ export default function GameDetailPage() {
   const timeLabel =
     EXECUTION_TIME_OPTIONS.find((t) => t.value === game.execution_time)?.label ??
     game.execution_time;
-  const costsLabel = null;
+  const costsLabel: string | null = game.costs_per_person != null
+    ? `${Number(game.costs_per_person).toFixed(2).replace('.', ',')} € pro Person`
+    : null;
   const gameTypeLabel =
     GAME_TYPE_OPTIONS.find((g) => g.value === game.game_type)?.label ??
     game.game_type;
@@ -234,6 +236,7 @@ export default function GameDetailPage() {
           label={difficultyLabel}
           sublabel="Schwierigkeit"
         />
+        {costsLabel != null && (
         <InfoCard
           icon="payments"
           iconBg="bg-emerald-50"
@@ -241,6 +244,7 @@ export default function GameDetailPage() {
           label={costsLabel}
           sublabel="Kosten"
         />
+        )}
         <InfoCard
           icon="location_on"
           iconBg="bg-violet-50"

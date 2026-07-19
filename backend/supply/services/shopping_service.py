@@ -15,6 +15,8 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from supply.utils import format_weight
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -318,25 +320,6 @@ def generate_shopping_list(
     return result
 
 
-def _format_weight(weight_g: float) -> str:
-    """Format weight with smart unit conversion (g->kg) and rounding."""
-    weight_g = round(weight_g, 2)
-    if weight_g >= 1000:
-        kg = weight_g / 1000
-        if kg == int(kg):
-            return f"{int(kg)} kg"
-        return f"{kg:.1f} kg"
-    if weight_g >= 100:
-        rounded = round(weight_g / 10) * 10
-        return f"{int(rounded)} g"
-    if weight_g >= 50:
-        rounded = round(weight_g / 5) * 5
-        return f"{int(rounded)} g"
-    if weight_g >= 1:
-        return f"{round(weight_g)} g"
-    return f"{weight_g:.1f} g"
-
-
 def _clean_float_display(value: float) -> int | float:
     """Round a float for display, converting to int if whole number."""
     rounded = round(value, 1)
@@ -502,15 +485,15 @@ def _enrich_display_fields(
                 item.display_quantity = item.display_text
             else:
                 item.display_text = ""
-                item.display_quantity = _format_weight(item.total_quantity_g)
+                item.display_quantity = format_weight(item.total_quantity_g)
             continue
 
         if not ing:
-            item.display_quantity = _format_weight(item.total_quantity_g)
+            item.display_quantity = format_weight(item.total_quantity_g)
             continue
 
         # Display quantity with smart unit conversion
-        item.display_quantity = _format_weight(item.total_quantity_g)
+        item.display_quantity = format_weight(item.total_quantity_g)
 
         # Natural portions — compute best match and all options
         portions = list(ing.portions.order_by("rank", "name"))

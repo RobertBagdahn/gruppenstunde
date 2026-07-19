@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
@@ -294,5 +295,7 @@ class IngredientNameParser:
                 note=result.note,
                 confidence=0.8,
             )
+        except HttpError:
+            raise
         except Exception:
             return None

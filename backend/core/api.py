@@ -147,7 +147,7 @@ def search_users(
 def get_data_overview(request):
     """Get a categorized overview of all personal data (GDPR Art. 15)."""
     if not request.user.is_authenticated:
-        raise HttpError(401, "Nicht authentifiziert")
+        raise HttpError(403, "Anmeldung erforderlich")
     data = PrivacyService.collect_user_data(request.user)
     return data
 
@@ -156,7 +156,7 @@ def get_data_overview(request):
 def export_data(request):
     """Export all personal data as JSON download (GDPR Art. 20)."""
     if not request.user.is_authenticated:
-        raise HttpError(401, "Nicht authentifiziert")
+        raise HttpError(403, "Anmeldung erforderlich")
 
     export = PrivacyService.export_user_data(request.user)
     date_str = datetime.now(UTC).strftime("%Y-%m-%d")

@@ -124,8 +124,9 @@ export default function SessionDetailPage() {
   const timeLabel =
     EXECUTION_TIME_OPTIONS.find((t) => t.value === session.execution_time)?.label ??
     session.execution_time;
-  // costs_per_person is not yet implemented in the backend schema
-  const costsLabel: string | null = null;
+  const costsLabel: string | null = session.costs_per_person != null
+    ? `${Number(session.costs_per_person).toFixed(2).replace('.', ',')} € pro Person`
+    : null;
   const sessionTypeLabel =
     SESSION_TYPE_OPTIONS.find((s) => s.value === session.session_type)?.label ??
     session.session_type;
@@ -220,6 +221,7 @@ export default function SessionDetailPage() {
           label={difficultyLabel}
           sublabel="Schwierigkeit"
         />
+        {costsLabel != null && (
         <InfoCard
           icon="payments"
           iconBg="bg-emerald-50"
@@ -227,6 +229,7 @@ export default function SessionDetailPage() {
           label={costsLabel}
           sublabel="Kosten / Person"
         />
+        )}
         <InfoCard
           icon="location_on"
           iconBg="bg-violet-50"

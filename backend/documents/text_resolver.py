@@ -170,6 +170,7 @@ def generate_ai_text(
     """Generate text using Google Gemini AI."""
     try:
         from core.services.gemini import gemini_call
+        from ninja.errors import HttpError
 
         block_labels = {
             "greeting": "Begrüßungstext",
@@ -208,5 +209,7 @@ Keine Anrede (die kommt separat). Kein Markdown. Nur Fließtext."""
 
     except ImportError:
         raise RuntimeError("KI-Textgenerierung benötigt google-genai. Installiere es mit: uv add google-genai")
+    except HttpError:
+        raise
     except Exception as e:
         raise RuntimeError(f"KI-Textgenerierung fehlgeschlagen: {e}") from e

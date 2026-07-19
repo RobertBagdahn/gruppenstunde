@@ -159,12 +159,41 @@ def raise_if_duplicate_meal_item(meal: Meal, recipe_id: int | None = None, ingre
             raise HttpError(422, f"Zutat «{ingredient.name}» ist bereits in dieser Mahlzeit enthalten")
 
 
+def _describe_integrity_error(error: IntegrityError, ingredient, recipe) -> HttpError:
+    detail = str(error.__cause__) if error.__cause__ else str(error)
+    ing_id: int | None = ingredient if isinstance(ingredient, int) else (ingredient.pk if hasattr(ingredient, "pk") else None)
+    rec_id: int | None = recipe if isinstance(recipe, int) else (recipe.pk if hasattr(recipe, "pk") else None)
+
+    if "unique_ingredient_per_meal" in detail:
+        from supply.models import Ingredient
+
+        name = None
+        if ing_id:
+            try:
+                name = Ingredient.objects.get(id=ing_id).name
+            except Ingredient.DoesNotExist:
+                pass
+        if name:
+            return HttpError(409, f"Zutat «{name}» ist bereits in dieser Mahlzeit enthalten")
+        return HttpError(409, "Diese Zutat ist bereits in dieser Mahlzeit enthalten")
+
+    if "meal_item_recipe_xor_ingredient" in detail:
+        return HttpError(409, "Ein Eintrag kann nicht gleichzeitig Rezept und Zutat sein")
+
+    logger.exception("Unbekannter IntegrityError in _create_meal_item: %s", detail)
+    return HttpError(409, "Dieses Rezept oder diese Zutat ist bereits in dieser Mahlzeit enthalten")
+
+
 def _create_meal_item(**kwargs):
     """Create MealItem with IntegrityError handling for race conditions."""
     try:
         return MealItem.objects.create(**kwargs)
-    except IntegrityError:
-        raise HttpError(409, "Dieses Rezept oder diese Zutat ist bereits in dieser Mahlzeit enthalten")
+    except IntegrityError as e:
+        raise _describe_integrity_error(
+            e,
+            kwargs.get("ingredient_id") or kwargs.get("ingredient"),
+            kwargs.get("recipe_id") or kwargs.get("recipe"),
+        )
 
 
 def _derive_portion_weight_g(ingredient, measuring_unit) -> float:
@@ -1041,7 +1070,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
 
     with transaction.atomic():
         for item in meal.items.all():
-            item.factor = round(item.factor * scale, 1)
+            item.factor = round(item.factor * scale, 2)
             item.save()
 
     meal.refresh_from_db()

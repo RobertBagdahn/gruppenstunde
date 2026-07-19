@@ -236,7 +236,9 @@ export default function BlogDetailPage() {
   const timeLabel =
     EXECUTION_TIME_OPTIONS.find((t) => t.value === blog.execution_time)?.label ??
     blog.execution_time;
-  const costsLabel = null;
+  const costsLabel: string | null = blog.costs_per_person != null
+    ? `${Number(blog.costs_per_person).toFixed(2).replace('.', ',')} € pro Person`
+    : null;
   const blogTypeLabel =
     BLOG_TYPE_OPTIONS.find((t) => t.value === blog.blog_type)?.label ??
     blog.blog_type;
@@ -332,6 +334,7 @@ export default function BlogDetailPage() {
           label={difficultyLabel}
           sublabel="Schwierigkeit"
         />
+        {costsLabel != null && (
         <InfoCard
           icon="payments"
           iconBg="bg-emerald-50"
@@ -339,6 +342,7 @@ export default function BlogDetailPage() {
           label={costsLabel}
           sublabel="Kosten"
         />
+        )}
         <InfoCard
           icon="auto_stories"
           iconBg="bg-indigo-50"

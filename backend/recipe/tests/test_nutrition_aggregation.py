@@ -305,3 +305,39 @@ class TestNutritionAggregationPortionScaling:
         assert s.min_green == pytest.approx(30.0)
         assert s.max_green == pytest.approx(60.0)
         assert s.target_mid == pytest.approx(45.0)
+
+
+@pytest.mark.django_db
+class TestExternalMealEnergy:
+    """Verify external meal energy is scaled by effective_portions."""
+
+    def test_external_energy_scaled_by_effective_portions(self):
+        meal_plan = make_meal_plan(norm_portions=5)
+        meal = make_meal(meal_plan=meal_plan, is_external=True, external_energy_kcal=500)
+        meal.refresh_from_db()
+
+        result = _aggregate_meal_values(meal)
+        assert result["energy_kcal"] == pytest.approx(2500.0)  # 500 * 5
+
+    def test_external_energy_with_one_portion(self):
+        meal_plan = make_meal_plan(norm_portions=1)
+        meal = make_meal(meal_plan=meal_plan, is_external=True, external_energy_kcal=500)
+        meal.refresh_from_db()
+
+        result = _aggregate_meal_values(meal)
+        assert result["energy_kcal"] == pytest.approx(500.0)  # 500 * 1
+
+    def test_external_energy_fallback(self):
+        meal_plan = make_meal_plan()
+        meal = make_meal(
+            meal_plan=meal_plan,
+            is_external=True,
+            external_energy_kcal=None,
+            day_part_factor=0.25,
+        )
+        meal.refresh_from_db()
+
+        result = _aggregate_meal_values(meal)
+        from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
+
+        assert result["energy_kcal"] == pytest.approx(NORM_PERSON_DAILY_KCAL * 0.25)

@@ -31,15 +31,13 @@ TYPICAL_UNIT_WEIGHTS: dict[str, float] = {
     "Teelöffel": 5.0,
     "Prise": 0.3,
     "Schuss": 10.0,
-    "Ei": 60.0,
-    "Zehe": 4.0,
     "Gramm": 1.0,
     "Milliliter": 1.0,
 }
 
 TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT = (
     "Typische Einheiten-Gewichte zur Orientierung: 1 Esslöffel = 15g, 1 Teelöffel = 5g, "
-    "1 Prise = 0,3g, 1 Schuss = 10g, 1 Ei = 60g, 1 Zehe (Knoblauch) = 4g, 1 Gramm = 1g, "
+    "1 Prise = 0,3g, 1 Schuss = 10ml, 1 Gramm = 1g, "
     "1 Milliliter = 1g (dichteabhängig)."
 )
 
@@ -68,7 +66,7 @@ class PortionSuggestion(BaseModel):
     weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
     quantity: float = Field(default=1.0, description="Menge in der angegebenen Maßeinheit")
     measuring_unit_name: str = Field(
-        description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Tasse', 'Esslöffel', 'Stück'"
+        description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Esslöffel', 'Tasse'"
     )
     rank: int = Field(default=1, description="Rang (Sortierung) innerhalb der Portionsliste")
     portion_type: PortionType = Field(description="Kategorie: system_gramm/rezeptportion/packung/belag/backmenge")

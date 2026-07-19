@@ -8,7 +8,9 @@ import {
   useRetailSections,
   useNutritionalTags,
 } from '@/api/supplies';
+import { useTags } from '@/api/tags';
 import type { NutritionalTag } from '@/schemas/supply';
+import type { Tag } from '@/schemas/content';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import IngredientMergeDialog from '@/components/ingredients/IngredientMergeDialog';
 import { GitMerge } from 'lucide-react';
@@ -74,6 +76,7 @@ export default function IngredientEditPage() {
   const updateIngredient = useUpdateIngredient(slug || '');
   const { data: retailSections } = useRetailSections();
   const { data: nutritionalTags } = useNutritionalTags();
+  const { data: allTags } = useTags();
 
   const canEdit = ingredient?.can_edit ?? false;
 
@@ -148,6 +151,9 @@ export default function IngredientEditPage() {
   // Nutritional Tags
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
 
+  // Content Tags
+  const [selectedContentTags, setSelectedContentTags] = useState<string[]>([]);
+
   // Pre-populate form when ingredient data loads
   useEffect(() => {
     if (!ingredient) return;
@@ -196,10 +202,19 @@ export default function IngredientEditPage() {
     setEan(ingredient.ean ?? '');
 
     setSelectedTags((ingredient.nutritional_tags ?? []).map((t) => t.id));
+    setSelectedContentTags((ingredient.tags ?? []).map((t) => t.id));
   }, [ingredient]);
 
   const toggleTag = (tagId: number) => {
     setSelectedTags((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
+    );
+  };
+
+  const toggleContentTag = (tagId: string) => {
+    setSelectedContentTags((prev) =>
       prev.includes(tagId)
         ? prev.filter((id) => id !== tagId)
         : [...prev, tagId],
@@ -262,6 +277,7 @@ export default function IngredientEditPage() {
       ean: ean.trim(),
 
       nutritional_tag_ids: selectedTags,
+      tag_ids: selectedContentTags,
     };
 
     // Only include status field for staff users
@@ -581,6 +597,35 @@ export default function IngredientEditPage() {
                         : 'bg-background text-muted-foreground border-border hover:bg-muted'
                     }`}
                   >
+                    {tag.name}
+                    {selected && (
+                      <span className="ml-1 material-symbols-outlined text-xs align-middle">check</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </FormSection>
+        )}
+
+        {/* Content Tags */}
+        {allTags && allTags.length > 0 && (
+          <FormSection title="Tags" icon="sell">
+            <div className="flex flex-wrap gap-2">
+              {allTags.map((tag: Tag) => {
+                const selected = selectedContentTags.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleContentTag(tag.id)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                      selected
+                        ? 'bg-primary/10 text-primary border-primary/20'
+                        : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                    }`}
+                  >
+                    {tag.icon && <span className="mr-1">{tag.icon}</span>}
                     {tag.name}
                     {selected && (
                       <span className="ml-1 material-symbols-outlined text-xs align-middle">check</span>

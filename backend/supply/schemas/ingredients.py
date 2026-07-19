@@ -429,7 +429,7 @@ class IngredientCreateIn(Schema):
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] = []
     group_ids: list[int] = []
-    tag_ids: list[int] = []  # For breakfast tags and nutritional tags
+    tag_ids: list[str] = []
     
     # Ownership & Visibility (for breakfast wizard user-generated items)
     visibility: str = "private"  # "private" or "shared"
@@ -483,7 +483,7 @@ class IngredientUpdateIn(Schema):
     retail_section_id: int | None = None
     nutritional_tag_ids: list[int] | None = None
     group_ids: list[int] | None = None
-    tag_ids: list[int] | None = None  # For breakfast tags
+    tag_ids: list[str] | None = None
     status: str | None = None
     is_standalone_food: bool | None = None
     ingredient_ref_id: int | None = None
@@ -567,6 +567,8 @@ class IngredientSuggestAllOut(Schema):
     fruit_factor: float | None = None
 
     name_suggestion: str | None = None
+
+    description: str | None = None
 
     physical_density: float | None = None
     physical_viscosity: str | None = None

@@ -61,7 +61,7 @@ def _resolve_ingredient_weight_g(
         return 0.0
 
     name_lower = item.measuring_unit.name.lower()
-    if name_lower == "g":
+    if name_lower in ("g", "gramm"):
         return float(item.quantity)
     if name_lower == "ml":
         density = getattr(item.ingredient, "physical_density", None) or 1.0

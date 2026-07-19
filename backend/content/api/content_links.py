@@ -3,6 +3,7 @@ Content API — Content link endpoints.
 """
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from ninja import Router
 from ninja.errors import HttpError
 
@@ -23,7 +24,7 @@ def _resolve_link(link: ContentLink) -> dict:
             slug = getattr(obj, "slug", "")
             image_url = obj.image.url if hasattr(obj, "image") and obj.image else None
             return title, slug, image_url
-        except Exception:
+        except (ObjectDoesNotExist, ContentType.DoesNotExist, AttributeError):
             return "", "", None
 
     src_title, src_slug, src_img = _resolve_content(link.source_content_type, link.source_object_id)

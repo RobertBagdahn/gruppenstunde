@@ -6,6 +6,7 @@ import logging
 import math
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from ninja import Router
 from ninja.errors import HttpError
@@ -315,12 +316,12 @@ def admin_embedding_feedback(
         try:
             src_obj = link.source_content_type.get_object_for_this_type(pk=link.source_object_id)
             src_title = getattr(src_obj, "title", "")
-        except Exception:
+        except (ObjectDoesNotExist, AttributeError, ContentType.DoesNotExist):
             logger.warning("Could not resolve source content for content_link %d", link.id)
         try:
             tgt_obj = link.target_content_type.get_object_for_this_type(pk=link.target_object_id)
             tgt_title = getattr(tgt_obj, "title", "")
-        except Exception:
+        except (ObjectDoesNotExist, AttributeError, ContentType.DoesNotExist):
             logger.warning("Could not resolve target content for content_link %d", link.id)
 
         items.append(

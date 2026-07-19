@@ -32,17 +32,13 @@ const UNIT_SHORT: Record<string, string> = {
   'Gramm': 'g',
   'Milliliter': 'ml',
   'Liter': 'l',
-  'Stück': 'St.',
   'Prise': 'Pr.',
-  'Dose': 'Dose',
   'Tasse': 'Tasse',
-  'Handvoll': 'Handvoll',
-  'Tropfen': 'Tropfen',
-  'Becher': 'Becher',
-  'Portion': 'Portion',
+  'Messerspitze': 'Msp.',
+  'Schuss': 'Schuss',
 };
 
-const GRAM_UNIT_NAMES = new Set(['g', 'Gramm', 'kg', 'Kilogramm']);
+const GRAM_UNIT_NAMES = new Set(['Gramm', 'kg', 'Kilogramm']);
 
 function isGramPortion(portionName?: string | null, unitName?: string | null): boolean {
   return GRAM_UNIT_NAMES.has(unitName ?? '') || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg)\b/i.test(portionName ?? '');

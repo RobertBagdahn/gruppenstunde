@@ -199,6 +199,8 @@ def _ai_suggest_price(ingredient) -> dict:
                 return {"price": price_str, "reasoning": "KI-Schätzung basierend auf Produktname und Kategorie."}
             except ValueError:
                 pass
+    except HttpError:
+        raise
     except Exception as e:
         logger.warning("AI price suggestion failed for %s: %s", ingredient.name, e)
 

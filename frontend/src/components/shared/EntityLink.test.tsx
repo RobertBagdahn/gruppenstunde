@@ -20,7 +20,7 @@ beforeAll(() => {
       return;
     }
     // Re-emit any other error so genuine issues are not hidden.
-    // eslint-disable-next-line no-console
+     
     process.stderr.write(String(msg) + '\n');
   });
 });

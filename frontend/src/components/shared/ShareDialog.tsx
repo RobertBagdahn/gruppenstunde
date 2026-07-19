@@ -2,7 +2,7 @@
  * ShareDialog — Generic sharing dialog for ContentCollaborator.
  * Shows current collaborators and allows adding/removing with role selection.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import {
   useContentCollaborators,
@@ -10,7 +10,7 @@ import {
   useUpdateCollaborator,
   useRemoveCollaborator,
 } from '@/api/collaborators';
-import { API_BASE_URL } from '@/lib/api';
+import { useSearchUsers } from '@/api/users';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RoleSelect from './RoleSelect';
 
@@ -44,25 +44,22 @@ export default function ShareDialog({
   const [newRole, setNewRole] = useState('viewer');
   const [removeTarget, setRemoveTarget] = useState<{ id: number; name: string } | null>(null);
   const [searchResults, setSearchResults] = useState<Array<{ id: number; display_name: string }>>([]);
-  const [isSearching, setIsSearching] = useState(false);
 
-  const handleSearchUsers = async () => {
-    if (!searchQuery.trim()) return;
-    setIsSearching(true);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/users/search/?q=${encodeURIComponent(searchQuery)}`,
-        { credentials: 'include' },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data);
-      }
-    } catch {
-      toast.error('Fehler bei der Suche');
-    } finally {
-      setIsSearching(false);
+  const {
+    data: userSearchData,
+    refetch: searchUsers,
+    isFetching: isSearching,
+  } = useSearchUsers(searchQuery);
+
+  useEffect(() => {
+    if (userSearchData) {
+      setSearchResults(userSearchData);
     }
+  }, [userSearchData]);
+
+  const handleSearchUsers = () => {
+    if (!searchQuery.trim()) return;
+    searchUsers();
   };
 
   const handleAddCollaborator = () => {

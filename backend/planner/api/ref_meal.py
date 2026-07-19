@@ -24,8 +24,14 @@ from planner.schemas import (
 def _create_ref_meal_item(**kwargs):
     try:
         return MealItem.objects.create(**kwargs)
-    except IntegrityError:
-        raise HttpError(409, "Dieses Rezept oder diese Zutat ist bereits in dieser Mahlzeit enthalten")
+    except IntegrityError as e:
+        from planner.api.meal_plan import _describe_integrity_error
+
+        raise _describe_integrity_error(
+            e,
+            kwargs.get("ingredient_id") or kwargs.get("ingredient"),
+            kwargs.get("recipe_id") or kwargs.get("recipe"),
+        )
 
 
 ref_meal_router = Router(tags=["ref-meals"])

@@ -143,7 +143,23 @@ def delete_material(request, material_id: int):
 
 @router.get("/measuring-units/", response=list[MeasuringUnitOut])
 def list_measuring_units(request):
-    """List all measuring units."""
+    """List all measuring units, sorted by kitchen relevance."""
+    from django.db.models import Case, IntegerField, Value, When
     from supply.models import MeasuringUnit
 
-    return MeasuringUnit.objects.all()
+    return MeasuringUnit.objects.annotate(
+        sort_order=Case(
+            When(name="Gramm", then=Value(1)),
+            When(name="Kilogramm", then=Value(2)),
+            When(name="Milliliter", then=Value(3)),
+            When(name="Liter", then=Value(4)),
+            When(name="Esslöffel", then=Value(5)),
+            When(name="Teelöffel", then=Value(6)),
+            When(name="Prise", then=Value(7)),
+            When(name="Messerspitze", then=Value(8)),
+            When(name="Tasse", then=Value(9)),
+            When(name="Schuss", then=Value(10)),
+            default=Value(99),
+            output_field=IntegerField(),
+        )
+    ).order_by("sort_order")

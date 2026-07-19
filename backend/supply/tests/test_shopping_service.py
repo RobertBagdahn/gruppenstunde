@@ -19,7 +19,7 @@ class TestShoppingService:
         meal = make_meal(meal_plan=meal_plan)
 
         # 2. Create measuring unit and ingredient
-        mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
         ing = make_ingredient(name="Direct Mehl")
 
         # 3. Create Portion with weight for the ingredient
@@ -58,7 +58,7 @@ class TestShoppingService:
         meal_plan = make_meal_plan(norm_portions=10, reserve_factor=1.0)
         meal = make_meal(meal_plan=meal_plan, override_portions=20)
 
-        mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
         ing = make_ingredient(name="Override Zucker")
 
         Portion.objects.get_or_create(
@@ -96,7 +96,7 @@ class TestShoppingService:
         assert meal_plan.scaling_factor == pytest.approx(21.6)
 
         meal = make_meal(meal_plan=meal_plan)
-        mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
         ing = make_ingredient(name="PAL-Frei Brot")
         # 300 g per portion modelled as quantity=300 on a weight_g=1.0 portion
         # Signal already creates "g" portion; update its weight_g to what we need
@@ -136,7 +136,7 @@ class TestShoppingService:
 
         meal_plan = make_meal_plan(norm_portions=norm_portions, reserve_factor=reserve_factor)
         meal = make_meal(meal_plan=meal_plan)
-        mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
         ing = make_ingredient(name="Reserve-Test Zutat")
         baker.make(
             MealItem,
@@ -194,7 +194,7 @@ class TestShoppingListRankOrdering:
 
         meal_plan = make_meal_plan(norm_portions=1, reserve_factor=1.0)
         meal = make_meal(meal_plan=meal_plan)
-        mu, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
 
         # "Sonstiges" (rank 22, alphabetically first) vs. "Obst" (rank 1, alphabetically last
         # among these two) — a name-based sort would put Sonstiges before Obst; rank-based

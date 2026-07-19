@@ -108,7 +108,7 @@ export function calculateNaturalPortions(
   const sorted = [...portions].sort((a, b) => a.rank - b.rank);
 
   for (const portion of sorted) {
-    const portionName = portion.name || 'Stück';
+    const portionName = portion.name || 'Gramm';
 
     if (portion.weight_g != null && portion.weight_g < 0.01) {
       // Skip tiny portions (below 0.01g — effectively zero)

@@ -11,7 +11,7 @@ const AMPEL_CHIPS: { value: AmpelStatus | 'all'; label: string; dotClass: string
   { value: 'all', label: 'Alle', dotClass: '' },
   { value: 'green', label: 'Bereit', dotClass: 'bg-emerald-500' },
   { value: 'yellow', label: 'In Arbeit', dotClass: 'bg-amber-500' },
-  { value: 'red', label: 'Lückenhaft', dotClass: 'bg-red-500' },
+  { value: 'red', label: 'Teilweise', dotClass: 'bg-red-500' },
 ];
 
 const TIME_CHIPS: { value: 'this_week' | 'next_week' | 'next_month' | 'all'; label: string }[] = [

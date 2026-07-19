@@ -27,11 +27,12 @@ The system SHALL provide GET /api/unit-conversions/?from_unit=&to_unit=&ingredie
 - **THEN** the system SHALL return HTTP 404
 
 ### Requirement: Seed Data
-The system MUST include seed data for common German cooking conversions (EL to g, TL to ml, Tasse to ml, Prise to g, etc.).
+Das System MUSS Seed-Daten für gängige deutsche Küchenumrechnungen enthalten (EL zu g, TL zu ml, Tasse zu ml, Prise zu g, etc.), die mit den korrigierten MeasuringUnit-Typen konsistent sind.
 
 #### Scenario: Seed data available after migration
-- **WHEN** the data migration has been applied
-- **THEN** the system SHALL have standard conversions for EL, TL, Tasse, Prise, Messerspitze available
+- **WHEN** die Data-Migration angewendet wurde
+- **THEN** SHALL das System Standard-Umrechnungen für EL (15 ml→g), TL (5 ml→g), Tasse (250 ml→g), Prise, Messerspitze enthalten
+- **AND** die Umrechnungen SHALL mit den korrigierten MeasuringUnit-Typen (`unit="ml"` für EL/TL/Tasse) konsistent sein
 
 ### Requirement: formatQuantity darf nicht auf 0 runden
 
@@ -51,12 +52,11 @@ Die Funktion `resolve_measuring_unit_name` löst den Einheitsnamen für ein Reci
 - **WHEN** ein RecipeItem eine `portion` hat aber diese Portion keine `measuring_unit` hat
 - **THEN** gibt `resolve_measuring_unit_name` NULL zurück
 
-### Requirement: Fehlende Küchenmaßeinheiten
-Das System MUSS folgende MeasuringUnits als Seed-Daten bereitstellen: Handvoll (30g, Masse), Tropfen (0.05ml, Volumen).
+## REMOVED Requirements
 
-#### Scenario: MeasuringUnits nach Migration verfügbar
-- **WHEN** die Data-Migration angewendet wurde
-- **THEN** MÜSSEN die MeasuringUnits "Handvoll" und "Tropfen" in der Datenbank existieren
+### Requirement: Fehlende Küchenmaßeinheiten
+
+**Reason**: „Handvoll" und „Tropfen" wurden nie als MeasuringUnit angelegt und passen nicht in das bereinigte System (Handvoll ist eine Formbeschreibung, Tropfen ist extrem spezifisch mit vernachlässigbarem Nutzen).
 
 ### Requirement: Zutat-spezifische Umrechnungsfaktoren
 Das System MUSS zutat-spezifische UnitConversion-Einträge für mindestens 30 gängige Zutaten seeden, die abweichende Dichten bei Volumen-zu-Masse-Umrechnungen abbilden.

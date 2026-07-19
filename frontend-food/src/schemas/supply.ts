@@ -412,6 +412,8 @@ export const IngredientSuggestAllSchema = z.object({
   ai_interaction_id: z.string().nullable().optional(),
   name_suggestion: z.string().nullable(),
 
+  description: z.string().nullable(),
+
   energy_kcal: z.number().nullable(),
   protein_g: z.number().nullable(),
   fat_g: z.number().nullable(),

@@ -27,7 +27,7 @@ interface UnitSwitcherProps {
 }
 
 /** Units that are too small/large to be useful for display */
-const HIDDEN_UNITS = new Set(['Pr', 'Msp', 'Tropfen', 'Kg']);
+const HIDDEN_UNITS = new Set(['Pr', 'Msp', 'Kg']);
 
 function formatNumber(value: number): string {
   if (value >= 100) {

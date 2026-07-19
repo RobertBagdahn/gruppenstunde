@@ -60,7 +60,7 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
   const ingredientMergePreviewQuery = useMergePreview(mergePair?.sourceId ?? 0, mergePair?.targetId ?? 0);
   const recipeMergePreviewQuery = useRecipeMergePreview(mergePair?.sourceId ?? 0, mergePair?.targetId ?? 0);
   const mergePreviewQuery = isIngredient ? ingredientMergePreviewQuery : recipeMergePreviewQuery;
-  const { data: mergePreview, isLoading: mergePreviewLoading } = mergePreviewQuery;
+  const { data: mergePreview, isLoading: mergePreviewLoading, error: mergePreviewError } = mergePreviewQuery;
 
   const activeMergeMutation = isIngredient ? mergeMutation : recipeMergeMutation;
   const activeDismissMutation = isIngredient ? dismissMutation : recipeDismissMutation;
@@ -217,6 +217,13 @@ export default function DuplicateDetectionList({ type }: DuplicateDetectionListP
           {mergePreviewLoading && (
             <div className="flex justify-center py-6">
               <Loader2 className="animate-spin text-2xl text-muted-foreground" />
+            </div>
+          )}
+
+          {mergePreviewError && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 text-sm text-red-800 dark:text-red-300">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>Fehler beim Laden der Vorschau: {mergePreviewError instanceof Error ? mergePreviewError.message : 'Unbekannter Fehler'}</span>
             </div>
           )}
 

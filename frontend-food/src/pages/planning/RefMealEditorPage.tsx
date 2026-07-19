@@ -61,6 +61,7 @@ export default function RefMealEditorPage() {
   const planId = Number(id) || 0;
   const currentMealType = mealType || 'breakfast';
   const isBreakfast = currentMealType === 'breakfast';
+  const mealTypeLabel = MEAL_TYPE_LABELS[currentMealType] || currentMealType;
 
   // Data fetching
   const { data: plan } = useMealPlan(planId);
@@ -243,7 +244,7 @@ export default function RefMealEditorPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-64 bg-muted rounded" />
@@ -257,10 +258,8 @@ export default function RefMealEditorPage() {
     return <Navigate to={`/meal-plans/${planId}/ref-meals/breakfast/wizard`} replace />;
   }
 
-  const mealTypeLabel = MEAL_TYPE_LABELS[currentMealType] || currentMealType;
-
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <BackButton />

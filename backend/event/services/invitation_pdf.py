@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import re
 from typing import TYPE_CHECKING
 
@@ -22,6 +23,8 @@ from reportlab.platypus import (
 )
 
 from .ci_helper import CIData, get_event_ci
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from event.models import Event
@@ -248,7 +251,7 @@ def _build_header(ci: CIData, primary: colors.Color, title_style: ParagraphStyle
             logo_img.hAlign = "LEFT"
             header_parts.append(logo_img)
         except Exception:
-            pass
+            logger.warning("Failed to load CI logo for PDF", exc_info=True)
 
     # Group name + slogan
     group_name_style = ParagraphStyle(

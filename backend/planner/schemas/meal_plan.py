@@ -130,7 +130,7 @@ class MealItemOut(Schema):
             total_g = None
 
             name_lower = obj.measuring_unit.name.lower()
-            if name_lower == "g":
+            if name_lower in ("g", "gramm"):
                 total_g = float(obj.quantity)
             elif name_lower == "ml":
                 density = getattr(obj.ingredient, "physical_density", 1.0) or 1.0

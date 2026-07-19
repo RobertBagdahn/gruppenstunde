@@ -547,7 +547,7 @@ class Command(BaseCommand):
     def _cleanup_portions(self, specs: list) -> None:
         from supply.models import Ingredient, MeasuringUnit, Portion
 
-        g_unit = MeasuringUnit.objects.filter(name="g").first()
+        g_unit = MeasuringUnit.objects.filter(name="Gramm").first()
         spec_by_name = {s.canonical_name.lower(): s for s in specs}
 
         ingredients = Ingredient.objects.all()

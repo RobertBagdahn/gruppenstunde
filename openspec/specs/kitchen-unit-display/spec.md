@@ -8,7 +8,7 @@ Das System MUSS auf der Rezept-Detailseite pro Zutat einen Umschalter anbieten, 
 - **THEN** MUSS neben der Einheit ein Umschalter-Button angezeigt werden
 
 #### Scenario: Zutat ohne konvertierbare Einheit
-- **WHEN** eine Zutat eine nicht-konvertierbare Einheit hat (z.B. Stück, Scheibe)
+- **WHEN** eine Zutat eine nicht-konvertierbare Einheit hat (weder `unit="g"` noch `unit="ml"`)
 - **THEN** DARF kein Umschalter-Button angezeigt werden
 
 #### Scenario: Einheit umschalten

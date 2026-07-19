@@ -126,7 +126,7 @@ class RefurbishOutput(BaseModel):
     title: str = Field(min_length=5, max_length=120)
     summary: str = Field(min_length=80, max_length=500)
     summary_long: str = Field(min_length=200, max_length=2000)
-    description: str = Field(min_length=100, max_length=8000)
+    description: str = Field(min_length=100, max_length=200)
     execution_time: str = Field(description="One of: less_30, 30_60, 60_90, more_90")
     preparation_time: str = Field(description="One of: none, less_15, 15_30, 30_60, more_60")
     difficulty: str = Field(description="One of: easy, medium, hard")
@@ -287,7 +287,7 @@ class ContentAIService:
             "- summary: Werbender Aussagesatz als Kurzbeschreibung (80-300 Zeichen, maximal 500 Zeichen).\n"
             "- summary_long: Ausführliche Zusammenfassung (200-1000 Zeichen).\n"
             f"- description: Detaillierte Anleitung als Markdown (kein HTML). "
-            f"{ct_config['description_hint']} (100-8000 Zeichen)\n"
+            f"{ct_config['description_hint']} (100-200 Zeichen)\n"
             "- execution_time: Eines von 'less_30', '30_60', '60_90', 'more_90'\n"
             "- preparation_time: Eines von 'none', 'less_15', '15_30', '30_60', 'more_60'\n"
             "- difficulty: Eines von 'easy', 'medium', 'hard'\n"

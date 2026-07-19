@@ -640,7 +640,7 @@ class Command(BaseCommand):
 
         # Import recipe items
         # Get default measuring unit (g)
-        default_mu = MeasuringUnit.objects.filter(name="g").first()
+        default_mu = MeasuringUnit.objects.filter(name="Gramm").first()
 
         for entry in grouped.get("food.recipeitem", []):
             fields = entry["fields"]

@@ -447,6 +447,8 @@ def generate_invitation_text(request, payload: GenerateInvitationIn):
             return {"invitation_text": _build_fallback_invitation(payload), "ai_interaction_id": None}
         result = InvitationOutput.model_validate_json(response.text)
         return {"invitation_text": result.text, "ai_interaction_id": str(interaction_id) if interaction_id else None}
+    except HttpError:
+        raise
     except Exception:
         logger.exception("AI invitation generation failed")
         return {"invitation_text": _build_fallback_invitation(payload), "ai_interaction_id": None}

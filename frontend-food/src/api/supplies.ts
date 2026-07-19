@@ -137,7 +137,7 @@ export interface IngredientSearchFilters {
   page_size?: number;
 }
 
-export function useIngredientSearch(filters: IngredientSearchFilters = {}) {
+export function useIngredientSearch(filters: IngredientSearchFilters = {}, enabled = true) {
   const params = new URLSearchParams();
   if (filters.name) params.set('name', filters.name);
   if (filters.retail_section) params.set('retail_section', String(filters.retail_section));
@@ -152,6 +152,7 @@ export function useIngredientSearch(filters: IngredientSearchFilters = {}) {
     queryKey: ['ingredient-search', filters] as const,
     queryFn: () => fetchJson(`${INGREDIENT_BASE}/?${qs}`, PaginatedIngredientSchema),
     staleTime: 30_000,
+    enabled,
   });
 }
 

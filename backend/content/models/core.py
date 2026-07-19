@@ -126,6 +126,13 @@ class Content(SoftDeleteModel):
         choices=DifficultyChoices.choices,
         default=DifficultyChoices.EASY,
     )
+    costs_per_person = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Cost per participant in Euros",
+    )
 
     # --- Status & Workflow ---
     status = models.CharField(

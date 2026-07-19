@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils.text import slugify
+from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
 from core.services.gemini import gemini_call
@@ -112,6 +113,8 @@ class RecipeAiIngredientsService:
             )
             return result
 
+        except HttpError:
+            raise
         except Exception:
             logger.warning(
                 "AI ingredients suggestion failed for recipe '%s'",
@@ -374,6 +377,8 @@ class RecipeQuantityEstimationService:
             servings = recipe.portions or 1
             return self._build_response(result, items, servings)
 
+        except HttpError:
+            raise
         except Exception:
             logger.warning(
                 "AI quantity estimation failed for recipe '%s'",

@@ -7,6 +7,7 @@ from typing import Optional
 from django.contrib.auth.models import AbstractBaseUser
 
 from core.services.gemini import gemini_call, GeminiUnavailableError
+from ninja.errors import HttpError
 from recipe.models import RecipeItem, Recipe
 
 logger = logging.getLogger(__name__)
@@ -92,6 +93,8 @@ class AiStepService:
                 bypass_limits=bypass_limits,
                 context="recipe_step_generation",
             )
+        except HttpError:
+            raise
         except Exception as exc:
             logger.error(f"Gemini call failed for recipe {recipe.slug}: {exc}")
             raise GeminiUnavailableError(f"Step generation failed: {str(exc)}") from exc
@@ -160,6 +163,8 @@ class AiStepService:
                 bypass_limits=bypass_limits,
                 context="ingredient_assignment_suggestion",
             )
+        except HttpError:
+            raise
         except Exception as exc:
             logger.error(f"Gemini call failed for ingredient suggestion: {exc}")
             raise GeminiUnavailableError(f"Ingredient suggestion failed: {str(exc)}") from exc
@@ -225,6 +230,8 @@ class AiStepService:
                 bypass_limits=bypass_limits,
                 context="recipe_markdown_conversion",
             )
+        except HttpError:
+            raise
         except Exception as exc:
             logger.error(f"Gemini call failed for markdown conversion: {exc}")
             raise GeminiUnavailableError(f"Markdown conversion failed: {str(exc)}") from exc
@@ -290,6 +297,8 @@ class AiStepService:
                 bypass_limits=bypass_limits,
                 context="recipe_step_improve",
             )
+        except HttpError:
+            raise
         except Exception as exc:
             logger.error(f"Gemini call failed for step improvement: {exc}")
             raise GeminiUnavailableError(f"Step improvement failed: {str(exc)}") from exc

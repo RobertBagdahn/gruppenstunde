@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Count, Max, Q
 from django.utils import timezone
+from ninja.errors import HttpError
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
@@ -533,6 +534,8 @@ class IntelligentSuggestionsService:
 
             return reranked if reranked else None
 
+        except HttpError:
+            raise
         except Exception:
             logger.warning("AI reranking failed, falling back to algorithmic", exc_info=True)
             return None

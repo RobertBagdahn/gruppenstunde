@@ -1,5 +1,49 @@
 # Clean-Up Report — ganzes Repo — 2026-06-30
 
+## Status: Zweite Runde abgeschlossen (Stand 2026-07-19)
+
+Nach der ersten Runde (Juni 2026) blieben 18 offene Findings. Die zweite Runde hat alle priorisierten Fixes umgesetzt.
+
+### Neu behoben (Runde 2)
+
+**Backend**
+- `costs_per_person` als Content-Basisfeld (DecimalField, 4 Migrationen, Pydantic + Zod sync)
+- `scale-to-target`-Rundung: `round(..., 1)` → `round(..., 2)` — kleine Faktoren bleiben erhalten
+- Externe-Mahlzeit-Energie × `effective_portions` in `nutrition_aggregation.py`
+- `normalize_recipe_portions`: Quantity-Clamping 0.1–5000g für Gemini-Antworten
+- `invitation_pdf.py`: Logo-Load `except: pass` → `logger.warning(exc_info=True)`
+- 401→403 an 4 Stellen vereinheitlicht (`nutrition.py`, `recipes.py`, `core/api.py`×2)
+- Exception-Narrowing: `admin.py`, `featured.py`, `content_links.py` — breites `except Exception` auf `ObjectDoesNotExist`/`ContentType.DoesNotExist`/`AttributeError`
+- Rate-Limiter: von In-Memory-`defaultdict` auf `django.core.cache` (Cloud Run ready)
+- Weight-Formatter: `shopping_service.py` nutzt jetzt `supply.utils.format_weight` (dedupliziert)
+- Content-API-Factory: `create_content_router()` in `content/base_api.py` (bereit für neue Content-Typen)
+
+**Frontend**
+- `costsLabel` in SessionDetailPage/BlogDetailPage/GameDetailPage aus `costs_per_person` mit Bedingungsrender
+- ShareDialog: raw fetch → `useSearchUsers` TanStack Query Hook
+- ProgramEditor: raw fetch → `useQuery` mit Toast-Error
+- `MealEventListPage` useEffect-Deps von `[copySourceId]` auf `[copySource, createStartDatetime]`
+- RefMealEditorPage: Wrapper `container` → `max-w-7xl`, `mealTypeLabel` TypeScript-Fehler gefixt
+- MyRecipesPage: Wrapper `max-w-5xl` → `max-w-7xl`
+
+**Neue Tests (Runde 2)**
+- `event/tests/test_rate_limiter.py` — 5 Tests (Cache-basiert, Limit, IP-Isolation, X-Forwarded-For)
+- `recipe/tests/test_normalize_clamping.py` — 6 Tests (Clamping auf 0.1–5000g)
+- `recipe/tests/test_nutrition_aggregation.py` — +3 Tests (externe Energie × effective_portions)
+- `frontend/src/pages/costsLabel.test.ts` — 8 Tests (Formatierung null/undefined/Dezimal/String)
+
+**Bereits gefixt in Runde 1 oder nicht nötig**
+- Design-Tokens: RefMealEditorPage, AiFeedbackTab, RuleTab bereits token-basiert (keine hardcoded Farben)
+- RecipePreviewDialog: Datei existiert nicht mehr
+- AdminPage/DataQualityPage Wrapper: bereits `max-w-7xl`
+- CATEGORY_LABELS: bereits auf Modul-Ebene
+- Hardcoded Farben: in allen untersuchten Files bereits behoben
+- `measuring_unit_name`: Backend liefert Feld bereits (`ingredients.py:524`)
+
+**Deferred (non-blocking)**
+- Factory-Wiring in session/blog/game API (Factory existiert, ~85% weniger Duplikation bei Verwendung)
+
+
 ## Status: Behobene Findings (Stand 2026-06-30)
 
 **🔴 Critical behoben**

@@ -144,11 +144,7 @@ function formatGramsShort(grams: number): string {
  *  backend resolves it from the item's actual `portion` FK, not by name) and
  *  is kept in sync whenever `quantity` or `portion_id` changes. */
 export function getItemWeightG(item: EditableItem): number {
-  if (item.baseQuantity > 0) {
-    return (item.baseWeightG / item.baseQuantity) * item.quantity;
-  }
-  const portion = item.ingredient_portions.find((p) => p.id === item.portion_id);
-  return item.quantity * (portion?.weight_g ?? 0);
+  return item.quantity;
 }
 
 /** Merges an AI quantity estimate into an EditableItem, applying `portion_id`
@@ -167,10 +163,8 @@ export function applyEstimateToItem(item: EditableItem, estimate: EstimateQuanti
     ...item,
     portion_id: estimate.portion_id,
     measuring_unit_name: estimate.unit,
-    quantity: estimate.quantity_per_portion,
-    quantityInput: String(estimate.quantity_per_portion),
-    // Keep the grams-per-unit ratio consistent with the new portion, so
-    // getItemWeightG() and any further edits stay correct.
+    quantity: estimate.grams_total,
+    quantityInput: String(estimate.grams_total),
     baseWeightG: estimate.grams_total,
     baseQuantity: estimate.quantity_per_portion,
     aiExpectedGramsTotal: estimate.grams_total,
@@ -200,33 +194,9 @@ export function normalizeItems(items: RecipeItem[], portions: number | null): Ed
 
     // Convert to grams: quantity × portion.weight_g
     const quantityInGrams = item.quantity * portionWeightG;
-    const normalizedQty = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
+    const qty = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
 
-    // Quantity as multiplier on the ORIGINAL (saved) portion
-    // This ensures save path always works correctly: toBasePerServing(qty, scale) produces right results
-    const quantityForOriginalPortion = portionWeightG > 0 
-      ? Math.round((normalizedQty / portionWeightG) * 100) / 100 
-      : normalizedQty;
-    const qty = quantityForOriginalPortion;
-    
-    // Label: prefer rank=1 portion name only if it has a meaningful weight_g
-    // This improves UX by showing nice labels like "100g Würstchen" or "1 Portion Nudeln"
-    // but avoids confusing labels like "n. B." (nach Bedarf / as needed)
-    // (while keeping quantity multipliers based on original saved portion)
-    const sortedPortions = [...(item.ingredient_portions ?? [])].sort((a, b) => a.rank - b.rank);
-    const rank1Portion = sortedPortions.find((p) => p.rank === 1);
-    // Use rank=1 name only if it has meaningful weight_g and quantity info
-    const shouldUseRank1Label = rank1Portion && 
-      rank1Portion.weight_g !== null && 
-      rank1Portion.weight_g !== undefined &&
-      (rank1Portion.quantity !== 1 || rank1Portion.weight_g !== currentPortion?.weight_g);
-    const label = shouldUseRank1Label && rank1Portion
-      ? rank1Portion.name
-      // Fall back to the current portion's own measuring_unit_name; if the
-      // current portion isn't even in ingredient_portions (soft-deleted),
-      // fall back to plain "g" — the quantity itself (computed above) is
-      // still correct in grams regardless of this label.
-      : currentPortion?.measuring_unit_name ?? 'g';
+    const label = currentPortion?.measuring_unit_name ?? 'g';
     
     return {
       id: item.id,
@@ -354,6 +324,9 @@ function IngredientRow({
           {item.measuring_unit_name || 'g'}
         </span>
       )}
+      <span className="text-xs text-muted-foreground min-w-[4rem] text-right tabular-nums">
+        = {item.quantity} g
+      </span>
       <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
       {expandedNotes.has(item.id) || item.note ? (
         <input
@@ -571,23 +544,13 @@ export default function InlineIngredientEditor({
     setEditItems((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
-        const oldPortion = item.ingredient_portions.find((p) => p.id === item.portion_id);
         const newPortion = item.ingredient_portions.find((p) => p.id === portionId);
         if (!newPortion) return item;
 
-        // Convert quantity: old quantity in grams → new unit. Prefer the
-        // reliable baseWeightG/baseQuantity ratio over the portion lookup —
-        // `oldPortion` can be undefined if `portion_id` isn't present in this
-        // item's own `ingredient_portions` list (seen in the wild), which
-        // would otherwise silently fall back to a wrong "1g" default.
-        const oldWeightG = item.baseQuantity > 0
-          ? item.baseWeightG / item.baseQuantity
-          : (oldPortion?.weight_g ?? 1);
         const newWeightG = newPortion.weight_g ?? 1;
-        const quantityInGrams = item.quantity * oldWeightG;
-        const newQuantity = Math.round((quantityInGrams / newWeightG) * 100) / 100;
+        const quantityInGrams = item.quantity;
+        const newMultiplier = Math.round((quantityInGrams / newWeightG) * 100) / 100;
 
-        // Use the same composite-portion label rule as normalizeItems()
         const label = newPortion.quantity !== 1
           ? newPortion.name
           : newPortion.measuring_unit_name ?? 'g';
@@ -596,13 +559,11 @@ export default function InlineIngredientEditor({
           ...item,
           portion_id: portionId,
           measuring_unit_name: label,
-          quantity: newQuantity,
-          quantityInput: String(newQuantity),
-          // Keep the grams-per-unit ratio consistent with the new portion.
+          quantity: quantityInGrams,
+          quantityInput: String(quantityInGrams),
           baseWeightG: quantityInGrams,
-          baseQuantity: newQuantity,
+          baseQuantity: newMultiplier,
           isDirty: true,
-          // Manual portion change invalidates any pending AI-estimate expectation.
           aiExpectedGramsTotal: undefined,
         };
       }),
@@ -644,6 +605,7 @@ export default function InlineIngredientEditor({
           ? bestPortion.name
           : (bestPortion.measuring_unit_name || 'g');
         
+        const initialQuantity = bestPortion.weight_g ?? 1;
         setEditItems((prev) => [
           ...prev,
           {
@@ -651,8 +613,8 @@ export default function InlineIngredientEditor({
             portion_id: bestPortion.id,
             ingredient_id: ingredient.id,
             ingredient_name: ingredient.name,
-            quantity: 1, // (4.2) start with 1, not 0
-            quantityInput: '1',
+            quantity: initialQuantity,
+            quantityInput: String(initialQuantity),
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
@@ -667,7 +629,7 @@ export default function InlineIngredientEditor({
             is_optional: false,
             exchange_group_id: null,
             exchange_position: null,
-            baseWeightG: bestPortion.weight_g ?? 0,
+            baseWeightG: initialQuantity,
             baseQuantity: 1,
             isNew: true,
             isDirty: true,
@@ -824,7 +786,16 @@ export default function InlineIngredientEditor({
         method: 'POST',
         credentials: 'include',
       });
-      if (!suggestRes.ok) throw new Error('Vorschläge fehlgeschlagen');
+      if (!suggestRes.ok) {
+        let detail = 'KI-Vorschläge konnten nicht generiert werden';
+        try {
+          const errorData = await suggestRes.json();
+          if (errorData.detail) detail = errorData.detail;
+        } catch {
+          // use default message if response body is not parseable
+        }
+        throw new Error(detail);
+      }
       const data = await suggestRes.json();
 
       // Support both list response (legacy) and object response with interaction_id
@@ -839,8 +810,8 @@ export default function InlineIngredientEditor({
       setAiSuggestions(suggestions);
       setSelectedAiSuggestions(new Set(suggestions.map((_, i) => i)));
       setAiSuggestInteractionId(interactionId);
-    } catch {
-      toast.error('KI-Vorschläge konnten nicht generiert werden');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'KI-Vorschläge konnten nicht generiert werden');
     } finally {
       setIsAiSuggesting(false);
     }
@@ -949,6 +920,7 @@ export default function InlineIngredientEditor({
 
         const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
+        const alternativeQuantity = bestPortion.weight_g ?? 1;
         setEditItems((prev) => [
           ...prev.map((i) =>
             i.id === targetItem.id && !i.exchange_group_id
@@ -960,8 +932,8 @@ export default function InlineIngredientEditor({
             portion_id: bestPortion.id,
             ingredient_id: ingredientId,
             ingredient_name: ingredientName,
-            quantity: 1,
-            quantityInput: '1',
+            quantity: alternativeQuantity,
+            quantityInput: String(alternativeQuantity),
             measuring_unit_name: bestPortion.quantity !== 1 ? bestPortion.name : (bestPortion.measuring_unit_name || 'g'),
             note: '',
             sort_order: maxSort + 1,
@@ -985,7 +957,7 @@ export default function InlineIngredientEditor({
             is_optional: false,
             exchange_group_id: groupId,
             exchange_position: nextPosition,
-            baseWeightG: bestPortion.weight_g ?? 0,
+            baseWeightG: alternativeQuantity,
             baseQuantity: 1,
             isNew: true,
             isDirty: true,
@@ -1032,12 +1004,14 @@ export default function InlineIngredientEditor({
         );
       }
 
-      // Create new items (divide by scale to store per-1-portion value)
+      // Create new items (convert grams to portion multiplier, then divide by scale)
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
+        const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : 1;
+        const multiplier = Math.round((item.quantity / portionWeightG) * 1000) / 1000;
         const promise = createItem
           .mutateAsync({
             portion_id: item.portion_id,
-            quantity: toBasePerServing(item.quantity, scale),
+            quantity: toBasePerServing(multiplier, scale),
             sort_order: item.sort_order,
             note: item.note,
             is_optional: item.is_optional,
@@ -1056,14 +1030,16 @@ export default function InlineIngredientEditor({
         promises.push(promise);
       }
 
-      // Update dirty existing items (divide by scale to store per-1-portion value)
+      // Update dirty existing items (convert grams to portion multiplier, then divide by scale)
       for (const item of editItems.filter((i) => i.isDirty && !i.isNew && !i.isDeleted)) {
+        const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : 1;
+        const multiplier = Math.round((item.quantity / portionWeightG) * 1000) / 1000;
         promises.push(
           updateItem.mutateAsync({
             itemId: item.id,
             data: {
               portion_id: item.portion_id,
-              quantity: toBasePerServing(item.quantity, scale),
+              quantity: toBasePerServing(multiplier, scale),
               note: item.note,
               sort_order: item.sort_order,
               // Only present right after an AI estimate was applied to this

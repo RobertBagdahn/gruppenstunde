@@ -231,7 +231,7 @@ class TestMealWithIngredientItems:
             price_per_kg=2.0,
         )
 
-        g_unit = MeasuringUnit.objects.get(name="g")
+        g_unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
         make_portion(ingredient=ingredient, measuring_unit=g_unit, weight_g=1.0)
 
         # Create ingredient-based MealItem: 250g

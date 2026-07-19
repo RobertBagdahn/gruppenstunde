@@ -4,6 +4,7 @@
  * Uses @dnd-kit for drag-and-drop within each day group.
  */
 import { useState, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { EventDaySlot } from '@/schemas/event';
 import type { EventDetail } from '@/schemas/event';
@@ -497,49 +498,50 @@ function AddSlotForm({
   const [contentSearch, setContentSearch] = useState('');
   const [contentObjectId, setContentObjectId] = useState<number | null>(null);
   const [contentResults, setContentResults] = useState<{ id: number; title: string; slug: string }[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchTrigger, setSearchTrigger] = useState('');
 
-  // Content linking search (25.3)
-  const handleContentSearch = async (query: string) => {
+  const endpoint = contentType === 'groupsession'
+    ? `${API_BASE_URL}/api/sessions/`
+    : contentType === 'game'
+    ? `${API_BASE_URL}/api/games/`
+    : null;
+
+  const { isFetching: isSearching } = useQuery({
+    queryKey: ['content-search', contentType, searchTrigger],
+    queryFn: async () => {
+      if (!endpoint || !searchTrigger.trim()) {
+        setContentResults([]);
+        return null;
+      }
+      const res = await fetch(
+        `${endpoint}?search=${encodeURIComponent(searchTrigger)}&page_size=5`,
+        { credentials: 'include' },
+      );
+      if (!res.ok) {
+        throw new Error('Suche fehlgeschlagen');
+      }
+      const data = await res.json();
+      const items = data.items ?? data.results ?? data ?? [];
+      setContentResults(
+        items.slice(0, 5).map((item: Record<string, unknown>) => ({
+          id: item.id as number,
+          title: (item.title ?? item.name ?? '') as string,
+          slug: (item.slug ?? '') as string,
+        })),
+      );
+      return null;
+    },
+    enabled: false,
+    retry: false,
+  });
+
+  const handleContentSearch = (query: string) => {
     setContentSearch(query);
+    setSearchTrigger(query);
     if (!query.trim() || !contentType) {
       setContentResults([]);
       return;
     }
-
-    setIsSearching(true);
-    try {
-      // Search content by type
-      const endpoint = contentType === 'groupsession'
-        ? `${API_BASE_URL}/api/sessions/`
-        : contentType === 'game'
-        ? `${API_BASE_URL}/api/games/`
-        : null;
-
-      if (!endpoint) {
-        setContentResults([]);
-        setIsSearching(false);
-        return;
-      }
-
-      const res = await fetch(`${endpoint}?search=${encodeURIComponent(query)}&page_size=5`, {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const items = data.items ?? data.results ?? data ?? [];
-        setContentResults(
-          items.slice(0, 5).map((item: Record<string, unknown>) => ({
-            id: item.id as number,
-            title: (item.title ?? item.name ?? '') as string,
-            slug: (item.slug ?? '') as string,
-          })),
-        );
-      }
-    } catch {
-      toast.error('Suche fehlgeschlagen');
-    }
-    setIsSearching(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

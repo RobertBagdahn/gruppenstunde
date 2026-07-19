@@ -15,11 +15,11 @@ import type { EstimateQuantityItem } from '@/schemas/recipe';
 function makeItem(overrides: Partial<EditableItem> = {}): EditableItem {
   return {
     id: 3309,
-    portion_id: 442, // e.g. a soft-deleted "100g Salz" portion, weight_g=100
+    portion_id: 442,
     ingredient_id: 145,
     ingredient_name: 'Jodsalz',
-    quantity: 0.073,
-    quantityInput: '0.073',
+    quantity: 7.3128,
+    quantityInput: '7.3128',
     measuring_unit_name: 'Gramm',
     note: '',
     sort_order: 0,
@@ -54,7 +54,7 @@ describe('applyEstimateToItem', () => {
 
     expect(result.portion_id).toBe(32744);
     expect(result.portion_id).not.toBe(item.portion_id);
-    expect(result.quantity).toBe(10.0);
+    expect(result.quantity).toBe(3.0);
     expect(result.measuring_unit_name).toBe('Prise');
     expect(result.isDirty).toBe(true);
   });
@@ -76,7 +76,13 @@ describe('applyEstimateToItem', () => {
   });
 
   it('keeps portion_id unchanged when the estimate targets the same portion the item already has', () => {
-    const item = makeItem({ portion_id: 470, baseWeightG: 731.28, baseQuantity: 7.3128 });
+    const item = makeItem({
+      portion_id: 470,
+      quantity: 731.28,
+      quantityInput: '731.28',
+      baseWeightG: 731.28,
+      baseQuantity: 7.3128,
+    });
     const estimate = makeEstimate({
       portion_id: 470,
       unit: 'Gramm',
@@ -87,7 +93,7 @@ describe('applyEstimateToItem', () => {
     const result = applyEstimateToItem(item, estimate);
 
     expect(result.portion_id).toBe(470);
-    expect(result.quantity).toBe(0.8);
+    expect(result.quantity).toBe(80.0);
     expect(getItemWeightG(result)).toBe(80.0);
   });
 
@@ -95,8 +101,9 @@ describe('applyEstimateToItem', () => {
     const item = makeItem({
       id: 3306,
       ingredient_name: 'Olivenöl nativ extra',
-      portion_id: 430, // "100g Olivenöl", rank=2, weight_g=100
-      quantity: 0.488,
+      portion_id: 430,
+      quantity: 48.8,
+      quantityInput: '48.8',
       baseWeightG: 48.8,
       baseQuantity: 0.488,
     });

@@ -318,7 +318,7 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
 def list_my_recipes(request, page: int = 1, page_size: int = 20, folder: int | None = None):
     """List current user's personal recipes."""
     if not request.user.is_authenticated:
-        raise HttpError(401, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+        raise HttpError(403, "Anmeldung erforderlich")
 
     qs = (
         Recipe.objects.filter(owner=request.user)

@@ -22,16 +22,10 @@ const UNIT_SHORT: Record<string, string> = {
   'Gramm': 'g',
   'Milliliter': 'ml',
   'Liter': 'l',
-  'Stück': 'St.',
   'Prise': 'Pr.',
-  'Dose': 'Dose',
   'Tasse': 'Tasse',
-  'Handvoll': 'Handvoll',
-  'Tropfen': 'Tropfen',
-  'Becher': 'Becher',
-  'Portion': 'Portion',
-  'Packung': 'Pkg.',
   'Messerspitze': 'Msp.',
+  'Schuss': 'Schuss',
 };
 
 export default function RecipeIngredientsTable({ items, portions: _portions = 1 }: RecipeIngredientsTableProps) {
@@ -60,7 +54,7 @@ export default function RecipeIngredientsTable({ items, portions: _portions = 1 
               minimumFractionDigits: 0, 
               maximumFractionDigits: 2 
             }) : '—';
-            const unitName = item.measuring_unit_name ?? 'Portion';
+            const unitName = item.measuring_unit_name ?? 'Gramm';
             const unitShort = UNIT_SHORT[unitName] ?? unitName;
             const ingredientName = item.ingredient_name || item.note || 'Unbekannte Zutat';
             const ingredientExists = !!item.ingredient_id;

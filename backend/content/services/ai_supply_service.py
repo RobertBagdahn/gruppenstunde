@@ -16,6 +16,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from pydantic import BaseModel, Field
 
 from core.services.gemini import gemini_call
+from ninja.errors import HttpError
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,8 @@ def suggest_materials(
             return [], None
         result = MaterialSuggestionsOutput.model_validate_json(response.text)
         return [m.model_dump() for m in result.materials], str(interaction_id)
+    except HttpError:
+        raise
     except Exception:
         logger.warning("AI material suggestion failed", exc_info=True)
         return [], None
@@ -159,6 +162,8 @@ def suggest_recipe_supplies(
             "ingredients": [i.model_dump() for i in result.ingredients],
             "kitchen_equipment": [m.model_dump() for m in result.kitchen_equipment],
         }, str(interaction_id)
+    except HttpError:
+        raise
     except Exception:
         logger.warning("AI recipe supply suggestion failed", exc_info=True)
         return {"ingredients": [], "kitchen_equipment": []}, None

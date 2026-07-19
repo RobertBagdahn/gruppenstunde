@@ -13,6 +13,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.services.gemini import GeminiUnavailableError, gemini_call
+from ninja.errors import HttpError
 from recipe.schemas.enrichment import GeminiNewIngredient
 from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT
 
@@ -80,6 +81,8 @@ def enrich_ingredient(
     except GeminiUnavailableError:
         logger.warning("GeminiUnavailableError enriching ingredient: %s", name)
         return None
+    except HttpError:
+        raise
     except Exception:
         logger.warning("Failed to enrich ingredient '%s'", name, exc_info=True)
         return None

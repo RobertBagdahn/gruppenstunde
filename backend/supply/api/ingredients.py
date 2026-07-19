@@ -837,16 +837,16 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
     except IntegrityError:
         raise HttpError(422, "Mindestens ein Vorschlag konnte wegen eines Namenskonflikts nicht angelegt werden.")
 
+    portions_qs = Portion.objects.filter(
+        ingredient=ingredient, deleted_at__isnull=True
+    ).order_by("rank", "id").select_related("measuring_unit")
+    packages_qs = Package.objects.filter(
+        ingredient=ingredient, deleted_at__isnull=True
+    ).order_by("rank", "id")
+
     return {
-        "portions": list(
-            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-            .order_by("rank", "id")
-            .select_related("measuring_unit")
-        ),
-        "packages": list(
-            Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-            .order_by("rank", "id")
-        ),
+        "portions": [PortionOut.from_orm(p) for p in portions_qs],
+        "packages": [PackageOut.from_orm(p) for p in packages_qs],
     }
 
 

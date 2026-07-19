@@ -233,7 +233,7 @@ export function AiSuggestDialog({
                           )}
                           {field.type === 'list' && field.priority !== undefined && field.priority >= 50 && field.priority < 100 && (
                             <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground">
-                              Packung / Stück
+                              Packung
                             </span>
                           )}
                         </div>

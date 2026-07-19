@@ -13,9 +13,6 @@ SYNONYMS = {
     "milliliter": "Milliliter",
     "l": "Liter",
     "liter": "Liter",
-    "stk": "Stück",
-    "stk.": "Stück",
-    "stück": "Stück",
     "tl": "Teelöffel",
     "teelöffel": "Teelöffel",
     "el": "Esslöffel",
@@ -26,27 +23,16 @@ SYNONYMS = {
     "prise": "Prise",
     "prisen": "Prise",
     "pr": "Prise",
-    "dose": "Dose",
-    "dosen": "Dose",
-    "becher": "Becher",
-    "scheibe": "Scheibe",
-    "scheiben": "Scheibe",
-    "portion": "Portion",
-    "portionen": "Portion",
-    "glas": "Glas",
-    "gläser": "Glas",
-    "bund": "Bund",
-    "msp": "Teelöffel",
-    "n.b.": "Stück",
-    "handvoll": "Stück",
-    "tropfen": "Milliliter",
+    "msp": "Messerspitze",
+    "messerspitze": "Messerspitze",
+    "schuss": "Schuss",
+    "schüsse": "Schuss",
 }
 
 
 def resolve_canonical_unit(name: str) -> MeasuringUnit | None:
     """Resolve a measuring unit name to a canonical MeasuringUnit instance."""
     if not name:
-        # Fallback to Gramm if empty
         return MeasuringUnit.objects.filter(name__iexact="Gramm").first()
 
     cleaned_name = name.strip().lower()

@@ -693,6 +693,8 @@ def get_suggestions(
             return []
         result = SuggestionsOutput.model_validate_json(response.text)
         suggestions = [item.model_dump() for item in result.suggestions]
+    except HttpError:
+        raise
     except Exception:
         logger.warning("Gemini suggestion request failed", exc_info=True)
         return []

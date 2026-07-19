@@ -24,7 +24,7 @@ def _client_with_user():
 
 
 def _g_unit() -> MeasuringUnit:
-    unit, _ = MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+    unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
     return unit
 
 
@@ -292,7 +292,7 @@ class TestBreakfastLeftovers:
 @pytest.mark.django_db
 class TestTagExisting:
     def _ensure_units(self):
-        MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})
+        MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
         MeasuringUnit.objects.get_or_create(name="ml", defaults={"quantity": 1.0, "unit": "ml"})
 
     def test_tags_existing_bread_ingredients(self):

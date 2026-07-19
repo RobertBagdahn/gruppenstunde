@@ -523,13 +523,13 @@ export function MealSlot({
                     if (cat.key === 'base') {
                       const sum = cat.items.reduce((s, it) => s + (it.quantity ?? 0), 0);
                       const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                      const unit = cat.items.find((it) => it.measuring_unit_name)?.measuring_unit_name || 'Scheibe';
+                      const unit = cat.items.find((it) => it.measuring_unit_name)?.measuring_unit_name || 'Gramm';
                       return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Brote gesamt</span><span className="text-muted-foreground">&times;{sum.toFixed(2).replace('.', ',')} {unit} · {Math.round(kcal)} kcal</span></div>;
                     }
                     if (cat.key === 'topping') {
                       const sum = cat.items.reduce((s, it) => s + (it.quantity ?? 0), 0);
                       const kcal = cat.items.reduce((s, it) => s + (it.energy_kcal ?? 0) / effPortions, 0);
-                      const unit = cat.items.find((it) => it.measuring_unit_name)?.measuring_unit_name || 'Portion';
+                      const unit = cat.items.find((it) => it.measuring_unit_name)?.measuring_unit_name || 'Gramm';
                       return <div className="px-3 py-1.5 border-t bg-muted/30 flex items-center justify-between text-xs font-medium"><span>Belag gesamt</span><span className="text-muted-foreground">&times;{sum.toFixed(2).replace('.', ',')} {unit} · {Math.round(kcal)} kcal</span></div>;
                     }
                     if (cat.key === 'warm') {

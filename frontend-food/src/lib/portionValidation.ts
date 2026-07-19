@@ -16,7 +16,7 @@ export function isSuspiciousPlaceholderWeight(portion: {
   if (Math.abs(w - 1.0) > 0.01) return false;
 
   // Whitelist of portion names that legitimately have weight_g≈1.0
-  const legitimateSmallUnits = ['Gramm', 'g', 'Prise', 'Messerspitze', 'Tropfen', 'Blatt', 'Stück'];
+  const legitimateSmallUnits = ['Gramm', 'Prise', 'Messerspitze'];
 
   const lowerName = portion.name.toLowerCase();
   return !legitimateSmallUnits.some((unit) => lowerName.includes(unit.toLowerCase()));

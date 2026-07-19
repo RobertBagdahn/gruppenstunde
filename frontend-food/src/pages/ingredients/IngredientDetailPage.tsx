@@ -41,6 +41,7 @@ import {
 } from '@/api/supplies';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import type { Package, Portion, MeasuringUnit, PortionSuggestion as PortionSuggestionShape, PackageSuggestion as PackageSuggestionShape } from '@/schemas/supply';
+import { formatMeasuringUnitLabel } from '@/lib/units';
 // Use the inferred return type from useIngredient to avoid TS2719 cross-module conflicts
 type IngredientDetail = NonNullable<ReturnType<typeof useIngredient>['data']>;
 import { ApiDeleteError } from '@/api/supplies';
@@ -321,7 +322,7 @@ function PortionCard({
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
-                  placeholder="z.B. EL, Stück, ml"
+                  placeholder="z.B. EL, ml, Gramm"
                 />
               </div>
               <div className="flex flex-col w-20">
@@ -343,7 +344,7 @@ function PortionCard({
                 >
                   <option value="">—</option>
                   {measuringUnits?.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
+                    <option key={u.id} value={u.id}>{formatMeasuringUnitLabel(u)}</option>
                   ))}
                 </select>
               </div>
@@ -652,7 +653,7 @@ function PortionsSection({
             <input
               value={newPortionName}
               onChange={(e) => setNewPortionName(e.target.value)}
-              placeholder="Portionsname (z.B. Stück, Tasse, EL)"
+              placeholder="Portionsname (z.B. Tasse, EL)"
               className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onAddPortion();
@@ -674,7 +675,7 @@ function PortionsSection({
               <option value="">Einheit…</option>
               {measuringUnits?.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name}
+                  {formatMeasuringUnitLabel(u)}
                 </option>
               ))}
             </select>
@@ -1632,6 +1633,19 @@ function buildIngredientSuggestionFields(
       group: 'Name',
       currentValue: ingredient.name,
       suggestedValue: nameSuggestion,
+      type: 'scalar',
+    });
+  }
+
+  // Description suggestion
+  const descriptionSuggestion = suggestions.description as string | undefined;
+  if (descriptionSuggestion && descriptionSuggestion !== (ingredient.description as string)) {
+    fields.push({
+      key: 'description',
+      label: 'Beschreibung',
+      group: 'Name',
+      currentValue: ingredient.description as unknown,
+      suggestedValue: descriptionSuggestion,
       type: 'scalar',
     });
   }

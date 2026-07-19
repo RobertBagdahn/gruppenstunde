@@ -6,6 +6,7 @@ via imports like ``from content.schemas import ContentListOut``.
 """
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from ninja import Schema
 from pydantic import field_validator
@@ -148,6 +149,7 @@ class ContentListOut(Schema):
     can_edit: bool = False
     can_delete: bool = False
     quality_score: int | None = None
+    costs_per_person: Decimal | None = None
 
     @staticmethod
     def resolve_image_url(obj) -> str | None:
@@ -198,6 +200,7 @@ class ContentDetailOut(Schema):
     can_delete: bool = False
     quality_score: int | None = None
     quality_score_updated_at: datetime | None = None
+    costs_per_person: Decimal | None = None
 
     @staticmethod
     def resolve_image_url(obj) -> str | None:

@@ -687,7 +687,7 @@ export function getCoverageBadge(coverage: number): { label: string; status: 'gr
   if (coverage > 1.0) return { label: `Überplant ${pct} %`, status: 'overplanned', effectiveCoverage };
   if (coverage >= 0.8) return { label: 'Vollständig', status: 'green', effectiveCoverage };
   if (coverage >= 0.35) return { label: `Teilweise ${pct} %`, status: 'yellow', effectiveCoverage };
-  return { label: `Lückenhaft ${pct} %`, status: 'red', effectiveCoverage };
+  return { label: `Teilweise ${pct} %`, status: 'red', effectiveCoverage };
 }
 
 /** Read meal_default_times from plan data with fallback to hardcoded defaults. */
