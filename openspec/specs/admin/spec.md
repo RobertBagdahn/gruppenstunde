@@ -67,7 +67,7 @@ The admin dashboard SHALL include statistics for all content types, not just Ide
 - **THEN** the admin SHALL be able to delete any content item regardless of authorship
 
 ### Requirement: Admin Material/Ingredient Management
-The admin SHALL provide management interfaces for both Material and Ingredient (Supply subtypes) with full CRUD, search, and filtering.
+The admin SHALL provide management interfaces for both Material and standalone Ingredient models with full CRUD, search, and filtering.
 
 #### Scenario: Material admin
 - **WHEN** an admin navigates to the Material admin

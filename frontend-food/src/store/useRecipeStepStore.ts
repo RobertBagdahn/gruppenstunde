@@ -13,6 +13,8 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { RecipeStep, RecipeStepInput } from '@/schemas/recipeStep';
 
+type RecipeStepUpdate = Partial<Omit<RecipeStep, 'id' | 'created_at' | 'updated_at'>>;
+
 interface RecipeStepStoreState {
   // --- Data ---
   steps: RecipeStep[];
@@ -38,7 +40,7 @@ interface RecipeStepStoreState {
   deleteStep: (stepId: number) => void;
 
   /** Update an existing step */
-  updateStep: (stepId: number, updates: Partial<RecipeStepInput>) => void;
+  updateStep: (stepId: number, updates: RecipeStepUpdate) => void;
 
   /** Reorder steps (swap sort_order of two steps) */
   reorderSteps: (fromIndex: number, toIndex: number) => void;
@@ -96,7 +98,11 @@ export const useRecipeStepStore = create<RecipeStepStoreState>()(
       set((state) => {
         const newStep: RecipeStep = {
           id: Math.max(0, ...state.steps.map((s) => s.id)) + 1, // Generate temp ID
-          sort_order: atIndex ?? state.steps.length,
+          sort_order:
+            atIndex ??
+            (state.steps.length > 0
+              ? Math.max(...state.steps.map((existingStep) => existingStep.sort_order)) + 1
+              : step.sort_order),
           instruction: step.instruction,
           duration_minutes: step.duration_minutes || null,
           section: step.section || '',
@@ -147,7 +153,7 @@ export const useRecipeStepStore = create<RecipeStepStoreState>()(
         }
       }),
 
-    updateStep: (stepId, updates: any) =>
+    updateStep: (stepId, updates: RecipeStepUpdate) =>
       set((state) => {
         const step = state.steps.find((s) => s.id === stepId);
         if (!step) return;

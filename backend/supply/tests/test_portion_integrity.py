@@ -156,8 +156,34 @@ def test_resolve_portion_url_import(ingredient, measuring_unit):
     p_id_2 = _resolve_portion(ingredient.id, measuring_unit.id, 120.0, "Gramm")
     assert p_id_1 == p_id_2
 
-    # 3 System-Portionen (g, Packung, Stück) + 1 per _resolve_portion
-    assert Portion.objects.filter(ingredient=ingredient).count() == 4
+    # The exact identity is reused on the second resolution.
+    assert Portion.objects.filter(ingredient=ingredient).count() == 1
+
+
+@pytest.mark.django_db
+def test_resolve_portion_does_not_mutate_referenced_weight(ingredient, measuring_unit):
+    from recipe.models import RecipeItem
+    from recipe.tests import make_recipe
+    from recipe.services.url_import_service import _resolve_portion
+
+    portion = Portion.objects.create(
+        ingredient=ingredient,
+        measuring_unit=measuring_unit,
+        name="Gramm",
+        quantity=1.0,
+        weight_g=10.0,
+        rank=1,
+    )
+    recipe = make_recipe()
+    RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=1.0)
+
+    replacement_id = _resolve_portion(ingredient.id, measuring_unit.id, 15.0, "Gramm")
+
+    portion.refresh_from_db()
+    replacement = Portion.objects.get(id=replacement_id)
+    assert replacement.id != portion.id
+    assert portion.weight_g == 10.0
+    assert replacement.weight_g == 15.0
 
 
 # ---------------------------------------------------------------------------

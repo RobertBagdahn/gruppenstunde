@@ -355,15 +355,15 @@ def _search_recipes(
     scope: Literal["all", "mine"] = "all",
     user=None,
 ) -> list[dict]:
-    from content.choices import ContentStatus
-    from recipe.models import Recipe
-
     if scope == "mine" and user and user.is_authenticated:
-        mine_q = Q(owner=user) | Q(authors=user)
-        qs = Recipe.objects.filter(Q(status=ContentStatus.APPROVED) | (Q(status=ContentStatus.DRAFT) & mine_q))
+        from content.services.food_access import visible_recipe_queryset
+
+        qs = visible_recipe_queryset(user)
         qs = apply_mine_filter(qs, user, "recipe")
     else:
-        qs = Recipe.objects.filter(status=ContentStatus.APPROVED)
+        from content.services.food_access import public_recipe_queryset
+
+        qs = public_recipe_queryset()
     qs = _fulltext_annotate(qs, q)
     return [
         _to_result(

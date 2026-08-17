@@ -2,10 +2,13 @@
 
 Staff-Workflow zur Verifizierung von Rezepten mit Rule-Check, Warning-Dialog und Verification-Readiness-Score.
 
-## ADDED Requirements
+## Purpose
+Diese Spec definiert den Staff-Verifikationsworkflow für Rezepte und seine Readiness-Prüfungen.
+
+## Requirements
 
 ### Requirement: Staff verification endpoint
-Ein authentifizierter Staff-User SHALL ein Rezept über `POST /api/recipes/{id}/verify/` verifizieren können. Der Endpoint SHALL das Rezept auf aktive Rules und Pflichtfelder prüfen und bei nicht erfüllten Bedingungen eine Warnung zurückgeben.
+Ein authentifizierter Staff-User SHALL ein Rezept über `POST /api/recipes/{id}/verify/` verifizieren können. Der Endpoint SHALL das Rezept auf aktive Rules und Pflichtfelder prüfen und eine Freigabe nur erlauben, wenn `can_verify=true` ist.
 
 #### Scenario: Successful verification without warnings
 - **WHEN** ein Staff-User `POST /api/recipes/{id}/verify/` mit `{ "confirm": true }` aufruft UND alle aktiven Rules und Pflichtfelder erfüllt sind
@@ -13,11 +16,10 @@ Ein authentifizierter Staff-User SHALL ein Rezept über `POST /api/recipes/{id}/
 - **THEN** wird ein `ApprovalLog`-Eintrag mit `action="approved"` und dem Reviewer erstellt
 - **THEN** gibt der Endpoint `{ "status": "approved", "warnings": [] }` zurück
 
-#### Scenario: Verification with warnings
-- **WHEN** ein Staff-User `POST /api/recipes/{id}/verify/` mit `{ "confirm": true }` aufruft UND mindestens eine aktive Rule oder ein Pflichtfeld nicht erfüllt ist
-- **THEN** wird der Rezept-Status trotzdem auf `approved` gesetzt (confirm = true)
-- **THEN** wird ein `ApprovalLog`-Eintrag mit `action="approved"` und den Warnungen im `reason`-Feld erstellt
-- **THEN** gibt der Endpoint `{ "status": "approved", "warnings": [...] }` zurück
+#### Scenario: Pflichtfeld fehlt
+- **WHEN** ein Staff-User `POST /api/recipes/{id}/verify/` mit `{ "confirm": true }` aufruft UND ein Pflichtfeld fehlt
+- **THEN** bleibt der Rezept-Status unverändert
+- **THEN** gibt der Endpoint `can_verify=false` und die fehlenden Felder zurück
 
 #### Scenario: Preview verification without confirming
 - **WHEN** ein Staff-User `POST /api/recipes/{id}/verify/` mit `{ "confirm": false }` aufruft

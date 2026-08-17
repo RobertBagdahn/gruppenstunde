@@ -290,8 +290,7 @@ class TestContextEnhancedSuggestions:
 
         plan = make_meal_plan(name="Plan mit Event")
         meal = make_meal(meal_plan=plan)
-        # Set event via the event FK (Event model)
-        from event.models import Event
+        from event.models import Event, EventMealPlanRelation
 
         event = Event.objects.create(
             name="Sommerlager 2026",
@@ -300,8 +299,7 @@ class TestContextEnhancedSuggestions:
             end_date=timezone.now() + timezone.timedelta(days=7),
             created_by=plan.created_by,
         )
-        plan.event = event
-        plan.save()
+        EventMealPlanRelation.objects.create(event=event, meal_plan=plan)
 
         service = IntelligentSuggestionsService(plan, meal, plan.created_by)
         context = service._build_context()

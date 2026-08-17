@@ -21,7 +21,7 @@ const TONE_OPTIONS = [
   {
     id: 'präzise',
     label: 'Präzise',
-    description: 'Sachlich und kurz mit Fachbegriffen',
+    description: 'Sachlich und knapp mit Fachbegriffen',
   },
   {
     id: 'ausführlich',
@@ -81,15 +81,21 @@ export default function ToneSelector({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-card text-card-foreground rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
+      <div
+        className="bg-card text-card-foreground rounded-lg shadow-lg p-6 max-w-md w-full mx-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tone-selector-title"
+      >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3 id="tone-selector-title" className="text-lg font-semibold text-foreground">
             Anweisung umschreiben
           </h3>
           <button
             onClick={onClose}
             disabled={isImproving}
             className="p-1 hover:bg-muted rounded disabled:opacity-50"
+            aria-label="Schließen"
           >
             <X size={20} />
           </button>

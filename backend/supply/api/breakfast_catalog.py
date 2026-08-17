@@ -191,29 +191,18 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     - Authenticated: system items + own items + items shared with user's groups
     """
     from supply.models import MeasuringUnit
-    from profiles.models import UserGroup
     from django.db.models import Q
 
     def _get_visible_ingredients(tag_filters: Q | None = None) -> list[dict]:
         """Get ingredients visible to user."""
-        base_qs = Ingredient.objects.select_related("owner").prefetch_related("portions")
+        from content.services.food_access import public_ingredient_queryset
+
+        base_qs = public_ingredient_queryset().select_related("owner").prefetch_related("portions")
         
         if tag_filters:
             base_qs = base_qs.filter(tag_filters)
         
         base_qs = base_qs.filter(is_standalone_food=True).order_by("name")
-        
-        # Permission filtering
-        if not request.user.is_authenticated:
-            # Unauthenticated: only system items
-            base_qs = base_qs.filter(owner__isnull=True, status="approved")
-        else:
-            # Authenticated: system + own + shared items
-            user_groups = UserGroup.objects.filter(memberships__user=request.user)
-            system_q = Q(owner__isnull=True, status="approved")
-            own_q = Q(owner=request.user)
-            shared_q = Q(visibility="shared", shared_groups__in=user_groups)
-            base_qs = base_qs.filter(system_q | own_q | shared_q).distinct()
         
         result = []
         for ing in base_qs.prefetch_related("portions"):
@@ -244,7 +233,9 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
                 pass
 
         # Drink recipes (Kaffee, Kakao, Tee) - use existing permission logic
-        drinks = Recipe.objects.filter(tags=drink_tag, recipe_type="drink", status="approved")
+        from content.services.food_access import public_recipe_queryset
+
+        drinks = public_recipe_queryset().filter(tags=drink_tag, recipe_type="drink", status="approved")
         # Filter by breakfast day tags if provided
         if parsed_tag_ids:
             for tid in parsed_tag_ids:
@@ -267,7 +258,9 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     warm_tag = Tag.objects.filter(slug="breakfast-warm-meal").first()
     warm_meal_recipes = []
     if warm_tag:
-        warm = Recipe.objects.filter(tags=warm_tag, recipe_type="breakfast", status="approved").values(
+        from content.services.food_access import public_recipe_queryset
+
+        warm = public_recipe_queryset().filter(tags=warm_tag, recipe_type="breakfast", status="approved").values(
             "id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g"
         )
         warm_meal_recipes = [
@@ -313,7 +306,9 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
 def get_drink_recipes(request) -> list[dict]:
     drink_tag = Tag.objects.filter(slug="breakfast-drink").first()
 
-    qs = Recipe.objects.filter(recipe_type="drink", status="approved")
+    from content.services.food_access import public_recipe_queryset
+
+    qs = public_recipe_queryset().filter(recipe_type="drink", status="approved")
     if drink_tag:
         qs = qs.filter(tags=drink_tag)
 

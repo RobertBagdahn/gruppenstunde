@@ -318,7 +318,7 @@ function MealPlanListPageInner() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl border-border shadow-soft">
-              {plan.start_datetime && plan.end_datetime && (plan.can_edit || plan.is_owner) && (
+              {plan.start_datetime && plan.end_datetime && plan.can_edit && (
                 <DropdownMenuItem
                   className="font-semibold text-xs"
                   onClick={(e) => {
@@ -337,7 +337,7 @@ function MealPlanListPageInner() {
                   Als Vorlage verwenden
                 </DropdownMenuItem>
               )}
-              {(plan.can_delete || plan.is_owner) && (
+              {plan.can_delete && (
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();

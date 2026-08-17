@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+KI-gestützte Zutatenvorschläge und Auswahl aktiver Normalportionen.
+
+## Requirements
 
 ### Requirement: AI suggests ingredients for a recipe
 The system SHALL provide an API endpoint that uses Gemini Flash to suggest a complete ingredient list with quantities for a recipe based on its title, description, and recipe type.
@@ -31,15 +35,15 @@ The system SHALL attempt to match AI-suggested ingredient names against existing
 - **THEN** the system creates a new Ingredient with `status="ai_generated"`, sets name and slug, and returns its id
 
 ### Requirement: System selects appropriate portion for each ingredient
-The system SHALL select the best-fit portion for each matched ingredient based on priority and default flags.
+The system SHALL select the active `rank=1` portion for each ingredient, falling back to the next active portion with valid weight when necessary.
 
-#### Scenario: Default portion exists
-- **WHEN** matched ingredient has a Portion with `is_default=True`
+#### Scenario: Normal portion exists
+- **WHEN** matched ingredient has an active `rank=1` Portion with valid weight
 - **THEN** that portion is used and quantity is calculated as `ai_estimated_grams / portion.weight_g`
 
-#### Scenario: No default portion but portions exist
-- **WHEN** matched ingredient has portions but none is default
-- **THEN** the portion with highest priority (lowest `priority` value) is used
+#### Scenario: Normal portion has no weight
+- **WHEN** the active `rank=1` portion has no valid weight but another active portion does
+- **THEN** the next active portion with valid weight is used
 
 #### Scenario: No portions exist for ingredient
 - **WHEN** matched ingredient has no Portion records

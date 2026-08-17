@@ -102,7 +102,7 @@ describe('ToneSelector', () => {
     const user = userEvent.setup();
     render(<ToneSelector {...defaultProps} />, { wrapper });
 
-    const closeButton = screen.getByRole('button', { name: /close|×|x/i });
+    const closeButton = screen.getByRole('button', { name: /schließen|close|×|x/i });
     await user.click(closeButton);
 
     expect(mockOnClose).toHaveBeenCalled();
@@ -126,15 +126,6 @@ describe('ToneSelector', () => {
   });
 
   it('should show loading state during API call', () => {
-    vi.mock('@/hooks/useRecipeSteps', () => ({
-      useImproveStepInstruction: () => ({
-        mutate: vi.fn(),
-        isPending: true,
-        isSuccess: false,
-        error: null,
-      }),
-    }));
-
     const { container } = render(<ToneSelector {...defaultProps} />, {
       wrapper,
     });
@@ -143,13 +134,13 @@ describe('ToneSelector', () => {
     expect(container).toBeInTheDocument();
   });
 
-  it('should have checkboxes for tone selection', () => {
-    const { container } = render(<ToneSelector {...defaultProps} />, {
-      wrapper,
-    });
+  it('should have selectable tone buttons', () => {
+    render(<ToneSelector {...defaultProps} />, { wrapper });
 
-    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-    expect(checkboxes.length).toBeGreaterThan(0);
+    const toneButtons = screen.getAllByRole('button').filter((button) =>
+      /präzise|ausführlich|kurz|lustig|wissenschaftlich|anfänger/i.test(button.textContent ?? ''),
+    );
+    expect(toneButtons).toHaveLength(6);
   });
 
   describe('modal styling', () => {
@@ -196,8 +187,7 @@ describe('ToneSelector', () => {
 
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        // Each button should have accessible text
-        expect(button.textContent?.trim().length).toBeGreaterThan(0);
+        expect(button.getAttribute('aria-label') || button.textContent?.trim().length).toBeTruthy();
       });
     });
 

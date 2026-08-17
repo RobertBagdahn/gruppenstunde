@@ -34,6 +34,7 @@ from recipe.schemas import (
     RecipeSuggestAllOut,
     RecipeUpdateIn,
     VerifyRequestIn,
+    VerifyStatusOut,
     VisibilityUpdateIn,
 )
 from recipe.schemas.import_schemas import (
@@ -68,44 +69,9 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
 
 
 def _get_visible_recipes_qs(request):
-    """
-    Return a Recipe queryset filtered by visibility rules.
+    from content.services.food_access import visible_recipe_queryset
 
-    Rules:
-    - System recipes (owner=null) with status=approved are always visible
-    - User's own recipes (owner=current_user) are always visible to them
-    - Public community recipes (visibility=public, status=approved) are visible
-    - Group recipes (visibility=group) visible to group members (TODO: implement group membership)
-    - Shared recipes (visibility=shared) visible to members of shared_groups
-    - Staff sees everything
-    """
-    base_prefetch = ("scout_levels", "tags__parent", "authors")
-    base_select = ("owner", "forked_from")
-
-    if request.user.is_authenticated and request.user.is_staff:
-        return Recipe.objects.all().select_related(*base_select).prefetch_related(*base_prefetch, "shared_groups")
-
-    # System recipes (Inspi-verified): owner is null, status approved
-    system_q = Q(owner__isnull=True, status="approved")
-    # Public community recipes: owner set, public visibility, approved
-    community_q = Q(owner__isnull=False, visibility="public", status="approved")
-
-    if request.user.is_authenticated:
-        # Own recipes (any status/visibility)
-        own_q = Q(owner=request.user)
-        # Also show own drafts (created_by, for backward compat)
-        created_q = Q(created_by=request.user)
-        
-        # Recipes shared with user's groups (new breakfast wizard model)
-        from profiles.models import UserGroup
-        user_groups = UserGroup.objects.filter(memberships__user=request.user)
-        shared_q = Q(visibility="shared", shared_groups__in=user_groups)
-        
-        visibility_q = system_q | community_q | own_q | created_q | shared_q
-    else:
-        visibility_q = system_q | community_q
-
-    return Recipe.objects.filter(visibility_q).select_related(*base_select).prefetch_related(*base_prefetch, "shared_groups").distinct()
+    return visible_recipe_queryset(request.user)
 
 
 def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = False) -> Recipe:
@@ -500,6 +466,9 @@ def get_recipe(request, recipe_id: int):
     recipe.is_owner = (
         request.user.is_authenticated and recipe.owner_id is not None and recipe.owner_id == request.user.id
     )
+    from content.services.audit_service import log_private_staff_food_access
+
+    log_private_staff_food_access(request.user, recipe, request.path)
 
     # Similar recipes
     _attach_similar_recipes(recipe)
@@ -531,6 +500,9 @@ def get_recipe_by_slug(request, slug: str):
     recipe.is_owner = (
         request.user.is_authenticated and recipe.owner_id is not None and recipe.owner_id == request.user.id
     )
+    from content.services.audit_service import log_private_staff_food_access
+
+    log_private_staff_food_access(request.user, recipe, request.path)
 
     # Similar recipes
     _attach_similar_recipes(recipe)
@@ -554,6 +526,9 @@ def export_recipe_pdf(request, slug: str, page_format: str = "A4"):
         _get_visible_recipes_qs(request),
         slug=slug,
     )
+    from content.services.audit_service import log_private_staff_food_access
+
+    log_private_staff_food_access(request.user, recipe, request.path)
 
     pdf_bytes = generate_recipe_pdf(recipe, page_format=page_format)
 
@@ -598,6 +573,7 @@ def create_recipe(request, payload: RecipeCreateIn):
         owner=request.user,
         visibility="private",
         status="draft",
+        source_url=payload.source_url.strip(),
     )
     recipe.save()
 
@@ -773,19 +749,10 @@ def delete_recipe(request, recipe_id: int):
     """Soft-delete a recipe."""
     _require_auth(request)
 
-    if not request.user.is_staff:
-        raise HttpError(403, "Nur Admins dürfen Rezepte löschen")
+    from content.services.food_access import get_visible_recipe_or_404, require_action
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-
-    # Protect recipes that are used in active meal plans.
-    from planner.models import MealItem
-
-    if MealItem.objects.filter(recipe=recipe).exists():
-        raise HttpError(
-            409,
-            "Dieses Rezept wird in Essensplänen verwendet und kann nicht gelöscht werden.",
-        )
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
+    require_action(recipe, request.user, "delete")
 
     recipe.soft_delete()
     return {"success": True}
@@ -931,16 +898,16 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
     if payload is None:
         payload = ForkRecipeIn()
 
-    original = get_object_or_404(
-        Recipe.objects.prefetch_related(
-            "recipe_items__portion",
-            "exchange_groups",
-            "tags",
-            "scout_levels",
-            "nutritional_tags",
-        ),
-        id=recipe_id,
-    )
+    from content.services.food_access import get_visible_recipe_or_404
+
+    original = get_visible_recipe_or_404(request.user, recipe_id)
+    original = Recipe.objects.prefetch_related(
+        "recipe_items__portion",
+        "exchange_groups",
+        "tags",
+        "scout_levels",
+        "nutritional_tags",
+    ).get(pk=original.pk)
 
     # Create the fork
     fork = Recipe(
@@ -972,7 +939,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
 
     group_map: dict[int, RecipeItemExchangeGroup] = {}
     for group in original.exchange_groups.all():
-        group_map[group.id] = RecipeItemExchangeUserGroup.objects.create(
+        group_map[group.id] = RecipeItemExchangeGroup.objects.create(
             recipe=fork,
             name=group.name,
         )
@@ -1003,7 +970,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
 # ===========================================================================
 
 
-@router.post("/{recipe_id}/verify/")
+@router.post("/{recipe_id}/verify/", response=VerifyStatusOut)
 def verify_recipe_endpoint(request, recipe_id: int, payload: VerifyRequestIn):
     """Verify a recipe. Staff-only. Checks rules and required fields, warns if not all met."""
     _require_auth(request)
@@ -1018,10 +985,11 @@ def verify_recipe_endpoint(request, recipe_id: int, payload: VerifyRequestIn):
     return result.to_dict()
 
 
-@router.get("/{recipe_id}/verification-status/")
+@router.get("/{recipe_id}/verification-status/", response=VerifyStatusOut)
 def get_verification_status(request, recipe_id: int):
     """Get the verification readiness status for a recipe."""
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    _require_auth(request)
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
 
     from recipe.services.verification_service import check_verification_readiness
 

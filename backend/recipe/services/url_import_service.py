@@ -906,6 +906,7 @@ def _build_recipe_items(
             measuring_unit_id=measuring_unit_id,
             estimated_weight_g=ing.estimated_portion_weight_g,
             unit_name=ing.unit,
+            portion_quantity=1.0,
         )
 
         results.append(
@@ -975,6 +976,7 @@ def _build_recipe_items_v2(
             measuring_unit_id=measuring_unit_id,
             estimated_weight_g=item.get("estimated_portion_weight_g", 100),
             unit_name=unit_str,
+            portion_quantity=1.0,
         )
 
         results.append(
@@ -1014,32 +1016,55 @@ def _resolve_portion(
     measuring_unit_id: int | None,
     estimated_weight_g: float,
     unit_name: str,
+    portion_quantity: float = 1.0,
 ) -> int | None:
-    """Find existing portion or create one with estimated weight."""
+    """Find or create a portion without mutating referenced definitions."""
     from supply.models import MeasuringUnit, Portion
 
-    # Strategy 1: Exact match on ingredient + measuring_unit
+    p_name = unit_name.strip() if unit_name else ""
+    if not p_name and measuring_unit_id:
+        p_name = MeasuringUnit.objects.get(id=measuring_unit_id).name
+
+    # Match the complete portion identity, not an arbitrary portion for a unit.
     if measuring_unit_id:
         portion = Portion.objects.filter(
             ingredient_id=ingredient_id,
+            name__iexact=p_name,
             measuring_unit_id=measuring_unit_id,
+            quantity=portion_quantity,
+            deleted_at__isnull=True,
         ).first()
         if portion:
-            if _should_update_weight(portion, estimated_weight_g):
+            if _should_update_weight(portion, estimated_weight_g) and not portion.recipe_items.exists():
                 portion.weight_g = estimated_weight_g
                 portion.save(update_fields=["weight_g"])
-            return portion.id
+            elif (
+                estimated_weight_g > 0
+                and portion.weight_g is not None
+                and abs(float(portion.weight_g) - estimated_weight_g) > 0.01
+                and portion.recipe_items.exists()
+            ):
+                portion = None
+            else:
+                return portion.id
 
-    # Strategy 2: Fallback — use default portion (first one) if no unit
-    if not measuring_unit_id:
-        portion = Portion.objects.filter(ingredient_id=ingredient_id).first()
+    # Without a unit, only reuse an exact named portion. Never choose an
+    # arbitrary first portion because that can silently change recipe units.
+    if not measuring_unit_id and p_name:
+        portion = Portion.objects.filter(
+            ingredient_id=ingredient_id,
+            name__iexact=p_name,
+            quantity=portion_quantity,
+            deleted_at__isnull=True,
+        ).first()
         if portion:
-            if _should_update_weight(portion, estimated_weight_g):
+            if _should_update_weight(portion, estimated_weight_g) and not portion.recipe_items.exists():
                 portion.weight_g = estimated_weight_g
                 portion.save(update_fields=["weight_g"])
             return portion.id
 
-    # Strategy 3: Create new portion with estimated weight
+    # Create a new active portion. The legacy schema makes names unique per
+    # ingredient, so a referenced definition gets a weight-qualified name.
     if measuring_unit_id:
         mu = MeasuringUnit.objects.get(id=measuring_unit_id)
         p_name = (unit_name or mu.name).strip()
@@ -1047,27 +1072,33 @@ def _resolve_portion(
             p_name = mu.name or "Stück"
 
         weight = estimated_weight_g if estimated_weight_g > 0 else None
-
-        # The unique constraint is case-insensitive on name (lower(name), ingredient_id),
-        # so look up case-insensitively first to avoid IntegrityError on e.g. "g" vs "G".
-        portion = Portion.objects.filter(
+        if Portion.objects.filter(
             ingredient_id=ingredient_id,
             name__iexact=p_name,
-        ).first()
-        if portion:
-            if _should_update_weight(portion, estimated_weight_g):
-                portion.weight_g = estimated_weight_g
-                portion.save(update_fields=["weight_g"])
-            return portion.id
+            deleted_at__isnull=True,
+        ).exists():
+            suffix = f" ({weight:g} g)" if weight else " (Import)"
+            p_name = f"{p_name}{suffix}"
+
+        next_rank = 1
+        if Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True, rank=1).exists():
+            next_rank = (
+                Portion.objects.filter(ingredient_id=ingredient_id, deleted_at__isnull=True)
+                .order_by("-rank")
+                .values_list("rank", flat=True)
+                .first()
+                or 1
+            ) + 1
 
         try:
             portion, _ = Portion.objects.get_or_create(
                 ingredient_id=ingredient_id,
                 name=p_name,
                 measuring_unit_id=measuring_unit_id,
-                quantity=1.0,
+                quantity=portion_quantity,
                 defaults={
                     "weight_g": weight,
+                    "rank": next_rank,
                 },
             )
         except IntegrityError:
@@ -1075,6 +1106,9 @@ def _resolve_portion(
             portion = Portion.objects.filter(
                 ingredient_id=ingredient_id,
                 name__iexact=p_name,
+                measuring_unit_id=measuring_unit_id,
+                quantity=portion_quantity,
+                deleted_at__isnull=True,
             ).first()
             if portion is None:
                 raise

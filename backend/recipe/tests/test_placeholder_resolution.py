@@ -10,7 +10,8 @@ import pytest
 from django.test import TestCase
 from django.contrib.auth.models import User
 
-from recipe.models import Recipe, RecipeItem, Ingredient, Portion, MeasuringUnit, RecipeStep, RecipeStepIngredient
+from recipe.models import Recipe, RecipeItem, RecipeStep, RecipeStepIngredient
+from supply.models import Ingredient, Portion, MeasuringUnit
 
 
 class TestPlaceholderResolution(TestCase):

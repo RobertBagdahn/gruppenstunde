@@ -1,11 +1,10 @@
 """Nutrition-related endpoints (NutriScore, Breakdown, Hints, Improvements, Suggestions)."""
 
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from recipe.models import Recipe, RecipeItem
+from recipe.models import RecipeItem
 from recipe.services.recipe_checks import _calculate_item_weight_g
 from recipe.schemas import (
     ImprovementListOut,
@@ -30,7 +29,9 @@ def get_recipe_nutri_score(request, recipe_id: int):
     from recipe.services.recipe_checks import get_recipe_nutritional_values
     from supply.services.nutri_service import get_nutri_score_details
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    from content.services.food_access import get_visible_recipe_or_404
+
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
     values = get_recipe_nutritional_values(recipe)
 
     class _AggIngredient:
@@ -54,7 +55,9 @@ def get_recipe_improvements(request, recipe_id: int):
     """Get ranked improvement suggestions (merged Nutri-Score + RecipeHint)."""
     from recipe.services.improvement_ranking_service import compute_improvement_ranking
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    from content.services.food_access import get_visible_recipe_or_404
+
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
     return compute_improvement_ranking(recipe)
 
 
@@ -68,7 +71,9 @@ def get_recipe_rules(request, recipe_id: int):
     """Evaluate all active recipe-scoped rules for a recipe."""
     from recipe.services.recipe_checks import evaluate_recipe_rules
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    from content.services.food_access import get_visible_recipe_or_404
+
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
     return evaluate_recipe_rules(recipe)
 
 
@@ -85,7 +90,9 @@ def get_llm_suggestions(request, recipe_id: int, body: LlmSuggestionRequestIn):
 
     from recipe.services.suggestion_service import get_suggestions
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    from content.services.food_access import get_visible_recipe_or_404
+
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
     return get_suggestions(recipe, body.objective, request.user, direction=body.direction)
 
 
@@ -101,7 +108,9 @@ def get_recipe_nutrition_breakdown(request, recipe_id: int, age: int | None = No
     Optional ``age`` and ``gender`` query params select a DGE reference row
     so that ``dge_coverage`` percentages can be returned.
     """
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    from content.services.food_access import get_visible_recipe_or_404
+
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
     items = (
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))

@@ -32,18 +32,6 @@ The system SHALL store all recipe quantities as per-1-portion values. The `Recip
 - **WHEN** recipe item quantities are modified
 - **THEN** the recipe cache (nutrition, price) SHALL be recalculated
 
-### Requirement: Backend API enforces servings=1
-
-The Recipe Create and Update API endpoints SHALL always set `portions=1` on the saved recipe, regardless of the value submitted by the client.
-
-#### Scenario: Create recipe with portions > 1
-- **WHEN** a client sends a recipe create request with `portions=4`
-- **THEN** the saved recipe SHALL have `portions=1`
-
-#### Scenario: Update recipe with portions > 1
-- **WHEN** a client sends a recipe update request with `portions=2`
-- **THEN** the saved recipe SHALL have `portions=1`
-
 ### Requirement: DGE-Referenz dynamisch (MODIFIED)
 Der Backend-API-Endpunkt für die Nährstoff-Analyse SHALL um optionale `age` (Integer, Jahre) und `gender` (String, "male"/"female") Query-Parameter erweitert werden. Der Backend-Endpunkt SHALL basierend auf age/gender andere DGE-Referenzwerte verwenden. Das Frontend SHALL im Analyse-Tab "Inhaltsstoffe" einen Dropdown anbieten, der age/gender setzt und die Daten neu lädt. Der Standardwert SHALL `25`/`male` bleiben.
 

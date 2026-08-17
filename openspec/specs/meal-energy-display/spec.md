@@ -33,14 +33,14 @@ Der Wert MUST gemeinsam mit den übrigen Cache-Feldern in
 `MealItemOut.energy_kcal` SHALL die tatsächliche Gesamtenergie des Rezept-Items in kcal
 liefern, skaliert auf die `effective_portions` der Mahlzeit
 (`override_portions or norm_portions`):
-`energy_kcal = cached_energy_total_kcal * factor * (effective_portions / servings)`.
+`energy_kcal = cached_energy_total_kcal * factor * (effective_portions / portions)`.
 Der Wert MUST die echte Rezeptmenge berücksichtigen und DARF NICHT auf dem
 pro-100g-Wert `cached_energy_kcal` basieren und DARF NICHT hartcodiert `norm_portions`
 verwenden, wenn die Mahlzeit `override_portions` gesetzt hat.
 
 #### Scenario: Item-Energie für ein realistisches Rezept
 - **WHEN** ein Mahlzeit-Item ein Rezept mit bekannter Gesamtenergie referenziert
-- **THEN** `energy_kcal` entspricht `cached_energy_total_kcal * factor * effective_portions / servings`
+- **THEN** `energy_kcal` entspricht `cached_energy_total_kcal * factor * effective_portions / portions`
   und ergibt nach Division (`/ effective_portions`) eine realistische
   Pro-Portion-Kalorienzahl
 

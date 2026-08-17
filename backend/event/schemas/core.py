@@ -448,6 +448,14 @@ class EventListOut(Schema):
     created_at: datetime
 
     @staticmethod
+    def resolve_meal_plan_id(obj) -> int | None:
+        relation = getattr(obj, "meal_plan_relations", None)
+        if relation is None:
+            return None
+        link = relation.first()
+        return link.meal_plan_id if link else None
+
+    @staticmethod
     def resolve_event_location(obj):
         return obj.event_location
 
@@ -529,6 +537,14 @@ class EventDetailOut(Schema):
     invitation_counts: InvitationCountsOut | None = None
     created_at: datetime
     updated_at: datetime
+
+    @staticmethod
+    def resolve_meal_plan_id(obj) -> int | None:
+        relation = getattr(obj, "meal_plan_relations", None)
+        if relation is None:
+            return None
+        link = relation.first()
+        return link.meal_plan_id if link else None
 
     @staticmethod
     def resolve_event_location(obj):

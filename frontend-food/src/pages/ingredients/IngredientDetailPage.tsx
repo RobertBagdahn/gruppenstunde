@@ -276,6 +276,7 @@ function PortionCard({
   const [editRank, setEditRank] = useState(String(portion.rank));
   const [editQuantity, setEditQuantity] = useState(String(portion.quantity ?? 1));
   const [editUnitId, setEditUnitId] = useState(String(portion.measuring_unit_id ?? ''));
+  const [editWeight, setEditWeight] = useState(portion.weight_g?.toString() || '');
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -283,6 +284,11 @@ function PortionCard({
     const trimmed = editName.trim();
     if (!trimmed) {
       toast.error('Name darf nicht leer sein');
+      return;
+    }
+    const weight = editWeight.trim() ? Number(editWeight) : null;
+    if (weight !== null && (!Number.isFinite(weight) || weight <= 0)) {
+      toast.error('Gewicht muss größer als 0 g sein');
       return;
     }
     updatePortion.mutate(
@@ -293,6 +299,7 @@ function PortionCard({
           rank: Number(editRank),
           quantity: Number(editQuantity) || 1,
           measuring_unit_id: editUnitId ? Number(editUnitId) : null,
+          weight_g: weight,
         },
       },
       {
@@ -356,6 +363,18 @@ function PortionCard({
                   type="number"
                   step="1"
                   className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
+                />
+              </div>
+              <div className="flex flex-col w-20">
+                <label className="text-[10px] text-muted-foreground font-medium mb-0.5">Gewicht (g)</label>
+                <input
+                  value={editWeight}
+                  onChange={(e) => setEditWeight(e.target.value)}
+                  type="number"
+                  min="0.01"
+                  step="0.1"
+                  className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
+                  placeholder="z. B. 15"
                 />
               </div>
               <button

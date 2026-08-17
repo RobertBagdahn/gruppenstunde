@@ -11,12 +11,13 @@ Das System SHALL eine einheitliche effektive Portionszahl pro Mahlzeit definiere
 Energie- und Kostenberechnungen (MealItem-Energie/Kosten, MealOut Gesamtenergie/-kosten,
 scale-to-target, Nutrition Summary, Cost Summary) MUST diese effektive Portionszahl
 verwenden und DÜRFEN NICHT hartcodiert `norm_portions` benutzen, wenn eine Mahlzeit
-`override_portions` gesetzt hat.
+`override_portions` gesetzt hat. Das gilt für Mengen-, Energie-, Kosten-, Einkaufslisten- und
+Kochplanberechnungen.
 
 #### Scenario: Energie nutzt override_portions
 - **WHEN** ein Plan `norm_portions = 10` hat und eine Mahlzeit `override_portions = 20`
-  mit einem Rezept (servings=4, cached_energy_total_kcal=2000, factor=1.0)
-- **THEN** `MealOut.total_energy_kcal` SHALL `2000 × 1.0 × (20/4) = 10000` kcal betragen
+  mit einem Rezept (`portions=1`, `cached_energy_total_kcal=2000`, factor=1.0)
+- **THEN** `MealOut.total_energy_kcal` SHALL `2000 × 1.0 × (20/1) = 40000` kcal betragen
   (nicht 5000)
 
 #### Scenario: Ohne override fällt auf norm_portions zurück
@@ -36,10 +37,14 @@ unterschiedliche effektive Portionszahlen haben.
 - **THEN** die Pro-Person-Tagessumme SHALL `5000/10 + 10000/20 = 1000` kcal/Person betragen
   (nicht `15000/10` und nicht `15000/20`)
 
-#### Scenario: Cost Summary cost_per_person je Mahlzeit
+#### Scenario: Cost Summary cost_per_person als gewichtetes Mittel
 - **WHEN** der Cost-Summary-Endpunkt cost_per_person für einen Plan mit override-Mahlzeiten
   berechnet
-- **THEN** cost_per_person SHALL die Summe der je-Mahlzeit-Pro-Person-Kosten sein
+- **THEN** `cost_per_person` SHALL `Summe(recipe_cost_in_meal) / Summe(effective_portions)` sein
+
+#### Scenario: Alle Ausgabewege verwenden effektive Portionen
+- **WHEN** eine Mahlzeit `override_portions` gesetzt hat
+- **THEN** verwenden Mengen, Energie, Kosten, Einkaufsliste und Kochplan diese effektive Portionszahl
 
 ### Requirement: effektive Portionen mit Float-norm_portions
 

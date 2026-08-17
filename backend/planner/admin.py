@@ -47,12 +47,17 @@ class MealInline(admin.TabularInline):
 
 @admin.register(MealPlan)
 class MealPlanAdmin(admin.ModelAdmin):
-    list_display = ["name", "created_by", "norm_portions", "event", "created_at"]
+    list_display = ["name", "created_by", "norm_portions", "event_name", "created_at"]
     list_filter = ["created_at"]
     search_fields = ["name"]
     filter_horizontal = ["nutritional_tags"]
     inlines = [MealInline]
     list_per_page = 25
+
+    @admin.display(description="Event")
+    def event_name(self, obj):
+        relation = getattr(obj, "event_relation", None)
+        return relation.event.name if relation else ""
 
 
 @admin.register(Meal)

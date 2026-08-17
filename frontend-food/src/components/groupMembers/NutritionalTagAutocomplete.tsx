@@ -7,7 +7,7 @@ import { X } from 'lucide-react';
 
 const NutritionalTagListSchema = z.array(NutritionalTagSchema);
 
-async function fetchJson<T>(url: string, schema: z.ZodType<T, any, any>): Promise<T> {
+async function fetchJson<T>(url: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   const data = await res.json();

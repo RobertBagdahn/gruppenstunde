@@ -112,6 +112,7 @@ def generate_shopping_list(
     if direct_ingredient_ids:
         for p in Portion.objects.filter(
             ingredient_id__in=direct_ingredient_ids,
+            deleted_at__isnull=True,
         ).select_related("measuring_unit"):
             if p.measuring_unit_id is not None:
                 portion_lookup[(p.ingredient_id, p.measuring_unit_id)] = p
@@ -139,6 +140,8 @@ def generate_shopping_list(
 
         if mi.recipe:
             recipe = mi.recipe
+            if recipe.deleted_at is not None:
+                continue
             if not getattr(recipe, "portions", None):
                 logger.warning(
                     "Recipe %s '%s' has portions=0 or None, skipping in shopping_service",
@@ -146,42 +149,19 @@ def generate_shopping_list(
                     getattr(recipe, "title", str(recipe)),
                 )
                 continue
-            recipe_items = list(recipe.recipe_items.all())
-            active_ids = set(mi.active_recipe_item_ids or [])
+            from planner.services.calculation_context import active_recipe_items
 
-            # Build override lookup for this meal item
-            overrides_map = {o.recipe_item_id: o for o in mi.overrides.all()}
-
-            for ri in recipe_items:
-                if not ri.portion:
-                    continue
-
-                ing = ri.portion.ingredient
+            for active_item in active_recipe_items(mi):
+                ri = active_item.recipe_item
+                ing = ri.portion.ingredient if ri.portion else None
                 if not ing:
                     continue
 
-                # Base items always included; exchange/optional only if in active_ids
-                if ri.exchange_group_id is not None or ri.is_optional:
-                    if ri.id not in active_ids:
-                        continue
-
-                # MealItemOverride: excluded items are not purchased
-                override = overrides_map.get(ri.id)
-                if override and override.excluded:
-                    continue
-
-                # quantity_override replaces recipe item quantity for purchase amount
-                effective_quantity = (
-                    float(override.quantity_override)
-                    if (override and override.quantity_override is not None)
-                    else float(ri.quantity)
-                )
-
                 recipe_servings = recipe.portions
-                weight_g = effective_quantity * (ri.portion.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
+                weight_g = (active_item.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
 
                 if not ri.portion.weight_g:
-                    raw_qty = ri.quantity * mi.factor * meal_scaling / recipe_servings
+                    raw_qty = active_item.quantity * mi.factor * meal_scaling / recipe_servings
                     portion_name = ri.portion.name or ""
                     if ing.id in raw_quantities:
                         raw_quantities[ing.id] = (
@@ -223,7 +203,7 @@ def generate_shopping_list(
                     )
                     sources_map[ing.id][source_key] = source
 
-        elif mi.ingredient:
+        elif mi.ingredient and mi.ingredient.deleted_at is None:
             ing = mi.ingredient
             ingredient_cache[ing.id] = ing
 

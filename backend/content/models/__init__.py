@@ -7,7 +7,7 @@ Re-exports all models so that existing imports like
 
 from .ai_interaction import AiInteraction
 from .approval import ApprovalLog, FeaturedContent
-from .audit import ChangeAuditLog
+from .audit import ChangeAuditLog, StaffFoodAccessLog
 from .collaborator import ContentCollaborator, ContentCollaboratorRole
 from .core import (
     AllObjectsManager,
@@ -27,6 +27,7 @@ __all__ = [
     "AllObjectsManager",
     "ApprovalLog",
     "ChangeAuditLog",
+    "StaffFoodAccessLog",
     "Content",
     "ContentCollaborator",
     "ContentCollaboratorRole",

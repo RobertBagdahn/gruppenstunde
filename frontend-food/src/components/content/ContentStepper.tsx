@@ -178,7 +178,7 @@ export default function ContentStepper({
             difficulty: data.difficulty,
             executionTime: data.execution_time,
             preparationTime: data.preparation_time,
-            selectedTagIds: data.suggested_tag_ids,
+            selectedTagIds: data.suggested_tag_ids.map(String),
             selectedScoutIds: data.suggested_scout_level_ids ?? [],
           });
           onRefurbishComplete?.(data);
@@ -224,7 +224,7 @@ export default function ContentStepper({
       },
       {
         onSuccess: (data) => {
-          setFormData({ selectedTagIds: data.tag_ids });
+          setFormData({ selectedTagIds: data.tag_ids.map(String) });
           toast.success(`${data.tag_ids.length} Tags vorgeschlagen`);
         },
         onError: () => toast.error('Tag-Vorschläge fehlgeschlagen'),

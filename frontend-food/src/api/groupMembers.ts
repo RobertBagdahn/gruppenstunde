@@ -20,7 +20,7 @@ function getCsrfToken(): string {
   return match ? match[1] : '';
 }
 
-async function fetchJson<T>(url: string, schema: z.ZodType<T, any, any>): Promise<T> {
+async function fetchJson<T>(url: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
@@ -29,7 +29,7 @@ async function fetchJson<T>(url: string, schema: z.ZodType<T, any, any>): Promis
   return schema.parse(data);
 }
 
-async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, any, any>): Promise<T> {
+async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
@@ -46,7 +46,7 @@ async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, any,
   return schema.parse(data);
 }
 
-async function patchJson<T>(url: string, body: unknown, schema: z.ZodType<T, any, any>): Promise<T> {
+async function patchJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, {
     method: 'PATCH',
     credentials: 'include',

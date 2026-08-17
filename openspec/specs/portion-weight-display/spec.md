@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Einheitliche, backendseitig formatierte Portions- und Gewichtsanzeigen.
+
+## Requirements
 
 ### Requirement: Kombiniertes Anzeigeformat für Zutaten
 Das Backend SHALL für jeden `RecipeItem`- und `MealItem`-API-Response ein `portion_display`-Feld als fertig formatierten String liefern. Das Format ist `"{quantity} {unit_name} {ingredient_name} ({weight})"`. Der String wird im Backend berechnet; das Frontend zeigt ihn unverändert an.
@@ -65,16 +69,16 @@ Wenn der `MeasuringUnit.name` exakt `"Stück"` ist, SHALL der Einheitenname im `
 - **WHEN** `measuring_unit.name` ist nicht „Stück" (z.B. „EL", „Prise", „Packung")
 - **THEN** MUST der Einheitenname im `portion_display` erscheinen
 
-### Requirement: MealItem-Anzeige pro NormPerson
-Im Essensplan SHALL `portion_display` die Menge **pro NormPerson** widerspiegeln (Gesamtgewicht dividiert durch `meal_plan.norm_portions`). Ein separates Feld `is_per_norm_person: true` zeigt an, dass das Frontend einen Kontexthinweis rendern soll.
+### Requirement: MealItem-Anzeige pro effektiver Portion
+Im Essensplan SHALL `portion_display` die Menge pro `effective_portions` widerspiegeln. Ein separates Feld `is_per_effective_portion: true` zeigt an, dass das Frontend einen Kontexthinweis rendern soll.
 
 #### Scenario: Essensplan-Anzeige pro Person
-- **WHEN** ein `MealItem` hat Gesamtgewicht 970g für 10 NormPersonen
-- **THEN** liefert die API `portion_display = "0,34 Äpfel (97g)"` und `is_per_norm_person = true`
+- **WHEN** ein `MealItem` hat Gesamtgewicht 970g für 20 effektive Portionen
+- **THEN** liefert die API `portion_display = "0,17 Äpfel (48,5g)"` und `is_per_effective_portion = true`
 
 #### Scenario: Hinweis-Badge im Frontend
-- **WHEN** `is_per_norm_person == true`
-- **THEN** MUST das Frontend einen Hinweis rendern, z.B. „pro Person (Normportionen)"
+- **WHEN** `is_per_effective_portion == true`
+- **THEN** MUST das Frontend einen Hinweis rendern, z.B. „pro effektive Portion"
 
 ### Requirement: Markierung für fehlende Gewichtsdaten
 Zutaten ohne definiertes `weight_g` (Portion ohne Gewicht) SHALL im Frontend orange markiert werden, damit Daten-Lücken sichtbar sind.

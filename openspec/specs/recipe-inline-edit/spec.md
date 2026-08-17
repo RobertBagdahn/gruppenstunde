@@ -1,14 +1,20 @@
-### Requirement: Standard-Portion und Menge beim Hinzufügen einer Zutat
-Wenn im InlineIngredientEditor eine neue Zutat per Autocomplete hinzugefügt wird, MUST das System automatisch die Portion mit dem höchsten `priority`-Wert aus der API-Antwort vorauswählen und die zugehörige `quantity` auf `1` setzen (nicht auf `0`).
+## Purpose
 
-Wenn mehrere Portionen existieren, MUST die mit dem höchsten `priority`-Wert die vorausgewählte sein — unabhängig von `is_default`.
+Inline-Bearbeitung von Rezeptzutaten und sichere Portionsermittlung.
+
+## Requirements
+
+### Requirement: Standard-Portion und Menge beim Hinzufügen einer Zutat
+Wenn im InlineIngredientEditor eine neue Zutat per Autocomplete hinzugefügt wird, MUST das System automatisch die aktive Portion mit dem niedrigsten `rank`-Wert aus der API-Antwort vorauswählen und die zugehörige `quantity` auf `1` setzen (nicht auf `0`).
+
+Wenn mehrere Portionen existieren, MUST die mit dem niedrigsten `rank`-Wert die vorausgewählte sein.
 
 #### Scenario: Zutat mit Stück-Portion höchster Priorität hinzufügen
-- **WHEN** der Nutzer "Apfel" per Autocomplete auswählt und der API-Aufruf Portionen `[{id: 5, name: "Stück", priority: 10, weight_g: 150, is_default: true}, {id: 6, name: "100g", priority: 0, weight_g: 100}]` zurückgibt
+- **WHEN** der Nutzer "Apfel" per Autocomplete auswählt und der API-Aufruf Portionen `[{id: 5, name: "Stück", rank: 1, weight_g: 150}, {id: 6, name: "100g", rank: 2, weight_g: 100}]` zurückgibt
 - **THEN** wird die neue Zeile mit `portion_id: 5`, `quantity: 1`, `measuring_unit_name: "Stück"` vorbefüllt
 
 #### Scenario: Zutat mit Gramm-Portion höchster Priorität hinzufügen
-- **WHEN** der Nutzer "Nudeln" auswählt und die höchstpriorisierte Portion `{name: "125g", priority: 8, weight_g: 125}` ist
+- **WHEN** der Nutzer "Nudeln" auswählt und die Normalportion `{name: "125g", rank: 1, weight_g: 125}` ist
 - **THEN** wird die neue Zeile mit `quantity: 1`, `measuring_unit_name: "g"` vorbefüllt
 
 #### Scenario: Nur eine Portion verfügbar
@@ -29,7 +35,7 @@ Wenn der `InlineIngredientEditor` einen `?newIngredientSlug=<slug>` Query-Parame
 - **THEN** SHALL das System die Zutat per `GET /api/ingredients/haferflocken/` laden (mit auth Cookie)
 - **THEN** SHALL das System die Portionen der Zutat per `GET /api/ingredients/haferflocken/portions/` laden
 - **THEN** SHALL der `IngredientQuantityDialog` mit den geladenen Portionen geöffnet werden
-- **THEN** die Portion mit dem höchsten `priority`-Wert SHALL vorausgewählt sein
+- **THEN** die Portion mit dem niedrigsten `rank`-Wert SHALL vorausgewählt sein
 
 #### Scenario: QuantityDialog bestätigt
 - **WHEN** der Nutzer im `IngredientQuantityDialog` Menge und Portion bestätigt
@@ -54,7 +60,7 @@ Wenn der `InlineIngredientEditor` einen `?newIngredientSlug=<slug>` Query-Parame
 ---
 
 ### Requirement: Editierbare Menge basiert auf autoritativem Backend-Gewicht
-Der `InlineIngredientEditor` MUSS den editierbaren `quantity`-Wert eines RecipeItems aus dem backend-autoritativen `item.weight_g`-Feld (im Verhältnis zur ursprünglichen `item.quantity`) berechnen, nicht aus einer Client-seitigen Suche in `ingredient_portions` nach `item.portion_id`. Die Menge MUSS immer in Gramm angezeigt werden, gebunden an die Bezeichnung der Rank-1-Portion der Zutat.
+Der `InlineIngredientEditor` SHALL den editierbaren `quantity`-Wert eines RecipeItems aus dem backend-autoritativen `item.weight_g`-Feld (im Verhältnis zur ursprünglichen `item.quantity`) berechnen, nicht aus einer Client-seitigen Suche in `ingredient_portions` nach `item.portion_id`. Die Menge SHALL immer in Gramm angezeigt werden, gebunden an die Bezeichnung der Rank-1-Portion der Zutat.
 
 #### Scenario: Portion ist in ingredient_portions vorhanden
 - **WHEN** ein RecipeItem geladen wird, dessen `portion_id` in der mitgelieferten `ingredient_portions`-Liste enthalten ist

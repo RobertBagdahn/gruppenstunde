@@ -410,7 +410,8 @@ class IntelligentSuggestionsService:
         parts = []
 
         # Event context
-        event = self.meal_plan.event
+        relation = getattr(self.meal_plan, "event_relation", None)
+        event = relation.event if relation else None
         if event:
             parts.append("=== Veranstaltungskontext ===")
             parts.append(f"Titel: {event.name}")

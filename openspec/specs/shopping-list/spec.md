@@ -4,6 +4,17 @@
 
 This specification defines the shopping list data model, API schemas, permissions, and frontend behavior for collaborative shopping lists.
 ## Requirements
+### Requirement: Aktive Gewichtsauflösung
+
+Direkt- und Rezeptzutaten SHALL denselben kanonischen Gewichts-Helper verwenden. Soft-gelöschte
+Portionen und Packungen sind keine Fallbacks; fehlendes gültiges Gewicht darf nicht als
+`measuring_unit.quantity` interpretiert werden. Details zur gemeinsamen Berechnung stehen in
+`food-calculation-consistency`.
+
+#### Scenario: Gelöschte Portion wird ignoriert
+- **WHEN** die bevorzugte Portion soft-gelöscht ist
+- **THEN** verwendet die Einkaufsliste keine gelöschte Portion als Fallback
+
 ### Requirement: Direktzutat-Gewicht über kanonischen Helper
 
 Das System SHALL für Direktzutaten (`MealItem.ingredient`) im Shopping Service `_resolve_ingredient_weight_g` aus `planner/services/meal_item_helpers.py` verwenden statt einer eigenen Inline-Berechnung. `measuring_unit.quantity` DARF NICHT als Gewicht verwendet werden.
@@ -37,4 +48,3 @@ The shopping list list item response schema (`ShoppingListOut` in list endpoints
 - **THEN** each item in the response MUST include `can_edit` and `can_delete`
 - **THEN** `can_edit` SHALL be `true` for lists where the user has editor or admin access
 - **THEN** `can_edit` SHALL be `false` for lists where the user only has viewer access or no access
-

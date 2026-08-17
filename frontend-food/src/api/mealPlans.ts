@@ -51,7 +51,7 @@ function getCsrfToken(): string {
   return match ? match[1] : '';
 }
 
-async function fetchJson<T>(url: string, schema: z.ZodType<T, any, any>): Promise<T> {
+async function fetchJson<T>(url: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
@@ -60,7 +60,7 @@ async function fetchJson<T>(url: string, schema: z.ZodType<T, any, any>): Promis
   return schema.parse(data);
 }
 
-async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, any, any>): Promise<T> {
+async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     credentials: 'include',
@@ -77,7 +77,7 @@ async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, any,
   return schema.parse(data);
 }
 
-async function patchJson<T>(url: string, body: unknown, schema: z.ZodType<T, any, any>): Promise<T> {
+async function patchJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, {
     method: 'PATCH',
     credentials: 'include',
@@ -156,12 +156,15 @@ export function useCreateMealPlan() {
     mutationFn: (body: {
       name: string;
       description?: string;
-      norm_portions?: number;
-      reserve_factor?: number;
-      event_id?: number | null;
+       norm_portions?: number;
+       reserve_factor?: number;
+       budget_per_person_per_day?: number | null;
+       visibility?: 'private' | 'group' | 'public' | 'draft';
+       event_id?: number | null;
       start_datetime?: string | null;
       end_datetime?: string | null;
-      day_part_factors?: Record<string, number>;
+       day_part_factors?: Record<string, number>;
+       meal_default_times?: Record<string, string[]>;
       nutritional_tag_ids?: number[];
     }) => postJson(`${API_BASE}/`, body, MealPlanSchema),
     onSuccess: () => {

@@ -191,7 +191,7 @@ def compute_recipe_lead_minutes(recipe) -> int:
 
 
 def _compute_scaled_ingredients(
-    recipe, portions: int, factor: float, active_recipe_item_ids: list[int] | None = None
+    recipe, portions: int, factor: float, active_recipe_item_ids: list[int] | None = None, meal_item=None
 ) -> list[CookingScheduleIngredient]:
     """Compute scaled ingredients for a recipe variant.
 
@@ -210,6 +210,26 @@ def _compute_scaled_ingredients(
     recipe_portions = recipe.portions or 1
     scale = factor * (portions / recipe_portions)
     ingredients: list[CookingScheduleIngredient] = []
+    if meal_item is not None:
+        from planner.services.calculation_context import active_recipe_items
+
+        scale = factor * (portions / recipe_portions)
+        return [
+            CookingScheduleIngredient(
+                name=entry.recipe_item.portion.ingredient.name
+                if entry.recipe_item.portion.ingredient
+                else entry.recipe_item.portion.name,
+                quantity=round(entry.quantity * entry.recipe_item.portion.quantity * scale, 2),
+                unit=entry.recipe_item.portion.measuring_unit.name
+                if entry.recipe_item.portion.measuring_unit
+                else "",
+                note=entry.recipe_item.note or "",
+                is_optional=entry.recipe_item.is_optional,
+                weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
+            )
+            for entry in active_recipe_items(meal_item)
+        ]
+
     active_ids_set = set(active_recipe_item_ids or [])
 
     for ri in recipe.recipe_items.all():
@@ -324,23 +344,26 @@ def _compute_item_nutrition(item, meal_item, effective_portions: int) -> dict[st
     servings = meal_item.recipe.portions or 1
     scale = meal_item.factor * (effective_portions / servings)
 
-    from planner.services.variant_service import compute_variant_energy
+    from planner.services.calculation_context import active_recipe_items
 
-    total_energy = compute_variant_energy(meal_item) * scale
+    values = {"energy_kcal": 0.0, "protein_g": 0.0, "fat_g": 0.0, "carbohydrate_g": 0.0}
+    active_items = active_recipe_items(meal_item)
+    if not active_items and not meal_item.recipe.recipe_items.exists():
+        return {
+            "energy_kcal": float(meal_item.recipe.cached_energy_total_kcal or 0) * scale,
+            "protein_g": float(meal_item.recipe.cached_protein_g or 0) * scale,
+            "fat_g": float(meal_item.recipe.cached_fat_g or 0) * scale,
+            "carbohydrate_g": float(meal_item.recipe.cached_carbohydrate_g or 0) * scale,
+        }
 
-    protein = 0.0
-    fat = 0.0
-    carbs = 0.0
+    for entry in active_items:
+        ingredient = entry.recipe_item.portion.ingredient
+        if not ingredient or entry.weight_g is None:
+            continue
+        for field in values:
+            values[field] += (getattr(ingredient, field, None) or 0.0) * entry.weight_g / 100.0 * scale
 
-    r = meal_item.recipe
-    if r.cached_protein_g is not None:
-        protein = float(r.cached_protein_g) * scale
-    if r.cached_fat_g is not None:
-        fat = float(r.cached_fat_g) * scale
-    if r.cached_carbohydrate_g is not None:
-        carbs = float(r.cached_carbohydrate_g) * scale
-
-    return {"energy_kcal": total_energy, "protein_g": protein, "fat_g": fat, "carbohydrate_g": carbs}
+    return values
 
 
 def _compute_item_cost(meal_item, effective_portions: int) -> float:
@@ -350,9 +373,20 @@ def _compute_item_cost(meal_item, effective_portions: int) -> float:
     servings = meal_item.recipe.portions or 1
     scale = meal_item.factor * (effective_portions / servings)
 
-    from planner.services.variant_service import compute_variant_cost
+    from planner.services.calculation_context import active_recipe_items
 
-    return compute_variant_cost(meal_item) * scale
+    active_items = active_recipe_items(meal_item)
+    if not active_items and not meal_item.recipe.recipe_items.exists():
+        return float(meal_item.recipe.cached_price_total or 0) * scale
+
+    return sum(
+        float(entry.recipe_item.portion.ingredient.price_per_kg or 0)
+        * float(entry.weight_g or 0)
+        / 1000.0
+        * scale
+        for entry in active_items
+        if entry.recipe_item.portion.ingredient
+    )
 
 
 def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
@@ -367,6 +401,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
             "items__recipe__recipe_items__portion__ingredient",
             "items__recipe__recipe_items__portion__ingredient__nutritional_tags",
             "items__recipe__nutritional_tags",
+            "items__overrides",
         )
         .order_by("start_datetime")
     )
@@ -389,7 +424,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
 
         for meal_item in meal.items.all():
             recipe = meal_item.recipe
-            if recipe is None:
+            if recipe is None or recipe.deleted_at is not None:
                 continue
 
             key = (recipe.id, meal_item.variant_group_id)
@@ -436,7 +471,13 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                     # Compute portions and ingredients with variant filtering
                     variant_portions = int(portions * meal_item.factor)
                     active_ids = meal_item.active_recipe_item_ids or []
-                    ingredients = _compute_scaled_ingredients(recipe, portions, meal_item.factor, active_ids)
+                    ingredients = _compute_scaled_ingredients(
+                        recipe,
+                        portions,
+                        meal_item.factor,
+                        active_ids,
+                        meal_item=meal_item,
+                    )
 
                     steps_parsed = parse_recipe_steps(recipe.description)
                     nutrition = _compute_item_nutrition(meal_item, meal_item, portions)

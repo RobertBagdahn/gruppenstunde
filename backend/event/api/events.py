@@ -3,13 +3,22 @@
 import logging
 import math
 
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from event.choices import GenderChoices, ParticipantVisibilityChoices
-from event.models import BookingOption, Event, EventLocation, MeetingPoint, Participant, Registration
+from event.models import (
+    BookingOption,
+    Event,
+    EventLocation,
+    EventMealPlanRelation,
+    MeetingPoint,
+    Participant,
+    Registration,
+)
 from event.schemas import (
     BookingOptionCreateIn,
     BookingOptionOut,
@@ -34,6 +43,24 @@ from .helpers import check_rate_limit, require_auth, require_event_manager
 logger = logging.getLogger(__name__)
 
 event_router = Router(tags=["events"])
+
+
+def _sync_meal_plan_relation(event: Event, meal_plan, user) -> None:
+    """Persist the canonical event/meal-plan link after both permissions pass."""
+    from planner.api.meal_plan import _require_edit
+
+    if meal_plan is not None:
+        _require_edit(meal_plan, user)
+        with transaction.atomic():
+            existing = EventMealPlanRelation.objects.filter(meal_plan=meal_plan).first()
+            if existing is not None and existing.event_id != event.id:
+                raise HttpError(409, "Der Essensplan ist bereits mit einem anderen Event verknüpft.")
+            EventMealPlanRelation.objects.update_or_create(
+                meal_plan=meal_plan,
+                defaults={"event": event},
+            )
+    else:
+        EventMealPlanRelation.objects.filter(event=event).delete()
 
 
 # ==========================================================================
@@ -268,6 +295,7 @@ def create_event(request, payload: EventCreateIn):
     """Create a new event with optional inline booking options."""
     require_auth(request)
     data = payload.dict(exclude={"booking_options", "group_id", "invited_user_ids", "invited_group_ids"})
+    meal_plan_for_link = None
 
     # Handle event_location_id
     event_location_id = data.pop("event_location_id", None)
@@ -290,10 +318,14 @@ def create_event(request, payload: EventCreateIn):
     if meal_plan_id:
         from planner.models import MealPlan
 
-        data["meal_plan"] = get_object_or_404(MealPlan, id=meal_plan_id)
+        meal_plan_for_link = get_object_or_404(MealPlan, id=meal_plan_id)
+        from planner.api.meal_plan import _require_edit
+
+        _require_edit(meal_plan_for_link, request.user)
 
     event = Event.objects.create(created_by=request.user, **data)
     event.responsible_persons.add(request.user)
+    _sync_meal_plan_relation(event, meal_plan_for_link, request.user)
 
     # Create inline booking options if provided
     if payload.booking_options:
@@ -560,6 +592,11 @@ def update_event(request, event_slug: str, payload: EventUpdateIn):
     require_event_manager(event, request.user)
 
     data = payload.dict(exclude_unset=True)
+    meal_plan_changed = "meal_plan_id" in data
+    meal_plan_for_link = None
+    if not meal_plan_changed:
+        existing_relation = EventMealPlanRelation.objects.filter(event=event).select_related("meal_plan").first()
+        meal_plan_for_link = existing_relation.meal_plan if existing_relation else None
 
     # Handle event_location_id separately
     if "event_location_id" in data:
@@ -591,13 +628,18 @@ def update_event(request, event_slug: str, payload: EventUpdateIn):
         if mp_id is not None:
             from planner.models import MealPlan
 
-            event.meal_plan = get_object_or_404(MealPlan, id=mp_id)
+            meal_plan_for_link = get_object_or_404(MealPlan, id=mp_id)
+            from planner.api.meal_plan import _require_edit
+
+            _require_edit(meal_plan_for_link, request.user)
         else:
-            event.meal_plan = None
+            meal_plan_for_link = None
 
     for field, value in data.items():
         setattr(event, field, value)
     event.save()
+    if meal_plan_changed:
+        _sync_meal_plan_relation(event, meal_plan_for_link, request.user)
     return event
 
 

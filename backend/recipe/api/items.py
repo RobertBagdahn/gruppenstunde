@@ -52,36 +52,11 @@ def _can_edit_recipe(request, recipe: Recipe) -> bool:
 
 
 def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = True) -> Recipe:
-    """Return a Recipe visible to the current user, or raise 403/404.
-
-    Authenticated users can see their own recipes + approved public/system ones.
-    Unauthenticated users can only see approved public/system recipes (when require_auth=False).
-    """
-    from django.db.models import Q
-
     if require_auth:
         _require_auth(request)
+    from content.services.food_access import get_visible_recipe_or_404
 
-    qs = Recipe.objects.filter(id=recipe_id)
-
-    if request.user.is_authenticated and request.user.is_staff:
-        recipe = qs.first()
-    elif request.user.is_authenticated:
-        user = request.user
-        visible = Q(owner__isnull=True, status="approved")  # system recipes
-        visible |= Q(status="approved", visibility="public")  # community
-        visible |= Q(owner=user)  # own recipes
-        visible |= Q(created_by=user)  # created by user
-        recipe = qs.filter(visible).first()
-    else:
-        # Anonymous — only public/system recipes
-        visible = Q(owner__isnull=True, status="approved")
-        visible |= Q(status="approved", visibility="public")
-        recipe = qs.filter(visible).first()
-
-    if recipe is None:
-        raise HttpError(404, "Rezept nicht gefunden")
-    return recipe
+    return get_visible_recipe_or_404(request.user, recipe_id)
 
 
 @router.get("/{recipe_id}/recipe-items/", response=list[RecipeItemOut])
@@ -393,8 +368,10 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
 def estimate_quantities(request, recipe_id: int):
     """AI-estimate realistic quantities for existing recipe items."""
     _require_auth(request)
-    recipe = get_object_or_404(Recipe, id=recipe_id)
-    if not _can_edit_recipe(request, recipe):
+    recipe = _get_visible_recipe_or_404(request, recipe_id)
+    from content.services.food_access import can_edit
+
+    if not can_edit(recipe, request.user):
         raise HttpError(403, "Keine Berechtigung")
 
     from recipe.services.ai_ingredients_service import RecipeQuantityEstimationService

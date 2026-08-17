@@ -79,14 +79,6 @@ class MealPlan(models.Model):
     previous_norm_portions = models.FloatField(default=10.0, verbose_name=_("Vorherige Norm-Portionen"))
     reserve_factor = models.FloatField(default=1.1, verbose_name=_("Reservefaktor"))
     activity_factor = models.FloatField(default=1.5, verbose_name=_("Aktivitätsfaktor (PAL)"))
-    event = models.ForeignKey(
-        "event.Event",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="meal_plans",
-        verbose_name=_("Event"),
-    )
     start_datetime = models.DateTimeField(verbose_name=_("Startdatum/-zeit"))
     end_datetime = models.DateTimeField(null=True, blank=True, verbose_name=_("Enddatum/-zeit"))
     created_by = models.ForeignKey(

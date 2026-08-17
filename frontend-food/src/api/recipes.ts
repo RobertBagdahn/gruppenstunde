@@ -235,7 +235,7 @@ export function useVerifyRecipe(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: VerifyRequest) =>
-      postJson(`${API_BASE}/${recipeId}/verify/`, payload, z.any()),
+      postJson(`${API_BASE}/${recipeId}/verify/`, payload, VerifyStatusSchema),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
       queryClient.invalidateQueries({ queryKey: ['recipe-verification-status', recipeId] });

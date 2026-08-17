@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Diese Spec definiert die Integritätsregeln für Portionsdaten und ihre Erzeugungspfade.
+
+## Requirements
 
 ### Requirement: Zentrale weight_g-Berechnung
 
@@ -51,11 +54,19 @@ Beim Erstellen von Portionen MUST das System Einheiten auf vorhandene kanonische
 
 ### Requirement: Portion-Deduplizierung pro Zutat
 
-Innerhalb einer Zutat MUST das System Portionen über alle Erzeugungspfade hinweg eindeutig halten. Es DARF KEINE zweite Portion mit identischem `(ingredient, name, measuring_unit, quantity)` angelegt werden; stattdessen MUSS die bestehende Portion wiederverwendet werden.
+Innerhalb einer Zutat MUST das System Portionen über alle Erzeugungspfade hinweg über
+`(ingredient, name, measuring_unit, quantity)` eindeutig halten. Ein abweichendes `weight_g` DARF
+eine referenzierte Portion nicht verändern; dafür MUSS eine neue Portion angelegt werden. Bei
+identischem Schlüssel MUSS die bestehende Portion wiederverwendet werden.
 
 #### Scenario: URL-Import legt keine Duplikat-Portion an
 - **WHEN** der URL-Import eine Portion mit `(ingredient, name, measuring_unit, quantity)` erzeugen will, die bereits existiert
 - **THEN** MUSS die bestehende `portion_id` zurückgegeben werden statt eine neue zu erstellen
+
+#### Scenario: Referenzierte Portion mit anderem Gewicht
+- **WHEN** der URL-Import dieselbe fachliche Portion mit abweichendem Gewicht findet und die alte Portion referenziert ist
+- **THEN** bleibt das Gewicht der alten Portion unverändert
+- **THEN** wird eine separate Portion für das neue Gewicht verwendet oder angelegt
 
 #### Scenario: Cleanup-Migration entfernt bestehende Duplikate
 - **WHEN** die Daten-Migration läuft und eine Zutat mehrere identische Portionen hat (z. B. „Pralinen" mit 146 Portionen, 2 distinkte Definitionen)

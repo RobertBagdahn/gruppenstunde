@@ -38,7 +38,7 @@ PackingItem SHALL support an `is_do_not_bring` boolean field (default: `False`).
 - **THEN** the item SHALL be persisted with `is_do_not_bring=True`
 
 ### Requirement: PackingItem optional Supply reference
-PackingItem SHALL optionally reference a Supply (Material or Ingredient) via ContentType-based FK. When linked, the item SHALL inherit name, description, and price from the Supply.
+PackingItem SHALL optionally reference a Material or standalone Ingredient via a ContentType-based FK. When linked, the item SHALL inherit name, description, and price from the referenced model.
 
 #### Scenario: Packing item linked to Material
 - **WHEN** a PackingItem references a Material

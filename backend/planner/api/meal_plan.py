@@ -68,6 +68,7 @@ from planner.schemas import (
 )
 from planner.services.notification_service import notify_collaborator_added
 from recipe.models import Recipe, RecipeItem
+from recipe.schemas import SuggestionDashboardOut
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
 
 logger = logging.getLogger(__name__)
@@ -260,7 +261,7 @@ def list_meal_plans(
     _require_auth(request)
 
     qs = (
-        MealPlan.objects.select_related("event", "owner")
+        MealPlan.objects.select_related("owner", "event_relation__event")
         .prefetch_related("nutritional_tags", "tags")
         .annotate(
             meals_count_ann=Count("meals", distinct=True),
@@ -301,7 +302,11 @@ def list_meal_plans(
             qs = qs.distinct()
 
     if search:
-        qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search) | Q(event__name__icontains=search))
+        qs = qs.filter(
+            Q(name__icontains=search)
+            | Q(description__icontains=search)
+            | Q(event_relation__event__name__icontains=search)
+        )
 
     if date_from:
         qs = qs.filter(end_datetime__date__gte=date_from)
@@ -362,11 +367,13 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
         meal_plan.meal_default_times = payload.meal_default_times
 
     # Optional event binding
+    event_for_link = None
     if payload.event_id is not None:
         from event.models import Event
 
-        event = get_object_or_404(Event, id=payload.event_id)
-        meal_plan.event = event
+        event_for_link = get_object_or_404(Event, id=payload.event_id)
+        if not event_for_link.user_can_manage(request.user):
+            raise HttpError(403, "Keine Berechtigung für dieses Event")
 
     # Set start/end datetime (make timezone-aware if naive)
     if payload.start_datetime:
@@ -382,17 +389,25 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
             else payload.end_datetime
         )
     if not meal_plan.start_datetime:
-        if meal_plan.event and meal_plan.event.start_date and meal_plan.event.end_date:
+        if event_for_link and event_for_link.start_date and event_for_link.end_date:
             meal_plan.start_datetime = timezone.make_aware(
-                dt.datetime.combine(meal_plan.event.start_date, EVENT_DEFAULT_ARRIVAL_TIME)
+                dt.datetime.combine(event_for_link.start_date, EVENT_DEFAULT_ARRIVAL_TIME)
             )
             meal_plan.end_datetime = timezone.make_aware(
-                dt.datetime.combine(meal_plan.event.end_date, EVENT_DEFAULT_DEPARTURE_TIME)
+                dt.datetime.combine(event_for_link.end_date, EVENT_DEFAULT_DEPARTURE_TIME)
             )
         else:
             meal_plan.start_datetime = timezone.now()
 
     meal_plan.save()
+
+    if event_for_link is not None:
+        from event.models import EventMealPlanRelation
+
+        EventMealPlanRelation.objects.update_or_create(
+            meal_plan=meal_plan,
+            defaults={"event": event_for_link},
+        )
 
     if nutritional_tags_to_set is not None:
         meal_plan.nutritional_tags.set(nutritional_tags_to_set)
@@ -417,7 +432,7 @@ def get_meal_plan(request, meal_plan_id: int):
     _require_auth(request)
 
     meal_plan = get_object_or_404(
-        MealPlan.objects.select_related("event", "owner").prefetch_related(
+        MealPlan.objects.select_related("owner", "event_relation__event").prefetch_related(
             Prefetch(
                 "meals__items",
                 queryset=MealItem.objects.select_related("recipe", "meal__meal_plan").prefetch_related(
@@ -434,6 +449,7 @@ def get_meal_plan(request, meal_plan_id: int):
 
     role = _require_access(meal_plan, request.user)
     meal_plan.can_edit = role in ("owner", MealPlanCollaboratorRole.ADMIN, MealPlanCollaboratorRole.EDITOR)
+    meal_plan.can_delete = role == "owner" or request.user.is_staff
     meal_plan.is_owner = role == "owner"
     return meal_plan
 
@@ -823,11 +839,13 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
     recipe = None
     ingredient = None
     if payload.recipe_id:
-        recipe = get_object_or_404(Recipe, id=payload.recipe_id)
-    if payload.ingredient_id:
-        from supply.models import Ingredient
+        from content.services.food_access import get_visible_recipe_or_404
 
-        ingredient = get_object_or_404(Ingredient, id=payload.ingredient_id)
+        recipe = get_visible_recipe_or_404(request.user, payload.recipe_id)
+    if payload.ingredient_id:
+        from content.services.food_access import get_visible_ingredient_or_404
+
+        ingredient = get_visible_ingredient_or_404(request.user, payload.ingredient_id)
 
     item = _create_meal_item(
         meal=meal,
@@ -871,11 +889,13 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
                 raise HttpError(422, "Rezept, Zutat oder Anzeigename muss angegeben werden")
 
             if item_in.recipe_id:
-                recipe = get_object_or_404(Recipe, id=item_in.recipe_id)
-            if item_in.ingredient_id:
-                from supply.models import Ingredient
+                from content.services.food_access import get_visible_recipe_or_404
 
-                ingredient = get_object_or_404(Ingredient, id=item_in.ingredient_id)
+                recipe = get_visible_recipe_or_404(request.user, item_in.recipe_id)
+            if item_in.ingredient_id:
+                from content.services.food_access import get_visible_ingredient_or_404
+
+                ingredient = get_visible_ingredient_or_404(request.user, item_in.ingredient_id)
 
             # Auto-create Portion if it doesn't exist for this ingredient + measuring_unit
             if ingredient and item_in.measuring_unit_id:
@@ -936,7 +956,13 @@ def batch_create_meal_items(request, meal_plan_id: int, meal_id: int, payload: M
 
     created = []
     with transaction.atomic():
-        recipe = get_object_or_404(Recipe, id=payload.items[0].recipe_id)
+        recipe_ids = {item.recipe_id for item in payload.items}
+        if len(recipe_ids) != 1:
+            raise HttpError(422, "Alle Varianten müssen dasselbe Rezept verwenden.")
+
+        from content.services.food_access import get_visible_recipe_or_404
+
+        recipe = get_visible_recipe_or_404(request.user, payload.items[0].recipe_id)
         # Delete original parent items (without variant_group_id) for this meal + recipe
         MealItem.objects.filter(meal=meal, recipe=recipe, variant_group_id__isnull=True).delete()
 
@@ -1348,7 +1374,9 @@ def cost_summary(request, meal_plan_id: int):
     # Aggregate costs per day and meal. ``per_person`` sums the per-meal
     # cost_per_person values so meals with differing effective_portions
     # (e.g. day guests) aggregate correctly.
-    day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "per_person": Decimal("0"), "meals": []})
+    day_costs: dict[str, dict] = defaultdict(
+        lambda: {"total": Decimal("0"), "portions": Decimal("0"), "meals": []}
+    )
 
     # Aggregate costs per recipe:
     # total_cost   = sum of scaled cost across all meals this recipe appears in
@@ -1361,6 +1389,27 @@ def cost_summary(request, meal_plan_id: int):
         meal_date = meal.start_datetime.date()
         effective_portions = meal.effective_portions
         meal_cost = Decimal("0")
+
+        if meal.is_external:
+            if meal.external_cost_per_person is not None:
+                meal_cost = Decimal(str(meal.external_cost_per_person)) * Decimal(str(effective_portions))
+            cost_per_person = (
+                meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
+            )
+            day_costs[str(meal_date)]["total"] += meal_cost
+            day_costs[str(meal_date)]["portions"] += Decimal(str(effective_portions))
+            day_costs[str(meal_date)]["meals"].append(
+                {
+                    "meal_id": meal.id,
+                    "meal_type": meal.meal_type,
+                    "date": meal_date,
+                    "cost": meal_cost,
+                    "cost_per_person": cost_per_person,
+                    "is_external": True,
+                    "external_cost_per_person": meal.external_cost_per_person,
+                }
+            )
+            continue
 
         for item in meal.items.all():
             if item.recipe:
@@ -1444,7 +1493,7 @@ def cost_summary(request, meal_plan_id: int):
         cost_per_person = meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
 
         day_costs[str(meal_date)]["total"] += meal_cost
-        day_costs[str(meal_date)]["per_person"] += cost_per_person
+        day_costs[str(meal_date)]["portions"] += Decimal(str(effective_portions))
         day_costs[str(meal_date)]["meals"].append(
             {
                 "meal_id": meal.id,
@@ -1452,13 +1501,17 @@ def cost_summary(request, meal_plan_id: int):
                 "date": meal_date,
                 "cost": meal_cost,
                 "cost_per_person": cost_per_person,
+                "is_external": False,
+                "external_cost_per_person": None,
             }
         )
 
     # Build response
     total_cost = sum(d["total"] for d in day_costs.values())
-    # Sum per-meal cost_per_person values (handles differing effective_portions)
-    cost_per_person = sum(d["per_person"] for d in day_costs.values())
+    total_effective_portions = sum(d["portions"] for d in day_costs.values())
+    cost_per_person = (
+        total_cost / total_effective_portions if total_effective_portions > 0 else Decimal("0")
+    )
     reserve_factor = meal_plan.reserve_factor or 1.0
     total_cost_with_reserve = total_cost * Decimal(str(reserve_factor))
 
@@ -1469,7 +1522,9 @@ def cost_summary(request, meal_plan_id: int):
             {
                 "date": date_str,
                 "total_cost": d["total"],
-                "cost_per_person": d["per_person"],
+                "cost_per_person": (
+                    d["total"] / d["portions"] if d["portions"] > 0 else Decimal("0")
+                ),
                 "meals": d["meals"],
             }
         )
@@ -2349,13 +2404,14 @@ def remove_collaborator(request, meal_plan_id: int, collaborator_id: int):
 
 @meal_plan_router.get(
     "/{meal_plan_id}/suggestions/",
-    response=dict,
+    response=SuggestionDashboardOut,
     summary="Get suggestions dashboard for a meal plan",
 )
 def get_suggestions(request, meal_plan_id: int):
     """Evaluate all rules and system checks, return suggestion dashboard."""
     _require_auth(request)
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
 
     from recipe.services.suggestion_service import evaluate_suggestions
 
@@ -2770,14 +2826,16 @@ def sync_event_participants(request, meal_plan_id: int):
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, request.user)
 
-    if not meal_plan.event:
+    relation = getattr(meal_plan, "event_relation", None)
+    event = relation.event if relation else None
+    if event is None:
         raise HttpError(400, "Kein Event mit diesem Essensplan verknüpft")
 
     from event.models.core import Participant
 
     participants = list(
         Participant.objects.filter(
-            registration__event=meal_plan.event
+            registration__event=event
         ).select_related("person").prefetch_related("nutritional_tags")
     )
 

@@ -5,11 +5,11 @@ TBD - created by archiving change show-portion-quantities. Update Purpose after 
 ## Requirements
 ### Requirement: Abgeleiteter Portionshinweis neben Gramm-Mengen
 
-Das System SHALL für jede angezeigte Gramm-Menge einer Zutat, die eine benannte Portion (`priority`, `weight_g`, `name` ungleich der reinen Gramm-Basiseinheit) besitzt, zusätzlich einen abgeleiteten Portionshinweis anzeigen. Format: `"{grams}g · ≈ {count} {portion_name(s)}"`. Die Gramm-Menge SHALL immer zuerst stehen, der Portionshinweis folgt sekundär nach einem Trennzeichen `" · "`.
+Das System SHALL für jede angezeigte Gramm-Menge einer Zutat, die eine benannte Portion (`rank`, `weight_g`, `name` ungleich der reinen Gramm-Basiseinheit) besitzt, zusätzlich einen abgeleiteten Portionshinweis anzeigen. Format: `"{grams}g · ≈ {count} {portion_name(s)}"`. Die Gramm-Menge SHALL immer zuerst stehen, der Portionshinweis folgt sekundär nach einem Trennzeichen `" · "`.
 
 #### Scenario: Einfacher Portionshinweis
 
-- **WHEN** eine Zutat 85g beträgt und ihre Portion mit `priority=1` den Namen „Scheibe" mit `weight_g=50` hat
+- **WHEN** eine Zutat 85g beträgt und ihre Portion mit `rank=1` den Namen „Scheibe" mit `weight_g=50` hat
 - **THEN** MUST die Anzeige `"85g · ≈ 1,7 Scheiben"` lauten
 
 #### Scenario: Kein Portionshinweis bei fehlenden Portionsdaten
@@ -17,18 +17,18 @@ Das System SHALL für jede angezeigte Gramm-Menge einer Zutat, die eine benannte
 - **WHEN** eine Zutat keine Portion mit `weight_g > 0` außer der reinen Gramm-Einheit besitzt
 - **THEN** MUST nur die Gramm-Menge angezeigt werden, ohne Portionshinweis
 
-### Requirement: Wahl der primären Portion nach Priorität
+### Requirement: Wahl der primären Portion nach rank
 
-Das System SHALL die Portion mit dem niedrigsten `priority`-Wert (Rang 1) als primären Portionshinweis verwenden, sofern ihr `weight_g > 0` ist.
+Das System SHALL die Portion mit dem niedrigsten `rank`-Wert (Rang 1) als primären Portionshinweis verwenden, sofern ihr `weight_g > 0` ist.
 
 #### Scenario: Mehrere Portionen vorhanden
 
-- **WHEN** eine Zutat die Portionen „Scheibe" (`priority=1`, `weight_g=50`) und „Packung" (`priority=2`, `weight_g=500`) besitzt
+- **WHEN** eine Zutat die Portionen „Scheibe" (`rank=1`, `weight_g=50`) und „Packung" (`rank=2`, `weight_g=500`) besitzt
 - **THEN** MUST „Scheibe" als primärer Portionshinweis verwendet werden
 
-#### Scenario: Priorität-1-Portion ohne Gewicht
+#### Scenario: Rank-1-Portion ohne Gewicht
 
-- **WHEN** die Portion mit `priority=1` `weight_g=null` hat, aber eine andere Portion `weight_g > 0` besitzt
+- **WHEN** die Portion mit `rank=1` `weight_g=null` hat, aber eine andere Portion `weight_g > 0` besitzt
 - **THEN** MUST die nächstniedrigere Portion mit gültigem `weight_g` als primärer Hinweis verwendet werden
 
 ### Requirement: Sekundärer Portionshinweis bei mehreren sinnvollen Portionsarten
@@ -99,4 +99,3 @@ Im Essensplan-Editor (`MealSlot.tsx`) SHALL für Zutaten-Items, deren `measuring
 
 - **WHEN** ein `MealItem` bereits `measuring_unit_name="Stück"` mit vorhandenem `portion_display`-Feld besitzt
 - **THEN** MUST die bisherige Darstellung (`portion_display` vom Backend) unverändert verwendet werden
-

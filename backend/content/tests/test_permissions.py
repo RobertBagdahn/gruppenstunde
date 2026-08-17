@@ -149,7 +149,7 @@ class TestEditPermissions:
             data=json.dumps({"name": "Updated"}),
             content_type="application/json",
         )
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
     def test_staff_edits_verified(self):
         user = make_user(role="staff")
@@ -222,7 +222,7 @@ class TestDeletePermissions:
         ing = make_ingredient(status="draft", created_by=user)
 
         resp = client.delete(f"/api/ingredients/{ing.slug}/")
-        assert resp.status_code == 403
+        assert resp.status_code == 404
 
 
 # ==========================================================================

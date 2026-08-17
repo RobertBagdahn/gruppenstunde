@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import IngredientEditPage from './IngredientEditPage';
 
 // Mock hooks
@@ -12,6 +13,8 @@ vi.mock('@/api/auth', () => ({
 vi.mock('@/api/supplies', () => ({
   useIngredient: vi.fn(),
   useUpdateIngredient: vi.fn(),
+  useSimilarIngredients: vi.fn(() => ({ data: [], isLoading: false })),
+  useIngredientSearch: vi.fn(() => ({ data: { items: [] }, isLoading: false })),
   useRetailSections: vi.fn(() => ({ data: [] })),
   useNutritionalTags: vi.fn(() => ({ data: [] })),
 }));
@@ -46,6 +49,17 @@ const regularUser = {
   is_authenticated: true,
 };
 
+function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <IngredientEditPage />
+      </BrowserRouter>
+    </QueryClientProvider>,
+  );
+}
+
 describe('IngredientEditPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,11 +80,7 @@ describe('IngredientEditPage', () => {
       isPending: false,
     });
 
-    render(
-      <BrowserRouter>
-        <IngredientEditPage />
-      </BrowserRouter>
-    );
+    renderPage();
 
     // Find the status field
     const statusLabel = screen.getByText('Status');
@@ -101,11 +111,7 @@ describe('IngredientEditPage', () => {
       isPending: false,
     });
 
-    render(
-      <BrowserRouter>
-        <IngredientEditPage />
-      </BrowserRouter>
-    );
+    renderPage();
 
     // Verify status is a select dropdown
     const selects = screen.getAllByRole('combobox');

@@ -13,7 +13,8 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
-from recipe.models import Recipe, RecipeStep, RecipeStepIngredient, RecipeItem, Ingredient, Portion, MeasuringUnit
+from recipe.models import Recipe, RecipeStep, RecipeStepIngredient, RecipeItem
+from supply.models import Ingredient, Portion, MeasuringUnit
 from recipe.schemas import RecipeStepIn, RecipeStepIngredientIn, RecipeStepsBatchIn
 
 

@@ -226,14 +226,6 @@ class Event(models.Model):
         related_name="events",
         verbose_name=_("Packliste"),
     )
-    meal_plan = models.ForeignKey(
-        "planner.MealPlan",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="events",
-        verbose_name=_("Essensplan"),
-    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

@@ -231,7 +231,7 @@ The portion scaler control SHALL exist only in the desktop sidebar and the mobil
 - **THEN** no portion scaler is shown inside the ingredient list
 
 ### Requirement: Sidebar portion scaler controls multiplier correctly
-The sidebar portion scaler SHALL directly control the portion count (1, 2, 3...). Changing the value SHALL correctly scale ingredient quantities as `quantity / recipe.servings * portionCount`.
+The sidebar portion scaler SHALL directly control the portion count (1, 2, 3...). Changing the value SHALL correctly scale ingredient quantities as `quantity / recipe.portions * portionCount`.
 
 #### Scenario: Scaling up from default
 - **WHEN** the recipe has base servings of 18 and user sets scaler to 3
@@ -247,28 +247,6 @@ The ingredient list SHALL use `text-base` (1rem/16px) as the base font size for 
 #### Scenario: Visual size of ingredients
 - **WHEN** a user views the ingredient list
 - **THEN** ingredient names and quantities are rendered at text-base size (16px)
-
-### Requirement: RecipeItem stores quantity per person
-A RecipeItem SHALL store `quantity` as the amount per single person (1 Portion). The system SHALL NOT have a `quantity_type` field. All quantities are implicitly per-person. Since servings is always enforced as 1, quantity represents exactly what one person needs.
-
-#### Scenario: Ingredient quantity interpretation
-- **WHEN** a RecipeItem has quantity=50
-- **THEN** the system interprets this as 50 units of the portion for 1 person
-
-#### Scenario: Frontend scales for display
-- **WHEN** the frontend displays a recipe for N persons
-- **THEN** displayed quantity = RecipeItem.quantity × N
-
-### Requirement: Recipe servings validation
-The Recipe model SHALL enforce `servings=1` at the API level. All recipe quantities MUST be stored as per-1-portion values.
-
-#### Scenario: API enforces servings=1 on create
-- **WHEN** a recipe is created via API with any `servings` value
-- **THEN** the saved recipe SHALL have `servings=1`
-
-#### Scenario: API enforces servings=1 on update
-- **WHEN** a recipe is updated via API with any `servings` value
-- **THEN** the saved recipe SHALL have `servings=1`
 
 ### Requirement: Recipe preparation_method field
 

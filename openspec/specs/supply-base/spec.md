@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Abstract Supply Base Class
-The system SHALL provide an abstract Django model `Supply` as the base class for Material and Ingredient. The abstract model SHALL include: name (CharField, max 255), slug (SlugField, unique per table), description (TextField, Markdown), image (ImageField, nullable), deleted_at (DateTimeField, nullable for soft delete), created_at (DateTimeField), updated_at (DateTimeField). Supply SHALL inherit from SoftDeleteModel.
+The system SHALL provide an abstract Django model `Supply` as the base class for `Material`. The abstract model SHALL include: name (CharField, max 255), slug (SlugField, unique per table), description (TextField, Markdown), image (ImageField, nullable), deleted_at (DateTimeField, nullable for soft delete), created_at (DateTimeField), updated_at (DateTimeField). Supply SHALL inherit from SoftDeleteModel. `Ingredient` is standalone and does not inherit from `Supply`.
 
 #### Scenario: Supply subclass inherits all base fields
 - **WHEN** a developer creates a concrete model inheriting from `Supply`

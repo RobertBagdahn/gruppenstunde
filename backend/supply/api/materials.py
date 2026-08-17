@@ -20,6 +20,14 @@ from supply.schemas import (
 router = Router(tags=["supplies"])
 
 
+def _is_staff_user(user) -> bool:
+    if not user.is_authenticated:
+        return False
+    if user.is_staff:
+        return True
+    return getattr(getattr(user, "profile", None), "role", None) in {"staff", "admin"}
+
+
 class MaterialFilterIn(Schema):
     q: str = ""
     material_category: str | None = None
@@ -84,8 +92,8 @@ def get_material(request, material_id: int):
 @router.post("/materials/", response={201: MaterialOut})
 def create_material(request, payload: MaterialCreateIn):
     """Create a new material."""
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+    if not _is_staff_user(request.user):
+        raise HttpError(403, "Nur Staff dürfen Materialien anlegen.")
 
     material = Material.objects.create(
         name=payload.name,
@@ -102,8 +110,8 @@ def create_material(request, payload: MaterialCreateIn):
 @router.patch("/materials/{material_id}/", response=MaterialOut)
 def update_material(request, material_id: int, payload: MaterialUpdateIn):
     """Update a material."""
-    if not request.user.is_authenticated:
-        raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+    if not _is_staff_user(request.user):
+        raise HttpError(403, "Nur Staff dürfen Materialien bearbeiten.")
 
     material = get_object_or_404(Material, id=material_id)
 

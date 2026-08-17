@@ -126,7 +126,7 @@ class MealItemOut(Schema):
 
         # Ingredient-based MealItem (single ingredient, not a recipe)
         if obj.ingredient and obj.quantity and obj.measuring_unit:
-            norm_portions = obj.meal.meal_plan.norm_portions or 1
+            norm_portions = obj.meal.effective_portions or 1
             total_g = None
 
             name_lower = obj.measuring_unit.name.lower()
@@ -136,7 +136,10 @@ class MealItemOut(Schema):
                 density = getattr(obj.ingredient, "physical_density", 1.0) or 1.0
                 total_g = float(obj.quantity) * density
             else:
-                portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
+                portion = obj.ingredient.portions.filter(
+                    measuring_unit=obj.measuring_unit,
+                    deleted_at__isnull=True,
+                ).first()
                 if portion and portion.weight_g:
                     total_g = portion.weight_g * float(obj.quantity)
 
@@ -389,10 +392,18 @@ class MealPlanOut(Schema):
     can_delete: bool = False
 
     @staticmethod
+    def resolve_event_id(obj) -> int | None:
+        try:
+            return obj.event_relation.event_id
+        except Exception:
+            return None
+
+    @staticmethod
     def resolve_event_name(obj) -> str:
-        if obj.event:
-            return obj.event.name
-        return ""
+        try:
+            return obj.event_relation.event.name
+        except Exception:
+            return ""
 
     @staticmethod
     def resolve_meals_count(obj) -> int:
@@ -452,6 +463,8 @@ class MealPlanCreateIn(Schema):
     description: str = ""
     norm_portions: float = 10.0
     reserve_factor: float = 1.1
+    budget_per_person_per_day: float | None = None
+    visibility: Literal["private", "group", "public", "draft"] = "private"
     activity_factor: float = 1.5
     event_id: int | None = None
     start_datetime: dt.datetime | None = None
@@ -540,6 +553,7 @@ class MealPlanDetailOut(Schema):
     meal_default_times: dict[str, list[str]]
     meals: list[MealOut] = []
     can_edit: bool = False
+    can_delete: bool = False
     is_owner: bool = False
     collaborators: list[MealPlanCollaboratorOut] = []
     nutritional_tag_ids: list[int] = []
@@ -554,10 +568,18 @@ class MealPlanDetailOut(Schema):
     overrides_copied: int = 0
 
     @staticmethod
+    def resolve_event_id(obj) -> int | None:
+        try:
+            return obj.event_relation.event_id
+        except Exception:
+            return None
+
+    @staticmethod
     def resolve_event_name(obj) -> str:
-        if obj.event:
-            return obj.event.name
-        return ""
+        try:
+            return obj.event_relation.event.name
+        except Exception:
+            return ""
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
@@ -702,6 +724,8 @@ class MealCostOut(Schema):
     date: dt.date
     cost: Decimal
     cost_per_person: Decimal
+    is_external: bool = False
+    external_cost_per_person: float | None = None
 
 
 class DayCostOut(Schema):

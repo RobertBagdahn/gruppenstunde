@@ -202,8 +202,32 @@ function DayTimeline({ day }: { day: CookingScheduleDay }) {
   const hasAllergens = day.day_nutritional_tags && day.day_nutritional_tags.length > 0;
   const hasCost = day.total_cost_eur > 0;
 
+  const nestedItems: CookingScheduleItem[] = day.meals.flatMap((meal) =>
+    meal.recipe_blocks.flatMap((block) =>
+      block.variants.map((variant) => ({
+        recipe_id: block.recipe_id,
+        recipe_title: variant.display_name ? `${block.recipe_title} · ${variant.display_name}` : block.recipe_title,
+        recipe_slug: block.recipe_slug,
+        meal_type: meal.meal_type,
+        serving_time: meal.serving_time,
+        lead_minutes: variant.lead_minutes,
+        start_time: variant.start_time,
+        portions: variant.portions,
+        steps: variant.steps,
+        ingredients: variant.ingredients,
+        steps_parsed: variant.steps_parsed,
+        nutritional_tags: block.nutritional_tags,
+        total_cost_eur: variant.total_cost_eur,
+        total_energy_kcal: variant.total_energy_kcal,
+        total_protein_g: variant.total_protein_g,
+        total_fat_g: variant.total_fat_g,
+        total_carbohydrate_g: variant.total_carbohydrate_g,
+        meal_note: variant.meal_note || meal.note,
+      })),
+    ),
+  );
   const groupedItems: Record<string, CookingScheduleItem[]> = {};
-  for (const item of day.items) {
+  for (const item of (nestedItems.length > 0 ? nestedItems : day.items)) {
     if (!groupedItems[item.meal_type]) {
       groupedItems[item.meal_type] = [];
     }

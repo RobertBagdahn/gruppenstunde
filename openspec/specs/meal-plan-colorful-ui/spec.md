@@ -2,10 +2,10 @@
 This specification defines the visual accent logic, color usage, typography scale, and responsive behavior for the colorful meal plan UI in the food frontend.
 ## Requirements
 ### Requirement: MealItem SHALL include energy and cost data
-The API response for `MealItemOut` SHALL include `energy_kj` (float | null) and `cost_eur` (float | null) fields. These values MUST be calculated from the linked Recipe's cached values, scaled by the item's `factor` and the plan's portion ratio (`norm_portions / recipe.servings`).
+The API response for `MealItemOut` SHALL include `energy_kj` (float | null) and `cost_eur` (float | null) fields. These values MUST be calculated from the linked Recipe's cached values, scaled by the item's `factor` and `effective_portions / recipe.portions`.
 
 #### Scenario: MealItem with linked recipe that has cached nutrition
-- **WHEN** a MealItem references a Recipe with `cached_energy_kj = 4200` and `cached_price_total = 8.50`, the Recipe has `servings = 4`, the MealPlan has `norm_portions = 10`, and the MealItem has `factor = 1.0`
+- **WHEN** a MealItem references a Recipe with `cached_energy_kj = 4200` and `cached_price_total = 8.50`, the Recipe has `servings = 4`, the Meal has `effective_portions = 10`, and the MealItem has `factor = 1.0`
 - **THEN** the API returns `energy_kj = 4200 * (10/4) * 1.0 = 10500` and `cost_eur = 8.50 * (10/4) * 1.0 = 21.25`
 
 #### Scenario: MealItem with recipe without cached data
@@ -35,10 +35,10 @@ The UI MUST display meals with zero items using a red accent (border, background
 - **THEN** no red accent is shown on the meal container
 
 ### Requirement: Each meal SHALL display calorie coverage percentage
-The UI MUST show a percentage indicating how much of the expected calorie need the meal covers. The expected need is `daily_target_kcal * day_part_factor`. The daily target is `2000 kcal * activity_factor` (base 2000 kcal). The meal energy value used for the comparison MUST be in kcal (converted from the stored kJ value via `/ 4,184`).
+The UI MUST show a percentage indicating how much of the expected calorie need the meal covers. The expected need is the central Norm-Person daily target (`NORM_PERSON_DAILY_KCAL`) multiplied by `day_part_factor`. The meal energy value used for the comparison MUST be in kcal (converted from the stored kJ value via `/ 4,184`).
 
 #### Scenario: Meal covers expected calories exactly
-- **WHEN** the meal energy in kcal equals daily_target_kcal * day_part_factor (coverage = 100%)
+- **WHEN** the meal energy in kcal equals `NORM_PERSON_DAILY_KCAL * day_part_factor` (coverage = 100%)
 - **THEN** the percentage shows "100%" in green
 
 #### Scenario: Meal is significantly under target

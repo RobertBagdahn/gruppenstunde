@@ -56,11 +56,11 @@ describe('useRecipeStepStore', () => {
       const step2 = createMockStep({ sort_order: 2 });
 
       store.setSteps([step1]);
-      expect(store.steps).toHaveLength(1);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(1);
 
       store.setSteps([step2]);
-      expect(store.steps).toHaveLength(1);
-      expect(store.steps[0]).toEqual(step2);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(1);
+      expect(useRecipeStepStore.getState().steps[0]).toEqual(step2);
     });
   });
 
@@ -71,7 +71,7 @@ describe('useRecipeStepStore', () => {
 
       store.addStep(step);
 
-      expect(store.steps).toHaveLength(1);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(1);
     });
 
     it('should maintain sort order when adding steps', () => {
@@ -82,9 +82,9 @@ describe('useRecipeStepStore', () => {
       store.addStep(step1);
       store.addStep(step2);
 
-      expect(store.steps).toHaveLength(2);
-      expect(store.steps[0].sort_order).toBe(1);
-      expect(store.steps[1].sort_order).toBe(2);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(2);
+      expect(useRecipeStepStore.getState().steps[0].sort_order).toBe(1);
+      expect(useRecipeStepStore.getState().steps[1].sort_order).toBe(2);
     });
   });
 
@@ -96,7 +96,7 @@ describe('useRecipeStepStore', () => {
       store.setSteps([step]);
       store.deleteStep(123);
 
-      expect(store.steps).toHaveLength(0);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(0);
     });
 
     it('should not crash when deleting non-existent step', () => {
@@ -106,7 +106,7 @@ describe('useRecipeStepStore', () => {
       store.setSteps([step]);
       store.deleteStep(999);
 
-      expect(store.steps).toHaveLength(1);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(1);
     });
   });
 
@@ -118,7 +118,7 @@ describe('useRecipeStepStore', () => {
       store.setSteps([step]);
       store.updateStep(123, { instruction: 'Updated' });
 
-      expect(store.steps[0].instruction).toBe('Updated');
+      expect(useRecipeStepStore.getState().steps[0].instruction).toBe('Updated');
     });
 
     it('should handle partial updates', () => {
@@ -132,8 +132,8 @@ describe('useRecipeStepStore', () => {
       store.setSteps([step]);
       store.updateStep(123, { duration_minutes: 10 });
 
-      expect(store.steps[0].instruction).toBe('Original');
-      expect(store.steps[0].duration_minutes).toBe(10);
+      expect(useRecipeStepStore.getState().steps[0].instruction).toBe('Original');
+      expect(useRecipeStepStore.getState().steps[0].duration_minutes).toBe(10);
     });
   });
 
@@ -147,9 +147,9 @@ describe('useRecipeStepStore', () => {
       store.setSteps([step1, step2, step3]);
       store.reorderSteps(2, 0); // Move index 2 to index 0
 
-      expect(store.steps[0].id).toBe(3);
-      expect(store.steps[1].id).toBe(1);
-      expect(store.steps[2].id).toBe(2);
+      expect(useRecipeStepStore.getState().steps[0].id).toBe(3);
+      expect(useRecipeStepStore.getState().steps[1].id).toBe(1);
+      expect(useRecipeStepStore.getState().steps[2].id).toBe(2);
     });
   });
 
@@ -163,14 +163,12 @@ describe('useRecipeStepStore', () => {
       store.addStep(step2); // This triggers undo state save
       store.undo();
 
-      expect(store.steps).toHaveLength(1);
-      expect(store.steps[0]).toEqual(step1);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(1);
+      expect(useRecipeStepStore.getState().steps[0]).toEqual(step1);
     });
 
     it('should have canUndo as boolean property', () => {
-      const store = useRecipeStepStore.getState();
-
-      expect(typeof store.canUndo).toBe('boolean');
+      expect(typeof useRecipeStepStore.getState().canUndo).toBe('boolean');
     });
   });
 
@@ -179,7 +177,7 @@ describe('useRecipeStepStore', () => {
       const store = useRecipeStepStore.getState();
       store.selectStep(123);
 
-      expect(store.selectedStepId).toBe(123);
+      expect(useRecipeStepStore.getState().selectedStepId).toBe(123);
     });
 
     it('should clear selection when null is passed', () => {
@@ -187,7 +185,7 @@ describe('useRecipeStepStore', () => {
       store.selectStep(123);
       store.selectStep(null);
 
-      expect(store.selectedStepId).toBeNull();
+      expect(useRecipeStepStore.getState().selectedStepId).toBeNull();
     });
   });
 
@@ -201,8 +199,8 @@ describe('useRecipeStepStore', () => {
       store.addStep(step2);
       store.selectStep(1);
 
-      expect(store.steps).toHaveLength(2);
-      expect(store.selectedStepId).toBe(1);
+      expect(useRecipeStepStore.getState().steps).toHaveLength(2);
+      expect(useRecipeStepStore.getState().selectedStepId).toBe(1);
     });
   });
 });

@@ -92,11 +92,14 @@ export default function MealPlanWizardPage() {
         const plan = await createMutation.mutateAsync({
           name: state.name,
           description: state.description || undefined,
-          norm_portions: state.norm_portions,
-          reserve_factor: state.reserve_factor,
-          start_datetime: state.start_datetime ? state.start_datetime + ':00' : null,
-          end_datetime: state.end_datetime ? state.end_datetime + ':00' : null,
-          day_part_factors: state.day_part_factors,
+           norm_portions: state.norm_portions,
+           reserve_factor: state.reserve_factor,
+           budget_per_person_per_day: state.budget_per_person_per_day,
+           visibility: state.visibility,
+           start_datetime: state.start_datetime ? state.start_datetime + ':00' : null,
+           end_datetime: state.end_datetime ? state.end_datetime + ':00' : null,
+           day_part_factors: state.day_part_factors,
+           meal_default_times: state.meal_default_times,
           nutritional_tag_ids: state.nutritional_tag_ids.length > 0 ? state.nutritional_tag_ids : undefined,
         });
 
@@ -124,8 +127,8 @@ export default function MealPlanWizardPage() {
   };
 
   const handleCancel = () => {
-    cleanup();
     reset();
+    cleanup();
     navigate('/meal-plans');
   };
 

@@ -299,6 +299,7 @@ class RecipeCreateIn(ContentCreateIn):
     equipment_ids: list[int] = []
     nutritional_tag_ids: list[int] = []
     recipe_items: list[RecipeItemCreateIn] = []
+    source_url: str = ""
     # Ownership & Sharing (for breakfast wizard)
     shared_group_ids: list[int] = []
     visibility: str = "private"  # accepted from frontend but always forced to "private" on backend

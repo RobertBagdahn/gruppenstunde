@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Detailsuche und Portionsauswahl beim Hinzufügen von Zutaten.
+
+## Requirements
 
 ### Requirement: Detailsuche-Dialog öffnen
 Der `InlineIngredientEditor` SHALL einen [⚙]-Button neben dem "Zutat hinzufügen..."-Feld anzeigen, der einen vollständigen Suchdilog öffnet.
@@ -91,7 +95,7 @@ Nach Klick auf eine Zutat in der Ergebnisliste SHALL ein `IngredientQuantityDial
 
 #### Scenario: Standardportion vorausgewählt
 - **WHEN** der `IngredientQuantityDialog` öffnet
-- **THEN** SHALL die Portion mit `is_default=true` vorausgewählt sein; fehlt diese, die erste verfügbare Portion
+- **THEN** SHALL die aktive Portion mit `rank=1` vorausgewählt sein; fehlt diese, die erste verfügbare aktive Portion
 
 #### Scenario: Bestätigen fügt Zutat hinzu
 - **WHEN** der Nutzer Menge und Einheit bestätigt (Button "Hinzufügen")

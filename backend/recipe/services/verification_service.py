@@ -142,7 +142,7 @@ def check_verification_readiness(recipe: Recipe) -> VerificationResult:
 def verify_recipe(recipe: Recipe, reviewer: User, confirm: bool = False) -> VerificationResult:
     result = check_verification_readiness(recipe)
 
-    if confirm:
+    if confirm and result.can_verify:
         recipe.status = "approved"
         recipe.save(update_fields=["status"])
 

@@ -5,7 +5,6 @@ import math
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from ninja import Query, Router
@@ -86,20 +85,9 @@ def _shared_ingredient_ids(user) -> list[int]:
 
 def _can_view_ingredient(ingredient: Ingredient, request) -> bool:
     """Whether the requesting user may see this ingredient (incl. transitive access)."""
-    if ingredient.status != "draft":
-        return True
-    user = request.user
-    if not user.is_authenticated:
-        return False
-    if _is_staff_or_admin_user(user):
-        return True
-    if ingredient.created_by_id == user.id:
-        return True
-    if ingredient.id in _shared_ingredient_ids(user):
-        return True
-    from content.services.transitive_visibility import ingredient_visible_transitively
+    from content.services.food_access import can_read
 
-    return ingredient_visible_transitively(ingredient, request.user)
+    return can_read(ingredient, request.user, transitive=True)
 
 
 def _has_editor_collab_access(ingredient: Ingredient, user) -> bool:
@@ -119,15 +107,9 @@ def _has_editor_collab_access(ingredient: Ingredient, user) -> bool:
 
 def _can_edit_ingredient(ingredient: Ingredient, user) -> bool:
     """Whether `user` may edit/delete this ingredient's own fields."""
-    if not user.is_authenticated:
-        return False
-    if _is_staff_or_admin_user(user):
-        return True
-    if ingredient.status == "verified":
-        return False
-    if ingredient.created_by_id == user.id:
-        return True
-    return _has_editor_collab_access(ingredient, user)
+    from content.services.food_access import can_edit
+
+    return can_edit(ingredient, user)
 
 
 def _can_edit_portions(ingredient: Ingredient, user) -> bool:
@@ -137,17 +119,9 @@ def _can_edit_portions(ingredient: Ingredient, user) -> bool:
     staff; any other status (e.g. community-submitted) is open to any
     authenticated user, consistent with crowd-sourced portion sizes.
     """
-    if not user.is_authenticated:
-        return False
-    if _is_staff_or_admin_user(user):
-        return True
-    if ingredient.status == "verified":
-        return False
-    if ingredient.status == "draft":
-        if ingredient.created_by_id == user.id:
-            return True
-        return _has_editor_collab_access(ingredient, user)
-    return True
+    from content.services.food_access import can_edit
+
+    return can_edit(ingredient, user)
 
 
 def _visible_ingredients_qs(request):
@@ -157,31 +131,9 @@ def _visible_ingredients_qs(request):
     - Old model: status-based visibility (draft/approved/verified)
     - New model: owner/visibility/shared_groups (breakfast wizard)
     """
-    qs = Ingredient.objects.select_related("retail_section", "owner").prefetch_related("groups", "shared_groups")
-    user = request.user
-    if user.is_authenticated and _is_staff_or_admin_user(user):
-        return qs
+    from content.services.food_access import visible_ingredient_queryset
 
-    not_draft_q = ~Q(status="draft")
-    if not user.is_authenticated:
-        return qs.filter(not_draft_q)
-
-    own_q = Q(created_by_id=user.id)
-    shared_q = Q(id__in=_shared_ingredient_ids(user))
-    
-    # Breakfast wizard visibility:
-    # System ingredients (owner=None, status=approved) always visible
-    system_q = Q(owner__isnull=True, status="approved")
-    # User's own ingredients
-    breakfast_own_q = Q(owner=user)
-    # Ingredients shared with user's groups
-    from profiles.models import Group
-    user_groups = Group.objects.filter(members=user)
-    breakfast_shared_q = Q(visibility="shared", shared_groups__in=user_groups)
-    
-    # Combine old and new models
-    visibility_q = (not_draft_q | own_q | shared_q) | (system_q | breakfast_own_q | breakfast_shared_q)
-    return qs.filter(visibility_q).distinct()
+    return visible_ingredient_queryset(request.user)
 
 
 # ===========================================================================
@@ -412,23 +364,15 @@ def get_ingredient(request, slug: str):
     
     Checks both old (status-based) and new (breakfast wizard visibility) permission models.
     """
-    ingredient = get_object_or_404(
-        Ingredient.objects.select_related("retail_section", "owner").prefetch_related(
-            "nutritional_tags", "portions__measuring_unit", "packages", "aliases", "shared_groups", "tags", "groups"
-        ),
-        slug=slug,
-    )
+    from content.services.food_access import get_ingredient_detail_or_404
 
-    # Check old permission model
-    visible = _can_view_ingredient(ingredient, request)
-    if not visible:
-        visible = _can_view_ingredient_breakfast(ingredient, request.user)
-
-    if not visible:
-        raise HttpError(404, "Zutat nicht gefunden")
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
 
     ingredient.can_edit = _can_edit_ingredient(ingredient, request.user)
     ingredient.can_delete = _can_edit_ingredient(ingredient, request.user)
+    from content.services.audit_service import log_private_staff_food_access
+
+    log_private_staff_food_access(request.user, ingredient, request.path)
 
     return ingredient
 
@@ -507,7 +451,12 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     """
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient.objects.select_related("owner").prefetch_related("shared_groups"), slug=slug)
+    from content.services.food_access import visible_ingredient_queryset
+
+    ingredient = get_object_or_404(
+        visible_ingredient_queryset(request.user).prefetch_related("shared_groups"),
+        slug=slug,
+    )
 
     if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat bearbeiten")
@@ -597,28 +546,15 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
 @ingredient_router.delete("/{slug}/")
 def delete_ingredient(request, slug: str):
-    """Soft-delete an ingredient if no RecipeItems reference it."""
+    """Soft-delete an ingredient while preserving existing recipe references."""
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import visible_ingredient_queryset
+
+    ingredient = get_object_or_404(visible_ingredient_queryset(request.user), slug=slug)
 
     if not _can_edit_ingredient(ingredient, request.user):
         raise HttpError(403, "Nur der Ersteller oder Admins dürfen diese Zutat löschen")
-
-    from recipe.models import Recipe, RecipeItem
-
-    recipe_ids = list(
-        RecipeItem.objects.filter(portion__ingredient=ingredient).values_list("recipe_id", flat=True).distinct()
-    )
-    if recipe_ids:
-        recipes = list(Recipe.objects.filter(id__in=recipe_ids).values("id", "title", "slug"))
-        return JsonResponse(
-            {
-                "detail": "Zutat wird in Rezepten verwendet und kann nicht gelöscht werden",
-                "recipes": recipes,
-            },
-            status=409,
-        )
 
     ingredient.soft_delete()
     return {"success": True}
@@ -632,7 +568,9 @@ def delete_ingredient(request, slug: str):
 @ingredient_router.get("/{slug}/portions/", response=list[PortionOut])
 def list_portions(request, slug: str):
     """List portions for an ingredient."""
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     return Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).select_related("measuring_unit")
 
 
@@ -1059,7 +997,9 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
 @ingredient_router.get("/{slug}/packages/", response=list[PackageOut])
 def list_packages(request, slug: str):
     """List packages for an ingredient."""
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     return Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
 
 

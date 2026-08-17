@@ -1,3 +1,9 @@
+## Purpose
+
+Anzeige und Auswahl von Zutaten und Portionen in Rezeptansichten.
+
+## Requirements
+
 ### Requirement: Zutaten-Sektions-Icon ist UtensilsCrossed
 Der Zutaten-Abschnitt auf der Rezept-Detailseite und allen Rezept-Vorschau-Ansichten SHALL das Lucide-Icon `UtensilsCrossed` anstelle von `egg_alt` (Material Symbols) verwenden.
 
@@ -28,15 +34,15 @@ Der Badge neben dem "Zutaten"-Titel SHALL die Anzahl der Zutaten zusammen mit de
 
 ---
 
-### Requirement: Primäre Portionsanzeige nach höchstem Priority-Ranking
-Die Zutatenliste SHALL die Portion mit dem höchsten `priority`-Wert, die keine Gramm-Einheit ist, als Primäranzeige verwenden.
+### Requirement: Primäre Portionsanzeige nach rank
+Die Zutatenliste SHALL die aktive Portion mit dem niedrigsten `rank`-Wert, die keine Gramm-Einheit ist, als Primäranzeige verwenden.
 
 #### Scenario: Zutat mit nicht-Gramm-Portion hoher Priorität
-- **WHEN** ein Apfel die Portionen `[{name: "Stück", priority: 10, weight_g: 150}, {name: "100g", priority: 0, weight_g: 100}]` hat
+- **WHEN** ein Apfel die Portionen `[{name: "Stück", rank: 1, weight_g: 150}, {name: "100g", rank: 2, weight_g: 100}]` hat
 - **THEN** wird `1 Stück` als Primäranzeige gezeigt
 
 #### Scenario: Zutat hat nur Gramm-Portionen
-- **WHEN** Butter nur Gramm-basierte Portionen hat, aber eine `EL`-Portion mit `priority: 5`
+- **WHEN** Butter nur Gramm-basierte Portionen hat, aber eine `EL`-Portion mit `rank: 2`
 - **THEN** wird die `EL`-Portion mit höchster Priorität als Sekundäranzeige gezeigt
 
 #### Scenario: Kein alternativer Portion-Display bei fehlendem weight_g

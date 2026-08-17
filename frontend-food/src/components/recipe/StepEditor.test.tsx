@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import StepEditor from '@/components/recipe/StepEditor';
 import type { RecipeStep } from '@/schemas/recipeStep';
@@ -17,7 +17,13 @@ vi.mock('@/hooks/useRecipeSteps', () => ({
   useSuggestIngredientAssignment: vi.fn(),
 }));
 
-import { useRecipeSteps } from '@/hooks/useRecipeSteps';
+import {
+  useRecipeSteps,
+  useBatchUpdateSteps,
+  useGenerateStepsFromItems,
+  useImproveStepInstruction,
+  useSuggestIngredientAssignment,
+} from '@/hooks/useRecipeSteps';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,14 +65,15 @@ describe('StepEditor', () => {
       isLoading: false,
       error: null,
     } as any);
+    vi.mocked(useBatchUpdateSteps).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
+    vi.mocked(useGenerateStepsFromItems).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
+    vi.mocked(useImproveStepInstruction).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
+    vi.mocked(useSuggestIngredientAssignment).mockReturnValue({ mutate: vi.fn(), isPending: false } as any);
   });
 
   it('should render step editor container', () => {
     render(<StepEditor {...defaultProps} />, { wrapper });
-    expect(
-      screen.getByRole('region', { hidden: true }) ||
-        document.querySelector('[class*="step"]')
-    ).toBeTruthy();
+    expect(document.querySelector('.space-y-4')).toBeTruthy();
   });
 
   it('should render all steps when loaded', () => {
@@ -109,7 +116,7 @@ describe('StepEditor', () => {
     expect(dragHandles.length >= 0).toBe(true);
   });
 
-  it('should display step numbers in sequence', () => {
+  it('should display step numbers in sequence', async () => {
     const steps = [
       createMockStep({ id: 1, sort_order: 1 }),
       createMockStep({ id: 2, sort_order: 2 }),
@@ -123,9 +130,8 @@ describe('StepEditor', () => {
 
     render(<StepEditor {...defaultProps} />, { wrapper });
 
-    const stepNumbers = Array.from(document.querySelectorAll('span, div'))
-      .filter((el) => ['1', '2', '3'].includes(el.textContent?.trim() || ''))
-      .slice(0, 3);
+    await waitFor(() => expect(screen.getByText('Schritt 1')).toBeInTheDocument());
+    const stepNumbers = screen.getAllByText(/Schritt [123]/);
 
     expect(stepNumbers.length).toBeGreaterThan(0);
   });
@@ -139,10 +145,7 @@ describe('StepEditor', () => {
 
     render(<StepEditor {...defaultProps} />, { wrapper });
 
-    const container =
-      document.querySelector('[class*="step"]') ||
-      screen.getByRole('region', { hidden: true });
-    expect(container).toBeTruthy();
+    expect(document.querySelector('.space-y-4')).toBeTruthy();
   });
 
   it('should use provided recipeSlug', () => {

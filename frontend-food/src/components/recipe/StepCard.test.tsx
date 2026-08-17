@@ -62,7 +62,7 @@ describe('StepCard', () => {
       />
     );
 
-    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText(/Schritt 3/)).toBeInTheDocument();
   });
 
   it('should display duration in minutes if provided', () => {
@@ -272,7 +272,7 @@ describe('StepCard', () => {
         />
       );
 
-      const stepNumber = screen.getByText('1');
+      const stepNumber = screen.getByText(/Schritt 1/);
       expect(stepNumber).toBeInTheDocument();
     });
 

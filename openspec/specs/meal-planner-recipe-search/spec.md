@@ -19,7 +19,7 @@ The RecipeSearchDialog SHALL show a "Beliebteste Rezepte" section before search 
 - **THEN** the "Beliebteste" section SHALL reappear
 
 ### Requirement: Extended search response schema
-The recipe search response SHALL include additional preview fields for each recipe: image_url, servings, cached_energy_kcal, cached_protein_g, cached_fat_g, cached_carbohydrate_g, cached_price_total, cached_nutri_class, nutritional_tags (array of {id, name}), usage_count, description (truncated to 200 chars), ingredients_preview (array of strings, max 8), recipe_badge ("verified"|"community"|"draft"), and price_per_serving (cached_price_total / servings, nullable).
+The recipe search response SHALL include additional preview fields for each recipe: image_url, portions, cached_energy_kcal, cached_protein_g, cached_fat_g, cached_carbohydrate_g, cached_price_total, cached_nutri_class, nutritional_tags (array of {id, name}), usage_count, description (truncated to 200 chars), ingredients_preview (array of strings, max 8), recipe_badge ("verified"|"community"|"draft"), and price_per_serving (cached_price_total / portions, nullable).
 
 The response SHALL be produced by a typed Pydantic `Out` schema (not a raw `dict`), and the frontend Zod schema SHALL mirror it 1:1, including the `image_url` field name.
 
@@ -68,11 +68,11 @@ When a category-specific search yields fewer results than the requested limit, t
 - **THEN** the dialog displays "Keine [Frühstück]-Rezepte gefunden — zeige alle Typen"
 
 ### Requirement: Price per serving display
-Every recipe in search, suggestion, and popular results SHALL include price_per_serving (cached_price_total / servings, computed in backend). When unavailable, null SHALL be returned and the UI SHALL display "—".
+Every recipe in search, suggestion, and popular results SHALL include price_per_serving (cached_price_total / portions, computed in backend). When unavailable, null SHALL be returned and the UI SHALL display "—".
 
 #### Scenario: Recipe with price
-- **WHEN** a recipe has cached_price_total=12.50 and servings=5
-- **THEN** price_per_serving is 2.50 and displays "2,50 €/P."
+- **WHEN** a recipe has cached_price_total=12.50 and portions=1
+- **THEN** price_per_serving is 12.50 and displays "12,50 €/P."
 
 #### Scenario: Recipe without price
 - **WHEN** a recipe has null cached_price_total
@@ -89,20 +89,22 @@ All recipe search and suggestion results SHALL be sorted by usage_count descendi
 - **WHEN** a recipe has usage_count=30 and null cached_price_total
 - **THEN** it sorts after recipes with usage_count=30 and any price value
 
-### Requirement: Hard dietary filter (AND) with override
-When require_nutritional_tags is true, the search SHALL only return recipes matching ALL specified nutritional_tag_ids (AND logic). The filter SHALL be toggleable via a checkbox in the dialog.
+### Requirement: Plan tags are exclusion filters
+When a MealPlan provides `nutritional_tag_ids`, recipe search and random suggestions SHALL exclude
+recipes matching any of those tags. The filter SHALL be applied in the database query before the
+result limit and presented as an exclusion rule in the UI.
 
-#### Scenario: Plan requires vegan+gluten-free, recipe is only vegan
-- **WHEN** searching with require_nutritional_tags=true for tags [vegan, gluten-free]
-- **THEN** a recipe tagged only "vegan" SHALL NOT be included
+#### Scenario: Plan excludes peanut and milk
+- **WHEN** searching for a plan with exclusion tags [peanut, milk]
+- **THEN** a recipe matching either tag SHALL NOT be included
 
-#### Scenario: Plan requires vegan+gluten-free, recipe has both
-- **WHEN** searching with require_nutritional_tags=true for tags [vegan, gluten-free]
-- **THEN** a recipe tagged both "vegan" and "gluten-free" SHALL be included
+#### Scenario: Recipe matches no exclusion tag
+- **WHEN** searching for a plan with exclusion tags [peanut, milk]
+- **THEN** a recipe matching neither tag SHALL remain eligible
 
-#### Scenario: User disables dietary filter
-- **WHEN** require_nutritional_tags is set to false
-- **THEN** results include recipes regardless of dietary tags
+#### Scenario: Plan has no exclusion tags
+- **WHEN** a plan has no nutritional tags
+- **THEN** no tag-based exclusion SHALL be applied
 
 ### Requirement: Dessert in recipe type mapping
 The dessert recipe_type SHALL be included in the MEAL_TYPE_TO_RECIPE_TYPES mapping for all meal_types in the backend.
@@ -154,31 +156,6 @@ The recipe search SHALL include the user's own recipes regardless of approval st
 #### Scenario: Another user's draft
 - **WHEN** searching for recipes
 - **THEN** drafts owned by other users SHALL NOT appear
-
-### Requirement: Vegan/Vegetarisch-Filter in der Mahlzeiten-Rezeptsuche
-
-Die Rezeptsuche beim Hinzufügen eines Rezepts zu einer Mahlzeit SHALL Filter für Ernährungseigenschaften enthalten.
-
-#### Scenario: Vegan-Filter aktiv
-
-- **WHEN** der Nutzer den Filter „vegan" in der Mahlzeiten-Rezeptsuche aktiviert
-- **THEN** werden nur Rezepte angezeigt deren `nutritional_tags` „vegan" enthält
-
-#### Scenario: Vegetarisch-Filter aktiv
-
-- **WHEN** der Nutzer den Filter „vegetarisch" in der Mahlzeiten-Rezeptsuche aktiviert
-- **THEN** werden nur Rezepte angezeigt deren `nutritional_tags` „vegetarisch" oder „vegan" enthält
-
-#### Scenario: Mehrere Filter kombinierbar
-
-- **WHEN** der Nutzer „glutenfrei" und „vegetarisch" kombiniert
-- **THEN** werden nur Rezepte angezeigt die beide Tags haben
-
-#### Scenario: Filter-Label spricht Deutsch
-
-- **WHEN** die Filter-Optionen angezeigt werden
-- **THEN** sind die Labels: „Vegan", „Vegetarisch", „Laktosefrei", „Glutenfrei"
-- **THEN** gibt es keinen Filter namens „Diät" (umbenennen zu „Ernährungsweise" oder als Eigenschafts-Filter)
 
 ### Requirement: Popular and recently-used recipe endpoints use typed schemas
 The `/recipes/popular/` and `/recipes/recently-used/` endpoints SHALL each be declared with a dedicated Pydantic response schema instead of `response=dict`. Both schemas SHALL expose the recipe image field as `image_url`.

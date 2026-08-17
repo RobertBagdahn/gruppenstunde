@@ -65,3 +65,30 @@ def get_audit_log_queryset(content_type_str: str | None = None, object_id: int |
     if object_id:
         qs = qs.filter(object_id=object_id)
     return qs
+
+
+def log_staff_food_access(user, resource, endpoint: str, success: bool = True) -> None:
+    """Record a Staff detail/export access for the short retention window."""
+    from content.models import StaffFoodAccessLog
+
+    if not getattr(user, "is_staff", False):
+        return
+    StaffFoodAccessLog.objects.create(
+        user=user,
+        resource_type=resource.__class__.__name__,
+        object_id=resource.pk,
+        endpoint=endpoint[:255],
+        success=success,
+    )
+
+
+def log_private_staff_food_access(user, resource, endpoint: str) -> None:
+    """Audit Staff access only when the resource is not public/system data."""
+    if getattr(resource, "visibility", None) == "public":
+        return
+    if getattr(resource, "owner_id", None) is None and getattr(resource, "status", None) in {
+        "approved",
+        "verified",
+    }:
+        return
+    log_staff_food_access(user, resource, endpoint)

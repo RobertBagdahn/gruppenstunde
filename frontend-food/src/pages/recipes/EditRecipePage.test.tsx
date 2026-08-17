@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import EditRecipePage from './EditRecipePage';
 
 // Mock the API hooks
@@ -60,6 +61,17 @@ const regularUser = {
   is_authenticated: true,
 };
 
+function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <EditRecipePage />
+      </BrowserRouter>
+    </QueryClientProvider>,
+  );
+}
+
 describe('EditRecipePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,11 +91,7 @@ describe('EditRecipePage', () => {
       data: staffUser,
     });
 
-    render(
-      <BrowserRouter>
-        <EditRecipePage />
-      </BrowserRouter>
-    );
+    renderPage();
 
     // Verify admin controls section is present
     const adminSection = screen.getByText('Admin-Kontrollen');
@@ -109,11 +117,7 @@ describe('EditRecipePage', () => {
       data: regularUser,
     });
 
-    render(
-      <BrowserRouter>
-        <EditRecipePage />
-      </BrowserRouter>
-    );
+    renderPage();
 
     // Verify admin section is NOT present
     expect(screen.queryByText('Admin-Kontrollen')).not.toBeInTheDocument();
@@ -122,5 +126,19 @@ describe('EditRecipePage', () => {
     expect(screen.queryByLabelText(/Rezept-Status/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Quell-URL/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Autoren/i)).not.toBeInTheDocument();
+  });
+
+  it('should block editing when the API denies edit permission', () => {
+    (useRecipeBySlug as any).mockReturnValue({
+      data: { ...mockRecipe, can_edit: false },
+      isLoading: false,
+      error: null,
+    });
+    (useUpdateRecipe as any).mockReturnValue({ mutate: vi.fn(), isPending: false });
+    (useCurrentUser as any).mockReturnValue({ data: regularUser });
+
+    renderPage();
+
+    expect(screen.getByText(/keine Berechtigung/i)).toBeInTheDocument();
   });
 });

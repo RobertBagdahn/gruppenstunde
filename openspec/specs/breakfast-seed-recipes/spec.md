@@ -1,5 +1,11 @@
+## Purpose
+
+Seed-Daten für warme Frühstücksrezepte und die getrennte Getränke-Katalogisierung.
+
+## Requirements
+
 ### Requirement: Frühstücks-Seed-Rezepte bereitstellen
-Das System SHALL über einen Management Command einen Katalog vordefinierter **warmer** Frühstücks-Rezepte mit `recipe_type=breakfast` erstellen (z.B. Rührei, Pfannkuchen). Brot+Belag-Kombinationen sowie reine Getränke werden NICHT mehr als Rezepte angelegt — sie laufen über den Frühstücks-Wizard.
+Das System SHALL über einen Management Command einen Katalog vordefinierter **warmer** Frühstücks-Rezepte mit `recipe_type=breakfast` erstellen (z.B. Rührei, Pfannkuchen). Brot+Belag-Kombinationen werden nicht als Rezepte angelegt. Getränke gehören separat in den `breakfast-drink`-Katalog.
 
 #### Scenario: Seed-Command erstellt nur warme Gerichte
 - **WHEN** `uv run python manage.py seed_breakfast_recipes` ausgeführt wird

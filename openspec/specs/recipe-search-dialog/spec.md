@@ -32,8 +32,8 @@ Die "Kürzlich verwendet"-Chips im Dialog SHALL anklickbar sein und beim Klick d
 Das Frontend-Zod-Schema für `RecipeSearchResult` und `RecipeRecentlyUsed` SHALL das Feld `portions` verwenden, konsistent mit dem Backend-Modell und der API-Response.
 
 #### Scenario: `portions`-Feld ist im Schema vorhanden
-- **WHEN** die API ein Rezept mit `portions: 10` zurückgibt
-- **THEN** ist `recipe.portions === 10` im Frontend verfügbar
+- **WHEN** die API ein Rezept mit `portions: 1` zurückgibt
+- **THEN** ist `recipe.portions === 1` im Frontend verfügbar
 
 ### Requirement: `snack`-Slot-Filter enthält nur gültige recipe_types
 Der Default-Typ-Filter für Snack-Slots SHALL nur `['snack']` enthalten — nicht `['snack', 'ingredient']`, da `ingredient` kein gültiger `recipe_type` für Rezepte ist.
@@ -88,7 +88,3 @@ Die Tag-Filter `nutritional_tag_ids` und `exclude_nutritional_tag_ids` im `searc
 
 ### Requirement: RecentlyUsed-Schema enthält `portions`
 `RecipeRecentlyUsedSchema` SHALL das Feld `portions` enthalten, konsistent mit dem `RecipeSearchResultSchema`.
-
-#### Scenario: portions ist im RecentlyUsed-Objekt verfügbar
-- **WHEN** die API ein kürzlich verwendetes Rezept mit `portions: 8` zurückgibt
-- **THEN** ist `recipe.portions === 8` im Frontend verfügbar

@@ -11,7 +11,7 @@ Covers:
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
-from profiles.models import Group
+from profiles.models import UserGroup as Group
 from supply.models import Ingredient, IngredientGroup, MeasuringUnit
 from content.models import Tag
 

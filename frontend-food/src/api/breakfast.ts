@@ -258,7 +258,7 @@ interface CreateIngredientPayload {
 
 async function createIngredient(
   payload: CreateIngredientPayload,
-): Promise<any> {
+): Promise<unknown> {
   const SUPPLY_BASE_URL = `${API_BASE_URL}/api/supplies`;
   const res = await fetch(`${SUPPLY_BASE_URL}/ingredients/`, {
     method: 'POST',
@@ -300,14 +300,14 @@ interface CreateRecipePayload {
   visibility?: 'private' | 'shared' | 'group' | 'public';
   shared_group_ids?: number[];
   tag_ids?: string[];
-  recipe_items?: any[];
+  recipe_items?: unknown[];
   website?: string;
   form_loaded_at?: number;
 }
 
 async function createRecipe(
   payload: CreateRecipePayload,
-): Promise<any> {
+): Promise<unknown> {
   const RECIPES_BASE_URL = `${API_BASE_URL}/api/recipes`;
   const res = await fetch(`${RECIPES_BASE_URL}/`, {
     method: 'POST',

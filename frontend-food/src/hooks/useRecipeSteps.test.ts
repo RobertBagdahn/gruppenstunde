@@ -74,6 +74,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 describe('Recipe Steps Hooks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    document.cookie = 'csrftoken=test-csrf-token';
   });
 
   describe('useRecipeSteps', () => {
@@ -129,8 +130,7 @@ describe('Recipe Steps Hooks', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/my-recipe/steps/'),
-          expect.any(Object)
+          expect.stringContaining('/my-recipe/steps/')
         );
       });
     });

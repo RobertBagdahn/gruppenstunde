@@ -2,7 +2,7 @@
  * Wizard state hook for the Breakfast Wizard.
  * Centralises all step state and derived values.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   defaultWizardState,
   type WizardState,
@@ -53,6 +53,12 @@ export function useWizardState(initialState?: Partial<WizardState>) {
     ...initialState,
   });
   const [step, setStep] = useState<WizardStep>('basis');
+
+  useEffect(() => {
+    if (initialState) {
+      setState((current) => ({ ...current, ...initialState }));
+    }
+  }, [initialState]);
 
   // ── Modal state for create ingredient/recipe ──────────────────────────────
   const [createModal, setCreateModal] = useState<CreateModalState>({

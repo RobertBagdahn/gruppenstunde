@@ -29,7 +29,7 @@ Das System SHALL einen API-Endpunkt `GET /api/meal-plans/{plan_id}/meal/{meal_id
 
 ### Requirement: Harte Filter
 
-Das System SHALL vor dem Scoring harte Filter anwenden. Rezepte, die diese Filter nicht passieren, werden komplett ausgeschlossen.
+Das System SHALL vor dem Scoring harte Filter anwenden. Rezepte, die diese Filter nicht passieren, werden komplett ausgeschlossen. Meal-Plan-Tags sind dabei Ausschluss-Tags.
 
 #### Scenario: Nur approved und eigene Rezepte
 
@@ -52,8 +52,8 @@ Das System SHALL vor dem Scoring harte Filter anwenden. Rezepte, die diese Filte
 
 #### Scenario: Nutritional Tags als harter Filter
 
-- **WHEN** der MealPlan nutritional_tags hat (z.B. "vegan", "halal")
-- **THEN** werden nur Rezepte vorgeschlagen, deren Zutaten ALLE diese Tags erfüllen
+- **WHEN** der MealPlan nutritional_tags hat (z.B. "Erdnüsse", "Milch")
+- **THEN** werden Rezepte ausgeschlossen, deren Rezept oder Zutaten einen dieser Tags tragen
 - **WHEN** der MealPlan keine nutritional_tags hat
 - **THEN** werden keine tag-basierten Filter angewandt
 

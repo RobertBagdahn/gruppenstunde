@@ -20,15 +20,16 @@ Der Import muss Cooklang-Unit-Strings (`g`, `ml`, `EL`, `TL`, `kg`, `l`) korrekt
 
 ### Requirement: Pro-Person-Menge
 
-Importierte RecipeItems müssen `quantity_type="per_person"` verwenden mit der Menge pro Portion.
+Importierte RecipeItems SHALL use the normalized quantity for one portion. There is no
+`quantity_type` field; quantities are implicitly per portion.
 
 #### Scenario: Umrechnung Gesamtmenge zu Pro-Person
 - **WHEN** ein Rezept mit `servings=4` eine Zutat `@Mehl{500%g}` hat
-- **THEN** wird `quantity = 125.0` und `quantity_type = "per_person"` gespeichert
+- **THEN** wird `quantity = 125.0` gespeichert und das Rezept mit `portions=1` angelegt
 
 #### Scenario: Einheiten ohne Menge
 - **WHEN** ein Cooklang-Ingredient `@Salz{}` keine Mengenangabe hat
-- **THEN** wird `quantity = 1.0 / servings` und `quantity_type = "per_person"` gespeichert
+- **THEN** wird `quantity = 1.0 / servings` gespeichert und das Rezept mit `portions=1` angelegt
 
 ---
 

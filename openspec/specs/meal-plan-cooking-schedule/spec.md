@@ -1,4 +1,17 @@
-## ADDED Requirements
+## Purpose
+Diese Spec definiert die chronologische Kochplan-Ausgabe und ihre konsistente Berechnung.
+
+## Requirements
+
+### Requirement: Kochplan verwendet aktive Meal-Plan-Daten
+
+Der Kochplan SHALL dieselben aktiven Items, Overrides und `effective_portions` wie die übrigen
+Food-Ausgaben verwenden. Ausgeschlossene Items fehlen vollständig; Mengen-Overrides und
+konsistente Ausgabe-Rundung werden angewendet.
+
+#### Scenario: Kochplan übernimmt Override
+- **WHEN** ein MealItem ein ausgeschlossenes oder mengenüberschriebenes RecipeItem enthält
+- **THEN** entspricht der Kochplan der gemeinsamen Berechnung
 
 ### Requirement: Kochplan-Endpunkt liefert chronologische Zubereitungsübersicht
 
@@ -8,14 +21,14 @@ Zusätzlich zu den bestehenden Feldern SHALL jeder Tages-Eintrag (CookingSchedul
 - `day_start_time` (str): Uhrzeit der frühesten Startzeit an diesem Tag
 - `day_end_time` (str): Uhrzeit der spätesten Servierzeit an diesem Tag
 - `day_duration_minutes` (int): Gesamt-Kochdauer in Minuten (von erster Startzeit bis letzte Servierzeit)
-- `portions` (int): Personenanzahl (aus MealPlan.norm_portions)
+- `portions` (float): Personenanzahl aus `effective_portions`
 - `day_nutritional_tags` (list): Alle NutritionalTags die an diesem Tag in Rezepten oder Zutaten vorkommen
 
 Zusätzlich SHALL der Response-Header (CookingScheduleOut) folgende Felder enthalten:
 - `total_cost_eur` (float): Gesamtkosten aller Rezepte
 - `total_cost_with_reserve` (float): Gesamtkosten inkl. Reservefaktor
 - `total_energy_kcal` (float): Gesamtenergie aller Rezepte
-- `norm_portions` (int): Personenanzahl aus dem Essensplan
+- `norm_portions` (float): Planweite Referenz für die Ausgabe
 
 #### Scenario: Erfolgreicher Abruf des Kochplans mit neuen Feldern
 
@@ -83,17 +96,17 @@ Das System SHALL Mahlzeiten ohne Servierzeit (`start_datetime` ist null) und ext
 
 ### Requirement: Portionen pro Rezept ableiten
 
-Das System SHALL die Portionen eines Kochplan-Eintrags aus `Meal.override_portions` ableiten, falls gesetzt, sonst aus `MealPlan.norm_portions`.
+Das System SHALL die Portionen eines Kochplan-Eintrags aus `Meal.effective_portions` ableiten.
 
 #### Scenario: Mahlzeit mit Portionen-Override
 
 - **WHEN** eine Mahlzeit ein `override_portions` gesetzt hat
-- **THEN** zeigt der Kochplan-Eintrag diese Portionszahl
+- **THEN** zeigt der Kochplan-Eintrag diese effektive Portionszahl
 
 #### Scenario: Mahlzeit ohne Override
 
 - **WHEN** eine Mahlzeit kein `override_portions` hat
-- **THEN** zeigt der Kochplan-Eintrag die `norm_portions` des Essensplans
+- **THEN** zeigt der Kochplan-Eintrag die planweite `norm_portions` als effektive Portionszahl
 
 ### Requirement: Interaktive Kochplan-Ansicht im Frontend
 

@@ -131,7 +131,7 @@ The system SHALL provide seed data (Django management command or fixture) that c
 
 ### Requirement: Cooklang-Import erzeugt korrekte RecipeItems
 
-Das System SHALL beim Cooklang-Import korrekte `measuring_unit`-Zuordnung und `quantity_type="per_person"` mit Pro-Portion-Menge verwenden (statt vormals `measuring_unit=None`, `quantity_type="once"` mit Gesamtmenge).
+Das System SHALL beim Cooklang-Import korrekte `measuring_unit`-Zuordnung und normalisierte Pro-Portion-Mengen verwenden; `RecipeItem` besitzt kein `quantity_type`-Feld.
 
 #### Scenario: Re-Import bestehender Daten
 - **WHEN** `--force` Flag beim Aufruf gesetzt ist
@@ -187,4 +187,3 @@ The food fixture files SHALL contain complete, enriched data for all ingredients
 - **AND** recipe_recipeitem.json contains items with valid portion references
 - **AND** supply_ingredient_embeddings.json contains 5,743 regenerated embeddings
 - **AND** `uv run python manage.py import_prod_data --flush --only food` executes without errors
-

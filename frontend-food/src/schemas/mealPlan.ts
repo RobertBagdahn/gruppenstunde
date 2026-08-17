@@ -240,6 +240,7 @@ export const MealPlanDetailSchema = z.object({
   meal_default_times: z.record(z.string(), z.array(z.string())),
   meals: z.array(MealSchema),
   can_edit: z.boolean(),
+  can_delete: z.boolean(),
   is_owner: z.boolean().default(false),
   collaborators: z.array(MealPlanCollaboratorSchema).default([]),
   tags: z.array(MealPlanTagSchema).default([]),
@@ -499,6 +500,7 @@ export type MealPlanWizardStrategy = z.infer<typeof MealPlanWizardStrategySchema
 
 export const MealPlanWizardStateSchema = z.object({
   version: z.number().default(1),
+  context_key: z.string().default('anonymous'),
 
   name: z.string().default(''),
   description: z.string().default(''),
@@ -529,7 +531,7 @@ export const MealPlanWizardStateSchema = z.object({
   reference_plan_id: z.number().nullable().default(null),
   reference_plan_name: z.string().default(''),
   ai_prompt: z.string().default(''),
-  ai_suggestions: z.any().nullable().default(null),
+  ai_suggestions: AiSuggestOutSchema.nullable().default(null),
 });
 
 export type MealPlanWizardState = z.infer<typeof MealPlanWizardStateSchema>;
@@ -537,6 +539,7 @@ export type MealPlanWizardState = z.infer<typeof MealPlanWizardStateSchema>;
 export function defaultWizardState(): MealPlanWizardState {
   return {
     version: 1,
+    context_key: 'anonymous',
     name: '',
     description: '',
     norm_portions: 10,
@@ -662,7 +665,15 @@ export function effectivePortions(
 
 function parseTimeToMinutes(datetimeStr: string): number {
   const d = new Date(datetimeStr);
-  return d.getHours() * 60 + d.getMinutes();
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Europe/Berlin',
+  }).formatToParts(d);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? 0);
+  return hour * 60 + minute;
 }
 
 /**
@@ -743,6 +754,8 @@ export const MealCostSchema = z.object({
   date: z.string(),
   cost: z.coerce.number(),
   cost_per_person: z.coerce.number(),
+  is_external: z.boolean().default(false),
+  external_cost_per_person: z.coerce.number().nullable().default(null),
 });
 export type MealCost = z.infer<typeof MealCostSchema>;
 
@@ -1039,10 +1052,16 @@ export function formatDateRange(startDatetime?: string | null, endDatetime?: str
   if (!startDatetime && !endDatetime) return null;
   const start = startDatetime ? new Date(startDatetime) : null;
   const end = endDatetime ? new Date(endDatetime) : null;
-  const fmt = (d: Date) =>
-    d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const options: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Europe/Berlin',
+  };
+  const fmt = (d: Date) => d.toLocaleDateString('de-DE', options);
+  const dateKey = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
   if (start && end) {
-    if (start.toDateString() === end.toDateString()) return fmt(start);
+    if (dateKey(start) === dateKey(end)) return fmt(start);
     return `${fmt(start)} – ${fmt(end)}`;
   }
   if (start) return `ab ${fmt(start)}`;
@@ -1054,8 +1073,11 @@ export function getDaysCount(startDatetime?: string | null, endDatetime?: string
   if (!startDatetime || !endDatetime) return 0;
   const start = new Date(startDatetime);
   const end = new Date(endDatetime);
-  const diff = end.getTime() - start.getTime();
-  return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
+  const key = (date: Date) => date.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
+  const startDate = new Date(`${key(start)}T00:00:00Z`);
+  const endDate = new Date(`${key(end)}T00:00:00Z`);
+  const diff = endDate.getTime() - startDate.getTime();
+  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)) + 1);
 }
 
 // ==========================================================================

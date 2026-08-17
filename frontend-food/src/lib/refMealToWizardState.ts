@@ -159,7 +159,7 @@ export function refMealItemsToWizardState(
 
   // ── 4. Warm dishes (recipe, not drink tag) ───────────────────────────────
   const warmItems = items.filter(
-    (i) => i.recipe_id && !(i.ingredient_tags ?? []).includes('breakfast-drink'),
+    (i) => i.recipe_id && i.recipe_type !== 'drink',
   );
   for (const item of warmItems) {
     if (!item.recipe_id) continue;
@@ -172,7 +172,7 @@ export function refMealItemsToWizardState(
 
   // ── 5. Drink items (recipe with breakfast-drink tag) ─────────────────────
   const drinkItems = items.filter(
-    (i) => i.recipe_id && (i.ingredient_tags ?? []).includes('breakfast-drink'),
+    (i) => i.recipe_id && i.recipe_type === 'drink',
   );
   if (drinkItems.length > 0) {
     const totalFactor = drinkItems.reduce((sum, item) => sum + (item.factor ?? 1.0), 0);

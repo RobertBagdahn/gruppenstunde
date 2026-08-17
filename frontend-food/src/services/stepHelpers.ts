@@ -80,6 +80,14 @@ export function resolveStepPlaceholders(
     text = text.replace(new RegExp(`\\{${i + 1}\\}`, 'g'), displayName);
   }
 
+  // A single-ingredient step may use the recipe item ID as its numeric reference.
+  for (const match of text.matchAll(/\{(\d+)\}/g)) {
+    const item = recipeItemMap[Number(match[1])];
+    if (item) {
+      text = text.replace(match[0], getItemDisplayName(item));
+    }
+  }
+
   return text;
 }
 

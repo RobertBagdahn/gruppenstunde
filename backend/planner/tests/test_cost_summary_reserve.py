@@ -83,6 +83,36 @@ class TestMealPlanCostSummaryAPI:
         assert data["total_ingredients"] == 1
         assert data["priced_ingredients"] == 1
 
+    def test_cost_summary_includes_external_meal(self):
+        plan = make_meal_plan(created_by=self.user, norm_portions=20, reserve_factor=1.0)
+        make_meal(
+            meal_plan=plan,
+            is_external=True,
+            external_cost_per_person=8.5,
+        )
+
+        resp = self.client.get(f"/api/meal-plans/{plan.id}/costs/")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert float(data["total_cost"]) == pytest.approx(170.0)
+        assert data["days"][0]["meals"][0]["is_external"] is True
+
+    def test_cost_summary_uses_weighted_effective_portions(self):
+        plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.0)
+        first_meal = make_meal(meal_plan=plan, meal_type="lunch")
+        second_meal = make_meal(meal_plan=plan, meal_type="dinner", override_portions=20)
+        unit = baker.make("supply.MeasuringUnit", name="g", unit="g", quantity=1.0)
+        first_ingredient = baker.make("supply.Ingredient", price_per_kg=10.0, name="Erste Zutat")
+        second_ingredient = baker.make("supply.Ingredient", price_per_kg=20.0, name="Zweite Zutat")
+        MealItem.objects.create(meal=first_meal, ingredient=first_ingredient, quantity=100, measuring_unit=unit)
+        MealItem.objects.create(meal=second_meal, ingredient=second_ingredient, quantity=100, measuring_unit=unit)
+
+        resp = self.client.get(f"/api/meal-plans/{plan.id}/costs/")
+
+        assert resp.status_code == 200
+        assert float(resp.json()["cost_per_person"]) == pytest.approx(50 / 30)
+
     def test_cost_summary_standalone_matches_shopping_list(self):
         """Cost summary and shopping list totals should match for same data."""
         plan = make_meal_plan(created_by=self.user, norm_portions=10, reserve_factor=1.15)

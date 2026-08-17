@@ -36,6 +36,12 @@ interface Suggestion {
   selected?: boolean;
 }
 
+function isSuggestion(value: unknown): value is Suggestion {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.recipe_item_id === 'number' && typeof candidate.ingredient_name === 'string';
+}
+
 export default function IngredientSuggestions({
   recipeSlug,
   stepInstruction,
@@ -67,14 +73,16 @@ export default function IngredientSuggestions({
         step_instruction: stepInstruction,
       },
       {
-        onSuccess: (data: any) => {
-          const suggestions = (data?.suggestions || []).filter(
-            (s: any) =>
-              s.recipe_item_id &&
-              !currentIngredients.some((ing) => ing.recipe_item_id === s.recipe_item_id)
+        onSuccess: (data: unknown) => {
+          const rawSuggestions =
+            typeof data === 'object' && data !== null && 'suggestions' in data && Array.isArray(data.suggestions)
+              ? data.suggestions
+              : [];
+          const suggestions = rawSuggestions.filter(isSuggestion).filter(
+            (s) => !currentIngredients.some((ing) => ing.recipe_item_id === s.recipe_item_id),
           );
           setSuggestions(suggestions);
-          setSelectedSuggestions(new Set(suggestions.map((_: any, i: number) => i)));
+          setSelectedSuggestions(new Set(suggestions.map((_, i) => i)));
           setIsLoadingInitial(false);
         },
         onError: () => {

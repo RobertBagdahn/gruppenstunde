@@ -263,6 +263,17 @@ class TestCreateRecipe:
         recipe = Recipe.objects.get(id=data["id"])
         assert recipe.owner == auth_client._user
 
+    def test_create_recipe_persists_source_url(self, auth_client):
+        source_url = "https://example.com/rezept"
+        resp = auth_client.post(
+            "/api/recipes/",
+            data=json.dumps({"title": "Importiertes Rezept", "source_url": source_url}),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 200
+        assert Recipe.objects.get(id=resp.json()["id"]).source_url == source_url
+
     def test_create_generates_slug(self, auth_client):
         resp = auth_client.post(
             "/api/recipes/",

@@ -63,10 +63,12 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
         recipe = item.recipe
         ingredient = item.ingredient
 
-        if recipe:
-            # Build override lookup: excluded items are skipped, quantity_override replaces quantity
-            overrides_map = {o.recipe_item_id: o for o in item.overrides.all()}
+        if recipe is not None and recipe.deleted_at is not None:
+            continue
+        if ingredient is not None and ingredient.deleted_at is not None:
+            continue
 
+        if recipe:
             # Handle recipe items
             if recipe.cached_at:
                 # Recompute using individual recipe items to honour overrides.
@@ -74,26 +76,14 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                 # reserve_factor must NOT affect rule/ampel evaluation (see
                 # test_person_factors_do_not_affect_aggregation). This differs from the
                 # user-facing nutrition-summary endpoint, which reports totals.
-                recipe_servings = recipe.portions or 1
-                effective_portions = item.meal.effective_portions if hasattr(item, "meal") and item.meal else 1
-                active_ids = set(item.active_recipe_item_ids or [])
+                from planner.services.calculation_context import active_recipe_items
 
-                for ri in recipe.recipe_items.all():
-                    if not ri.portion or not ri.portion.ingredient:
+                for active_item in active_recipe_items(item):
+                    ri = active_item.recipe_item
+                    ing = ri.portion.ingredient if ri.portion else None
+                    if not ing:
                         continue
-                    if ri.exchange_group_id is not None or ri.is_optional:
-                        if ri.id not in active_ids:
-                            continue
-                    override = overrides_map.get(ri.id)
-                    if override and override.excluded:
-                        continue
-                    effective_quantity = (
-                        float(override.quantity_override)
-                        if (override and override.quantity_override is not None)
-                        else float(ri.quantity)
-                    )
-                    ing = ri.portion.ingredient
-                    weight_g = effective_quantity * float(ri.portion.weight_g) if ri.portion.weight_g else 0.0
+                    weight_g = active_item.weight_g or 0.0
                     nutrient_scale = (weight_g / 100.0) * item.factor
                     for key in [
                         "energy_kcal",
@@ -110,8 +100,8 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     totals["weight_g"] += weight_g * item.factor
                     for field in CACHED_MICRONUTRIENT_FIELDS:
                         totals[field] += (getattr(ing, field, None) or 0.0) * nutrient_scale
-                # Price still from cached value (no per-item price on RecipeItem)
-                totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
+                    if ing.price_per_kg is not None:
+                        totals["price_total"] += float(ing.price_per_kg) * weight_g * item.factor / 1000.0
             else:
                 from recipe.services.recipe_checks import get_recipe_values_with_computed as _get_computed
 
@@ -146,7 +136,10 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     density = getattr(ingredient, "physical_density", 1.0) or 1.0
                     weight_g = float(item.quantity) * density
                 else:
-                    portion = ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
+                    portion = ingredient.portions.filter(
+                        measuring_unit=item.measuring_unit,
+                        deleted_at__isnull=True,
+                    ).first()
                     if portion and portion.weight_g:
                         weight_g = portion.weight_g * float(item.quantity)
 
@@ -173,7 +166,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
 
     nutri_classes = []
     for item in items:
-        if item.recipe and item.recipe.cached_nutri_class:
+        if item.recipe and item.recipe.deleted_at is None and item.recipe.cached_nutri_class:
             nutri_classes.append(item.recipe.cached_nutri_class)
     totals["nutri_class"] = sum(nutri_classes) / len(nutri_classes) if nutri_classes else 0.0
 

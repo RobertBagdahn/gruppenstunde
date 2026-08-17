@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Diese Spec definiert den URL-Import von Rezepten einschließlich Vorschau, Portionen und Quellen-URL.
+
+## Requirements
 
 ### Requirement: URL Import Option in Recipe Creation UI
 The system SHALL display a third option "Von URL importieren" in the RecipeWizard Step 0 (Methoden-Wahl) alongside "Manuell" and "Mit KI-Hilfe".
@@ -94,18 +97,27 @@ The system SHALL create RecipeItem associations with correct `portion_id`, quant
 - **THEN** the system SHALL set note="fein gewürfelt" on the draft item
 
 ### Requirement: Source URL Storage
-The system SHALL store the original import URL on the Recipe model in a `source_url` field.
+The system SHALL store the original import URL on the Recipe model in a `source_url` field when
+the user saves an imported draft.
 
 #### Scenario: Source URL persisted
-- **WHEN** a recipe is created from a URL import
+- **WHEN** a recipe draft created from a URL is saved
 - **THEN** the Recipe.source_url field SHALL contain the original URL
 
+#### Scenario: Editing a draft does not replace the source
+- **WHEN** the user changes title or ingredients before saving an imported draft
+- **THEN** the original import URL SHALL remain unchanged
+
 ### Requirement: Preview Before Save
-The system SHALL NOT persist the recipe or ingredients until the user explicitly confirms. The import endpoint returns a draft preview that populates the edit form (Step 2).
+The system SHALL persist the recipe draft immediately after the user confirms the URL import
+preview. After successful draft creation via `POST /api/recipes/`, the Wizard navigates to Step 1
+(Zutaten) where the user can review and edit the imported ingredients using the InlineIngredientEditor.
 
 #### Scenario: User reviews and edits before saving
-- **WHEN** the import endpoint returns successfully
-- **THEN** the system SHALL navigate to Step 2 (Bearbeiten) with all fields pre-filled and allow the user to modify before saving
+- **WHEN** the user confirms the URL import preview
+- **THEN** the system SHALL create a recipe draft via `POST /api/recipes/` with the imported data and `status="draft"`
+- **THEN** the Wizard SHALL navigate to Step 1 (Zutaten) with the imported ingredients loaded in the InlineIngredientEditor
+- **THEN** the user can modify title, recipe type, ingredients before proceeding
 
 ### Requirement: Loading State During Import
 The system SHALL display a loading indicator with the message "Rezept wird analysiert... Das kann einen Moment dauern." during the import process.
@@ -136,7 +148,9 @@ The CreateRecipePage SHALL read `data.recipe_draft.servings` (not `portions`) fr
 - **THEN** quantities SHALL be used as-is
 
 ### Requirement: Import-Flow Portionsvalidierung
-Beim Rezept-Import aus URL MUSS der Import-Stepper einen expliziten Validierungsschritt enthalten, in dem der User die erkannte Portionsanzahl bestätigt oder korrigiert. Die Mengen werden automatisch auf 1 Portion normalisiert.
+Beim Rezept-Import aus URL SHALL der Import-Stepper einen expliziten Validierungsschritt enthalten,
+in dem der User die erkannte Portionsanzahl bestätigt oder korrigiert. Die Mengen werden
+automatisch auf 1 Portion normalisiert.
 
 #### Scenario: Import mit servings > 1 zeigt Normalisierungs-Schritt
 - **WHEN** ein Rezept per URL importiert wird und die Quelle `servings > 1` zurückgibt
@@ -194,14 +208,3 @@ Der Rezept-URL-Import (z.B. von Chefkoch) SHALL auf der Production-Umgebung stab
 
 - **WHEN** der URL-Import auf Production fehlschlägt
 - **THEN** wird der Fehler in Sentry geloggt mit der verwendeten URL (anonymisiert falls nötig)
-
-## MODIFIED Requirements
-
-### Requirement: Preview Before Save
-The system SHALL persist the recipe draft immediately after the user confirms the URL import preview. After successful draft creation via `POST /api/recipes/`, the Wizard navigates to Step 1 (Zutaten) where the user can review and edit the imported ingredients using the InlineIngredientEditor.
-
-#### Scenario: User reviews and edits after import
-- **WHEN** the user confirms the URL import preview
-- **THEN** the system SHALL create a recipe draft via `POST /api/recipes/` with the imported data and `status="draft"`
-- **THEN** the Wizard SHALL navigate to Step 1 (Zutaten) with the imported ingredients loaded in the InlineIngredientEditor
-- **THEN** the user can modify title, recipe type, ingredients before proceeding

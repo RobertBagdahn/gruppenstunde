@@ -360,12 +360,9 @@ export function MealSlot({
                               <span className="text-xs text-muted-foreground">{it.measuring_unit_name}{it.quantity_g != null ? <span className="text-muted-foreground/60 ml-0.5">({Math.round(it.quantity_g)}g)</span> : ''}</span>
                             </>
                           ) : isIng && !meal.is_synced ? (
-                            // OLD format: raw unit, editable — show grams only
-                            // TODO (4.1): Enhance to show portion hints like breakfast wizard:
-                            // When ingredient portions are available, use:
-                            // formatGramsWithPortionHint(it.quantity_g, ingredientPortions)
-                            // Requires: fetch/cache ingredient portions from breakfast_catalog API or /ingredients/{slug} endpoint
-                            <span className="text-xs text-muted-foreground">{Math.round(it.quantity_g ?? 0)}g</span>
+                            <span className={`text-xs ${it.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                              {it.portion_display || `${Math.round(it.quantity_g ?? 0)}g`}
+                            </span>
                           ) : isIng && it.portion_display ? (
                              // portion_display from backend (read-only)
                              <span className={`text-xs ${it.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>

@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Kanonische Auswahl der Normalportion beim Hinzufügen einer Zutat.
+
+## Requirements
 
 ### Requirement: Smart default portion on ingredient add
 
@@ -37,4 +41,4 @@ When a user adds an ingredient to a recipe (via CreateRecipePage or InlineIngred
 
 - **WHEN** `selectDefaultPortion(portions)` is called
 - **THEN** it SHALL return `portions[0]` (first in sorted array = rank=1)
-- **THEN** no priority filtering or is_default checking SHALL occur
+- **THEN** no `priority` or `is_default` filtering SHALL occur; the sorted `rank` order is authoritative

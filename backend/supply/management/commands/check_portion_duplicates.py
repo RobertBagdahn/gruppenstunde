@@ -11,7 +11,7 @@ class Command(BaseCommand):
     help = "Find case-insensitive duplicate portion names per ingredient and ingredients without a rank=1 portion"
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS("\n=== Checking for portion name duplicates ===\n"))
+        self.stdout.write(self.style.SUCCESS("\n=== Checking for portion identity duplicates ===\n"))
 
         # Find case-insensitive duplicates per ingredient
         duplicates_found = False
@@ -19,10 +19,10 @@ class Command(BaseCommand):
             # Get all non-deleted portions for this ingredient
             portions = ingredient.portions.filter(deleted_at__isnull=True)
 
-            # Group by lowercase name and count
+            # Group by the canonical identity used by recipe imports.
             portion_groups = (
                 portions.annotate(name_lower=Lower("name"))
-                .values("name_lower")
+                .values("name_lower", "measuring_unit_id", "quantity")
                 .annotate(count=Count("id"))
                 .filter(count__gt=1)
             )
@@ -38,15 +38,29 @@ class Command(BaseCommand):
                 for group in portion_groups:
                     name_lower = group["name_lower"]
                     count = group["count"]
-                    # Get all portions with this lowercase name
-                    dups = portions.filter(name__iexact=name_lower)
-                    self.stdout.write(f"  Duplicate name (case-insensitive): '{name_lower}' ({count} occurrences)")
+                    dups = portions.filter(
+                        name__iexact=name_lower,
+                        measuring_unit_id=group["measuring_unit_id"],
+                        quantity=group["quantity"],
+                    )
+                    self.stdout.write(
+                        f"  Duplicate identity: '{name_lower}', unit={group['measuring_unit_id']}, "
+                        f"quantity={group['quantity']} ({count} occurrences)"
+                    )
 
                     for portion in dups:
                         self.stdout.write(
                             f"    - ID: {portion.id}, Name: '{portion.name}', rank: {portion.rank}, "
                             f"weight_g: {portion.weight_g}"
                         )
+
+            missing_weights = portions.filter(weight_g__isnull=True).count()
+            if missing_weights:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  Missing weight_g: {missing_weights} active portion(s) require manual or calculated weight"
+                    )
+                )
 
         if not duplicates_found:
             self.stdout.write(self.style.SUCCESS("\n✓ No case-insensitive duplicate portion names found!\n"))

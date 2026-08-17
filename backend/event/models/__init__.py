@@ -14,6 +14,7 @@ from .core import (
 from .custom_fields import CustomField, CustomFieldValue
 from .day_slots import EventDaySlot
 from .labels import ParticipantLabel
+from .meal_plan_relation import EventMealPlanRelation
 from .parent_access import ParentAccessToken
 from .payment import Payment
 from .room_assignment import RoomAssignment
@@ -30,6 +31,7 @@ __all__ = [
     "Event",
     "EventDaySlot",
     "EventLocation",
+    "EventMealPlanRelation",
     "MeetingPoint",
     "MessageTemplate",
     "ParentAccessToken",
