@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "test:mobile-autocomplete": "bash smoke-test.sh --food-only --reuse-running --grep=autocomplete"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0"

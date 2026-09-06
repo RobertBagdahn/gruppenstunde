@@ -10,6 +10,7 @@ SCREENSHOT_DIR="$OUTPUT_DIR/screenshots"
 BACKEND_PORT=8000
 FRONTEND_PORT=5173
 FOOD_FRONTEND_PORT=5174
+DB_CONTAINER=gruppenstunde_db_1
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -17,6 +18,24 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 PIDS=()
+RUN_MAIN_FRONTEND=true
+REUSE_RUNNING=false
+PLAYWRIGHT_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --food-only)
+      RUN_MAIN_FRONTEND=false
+      ;;
+    --reuse-running)
+      REUSE_RUNNING=true
+      ;;
+    *)
+      PLAYWRIGHT_ARGS+=("$1")
+      ;;
+  esac
+  shift
+done
 
 cleanup() {
   echo ""
@@ -33,18 +52,23 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 mkdir -p "$LOG_DIR" "$SCREENSHOT_DIR"
+rm -f "$LOG_DIR"/*.log
 
 # ─── Database Check ──────────────────────────────────────────────
 
 echo -e "${YELLOW}Checking database...${NC}"
 
-if ! podman compose ps --format '{{.Names}}' 2>/dev/null | grep -q 'db'; then
+if podman ps --filter name="$DB_CONTAINER" --format '{{.Names}}' 2>/dev/null | grep -q "^$DB_CONTAINER$"; then
+  echo "  Database container already running."
+elif podman ps -a --filter name="$DB_CONTAINER" --format '{{.Names}}' 2>/dev/null | grep -q "^$DB_CONTAINER$"; then
+  echo "  Starting existing database container..."
+  podman start "$DB_CONTAINER" > /dev/null
+  sleep 3
+else
   echo "  Starting database container..."
   cd "$REPO_ROOT" && podman compose up -d db
   echo "  Waiting for PostgreSQL..."
   sleep 3
-else
-  echo "  Database container already running."
 fi
 
 cd "$REPO_ROOT/backend"
@@ -67,27 +91,56 @@ kill_port() {
   fi
 }
 
-kill_port "$BACKEND_PORT"
-kill_port "$FRONTEND_PORT"
-kill_port "$FOOD_FRONTEND_PORT"
+server_is_ready() {
+  local url="$1"
+  curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null | grep -q '^[23]'
+}
 
-echo -e "${YELLOW}Starting backend on port $BACKEND_PORT...${NC}"
-cd "$REPO_ROOT/backend"
-uv run python manage.py runserver "localhost:$BACKEND_PORT" \
-  > "$LOG_DIR/backend.log" 2>&1 &
-PIDS+=($!)
+if [[ "$REUSE_RUNNING" == true ]] && server_is_ready "http://localhost:$BACKEND_PORT/api/auth/csrf/"; then
+  echo "  Reusing backend on port $BACKEND_PORT."
+else
+  kill_port "$BACKEND_PORT"
+fi
 
-echo -e "${YELLOW}Starting main frontend on port $FRONTEND_PORT...${NC}"
-cd "$REPO_ROOT/frontend"
-npm run dev -- --port "$FRONTEND_PORT" --strictPort \
-  > "$LOG_DIR/frontend.log" 2>&1 &
-PIDS+=($!)
+if [[ "$RUN_MAIN_FRONTEND" == true ]]; then
+  if [[ "$REUSE_RUNNING" == true ]] && server_is_ready "http://localhost:$FRONTEND_PORT"; then
+    echo "  Reusing main frontend on port $FRONTEND_PORT."
+  else
+    kill_port "$FRONTEND_PORT"
+  fi
+fi
 
-echo -e "${YELLOW}Starting food frontend on port $FOOD_FRONTEND_PORT...${NC}"
-cd "$REPO_ROOT/frontend-food"
-npm run dev -- --port "$FOOD_FRONTEND_PORT" --strictPort \
-  > "$LOG_DIR/frontend-food.log" 2>&1 &
-PIDS+=($!)
+if [[ "$REUSE_RUNNING" == true ]] && server_is_ready "http://localhost:$FOOD_FRONTEND_PORT"; then
+  echo "  Reusing food frontend on port $FOOD_FRONTEND_PORT."
+else
+  kill_port "$FOOD_FRONTEND_PORT"
+fi
+
+if ! server_is_ready "http://localhost:$BACKEND_PORT/api/auth/csrf/"; then
+  echo -e "${YELLOW}Starting backend on port $BACKEND_PORT...${NC}"
+  cd "$REPO_ROOT/backend"
+  uv run python manage.py runserver "localhost:$BACKEND_PORT" \
+    > "$LOG_DIR/backend.log" 2>&1 &
+  PIDS+=($!)
+fi
+
+if [[ "$RUN_MAIN_FRONTEND" == true ]]; then
+  if ! server_is_ready "http://localhost:$FRONTEND_PORT"; then
+    echo -e "${YELLOW}Starting main frontend on port $FRONTEND_PORT...${NC}"
+    cd "$REPO_ROOT/frontend"
+    npm run dev -- --port "$FRONTEND_PORT" --strictPort \
+      > "$LOG_DIR/frontend.log" 2>&1 &
+    PIDS+=($!)
+  fi
+fi
+
+if ! server_is_ready "http://localhost:$FOOD_FRONTEND_PORT"; then
+  echo -e "${YELLOW}Starting food frontend on port $FOOD_FRONTEND_PORT...${NC}"
+  cd "$REPO_ROOT/frontend-food"
+  npm run dev -- --port "$FOOD_FRONTEND_PORT" --strictPort \
+    > "$LOG_DIR/frontend-food.log" 2>&1 &
+  PIDS+=($!)
+fi
 
 # ─── Health Checks ───────────────────────────────────────────────
 
@@ -112,7 +165,9 @@ wait_for_server() {
 
 echo -e "${YELLOW}Waiting for servers...${NC}"
 wait_for_server "http://localhost:$BACKEND_PORT/api/auth/csrf/" "Backend" || exit 1
-wait_for_server "http://localhost:$FRONTEND_PORT" "Frontend" || exit 1
+if [[ "$RUN_MAIN_FRONTEND" == true ]]; then
+  wait_for_server "http://localhost:$FRONTEND_PORT" "Frontend" || exit 1
+fi
 wait_for_server "http://localhost:$FOOD_FRONTEND_PORT" "Food Frontend" || exit 1
 echo -e "${GREEN}All servers healthy.${NC}"
 
@@ -125,7 +180,7 @@ echo ""
 cd "$SCRIPT_DIR"
 
 TEST_EXIT=0
-npx playwright test || TEST_EXIT=$?
+npx playwright test "${PLAYWRIGHT_ARGS[@]}" || TEST_EXIT=$?
 
 echo ""
 

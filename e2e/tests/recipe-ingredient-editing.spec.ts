@@ -30,6 +30,33 @@ async function login(page: Page) {
   await page.waitForURL('**/', { timeout: 10000 });
 }
 
+async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
+  await page.goto(`${FOOD_URL}/recipes/new`);
+  await page.waitForLoadState('networkidle');
+
+  const manualCard = page.locator('.cursor-pointer:has-text("Manuell")').first();
+  await expect(manualCard).toBeVisible({ timeout: 10000 });
+  await manualCard.click();
+
+  const nextButton = page.getByRole('button', { name: 'Weiter', exact: true });
+  await expect(nextButton).toBeEnabled();
+  await Promise.all([
+    page.waitForResponse((response) => {
+      return response.request().method() === 'POST'
+        && new URL(response.url()).pathname === '/api/recipes/'
+        && response.ok();
+    }),
+    nextButton.click(),
+  ]);
+
+  await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(page.getByRole('combobox', { name: /Zutat/i }).first()).toBeVisible({
+    timeout: 15000,
+  });
+}
+
 /** Creates a minimal manual recipe via the wizard (through to the end,
  *  "Fertigstellen"), landing on the recipe detail page, and returns its slug.
  *  Using the detail page (URL-driven, `/recipes/:slug`) rather than the
@@ -114,16 +141,9 @@ async function addIngredient(page: Page, searchTerm: string): Promise<void> {
 test.describe('Recipe ingredient autocomplete — mobile layout', () => {
   test('keeps the input row aligned while showing category pills and results', async ({ page }) => {
     await login(page);
-    await page.goto(`${FOOD_URL}/recipes/new`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    await page.locator('.cursor-pointer:has-text("Manuell")').first().click();
-    await page.locator('button:has-text("Weiter")').last().click();
-    await page.waitForTimeout(2500);
+    await openManualRecipeIngredientsStep(page);
 
     const input = page.getByRole('combobox', { name: /Zutat/i }).first();
-    await expect(input).toBeVisible({ timeout: 8000 });
     const autocomplete = page.getByTestId('ingredient-autocomplete').first();
     const detailSearch = page.locator('button[title="Detailsuche"]').first();
 
@@ -161,20 +181,19 @@ test.describe('Recipe ingredient autocomplete — mobile layout', () => {
     expect(typedDetailSearch?.y).toBe(typedInput?.y);
     expect(typedAutocomplete?.height).toBeGreaterThan(44);
     expect(pillsBox?.y).toBeGreaterThan(typedInput?.y ?? 0);
+
+    const resultList = page.getByRole('listbox').first();
+    await expect(resultList).toBeVisible({ timeout: 3000 });
+    const resultListBox = await resultList.boundingBox();
+    expect(resultListBox).not.toBeNull();
+    expect(resultListBox?.y).toBeGreaterThan((pillsBox?.y ?? 0) + (pillsBox?.height ?? 0));
   });
 
   test('preserves the query and focus when selecting a category, then closes on blur', async ({ page }) => {
     await login(page);
-    await page.goto(`${FOOD_URL}/recipes/new`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    await page.locator('.cursor-pointer:has-text("Manuell")').first().click();
-    await page.locator('button:has-text("Weiter")').last().click();
-    await page.waitForTimeout(2500);
+    await openManualRecipeIngredientsStep(page);
 
     const input = page.getByRole('combobox', { name: /Zutat/i }).first();
-    await expect(input).toBeVisible({ timeout: 8000 });
     await input.fill('sal');
     await page.waitForTimeout(700);
 
@@ -197,6 +216,30 @@ test.describe('Recipe ingredient autocomplete — mobile layout', () => {
     await page.locator('h2').first().click();
     await expect(page.getByTestId('ingredient-category-pills').first()).toBeHidden();
     await expect(input).toHaveValue('sal');
+  });
+});
+
+test.describe('Recipe ingredient autocomplete — touch scrolling', () => {
+  test.use({ hasTouch: true, isMobile: true });
+
+  test('scrolls the ingredient input into view on touch focus', async ({ page }) => {
+    await login(page);
+    await openManualRecipeIngredientsStep(page);
+
+    const input = page.getByRole('combobox', { name: /Zutat/i }).first();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const before = await input.boundingBox();
+    const viewportHeight = page.viewportSize()?.height ?? 0;
+    expect(before).not.toBeNull();
+    expect(before?.y).toBeGreaterThan(viewportHeight);
+
+    await input.tap();
+    await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 3000 }).toBeGreaterThan(0);
+
+    const after = await input.boundingBox();
+    expect(after).not.toBeNull();
+    expect(after?.y).toBeGreaterThanOrEqual(0);
+    expect(after?.y).toBeLessThan(viewportHeight);
   });
 });
 

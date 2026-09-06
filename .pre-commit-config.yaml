@@ -1,5 +1,5 @@
-# Pre-commit hooks for Inspi backend
-# Install: cd backend && pre-commit install
+# Pre-commit hooks for Inspi
+# Install: pre-commit install
 # Run all: pre-commit run --all-files
 
 repos:
@@ -29,10 +29,17 @@ repos:
     rev: 24.10.0
     hooks:
       - id: black
-        language_version: python3.12
+        language_version: python3.13
 
   - repo: local
     hooks:
+      - id: playwright-mobile-ingredient-autocomplete
+        name: Playwright mobile ingredient autocomplete
+        entry: bash e2e/smoke-test.sh --food-only --reuse-running --grep=autocomplete
+        language: system
+        pass_filenames: false
+        files: ^(\.pre-commit-config\.yaml|e2e/(package(-lock)?\.json|playwright\.config\.ts|smoke-test\.sh|tests/recipe-ingredient-editing\.spec\.ts)|frontend-food/src/components/recipe/(IngredientAutocomplete|InlineIngredientEditor)\.tsx)$
+        stages: [pre-commit]
       - id: pytest
         name: pytest (fast tests only)
         entry: bash -c 'cd backend && uv run python -m pytest -x -q --tb=short -m "not slow"'
