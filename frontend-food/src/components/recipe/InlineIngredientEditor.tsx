@@ -1188,7 +1188,7 @@ export default function InlineIngredientEditor({
       </div>
 
       {/* Add Ingredient */}
-      <div className="pt-2 border-t flex items-center gap-2">
+      <div className="pt-2 border-t flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <IngredientAutocomplete
             value={inputValue}
@@ -1208,7 +1208,7 @@ export default function InlineIngredientEditor({
         <button
           type="button"
           onClick={() => setDetailSearchOpen(true)}
-          className="h-11 px-3 rounded-lg border border-input hover:bg-muted hover:border-primary/40 transition-colors text-muted-foreground hover:text-primary shrink-0"
+          className="h-11 self-start px-3 rounded-lg border border-input hover:bg-muted hover:border-primary/40 transition-colors text-muted-foreground hover:text-primary shrink-0"
           title="Detailsuche"
         >
           <SlidersHorizontal className="w-5 h-5" />

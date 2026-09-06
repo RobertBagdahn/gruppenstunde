@@ -111,6 +111,95 @@ async function addIngredient(page: Page, searchTerm: string): Promise<void> {
   }
 }
 
+test.describe('Recipe ingredient autocomplete — mobile layout', () => {
+  test('keeps the input row aligned while showing category pills and results', async ({ page }) => {
+    await login(page);
+    await page.goto(`${FOOD_URL}/recipes/new`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    await page.locator('.cursor-pointer:has-text("Manuell")').first().click();
+    await page.locator('button:has-text("Weiter")').last().click();
+    await page.waitForTimeout(2500);
+
+    const input = page.getByRole('combobox', { name: /Zutat/i }).first();
+    await expect(input).toBeVisible({ timeout: 8000 });
+    const autocomplete = page.getByTestId('ingredient-autocomplete').first();
+    const detailSearch = page.locator('button[title="Detailsuche"]').first();
+
+    const initialInput = await input.boundingBox();
+    const initialDetailSearch = await detailSearch.boundingBox();
+    expect(initialInput).not.toBeNull();
+    expect(initialDetailSearch).not.toBeNull();
+    expect(initialInput?.height).toBe(44);
+    expect(initialDetailSearch?.height).toBe(44);
+
+    await input.focus();
+    await page.waitForTimeout(200);
+    const focusedInput = await input.boundingBox();
+    const focusedDetailSearch = await detailSearch.boundingBox();
+    expect(focusedInput?.height).toBe(44);
+    expect(focusedDetailSearch?.height).toBe(44);
+    expect(focusedDetailSearch?.y).toBe(focusedInput?.y);
+
+    await input.fill('sal');
+    await page.waitForTimeout(700);
+
+    const typedInput = await input.boundingBox();
+    const typedDetailSearch = await detailSearch.boundingBox();
+    const typedAutocomplete = await autocomplete.boundingBox();
+    const pills = page.getByTestId('ingredient-category-pills').first();
+    await expect(pills).toBeVisible({ timeout: 3000 });
+    const pillsBox = await pills.boundingBox();
+
+    expect(typedInput).not.toBeNull();
+    expect(typedDetailSearch).not.toBeNull();
+    expect(typedAutocomplete).not.toBeNull();
+    expect(pillsBox).not.toBeNull();
+    expect(typedInput?.height).toBe(44);
+    expect(typedDetailSearch?.height).toBe(44);
+    expect(typedDetailSearch?.y).toBe(typedInput?.y);
+    expect(typedAutocomplete?.height).toBeGreaterThan(44);
+    expect(pillsBox?.y).toBeGreaterThan(typedInput?.y ?? 0);
+  });
+
+  test('preserves the query and focus when selecting a category, then closes on blur', async ({ page }) => {
+    await login(page);
+    await page.goto(`${FOOD_URL}/recipes/new`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    await page.locator('.cursor-pointer:has-text("Manuell")').first().click();
+    await page.locator('button:has-text("Weiter")').last().click();
+    await page.waitForTimeout(2500);
+
+    const input = page.getByRole('combobox', { name: /Zutat/i }).first();
+    await expect(input).toBeVisible({ timeout: 8000 });
+    await input.fill('sal');
+    await page.waitForTimeout(700);
+
+    const category = page.getByTestId('ingredient-category-pills').locator('button').nth(1);
+    await expect(category).toBeVisible({ timeout: 3000 });
+    const categoryRequest = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return url.pathname === '/api/ingredients/'
+        && url.searchParams.get('name') === 'sal'
+        && url.searchParams.has('retail_section');
+    });
+    await category.click();
+    const request = await categoryRequest;
+    expect(new URL(request.url()).searchParams.get('name')).toBe('sal');
+
+    await expect(input).toHaveValue('sal');
+    await expect(input).toBeFocused();
+    await expect(page.getByTestId('ingredient-category-pills').first()).toBeVisible();
+
+    await page.locator('h2').first().click();
+    await expect(page.getByTestId('ingredient-category-pills').first()).toBeHidden();
+    await expect(input).toHaveValue('sal');
+  });
+});
+
 test.describe('Recipe ingredient editing — math correctness', () => {
   test('edit quantity persists the exact value across save + reload', async ({ page }) => {
     await login(page);

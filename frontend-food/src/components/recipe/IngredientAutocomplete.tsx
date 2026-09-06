@@ -23,6 +23,13 @@ function formatNum(v: number | null | undefined): string {
   return v != null ? parseFloat(v.toFixed(1)) + 'g' : '';
 }
 
+function isMobileTouchViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hasTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+  return window.matchMedia('(max-width: 767px)').matches
+    && (window.matchMedia('(pointer: coarse)').matches || hasTouch);
+}
+
 interface IngredientSuggestion {
   id: number;
   name: string;
@@ -215,46 +222,74 @@ export function IngredientAutocomplete({
     [isOpen, suggestions, activeIndex, ghostText, value, onChange, onSelect]
   );
 
-  return (
-    <div className={cn('relative min-w-0', className)}>
-      {/* Ghost text layer */}
-      <div className="pointer-events-none absolute inset-0 flex items-center px-3.5 overflow-hidden">
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary shrink-0 mr-2.5">
-          <Plus className="w-4 h-4" />
-        </span>
-        <span className="invisible whitespace-pre">{value}</span>
-        <span className="text-muted-foreground/50 whitespace-pre truncate">
-          {ghostText.slice(value.length)}
-        </span>
-      </div>
+  const handleFocus = useCallback(() => {
+    if (value.length >= 2) setIsOpen(true);
+    if (!isMobileTouchViewport()) return;
 
-      {/* Input */}
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          setIsOpen(true);
-          setActiveIndex(-1);
-        }}
-        onFocus={() => value.length >= 2 && setIsOpen(true)}
-        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        className="flex h-11 w-full rounded-lg border border-input bg-background pl-11 pr-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50"
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-autocomplete="list"
-      />
+    window.setTimeout(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      const targetTop = window.scrollY + input.getBoundingClientRect().top - 16;
+      window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    }, 100);
+  }, [value]);
+
+  const handleRetailSectionPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    inputRef.current?.focus();
+  }, []);
+
+  const handleRetailSectionChange = useCallback((sectionId: number | null) => {
+    setSelectedRetailSection(sectionId);
+    setIsOpen(true);
+    setActiveIndex(-1);
+    inputRef.current?.focus();
+  }, []);
+
+  return (
+    <div data-testid="ingredient-autocomplete" className={cn('relative min-w-0', className)}>
+      <div className="relative h-11">
+        {/* Ghost text layer */}
+        <div className="pointer-events-none absolute inset-0 z-0 flex items-center px-3.5 overflow-hidden">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary shrink-0 mr-2.5">
+            <Plus className="w-4 h-4" />
+          </span>
+          <span className="invisible whitespace-pre">{value}</span>
+          <span className="text-muted-foreground/50 whitespace-pre truncate">
+            {ghostText.slice(value.length)}
+          </span>
+        </div>
+
+        {/* Input */}
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setIsOpen(true);
+            setActiveIndex(-1);
+          }}
+          onFocus={handleFocus}
+          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          className="relative z-10 flex h-11 w-full rounded-lg border border-input bg-transparent pl-11 pr-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
+        />
+      </div>
 
       {/* Filter pills */}
       {isOpen && retailSections.length > 0 && (
         <div className="flex items-center gap-1.5 mt-2">
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+          <div data-testid="ingredient-category-pills" className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
             <button
-              onClick={() => setSelectedRetailSection(null)}
+              type="button"
+              onPointerDown={handleRetailSectionPointerDown}
+              onClick={() => handleRetailSectionChange(null)}
               className={cn(
                 'shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors border',
                 selectedRetailSection === null
@@ -267,7 +302,9 @@ export function IngredientAutocomplete({
             {retailSections.map((rs) => (
               <button
                 key={rs.id}
-                onClick={() => setSelectedRetailSection(rs.id)}
+                type="button"
+                onPointerDown={handleRetailSectionPointerDown}
+                onClick={() => handleRetailSectionChange(rs.id)}
                 className={cn(
                   'shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors border',
                   selectedRetailSection === rs.id
