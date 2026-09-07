@@ -7,7 +7,7 @@ interface StaffGuardProps {
 }
 
 export default function StaffGuard({ children }: StaffGuardProps) {
-  const { data: user, isLoading } = useCurrentUser();
+  const { data: user, error, isLoading } = useCurrentUser();
 
   if (isLoading) {
     return (
@@ -17,7 +17,7 @@ export default function StaffGuard({ children }: StaffGuardProps) {
     );
   }
 
-  if (!user) {
+  if (!user || (error instanceof Error && 'status' in error && error.status === 401)) {
     return <Navigate to="/login" replace />;
   }
 

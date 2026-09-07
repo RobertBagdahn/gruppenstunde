@@ -119,7 +119,7 @@ fi
 if ! server_is_ready "http://localhost:$BACKEND_PORT/api/auth/csrf/"; then
   echo -e "${YELLOW}Starting backend on port $BACKEND_PORT...${NC}"
   cd "$REPO_ROOT/backend"
-  uv run python manage.py runserver "localhost:$BACKEND_PORT" \
+  uv run python manage.py runserver "localhost:$BACKEND_PORT" --noreload \
     > "$LOG_DIR/backend.log" 2>&1 &
   PIDS+=($!)
 fi
@@ -180,7 +180,18 @@ echo ""
 cd "$SCRIPT_DIR"
 
 TEST_EXIT=0
-npx playwright test "${PLAYWRIGHT_ARGS[@]}" || TEST_EXIT=$?
+if ((${#PLAYWRIGHT_ARGS[@]} > 0)); then
+  npx playwright test "${PLAYWRIGHT_ARGS[@]}" || TEST_EXIT=$?
+elif [[ "$RUN_MAIN_FRONTEND" == false ]]; then
+  npx playwright test \
+    --project=mocked \
+    --project=live \
+    --project=mobile-320 \
+    --project=tablet \
+    --project=desktop || TEST_EXIT=$?
+else
+  npx playwright test || TEST_EXIT=$?
+fi
 
 echo ""
 

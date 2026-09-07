@@ -192,3 +192,39 @@ class TestVisibility:
         data = resp.json()
         assert data["visibility"] == "public"
         assert data["status"] == "submitted"
+
+        recipe.refresh_from_db()
+        assert recipe.visibility == "public"
+        assert recipe.status == "submitted"
+
+    def test_group_visibility_remains_draft(self, auth_client):
+        """Setting visibility to group keeps status as draft."""
+        user = auth_client._user
+        recipe = make_recipe(title="Gruppenrezept", owner=user, visibility="private", status="draft")
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/visibility/",
+            data=json.dumps({"visibility": "group"}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        recipe.refresh_from_db()
+        assert recipe.visibility == "group"
+        assert recipe.status == "draft"
+
+    def test_staff_can_approve_submitted_recipe(self, admin_client, auth_client):
+        """Staff can verify/approve a submitted recipe."""
+        owner = auth_client._user
+        recipe = make_recipe(title="Rezept zur Freigabe", owner=owner, visibility="public", status="submitted")
+        ingredient = make_ingredient(name="Tomaten")
+        portion = make_portion(ingredient=ingredient, name="100g Tomaten", weight_g=100.0)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=2.0)
+
+        verify_resp = admin_client.post(
+            f"/api/recipes/{recipe.id}/verify/",
+            data=json.dumps({"confirm": True}),
+            content_type="application/json",
+        )
+        assert verify_resp.status_code == 200
+        recipe.refresh_from_db()
+        assert recipe.status == "approved"

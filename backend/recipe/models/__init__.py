@@ -1,7 +1,7 @@
 """Recipe models package — re-exports all models for backward compatibility."""
 
 from .folder import RecipeFolder
-from .items import RecipeItem, RecipeItemExchangeGroup
+from .items import RecipeItem, RecipeItemExchangeGroup, RecipeItemIdempotencyRecord
 from .recipe import Recipe, RecipeVisibility
 from .rule import Rule, RuleHintLevelChoices, RuleScopeChoices, RuleTypeChoices
 from .steps import RecipeStep, RecipeStepIngredient
@@ -12,6 +12,7 @@ __all__ = [
     "RecipeFolder",
     "RecipeItem",
     "RecipeItemExchangeGroup",
+    "RecipeItemIdempotencyRecord",
     "RecipeStep",
     "RecipeStepIngredient",
     "RecipeTypeStats",

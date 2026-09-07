@@ -3,16 +3,12 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { TagSchema, ScoutLevelSchema, type Tag, type ScoutLevel } from '@/schemas/content';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, parseApiResponse } from '@/lib/api';
 import { z } from 'zod';
 
 async function fetchJson<T>(url: string, schema: z.ZodSchema<T>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse(res, schema);
 }
 
 export function useTags() {

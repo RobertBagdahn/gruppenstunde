@@ -40,9 +40,9 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
         totals[field] = 0.0
 
     if meal.is_external:
-        effective_portions = meal.effective_portions if hasattr(meal, "effective_portions") else 1
         if meal.external_energy_kcal is not None:
-            totals["energy_kcal"] = meal.external_energy_kcal * effective_portions
+            # External energy is already entered as the meal's per-person value.
+            totals["energy_kcal"] = meal.external_energy_kcal
         else:
             totals["energy_kcal"] = NORM_PERSON_DAILY_KCAL * meal.day_part_factor
         return totals
@@ -69,6 +69,8 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
             continue
 
         if recipe:
+            recipe_servings = max(recipe.portions or 1, 1)
+
             # Handle recipe items
             if recipe.cached_at:
                 # Recompute using individual recipe items to honour overrides.
@@ -84,7 +86,7 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     if not ing:
                         continue
                     weight_g = active_item.weight_g or 0.0
-                    nutrient_scale = (weight_g / 100.0) * item.factor
+                    nutrient_scale = (weight_g / 100.0) * item.factor / recipe_servings
                     for key in [
                         "energy_kcal",
                         "protein_g",
@@ -97,17 +99,19 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     ]:
                         totals[key] += (getattr(ing, key, None) or 0.0) * nutrient_scale
                     totals["sodium_mg"] += (ing.sodium_mg or 0.0) * nutrient_scale
-                    totals["weight_g"] += weight_g * item.factor
+                    totals["weight_g"] += (weight_g * item.factor) / recipe_servings
                     for field in CACHED_MICRONUTRIENT_FIELDS:
                         totals[field] += (getattr(ing, field, None) or 0.0) * nutrient_scale
                     if ing.price_per_kg is not None:
-                        totals["price_total"] += float(ing.price_per_kg) * weight_g * item.factor / 1000.0
+                        totals["price_total"] += (
+                            float(ing.price_per_kg) * weight_g * item.factor / (1000.0 * recipe_servings)
+                        )
             else:
                 from recipe.services.recipe_checks import get_recipe_values_with_computed as _get_computed
 
                 values, total_weight_g = _get_computed(recipe)
 
-                nutrient_scale = (total_weight_g / 100.0) if total_weight_g else 1.0
+                nutrient_scale = ((total_weight_g / 100.0) if total_weight_g else 1.0) * item.factor / recipe_servings
 
                 for key in [
                     "energy_kcal",
@@ -120,11 +124,11 @@ def _aggregate_meal_values(meal: Meal) -> dict[str, float]:
                     "salt_g",
                     "sodium_mg",
                 ]:
-                    totals[key] += values.get(key, 0.0) * nutrient_scale * item.factor
-                totals["price_total"] += float(recipe.cached_price_total or 0) * item.factor
-                totals["weight_g"] += total_weight_g * item.factor
+                    totals[key] += values.get(key, 0.0) * nutrient_scale
+                totals["price_total"] += (float(recipe.cached_price_total or 0) * item.factor) / recipe_servings
+                totals["weight_g"] += (total_weight_g * item.factor) / recipe_servings
                 for field in CACHED_MICRONUTRIENT_FIELDS:
-                    totals[field] += values.get(field, 0.0) * nutrient_scale * item.factor
+                    totals[field] += values.get(field, 0.0) * nutrient_scale
         elif ingredient:
             # Handle ingredient items
             weight_g = 0.0
@@ -217,7 +221,7 @@ def _aggregate_meal_plan_values(meal_plan: MealPlan) -> dict[str, float]:
     """Aggregate nutritional values for the entire MealPlan (all days)."""
     from planner.models import Meal
 
-    meals = Meal.objects.filter(meal_plan=meal_plan)
+    meals = Meal.objects.filter(meal_plan=meal_plan, is_reference=False)
 
     totals: dict[str, float] = {
         "energy_kcal": 0.0,

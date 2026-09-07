@@ -1,6 +1,7 @@
 """Pydantic schemas for Ingredient, Portion, Alias."""
 
 from datetime import datetime
+from typing import Literal
 
 from ninja import Schema
 
@@ -16,6 +17,13 @@ class IngredientAliasOut(Schema):
     name: str
     rank: int
     is_generic: bool = False
+
+
+class SharedGroupOut(Schema):
+    """Group exposed for a resource's sharing information."""
+
+    id: int
+    name: str
 
 
 class AliasCreateIn(Schema):
@@ -114,6 +122,15 @@ class AiApplyIn(Schema):
     replace_all: bool = False
     portions: list[PortionApplySuggestionIn] = []
     packages: list[PackageApplySuggestionIn] = []
+    selected: list[PortionApplySuggestionIn] = []
+
+
+class IngredientSuggestionOut(Schema):
+    id: int
+    name: str
+    slug: str
+    similarity: float
+    matched_via: str | None = None
 
 
 class PackageOut(Schema):
@@ -123,6 +140,11 @@ class PackageOut(Schema):
     name: str
     weight_g: float | None
     rank: int
+
+
+class AiApplyOut(Schema):
+    portions: list[PortionOut]
+    packages: list[PackageOut]
 
 
 class PackageCreateIn(Schema):
@@ -199,8 +221,8 @@ class IngredientDetailOut(Schema):
     # Ownership & Visibility (for breakfast wizard user-generated items)
     owner_id: int | None = None
     owner_name: str | None = None
-    visibility: str = "private"
-    shared_groups: list[dict] = []  # { id, name }
+    visibility: Literal["private", "shared", "public", "group"] = "private"
+    shared_groups: list[SharedGroupOut] = []
     created_by_name: str | None = None
 
     # Physical
@@ -348,19 +370,19 @@ class IngredientDetailOut(Schema):
             }
             for t in obj.tags.all()
         ]
-    
+
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
         if obj.owner:
             return f"{obj.owner.first_name} {obj.owner.last_name}".strip() or obj.owner.username
         return None
-    
+
     @staticmethod
     def resolve_created_by_name(obj) -> str | None:
         if obj.created_by:
             return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username
         return None
-    
+
     @staticmethod
     def resolve_shared_groups(obj) -> list:
         return [{"id": g.id, "name": g.name} for g in obj.shared_groups.all()]
@@ -430,9 +452,9 @@ class IngredientCreateIn(Schema):
     nutritional_tag_ids: list[int] = []
     group_ids: list[int] = []
     tag_ids: list[str] = []
-    
+
     # Ownership & Visibility (for breakfast wizard user-generated items)
-    visibility: str = "private"  # "private" or "shared"
+    visibility: Literal["private", "shared"] = "private"
     shared_group_ids: list[int] = []  # Groups to share with (only relevant if visibility="shared")
 
 
@@ -487,16 +509,16 @@ class IngredientUpdateIn(Schema):
     status: str | None = None
     is_standalone_food: bool | None = None
     ingredient_ref_id: int | None = None
-    
+
     # Ownership & Visibility
-    visibility: str | None = None  # "private" or "shared"
+    visibility: Literal["private", "shared"] | None = None
     shared_group_ids: list[int] | None = None
 
 
 class VisibilityIn(Schema):
     """Schema for updating ingredient/recipe visibility and sharing."""
 
-    visibility: str  # "private" or "shared"
+    visibility: Literal["private", "shared"]
     shared_group_ids: list[int] = []  # Only used when visibility="shared"
 
 
@@ -546,6 +568,7 @@ class IngredientSuggestAllOut(Schema):
     """Response schema for AI-powered ingredient suggestions."""
 
     ai_interaction_id: str | None = None
+    portions: dict[str, object] | None = None
 
     energy_kcal: float | None = None
     protein_g: float | None = None
@@ -638,4 +661,4 @@ class IngredientSimilarOut(Schema):
     id: int
     name: str
     slug: str
-    distance: float
+    similarity_pct: float

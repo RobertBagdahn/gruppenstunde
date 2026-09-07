@@ -25,20 +25,22 @@ if TYPE_CHECKING:
 
 def _retail_section_rank_map() -> dict[str, int]:
     """Name -> rank lookup for sorting the shopping list in store-walkthrough order."""
-    from supply.data.retail_sections import RETAIL_SECTIONS
+    from supply.models.reference import RetailSection
 
-    return {entry["name"]: entry["rank"] for entry in RETAIL_SECTIONS}
+    return dict(RetailSection.objects.values_list("name", "rank"))
 
 
 @dataclass
 class ShoppingItemSource:
     """Tracks where a portion of an ingredient came from."""
 
-    recipe_id: int
+    recipe_id: int | None
     recipe_name: str
     recipe_slug: str
     meal_label: str
     quantity_g: float
+    ingredient_id: int | None = None
+    meal_id: int | None = None
 
 
 @dataclass
@@ -84,12 +86,16 @@ def generate_shopping_list(
     from supply.models import Portion
     from supply.services.price_service import get_portion_price
 
-    scaling = scaling_override if scaling_override is not None else meal_plan.scaling_factor
+    # A reserve factor <= 0 is invalid; fall back to no reserve (1.0) so that
+    # neither the scaling factor nor the net/reserve breakdown can divide by zero.
+    reserve_factor = meal_plan.reserve_factor if (meal_plan.reserve_factor or 0) > 0 else 1.0
+    scaling = scaling_override if scaling_override is not None else meal_plan.norm_portions * reserve_factor
 
-    # Collect all MealItems — prefetch recipe items, direct-ingredient portions, and overrides upfront
+    # Collect all MealItems from non-reference meals
     meal_items = list(
         MealItem.objects.filter(
             meal__meal_plan=meal_plan,
+            meal__is_reference=False,
         )
         .select_related(
             "recipe",
@@ -130,7 +136,7 @@ def generate_shopping_list(
     for mi in meal_items:
         meal = mi.meal
         if meal and meal.override_portions is not None:
-            meal_scaling = meal.override_portions * meal_plan.reserve_factor
+            meal_scaling = meal.override_portions * reserve_factor
             effective_portions = meal.override_portions
         else:
             meal_scaling = scaling
@@ -196,6 +202,7 @@ def generate_shopping_list(
                 else:
                     source = ShoppingItemSource(
                         recipe_id=recipe.id,
+                        meal_id=mi.meal_id,
                         recipe_name=recipe.title if hasattr(recipe, "title") else str(recipe),
                         recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
                         meal_label=meal_label,
@@ -243,12 +250,14 @@ def generate_shopping_list(
                 sources_map[ing.id] = {}
 
             # Track source contribution
-            source_key = (0, mi.meal_id)
+            source_key = (None, mi.meal_id)
             if source_key in sources_map[ing.id]:
                 sources_map[ing.id][source_key].quantity_g += weight_g
             else:
                 source = ShoppingItemSource(
-                    recipe_id=0,
+                    recipe_id=None,
+                    ingredient_id=ing.id,
+                    meal_id=mi.meal_id,
                     recipe_name="Direkte Zutat" if not mi.display_name else mi.display_name,
                     recipe_slug="",
                     meal_label=meal_label,
@@ -278,7 +287,6 @@ def generate_shopping_list(
             item.estimated_price_eur = float(price)
 
     # Round quantities to avoid floating point artifacts
-    reserve_factor = meal_plan.reserve_factor or 1.0
     for item in aggregated.values():
         item.total_quantity_g = round(item.total_quantity_g, 2)
         # Net/reserve breakdown: total is rounding-authoritative, reserve = total - net
@@ -476,7 +484,9 @@ def _enrich_display_fields(
         item.display_quantity = format_weight(item.total_quantity_g)
 
         # Natural portions — compute best match and all options
-        portions = list(ing.portions.order_by("rank", "name"))
+        # (soft-deleted portions must not appear as options)
+        portions = [p for p in ing.portions.all() if p.deleted_at is None]
+        portions.sort(key=lambda p: (p.rank, p.name))
         if portions:
             best_display, options = compute_portion_options(item.total_quantity_g, portions)
             item.natural_portions = best_display

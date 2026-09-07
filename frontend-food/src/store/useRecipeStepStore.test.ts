@@ -25,6 +25,7 @@ describe('useRecipeStepStore', () => {
   beforeEach(() => {
     useRecipeStepStore.setState({
       steps: [],
+      recipeSlug: null,
       selectedStepId: null,
       lastState: [],
     });
@@ -61,6 +62,13 @@ describe('useRecipeStepStore', () => {
       store.setSteps([step2]);
       expect(useRecipeStepStore.getState().steps).toHaveLength(1);
       expect(useRecipeStepStore.getState().steps[0]).toEqual(step2);
+    });
+
+    it('tracks the recipe identity used for hydration', () => {
+      const steps = [createMockStep()];
+      useRecipeStepStore.getState().setSteps(steps, 'recipe-a');
+
+      expect(useRecipeStepStore.getState().recipeSlug).toBe('recipe-a');
     });
   });
 

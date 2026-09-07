@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
-from recipe.services.ingredient_parser import IngredientNameParser, ParsedIngredient
+from recipe.services.ingredient_parser import IngredientNameParser
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 def _get_setting(name: str, default: float) -> float:
     from django.conf import settings
+
     return getattr(settings, name, default)
 
 
@@ -80,9 +81,9 @@ class IngredientMatcher:
         note, is_new, needs_review, and candidates for HITL.
         """
         parsed = IngredientNameParser.parse(raw_name)
-        clean_name = parsed.name or raw_name.strip()
-
-        from supply.models import Ingredient
+        # Low-confidence parser matches are suggestions only. Keep the raw
+        # spelling so typoed input can reach the fuzzy stage.
+        clean_name = parsed.name if parsed.confidence >= 0.9 else raw_name.strip()
 
         # Stage 1: Wort-Jaccard
         result = cls._stage_jaccard(clean_name, raw_name.strip(), parsed.note)
@@ -171,8 +172,20 @@ class IngredientMatcher:
 
     @classmethod
     def _stage_fuzzy(cls, clean_name: str, raw_name: str, note: str) -> MatchResult | None:
-        from django.contrib.postgres.search import TrigramSimilarity
+        from django.db import connection
+
         from supply.models import Ingredient
+
+        if connection.vendor == "sqlite":
+            results: list[MatchCandidate] = []
+            for ing in cls._get_candidates_ordered():
+                score = cls._normalized_levenshtein(clean_name.lower(), ing["name"].lower())
+                if score >= GREY_ZONE_MIN:
+                    results.append(MatchCandidate(id=ing["id"], name=ing["name"], confidence=score))
+            results.sort(key=lambda candidate: candidate.confidence, reverse=True)
+            return cls._fuzzy_result(clean_name, note, results[:MAX_CANDIDATES_PER_STAGE])
+
+        from django.contrib.postgres.search import TrigramSimilarity
 
         candidates = cls._get_candidates_ordered()
         results: list[MatchCandidate] = []
@@ -200,6 +213,10 @@ class IngredientMatcher:
             if combined >= GREY_ZONE_MIN:
                 results.append(MatchCandidate(id=ing.id, name=ing.name, confidence=combined))
 
+        return cls._fuzzy_result(clean_name, note, results)
+
+    @classmethod
+    def _fuzzy_result(cls, clean_name: str, note: str, results: list[MatchCandidate]) -> MatchResult | None:
         if not results:
             return None
 
@@ -243,6 +260,7 @@ class IngredientMatcher:
     @classmethod
     def _stage_embedding(cls, clean_name: str, note: str) -> MatchResult | None:
         from pgvector.django import CosineDistance
+
         from supply.models import Ingredient
 
         query_embedding = cls._embed_text(clean_name)
@@ -313,10 +331,7 @@ class IngredientMatcher:
         """Return all ingredient (id, name) ordered by usage_count DESC."""
         from supply.models import Ingredient
 
-        return list(
-            Ingredient.objects.order_by("-usage_count", "name")
-            .values("id", "name")
-        )
+        return list(Ingredient.objects.order_by("-usage_count", "name").values("id", "name"))
 
     @classmethod
     def _normalized_levenshtein(cls, a: str, b: str) -> float:

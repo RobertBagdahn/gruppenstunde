@@ -4,8 +4,11 @@ Provides shared logic for downloading images from URLs and validating
 that URLs point to the application's own storage.
 """
 
+import ipaddress
 import logging
+import socket
 import uuid
+from urllib.parse import urlparse
 
 import requests
 from django.conf import settings
@@ -13,6 +16,14 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_EXTERNAL_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+SUPPORTED_EXTERNAL_IMAGE_TYPES = {
+    "image/gif": "gif",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
 
 
 def _get_allowed_url_prefixes() -> list[str]:
@@ -102,3 +113,74 @@ def download_and_save_image(image_url: str, upload_to: str) -> str:
     saved_path = default_storage.save(filename, content)
 
     return saved_path
+
+
+def download_external_image(image_url: str, upload_to: str) -> str:
+    """Download a public external image with SSRF and size protection."""
+    max_bytes = getattr(
+        settings,
+        "RECIPE_EXTERNAL_IMAGE_MAX_BYTES",
+        DEFAULT_EXTERNAL_IMAGE_MAX_BYTES,
+    )
+    parsed = urlparse(image_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("Ungültige Bild-URL")
+    if parsed.username or parsed.password:
+        raise ValueError("Bild-URL ist nicht zulässig")
+    if parsed.hostname.lower() in {"localhost", "metadata", "metadata.google.internal"}:
+        raise ValueError("Bild-URL ist nicht zulässig")
+    try:
+        addresses = socket.getaddrinfo(parsed.hostname, None)
+    except socket.gaierror as exc:
+        raise ValueError("Bild-URL konnte nicht aufgelöst werden") from exc
+    for address in addresses:
+        ip = ipaddress.ip_address(address[4][0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise ValueError("Bild-URL ist nicht zulässig")
+
+    try:
+        response = requests.get(
+            image_url,
+            timeout=30,
+            allow_redirects=False,
+            stream=True,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError("Bild konnte nicht heruntergeladen werden") from exc
+
+    try:
+        if 300 <= response.status_code < 400:
+            raise ValueError("Bild-URL darf nicht weiterleiten")
+        response.raise_for_status()
+
+        content_length = response.headers.get("content-length")
+        if content_length is not None:
+            try:
+                declared_size = int(content_length)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Ungültige Bildgröße") from exc
+            if declared_size < 0 or declared_size > max_bytes:
+                raise ValueError("Das Bild ist zu groß")
+
+        content_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        extension = SUPPORTED_EXTERNAL_IMAGE_TYPES.get(content_type)
+        if extension is None:
+            raise ValueError("Die URL verweist nicht auf ein unterstütztes Bild")
+
+        content = bytearray()
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if not chunk:
+                continue
+            content.extend(chunk)
+            if len(content) > max_bytes:
+                raise ValueError("Das Bild ist zu groß")
+
+        return default_storage.save(
+            f"{upload_to}img_{uuid.uuid4().hex[:12]}.{extension}",
+            ContentFile(bytes(content)),
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError("Bild konnte nicht heruntergeladen werden") from exc
+    finally:
+        if response is not None:
+            response.close()

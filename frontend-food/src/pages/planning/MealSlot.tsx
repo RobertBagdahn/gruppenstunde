@@ -119,7 +119,7 @@ export function MealSlot({
           title: s.title,
           slug: '',
           recipe_type: s.recipe_type ?? '',
-          image_url: s.image_thumbnail,
+          image_url: s.image_url,
           recipe_badge: (s.recipe_badge as RecipeSearchResult['recipe_badge']) ?? 'community',
           price_per_serving: s.price_per_serving ?? null,
           usage_count: s.usage_count,
@@ -144,6 +144,16 @@ export function MealSlot({
 
   const showEditUI = canEdit && !meal.is_synced && !meal.is_external;
   const isPortionUnit = (name: string) => !['g', 'ml'].includes(name.toLowerCase());
+  const formatPortion = (item: Meal['items'][number]): string => {
+    if (item.portion_display) {
+      return `${item.portion_display}${item.is_per_norm_person ? ' / Person' : ''}`;
+    }
+    if (isPortionUnit(item.measuring_unit_name) && item.quantity != null) {
+      return `×${item.quantity.toFixed(2).replace('.', ',')} ${item.measuring_unit_name}`;
+    }
+    if (item.quantity_g != null) return `${Math.round(item.quantity_g)}g`;
+    return 'Menge nicht angegeben';
+  };
 
   return (
     <div className={`px-4 py-3 border-l-4 ${isEmpty && !meal.is_external ? 'border-destructive bg-destructive/5' : mealColors.border}`}>
@@ -361,20 +371,19 @@ export function MealSlot({
                             </>
                           ) : isIng && !meal.is_synced ? (
                             <span className={`text-xs ${it.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                              {it.portion_display || `${Math.round(it.quantity_g ?? 0)}g`}
+                              {formatPortion(it)}
                             </span>
                           ) : isIng && it.portion_display ? (
                              // portion_display from backend (read-only)
                              <span className={`text-xs ${it.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                               {it.portion_display}
-                               {it.is_per_norm_person && <span className="ml-1 text-[10px] text-muted-foreground/60">/ Person</span>}
+                                {formatPortion(it)}
                              </span>
                            ) : isIng && isPortionUnit(it.measuring_unit_name) ? (
                              // Portion-based, read-only fallback
-                             <span>&times;{it.quantity?.toFixed(2).replace('.', ',')} {it.measuring_unit_name}</span>
+                              <span>{formatPortion(it)}</span>
                            ) : isIng ? (
                              // Raw unit, read-only fallback
-                             <span className="text-xs">{Math.round(it.quantity_g ?? 0)}g</span>
+                              <span className="text-xs">{formatPortion(it)}</span>
                            ) : canEdit && !meal.is_synced ? <FactorInput value={it.factor} onChange={(f) => onUpdateItemFactor(it.id, f)} /> : (it.factor !== 1.0 && <span>&times;{it.factor.toFixed(2).replace('.', ',')}</span>)}
                         </div>
                       </div>
@@ -493,9 +502,9 @@ export function MealSlot({
                             ) : isIngredient && !meal.is_synced ? (
                               <span className="text-xs">{Math.round(item.quantity_g ?? 0)}g</span>
                             ) : isIngredient && isPortionUnit(item.measuring_unit_name) ? (
-                              <span>&times;{item.quantity?.toFixed(2).replace('.', ',')} {item.measuring_unit_name}</span>
+                               <span>{formatPortion(item)}</span>
                             ) : isIngredient ? (
-                              <span className="text-xs">{Math.round(item.quantity_g ?? 0)}g</span>
+                               <span className="text-xs">{formatPortion(item)}</span>
                             ) : (
                               <>
                                 {canEdit && !meal.is_synced ? (

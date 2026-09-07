@@ -134,6 +134,12 @@ class ShoppingListItem(models.Model):
         verbose_name = _("Einkaufslisten-Eintrag")
         verbose_name_plural = _("Einkaufslisten-Einträge")
         ordering = ["sort_order", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(quantity_g__gte=0),
+                name="shopping_item_quantity_g_nonnegative",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         self.quantity_g = round(self.quantity_g, 2)
@@ -168,6 +174,14 @@ class ShoppingListItemSource(models.Model):
         blank=True,
         related_name="shopping_item_sources",
         verbose_name=_("Mahlzeit"),
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shopping_item_sources",
+        verbose_name=_("Zutat"),
     )
     quantity_g = models.FloatField(
         default=0,

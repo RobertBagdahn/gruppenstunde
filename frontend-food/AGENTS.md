@@ -1,92 +1,28 @@
-# AI Agent Configuration — Inspi Food Frontend
+# Food-Frontend-Agent-Regeln
 
-> 📐 Konkrete Design-Entscheidungen, Bugfixes und "Lessons Learned" (z.B. zu Farb-Tokens,
-> Icon-Größen, Portionen-Skalierung) sind in [Design.md](./Design.md) dokumentiert. Vor größeren
-> UI-Änderungen dort nachschauen, um bereits gemachte Fehler nicht zu wiederholen.
+Für projektweite Regeln siehe `../AGENTS.md`. Fachliche Anforderungen gehören in OpenSpec; diese Datei beschreibt die Implementierung des Food-Frontends.
 
-## Design-System & Visuelle Richtlinien
+## Architektur
 
-### 1. Farb-Token & Theme-System
-Alle Farben und Flächen müssen HSL-basiert über die CSS-Variablen in `index.css` und das Tailwind-Theme gesteuert werden.
-* **Primärfarbe (Grün):** `--primary` (Emerald-basiert) für Haupt-Buttons, Links, aktive States.
-* **Hintergrund:** `--background` (sehr helles neutrales HSL-Grau/Zink) für die gesamte App.
-* **Karten:** `--card` (reinweiß, `bg-card`) für klaren Kontrast und Separation vom Hintergrund.
-* **Borders:** `--border` (deutlich sichtbares Zink-200) für klare, lesbare Linien.
-* **Muted Text:** `--muted-foreground` für sekundäre Beschriftungen mit ausreichendem Kontrast.
+- React, TypeScript im Strict-Modus, shadcn/ui, TanStack Query und Zod verwenden.
+- Server-State gehört in TanStack Query; Client-State nur minimal in Zustand.
+- Zod-Schemas müssen mit den Backend-Pydantic-Schemas synchron sein.
+- Mobile-first ab 320px entwickeln und testen.
+- Für neue UI-Komponenten zuerst den `/styleguide` prüfen.
 
-Es dürfen **keine** hartcodierten Farbklassen wie `bg-emerald-500`, `text-blue-600` oder `gray-50` verwendet werden, um "Hellgrau-in-Hellgrau"-Visuals zu vermeiden.
+## Design-System
 
-### 2. Typografie
-* **Überschriften (`h1`–`h6`):** Müssen die moderne Display-Schrift `Plus Jakarta Sans` (`font-display font-bold`) verwenden.
-* **Fließtext / Listen:** Verwendet die extrem lesbare Body-Schrift `Inter` (`font-sans`).
+- Farben und Flächen über HSL-CSS-Variablen und semantische Theme-Tokens steuern; keine hartcodierten Tailwind-Palettenfarben.
+- Überschriften mit `Plus Jakarta Sans`, Fließtext mit `Inter`.
+- Lucide für Standard-UI-Aktionen, Navigation, Status und Inline-Symbole verwenden.
+- Material Symbols nur für illustrative oder bereits etablierte große Feature-Symbole verwenden.
+- Tabellenzeilen als `CardTable`/`DataCardRow` umsetzen und auf kleinen Viewports stapeln.
+- Rezeptbilder ausschließlich mit `RecipeThumbnail` und dem Backend-Feld `image_url` darstellen.
 
-### 3. Icon-Nutzungsregeln
-Im Food Frontend sind zwei Icon-Bibliotheken aktiv. Um ein konsistentes und aufgeräumtes Erscheinungsbild zu gewährleisten, gilt folgende Aufteilung:
-* **Lucide-Icons (Standard):** Müssen für alle Standard-UI-Aktionen, interaktive Schaltflächen, Navigationen, Status-Anzeigen und Inline-Symbole verwendet werden (z.B. `<Search />`, `<Check />`, `<Plus />`, `<ArrowRight />`).
-* **Material Symbols (Ausnahme):** Dürfen ausschließlich für illustrative Sektionssymbole (z.B. im Hero-Bereich) oder bereits etablierte, große Feature-Karten verwendet werden. In neuen Komponenten ist Lucide zu bevorzugen.
+## UI und Fehler
 
-### 4. Card-basierte Tabellen-Zeilen
-Herkömmliche Tabellen-Schnittstellen mit dünnen, blassen Zeilenlinien werden durch das Card-basierte Tabellen-Pattern ersetzt:
-* **Komponenten:** `CardTable` als Container und `DataCardRow` für einzelne Zeilen.
-* **Stil:** Einzelne Zeilen haben abgerundete Ecken (`rounded-xl`), eine dezente weiße Card-Fläche auf grauem Seitenhintergrund, eine sichtbare Border (`border-border`) und einen feinen Schatten.
-* **Mobile-First:** Spalten klappen auf Viewports < 768px untereinander zusammen.
-
-### 5. Styleguide & Referenz-Umgebung
-Der integrierte interaktive Styleguide unter `/styleguide` dient als „Single Source of Truth“ für das gesamte visuelle System im Food Frontend. Er demonstriert live:
-* Alle aktiven Farb-Token und die HSL-Farbpaletten.
-* Die Typografie-Skala und Fonts.
-* UI-Muster wie Buttons, Badges, standardisierte Formularelemente und Card-Tabellen.
-* Vorlagen für Lade- und leere Zustände.
-Bei der Entwicklung neuer Komponenten oder Seiten muss immer zuerst der `/styleguide` herangezogen und als visuelle Referenz verwendet werden.
-
-### 6. Rezeptbilder & Fallback
-
-`<RecipeThumbnail>` (`src/components/recipe/RecipeThumbnail.tsx`) ist die kanonische Komponente für die Darstellung von Rezeptbildern. Direkte `<img>`-Tags mit manueller Fallback-Logik (`src={x || '/images/inspi_cook.png'}` oder Icon-Fallbacks) für Rezeptbilder sind zu vermeiden — stattdessen `RecipeThumbnail` mit passendem `size`- (`xs`/`sm`/`lg`/`md`/`full`) und `aspectRatio`-Prop (`square`/`16/9`/`4/3`) verwenden.
-
-* **Fallback:** Fehlt `imageUrl` (`null`/`undefined`/leerer String), zeigt die Komponente automatisch `/images/inspi_cook.png` mit `object-contain` an — nie ein kaputtes Bild-Icon oder einen reinen Icon-Platzhalter.
-* **Backend-Feldname:** Alle API-Responses, die ein Rezeptbild liefern, verwenden einheitlich `image_url` (nie `image` oder `recipe_image`).
-* Aktuelle Verwender: `RecipeCard`, `RecipeTableRow`, `IntelligentSuggestionsGrid`, `IngredientDetailPage.RecipesSection`, `MealSlot`, `RecipePreviewInline`, `RecipePreviewDialog`, `ProfilePage`, `RecipeImportPage`.
-
-
-
-### Konventionen
-- **Belag-Portionen**: Jede Belag-Zutat hat 3 Portionen: `"Belag knapp"`, `"Belag normal"` (Default), `"Belag üppig"` + eine `"Packung (Xg)"` für Reste-Kalkulation.
-- **Basis-Tag**: Basis-Brotsorten erhalten den content.Tag `"breakfast-base"` (slug).
-- **Belag-Tag**: Belag-Zutaten erhalten den content.Tag `"breakfast-topping"` (slug).
-- **Getränke-Tag**: Getränke-Rezepte erhalten den content.Tag `"breakfast-drink"` (slug). Der `GET /api/supply/breakfast-catalog/drinks/`-Endpoint filtert nur Rezepte mit diesem Tag.
-- **Warm-Meal-Tag**: Warme Frühstücksgerichte erhalten den content.Tag `"breakfast-warm-meal"` (slug).
-- **Energienorm**: `NORM_PERSON_DAILY_KCAL = 2335` (aus `src/lib/breakfastCalc.ts`), synchron mit Backend-Konstante in `supply/data/dge_reference.py`.
-
-### Dateien
-- **Schemas**: `src/schemas/breakfast.ts` — Zod-Schemas für Katalog, Wizard-State, Leftovers
-- **API Hooks**: `src/api/breakfast.ts` — `useBreakfastCatalog`, `useBreakfastLeftovers`, `useSaveBreakfastWizard`
-- **Kalkulations-Utilities**: `src/lib/breakfastCalc.ts` — kcal-Verteilung, Gramm-Berechnung, Normalisieren, Slider-Rebalance
-- **Wizard UI**: `src/pages/planning/breakfast/` — `BreakfastWizardPage`, `useWizardState`, `StepBasis`, `StepBelag`, `StepExtras`, `StepGetraenke`, `StepCockpit`, `ShareSlider`
-- **Route**: `/meal-plans/:id/ref-meals/breakfast/wizard`
-
-### Einstieg
-- Kein bestehendes Frühstücks-RefMeal → `RefMealEditorPage` zeigt „Frühstücksassistent starten"-Button
-- Bestehendes RefMeal → „Frühstücksassistent öffnen"-Button oben rechts in `RefMealEditorPage`
-
-## Permission-Felder in Schemas (`can_edit` / `can_delete`)
-
-Jedes Zod-Resource-Schema (Detail + List) MUSS `can_edit: z.boolean()` und `can_delete: z.boolean()` enthalten. Die Base-Schemas liegen in `src/schemas/base.ts`:
-
-```typescript
-import { permissionBaseSchema } from '@/schemas/base';
-```
-
-Das Frontend darf NIE client-seitig Permissions berechnen. Es verwendet ausschließlich `can_edit` und `can_delete` aus der API-Response, um Edit-Controls, Drag-and-Drop, Action-Buttons und Dropdown-Menüs zu steuern.
-
-**Verboten:**
-```typescript
-// ❌ Client-seitige Permission-Berechnung
-const canEdit = user.id === resource.created_by_id || user.is_staff;
-```
-
-**Erlaubt:**
-```typescript
-// ✅ Server-provided Permission-Felder
-const canEdit = resource.can_edit ?? false;
-const canDelete = resource.can_delete ?? false;
-```
+- Markdown statt HTML rendern; kein `dangerouslySetInnerHTML`.
+- Lade-, Leer-, Fehler- und Retry-Zustände behandeln.
+- Mutations-Feedback über Toasts in Seiten-Komponenten anzeigen.
+- Permissions ausschließlich aus `can_edit` und `can_delete` der API verwenden.
+- Keine TypeScript-`any`, `console.log` oder manuellen Rezeptbild-Fallbacks.

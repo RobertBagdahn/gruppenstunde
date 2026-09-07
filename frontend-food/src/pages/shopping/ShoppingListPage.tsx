@@ -1,7 +1,7 @@
 /**
  * ShoppingListPage — List view of all shopping lists (own + shared).
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { Utensils, Calendar, Edit3, Users, CheckCircle2, ArrowUpDown, User as UserIcon } from 'lucide-react';
@@ -105,11 +105,16 @@ export default function ShoppingListPage() {
   const [newName, setNewName] = useState('');
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState(q);
+  const isInitialSearchSync = useRef(true);
   const [sort, setSort] = useState('newest');
   const [myDataOnly, setMyDataOnly] = useState(false);
 
   // Sync local input → URL param with debounce
   useEffect(() => {
+    if (isInitialSearchSync.current) {
+      isInitialSearchSync.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       const newParams = new URLSearchParams(searchParams);
       if (searchInput) {

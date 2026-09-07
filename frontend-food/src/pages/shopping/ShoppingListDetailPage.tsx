@@ -121,6 +121,8 @@ export default function ShoppingListDetailPage() {
   // Group items by retail section
   const items = list.items ?? [];
   const collabs = list.collaborators ?? [];
+  const isAdmin = isOwner || collabs.some((collab) => collab.user_id === user?.id && collab.role === 'admin');
+  const canRename = isOwner || isAdmin;
   const groupedItems = groupBySection(items);
   const checkedCount = items.filter((i) => i.is_checked).length;
   const totalCount = items.length;
@@ -207,6 +209,7 @@ export default function ShoppingListDetailPage() {
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
+                  data-testid="shopping-list-name-input"
                   className="flex-1 px-3.5 py-1.5 text-lg font-bold border border-border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   autoFocus
                   onKeyDown={(e) => {
@@ -226,15 +229,15 @@ export default function ShoppingListDetailPage() {
               <h1
                 className={cn(
                   'text-2xl font-display font-bold text-foreground',
-                  isOwner && 'cursor-pointer hover:text-primary transition-colors',
+                  canRename && 'cursor-pointer hover:text-primary transition-colors',
                 )}
                 onClick={() => {
-                  if (isOwner) {
+                  if (canRename) {
                     setEditName(list.name);
                     setEditingName(true);
                   }
                 }}
-                title={isOwner ? 'Klicken zum Bearbeiten' : undefined}
+                title={canRename ? 'Klicken zum Bearbeiten' : undefined}
               >
                 {list.name}
               </h1>
@@ -253,6 +256,7 @@ export default function ShoppingListDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
+                  aria-label="Einkaufsliste löschen"
                   className="flex items-center justify-center p-2 text-destructive border border-destructive/20 bg-card rounded-xl hover:bg-destructive/10 hover:border-destructive/30 transition-all shadow-soft"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -405,7 +409,7 @@ export default function ShoppingListDetailPage() {
             <CollaboratorManager
               listId={listId}
               collaborators={collabs}
-              isOwner={isOwner}
+              canManage={isAdmin}
             />
           </div>
         )}
@@ -421,12 +425,10 @@ function groupBySection(
 ): Record<string, ShoppingListItem[]> {
   const groups: Record<string, ShoppingListItem[]> = {};
 
-  // Sort unchecked items first, then by section, then sort_order
+  // Preserve the server's retail-section order and sort only within sections.
   const sorted = [...items].sort((a, b) => {
+    if ((a.retail_section_name || '') !== (b.retail_section_name || '')) return 0;
     if (a.is_checked !== b.is_checked) return a.is_checked ? 1 : -1;
-    const sectionA = a.retail_section_name || '';
-    const sectionB = b.retail_section_name || '';
-    if (sectionA !== sectionB) return sectionA.localeCompare(sectionB);
     return a.sort_order - b.sort_order;
   });
 

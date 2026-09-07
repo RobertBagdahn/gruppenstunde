@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useCurrentUser } from '@/api/auth';
 import {
@@ -107,11 +108,11 @@ export default function MealPlanWizardPage() {
           try {
             await applyMutation.mutateAsync({
               planId: plan.id,
-              body: state.ai_suggestions as { days: { date: string; meals: { meal_type: string; recipe_id: number; recipe_title: string }[] }[] },
+              body: state.ai_suggestions,
             });
             toast.success('Essensplan mit KI-Vorschlägen erstellt');
-          } catch {
-            toast.warning('Essensplan erstellt, aber KI-Vorschläge konnten nicht übernommen werden');
+          } catch (error) {
+            toast.warning('Essensplan erstellt, aber KI-Vorschläge konnten nicht übernommen werden', { description: getApiErrorMessage(error) });
           }
         } else {
           toast.success('Essensplan erstellt');

@@ -13,6 +13,7 @@ from supply.schemas.unit_conversion import (
     AvailableConversionsOut,
     UnitConversionCreateIn,
     UnitConversionOut,
+    UnitConversionResultOut,
 )
 
 unit_conversion_router = Router(tags=["Unit Conversions"])
@@ -51,14 +52,14 @@ def list_unit_conversions(
     ]
 
 
-@unit_conversion_router.get("/convert/", response=dict)
+@unit_conversion_router.get("/convert/", response=UnitConversionResultOut)
 def convert_unit(
     request,
     from_unit: int = Query(...),
     to_unit: int = Query(...),
     quantity: float = Query(...),
     ingredient: int | None = Query(None),
-) -> dict:
+) -> UnitConversionResultOut:
     """Convert a quantity between units. Prefers ingredient-specific conversion."""
     # Try ingredient-specific first
     conversion = None
@@ -76,11 +77,11 @@ def convert_unit(
     if not conversion:
         raise HttpError(404, "Keine Umrechnung gefunden")
 
-    return {
-        "result": quantity * float(conversion.factor),
-        "factor": float(conversion.factor),
-        "is_ingredient_specific": conversion.ingredient_id is not None,
-    }
+    return UnitConversionResultOut(
+        result=quantity * float(conversion.factor),
+        factor=float(conversion.factor),
+        is_ingredient_specific=conversion.ingredient_id is not None,
+    )
 
 
 @unit_conversion_router.post("/", response=UnitConversionOut)

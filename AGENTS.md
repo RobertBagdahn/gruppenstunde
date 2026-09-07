@@ -1,188 +1,42 @@
-# AI Agent Configuration – Inspi (Gruppenstunde)
+# Inspi – Agent-Regeln
 
-## Rolle
+## Projekt
 
-Du bist ein Full-Stack Entwickler für das Projekt **Inspi** – eine modulare Tool-Plattform für Pfadfinder-Gruppenführer. Die Domain ist `gruppenstunde.de`. Du arbeitest in einem Monorepo mit Django Ninja Backend und React Frontend.
+- Monorepo mit Django-Ninja-Backend und React-Frontends.
+- Die alte `idea`-App existiert nicht mehr. Verwende `content`, `session`, `blog`, `game`, `recipe` und `supply`.
+- Feature-Anforderungen und Geschäftslogik gehören in OpenSpec, nicht in diese Datei.
+- Keine Rückwärtskompatibilität nötig; das Projekt befindet sich in aktiver Entwicklung.
 
-## ⚠️ WICHTIG: Keine Rückwärtskompatibilität nötig
+## Dauerhafte Regeln
 
-Das Projekt befindet sich in aktiver Entwicklung. **Rückwärtskompatibilität ist nicht erforderlich.** Models, Schemas, APIs und Frontend-Komponenten dürfen jederzeit breaking geändert werden.
+- Code, Variablen, Funktionen und Kommentare: Englisch.
+- UI-Texte: Deutsch mit echten Umlauten (`ä`, `ö`, `ü`, `Ä`, `Ö`, `Ü`, `ß`).
+- URLs: Englisch. Commit Messages: Englisch.
+- Python-Befehle immer mit `uv run` ausführen.
+- Keine `any`-Typen in TypeScript; Python-Funktionen erhalten Type Hints.
+- Pydantic- und Zod-Schemas synchron halten.
+- Session-Auth mit HTTP-only Cookies, kein JWT.
+- Mobile-first ab 320px; URL-State für Filter, Suche und Pagination.
+- Keine Klar-IPs speichern; keine `console.log`- oder `print`-Statements in Production-Code.
 
-## ⚠️ WICHTIG: Content/Supply-Architektur
+## Architektur
 
-- **`content` App** — Abstrakte Basisklasse `Content` für alle Inhaltstypen + generische Features
-- **`supply` App** — Abstrakte Basisklasse `Supply` für Materialien
-- **Konkrete Content-Typen**: `session.GroupSession`, `blog.Blog`, `game.Game`, `recipe.Recipe`
-- **Konkrete Supply-Typen**: `supply.Material` (erbt von Supply), `supply.Ingredient` (standalone models.Model)
+- `content` ist die abstrakte Basis für Content-Typen.
+- `supply` ist die abstrakte Basis für Materialien; `Ingredient` ist ein eigenständiges Model.
+- Große Django-Apps verwenden Packages für `models`, `api` und `schemas`; `__init__.py` re-exportiert öffentliche Namen.
+- Food-UI gehört ausschließlich nach `frontend-food/`. Das Haupt-Frontend darf keine Food-Seiten, Hooks, Schemas, Stores, Routen oder Navigationslinks enthalten.
 
-Die `idea` App existiert **nicht mehr**. Beim Schreiben von Code die neuen App-Namen verwenden.
+## Ablauf
 
-## ⚠️ WICHTIG: uv als Python Runner
+1. OpenSpec und zuständige `AGENTS.md` lesen.
+2. Backend-Model, Pydantic-Schema und API ändern.
+3. Frontend-Zod-Schema und TanStack-Query-Hook synchronisieren.
+4. UI mit vorhandenen Komponenten umsetzen.
+5. Relevante Tests ausführen und Änderungen prüfen.
 
-**Alle Python/Django-Befehle MÜSSEN mit `uv run` ausgeführt werden**, z.B.:
-- `uv run python manage.py makemigrations`
-- `uv run python manage.py migrate`
+## Zuständigkeit
 
-Niemals `python` direkt aufrufen – immer `uv run python`.
-
-## ⚠️ WICHTIG: Hybrid Package-Struktur
-
-Große Django-Apps (`content`, `event`, `supply`, `profiles`, `recipe`, `planner`) verwenden intern eine **Hybrid Package-Struktur**: `models.py`, `api.py` und `schemas.py` sind Python-Packages. `__init__.py` re-exportiert alles für Import-Kompatibilität.
-
-Kleine Apps (`session`, `game`, `blog`) behalten einzelne Dateien.
-
-## ⚠️ WICHTIG: AGENTS.md als Living Document
-
-Neue Konventionen und Architektur-Entscheidungen MÜSSEN in die passende `AGENTS.md` eingetragen werden:
-
-| Scope | Datei |
-|-------|-------|
-| **Projekt-übergreifend** | `AGENTS.md` (diese Datei) |
-| **Backend** | `backend/AGENTS.md` |
-| **Frontend** | `frontend/AGENTS.md` |
-
-Feature-Dokumentation gehört in **OpenSpec**, nicht in AGENTS.md.
-
-## Kernprinzipien
-
-1. **Schema-Sync zuerst**: Pydantic (Backend) UND Zod (Frontend) Schemas synchron halten
-2. **Mobile-First**: Primär auf Smartphones bedient (320px minimum)
-3. **Type-Safety**: Keine `any` in TypeScript, Type Hints in Python, Zod-Validierung
-4. **Performance**: Lazy Loading, optimierte Bilder, schnelle API-Responses (<200ms)
-5. **URL-Driven State**: Filter, Suche, Paginierung über URL-Parameter
-6. **SEO**: Meta Tags, strukturierte Daten, semantisches HTML
-7. **DSGVO**: Keine Klar-IPs speichern, gehashte Daten für Analytics
-8. **Pagination als Standard**: Standard `page=1`, `page_size=20`. Format: `{ items, total, page, page_size, total_pages }`
-
-## Arbeitsablauf (übergreifend)
-
-1. Datenmodell (Django Model) → `backend/AGENTS.md`
-2. Pydantic Schema + API-Endpunkt → `backend/AGENTS.md`
-3. Zod Schema (1:1 Match) → `frontend/AGENTS.md`
-4. TanStack Query Hook → `frontend/AGENTS.md`
-5. UI-Komponente mit shadcn/ui → `frontend/AGENTS.md`
-6. Mobile und Desktop testen
-
-## Sprache
-
-- **Code**: Englisch (Variablen, Funktionen, Kommentare)
-- **UI-Texte**: Deutsch (Labels, Buttons, Fehlermeldungen)
-- **Commit Messages**: Englisch
-- **Routing / URLs**: Immer Englisch
-
-## Authentifizierung
-
-- Django Allauth + Sessions (HTTP-only Cookies), kein JWT
-- Backend-Details → `backend/AGENTS.md`
-- Frontend-Details → `frontend/AGENTS.md`
-
-## Qualitäts-Checkliste (vor jedem Commit)
-
-- [ ] Pydantic und Zod Schemas sind synchron
-- [ ] Keine console.log / print Statements
-
-## Infrastruktur
-
-- Kein App Engine, kein Docker lokal (nur Podman), keine GitHub Actions, kein Terraform (nur OpenTofu)
-- Details → `openspec/specs/infrastructure/spec.md`
-
-
-# Umlaute
-
-Immer echte deutsche Umlaute verwenden: **ä, ö, ü, Ä, Ö, Ü, ß**. Niemals Ersatzschreibweisen wie `ae`, `oe`, `ue` oder `ss` benutzen – weder in UI-Texten, noch in Kommentaren oder Dokumentation.
-
-
-# Food Frontend
-
-Alle Funktionalität rund um das Thema **Essen** wird im Food Frontend (`frontend-food/`) entwickelt. Dazu gehören:
-
-- **Rezepte** — Erstellen, Bearbeiten, Durchsuchen von Rezepten
-- **Zutaten** — Verwaltung und Zuordnung von Zutaten zu Rezepten
-- **Essenlisten / Speisepläne** — Planung von Mahlzeiten für Lager und Veranstaltungen
-- **Einkaufslisten** — Automatische Generierung aus Speiseplänen und Rezepten
-- **Mengenberechnung** — Skalierung von Rezepten auf Personenanzahl
-
-Das Food Frontend ist eine eigenständige Anwendung, getrennt vom Haupt-Frontend (`frontend/`). Backend-APIs für Essen werden im selben Backend bereitgestellt, aber die UI lebt ausschließlich in `frontend-food/`.
-
-**⚠️ Strikte Trennung**: Im Haupt-Frontend (`frontend/`) darf **kein** Food-bezogener Code existieren — keine Pages, Components, API-Hooks, Schemas, Stores, Utils, Routen oder Navigationslinks für Rezepte, Zutaten, Essenspläne, Einkaufslisten oder Ernährungsfeatures. Diese Regel gilt auch für Cross-Cutting-Concerns: Wenn ein Event einen Essensplan hat, wird die Verknüpfung im Food-Frontend dargestellt, nicht im Haupt-Frontend.
-
-
-## ⚠️ WICHTIG: Python Environment Management
-
-**NIEMALS micromamba oder globale Python-Umgebung verwenden!**
-
-Immer die Projekt-spezifische `uv`-Umgebung nutzen:
-
-```bash
-# ✅ RICHTIG: uv run für alle Python-Befehle
-uv run python manage.py migrate
-uv run pytest recipe/tests/ -xvs
-uv run python -m pytest ...
-
-# ❌ FALSCH: Globale Python-Umgebung oder micromamba
-python manage.py migrate          # DON'T!
-micromamba run python ...         # DON'T!
-source ~/.bashrc && python ...    # DON'T!
-```
-
-**Gründe:**
-- `uv`-Umgebung nutzt Python 3.13+ mit allen erforderlichen Dependencies
-- micromamba (Python 3.9) ist veraltet und nicht kompatibel
-- Globale Umgebungen können zu Konflikten führen
-- `uv` isoliert und reproduciert Abhängigkeiten korrekt
-
-**Für Tests immer nutzen:**
-```bash
-cd backend
-uv run python manage.py test recipe.tests.test_api
-# oder
-uv run pytest recipe/tests/test_api.py -xvs
-```
-
-**Für Django shell:**
-```bash
-cd backend
-uv run python manage.py shell
-```
-
-## ⚠️ WICHTIG: Prod Data Workflow (Export/Import)
-
-A data workflow exists to download prod data as Django fixture JSON files, import locally for development, and push changes back.
-
-### Export from Prod
-```bash
-# 1. Start Cloud SQL Proxy (separate terminal, keep running)
-cloud-sql-proxy inspi-441320:europe-west1:inspi-db-west1 --port 5433 &
-
-# 2. Export all data
-cd backend
-uv run python bin/export_prod_data.py
-```
-- Connects to prod via localhost:5433
-- Writes fixture JSON files to `backend/data/<domain>/<model>.json`
-- Handles column filtering (skips fields like `energy_kj` not in local models)
-- Patches `quantity=0` → 0.1 for RecipeItem (check constraint)
-- **47 files, ~24.7k entries** (5719 ingredients, 14647 portions, 355 recipes, etc.)
-
-### Import to Local
-```bash
-# Full flush+import (wipes local DB, imports everything)
-uv run python manage.py import_prod_data --flush
-
-# Import only food group (idempotent, adds to existing data)
-uv run python manage.py import_prod_data --only food
-```
-- Loads files in FK-safe dependency order (9 groups, ~24.7k entries)
-- **Signals are automatically silenced** (pre_save/post_save/post_delete) to prevent:
-  - Connection exhaustion from embedding threads (`update_ingredient_embedding_and_score`)
-  - N+1 query storms from recipe cache invalidation
-- **Portion unique index** (`unique_portion_name_per_ingredient`) is dropped before food import and recreated after, with automatic deduplication of `(LOWER(name), ingredient_id)` combos
-
-### Key Files
-- `backend/bin/export_prod_data.py` — raw psycopg export (not `dumpdata`, which hangs on large datasets)
-- `backend/core/management/commands/import_prod_data.py` — ordered import with signal silencing
-- `backend/data/` — per-domain subdirectories with per-model fixture JSON files
-
-### DB Connections
-- **Prod DB**: localhost:5433 (via Cloud SQL Proxy)
-- **Local DB**: localhost:5432 (podman, pgvector/pgvector:pg15)
+- Projektweite Regeln: diese Datei.
+- Backend: `backend/AGENTS.md`.
+- Haupt-Frontend: `frontend/AGENTS.md`.
+- Food-Frontend: `frontend-food/AGENTS.md`.

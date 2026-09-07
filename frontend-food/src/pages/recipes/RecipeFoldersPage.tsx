@@ -4,6 +4,8 @@ import { FolderOpen, Plus, Pencil, Trash2, ArrowLeft, ChevronRight } from 'lucid
 import { useRecipeFolders, useCreateRecipeFolder, useUpdateRecipeFolder, useDeleteRecipeFolder } from '@/api/recipeFolders';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import type { RecipeFolder } from '@/schemas/recipeFolder';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
 
 export default function RecipeFoldersPage() {
   const { data: folders, isLoading } = useRecipeFolders();
@@ -24,19 +26,24 @@ export default function RecipeFoldersPage() {
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
-    await createFolder.mutateAsync({
-      name: newName.trim(),
-      parent_id: newParentId || null,
-    });
-    setNewName('');
-    setNewParentId(null);
+    try {
+      await createFolder.mutateAsync({ name: newName.trim(), parent_id: newParentId || null });
+      setNewName('');
+      setNewParentId(null);
+    } catch (error) {
+      toast.error('Ordner konnte nicht erstellt werden', { description: getApiErrorMessage(error) });
+    }
   };
 
   const handleEdit = async (id: number) => {
     if (!editName.trim()) return;
-    await updateFolder.mutateAsync({ id, data: { name: editName.trim() } });
-    setEditingId(null);
-    setEditName('');
+    try {
+      await updateFolder.mutateAsync({ id, data: { name: editName.trim() } });
+      setEditingId(null);
+      setEditName('');
+    } catch (error) {
+      toast.error('Ordner konnte nicht gespeichert werden', { description: getApiErrorMessage(error) });
+    }
   };
 
   const rootFolders = folders?.filter((f) => !f.parent_id) ?? [];
@@ -131,7 +138,7 @@ export default function RecipeFoldersPage() {
               onCancelEdit={() => setEditingId(null)}
               onDelete={(id) => {
                 if (window.confirm('Ordner wirklich löschen? Rezepte bleiben erhalten.')) {
-                  deleteFolder.mutate(id);
+                   deleteFolder.mutate(id, { onError: (error) => toast.error('Ordner konnte nicht gelöscht werden', { description: getApiErrorMessage(error) }) });
                 }
               }}
               isDeleting={deleteFolder.isPending}
@@ -220,7 +227,7 @@ function FolderCard({
             <button
               onClick={() => onDelete(folder.id)}
               disabled={isDeleting}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+               className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
               title="Löschen"
             >
               <Trash2 className="w-4 h-4" />
@@ -244,7 +251,7 @@ function FolderCard({
                 <button
                   onClick={() => onDelete(child.id)}
                   disabled={isDeleting}
-                  className="p-1 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                   className="p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
                   title="Löschen"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

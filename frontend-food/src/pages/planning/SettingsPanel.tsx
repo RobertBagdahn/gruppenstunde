@@ -3,6 +3,8 @@ import { X, Plus } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanTag } from '@/schemas/mealPlan';
 import { useMealPlanTags, useCreateMealPlanTag, useDeleteMealPlanTag } from '@/api/mealPlans';
 import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
 import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/lib/mealPlanDateTime';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 
@@ -26,7 +28,7 @@ interface SettingsPanelProps {
     has_group_members?: boolean;
     group_members_count?: number;
   };
-    onSave: (data: {
+  onSave: (data: {
     name?: string;
     description?: string;
     norm_portions?: number;
@@ -52,6 +54,7 @@ export default function SettingsPanel({
   const [name, setName] = useState(plan.name);
   const [description, setDescription] = useState(plan.description);
   const [portions, setPortions] = useState(plan.norm_portions);
+  const [manualNormPortions, setManualNormPortions] = useState(plan.norm_portions_manual ?? false);
   const [reserve, setReserve] = useState(plan.reserve_factor);
   const [activityFactor, setActivityFactor] = useState(plan.activity_factor ?? 1.5);
   const [budget, setBudget] = useState(plan.budget_per_person_per_day ?? '');
@@ -62,7 +65,6 @@ export default function SettingsPanel({
   const { data: tags = [] } = useMealPlanTags(planId);
   const createTag = useCreateMealPlanTag(planId);
   const deleteTag = useDeleteMealPlanTag(planId);
-  const [manualNormPortions, setManualNormPortions] = useState(plan.norm_portions_manual ?? false);
   const isEventLinked = plan.event_id != null;
   const hasValidManualNormPortions = Number.isInteger(portions) && portions >= 1;
   const hasValidDateRange = Boolean(startDatetime) && (!endDatetime || endDatetime > startDatetime);
@@ -97,9 +99,10 @@ export default function SettingsPanel({
     <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-5 shadow-soft font-sans">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>
+          <label htmlFor="meal-plan-settings-name" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>
           <input
             type="text"
+            id="meal-plan-settings-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
@@ -115,21 +118,54 @@ export default function SettingsPanel({
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+          <label
+            htmlFor={isEventLinked ? undefined : 'norm-portions-input'}
+            className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1"
+          >
             Normportionen
           </label>
           {isEventLinked ? (
             <div className="space-y-1">
-              <div className="rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2.5 text-sm font-semibold">
-                <span className="text-muted-foreground line-through mr-2">{plan.previous_norm_portions?.toFixed(1)}</span>
-                <span className="text-muted-foreground">→</span>
-                <span className="text-primary ml-2">{manualNormPortions ? 'Manuell' : plan.norm_portions.toFixed(1)}</span>
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2.5">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {manualNormPortions ? 'Manuell festgelegt' : 'Automatisch berechnet'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {manualNormPortions
+                      ? 'Der Wert bleibt bei Änderungen der Teilnehmenden erhalten.'
+                      : 'Aus den Teilnehmenden und dem Aktivitätsfaktor berechnet.'}
+                  </p>
+                </div>
+                <Switch
+                  checked={manualNormPortions}
+                  onCheckedChange={setManualNormPortions}
+                  aria-label="Normportionen manuell festlegen"
+                />
               </div>
-              <Switch checked={manualNormPortions} onCheckedChange={setManualNormPortions} aria-label="Normportionen manuell festlegen" />
-              {manualNormPortions && <input type="number" min={1} step={1} value={portions} onChange={(e) => setPortions(Number(e.target.value))} aria-label="Manuelle Normportionen" />}
-              <p className="text-xs text-muted-foreground">
-                Berechnet aus {plan.group_members_count} {plan.group_members_count === 1 ? 'Person' : 'Personen'}
-              </p>
+              {manualNormPortions ? (
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={portions}
+                  onChange={(e) => setPortions(Number(e.target.value))}
+                  aria-label="Manuelle Normportionen"
+                  className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                />
+              ) : (
+                <div className="rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-sm font-semibold">
+                  {plan.norm_portions.toFixed(1)} Normportionen
+                </div>
+              )}
+              {manualNormPortions && !hasValidManualNormPortions ? (
+                <p className="text-xs text-destructive">Bitte eine positive ganze Zahl eingeben.</p>
+              ) : null}
+              {!manualNormPortions && (
+                <p className="text-xs text-muted-foreground">
+                  {plan.group_members_count ?? 0} {(plan.group_members_count ?? 0) === 1 ? 'Person' : 'Personen'} · Umschalten aktiviert die manuelle Eingabe.
+                </p>
+              )}
             </div>
           ) : (
             <input
@@ -181,7 +217,7 @@ export default function SettingsPanel({
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
+          <label htmlFor="start-datetime-input" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
           <input
             id="start-datetime-input"
             type="datetime-local"
@@ -191,7 +227,7 @@ export default function SettingsPanel({
           />
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
+          <label htmlFor="end-datetime-input" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
           <input
             id="end-datetime-input"
             type="datetime-local"
@@ -199,6 +235,11 @@ export default function SettingsPanel({
             onChange={(e) => setEndDatetime(e.target.value)}
             className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
           />
+          {!hasValidDateRange && (
+            <p className="mt-1 text-xs text-destructive">
+              {startDatetime ? 'Das Ende muss nach dem Start liegen.' : 'Bitte einen Startzeitpunkt angeben.'}
+            </p>
+          )}
         </div>
       </div>
 
@@ -278,7 +319,7 @@ export default function SettingsPanel({
             >
               {tag.name}
               <button
-                onClick={() => deleteTag.mutate(tag.id)}
+                onClick={() => deleteTag.mutate(tag.id, { onError: (error) => toast.error('Tag konnte nicht gelöscht werden', { description: getApiErrorMessage(error) }) })}
                 className="hover:text-accent transition-colors"
               >
                 <X className="w-3 h-3" />
@@ -293,7 +334,7 @@ export default function SettingsPanel({
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && tagInput.trim()) {
-                createTag.mutate(tagInput.trim());
+                createTag.mutate(tagInput.trim(), { onError: (error) => toast.error('Tag konnte nicht erstellt werden', { description: getApiErrorMessage(error) }) });
                 setTagInput('');
               }
             }}
@@ -303,7 +344,7 @@ export default function SettingsPanel({
           <button
             onClick={() => {
               if (tagInput.trim()) {
-                createTag.mutate(tagInput.trim());
+                createTag.mutate(tagInput.trim(), { onError: (error) => toast.error('Tag konnte nicht erstellt werden', { description: getApiErrorMessage(error) }) });
                 setTagInput('');
               }
             }}

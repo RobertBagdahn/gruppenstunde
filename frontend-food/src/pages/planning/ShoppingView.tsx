@@ -28,7 +28,7 @@ interface TransientShoppingItem {
   display_text?: string;
   natural_portions?: string;
   portion_options?: PortionOption[];
-  sources?: Array<{ recipe_id?: number | null; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
+  sources?: Array<{ recipe_id?: number | null; ingredient_id?: number | null; meal_id?: number | null; recipe_name?: string; recipe_slug?: string; meal_label?: string; quantity_g?: number }>;
 }
 
 function ShoppingItemWithSources({

@@ -9,7 +9,7 @@
 [![Django 5.x](https://img.shields.io/badge/Django-5.x-green.svg)](https://www.djangoproject.com/)
 [![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg)](https://www.typescriptlang.org/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#mitmachen)
 
 [Live-Demo](https://gruppenstunde.de/) · [Fehler melden](https://github.com/RobertBagdahn/gruppenstunde/issues/new?template=bug_report.md) · [Feature vorschlagen](https://github.com/RobertBagdahn/gruppenstunde/issues/new?template=feature_request.md)
 
@@ -199,7 +199,7 @@ make deploy               # Alles deployen (DB + Backend + Frontend)
 
 ## Mitmachen
 
-Beiträge sind herzlich willkommen! Lies die [Contributing Guidelines](CONTRIBUTING.md) für Details.
+Beiträge sind herzlich willkommen! Die wichtigsten Schritte stehen unten.
 
 1. Fork das Repository
 2. Erstelle einen Feature-Branch (`git checkout -b feature/mein-feature`)

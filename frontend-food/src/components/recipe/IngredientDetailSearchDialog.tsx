@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { API_BASE_URL } from '@/lib/api';
 import { useIngredientSearch } from '@/api/supplies';
 import { useIngredientGroups, useRetailSections, useNutritionalTags } from '@/api/supplies';
 import type { Portion } from '@/schemas/supply';
@@ -237,7 +238,7 @@ export default function IngredientDetailSearchDialog({
     }
     setLoadingPortionsFor(slug);
     try {
-      const res = await fetch(`/api/ingredients/${slug}/portions/`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/ingredients/${slug}/portions/`, { credentials: 'include' });
       const portions: Portion[] = await res.json();
       setQuantityDialogIngredient({ id, name, slug, portions });
     } catch {

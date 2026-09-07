@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Literal
 
 from ninja import Schema
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from planner.services.meal_item_helpers import (
     resolve_ingredient_cost_eur,
@@ -122,34 +122,36 @@ class MealItemOut(Schema):
 
     @staticmethod
     def resolve_portion_display(obj) -> str:
-        """Return the portion display string scaled per NormPerson."""
+        """Return the per-person portion display string.
+
+        ``MealItem.quantity`` is a per-person amount (consistent with
+        ``resolve_ingredient_energy_kcal``, ``cost_summary``, ``nutrition_summary``
+        and ``shopping_service``), so no division by ``norm_portions`` is applied here.
+        """
         from supply.utils import _format_quantity, format_weight
 
         # Ingredient-based MealItem (single ingredient, not a recipe)
         if obj.ingredient and obj.quantity and obj.measuring_unit:
-            norm_portions = obj.meal.effective_portions or 1
-            total_g = None
+            per_person_g = None
 
             name_lower = obj.measuring_unit.name.lower()
             if name_lower in ("g", "gramm"):
-                total_g = float(obj.quantity)
+                per_person_g = float(obj.quantity)
             elif name_lower == "ml":
                 density = getattr(obj.ingredient, "physical_density", 1.0) or 1.0
-                total_g = float(obj.quantity) * density
+                per_person_g = float(obj.quantity) * density
             else:
                 portion = obj.ingredient.portions.filter(
                     measuring_unit=obj.measuring_unit,
                     deleted_at__isnull=True,
                 ).first()
                 if portion and portion.weight_g:
-                    total_g = portion.weight_g * float(obj.quantity)
+                    per_person_g = portion.weight_g * float(obj.quantity)
 
-            if total_g is not None:
-                per_person_g = total_g / norm_portions
+            if per_person_g is not None:
                 ingredient_name = obj.ingredient.name or obj.ingredient.slug or ""
                 unit_name = obj.measuring_unit.name if obj.measuring_unit.name.lower() != "stück" else ""
-                qty_per_person = float(obj.quantity) / norm_portions
-                qty_str = _format_quantity(qty_per_person)
+                qty_str = _format_quantity(float(obj.quantity))
                 parts = [qty_str]
                 if unit_name:
                     parts.append(unit_name)
@@ -211,7 +213,7 @@ class MealItemOut(Schema):
 
 class MealItemVariantIn(Schema):
     recipe_id: int
-    factor: float
+    factor: float = Field(ge=0.01, le=1)
     display_name: str | None = None
     active_recipe_item_ids: list[int] = []
 
@@ -661,7 +663,7 @@ class GroupMemberUpdateIn(Schema):
 
 
 class GroupMemberBulkCreateIn(Schema):
-    count: int
+    count: int = Field(ge=1, le=50)
     stufe: Literal["woelflinge", "jungpfadfinder", "pfadfinder", "rover"] | None = None
     default_age: int | None = None
     gender: str = "no_answer"
@@ -696,7 +698,9 @@ class NutritionSummaryOut(Schema):
 
 
 class ShoppingItemSourceOut(Schema):
-    recipe_id: int
+    recipe_id: int | None = None
+    ingredient_id: int | None = None
+    meal_id: int | None = None
     recipe_name: str = ""
     recipe_slug: str = ""
     meal_label: str = ""
@@ -707,6 +711,8 @@ class ShoppingItemPortionOptionOut(Schema):
     name: str
     display: str
     is_default: bool
+    weight_g: float = 0.0
+    count: float = 0.0
 
 
 class ShoppingListItemOut(Schema):
@@ -825,7 +831,7 @@ class RecipeSuggestionOut(Schema):
     id: int
     title: str
     usage_count: int
-    image_thumbnail: str | None = None
+    image_url: str | None = None
     recipe_badge: str = "community"
     price_per_serving: float | None = None
     recipe_type: str = ""

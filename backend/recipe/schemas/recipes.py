@@ -1,6 +1,7 @@
 """Recipe and recipe list schemas."""
 
 import datetime as dt
+from typing import Literal
 
 from ninja import Schema
 
@@ -12,7 +13,7 @@ from content.base_schemas import (
 )
 
 from .items import RecipeItemCreateIn, RecipeItemOut
-from .steps import RecipeStepOut
+from .steps import RecipeStepIn, RecipeStepOut
 
 # --- Reuse NutritionalTag schema ---
 
@@ -30,6 +31,13 @@ class EquipmentOut(Schema):
     id: int
     name: str
     slug: str
+
+
+class SharedGroupOut(Schema):
+    """Group exposed for a recipe's sharing information."""
+
+    id: int
+    name: str
 
 
 # --- Recipe List Schema (extends ContentListOut) ---
@@ -54,7 +62,7 @@ class RecipeListOut(ContentListOut):
     cached_vitamin_c_mg: float | None = None
     owner_name: str | None = None
     forked_from_title: str | None = None
-    visibility: str | None = None
+    visibility: Literal["private", "group", "public"] | None = None
     shared_group_ids: list[int] = []
     source_url: str = ""
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
@@ -109,6 +117,8 @@ class RecipeDetailOut(ContentDetailOut):
 
     recipe_type: str
     portions: int | None
+    # Transient source context for recipe creation flows; never persisted on Recipe.
+    input_servings: int | None = None
     preparation_method: str = ""
     equipment: list[EquipmentOut] = []
     cached_energy_kcal: float | None = None
@@ -128,9 +138,9 @@ class RecipeDetailOut(ContentDetailOut):
     owner_name: str | None = None
     forked_from_title: str | None = None
     forked_from_slug: str | None = None
-    visibility: str | None = None
+    visibility: Literal["private", "group", "public"] | None = None
     shared_group_ids: list[int] = []
-    shared_groups: list[dict] = []  # { id, name }
+    shared_groups: list[SharedGroupOut] = []
     source_url: str = ""
     recipe_badge: str | None = None  # "verified" | "community" | "personal"
     is_owner: bool = False
@@ -141,6 +151,11 @@ class RecipeDetailOut(ContentDetailOut):
     steps: list[RecipeStepOut] = []
     steps_count: int = 0
     next_best_recipes: list[RecipeSimilarOut] = []
+
+    @staticmethod
+    def resolve_input_servings(obj) -> int | None:
+        """Expose the transient creation context when a service attaches one."""
+        return getattr(obj, "input_servings", None)
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
@@ -260,29 +275,26 @@ class RecipeDetailOut(ContentDetailOut):
 
     @staticmethod
     def resolve_equipment(obj) -> list:
-        return [
-            {"id": e.id, "name": e.name, "slug": e.slug}
-            for e in obj.equipment.all()
-        ]
+        return [{"id": e.id, "name": e.name, "slug": e.slug} for e in obj.equipment.all()]
 
     @staticmethod
     def resolve_has_structured_steps(obj) -> bool:
         """Check if recipe has structured steps."""
-        if hasattr(obj, 'steps'):
+        if hasattr(obj, "steps"):
             return obj.steps.exists()
         return False
 
     @staticmethod
     def resolve_steps(obj) -> list:
         """Get all recipe steps ordered by sort_order."""
-        if hasattr(obj, 'steps'):
-            return list(obj.steps.all().order_by('sort_order'))
+        if hasattr(obj, "steps"):
+            return list(obj.steps.all().order_by("sort_order"))
         return []
 
     @staticmethod
     def resolve_steps_count(obj) -> int:
         """Get count of structured recipe steps."""
-        if hasattr(obj, 'steps'):
+        if hasattr(obj, "steps"):
             return obj.steps.count()
         return 0
 
@@ -299,7 +311,10 @@ class RecipeCreateIn(ContentCreateIn):
     equipment_ids: list[int] = []
     nutritional_tag_ids: list[int] = []
     recipe_items: list[RecipeItemCreateIn] = []
+    steps: list[RecipeStepIn] = []
     source_url: str = ""
+    image_url: str = ""
+    idempotency_key: str | None = None
     # Ownership & Sharing (for breakfast wizard)
     shared_group_ids: list[int] = []
     visibility: str = "private"  # accepted from frontend but always forced to "private" on backend
@@ -310,7 +325,7 @@ class RecipeCreateIn(ContentCreateIn):
 
 class RecipeUpdateIn(ContentUpdateIn):
     """Schema for updating a recipe.
-    
+
     Staff-only fields (status, source_url, authors_ids):
     Non-staff attempts to modify these will be rejected with 403 Forbidden.
     """
@@ -321,6 +336,7 @@ class RecipeUpdateIn(ContentUpdateIn):
     equipment_ids: list[int] | None = None
     nutritional_tag_ids: list[int] | None = None
     recipe_items: list[RecipeItemCreateIn] | None = None
+    visibility: str | None = None
     # Ownership & Sharing
     shared_group_ids: list[int] | None = None
     # Staff-only fields

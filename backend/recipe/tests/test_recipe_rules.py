@@ -279,6 +279,51 @@ class TestRecipeRulesService:
         assert result["items"][1]["value_per_serving"] == 800.0
         assert result["items"][1]["status"] == "green"
 
+    def test_multi_portion_recipe_rules_normalized(self):
+        """A recipe for 4 portions with 1200g total weight should be evaluated as 300g per serving."""
+        recipe = make_recipe(portions=4)
+        ing = make_ingredient(name="Reis", energy_kcal=350.0, protein_g=8.0, price_per_kg=4.00)
+        portion = make_portion(ingredient=ing, quantity=1200.0, weight_g=1200.0, name="1200g Reis")
+        make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
+        recalculate_recipe_cache(recipe)
+        recipe.refresh_from_db()
+
+        # Rule for energy per serving: 350 kcal/100g * 300g / 100 = 1050 kcal
+        # Max green = 1200 kcal -> green (if not divided by 4, it would be 4200 kcal -> red)
+        make_recipe_hint(
+            name="Energie Regel",
+            parameter="energy_kcal",
+            max_green=1200.0,
+            max_yellow=1500.0,
+            unit="kcal",
+            sort_order=1,
+        )
+        # Weight rule: 1200g / 4 = 300g per serving
+        make_recipe_hint(
+            name="Gewicht Regel",
+            parameter="weight_g",
+            min_green=200.0,
+            max_green=400.0,
+            unit="g",
+            sort_order=2,
+        )
+        # Price rule: 4.80 EUR / 4 = 1.20 EUR per serving
+        make_recipe_hint(
+            name="Preis Regel",
+            parameter="price_total",
+            max_green=2.00,
+            unit="EUR",
+            sort_order=3,
+        )
+
+        result = evaluate_recipe_rules(recipe)
+        assert result["items"][0]["value_per_serving"] == 1050.0
+        assert result["items"][0]["status"] == "green"
+        assert result["items"][1]["value_per_serving"] == 300.0
+        assert result["items"][1]["status"] == "green"
+        assert result["items"][2]["value_per_serving"] == 1.2
+        assert result["items"][2]["status"] == "green"
+
 
 @pytest.mark.django_db
 class TestRecipeRulesAPI:

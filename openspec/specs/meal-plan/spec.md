@@ -41,6 +41,11 @@ und der Plan seine Normportionen automatisch aus GroupMembers bezieht.
 - **AND** automatische bzw. gruppenbasierte Normportionen werden mit dem neuen PAL neu berechnet
 - **AND** ein standalone direkter Normportionenwert bleibt unverändert
 
+#### Scenario: Aktivitätsfaktor bei manuellem Override ändern
+- **WHEN** ein Nutzer `activity_factor` aktualisiert und `norm_portions_manual` aktiv ist
+- **THEN** wird der Aktivitätsfaktor gespeichert
+- **AND** der manuelle `norm_portions`-Wert bleibt unverändert
+
 ### Requirement: Berechnungsgrundlage
 
 Kosten-, Nährwert-, Einkaufslisten- und Kochplanregeln SHALL die zentrale Definition von
@@ -80,3 +85,22 @@ ausgeben. Interne PDF-Datenstrukturen verwenden denselben Namen.
 #### Scenario: Rezeptbild im MealItem
 - **WHEN** ein MealItem serialisiert wird
 - **THEN** heißt das Bildfeld `image_url` und ist bei fehlendem Bild `null`
+
+### Requirement: Meal-plan core flows are covered by browser regression tests
+The Food E2E suite SHALL verify MealPlan creation, settings updates, default meal times, manual norm portions, and deletion using authenticated isolated data.
+
+#### Scenario: Empty meal plan creation roundtrip
+- **WHEN** an authenticated user creates an empty MealPlan with a fixed name, date range, and portions
+- **THEN** the plan detail URL SHALL open, the plan name and portions SHALL be visible, and reload SHALL preserve the values
+
+#### Scenario: Custom meal times drive new meals
+- **WHEN** a user configures custom default meal times and creates a plan
+- **THEN** newly added meals SHALL use those configured start and end times
+
+#### Scenario: Manual event norm portions remain stable
+- **WHEN** an event-linked plan is switched to manual norm portions and saved
+- **THEN** the value SHALL remain unchanged after settings reload and participant/activity changes until automatic mode is restored
+
+#### Scenario: Standalone plans do not expose event-only manual mode
+- **WHEN** a standalone MealPlan settings dialog is opened
+- **THEN** event-only manual norm-portion controls SHALL not be shown

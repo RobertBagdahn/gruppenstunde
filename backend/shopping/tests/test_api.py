@@ -11,6 +11,7 @@ from shopping.models import (
     ShoppingList,
     ShoppingListCollaborator,
     ShoppingListItem,
+    ShoppingListItemSource,
     SourceType,
 )
 from supply.tests import make_ingredient, make_measuring_unit, make_portion, make_retail_section
@@ -459,6 +460,65 @@ class TestCreateFromMealPlan:
         # Should have items from the shopping service
         assert len(data["items"]) >= 0  # May be 0 if service produces nothing, >= 1 ideally
 
+    def test_private_meal_plan_requires_access(self, client_bob, meal_plan_with_data):
+        response = client_bob.post(
+            f"/api/shopping-lists/from-meal-plan/{meal_plan_with_data.id}/",
+            data="{}",
+            content_type="application/json",
+        )
+        assert response.status_code == 404
+        assert not ShoppingList.objects.filter(source_id=meal_plan_with_data.id).exists()
+
+    def test_private_recipe_requires_access(self, client_bob, user):
+        from recipe.tests import make_recipe
+
+        recipe = make_recipe(owner=user, visibility="private", status="draft")
+        response = client_bob.post(
+            f"/api/shopping-lists/from-recipe/{recipe.id}/",
+            data=json.dumps({"portions": 1}),
+            content_type="application/json",
+        )
+        assert response.status_code == 404
+        assert not ShoppingList.objects.filter(source_id=recipe.id).exists()
+
+    def test_meal_plan_sources_keep_meal_and_ingredient(self, client_alice, meal_plan_with_data):
+        response = client_alice.post(
+            f"/api/shopping-lists/from-meal-plan/{meal_plan_with_data.id}/",
+            data="{}",
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        source = ShoppingListItemSource.objects.filter(
+            shopping_list_item__shopping_list__source_id=meal_plan_with_data.id
+        ).first()
+        assert source is not None
+        assert source.recipe_id is not None
+        assert source.meal_id is not None
+        assert source.recipe_id != 0
+
+    def test_recipe_export_selects_exchange_default(self, client_alice):
+        from recipe.models import RecipeItem, RecipeItemExchangeGroup
+        from recipe.tests import make_recipe
+
+        recipe = make_recipe()
+        default_ingredient = make_ingredient(name="Standard-Zutat")
+        alternative_ingredient = make_ingredient(name="Alternative-Zutat")
+        default_portion = make_portion(default_ingredient, weight_g=100)
+        alternative_portion = make_portion(alternative_ingredient, weight_g=100)
+        group = RecipeItemExchangeGroup.objects.create(recipe=recipe, name="Austausch")
+        RecipeItem.objects.create(recipe=recipe, portion=default_portion, exchange_group=group, exchange_position=0)
+        RecipeItem.objects.create(recipe=recipe, portion=alternative_portion, exchange_group=group, exchange_position=1)
+
+        response = client_alice.post(
+            f"/api/shopping-lists/from-recipe/{recipe.id}/",
+            data=json.dumps({"portions": 1}),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 200
+        names = [item["name"] for item in response.json()["items"]]
+        assert names == ["Standard-Zutat"]
+
 
 # ---------------------------------------------------------------------------
 # Regression tests for fixed bugs
@@ -488,6 +548,29 @@ class TestShoppingListViewBugFixes:
             )
             assert res.status_code == 200, f"view={view} failed: {res.json()}"
 
+    def test_by_recipe_view_uses_source_name(self, client_alice, shopping_list):
+        from recipe.tests import make_recipe
+
+        recipe = make_recipe(title="Quellen-Rezept")
+        item = ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            name="Mehl",
+            quantity_g=500,
+            unit="g",
+            note="Falsche Notiz",
+        )
+        ShoppingListItemSource.objects.create(
+            shopping_list_item=item,
+            recipe=recipe,
+            quantity_g=500,
+            recipe_name=recipe.title,
+        )
+
+        response = client_alice.get(f"/api/shopping-lists/{shopping_list.id}/view/?view=by_recipe")
+
+        assert response.status_code == 200
+        assert response.json()["groups"][0]["source"] == "Quellen-Rezept"
+
     def test_list_users_returns_paginated_response(self, client_alice):
         """list_users must return paginated data to authenticated users."""
         res = client_alice.get("/api/shopping-lists/users/")
@@ -512,3 +595,19 @@ class TestShoppingListViewBugFixes:
         names = [i["name"] for i in data["items"]]
         assert "Lagereinkauf" in names
         assert "Wocheneinkauf" not in names
+
+    def test_invalid_related_ids_are_rejected(self, client_alice, shopping_list):
+        response = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "Ungültig", "ingredient_id": 999999}),
+            content_type="application/json",
+        )
+        assert response.status_code == 422
+
+    def test_negative_quantity_is_rejected(self, client_alice, shopping_list):
+        response = client_alice.post(
+            f"/api/shopping-lists/{shopping_list.id}/items/",
+            data=json.dumps({"name": "Ungültig", "quantity_g": -1}),
+            content_type="application/json",
+        )
+        assert response.status_code == 422

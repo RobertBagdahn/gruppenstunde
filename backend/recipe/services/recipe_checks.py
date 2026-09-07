@@ -47,6 +47,7 @@ def _calculate_item_weight_g(item: RecipeItem) -> float:
 
     return 0.0
 
+
 # Micronutrient fields tracked on Ingredient — used for aggregation
 MICRONUTRIENT_FIELDS = [
     "vitamin_c_mg",
@@ -69,6 +70,7 @@ def get_recipe_nutritional_values(recipe: Recipe) -> dict[str, float]:
     items = (
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
+        .exclude(portion__deleted_at__isnull=False)
         .select_related("portion", "portion__ingredient", "portion__measuring_unit")
     )
 
@@ -140,6 +142,10 @@ def get_recipe_total_weight_g(recipe: Recipe) -> float:
     for item in items:
         if not (item.portion and item.portion.ingredient):
             continue
+        if item.portion.deleted_at is not None:
+            continue
+        if item.exchange_group_id is not None and item.exchange_position and item.exchange_position > 0:
+            continue
         total_weight_g += _calculate_item_weight_g(item)
     return total_weight_g
 
@@ -195,13 +201,13 @@ def evaluate_recipe_rules(recipe: Recipe) -> dict:
         }
 
     values, total_weight_g = get_recipe_values_with_computed(recipe)
+    recipe_servings = max(recipe.portions or 1, 1)
 
-    # Each recipe represents exactly one Normportion (servings is always 1).
-    # Per-100g nutrient values are converted to the Normportion total via total_weight_g / 100.
+    # Per-serving scaling: values per 100g are scaled to a single serving via (total_weight_g / 100) / recipe_servings.
     if total_weight_g > 0:
-        factor = total_weight_g / 100.0
+        factor = (total_weight_g / 100.0) / recipe_servings
     else:
-        factor = 1.0
+        factor = 1.0 / recipe_servings
 
     rules = Rule.objects.filter(
         is_active=True,
@@ -243,10 +249,10 @@ def evaluate_recipe_rules(recipe: Recipe) -> dict:
         seen_rules.add(rule_key)
 
         actual_value = values.get(rule.parameter, 0.0)
-        if rule.parameter in ["nutri_class", "weight_g", "price_total"]:
-            # nutri_class is a quality class; weight_g and price_total are
-            # already Normportion totals and must stay unscaled.
+        if rule.parameter == "nutri_class":
             value_per_serving = actual_value
+        elif rule.parameter in ["weight_g", "price_total"]:
+            value_per_serving = actual_value / recipe_servings
         else:
             value_per_serving = actual_value * factor
 
@@ -312,20 +318,23 @@ def match_recipe_hints(
     for each rule that evaluates to yellow or red.
     """
     values, total_weight_g = get_recipe_values_with_computed(recipe)
+    recipe_servings = max(recipe.portions or 1, 1)
 
-    # Each recipe represents exactly one Normportion (servings is always 1).
+    # Per-serving scaling: values per 100g are scaled to a single serving via (total_weight_g / 100) / recipe_servings.
     if total_weight_g > 0:
-        factor = total_weight_g / 100.0
+        factor = (total_weight_g / 100.0) / recipe_servings
     else:
-        factor = 1.0
+        factor = 1.0 / recipe_servings
 
     rules = Rule.objects.filter(is_active=True, scope="recipe")
 
     results = []
     for rule in rules:
         actual = values.get(rule.parameter, 0.0)
-        if rule.parameter in ["nutri_class", "weight_g", "price_total"]:
+        if rule.parameter == "nutri_class":
             eval_value = actual
+        elif rule.parameter in ["weight_g", "price_total"]:
+            eval_value = actual / recipe_servings
         else:
             eval_value = actual * factor
 
@@ -399,6 +408,7 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
     items = (
         RecipeItem.objects.filter(recipe=recipe)
         .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
+        .exclude(portion__deleted_at__isnull=False)
         .select_related("portion", "portion__ingredient", "portion__measuring_unit")
     )
     total_price = Decimal("0.00")
@@ -460,7 +470,11 @@ def sync_recipe_nutritional_tags(recipe: Recipe) -> int:
     from supply.models.reference import NutritionalTag
 
     ingredient_ids = list(
-        RecipeItem.objects.filter(recipe=recipe).values_list("portion__ingredient_id", flat=True).distinct()
+        RecipeItem.objects.filter(recipe=recipe)
+        .exclude(Q(exchange_group__isnull=False) & Q(exchange_position__gt=0))
+        .exclude(portion__deleted_at__isnull=False)
+        .values_list("portion__ingredient_id", flat=True)
+        .distinct()
     )
 
     if ingredient_ids:

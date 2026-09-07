@@ -1,13 +1,26 @@
+import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { useRecipeBySlug } from '@/api/recipes';
-import StepEditor from './StepEditor';
+import StepEditor, { type StepEditorHandle } from './StepEditor';
 
 interface WizardStepStepsProps {
   recipeSlug: string;
 }
 
-export default function WizardStepSteps({ recipeSlug }: WizardStepStepsProps) {
+export interface WizardStepStepsHandle {
+  save: () => Promise<boolean>;
+}
+
+const WizardStepSteps = forwardRef<WizardStepStepsHandle, WizardStepStepsProps>(function WizardStepSteps(
+  { recipeSlug },
+  ref,
+) {
   const { data: recipe } = useRecipeBySlug(recipeSlug);
   const availableRecipeItems = recipe?.recipe_items ?? [];
+  const editorRef = useRef<StepEditorHandle>(null);
+
+  useImperativeHandle(ref, () => ({
+    save: () => editorRef.current?.save() ?? Promise.resolve(true),
+  }), []);
 
   return (
     <div className="space-y-6">
@@ -19,10 +32,13 @@ export default function WizardStepSteps({ recipeSlug }: WizardStepStepsProps) {
       </div>
 
       <StepEditor
+        ref={editorRef}
         recipeSlug={recipeSlug}
         availableRecipeItems={availableRecipeItems}
         onSave={() => {}}
       />
     </div>
   );
-}
+});
+
+export default WizardStepSteps;

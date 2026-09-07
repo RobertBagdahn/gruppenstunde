@@ -216,13 +216,13 @@ def _compute_scaled_ingredients(
         scale = factor * (portions / recipe_portions)
         return [
             CookingScheduleIngredient(
-                name=entry.recipe_item.portion.ingredient.name
-                if entry.recipe_item.portion.ingredient
-                else entry.recipe_item.portion.name,
+                name=(
+                    entry.recipe_item.portion.ingredient.name
+                    if entry.recipe_item.portion.ingredient
+                    else entry.recipe_item.portion.name
+                ),
                 quantity=round(entry.quantity * entry.recipe_item.portion.quantity * scale, 2),
-                unit=entry.recipe_item.portion.measuring_unit.name
-                if entry.recipe_item.portion.measuring_unit
-                else "",
+                unit=entry.recipe_item.portion.measuring_unit.name if entry.recipe_item.portion.measuring_unit else "",
                 note=entry.recipe_item.note or "",
                 is_optional=entry.recipe_item.is_optional,
                 weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
@@ -235,23 +235,19 @@ def _compute_scaled_ingredients(
     for ri in recipe.recipe_items.all():
         # Filter logic:
         # 1. If active_recipe_item_ids is set, apply variant filtering
-        # 2. Items without exchange group: always include unless optional
-        # 3. Items with exchange group: only include if in active_ids
-        # 4. Optional items: include only if in active_ids
+        # 2. Items without exchange group: always include, including optional items
+        # 3. Without a selection, include only the exchange group's default item
+        # 4. With a selection, include only explicitly active exchange items
 
-        has_exchange_group = hasattr(ri, "recipe_item_exchange_group") and ri.recipe_item_exchange_group is not None
+        has_exchange_group = ri.exchange_group_id is not None
 
-        if active_ids_set:
-            # Variant filtering is active
-            if has_exchange_group:
-                # Exchange group item: only include if in active_ids
-                if ri.id not in active_ids_set:
-                    continue
-            elif ri.is_optional:
-                # Optional item without exchange group: only include if in active_ids
-                if ri.id not in active_ids_set:
-                    continue
-            # Non-optional items without exchange group are always included
+        if has_exchange_group:
+            if active_ids_set and ri.id not in active_ids_set:
+                continue
+            if not active_ids_set and ri.exchange_position != 0:
+                continue
+        elif active_ids_set and ri.is_optional and ri.id not in active_ids_set:
+            continue
 
         portion = ri.portion
         if not portion:
@@ -360,8 +356,8 @@ def _compute_item_nutrition(item, meal_item, effective_portions: int) -> dict[st
         ingredient = entry.recipe_item.portion.ingredient
         if not ingredient or entry.weight_g is None:
             continue
-        for field in values:
-            values[field] += (getattr(ingredient, field, None) or 0.0) * entry.weight_g / 100.0 * scale
+        for key in values:
+            values[key] += (getattr(ingredient, key, None) or 0.0) * entry.weight_g / 100.0 * scale
 
     return values
 
@@ -380,12 +376,124 @@ def _compute_item_cost(meal_item, effective_portions: int) -> float:
         return float(meal_item.recipe.cached_price_total or 0) * scale
 
     return sum(
-        float(entry.recipe_item.portion.ingredient.price_per_kg or 0)
-        * float(entry.weight_g or 0)
-        / 1000.0
-        * scale
+        float(entry.recipe_item.portion.ingredient.price_per_kg or 0) * float(entry.weight_g or 0) / 1000.0 * scale
         for entry in active_items
         if entry.recipe_item.portion.ingredient
+    )
+
+
+def _compute_direct_item_nutrition(meal_item, portions: int) -> dict[str, float]:
+    """Nutrition totals for a direct ingredient MealItem scaled by factor * portions."""
+    ing = meal_item.ingredient
+    if not ing or ing.deleted_at is not None:
+        return {"energy_kcal": 0.0, "protein_g": 0.0, "fat_g": 0.0, "carbohydrate_g": 0.0}
+
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+
+    weight_g = _resolve_ingredient_weight_g(meal_item) * meal_item.factor * portions
+    return {
+        "energy_kcal": (ing.energy_kcal or 0.0) * weight_g / 100.0,
+        "protein_g": (ing.protein_g or 0.0) * weight_g / 100.0,
+        "fat_g": (ing.fat_g or 0.0) * weight_g / 100.0,
+        "carbohydrate_g": (ing.carbohydrate_g or 0.0) * weight_g / 100.0,
+    }
+
+
+def _compute_direct_item_cost(meal_item, portions: int) -> float:
+    """Cost total for a direct ingredient MealItem scaled by factor * portions."""
+    ing = meal_item.ingredient
+    if not ing or ing.price_per_kg is None or ing.deleted_at is not None:
+        return 0.0
+
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+
+    weight_g = _resolve_ingredient_weight_g(meal_item) * meal_item.factor * portions
+    return float(ing.price_per_kg) * weight_g / 1000.0
+
+
+def _build_direct_ingredient_block(
+    direct_items: list,
+    portions: int,
+    serving_time: dt.datetime,
+    meal,
+) -> CookingScheduleRecipeBlock:
+    """Build a synthetic recipe block grouping direct ingredient items of a meal."""
+    ingredients: list[CookingScheduleIngredient] = []
+    nutrition: dict[str, float] = {"energy_kcal": 0.0, "protein_g": 0.0, "fat_g": 0.0, "carbohydrate_g": 0.0}
+    cost = 0.0
+    tags: list[dict] = []
+    seen_tags: set[int] = set()
+
+    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+
+    for meal_item in direct_items:
+        ing = meal_item.ingredient
+        if not ing or ing.deleted_at is not None:
+            continue
+
+        unit_name = meal_item.measuring_unit.name if meal_item.measuring_unit else ""
+        scale = meal_item.factor * portions
+        quantity = round(float(meal_item.quantity or 0) * scale, 2)
+        weight_g = _resolve_ingredient_weight_g(meal_item) * scale
+
+        ingredients.append(
+            CookingScheduleIngredient(
+                name=ing.name,
+                quantity=quantity,
+                unit=unit_name,
+                note=meal_item.display_name or "",
+                is_optional=False,
+                weight_g=round(weight_g, 1),
+            )
+        )
+
+        item_nutrition = _compute_direct_item_nutrition(meal_item, portions)
+        for key in nutrition:
+            nutrition[key] += item_nutrition[key]
+        cost += _compute_direct_item_cost(meal_item, portions)
+
+        for tag in ing.nutritional_tags.all():
+            if tag.id in seen_tags:
+                continue
+            seen_tags.add(tag.id)
+            tags.append(
+                {
+                    "id": tag.id,
+                    "name": tag.name,
+                    "name_opposite": tag.name_opposite,
+                    "description": tag.description,
+                    "rank": tag.rank,
+                    "is_dangerous": tag.is_dangerous,
+                }
+            )
+
+    variant = CookingScheduleVariant(
+        variant_group_id=None,
+        display_name=None,
+        factor=1.0,
+        portions=int(portions),
+        active_recipe_item_ids=[],
+        lead_minutes=0,
+        start_time=serving_time,
+        steps="",
+        ingredients=ingredients,
+        steps_parsed=[],
+        nutritional_tags=tags,
+        total_cost_eur=round(cost, 2),
+        total_energy_kcal=round(nutrition["energy_kcal"], 2),
+        total_protein_g=round(nutrition["protein_g"], 2),
+        total_fat_g=round(nutrition["fat_g"], 2),
+        total_carbohydrate_g=round(nutrition["carbohydrate_g"], 2),
+        meal_note=meal.note or "",
+    )
+
+    return CookingScheduleRecipeBlock(
+        recipe_id=0,
+        recipe_title="Direkte Zutaten",
+        recipe_slug="direkte-zutaten",
+        image_url=None,
+        nutritional_tags=tags,
+        variants=[variant],
     )
 
 
@@ -401,6 +509,8 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
             "items__recipe__recipe_items__portion__ingredient",
             "items__recipe__recipe_items__portion__ingredient__nutritional_tags",
             "items__recipe__nutritional_tags",
+            "items__ingredient__nutritional_tags",
+            "items__measuring_unit",
             "items__overrides",
         )
         .order_by("start_datetime")
@@ -409,6 +519,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
     excluded_meal_count = 0
     meals_by_day: dict[dt.date, list[Meal]] = {}
     meal_items_data: dict[int, list[dict]] = {}  # meal.id -> list of variant data
+    direct_items_data: dict[int, list] = {}  # meal.id -> list of direct ingredient items
 
     # First pass: filter meals and collect meal items grouped by variant
     for meal in meals:
@@ -421,10 +532,15 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
 
         # Group meal items by (recipe_id, variant_group_id) to form recipe blocks
         recipe_blocks_dict: dict[tuple[int, str | None], list] = {}
+        direct_items: list = []
 
         for meal_item in meal.items.all():
             recipe = meal_item.recipe
-            if recipe is None or recipe.deleted_at is not None:
+            if recipe is None:
+                if meal_item.ingredient and meal_item.ingredient.deleted_at is None:
+                    direct_items.append(meal_item)
+                continue
+            if recipe.deleted_at is not None:
                 continue
 
             key = (recipe.id, meal_item.variant_group_id)
@@ -433,6 +549,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
             recipe_blocks_dict[key].append(meal_item)
 
         meal_items_data[meal.id] = list(recipe_blocks_dict.items())
+        direct_items_data[meal.id] = direct_items
 
     # Build days with nested structure
     days: list[CookingScheduleDay] = []
@@ -453,9 +570,10 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
             # Build recipe blocks for this meal
             recipe_blocks: list[CookingScheduleRecipeBlock] = []
             variant_data_list = meal_items_data.get(meal.id, [])
+            direct_items = direct_items_data.get(meal.id, [])
 
-            # Skip meals with no recipe items
-            if not variant_data_list:
+            # Skip meals with no recipe or direct-ingredient items
+            if not variant_data_list and not direct_items:
                 continue
 
             for (recipe_id, variant_group_id), meal_items in variant_data_list:
@@ -517,6 +635,9 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                     variants=variants,
                 )
                 recipe_blocks.append(recipe_block)
+
+            if direct_items:
+                recipe_blocks.append(_build_direct_ingredient_block(direct_items, portions, serving_time, meal))
 
             # Sort recipe blocks by earliest variant start_time
             recipe_blocks.sort(key=lambda rb: min(v.start_time for v in rb.variants) if rb.variants else serving_time)
@@ -605,7 +726,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
                 day_start_time=day_start,
                 day_end_time=day_end,
                 day_duration_minutes=duration,
-                portions=int(meal_plan.norm_portions),
+                portions=round(meal_plan.norm_portions),
                 day_nutritional_tags=list(day_tags.values()),
                 total_cost_eur=day_cost,
                 total_energy_kcal=day_energy,

@@ -22,6 +22,13 @@ class MeasuringUnit(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __init__(self, *args, **kwargs):
+        """Accept the legacy short-name input used by recipe integrations."""
+        name_short = kwargs.pop("name_short", None)
+        super().__init__(*args, **kwargs)
+        if name_short is not None:
+            self.name_short = name_short
+
     class Meta:
         verbose_name = _("Maßeinheit")
         verbose_name_plural = _("Maßeinheiten")
@@ -78,5 +85,3 @@ class RetailSection(models.Model):
 
     def __str__(self):
         return self.name
-
-

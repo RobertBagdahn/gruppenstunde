@@ -28,6 +28,12 @@ class UnitConversionUpdateIn(BaseModel):
     factor: float | None = None
 
 
+class UnitConversionResultOut(BaseModel):
+    result: float
+    factor: float
+    is_ingredient_specific: bool
+
+
 class AvailableConversionItemOut(BaseModel):
     to_unit_id: int
     to_unit_name: str

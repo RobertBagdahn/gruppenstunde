@@ -227,12 +227,14 @@ function PackageRow({
           <button
             onClick={() => setEditing(true)}
             className="p-1 text-muted-foreground hover:text-foreground"
+            aria-label={`Packung bearbeiten: ${pkg.name}`}
           >
             <span className="material-symbols-outlined text-sm">edit</span>
           </button>
           <button
             onClick={() => setConfirmDelete(true)}
             className="p-1 text-muted-foreground hover:text-destructive"
+            aria-label={`Packung löschen: ${pkg.name}`}
           >
             <span className="material-symbols-outlined text-sm">delete</span>
           </button>
@@ -1095,6 +1097,7 @@ export default function IngredientDetailPage() {
               <>
                 <button
                   onClick={() => navigate(`/ingredients/${ingredient.slug}/edit`)}
+                  data-testid="ingredient-edit-button"
                   className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
                   title="Bearbeiten"
                 >
@@ -1102,6 +1105,7 @@ export default function IngredientDetailPage() {
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
+                  data-testid="ingredient-delete-button"
                   className="p-2 rounded-md hover:bg-destructive/10 transition text-destructive/70 hover:text-destructive"
                   title="Zutat löschen"
                 >

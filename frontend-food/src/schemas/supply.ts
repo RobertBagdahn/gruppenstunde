@@ -138,6 +138,12 @@ export const IngredientGroupSchema = z.object({
 });
 export type IngredientGroup = z.infer<typeof IngredientGroupSchema>;
 
+export const SharedGroupSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type SharedGroup = z.infer<typeof SharedGroupSchema>;
+
 // ---------------------------------------------------------------------------
 // Ingredient Alias
 // ---------------------------------------------------------------------------
@@ -206,6 +212,11 @@ export const IngredientDetailSchema = z.object({
   description: z.string(),
   status: z.string(),
   name_warning: z.string().nullable().optional(),
+  owner_id: z.number().nullable().optional(),
+  owner_name: z.string().nullable().optional(),
+  visibility: z.enum(['private', 'shared', 'public', 'group']),
+  shared_groups: z.array(SharedGroupSchema).default([]),
+  created_by_name: z.string().nullable().optional(),
 
   // Physical
   physical_density: z.number(),
@@ -459,7 +470,7 @@ export const IngredientSimilarSchema = z.object({
   id: z.number(),
   name: z.string(),
   slug: z.string(),
-  distance: z.number(),
+  similarity_pct: z.number(),
 });
 export type IngredientSimilar = z.infer<typeof IngredientSimilarSchema>;
 

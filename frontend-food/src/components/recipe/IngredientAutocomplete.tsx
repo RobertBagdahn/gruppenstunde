@@ -4,6 +4,7 @@
  * and displays nutritional info (protein, fat, carbs) in results.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { z } from 'zod';
@@ -106,7 +107,7 @@ export function IngredientAutocomplete({
       params.set('name', debouncedQuery);
       params.set('page_size', '8');
       if (primaryFilter) params.set('retail_section', String(primaryFilter));
-      const res = await fetch(`/api/ingredients/?${params}`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/ingredients/?${params}`, { credentials: 'include' });
       if (!res.ok) return [];
       const json = await res.json();
       const items = z.array(IngredientListItemSchema).parse(json.items ?? []);
@@ -135,7 +136,7 @@ export function IngredientAutocomplete({
       const params = new URLSearchParams();
       params.set('name', debouncedQuery);
       params.set('page_size', '8');
-      const res = await fetch(`/api/ingredients/?${params}`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/api/ingredients/?${params}`, { credentials: 'include' });
       if (!res.ok) return [];
       const json = await res.json();
       const items = z.array(IngredientListItemSchema).parse(json.items ?? []);

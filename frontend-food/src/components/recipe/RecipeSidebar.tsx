@@ -85,6 +85,7 @@ export default function RecipeSidebar({
         <button
           type="button"
           onClick={onOpenShoppingList}
+          aria-label="Einkaufsliste erstellen"
           className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           <ShoppingCart className="w-4 h-4" />

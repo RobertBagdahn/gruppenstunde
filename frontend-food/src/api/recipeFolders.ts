@@ -1,55 +1,38 @@
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, fetchWithCsrf, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RecipeFolderSchema, type RecipeFolder, type RecipeFolderCreate, type RecipeFolderUpdate } from '@/schemas/recipeFolder';
 
 const FOLDER_BASE = `${API_BASE_URL}/api/recipe-folders`;
 
-function getCsrfToken(): string {
-  const match = document.cookie.match(/csrftoken=([^;]+)/);
-  return match ? match[1] : '';
-}
-
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
-  return res.json();
+  return parseApiResponse<T>(res);
 }
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
+  const res = await fetchWithCsrf(url, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `API error: ${res.status}`);
-  }
-  return res.json();
+  return parseApiResponse<T>(res);
 }
 
 async function patchJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
+  const res = await fetchWithCsrf(url, {
     method: 'PATCH',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `API error: ${res.status}`);
-  }
-  return res.json();
+  return parseApiResponse<T>(res);
 }
 
 async function deleteJson(url: string): Promise<void> {
-  const res = await fetch(url, {
+  const res = await fetchWithCsrf(url, {
     method: 'DELETE',
     credentials: 'include',
-    headers: { 'X-CSRFToken': getCsrfToken() },
   });
-  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+  await parseApiResponse(res);
 }
 
 export function useRecipeFolders() {

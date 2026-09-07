@@ -78,6 +78,36 @@ describe('InlineIngredientEditor.normalizeItems', () => {
       expect(scaledQty).toBe(1120);
       expect(result[0].measuring_unit_name).toBe('Gramm');
     });
+
+    it('uses the selected editor context for existing normalized quantities', () => {
+      const items = [
+        makeRecipeItem({
+          quantity: 2.24,
+          portion_id: 423,
+          weight_g: 280,
+          ingredient_portions: [nudelnPortion(1)],
+        }),
+      ];
+
+      const result = normalizeItems(items, 1, 4);
+
+      expect(result[0].quantity).toBe(1120);
+    });
+
+    it('does not scale imported totals a second time', () => {
+      const items = [
+        makeRecipeItem({
+          quantity: 4,
+          portion_id: 423,
+          weight_g: 500,
+          ingredient_portions: [nudelnPortion(1)],
+        }),
+      ];
+
+      const result = normalizeItems(items, 1, 4, true);
+
+      expect(result[0].quantity).toBe(500);
+    });
   });
 
   describe('direct-unit portions (quantity === 1)', () => {

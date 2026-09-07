@@ -4,9 +4,10 @@ import { useTags } from '@/api/tags';
 interface TagMultiSelectProps {
   selectedSlugs: string[];
   onToggle: (slug: string) => void;
+  valueKey?: 'slug' | 'id';
 }
 
-export default function TagMultiSelect({ selectedSlugs, onToggle }: TagMultiSelectProps) {
+export default function TagMultiSelect({ selectedSlugs, onToggle, valueKey = 'slug' }: TagMultiSelectProps) {
   const { data: tags } = useTags();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -73,8 +74,8 @@ export default function TagMultiSelect({ selectedSlugs, onToggle }: TagMultiSele
                 >
                   <input
                     type="checkbox"
-                    checked={selectedSlugs.includes(tag.slug)}
-                    onChange={() => onToggle(tag.slug)}
+                  checked={selectedSlugs.includes(valueKey === 'id' ? tag.id : tag.slug)}
+                  onChange={() => onToggle(valueKey === 'id' ? tag.id : tag.slug)}
                     className="rounded border-muted-foreground accent-primary"
                   />
                   {tag.icon && <span className="material-symbols-outlined text-[16px]">{tag.icon}</span>}

@@ -32,6 +32,8 @@ export type PortionOption = z.output<typeof PortionOptionSchema>;
 export const ShoppingItemSourceSchema = z.object({
   id: z.number().optional(),
   recipe_id: z.number().nullable().optional(),
+  meal_id: z.number().nullable().optional(),
+  ingredient_id: z.number().nullable().optional(),
   recipe_name: z.string().default(''),
   recipe_slug: z.string().default(''),
   meal_label: z.string().default(''),

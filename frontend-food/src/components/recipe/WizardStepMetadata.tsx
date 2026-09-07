@@ -13,16 +13,16 @@ interface WizardStepMetadataProps {
 }
 
 const PREP_TIME_OPTIONS = [
+  { value: 'none', label: 'Keine Angabe' },
   { value: 'less_15', label: 'Unter 15 Min.' },
-  { value: 'less_30', label: 'Unter 30 Min.' },
-  { value: 'less_60', label: 'Unter 60 Min.' },
+  { value: '15_30', label: '15–30 Min.' },
+  { value: '30_60', label: '30–60 Min.' },
   { value: 'more_60', label: 'Über 60 Min.' },
 ];
 
 const VISIBILITY_OPTIONS = [
   { value: 'private', label: 'Privat' },
   { value: 'public', label: 'Öffentlich' },
-  { value: 'shared', label: 'Geteilt' },
   { value: 'group', label: 'Gruppe' },
 ];
 
@@ -30,7 +30,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
   const { data: recipe } = useRecipeBySlug(recipeSlug);
   void recipeId;
 
-  const [summary, setSummary] = useState(initialData?.description || '');
+  const [summary, setSummary] = useState(initialData?.summary || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [difficulty, setDifficulty] = useState(initialData?.difficulty || '');
   const [executionTime, setExecutionTime] = useState(initialData?.executionTime || '');
@@ -42,7 +42,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
   useEffect(() => {
     if (recipe && !hasInitializedRef.current) {
       hasInitializedRef.current = true;
-      setSummary(initialData?.description || recipe.summary || '');
+      setSummary(initialData?.summary || recipe.summary || '');
       setDescription(initialData?.description || recipe.description || '');
       setDifficulty(initialData?.difficulty || recipe.difficulty || '');
       setExecutionTime(initialData?.executionTime || recipe.execution_time || '');
@@ -51,28 +51,30 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
       setSelectedTagSlugs(
         initialData?.selectedTagSlugs?.length
           ? initialData.selectedTagSlugs
-          : recipe.tags?.map((t: { slug: string }) => t.slug) || [],
+          : recipe.tags?.map((t: { id: string }) => t.id) || [],
       );
     }
   }, [recipe, initialData]);
 
-  const notify = useCallback(() => {
+  const notify = useCallback((next: Partial<MetadataSnapshot> = {}) => {
     onDataChange?.({
-      description,
-      difficulty,
-      executionTime,
-      preparationTime,
-      visibility,
-      selectedTagSlugs,
+      summary: next.summary ?? summary,
+      description: next.description ?? description,
+      difficulty: next.difficulty ?? difficulty,
+      executionTime: next.executionTime ?? executionTime,
+      preparationTime: next.preparationTime ?? preparationTime,
+      visibility: next.visibility ?? visibility,
+      selectedTagSlugs: next.selectedTagSlugs ?? selectedTagSlugs,
     });
-  }, [description, difficulty, executionTime, preparationTime, visibility, selectedTagSlugs, onDataChange]);
+  }, [summary, description, difficulty, executionTime, preparationTime, visibility, selectedTagSlugs, onDataChange]);
 
   const handleToggleTag = useCallback((slug: string) => {
-    setSelectedTagSlugs((prev) => {
-      const next = prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug];
-      return next;
-    });
-  }, []);
+    const next = selectedTagSlugs.includes(slug)
+      ? selectedTagSlugs.filter((s) => s !== slug)
+      : [...selectedTagSlugs, slug];
+    setSelectedTagSlugs(next);
+    notify({ selectedTagSlugs: next });
+  }, [notify, selectedTagSlugs]);
 
   return (
     <div className="space-y-6">
@@ -88,7 +90,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
         <input
           type="text"
           value={summary}
-          onChange={(e) => { setSummary(e.target.value); notify(); }}
+          onChange={(e) => { const value = e.target.value; setSummary(value); notify({ summary: value }); }}
           placeholder="Kurze Zusammenfassung..."
           className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
@@ -98,7 +100,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
         <label className="block text-sm font-medium mb-1.5">Beschreibung</label>
         <MarkdownEditor
           value={description}
-          onChange={(val) => { setDescription(val); notify(); }}
+          onChange={(val) => { setDescription(val); notify({ description: val }); }}
           height={200}
           placeholder="Ausführliche Beschreibung in Markdown..."
         />
@@ -109,7 +111,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
           <label className="block text-sm font-medium mb-1.5">Schwierigkeit</label>
           <select
             value={difficulty}
-            onChange={(e) => { setDifficulty(e.target.value); notify(); }}
+            onChange={(e) => { const value = e.target.value; setDifficulty(value); notify({ difficulty: value }); }}
             className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Keine Angabe</option>
@@ -122,7 +124,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
           <label className="block text-sm font-medium mb-1.5">Zubereitungszeit</label>
           <select
             value={executionTime}
-            onChange={(e) => { setExecutionTime(e.target.value); notify(); }}
+            onChange={(e) => { const value = e.target.value; setExecutionTime(value); notify({ executionTime: value }); }}
             className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Keine Angabe</option>
@@ -135,7 +137,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
           <label className="block text-sm font-medium mb-1.5">Vorbereitungszeit</label>
           <select
             value={preparationTime}
-            onChange={(e) => { setPreparationTime(e.target.value); notify(); }}
+            onChange={(e) => { const value = e.target.value; setPreparationTime(value); notify({ preparationTime: value }); }}
             className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Keine Angabe</option>
@@ -151,6 +153,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
         <TagMultiSelect
           selectedSlugs={selectedTagSlugs}
           onToggle={handleToggleTag}
+          valueKey="id"
         />
       </div>
 
@@ -158,7 +161,7 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
         <label className="block text-sm font-medium mb-1.5">Sichtbarkeit</label>
         <select
           value={visibility}
-          onChange={(e) => { setVisibility(e.target.value); notify(); }}
+          onChange={(e) => { const value = e.target.value; setVisibility(value); notify({ visibility: value }); }}
           className="w-full px-3 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
           {VISIBILITY_OPTIONS.map((opt) => (

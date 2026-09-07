@@ -35,12 +35,12 @@ GEMINI_MODEL_WITH_SEARCH = "gemini-3.1-flash-lite"
 # import PortionSuggestion from this module. Single Source of Truth lives in
 # `portion_knowledge.py`.
 __all__ = [
-    "PortionSuggestion",
+    "IngredientAiCreateSchema",
     "IngredientPortionSuggestSchema",
     "IngredientSuggestAllSchema",
-    "IngredientAiCreateSchema",
-    "suggest_all_fields",
+    "PortionSuggestion",
     "ai_create_ingredient",
+    "suggest_all_fields",
 ]
 
 
@@ -241,6 +241,7 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
     data = result.model_dump()
 
     portions_raw = data.pop("portions")
+    data["portions"] = portions_raw
     data["ai_suggest"] = {
         "portions": [*portions_raw["rezeptportionen"], *portions_raw["belag"], *portions_raw.get("backmengen", [])],
         "packages": [

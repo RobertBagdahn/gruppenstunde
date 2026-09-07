@@ -53,7 +53,7 @@ export default function ShoppingListItemRow({
   };
 
   return (
-    <div className="font-sans">
+    <div className="font-sans" data-testid={`shopping-item-${item.id}`}>
       <div
         className={cn(
           'flex items-center gap-3 py-2 px-2 -mx-2 rounded-xl transition-colors',

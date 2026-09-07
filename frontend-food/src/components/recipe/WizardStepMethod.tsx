@@ -6,7 +6,9 @@ import { useRecipeImportUrl } from '@/api/recipeImport';
 import { useRecipeAiCreate } from '@/api/recipes';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { toBasePerServing } from '@/lib/cookingQuantityScale';
-import { useBatchUpdateSteps } from '@/hooks/useRecipeSteps';
+import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
+import RecipeServingContextSelector from './RecipeServingContextSelector';
+import { normalizeServingContext } from '@/lib/cookingQuantityScale';
 
 function extractErrorMessage(errBody: unknown): string {
   if (typeof errBody === 'string') {
@@ -47,7 +49,12 @@ interface WizardState {
 interface WizardStepMethodProps {
   state: WizardState;
   updateState: (patch: Partial<WizardState>) => void;
-  onCreated: (recipeId: number, recipeSlug: string) => void;
+  onCreated: (
+    recipeId: number,
+    recipeSlug: string,
+    inputServings?: number | null,
+    inputItemsAreContextual?: boolean,
+  ) => void;
   onIngredientsCountChange: (count: number) => void;
   onTitleChange: (title: string) => void;
   onRecipeTypeChange: (type: string | null) => void;
@@ -78,8 +85,9 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
   const [importUrl, setImportUrl] = useState('');
   const importMutation = useRecipeImportUrl();
   const aiCreateMutation = useRecipeAiCreate();
-  const batchUpdateSteps = useBatchUpdateSteps();
   const [previewData, setPreviewData] = useState<Awaited<ReturnType<typeof importMutation.mutateAsync>> | null>(null);
+  const [importServingContext, setImportServingContext] = useState<number | null>(null);
+  const [importServingDraft, setImportServingDraft] = useState(1);
 
   const handleSelectManual = () => {
     updateState({ creationMethod: 'manual' });
@@ -99,7 +107,12 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
     if (!aiPrompt.trim()) return false;
     try {
       const recipe = await aiCreateMutation.mutateAsync({ prompt: aiPrompt.trim() });
-      onCreated(recipe.id, recipe.slug);
+      onCreated(
+        recipe.id,
+        recipe.slug,
+        recipe.input_servings == null ? null : normalizeServingContext(recipe.input_servings),
+        false,
+      );
       onTitleChange(recipe.title || '');
       onRecipeTypeChange(recipe.recipe_type || null);
       onIngredientsCountChange(recipe.recipe_items?.length || 0);
@@ -118,6 +131,8 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
     try {
       const data = await importMutation.mutateAsync(importUrl.trim());
       setPreviewData(data);
+      setImportServingContext(null);
+      setImportServingDraft(normalizeServingContext(data.recipe_draft.servings ?? 1));
       return true;
     } catch (err) {
       toast.error('Import fehlgeschlagen', {
@@ -134,8 +149,12 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
       // count (e.g. "4 Stück Hühnerbrustfilet" for a recipe that serves 4), but
       // the backend always stores recipe_items as per-1-portion amounts. Divide
       // every quantity by the detected servings count before sending.
-      const servings = previewData.recipe_draft.servings || 1;
-      const res = await fetch('/api/recipes/', {
+      if (importServingContext === null) {
+        toast.error('Bitte lege zuerst die Personenzahl für die importierten Mengen fest.');
+        return false;
+      }
+      const servings = importServingContext;
+      const res = await fetchWithCsrf(`${API_BASE_URL}/api/recipes/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
         credentials: 'include',
@@ -147,12 +166,23 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
           difficulty: previewData.recipe_draft.difficulty || 'easy',
           execution_time: previewData.recipe_draft.execution_time_choice || 'less_30',
           preparation_time: previewData.recipe_draft.preparation_time_choice || 'none',
+          source_url: previewData.recipe_draft.source_url,
+          image_url: previewData.recipe_draft.image_url,
+          scout_level_ids: previewData.recipe_draft.scout_level_ids,
+          tag_ids: previewData.recipe_draft.tag_ids,
           recipe_items: previewData.recipe_items.map((item) => ({
             portion_id: item.portion_id,
             quantity: toBasePerServing(item.quantity, servings),
             note: item.note || '',
             sort_order: 0,
             is_optional: false,
+          })),
+          steps: previewData.recipe_draft.steps.map((instruction, index) => ({
+            sort_order: index,
+            instruction,
+            duration_minutes: null,
+            section: '',
+            step_ingredients: [],
           })),
         }),
       });
@@ -161,30 +191,15 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
         throw new Error(extractErrorMessage(errBody));
       }
       const recipe = await res.json();
-      onCreated(recipe.id, recipe.slug);
+      onCreated(
+        recipe.id,
+        recipe.slug,
+        importServingContext,
+        false,
+      );
       onTitleChange(recipe.title || previewData.recipe_draft.title);
       onRecipeTypeChange(recipe.recipe_type || previewData.recipe_draft.recipe_type);
       onIngredientsCountChange(previewData.recipe_items.length);
-
-      // Carry over the extracted preparation steps as structured recipe steps.
-      if (previewData.recipe_draft.steps.length > 0) {
-        try {
-          await batchUpdateSteps.mutateAsync({
-            recipe_slug: recipe.slug,
-            steps: previewData.recipe_draft.steps.map((instruction, index) => ({
-              sort_order: index,
-              instruction,
-              duration_minutes: null,
-              section: '',
-              step_ingredients: [],
-            })),
-          });
-        } catch (stepErr) {
-          toast.error('Zubereitungsschritte konnten nicht übernommen werden', {
-            description: stepErr instanceof Error ? stepErr.message : 'Unbekannter Fehler',
-          });
-        }
-      }
 
       toast.success('Rezept aus URL erstellt!');
       return true;
@@ -202,6 +217,8 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
     setPreviewData(null);
     setAiPrompt('');
     setImportUrl('');
+    setImportServingContext(null);
+    setImportServingDraft(1);
     updateState({ creationMethod: null, recipeId: null, recipeSlug: null });
   };
 
@@ -271,8 +288,8 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
               <h4 className="text-sm font-semibold mb-1">
                 Zutaten ({previewData.recipe_items.length})
                 <span className="ml-2 font-normal text-muted-foreground">
-                  für {previewData.recipe_draft.servings || 1}{' '}
-                  {(previewData.recipe_draft.servings || 1) === 1 ? 'Person' : 'Personen'}
+                  für {previewData.recipe_draft.servings ?? 'unbekannte'}{' '}
+                  {previewData.recipe_draft.servings === 1 ? 'Person' : 'Personen'}
                 </span>
               </h4>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5">
@@ -286,6 +303,23 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
                 Die Mengen werden beim Übernehmen automatisch auf 1 Portion umgerechnet.
               </p>
             </div>
+            {importServingContext === null ? (
+              <RecipeServingContextSelector
+                value={importServingDraft}
+                onChange={setImportServingDraft}
+                onConfirm={() => setImportServingContext(importServingDraft)}
+                description={
+                  previewData.recipe_draft.servings == null
+                    ? 'Keine verlässliche Personenzahl erkannt. Lege sie fest, bevor die importierten Mengen normiert werden.'
+                    : 'Prüfe die erkannte Personenzahl, bevor die importierten Mengen normiert werden.'
+                }
+                confirmLabel="Personenzahl übernehmen"
+              />
+            ) : (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                Importierte Mengen für <strong>{importServingContext} {importServingContext === 1 ? 'Person' : 'Personen'}</strong>.
+              </p>
+            )}
             {previewData.recipe_draft.steps.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold mb-1">
@@ -320,6 +354,7 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Manual */}
         <Card
+          data-testid="recipe-method-manual"
           className={`cursor-pointer transition-all hover:border-primary/50 ${state.creationMethod === 'manual' ? 'border-primary ring-2 ring-primary/20' : ''}`}
           onClick={handleSelectManual}
         >
@@ -336,6 +371,7 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
 
         {/* KI */}
         <Card
+          data-testid="recipe-method-ai"
           className={`cursor-pointer transition-all hover:border-primary/50 ${state.creationMethod === 'ai' ? 'border-primary ring-2 ring-primary/20' : ''}`}
           onClick={handleStartAi}
         >
@@ -352,6 +388,7 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
 
         {/* URL */}
         <Card
+          data-testid="recipe-method-url"
           className={`cursor-pointer transition-all hover:border-primary/50 ${state.creationMethod === 'url' ? 'border-primary ring-2 ring-primary/20' : ''}`}
           onClick={handleStartUrl}
         >
@@ -384,6 +421,14 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
           </div>
           <button
             type="button"
+            onClick={() => void handleAiGenerate()}
+            disabled={aiCreateMutation.isPending || !aiPrompt.trim()}
+            className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg disabled:opacity-50"
+          >
+            {aiCreateMutation.isPending ? 'Generiert...' : 'Generieren'}
+          </button>
+          <button
+            type="button"
             onClick={handleBackToMethod}
             className="px-4 py-2 text-sm border rounded-lg hover:bg-muted transition-colors"
           >
@@ -405,6 +450,14 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
               className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => void handleUrlImport()}
+            disabled={importMutation.isPending || !importUrl.trim()}
+            className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg disabled:opacity-50"
+          >
+            {importMutation.isPending ? 'Importiert...' : 'Importieren'}
+          </button>
           <button
             type="button"
             onClick={handleBackToMethod}

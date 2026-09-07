@@ -38,6 +38,7 @@ import InlineEditor from '@/components/content/InlineEditor';
 import TitleImageEditor from '@/components/content/TitleImageEditor';
 import IngredientList from '@/components/supply/IngredientList';
 import InlineIngredientEditor from '@/components/recipe/InlineIngredientEditor';
+import RecipeServingContextSelector from '@/components/recipe/RecipeServingContextSelector';
 import { ContentLinkSection } from '@/components/content/ContentLinkSection';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
@@ -145,13 +146,10 @@ export default function RecipeDetailPage() {
   );
   const [scaleDialogOpen, setScaleDialogOpen] = useState(false);
 
-  // Personenzahl für die Bearbeitung in Kochmengen (Einstiegspunkt), entkoppelt
-  // von der Anzeige-Skalierung (`portionsMultiplier`). Default = aktuelle
-  // Anzeige-Personenzahl, solange der Editor nicht offen ist.
-  const [editPortionsChoice, setEditPortionsChoice] = useState(portionsMultiplier);
-  useEffect(() => {
-    if (!isInlineEditMode) setEditPortionsChoice(portionsMultiplier);
-  }, [portionsMultiplier, isInlineEditMode]);
+  // This is a transient input context. It is intentionally reset whenever the
+  // ingredient editor is opened again and is never read from the recipe.
+  const [editInputPortions, setEditInputPortions] = useState<number | null>(null);
+  const [editInputPortionsDraft, setEditInputPortionsDraft] = useState(1);
 
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [cloneTitle, setCloneTitle] = useState('');
@@ -433,7 +431,7 @@ export default function RecipeDetailPage() {
         </div>
 
         {/* Edit + Delete + PDF Buttons */}
-        <div className="flex items-center justify-end gap-1.5 shrink-0">
+        <div className="flex items-center justify-end gap-1.5 shrink-0" data-testid="recipe-detail-actions">
           <button
             type="button"
             onClick={() => setPdfDialogOpen(true)}
@@ -751,7 +749,11 @@ export default function RecipeDetailPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setIsInlineEditMode(true)}
+           onClick={() => {
+             setEditInputPortionsDraft(1);
+             setEditInputPortions(null);
+             setIsInlineEditMode(true);
+           }}
               title="Zutaten bearbeiten"
               data-testid="ingredients-edit-trigger"
             >
@@ -762,26 +764,37 @@ export default function RecipeDetailPage() {
         </div>
 
         {isInlineEditMode ? (
-          <InlineIngredientEditor
-            recipeId={recipe.id}
-            recipeSlug={recipe.slug}
-            items={recipe.recipe_items ?? []}
-            portions={recipe.portions}
-            initialEditPortions={editPortionsChoice}
-            onClose={() => {
-              setIsInlineEditMode(false);
-              const next = new URLSearchParams(searchParams);
-              next.delete('edit');
-              setSearchParams(next, { replace: true });
-            }}
-            onSaved={() => {
-              setIsInlineEditMode(false);
-              refetch();
-              const next = new URLSearchParams(searchParams);
-              next.delete('edit');
-              setSearchParams(next, { replace: true });
-            }}
-          />
+          editInputPortions === null ? (
+            <RecipeServingContextSelector
+              value={editInputPortionsDraft}
+              onChange={setEditInputPortionsDraft}
+              onConfirm={() => setEditInputPortions(editInputPortionsDraft)}
+              description="Wähle zuerst den Kontext für die Gesamtmengen. Danach bleibt die Personenzahl für diese Bearbeitung gesperrt."
+            />
+          ) : (
+            <InlineIngredientEditor
+              recipeId={recipe.id}
+              recipeSlug={recipe.slug}
+              items={recipe.recipe_items ?? []}
+              portions={recipe.portions}
+              inputPortions={editInputPortions}
+              onClose={() => {
+                setEditInputPortions(null);
+                setIsInlineEditMode(false);
+                const next = new URLSearchParams(searchParams);
+                next.delete('edit');
+                setSearchParams(next, { replace: true });
+              }}
+              onSaved={() => {
+                setEditInputPortions(null);
+                setIsInlineEditMode(false);
+                refetch();
+                const next = new URLSearchParams(searchParams);
+                next.delete('edit');
+                setSearchParams(next, { replace: true });
+              }}
+            />
+          )
         ) : (
           <IngredientList
             items={isDirty
@@ -821,7 +834,7 @@ export default function RecipeDetailPage() {
       {/* Shopping List Export Dialog */}
       {showShoppingExport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl">
+          <div className="bg-card rounded-xl border p-6 mx-4 w-full max-w-sm shadow-xl" data-testid="recipe-shopping-export-dialog">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">shopping_cart</span>
               Einkaufsliste erstellen
@@ -843,6 +856,7 @@ export default function RecipeDetailPage() {
                 max={999}
                 value={exportPortions}
                 onChange={(e) => setExportPortions(Math.max(1, parseInt(e.target.value) || 1))}
+                data-testid="recipe-shopping-export-portions"
                 className="w-20 text-center text-lg font-semibold border rounded-lg py-2 bg-background"
               />
               <button
@@ -857,6 +871,7 @@ export default function RecipeDetailPage() {
               <button
                 type="button"
                 disabled={createFromRecipe.isPending}
+                data-testid="recipe-shopping-export-submit"
                 onClick={() => {
                   createFromRecipe.mutate(
                     { recipeId: recipe.id, portions: exportPortions },

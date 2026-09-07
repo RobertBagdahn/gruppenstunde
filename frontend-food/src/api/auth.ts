@@ -2,28 +2,11 @@
  * TanStack Query hooks for Authentication API.
  * Session-based auth using Django sessions + CSRF tokens.
  */
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, fetchWithCsrf, parseApiResponse } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserSchema, type User, type LoginInput, type RegisterInput } from '@/schemas/auth';
 
 const API_BASE = `${API_BASE_URL}/api/auth`;
-
-function getCsrfToken(): string {
-  const match = document.cookie.match(/csrftoken=([^;]+)/);
-  return match ? match[1] : '';
-}
-
-async function fetchWithCsrf(url: string, options: RequestInit = {}): Promise<Response> {
-  return fetch(url, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': getCsrfToken(),
-      ...options.headers,
-    },
-  });
-}
 
 // --- Queries ---
 
@@ -33,9 +16,7 @@ export function useCurrentUser() {
     queryFn: async () => {
       const res = await fetch(`${API_BASE}/me/`, { credentials: 'include' });
       if (res.status === 403) return null;
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data = await res.json();
-      return UserSchema.parse(data);
+      return parseApiResponse(res, UserSchema);
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     retry: false,
@@ -52,12 +33,7 @@ export function useLogin() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || 'Anmeldung fehlgeschlagen');
-      }
-      const data = await res.json();
-      return UserSchema.parse(data);
+      return parseApiResponse(res, UserSchema);
     },
     onSuccess: (user) => {
       queryClient.setQueryData(['auth', 'me'], user);
@@ -73,12 +49,7 @@ export function useRegister() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || 'Registrierung fehlgeschlagen');
-      }
-      const data = await res.json();
-      return UserSchema.parse(data);
+      return parseApiResponse(res, UserSchema);
     },
     onSuccess: (user) => {
       queryClient.setQueryData(['auth', 'me'], user);
@@ -90,7 +61,8 @@ export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation<void, Error>({
     mutationFn: async () => {
-      await fetchWithCsrf(`${API_BASE}/logout/`, { method: 'POST' });
+      const res = await fetchWithCsrf(`${API_BASE}/logout/`, { method: 'POST' });
+      await parseApiResponse(res);
     },
     onSuccess: () => {
       queryClient.setQueryData(['auth', 'me'], null);

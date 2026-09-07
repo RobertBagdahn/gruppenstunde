@@ -30,7 +30,7 @@
   "model": "supply.retailsection",
   "pk": 5,
   "fields": {
-    "name": "Fleisch & Fisch",
+    "name": "Fisch",
     "description": "",
     "rank": 0
   }
@@ -75,7 +75,7 @@
   "model": "supply.retailsection",
   "pk": 10,
   "fields": {
-    "name": "Getränke",
+  "name": "Alkoholfreie Getränke",
     "description": "",
     "rank": 0
   }
@@ -93,7 +93,7 @@
   "model": "supply.retailsection",
   "pk": 12,
   "fields": {
-    "name": "Tiefkühl",
+  "name": "TK Fertiggerichte",
     "description": "",
     "rank": 0
   }
@@ -111,7 +111,7 @@
   "model": "supply.retailsection",
   "pk": 114,
   "fields": {
-    "name": "Gewürze",
+    "name": "Gewürze & Kräuter",
     "description": "Gewürze, Kräuter, Speiseöle",
     "rank": 6
   }
@@ -120,7 +120,7 @@
   "model": "supply.retailsection",
   "pk": 116,
   "fields": {
-    "name": "Süßwaren & Snacks",
+    "name": "Salzige Snacks",
     "description": "Schokolade, Kekse, Chips",
     "rank": 10
   }

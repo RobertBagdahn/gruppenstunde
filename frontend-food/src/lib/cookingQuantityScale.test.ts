@@ -1,5 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { scaleQuantity, toBasePerServing, rescaleForNewPortions } from './cookingQuantityScale';
+import {
+  fromServingContextQuantity,
+  normalizeServingContext,
+  scaleQuantity,
+  toBasePerServing,
+  toServingContextQuantity,
+  rescaleForNewPortions,
+} from './cookingQuantityScale';
+
+describe('serving context', () => {
+  it('normalizes the context to whole persons between 1 and 100', () => {
+    expect(normalizeServingContext(0)).toBe(1);
+    expect(normalizeServingContext(4.4)).toBe(4);
+    expect(normalizeServingContext(101)).toBe(100);
+  });
+
+  it('scales a normalized quantity for 100 people and normalizes it again', () => {
+    const total = toServingContextQuantity(1.25, 100);
+    expect(total).toBe(125);
+    expect(fromServingContextQuantity(total, 100)).toBe(1.25);
+  });
+
+  it('does not apply a second scale to an already entered total', () => {
+    const enteredTotal = 500;
+    expect(fromServingContextQuantity(enteredTotal, 4)).toBe(125);
+  });
+});
 
 describe('scaleQuantity', () => {
   it('scales a per-1-serving quantity up for display', () => {

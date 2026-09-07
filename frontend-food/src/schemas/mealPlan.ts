@@ -293,7 +293,8 @@ export type NutritionSummary = z.infer<typeof NutritionSummarySchema>;
 // ==========================================================================
 
 export const ShoppingItemSourceSchema = z.object({
-  recipe_id: z.number().nullable().optional(),
+  recipe_id: z.number().nullable().default(null),
+  ingredient_id: z.number().nullable().default(null),
   recipe_name: z.string().default(''),
   recipe_slug: z.string().default(''),
   meal_label: z.string().default(''),
@@ -347,7 +348,7 @@ export const RecipeSearchResultSchema = z.object({
   usage_count: z.number().optional(),
   description: z.string().nullable().optional(),
   ingredients_preview: z.array(z.string()).optional(),
-  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  recipe_badge: z.enum(["verified", "community", "personal", "draft"]).optional(),
   price_per_serving: z.number().nullable().optional(),
 });
 export type RecipeSearchResult = z.infer<typeof RecipeSearchResultSchema>;
@@ -362,7 +363,7 @@ export const RecipePopularItemSchema = z.object({
   recipe_type: z.string(),
   image_url: z.string().nullable(),
   usage_count: z.number(),
-  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  recipe_badge: z.enum(["verified", "community", "personal", "draft"]).optional(),
   price_per_serving: z.number().nullable().optional(),
 });
 export type RecipePopularItem = z.infer<typeof RecipePopularItemSchema>;
@@ -381,8 +382,8 @@ export const RecipeSuggestionSchema = z.object({
   id: z.number(),
   title: z.string(),
   usage_count: z.number(),
-  image_thumbnail: z.string().nullable(),
-  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  image_url: z.string().nullable(),
+  recipe_badge: z.enum(["verified", "community", "personal", "draft"]).optional(),
   price_per_serving: z.number().nullable().optional(),
   recipe_type: z.string().optional(),
 });
@@ -403,7 +404,7 @@ export const RecipeRecentlyUsedSchema = z.object({
   image_url: z.string().nullable(),
   portions: z.number().nullable().optional(),
   usage_count: z.number().optional(),
-  recipe_badge: z.enum(["verified", "community", "draft"]).optional(),
+  recipe_badge: z.enum(["verified", "community", "personal", "draft"]).optional(),
   price_per_serving: z.number().nullable().optional(),
   nutritional_tags: z.array(NutritionalTagPreviewSchema).optional(),
 });
@@ -598,10 +599,10 @@ export const MEAL_TYPE_ICONS_LUCIDE: Record<string, typeof UtensilsCrossed> = {
 };
 
 export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border: string; dot: string }> = {
-  breakfast: { text: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-300', dot: 'bg-orange-600' },
-  lunch: { text: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-300', dot: 'bg-cyan-600' },
-  dinner: { text: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-300', dot: 'bg-indigo-600' },
-  snack: { text: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-300', dot: 'bg-amber-600' },
+  breakfast: { text: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30', dot: 'bg-primary' },
+  lunch: { text: 'text-accent-foreground', bg: 'bg-accent/30', border: 'border-accent', dot: 'bg-accent-foreground' },
+  dinner: { text: 'text-secondary-foreground', bg: 'bg-secondary', border: 'border-secondary-foreground/30', dot: 'bg-secondary-foreground' },
+  snack: { text: 'text-chart-4', bg: 'bg-chart-4/10', border: 'border-chart-4/30', dot: 'bg-chart-4' },
 };
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';
@@ -1092,7 +1093,7 @@ export const IntelligentSuggestionSchema = z.object({
   slug: z.string(),
   image_url: z.string().nullable(),
   recipe_type: z.string(),
-  recipe_badge: z.string().default('community'),
+  recipe_badge: z.enum(['verified', 'community', 'personal', 'draft']).default('community'),
   reason: z.string().default(''),
   reason_text: z.string().default(''),
   usage_count: z.number().default(0),

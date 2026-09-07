@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/api/auth';
@@ -62,7 +62,12 @@ export default function IngredientListPage() {
 
   // Search input with debounce
   const [searchInput, setSearchInput] = useState(name);
+  const isInitialSearchSync = useRef(true);
   useEffect(() => {
+    if (isInitialSearchSync.current) {
+      isInitialSearchSync.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       setName(searchInput);
       setPage(1);

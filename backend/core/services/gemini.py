@@ -286,26 +286,30 @@ def _calculate_cost_eur(model: str, usage_metadata) -> str | None:
 
     Returns a Decimal string (for .update()) or None if pricing unknown.
     """
-    from decimal import Decimal, ROUND_HALF_UP
+    from decimal import ROUND_HALF_UP, Decimal
 
     pricing = getattr(settings, "GEMINI_PRICING", {}).get(model)
     if not pricing or usage_metadata is None:
         return None
 
     input_tokens = usage_metadata.prompt_token_count or 0
-    output_tokens = (usage_metadata.candidates_token_count or 0) + (getattr(usage_metadata, "thoughts_token_count", 0) or 0)
+    output_tokens = (usage_metadata.candidates_token_count or 0) + (
+        getattr(usage_metadata, "thoughts_token_count", 0) or 0
+    )
 
-    input_cost = input_tokens / 1_000_000 * pricing["input_per_1m_usd"]
-    output_cost = output_tokens / 1_000_000 * pricing.get("output_per_1m_usd", 0)
-
-    usd_to_eur = Decimal(str(getattr(settings, "USD_TO_EUR", 0.92)))
-    cost_usd = Decimal(str(input_cost + output_cost))
-    cost_eur = (cost_usd * usd_to_eur).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+    try:
+        input_cost = input_tokens / 1_000_000 * pricing["input_per_1m_usd"]
+        output_cost = output_tokens / 1_000_000 * pricing.get("output_per_1m_usd", 0)
+        usd_to_eur = Decimal(str(getattr(settings, "USD_TO_EUR", 0.92)))
+        cost_usd = Decimal(str(input_cost + output_cost))
+        cost_eur = (cost_usd * usd_to_eur).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+    except (TypeError, ValueError, ArithmeticError):
+        return None
     return str(cost_eur)
 
 
 def _update_interaction(
-    interaction: AiInteraction,
+    interaction: AiInteraction | None,
     *,
     success: bool = True,
     response_text: str = "",
@@ -316,6 +320,8 @@ def _update_interaction(
     pricing_model: str = "",
 ) -> None:
     """Update an existing AiInteraction record after completion."""
+    if interaction is None:
+        return
     update_kwargs: dict = {"success": success, "response": response_text}
     if error_code:
         update_kwargs["error_code"] = error_code
@@ -528,9 +534,15 @@ def gemini_embed(
     """
     _check_embedding_limit(bypass_limits=bypass_limits)
 
-    interaction, _interaction_id = _create_interaction(
-        user=user, model=model, contents=contents, is_background=True
-    )
+    # Embeddings are also used by database-free utility code. Analytics must
+    # not make an otherwise successful embedding call require database access.
+    try:
+        interaction, _interaction_id = _create_interaction(
+            user=user, model=model, contents=contents, is_background=True
+        )
+    except Exception:
+        interaction = None
+        logger.warning("Could not create Gemini embedding interaction log", exc_info=True)
 
     client = _get_client()
     if not client:
@@ -543,16 +555,22 @@ def gemini_embed(
 
         embed_config = None
         if output_dimensionality is not None:
-            embed_config = genai.types.EmbedContentConfig(
-                output_dimensionality=output_dimensionality
-            )
+            embed_config = genai.types.EmbedContentConfig(output_dimensionality=output_dimensionality)
 
         if embed_config:
-            response = client.models.embed_content(
-                model=model,
-                contents=contents,
-                config=embed_config,
-            )
+            try:
+                response = client.models.embed_content(
+                    model=model,
+                    contents=contents,
+                    output_dimensionality=output_dimensionality,
+                )
+            except TypeError:
+                # Older google-genai versions expose this only on the config.
+                response = client.models.embed_content(
+                    model=model,
+                    contents=contents,
+                    config=embed_config,
+                )
         else:
             response = client.models.embed_content(
                 model=model,

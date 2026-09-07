@@ -312,7 +312,13 @@ export default function MealPlanDetailPage() {
   }) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
-        toast.success(data.norm_portions_manual === false ? 'Automatische Normportionen aktiviert' : data.norm_portions_manual === true ? 'Manuelle Normportionen gespeichert' : 'Einstellungen gespeichert');
+        toast.success(
+          data.norm_portions_manual === false
+            ? 'Automatische Normportionen aktiviert'
+            : data.norm_portions_manual === true
+              ? 'Manuelle Normportionen gespeichert'
+              : 'Einstellungen gespeichert',
+        );
         setShowSettingsDialog(false);
       },
       onError: (err) => toast.error('Fehler', { description: err.message }),

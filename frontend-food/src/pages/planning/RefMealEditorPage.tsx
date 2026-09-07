@@ -5,6 +5,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
 import {
   useRefMeals,
   useCreateRefMeal,
@@ -154,8 +155,8 @@ export default function RefMealEditorPage() {
     try {
       await createRefMeal.mutateAsync({ meal_type: currentMealType });
       toast.success('Referenz-Mahlzeit erstellt');
-    } catch {
-      toast.error('Fehler beim Erstellen');
+    } catch (error) {
+      toast.error('Fehler beim Erstellen', { description: getApiErrorMessage(error) });
     }
   };
 
@@ -190,8 +191,8 @@ export default function RefMealEditorPage() {
       } else {
         toast.success('Referenz-Mahlzeit gespeichert');
       }
-    } catch {
-      toast.error('Fehler beim Speichern');
+    } catch (error) {
+      toast.error('Fehler beim Speichern', { description: getApiErrorMessage(error) });
     }
   };
 
@@ -219,8 +220,8 @@ export default function RefMealEditorPage() {
       } else {
         toast.success(`${count} Mahlzeit${count === 1 ? '' : 'en'} wurde${count === 1 ? '' : 'n'} aktualisiert`);
       }
-    } catch {
-      toast.error('Fehler beim Synchronisieren');
+    } catch (error) {
+      toast.error('Fehler beim Synchronisieren', { description: getApiErrorMessage(error) });
     }
   };
 
@@ -228,8 +229,8 @@ export default function RefMealEditorPage() {
     try {
       await linkAllMeals.mutateAsync(currentMealType);
       toast.success('Alle Mahlzeiten verknüpft und synchronisiert');
-    } catch {
-      toast.error('Fehler beim Verknüpfen');
+    } catch (error) {
+      toast.error('Fehler beim Verknüpfen', { description: getApiErrorMessage(error) });
     }
   };
 

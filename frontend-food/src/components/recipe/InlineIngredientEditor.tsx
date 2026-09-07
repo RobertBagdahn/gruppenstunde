@@ -2,13 +2,13 @@
  * InlineIngredientEditor — Edit-Mode for recipe ingredients on the detail page.
  * Allows editing quantities, units, notes, adding/removing items, and AI estimation.
  */
-import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import { forwardRef, useState, useCallback, useEffect, useImperativeHandle, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { API_BASE_URL } from '@/lib/api';
 import { Sparkles, SlidersHorizontal } from 'lucide-react';
 import {
-  useUpdateRecipe,
   useUpdateRecipeItem,
   useDeleteRecipeItem,
   useCreateRecipeItem,
@@ -20,8 +20,8 @@ import { useUpdateIngredient } from '@/api/supplies';
 import { useCurrentUser } from '@/api/auth';
 import { IngredientAutocomplete } from './IngredientAutocomplete';
 import IngredientDetailSearchDialog from './IngredientDetailSearchDialog';
-import PortionScaler from './PortionScaler';
-import { scaleQuantity, toBasePerServing, rescaleForNewPortions } from '@/lib/cookingQuantityScale';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { normalizeServingContext, scaleQuantity, toBasePerServing } from '@/lib/cookingQuantityScale';
 import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { Button } from '@/components/ui/button';
 import type { RecipeItem } from '@/schemas/recipe';
@@ -31,7 +31,7 @@ import type { EstimateQuantityItem } from '@/schemas/recipe';
 
 export interface EditableItem {
   id: number;
-  portion_id: number;
+  portion_id: number | null;
   ingredient_id: number | null;
   ingredient_name: string;
   quantity: number;
@@ -50,6 +50,7 @@ export interface EditableItem {
    *  derive a stable grams-per-unit ratio for sorting, see `getItemWeightG`. */
   baseWeightG: number;
   baseQuantity: number;
+  clientRequestId?: string;
   isNew?: boolean;
   isDeleted?: boolean;
   isDirty?: boolean;
@@ -73,20 +74,39 @@ interface AiIngredientSuggestion {
 }
 
 interface InlineIngredientEditorProps {
-  recipeId: number;
+  recipeId: number | null;
   recipeSlug: string;
   items: RecipeItem[];
   portions: number | null;
-  /** Initial number of persons to edit quantities for (e.g. the detail page's
-   *  current display multiplier). Quantities are shown scaled by this factor
-   *  and can be changed freely inside the editor. On save, values are divided
-   *  by the (possibly changed) factor before sending to the API. This allows
-   *  editing in familiar cooking quantities (e.g. "for 4 people"). */
-  initialEditPortions?: number;
+  /** Fixed temporary context for the total quantities entered in this editor. */
+  inputPortions: number;
+  /** True when incoming item quantities are already totals for the input context. */
+  itemsAreContextual?: boolean;
   /** Called after successful save. In the Wizard, this can trigger navigation. */
   onSave?: () => void;
   onClose: () => void;
   onSaved: () => void;
+  onCreateDraft?: (items: DraftIngredientItem[]) => Promise<DraftCreationResult | null>;
+}
+
+export interface DraftIngredientItem {
+  portion_id: number | null;
+  client_request_id?: string;
+  idempotency_key?: string;
+  quantity: number;
+  sort_order: number;
+  note: string;
+  is_optional: boolean;
+}
+
+export interface DraftCreationResult {
+  recipeId: number;
+  recipeSlug: string;
+  items: RecipeItem[];
+}
+
+export interface InlineIngredientEditorHandle {
+  save: () => Promise<boolean>;
 }
 
 // --- Helpers ---
@@ -158,22 +178,33 @@ export function getItemWeightG(item: EditableItem): number {
  *  `item.portion_id` (e.g. item was stored on "1 Prise" while the estimate
  *  targets "100g Salz"). Applying only `quantity` would silently multiply
  *  the gram amount by the wrong portion's weight_g on save. */
-export function applyEstimateToItem(item: EditableItem, estimate: EstimateQuantityItem): EditableItem {
+export function applyEstimateToItem(
+  item: EditableItem,
+  estimate: EstimateQuantityItem,
+  displayScale = 1,
+): EditableItem {
+  const displayedGrams = scaleQuantity(estimate.grams_total, displayScale);
   return {
     ...item,
     portion_id: estimate.portion_id,
     measuring_unit_name: estimate.unit,
-    quantity: estimate.grams_total,
-    quantityInput: String(estimate.grams_total),
+    quantity: displayedGrams,
+    quantityInput: String(displayedGrams),
     baseWeightG: estimate.grams_total,
     baseQuantity: estimate.quantity_per_portion,
-    aiExpectedGramsTotal: estimate.grams_total,
+    aiExpectedGramsTotal: displayedGrams,
     isDirty: true,
   };
 }
 
-export function normalizeItems(items: RecipeItem[], portions: number | null): EditableItem[] {
+export function normalizeItems(
+  items: RecipeItem[],
+  portions: number | null,
+  inputPortions = 1,
+  itemsAreContextual = false,
+): EditableItem[] {
   const s = portions ?? 1;
+  const context = normalizeServingContext(inputPortions);
   return items.map((item) => {
     // Find the weight_g of the current portion (used for the displayed LABEL
     // only — see below for why the gram-per-unit ratio does NOT come from here).
@@ -194,10 +225,11 @@ export function normalizeItems(items: RecipeItem[], portions: number | null): Ed
 
     // Convert to grams: quantity × portion.weight_g
     const quantityInGrams = item.quantity * portionWeightG;
-    const qty = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
+    const normalizedQuantity = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
+    const qty = itemsAreContextual ? quantityInGrams : scaleQuantity(normalizedQuantity, context);
 
     const label = currentPortion?.measuring_unit_name ?? 'g';
-    
+
     return {
       id: item.id,
       portion_id: item.portion_id, // Keep original portion_id for save
@@ -223,8 +255,9 @@ export function normalizeItems(items: RecipeItem[], portions: number | null): Ed
       // source for sorting (see `baseWeightG` doc comment on EditableItem).
       baseWeightG: item.weight_g,
       baseQuantity: item.quantity,
-      // Only mark dirty if portions changed by user action (s > 1)
-      isDirty: s > 1,
+      clientRequestId: item.client_request_id ?? item.idempotency_key ?? undefined,
+      // Legacy recipes with non-normalized portions still need normalization.
+      isDirty: s > 1 || itemsAreContextual,
     };
   });
 }
@@ -278,6 +311,7 @@ function IngredientRow({
 
   return (
     <div
+      data-testid={`recipe-ingredient-row-${item.id}`}
       key={item.id}
       className={`flex items-center gap-3 p-3 border-l-4 bg-card transition-colors ${
         isAlt ? 'border-l-amber-400 pl-9 bg-muted/20' : isSource ? 'border-l-amber-400' : 'border-l-transparent'
@@ -304,7 +338,7 @@ function IngredientRow({
       />
       {item.ingredient_portions.length > 1 ? (
         <select
-          value={item.portion_id}
+          value={item.portion_id ?? ''}
           onChange={(e) => handlePortionChange(item.id, parseInt(e.target.value))}
           data-testid={`item-portion-${item.id}`}
           className="text-xs text-muted-foreground min-w-[3.5rem] px-1 py-1.5 border rounded-md bg-background"
@@ -406,6 +440,7 @@ function IngredientRow({
         }}
         className="p-1.5 text-destructive/70 hover:text-destructive transition-colors"
         title="Entfernen"
+        data-testid="recipe-ingredient-delete"
       >
         <span className="material-symbols-outlined text-[20px]">close</span>
       </button>
@@ -441,39 +476,35 @@ function IngredientRow({
 
 // --- Component ---
 
-export default function InlineIngredientEditor({
+const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIngredientEditorProps>(function InlineIngredientEditor({
   recipeId,
   recipeSlug,
   items,
   portions,
-  initialEditPortions = 1,
+  inputPortions,
+  itemsAreContextual = false,
   onSave,
   onClose,
   onSaved,
-}: InlineIngredientEditorProps) {
+  onCreateDraft,
+}: InlineIngredientEditorProps, ref) {
   void recipeSlug; // used by Wizard context for future data fetching
-  const [editPortions, setEditPortions] = useState(() =>
-    initialEditPortions > 0 ? initialEditPortions : 1,
-  );
-  const scale = editPortions > 1 ? editPortions : 1;
+  const scale = normalizeServingContext(inputPortions);
 
   const [editItems, setEditItems] = useState<EditableItem[]>(() => {
-    const normalized = normalizeItems(items, portions);
-    // If the initial person count > 1, scale up all quantities for display
-    if (scale > 1) {
-      return normalized.map((item) => ({
-        ...item,
-        quantity: scaleQuantity(item.quantity, scale),
-        quantityInput: String(scaleQuantity(item.quantity, scale)),
-      }));
-    }
-    return normalized;
+    return normalizeItems(items, portions, scale, itemsAreContextual);
   });
   const [showEstimate, setShowEstimate] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
   const [estimateResult, setEstimateResult] = useState<EstimateQuantityItem[] | null>(null);
   const [selectedEstimates, setSelectedEstimates] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
+  const saveInFlightRef = useRef<Promise<boolean> | null>(null);
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const saveConfirmationRef = useRef<((confirmed: boolean) => void) | null>(null);
+  const pendingIngredientOperationsRef = useRef(new Set<Promise<void>>());
+  const pendingSaveAfterOperationsRef = useRef<Promise<boolean> | null>(null);
+  const latestHandleSaveRef = useRef<() => Promise<boolean>>(() => Promise.resolve(false));
   const [inputValue, setInputValue] = useState('');
   const [isAiSuggesting, setIsAiSuggesting] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AiIngredientSuggestion[] | null>(null);
@@ -487,13 +518,13 @@ export default function InlineIngredientEditor({
   const navigate = useNavigate();
   const { data: user } = useCurrentUser();
 
-  const updateRecipe = useUpdateRecipe(recipeId);
-  const updateItem = useUpdateRecipeItem(recipeId);
-  const deleteItem = useDeleteRecipeItem(recipeId);
-  const createItem = useCreateRecipeItem(recipeId);
-  const estimateQuantities = useEstimateQuantities(recipeId);
-  const patchItem = usePatchRecipeItem(recipeId);
-  const createExchangeGroup = useCreateExchangeGroup(recipeId);
+  const persistedRecipeId = recipeId ?? 0;
+  const updateItem = useUpdateRecipeItem(persistedRecipeId);
+  const deleteItem = useDeleteRecipeItem(persistedRecipeId);
+  const createItem = useCreateRecipeItem(persistedRecipeId);
+  const estimateQuantities = useEstimateQuantities(persistedRecipeId);
+  const patchItem = usePatchRecipeItem(persistedRecipeId);
+  const createExchangeGroup = useCreateExchangeGroup(persistedRecipeId);
 
   // --- Handlers ---
 
@@ -586,7 +617,7 @@ export default function InlineIngredientEditor({
 
       // Fetch portions for this ingredient and select smart default
       try {
-        const res = await fetch(`/api/ingredients/${ingredient.slug}/portions/`, { credentials: 'include' });
+        const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredient.slug}/portions/`, { credentials: 'include' });
         const portions = await res.json();
 
         // Smart default: lowest-rank portion with weight_g > 0 (4.1, 4.3)
@@ -604,8 +635,10 @@ export default function InlineIngredientEditor({
         const portionLabel = bestPortion.quantity !== 1
           ? bestPortion.name
           : (bestPortion.measuring_unit_name || 'g');
-        
+
         const initialQuantity = bestPortion.weight_g ?? 1;
+        const displayedQuantity = scaleQuantity(initialQuantity, scale);
+        const rowKey = `ing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         setEditItems((prev) => [
           ...prev,
           {
@@ -613,8 +646,8 @@ export default function InlineIngredientEditor({
             portion_id: bestPortion.id,
             ingredient_id: ingredient.id,
             ingredient_name: ingredient.name,
-            quantity: initialQuantity,
-            quantityInput: String(initialQuantity),
+            quantity: displayedQuantity,
+            quantityInput: String(displayedQuantity),
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
@@ -631,6 +664,7 @@ export default function InlineIngredientEditor({
             exchange_position: null,
             baseWeightG: initialQuantity,
             baseQuantity: 1,
+            clientRequestId: rowKey,
             isNew: true,
             isDirty: true,
           },
@@ -642,6 +676,14 @@ export default function InlineIngredientEditor({
     [editItems],
   );
 
+  const trackIngredientOperation = useCallback((operation: Promise<void>): void => {
+    pendingIngredientOperationsRef.current.add(operation);
+    void operation.then(
+      () => pendingIngredientOperationsRef.current.delete(operation),
+      () => pendingIngredientOperationsRef.current.delete(operation),
+    );
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rawSlug = params.get('newIngredientSlug');
@@ -652,7 +694,7 @@ export default function InlineIngredientEditor({
 
     async function handle() {
       try {
-        const res = await fetch(`/api/ingredients/${encodeURIComponent(newSlug)}/`, { credentials: 'include' });
+        const res = await fetch(`${API_BASE_URL}/api/ingredients/${encodeURIComponent(newSlug)}/`, { credentials: 'include' });
         if (!res.ok) {
           if (res.status === 404 || res.status === 403) {
             navigate(window.location.pathname, { replace: true });
@@ -690,7 +732,7 @@ export default function InlineIngredientEditor({
       const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
       try {
-        const res = await fetch(`/api/ingredients/${ingredientSlug}/portions/`, { credentials: 'include' });
+        const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredientSlug}/portions/`, { credentials: 'include' });
         const portions = await res.json();
 
         let selectedPortion = portionId
@@ -711,7 +753,12 @@ export default function InlineIngredientEditor({
         const portionLabel = selectedPortion!.quantity !== 1
           ? selectedPortion!.name
           : (selectedPortion!.measuring_unit_name || 'g');
-        
+
+        const selectedWeightG = selectedPortion!.weight_g ?? 1;
+        const totalWeightG = selectedWeightG * quantity;
+        const displayedQuantity = scaleQuantity(totalWeightG, scale);
+        const rowKey = `ing-dlg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
         setEditItems((prev) => [
           ...prev,
           {
@@ -719,8 +766,8 @@ export default function InlineIngredientEditor({
             portion_id: selectedPortion!.id,
             ingredient_id: ingredientId,
             ingredient_name: ingredientName,
-            quantity,
-            quantityInput: String(quantity),
+            quantity: displayedQuantity,
+            quantityInput: String(displayedQuantity),
             measuring_unit_name: portionLabel,
             note: '',
             sort_order: maxSort + 1,
@@ -735,8 +782,9 @@ export default function InlineIngredientEditor({
             is_optional: false,
             exchange_group_id: null,
             exchange_position: null,
-            baseWeightG: (selectedPortion!.weight_g ?? 0) * quantity,
+            baseWeightG: totalWeightG,
             baseQuantity: quantity,
+            clientRequestId: rowKey,
             isNew: true,
             isDirty: true,
           },
@@ -767,7 +815,7 @@ export default function InlineIngredientEditor({
       prev.map((item) => {
         if (!selectedEstimates.has(item.id)) return item;
         const estimate = estimateResult.find((e) => e.item_id === item.id);
-        return estimate ? applyEstimateToItem(item, estimate) : item;
+        return estimate ? applyEstimateToItem(item, estimate, scale) : item;
       }),
     );
     setShowEstimate(false);
@@ -782,7 +830,7 @@ export default function InlineIngredientEditor({
     setIsAiSuggesting(true);
     setAiSuggestInteractionId(null);
     try {
-      const suggestRes = await fetch(`/api/recipes/${recipeId}/ai-suggest-ingredients/`, {
+      const suggestRes = await fetch(`${API_BASE_URL}/api/recipes/${recipeId}/ai-suggest-ingredients/`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -822,7 +870,7 @@ export default function InlineIngredientEditor({
 
     const selected = aiSuggestions.filter((_, i) => selectedAiSuggestions.has(i));
     try {
-      const applyRes = await fetch(`/api/recipes/${recipeId}/ai-apply-ingredients/`, {
+      const applyRes = await fetch(`${API_BASE_URL}/api/recipes/${recipeId}/ai-apply-ingredients/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -846,27 +894,6 @@ export default function InlineIngredientEditor({
     }
   }, [aiSuggestions, selectedAiSuggestions, recipeId, queryClient, onSaved]);
 
-  // --- Person count (cooking-quantity editing) ---
-
-  // Changes how many people the displayed quantities are scaled for.
-  // Re-derives each item's per-1-serving base from the current display value
-  // (using the previous scale), then re-applies the new scale — so manual
-  // edits made at the previous person count are preserved proportionally.
-  const handleEditPortionsChange = useCallback(
-    (newPortions: number) => {
-      const clamped = Math.max(1, newPortions);
-      setEditItems((prev) =>
-        prev.map((item) => {
-          const newQty = rescaleForNewPortions(item.quantity, scale, clamped);
-          return { ...item, quantity: newQty, quantityInput: String(newQty) };
-        }),
-      );
-      setEditPortions(clamped);
-    },
-    [scale],
-  );
-
-
   // --- Alternative Ingredient Selection ---
 
   const handleSelectAlternative = useCallback(
@@ -882,7 +909,7 @@ export default function InlineIngredientEditor({
       if (!targetItem) return;
 
       try {
-        const res = await fetch(`/api/ingredients/${ingredientSlug}/portions/`, {
+        const res = await fetch(`${API_BASE_URL}/api/ingredients/${ingredientSlug}/portions/`, {
           credentials: 'include',
         });
         const portions = await res.json();
@@ -921,6 +948,8 @@ export default function InlineIngredientEditor({
         const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
         const alternativeQuantity = bestPortion.weight_g ?? 1;
+        const displayedAlternativeQuantity = scaleQuantity(alternativeQuantity, scale);
+        const altKey = `ing-alt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         setEditItems((prev) => [
           ...prev.map((i) =>
             i.id === targetItem.id && !i.exchange_group_id
@@ -932,8 +961,8 @@ export default function InlineIngredientEditor({
             portion_id: bestPortion.id,
             ingredient_id: ingredientId,
             ingredient_name: ingredientName,
-            quantity: alternativeQuantity,
-            quantityInput: String(alternativeQuantity),
+            quantity: displayedAlternativeQuantity,
+            quantityInput: String(displayedAlternativeQuantity),
             measuring_unit_name: bestPortion.quantity !== 1 ? bestPortion.name : (bestPortion.measuring_unit_name || 'g'),
             note: '',
             sort_order: maxSort + 1,
@@ -959,6 +988,7 @@ export default function InlineIngredientEditor({
             exchange_position: nextPosition,
             baseWeightG: alternativeQuantity,
             baseQuantity: 1,
+            clientRequestId: altKey,
             isNew: true,
             isDirty: true,
           },
@@ -975,15 +1005,63 @@ export default function InlineIngredientEditor({
 
   // --- Save ---
 
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const promises: Promise<unknown>[] = [];
+  const performSave = useCallback(async (): Promise<boolean> => {
+    if (saveInFlightRef.current) return saveInFlightRef.current;
 
-      // Always set servings to 1 (quantities are per-serving)
-      if ((portions ?? 1) !== 1) {
-        promises.push(updateRecipe.mutateAsync({ portions: 1 }));
+    const savePromise = (async () => {
+      setIsSaving(true);
+      try {
+      if (recipeId === null) {
+        if (!onCreateDraft) {
+          toast.error('Rezept konnte nicht angelegt werden');
+          return false;
+        }
+
+        const draftItems: DraftIngredientItem[] = editItems
+          .filter((item) => !item.isDeleted)
+          .map((item) => {
+            const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : 1;
+            const multiplier = Math.round((item.quantity / portionWeightG) * 1000) / 1000;
+            const requestKey = item.clientRequestId || `ingredient-${item.id}`;
+            return {
+              portion_id: item.portion_id,
+              client_request_id: requestKey,
+              idempotency_key: requestKey,
+              quantity: toBasePerServing(multiplier, scale),
+              sort_order: item.sort_order,
+              note: item.note,
+              is_optional: item.is_optional,
+            };
+          });
+
+        const created = await onCreateDraft(draftItems);
+        if (created) {
+          const createdItems = [...created.items].sort((a, b) => a.sort_order - b.sort_order);
+          setEditItems((currentItems) => {
+            let createdIndex = 0;
+            return currentItems
+              .filter((item) => !item.isDeleted)
+              .map((item) => {
+                const createdItem = createdItems[createdIndex];
+                createdIndex += 1;
+                return {
+                  ...item,
+                  id: createdItem?.id ?? item.id,
+                  isNew: false,
+                  isDirty: false,
+                  aiExpectedGramsTotal: undefined,
+                };
+              });
+          });
+          onSave?.();
+          onSaved();
+          toast.success('Rezept angelegt');
+        }
+        return created !== null;
       }
+
+      const promises: Promise<unknown>[] = [];
+      const createdItems = new Map<number, RecipeItem>();
 
       // Delete removed items — PROTECT: toast specific message if in active plans
       for (const item of editItems.filter((i) => i.isDeleted && !i.isNew)) {
@@ -1008,15 +1086,19 @@ export default function InlineIngredientEditor({
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
         const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : 1;
         const multiplier = Math.round((item.quantity / portionWeightG) * 1000) / 1000;
+        const requestKey = item.clientRequestId || `ingredient-${item.id}`;
         const promise = createItem
           .mutateAsync({
             portion_id: item.portion_id,
+            client_request_id: requestKey,
+            idempotency_key: requestKey,
             quantity: toBasePerServing(multiplier, scale),
             sort_order: item.sort_order,
             note: item.note,
             is_optional: item.is_optional,
           })
           .then((createdItem) => {
+            createdItems.set(item.id, createdItem);
             if (item.exchange_group_id != null) {
               return patchItem.mutateAsync({
                 itemId: createdItem.id,
@@ -1054,36 +1136,101 @@ export default function InlineIngredientEditor({
       }
 
       await Promise.all(promises);
+      setEditItems((currentItems) =>
+        currentItems
+          .filter((item) => !item.isDeleted)
+          .map((item) => {
+            const createdItem = createdItems.get(item.id);
+            return {
+              ...item,
+              id: createdItem?.id ?? item.id,
+              isNew: false,
+              isDirty: false,
+              aiExpectedGramsTotal: undefined,
+            };
+          }),
+      );
       toast.success('Änderungen gespeichert');
       onSave?.();
       onSaved();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unbekannter Fehler';
-      toast.error('Fehler beim Speichern', { description: message });
+      await queryClient.invalidateQueries({ queryKey: ['recipe', persistedRecipeId] });
+      return true;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unbekannter Fehler';
+        toast.error('Fehler beim Speichern', { description: message });
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    })();
+    saveInFlightRef.current = savePromise;
+    try {
+      return await savePromise;
     } finally {
-      setIsSaving(false);
+      saveInFlightRef.current = null;
     }
-  }, [editItems, portions, scale, updateRecipe, deleteItem, createItem, updateItem, patchItem, onSaved]);
+  }, [editItems, portions, scale, deleteItem, createItem, updateItem, patchItem, onSave, onSaved, onCreateDraft, queryClient, recipeId, persistedRecipeId]);
+
+  const confirmSave = useCallback(() => {
+    setShowSaveConfirmation(false);
+    const resolve = saveConfirmationRef.current;
+    saveConfirmationRef.current = null;
+    void performSave().then(resolve ?? (() => undefined));
+  }, [performSave]);
+
+  const cancelSave = useCallback(() => {
+    setShowSaveConfirmation(false);
+    const resolve = saveConfirmationRef.current;
+    saveConfirmationRef.current = null;
+    resolve?.(false);
+  }, []);
+
+  const handleSave = useCallback((): Promise<boolean> => {
+    const pendingOperations = [...pendingIngredientOperationsRef.current];
+    if (pendingOperations.length > 0) {
+      if (pendingSaveAfterOperationsRef.current) return pendingSaveAfterOperationsRef.current;
+      const deferredSave = Promise.all(pendingOperations).then(async () => {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+        pendingSaveAfterOperationsRef.current = null;
+        return latestHandleSaveRef.current();
+      });
+      pendingSaveAfterOperationsRef.current = deferredSave;
+      return deferredSave;
+    }
+    if (recipeId === null && !editItems.some((item) => !item.isDeleted)) {
+      toast.error('Füge mindestens eine Zutat hinzu');
+      return Promise.resolve(false);
+    }
+    if (saveInFlightRef.current || saveConfirmationRef.current) {
+      return Promise.resolve(false);
+    }
+    if (!editItems.some(
+      (item) => item.isDirty === true || item.isNew === true || item.isDeleted === true,
+    )) {
+      return Promise.resolve(true);
+    }
+    return new Promise<boolean>((resolve) => {
+      saveConfirmationRef.current = resolve;
+      setShowSaveConfirmation(true);
+    });
+  }, [editItems, recipeId]);
+
+  latestHandleSaveRef.current = handleSave;
+
+  useImperativeHandle(ref, () => ({ save: handleSave }), [handleSave]);
 
   // --- Render ---
 
   const activeItems = editItems.filter((i) => !i.isDeleted);
 
   return (
-    <div className="space-y-4">
-      {/* Person-count selector for cooking-quantity editing */}
-      <div className="space-y-1">
-        <PortionScaler
-          value={editPortions}
-          min={1}
-          max={100}
-          compact
-          onChange={handleEditPortionsChange}
-        />
-        <p className="px-1 text-xs text-amber-800">
-          Mengen für <strong>{editPortions} {editPortions === 1 ? 'Person' : 'Personen'}</strong> — werden beim
-          Speichern auf 1 Portion normiert.
-        </p>
+    <div className="space-y-4" data-testid="recipe-ingredient-editor">
+      <div
+        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        data-testid="recipe-serving-context-summary"
+      >
+        Gesamtmengen für <strong>{scale} {scale === 1 ? 'Person' : 'Personen'}</strong>. Beim Speichern werden sie auf
+        eine Pro-Person-Menge normiert.
       </div>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 border border-border rounded-lg">
@@ -1120,11 +1267,21 @@ export default function InlineIngredientEditor({
             <span className="material-symbols-outlined text-[16px] mr-1.5">save</span>
             {isSaving ? 'Speichert...' : 'Speichern'}
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+      <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Abbrechen
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showSaveConfirmation}
+        onConfirm={confirmSave}
+        onCancel={cancelSave}
+        variant="default"
+        title={`Mengen für ${scale} ${scale === 1 ? 'Person' : 'Personen'} speichern?`}
+        description={`Die eingegebenen Gesamtmengen gelten für ${scale} ${scale === 1 ? 'Person' : 'Personen'} und werden intern auf Pro-1-Person-Mengen normiert.`}
+        confirmLabel="Speichern"
+      />
 
       {/* Ingredient Rows */}
       <div className="space-y-2">
@@ -1194,7 +1351,7 @@ export default function InlineIngredientEditor({
             value={inputValue}
             onChange={setInputValue}
             onSelect={(ingredient) => {
-              handleAddIngredient(ingredient);
+              trackIngredientOperation(handleAddIngredient(ingredient));
               setInputValue('');
             }}
             onCreateNew={(name) => {
@@ -1443,4 +1600,6 @@ export default function InlineIngredientEditor({
       {/* Scale Dialog */}
     </div>
   );
-}
+});
+
+export default InlineIngredientEditor;

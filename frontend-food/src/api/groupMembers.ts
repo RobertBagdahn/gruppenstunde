@@ -3,7 +3,6 @@
  * MUST stay in sync with backend/planner/api/meal_plan.py
  */
 import { API_BASE_URL } from '@/lib/api';
-import { invalidateMealPlanQueries } from '@/api/mealPlans';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   GroupMemberSchema,
@@ -12,6 +11,7 @@ import {
   type GroupMemberUpdate,
   type GroupMemberBulkCreate,
 } from '@/schemas/mealPlan';
+import { invalidateMealPlanQueries } from '@/api/mealPlans';
 import { z } from 'zod';
 
 const API_BASE = `${API_BASE_URL}/api/meal-plans`;

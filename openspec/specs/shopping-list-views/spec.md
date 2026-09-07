@@ -1,4 +1,9 @@
-## ADDED Requirements
+# shopping-list-views Specification
+
+## Purpose
+View modes, print layouts, fallbacks, and regression coverage for shopping lists.
+
+## Requirements
 
 ### Requirement: Shopping List View Modes
 The system SHALL support three view modes on GET /api/shopping-lists/{id}/items/ via query parameter ?view=detailed|summarized|by_recipe.
@@ -28,7 +33,7 @@ The frontend SHALL provide a print-optimized view for shopping lists using CSS @
 
 ### Requirement: Fallback-Anzeige bei fehlender Grammzahl
 
-Zutaten ohne gültige `weight_g` auf der Portion (0 oder null) werden mit Menge und Portionsname dargestellt statt "0 g".
+Zutaten ohne gültige `weight_g` auf der Portion (0 oder null) SHALL mit Menge und Portionsname dargestellt werden statt "0 g".
 
 #### Scenario: Zutat mit weight_g=0
 - **WHEN** ein RecipeItem eine Portion mit `weight_g=0` hat
@@ -40,7 +45,7 @@ Zutaten ohne gültige `weight_g` auf der Portion (0 oder null) werden mit Menge 
 
 ### Requirement: Immer lesbarer Zutatname
 
-Es darf niemals "Unbekannt" in der Einkaufsliste oder Zutatenliste angezeigt werden.
+Es SHALL niemals "Unbekannt" in der Einkaufsliste oder Zutatenliste angezeigt werden.
 
 #### Scenario: Ingredient nicht verlinkt
 - **WHEN** ein RecipeItem weder `ingredient` noch `portion.ingredient` hat
@@ -48,8 +53,27 @@ Es darf niemals "Unbekannt" in der Einkaufsliste oder Zutatenliste angezeigt wer
 
 ### Requirement: Aufrundung bei natürlichen Portionen
 
-Bruchzahlen bei natürlichen Portionen (Stück, Zehe, Scheibe etc.) werden auf 1 aufgerundet.
+Bruchzahlen bei natürlichen Portionen (Stück, Zehe, Scheibe etc.) SHALL auf 1 aufgerundet werden.
 
 #### Scenario: Skalierung ergibt Bruchzahl bei natürlicher Portion
 - **WHEN** die berechnete Menge einer natürlichen Portion < 1 ist (z.B. 0,3 x Knoblauchzehe)
 - **THEN** wird auf 1 aufgerundet
+
+### Requirement: Shopping list views include persistent CRUD and permission regression coverage
+The Food E2E suite SHALL verify persistent ShoppingList creation, item addition/checking, owner updates, reload state, deletion, and role-based mutation visibility in addition to view-mode behavior.
+
+#### Scenario: Owner manages a persistent shopping list
+- **WHEN** an owner creates a list, adds an item, checks it, renames it, reloads it, and deletes it
+- **THEN** the item progress, checked state, renamed title, and deletion result SHALL persist visibly
+
+#### Scenario: Viewer remains read-only
+- **WHEN** a viewer opens a shared list
+- **THEN** the viewer SHALL see permitted list data but SHALL not see or execute owner/editor mutations
+
+#### Scenario: Failed check mutation rolls back
+- **WHEN** an item check request fails
+- **THEN** the optimistic checked state SHALL be reverted and a German error message SHALL be visible
+
+#### Scenario: Export provenance is preserved
+- **WHEN** a Recipe or MealPlan is exported to a persistent ShoppingList
+- **THEN** quantities, source type, and recipe/meal provenance SHALL be visible after reload

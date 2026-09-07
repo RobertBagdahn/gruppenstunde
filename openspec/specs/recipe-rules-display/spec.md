@@ -41,23 +41,29 @@ Nur Regeln mit `is_active=True` MUST berücksichtigt werden.
 
 ### Requirement: Werte werden pro Portion bereitgestellt
 
-Der Endpunkt MUST für jede Regel `value_per_serving` als den Wert **einer Normportion** des Rezepts liefern. Da jedes Rezept genau eine Normportion repräsentiert (`Recipe.servings` wird stets als `1` behandelt), MUSS die Umrechnung von Nährwerten `Wert pro 100g × Gesamtgewicht_g / 100` verwenden. Es DARF KEINE Division durch `servings` und KEINE Skalierung auf reale Personen-, Aktivitäts- oder Reservemengen erfolgen. Die Parameter `weight_g` (Gesamtgewicht der Normportion) und `nutri_class` (Qualitätsklasse) MÜSSEN unskaliert bleiben. Die Statusauswertung MUSS unverändert über `Rule.evaluate()` erfolgen.
+Der Endpunkt MUST für jede Regel `value_per_serving` als den Wert **einer Portion** des Rezepts liefern.
+Wenn ein Rezept für $N$ Portionen angelegt ist (`recipe.portions = N`), MUST die Umrechnung von Nährwerten
+`(Wert pro 100g × Gesamtgewicht_g / 100) / max(recipe.portions, 1)` verwenden.
+Die Parameter `weight_g` (Gesamtgewicht pro Portion) und `price_total` (Preis pro Portion) MUST ebenfalls durch `max(recipe.portions, 1)` dividiert werden.
+Der Parameter `nutri_class` (Qualitätsklasse) MUSS unskaliert bleiben.
+Die Statusauswertung MUSS unverändert über `Rule.evaluate()` erfolgen.
 
-#### Scenario: Umrechnung auf Normportion
+#### Scenario: Umrechnung auf Portion bei 1-Portionen-Rezept
 
-- **WHEN** ein Rezept ein Gesamtgewicht von 350g hat und sein Eiweißwert 8.0g pro 100g beträgt
-- **THEN** entspricht `value_per_serving` für `protein_g` dem Normportionwert `8.0 × 350 / 100 = 28.0g`
-- **AND** es erfolgt keine Division durch `servings`
+- **WHEN** ein Rezept für 1 Portion ein Gesamtgewicht von 350g hat und sein Eiweißwert 8.0g pro 100g beträgt
+- **THEN** entspricht `value_per_serving` für `protein_g` dem Portionswert `8.0 × 350 / 100 = 28.0g`
 
-#### Scenario: Gewicht bleibt unskaliert
+#### Scenario: Umrechnung auf Portion bei Multi-Portionen-Rezept
 
-- **WHEN** eine `scope=recipe`-Regel den Parameter `weight_g` auswertet und das Rezept ein Gesamtgewicht von 350g hat
-- **THEN** entspricht `value_per_serving` dem Gesamtgewicht der Normportion (350g)
+- **WHEN** ein Rezept für 4 Portionen ein Gesamtgewicht von 1200g hat und sein Energiewert 150 kcal pro 100g beträgt
+- **THEN** entspricht `value_per_serving` für `energy_kcal` dem Wert pro Portion `(150 × 1200 / 100) / 4 = 450.0 kcal`
+- **AND** dieser Wert (450 kcal) wird gegen die Einzelportions-Regelgrenzen ausgewertet
 
-#### Scenario: Servings-Wert hat keinen Einfluss
+#### Scenario: Gewicht und Preis pro Portion bei Multi-Portionen-Rezept
 
-- **WHEN** ein Rezept fälschlicherweise `servings > 1` gespeichert hätte
-- **THEN** wertet das System die Regeln dennoch auf Basis einer Normportion aus und liefert dieselben `value_per_serving`-Werte wie bei `servings = 1`
+- **WHEN** ein Rezept für 4 Portionen ein Gesamtgewicht von 1200g und einen Gesamtpreis von 8,00 EUR hat
+- **THEN** beträgt `value_per_serving` für `weight_g` 300g
+- **AND** `value_per_serving` für `price_total` beträgt 2,00 EUR
 
 ### Requirement: Nutri-Class wird als Buchstabe dargestellt
 
@@ -104,22 +110,13 @@ Für andere Rezepttypen MUST die Rezept-Detailseite statt der Regelbox einen Hin
 - **THEN** erklärt der Hinweis, dass die Regeln im Planer auf die Mahlzeit angewandt werden
 
 ### Requirement: Portion-based evaluation of recipe rules
-The system SHALL evaluate all recipe-scope rules on the basis of a single Normportion. Since every recipe represents exactly one Normportion, `Recipe.servings` is always treated as `1` and there SHALL be no division by `servings`. Nutrient values SHALL be scaled to the Normportion using `value per 100g × total_weight_g / 100`, while `nutri_class` and `weight_g` MUST remain unscaled.
+The system SHALL evaluate all recipe-scope rules and cockpit meal aggregations on the basis of a single serving.
+Nutrient and ingredient contributions from recipes SHALL be normalized by dividing by `max(recipe.portions, 1)`.
 
-#### Scenario: Recipe rule evaluation scales nutrient values to the Normportion
-- **WHEN** a recipe has a total weight of 1000g
-- **AND** the recipe's protein content is 15.0g per 100g (150.0g for the Normportion)
+#### Scenario: Recipe rule evaluation scales nutrient values per serving
+- **WHEN** a recipe configured for 4 servings has a total weight of 1000g and 15.0g protein per 100g (150.0g total)
 - **AND** a rule "protein_g >= 30" (scope="recipe") is active
-- **THEN** the rule evaluation SHALL evaluate the Normportion value (15.0 × 1000 / 100 = 150.0g) against the threshold and return status "green"
-- **AND** there SHALL be no division by `servings`
-
-#### Scenario: Recipe rule evaluation does not scale nutri_class or weight_g
-- **WHEN** a recipe has a total weight of 800g
-- **AND** the recipe's cached nutri_class is 2 (B)
-- **AND** a rule "nutri_class <= 2" (scope="recipe") is active
-- **THEN** the rule evaluation SHALL evaluate the raw nutri_class value (2) and return status "green"
-- **AND** the display_value SHALL be correctly mapped to "B"
-- **AND** a `weight_g` rule SHALL evaluate the unscaled total weight (800g)
+- **THEN** the rule evaluation evaluates the single serving value ($150.0 / 4 = 37.5\text{g}$) against the threshold and returns status "green"
 
 ### Requirement: Erweiterte Rezeptregel-Parameter
 

@@ -7,12 +7,14 @@ from supply.schemas.ingredients import PortionOut
 
 class RecipeItemOut(Schema):
     id: int
-    portion_id: int
+    portion_id: int | None = None
     portion_name: str | None = None
     ingredient_id: int | None = None
     ingredient_name: str = ""
     ingredient_slug: str | None = None
     quantity: float
+    client_request_id: str | None = None
+    idempotency_key: str | None = None
     measuring_unit_id: int | None = None
     measuring_unit_name: str | None = None
     sort_order: int
@@ -30,6 +32,10 @@ class RecipeItemOut(Schema):
     exchange_position: int | None = None
     portion_display: str = ""
     has_missing_weight: bool = False
+
+    @staticmethod
+    def resolve_idempotency_key(obj) -> str | None:
+        return getattr(obj, "client_request_id", None)
 
     @staticmethod
     def resolve_portion_name(obj) -> str | None:
@@ -135,7 +141,7 @@ class RecipeItemOut(Schema):
             return obj.quantity * obj.portion.weight_g
         elif obj.portion and obj.portion.measuring_unit:
             return obj.quantity * obj.portion.quantity * obj.portion.measuring_unit.quantity
-        return 0.0
+        return obj.quantity
 
     @staticmethod
     def resolve_portion_display(obj) -> str:
@@ -155,7 +161,9 @@ class RecipeItemOut(Schema):
 
 
 class RecipeItemCreateIn(Schema):
-    portion_id: int | None = None  # Can be None from URL imports; items without portion are skipped
+    portion_id: int | None = None  # NULL means quantity is stored directly in grams
+    client_request_id: str | None = None
+    idempotency_key: str | None = None
     quantity: float = 1
     sort_order: int = 0
     note: str = ""

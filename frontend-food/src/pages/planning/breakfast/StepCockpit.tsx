@@ -16,6 +16,7 @@ import {
 } from '@/lib/breakfastCalc';
 import { formatGramsWithPortionHint } from '@/lib/portionQuantityHint';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface StepCockpitProps {
   wiz: UseWizardStateReturn;
@@ -85,8 +86,8 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
       try {
         await scaleMutation.mutateAsync(mealId);
         toast.success('Auf Soll skaliert');
-      } catch {
-        toast.error('Skalierung fehlgeschlagen');
+      } catch (error) {
+        toast.error('Skalierung fehlgeschlagen', { description: getApiErrorMessage(error) });
       }
     }
   }

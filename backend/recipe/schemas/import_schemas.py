@@ -1,6 +1,6 @@
 """Schemas for recipe URL import."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RecipeImportRequestIn(BaseModel):
@@ -16,9 +16,9 @@ class ImportedIngredientOut(BaseModel):
 class RecipeImportPreviewOut(BaseModel):
     title: str
     description: str = ""
-    servings: int = 4
-    ingredients: list[ImportedIngredientOut] = []
-    steps: list[str] = []
+    servings: int | None = Field(default=None, ge=1)
+    ingredients: list[ImportedIngredientOut] = Field(default_factory=list)
+    steps: list[str] = Field(default_factory=list)
     image_url: str = ""
     source_url: str = ""
     prep_time_minutes: int | None = None
@@ -42,7 +42,7 @@ class RecipeItemDraftOut(BaseModel):
 class CreatedIngredientInfoOut(BaseModel):
     id: int
     name: str
-    aliases: list[str] = []
+    aliases: list[str] = Field(default_factory=list)
     nutri_class: int | None = None
     name_warning: str | None = None
 
@@ -51,20 +51,21 @@ class RecipeDraftOut(BaseModel):
     title: str
     description: str = ""
     summary: str = ""
-    servings: int = 4
+    servings: int | None = Field(default=None, ge=1)
     preparation_time: int | None = None
     execution_time: int | None = None
     recipe_type: str = ""
     difficulty: str = "easy"
     execution_time_choice: str = "less_30"
     preparation_time_choice: str = "none"
-    scout_level_ids: list[int] = []
-    tag_ids: list[int] = []
-    steps: list[str] = []
+    scout_level_ids: list[int] = Field(default_factory=list)
+    tag_ids: list[str] = Field(default_factory=list)
+    steps: list[str] = Field(default_factory=list)
     source_url: str = ""
+    image_url: str = ""
 
 
 class RecipeImportUrlResponseOut(BaseModel):
     recipe_draft: RecipeDraftOut
-    recipe_items: list[RecipeItemDraftOut] = []
-    created_ingredients: list[CreatedIngredientInfoOut] = []
+    recipe_items: list[RecipeItemDraftOut] = Field(default_factory=list)
+    created_ingredients: list[CreatedIngredientInfoOut] = Field(default_factory=list)

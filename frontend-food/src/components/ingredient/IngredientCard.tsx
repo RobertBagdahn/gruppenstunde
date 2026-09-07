@@ -76,7 +76,8 @@ export default function IngredientCard({ ingredient, onDelete }: IngredientCardP
             onDelete();
           }}
           className="absolute top-3 right-3 text-destructive/60 hover:text-destructive rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Loeschen"
+          title="Zutat löschen"
+          aria-label={`Zutat löschen: ${ingredient.name}`}
         >
           <span className="material-symbols-outlined text-lg">delete</span>
         </button>

@@ -130,7 +130,8 @@ describe('Recipe Steps Hooks', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/my-recipe/steps/')
+          expect.stringContaining('/my-recipe/steps/'),
+          { credentials: 'include' },
         );
       });
     });

@@ -36,7 +36,7 @@ export default function StepActionsBar({
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
       {/* Save Button */}
-      <Button size="sm" onClick={onSave} disabled={!hasChanges || isSaving}>
+      <Button size="sm" onClick={onSave} disabled={!hasChanges || isSaving} data-testid="recipe-step-save">
         {isSaving ? (
           <>
             <Loader size={16} className="mr-2 animate-spin" />
@@ -79,7 +79,7 @@ export default function StepActionsBar({
       <div className="border-r border-border h-6" />
 
       {/* Add Step Button */}
-      <Button variant="secondary" size="sm" onClick={onAddStep}>
+      <Button variant="secondary" size="sm" onClick={onAddStep} data-testid="recipe-step-add">
         <Plus size={16} className="mr-1" />
         <span className="hidden sm:inline">Schritt</span>
       </Button>

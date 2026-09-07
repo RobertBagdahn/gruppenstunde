@@ -141,7 +141,7 @@ class TestCreateSession:
                     "summary": "Zusammenfassung",
                     "session_type": "nature_study",
                     "location_type": "outdoor",
-                    "tag_ids": [tag.id],
+                    "tag_ids": [str(tag.id)],
                     "scout_level_ids": [scout_level.id],
                 }
             ),

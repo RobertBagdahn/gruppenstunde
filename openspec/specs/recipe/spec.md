@@ -1,3 +1,6 @@
+Portion storage and normalization are canonically defined in
+`recipe-portion-normalization`; this spec only contains recipe-specific requirements.
+
 ## MODIFIED Requirements
 
 ### Requirement: Cached nutrition fields on Recipe

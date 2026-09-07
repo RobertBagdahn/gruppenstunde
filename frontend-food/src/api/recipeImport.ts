@@ -32,7 +32,7 @@ export const RecipeDraftSchema = z.object({
   title: z.string(),
   description: z.string(),
   summary: z.string().optional().default(''),
-  servings: z.number(),
+  servings: z.number().nullable(),
   preparation_time: z.number().nullable(),
   execution_time: z.number().nullable(),
   recipe_type: z.string(),
@@ -40,9 +40,10 @@ export const RecipeDraftSchema = z.object({
   execution_time_choice: z.string().optional().default('less_30'),
   preparation_time_choice: z.string().optional().default('none'),
   scout_level_ids: z.array(z.number()).optional().default([]),
-  tag_ids: z.array(z.string()).optional().default([]),
+  tag_ids: z.array(z.number()).optional().default([]),
   steps: z.array(z.string()),
   source_url: z.string(),
+  image_url: z.string().optional().default(''),
 });
 
 export const RecipeImportUrlResponseSchema = z.object({
@@ -60,6 +61,7 @@ export type CreatedIngredientInfo = z.infer<typeof CreatedIngredientInfoSchema>;
 // ---------------------------------------------------------------------------
 
 export const IMPORT_ERROR_CODES = {
+  INVALID_URL: 'IMPORT_INVALID_URL',
   SOURCE_UNREACHABLE: 'IMPORT_SOURCE_UNREACHABLE',
   AI_UNAVAILABLE: 'IMPORT_AI_UNAVAILABLE',
   NO_RECIPE_FOUND: 'IMPORT_NO_RECIPE_FOUND',
@@ -67,6 +69,8 @@ export const IMPORT_ERROR_CODES = {
 } as const;
 
 const IMPORT_ERROR_MESSAGES: Record<string, string> = {
+  [IMPORT_ERROR_CODES.INVALID_URL]:
+    'Die URL ist ungültig. Bitte prüfe den Link oder lege das Rezept manuell an.',
   [IMPORT_ERROR_CODES.SOURCE_UNREACHABLE]:
     'Die Seite konnte nicht geladen werden. Manche Rezeptseiten blockieren den automatischen Abruf — bitte kopiere die Zutaten manuell oder versuche eine andere Quelle.',
   [IMPORT_ERROR_CODES.AI_UNAVAILABLE]:

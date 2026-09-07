@@ -198,6 +198,72 @@ class TestReweExportGetList:
         assert item2["order_quantity"] == 3.0
         assert item2["unit"] == "Stück"
 
+    def test_uses_edited_item_name_for_export(self, export_token, shopping_list_with_rewe_items):
+        item = shopping_list_with_rewe_items.items.filter(ingredient__isnull=False).first()
+        item.name = "Milch alternative Bezeichnung"
+        item.save(update_fields=["name"])
+
+        response = Client().get(f"/api/shopping-lists/rewe-export/{export_token.token}/")
+
+        assert response.status_code == 200
+        exported = next(entry for entry in response.json()["items"] if entry["item_id"] == item.id)
+        assert exported["ingredient_name"] == "Milch alternative Bezeichnung"
+
+    def test_small_cooking_portion_not_used_as_package_unit(self, shopping_list, user):
+        """A tiny cooking portion (e.g. 1 TL = 5g) must NOT inflate the order quantity."""
+        mu = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
+        ing = make_ingredient(name="Curry", nan_art_id_rewe=999)
+        make_portion(ingredient=ing, name="1 TL", weight_g=5, measuring_unit=mu)
+
+        ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            ingredient=ing,
+            name="Curry",
+            quantity_g=500,
+            unit="g",
+            sort_order=0,
+        )
+        token = ReweExportToken.objects.create(
+            shopping_list=shopping_list,
+            user=user,
+            expires_at=timezone.now() + timedelta(minutes=5),
+        )
+
+        c = Client()
+        res = c.get(f"/api/shopping-lists/rewe-export/{token.token}/")
+        assert res.status_code == 200
+        item = res.json()["items"][0]
+        # No package (Packung/1 TL) should be used — falls back to raw grams.
+        assert item["order_quantity"] == 500.0
+        assert item["unit"] == "g"
+
+    def test_large_portion_still_used_as_package_unit(self, shopping_list, user):
+        """A shopping-relevant portion (> 20g) is still used as a package unit."""
+        mu = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
+        ing = make_ingredient(name="Reis", nan_art_id_rewe=888)
+        make_portion(ingredient=ing, name="Packung (500g)", weight_g=500, measuring_unit=mu)
+
+        ShoppingListItem.objects.create(
+            shopping_list=shopping_list,
+            ingredient=ing,
+            name="Reis",
+            quantity_g=750,
+            unit="g",
+            sort_order=0,
+        )
+        token = ReweExportToken.objects.create(
+            shopping_list=shopping_list,
+            user=user,
+            expires_at=timezone.now() + timedelta(minutes=5),
+        )
+
+        c = Client()
+        res = c.get(f"/api/shopping-lists/rewe-export/{token.token}/")
+        assert res.status_code == 200
+        item = res.json()["items"][0]
+        assert item["order_quantity"] == 2.0
+        assert "Packung" in item["unit"]
+
 
 # ---------------------------------------------------------------------------
 # 4.4 — Export endpoint with expired/invalid token
@@ -336,10 +402,12 @@ class TestReweExportReportIgnoresForeignItems:
         c = Client()
         res = c.post(
             f"/api/shopping-lists/rewe-export/{export_token.token}/report/",
-            data=json.dumps({
-                "successful_item_ids": own_ids + [foreign_item.id],
-                "failed_item_ids": [],
-            }),
+            data=json.dumps(
+                {
+                    "successful_item_ids": own_ids + [foreign_item.id],
+                    "failed_item_ids": [],
+                }
+            ),
             content_type="application/json",
         )
         assert res.status_code == 200

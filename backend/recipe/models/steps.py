@@ -114,5 +114,10 @@ class RecipeStepIngredient(models.Model):
             models.Index(fields=["recipe_item"], name="recipe_item_steps_idx"),
         ]
 
+    def save(self, *args, **kwargs):
+        if self.recipe_item_id is None:
+            raise ValueError("recipe_item is required")
+        return super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return f"{self.step.recipe.slug} Step {self.step.sort_order} - {self.recipe_item.portion.ingredient.name}"

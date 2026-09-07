@@ -9,7 +9,7 @@
  * Ist der KI-Modus aktiv, wurde die Zutat bereits per ai-create erstellt;
  * dann wird nur noch ein PATCH für eventuelle Änderungen aus Step 1 gemacht.
  */
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Pencil, Sparkles, Eye, Link } from 'lucide-react';
 import { toast } from 'sonner';
@@ -225,7 +225,6 @@ export default function CreateIngredientPage() {
 
   // Bot protection for manual creation
   const [honeyField, setHoneyField] = useState('');
-  const loadedAt = useRef(Date.now());
 
   function updateForm(partial: Partial<IngredientFormData>) {
     setFormData((prev) => ({ ...prev, ...partial }));
@@ -290,7 +289,7 @@ export default function CreateIngredientPage() {
   // Step 2: Save
   // -------------------------------------------------------------------------
   async function handleSave() {
-    if (honeyField || Date.now() - loadedAt.current < 5000) return;
+    if (honeyField) return;
     if (!formData.name.trim()) {
       toast.error('Bitte gib einen Namen ein');
       return;

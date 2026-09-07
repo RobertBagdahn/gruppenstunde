@@ -26,13 +26,16 @@ class TestCookingSchedulePdfService:
         recipe = make_recipe()
         make_recipe_item(recipe=recipe)
         import datetime
+
         from django.utils import timezone
 
         meal1 = make_meal(meal_plan=plan)
         make_meal_item(meal=meal1, recipe=recipe)
         meal2 = make_meal(
             meal_plan=plan,
-            start_datetime=timezone.make_aware(datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1), datetime.time(12, 0))),
+            start_datetime=timezone.make_aware(
+                datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1), datetime.time(12, 0))
+            ),
         )
         make_meal_item(meal=meal2, recipe=recipe)
         pdf = generate_cooking_schedule_pdf(plan)
@@ -65,6 +68,34 @@ class TestCookingSchedulePdfService:
         make_meal_item(meal=meal, recipe=recipe)
         pdf = generate_cooking_schedule_pdf(plan)
         assert isinstance(pdf, bytes)
+
+    @pytest.mark.django_db
+    def test_cooking_schedule_with_direct_ingredient(self):
+        import datetime
+
+        from django.utils import timezone
+
+        from planner.models import MealItem
+        from supply.tests import make_ingredient, make_measuring_unit
+
+        plan = make_meal_plan(norm_portions=4)
+        ing = make_ingredient(name="Haferflocken", energy_kcal=350.0)
+        unit = make_measuring_unit(name="g")
+        meal = make_meal(
+            meal_plan=plan,
+            start_datetime=timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0)),
+        )
+        MealItem.objects.create(
+            meal=meal,
+            recipe=None,
+            ingredient=ing,
+            quantity=200,
+            measuring_unit=unit,
+            factor=1.0,
+        )
+        pdf = generate_cooking_schedule_pdf(plan)
+        assert isinstance(pdf, bytes)
+        assert len(pdf) > 0
 
 
 class TestCookingSchedulePdfAPI:

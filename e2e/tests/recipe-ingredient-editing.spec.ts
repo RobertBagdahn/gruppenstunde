@@ -40,18 +40,13 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
 
   const nextButton = page.getByRole('button', { name: 'Weiter', exact: true });
   await expect(nextButton).toBeEnabled();
-  await Promise.all([
-    page.waitForResponse((response) => {
-      return response.request().method() === 'POST'
-        && new URL(response.url()).pathname === '/api/recipes/'
-        && response.ok();
-    }),
-    nextButton.click(),
-  ]);
+  await nextButton.click();
 
   await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible({
     timeout: 15000,
   });
+  const initialServingConfirm = page.getByTestId('recipe-serving-context-confirm');
+  if (await initialServingConfirm.isVisible().catch(() => false)) await initialServingConfirm.click();
   await expect(page.getByRole('combobox', { name: /Zutat/i }).first()).toBeVisible({
     timeout: 15000,
   });
@@ -78,27 +73,35 @@ async function createManualRecipe(page: Page, title: string): Promise<string> {
 
   const titleInput = page.locator('input[placeholder="z.B. Nudelauflauf mit Hackfleisch"]');
   await expect(titleInput).toBeVisible({ timeout: 8000 });
+  const servingConfirm = page.getByTestId('recipe-serving-context-confirm');
+  if (await servingConfirm.isVisible().catch(() => false)) await servingConfirm.click();
   await titleInput.fill(title);
 
   const warmMealBtn = page.locator('button:has-text("Warme Mahlzeit")').first();
   await warmMealBtn.click();
   await page.waitForTimeout(300);
 
-  await addIngredient(page, 'Salz');
+  await addIngredient(page, 'Jodsalz');
 
   const saveBtn = page.locator('[data-testid="ingredient-editor-save"]').first();
   if (await saveBtn.isVisible({ timeout: 3000 })) {
     await saveBtn.click();
+    const saveDialog = page.getByRole('dialog');
+    if (await saveDialog.isVisible().catch(() => false)) {
+      await saveDialog.getByRole('button', { name: 'Speichern', exact: true }).click();
+    }
     await page.waitForTimeout(1500);
   }
 
   // Step 2 (Zutaten) → 3 (Metadaten) → 4 (Schritte) → 5 (Vorschau) → Fertigstellen
   for (let i = 0; i < 3; i++) {
-    const next = page.locator('button:has-text("Weiter")').last();
-    if (await next.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await next.click();
-      await page.waitForTimeout(1500);
+    const next = page.getByTestId('recipe-wizard-next');
+    if (await next.isVisible({ timeout: 3000 }).catch(() => false)) await next.click();
+    const dialog = page.getByRole('dialog');
+    if (await dialog.isVisible().catch(() => false)) {
+      await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     }
+    await page.waitForTimeout(1500);
   }
 
   const finishBtn = page.locator('button:has-text("Fertigstellen")').first();
@@ -118,7 +121,11 @@ async function openIngredientEditor(page: Page, slug: string): Promise<void> {
   const editTrigger = page.locator('[data-testid="ingredients-edit-trigger"]').first();
   await expect(editTrigger).toBeVisible({ timeout: 5000 });
   await editTrigger.click();
-  await page.waitForTimeout(500);
+  const servingConfirm = page.getByTestId('recipe-serving-context-confirm');
+  if (await servingConfirm.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await servingConfirm.click();
+  }
+  await expect(page.getByTestId('recipe-ingredient-editor')).toBeVisible({ timeout: 5000 });
 }
 
 
@@ -257,10 +264,7 @@ test.describe('Recipe ingredient editing — math correctness', () => {
 
     const quantityInputs = page.locator('input[data-testid^="item-quantity-"]');
     const count = await quantityInputs.count();
-    if (count === 0) {
-      test.skip(true, 'No ingredient rows available to edit in this environment');
-      return;
-    }
+    expect(count).toBeGreaterThan(0);
 
     const firstInput = quantityInputs.first();
     await firstInput.fill('42');
@@ -270,6 +274,10 @@ test.describe('Recipe ingredient editing — math correctness', () => {
 
     const saveBtn = page.locator('[data-testid="ingredient-editor-save"]').first();
     await saveBtn.click();
+    const saveDialog = page.getByRole('dialog');
+    if (await saveDialog.isVisible().catch(() => false)) {
+      await saveDialog.getByRole('button', { name: 'Speichern', exact: true }).click();
+    }
     await page.waitForTimeout(1500);
 
     // Reload the (URL-driven) detail page and re-enter edit mode — the
@@ -285,10 +293,7 @@ test.describe('Recipe ingredient editing — math correctness', () => {
     await openIngredientEditor(page, slug);
 
     const quantityInputs = page.locator('input[data-testid^="item-quantity-"]');
-    if ((await quantityInputs.count()) === 0) {
-      test.skip(true, 'No ingredient rows available in this environment');
-      return;
-    }
+    expect(await quantityInputs.count()).toBeGreaterThan(0);
 
     const triggerBtn = page.locator('[data-testid="ai-estimate-trigger"]').first();
     await expect(triggerBtn).toBeVisible({ timeout: 5000 });
@@ -301,10 +306,7 @@ test.describe('Recipe ingredient editing — math correctness', () => {
     // exact regression for the "Alt zeigt falsche Werte" bug (getItemWeightG).
     const dialogHeading = page.locator('text=AI-Mengenschätzung');
     const opened = await dialogHeading.isVisible({ timeout: 2000 }).catch(() => false);
-    if (!opened) {
-      test.skip(true, 'AI estimate did not return a result in this environment (no Gemini credentials)');
-      return;
-    }
+    expect(opened).toBeTruthy();
 
     const altCells = page.locator('table td:nth-child(3)');
     const altCount = await altCells.count();
@@ -321,31 +323,14 @@ test.describe('Recipe ingredient editing — math correctness', () => {
     await openIngredientEditor(page, slug);
 
     const quantityInputs = page.locator('input[data-testid^="item-quantity-"]');
-    if ((await quantityInputs.count()) === 0) {
-      test.skip(true, 'No ingredient rows available in this environment');
-      return;
-    }
+    expect(await quantityInputs.count()).toBeGreaterThan(0);
 
     const firstInput = quantityInputs.first();
     await firstInput.fill('10');
     await firstInput.blur();
     await page.waitForTimeout(300);
 
-    // Bump the person-count scaler up (PortionScaler "+" control) and back down,
-    // and verify the displayed quantity returns to its original value.
-    const increment = page.locator('button[aria-label="Erhöhen"], button:has-text("+")').first();
-    const decrement = page.locator('button[aria-label="Verringern"], button:has-text("-")').first();
-
-    if (await increment.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await increment.click();
-      await increment.click();
-      await page.waitForTimeout(300);
-      await expect(firstInput).not.toHaveValue('10');
-
-      await decrement.click();
-      await decrement.click();
-      await page.waitForTimeout(300);
-      await expect(firstInput).toHaveValue('10');
-    }
-  });
+  await expect(page.getByTestId('recipe-serving-context-summary')).toContainText('Gesamtmengen für 1 Person');
+  await expect(page.locator('button[aria-label="Portion erhöhen"]')).toHaveCount(0);
+});
 });

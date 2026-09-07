@@ -71,10 +71,10 @@ def _active_membership(user: Any, group_ids: Iterable[int]) -> tuple[bool, bool]
 
 def can_read(resource: Any, user: Any, *, transitive: bool = False) -> bool:
     """Return whether ``user`` may read a Food resource."""
-    if _is_staff(user):
-        return True
     if getattr(resource, "deleted_at", None) is not None:
         return False
+    if _is_staff(user):
+        return True
     if user_id := getattr(user, "id", None):
         if user_id in _owner_ids(resource):
             return True
@@ -145,9 +145,7 @@ def _active_group_ids(user: Any) -> set[int]:
         return set()
     from profiles.models import GroupMembership
 
-    return set(
-        GroupMembership.objects.filter(user=user, is_active=True).values_list("group_id", flat=True)
-    )
+    return set(GroupMembership.objects.filter(user=user, is_active=True).values_list("group_id", flat=True))
 
 
 def visible_recipe_queryset(user: Any):
@@ -184,8 +182,12 @@ def visible_recipe_queryset(user: Any):
     return base.filter(system_q | public_q | own_q | group_q | collaborator_q).distinct()
 
 
-def get_visible_recipe_or_404(user: Any, recipe_id: int):
+def get_visible_recipe_or_404(user: Any, recipe_id: int, *, allow_system_draft: bool = False):
     recipe = visible_recipe_queryset(user).filter(id=recipe_id).first()
+    if recipe is None and allow_system_draft:
+        from recipe.models import Recipe
+
+        recipe = Recipe.all_objects.filter(id=recipe_id, owner__isnull=True, deleted_at__isnull=True).first()
     if recipe is None:
         raise Http404("Food resource not found")
     return recipe
@@ -241,8 +243,14 @@ def public_ingredient_queryset():
     )
 
 
-def get_visible_ingredient_or_404(user: Any, ingredient_id: int):
+def get_visible_ingredient_or_404(user: Any, ingredient_id: int, *, allow_system_draft: bool = False):
     ingredient = visible_ingredient_queryset(user).filter(id=ingredient_id).first()
+    if ingredient is None and allow_system_draft:
+        from supply.models import Ingredient
+
+        ingredient = Ingredient.all_objects.filter(
+            id=ingredient_id, owner__isnull=True, deleted_at__isnull=True
+        ).first()
     if ingredient is None:
         raise Http404("Food resource not found")
     return ingredient
@@ -251,15 +259,20 @@ def get_visible_ingredient_or_404(user: Any, ingredient_id: int):
 def get_ingredient_detail_or_404(user: Any, slug: str):
     from supply.models import Ingredient
 
-    ingredient = Ingredient.all_objects.select_related("retail_section", "owner").prefetch_related(
-        "nutritional_tags",
-        "portions__measuring_unit",
-        "packages",
-        "aliases",
-        "shared_groups",
-        "tags",
-        "groups",
-    ).filter(slug=slug).first()
+    ingredient = (
+        Ingredient.all_objects.select_related("retail_section", "owner")
+        .prefetch_related(
+            "nutritional_tags",
+            "portions__measuring_unit",
+            "packages",
+            "aliases",
+            "shared_groups",
+            "tags",
+            "groups",
+        )
+        .filter(slug=slug)
+        .first()
+    )
     if ingredient is None or not can_read(ingredient, user, transitive=True):
         raise Http404("Food resource not found")
     return ingredient

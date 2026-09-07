@@ -192,7 +192,7 @@ class Command(BaseCommand):
                             description="\n".join(result.steps) if result.steps else "",
                             summary=result.summary,
                             recipe_type=result.recipe_type,
-                            portions=result.servings or 4,
+                            portions=1,
                             execution_time=result.execution_time or 0,
                             preparation_time=result.preparation_time or 0,
                             difficulty=result.difficulty,
@@ -223,7 +223,7 @@ class Command(BaseCommand):
                                 RecipeItem.objects.create(
                                     recipe=recipe,
                                     portion_id=item.portion_id,
-                                    quantity=item.quantity,
+                                    quantity=item.quantity / max(result.servings or 1, 1),
                                     sort_order=idx,
                                     note=item.note or "",
                                 )

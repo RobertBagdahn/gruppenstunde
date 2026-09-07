@@ -20,11 +20,11 @@ const RECIPE_TYPE_LABELS: Record<string, string> = {
 };
 
 const NUTRI_SCORE_LABELS: Record<number, { letter: string; color: string }> = {
-  1: { letter: 'A', color: 'bg-green-600 text-white' },
-  2: { letter: 'B', color: 'bg-lime-500 text-white' },
-  3: { letter: 'C', color: 'bg-yellow-400 text-black' },
-  4: { letter: 'D', color: 'bg-orange-500 text-white' },
-  5: { letter: 'E', color: 'bg-red-600 text-white' },
+  1: { letter: 'A', color: 'bg-primary text-primary-foreground' },
+  2: { letter: 'B', color: 'bg-primary/80 text-primary-foreground' },
+  3: { letter: 'C', color: 'bg-accent text-accent-foreground' },
+  4: { letter: 'D', color: 'bg-chart-4 text-primary-foreground' },
+  5: { letter: 'E', color: 'bg-destructive text-destructive-foreground' },
 };
 
 interface RecipePreviewDialogProps {

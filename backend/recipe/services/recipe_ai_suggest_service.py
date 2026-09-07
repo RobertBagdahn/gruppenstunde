@@ -11,6 +11,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import transaction
 from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
@@ -94,11 +95,12 @@ class RecipeAiCreateSchema(BaseModel):
     description: str = Field(description="Beschreibung (2-3 Sätze)")
     difficulty: str = Field(description="'easy', 'medium' oder 'hard'")
     duration_minutes: int = Field(description="Zubereitungszeit in Minuten")
-    portions: int = Field(description="Anzahl Portionen")
+    portions: int | None = Field(None, ge=1, description="Anzahl Portionen, falls sicher erkannt")
     recipe_type: str = Field(
         description="'main', 'dessert', 'snack', 'drink', 'breakfast', 'side', 'soup', 'salad', 'baking'"
     )
     items: list[RecipeItemSuggestion] = Field(description="Zutaten mit Mengen")
+    steps: list[str] = Field(default_factory=list, description="Zubereitungsschritte")
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +148,7 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response, interaction_id = gemini_call(
+    response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -164,6 +166,7 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
     return suggestion
 
 
+@transaction.atomic
 def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recipe:
     """Create a complete recipe from a free-text prompt using Gemini + Search Grounding.
 
@@ -182,7 +185,7 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response, interaction_id = gemini_call(
+    response, _interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt_text,
@@ -214,16 +217,18 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         description=data.description,
         difficulty=data.difficulty,
         execution_time=execution_time,
-        portions=data.portions,
+        portions=1,
         recipe_type=_map_recipe_type(data.recipe_type),
         status="draft",
         owner=user if user and user.is_authenticated else None,
         created_by=user if user and user.is_authenticated else None,
     )
+    # Keep the AI's source context only on this response object. The recipe model
+    # remains normalized to one portion for all persisted consumers.
+    recipe.input_servings = data.portions
 
     # Create recipe items — match or create ingredients, then resolve portions
     from recipe.services.ingredient_matcher import IngredientMatcher
-    from recipe.services.ingredient_enrichment import enrich_ingredient
 
     for i, item in enumerate(data.items):
         match_result = IngredientMatcher.match(item.ingredient_name, user)
@@ -236,11 +241,17 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         RecipeItem.objects.create(
             recipe=recipe,
             portion=portion,
-            quantity=item.quantity,
+            quantity=item.quantity / max(data.portions or 1, 1),
             sort_order=i + 1,
             is_optional=item.is_optional,
             note=note,
         )
+
+    from recipe.models import RecipeStep
+
+    for index, instruction in enumerate(data.steps):
+        if instruction.strip():
+            RecipeStep.objects.create(recipe=recipe, sort_order=index, instruction=instruction.strip())
 
     return recipe
 
@@ -312,10 +323,13 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: Abstr
                 next_rank = (
                     IngredientAlias.objects.filter(ingredient=ingredient).aggregate(Max("rank"))["rank__max"] or 0
                 ) + 1
+                if IngredientAlias.objects.filter(name__iexact=alias_name, is_generic=False).exists():
+                    continue
                 try:
-                    IngredientAlias.objects.create(ingredient=ingredient, name=alias_name, rank=next_rank)
+                    with transaction.atomic():
+                        IngredientAlias.objects.create(ingredient=ingredient, name=alias_name, rank=next_rank)
                 except IntegrityError:
-                    # Alias name already taken globally (unique_alias_name_when_not_generic) — skip.
+                    # A concurrent request may have claimed the global alias.
                     continue
 
             unit = resolve_canonical_unit(nutrition.portion_name)
@@ -429,6 +443,11 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
             measuring_unit=measuring_unit,
             name=name,
             quantity=1.0,
+            rank=(
+                Portion.objects.filter(ingredient=ingredient).order_by("-rank").values_list("rank", flat=True).first()
+                or 0
+            )
+            + 1,
         )
 
     # No measuring_unit matched → reuse any existing portion for this ingredient

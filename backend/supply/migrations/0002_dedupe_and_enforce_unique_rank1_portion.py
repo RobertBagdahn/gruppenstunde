@@ -13,9 +13,19 @@ from django.db import migrations, models
 
 
 def dedupe_rank1_portions(apps, schema_editor):
-    from supply.services.portion_integrity import dedupe_rank1_portions
+    from django.db.models import Count, Q
 
-    dedupe_rank1_portions()
+    Ingredient = apps.get_model("supply", "Ingredient")
+
+    duplicated = Ingredient.objects.annotate(
+        rank1_count=Count("portions", filter=Q(portions__rank=1)),
+    ).filter(rank1_count__gt=1)
+
+    for ingredient in duplicated:
+        candidates = list(ingredient.portions.filter(rank=1).order_by("id"))
+        for loser in candidates[1:]:
+            loser.rank = 2
+            loser.save(update_fields=["rank"])
 
 
 def noop_reverse(apps, schema_editor):
@@ -24,19 +34,18 @@ def noop_reverse(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('supply', '0001_initial'),
+        ("supply", "0001_initial"),
     ]
 
     operations = [
         migrations.RunPython(dedupe_rank1_portions, noop_reverse),
         migrations.AddConstraint(
-            model_name='portion',
+            model_name="portion",
             constraint=models.UniqueConstraint(
-                fields=['ingredient'],
-                condition=models.Q(('deleted_at__isnull', True), ('rank', 1)),
-                name='unique_rank1_portion_per_ingredient',
+                fields=["ingredient"],
+                condition=models.Q(("deleted_at__isnull", True), ("rank", 1)),
+                name="unique_rank1_portion_per_ingredient",
             ),
         ),
     ]

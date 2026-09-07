@@ -84,6 +84,44 @@ class TestNutritionAggregationPortionScaling:
         assert totals["protein_g"] == 50.0
         assert totals["weight_g"] == 500.0
 
+    def test_aggregate_meal_values_multi_portion_cached(self):
+        """A recipe for 4 portions (1200g total) contributes per-serving values (300g) to the meal."""
+        meal_plan = make_meal_plan()
+        meal = make_meal(meal_plan=meal_plan)
+
+        recipe = make_recipe(portions=4)
+        ing = make_ingredient(name="Reis", protein_g=8.0, price_per_kg=4.00)
+        portion = make_portion(ingredient=ing, weight_g=1200.0, name="1200g Reis")
+        make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
+        recalculate_recipe_cache(recipe)
+        recipe.refresh_from_db()
+
+        make_meal_item(meal=meal, recipe=recipe, factor=1.0)
+        totals = _aggregate_meal_values(meal)
+
+        # 8g/100g * (1200/100) / 4 = 24.0g per serving
+        assert totals["protein_g"] == 24.0
+        assert totals["weight_g"] == 300.0
+        # 4.00 EUR/kg * 1.2kg / 4 = 1.20 EUR
+        assert totals["price_total"] == 1.20
+
+    def test_aggregate_meal_values_multi_portion_uncached(self):
+        """Uncached fallback path must also scale to per-serving values for multi-portion recipes."""
+        meal_plan = make_meal_plan()
+        meal = make_meal(meal_plan=meal_plan)
+
+        recipe = make_recipe(portions=4)
+        ing = make_ingredient(name="Reis", protein_g=8.0)
+        portion = make_portion(ingredient=ing, weight_g=1200.0, name="1200g Reis")
+        make_recipe_item(recipe=recipe, portion=portion, ingredient=ing, quantity=1.0)
+
+        make_meal_item(meal=meal, recipe=recipe, factor=1.0)
+        totals = _aggregate_meal_values(meal)
+
+        # 8g/100g * (1200/100) / 4 = 24.0g per serving
+        assert totals["protein_g"] == 24.0
+        assert totals["weight_g"] == 300.0
+
     def test_meal_with_two_recipes_different_factors(self):
         """A meal with two recipes aggregates Normportion values weighted by MealItem.factor."""
         meal_plan = make_meal_plan()
@@ -309,7 +347,7 @@ class TestNutritionAggregationPortionScaling:
 
 @pytest.mark.django_db
 class TestExternalMealEnergy:
-    """Verify external meal energy is scaled by effective_portions."""
+    """Verify external meal energy is already expressed as a meal total."""
 
     def test_external_energy_scaled_by_effective_portions(self):
         meal_plan = make_meal_plan(norm_portions=5)
@@ -317,7 +355,7 @@ class TestExternalMealEnergy:
         meal.refresh_from_db()
 
         result = _aggregate_meal_values(meal)
-        assert result["energy_kcal"] == pytest.approx(2500.0)  # 500 * 5
+        assert result["energy_kcal"] == pytest.approx(500.0)
 
     def test_external_energy_with_one_portion(self):
         meal_plan = make_meal_plan(norm_portions=1)

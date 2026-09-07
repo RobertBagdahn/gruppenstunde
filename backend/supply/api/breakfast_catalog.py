@@ -13,7 +13,6 @@ from django.http import JsonResponse
 from ninja import Router, Schema
 
 from content.models import Tag
-from recipe.models import Recipe
 from supply.models import Ingredient, Portion
 
 breakfast_catalog_router = Router(tags=["breakfast"])
@@ -181,29 +180,31 @@ def _ingredient_to_dict(ing: Ingredient) -> dict:
 @breakfast_catalog_router.get("/breakfast-catalog/", response=BreakfastCatalogOut)
 def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | None = None) -> dict[str, Any]:
     """Get breakfast catalog with permission-aware filtering.
-    
+
     Query parameters:
     - tag_ids: Comma-separated list of tag IDs for filtering
     - group_id: Optional group ID to filter by (for group context)
-    
+
     Returns ingredients and recipes filtered by user permissions:
     - Unauthenticated: only system items (owner=null, status=approved)
     - Authenticated: system items + own items + items shared with user's groups
     """
-    from supply.models import MeasuringUnit
     from django.db.models import Q
+
+    from supply.models import MeasuringUnit
 
     def _get_visible_ingredients(tag_filters: Q | None = None) -> list[dict]:
         """Get ingredients visible to user."""
-        from content.services.food_access import public_ingredient_queryset
 
-        base_qs = public_ingredient_queryset().select_related("owner").prefetch_related("portions")
-        
+        from content.services.food_access import visible_ingredient_queryset
+
+        base_qs = visible_ingredient_queryset(request.user).select_related("owner").prefetch_related("portions")
+
         if tag_filters:
             base_qs = base_qs.filter(tag_filters)
-        
+
         base_qs = base_qs.filter(is_standalone_food=True).order_by("name")
-        
+
         result = []
         for ing in base_qs.prefetch_related("portions"):
             ing_dict = _ingredient_to_dict(ing)
@@ -233,9 +234,9 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
                 pass
 
         # Drink recipes (Kaffee, Kakao, Tee) - use existing permission logic
-        from content.services.food_access import public_recipe_queryset
+        from content.services.food_access import visible_recipe_queryset
 
-        drinks = public_recipe_queryset().filter(tags=drink_tag, recipe_type="drink", status="approved")
+        drinks = visible_recipe_queryset(request.user).filter(tags=drink_tag, recipe_type="drink", status="approved")
         # Filter by breakfast day tags if provided
         if parsed_tag_ids:
             for tid in parsed_tag_ids:
@@ -258,10 +259,12 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
     warm_tag = Tag.objects.filter(slug="breakfast-warm-meal").first()
     warm_meal_recipes = []
     if warm_tag:
-        from content.services.food_access import public_recipe_queryset
+        from content.services.food_access import visible_recipe_queryset
 
-        warm = public_recipe_queryset().filter(tags=warm_tag, recipe_type="breakfast", status="approved").values(
-            "id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g"
+        warm = (
+            visible_recipe_queryset(request.user)
+            .filter(tags=warm_tag, recipe_type="breakfast", status="approved")
+            .values("id", "title", "recipe_type", "cached_energy_total_kcal", "cached_weight_g")
         )
         warm_meal_recipes = [
             {
@@ -274,12 +277,12 @@ def get_breakfast_catalog(request, tag_ids: str | None = None, group_id: int | N
             for d in warm
         ]
 
-    gram_unit = MeasuringUnit.objects.filter(name="g").first()
-    ml_unit = MeasuringUnit.objects.filter(name="ml").first()
+    gram_unit = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
+    ml_unit = MeasuringUnit.objects.filter(name__iexact="Milliliter").first()
     scheibe_unit = MeasuringUnit.objects.filter(name="Scheibe").first()
     portion_unit = MeasuringUnit.objects.filter(name="Portion").first()
-    tasse_unit = MeasuringUnit.objects.filter(name="Tasse (200ml)").first()
-    schuss_unit = MeasuringUnit.objects.filter(name="Schuss (30ml)").first()
+    tasse_unit = MeasuringUnit.objects.filter(name__iexact="Tasse").first()
+    schuss_unit = MeasuringUnit.objects.filter(name__iexact="Schuss").first()
 
     return {
         "base_ingredients": base_ingredients,
@@ -376,10 +379,17 @@ def calculate_breakfast_leftovers(request, data: BreakfastLeftoversIn) -> dict[s
 
     from supply.models import Package
 
-    package_portions: dict[int, Package] = {}
+    package_portions: dict[int, Package | Portion] = {}
     for p in Package.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True, rank=1):
         if p.ingredient_id not in package_portions:
             package_portions[p.ingredient_id] = p
+
+    for p in Portion.objects.filter(
+        ingredient_id__in=ing_ids,
+        deleted_at__isnull=True,
+        name__icontains="Packung",
+    ).order_by("ingredient_id", "rank", "id"):
+        package_portions.setdefault(p.ingredient_id, p)
 
     results = []
     for t in data.toppings:

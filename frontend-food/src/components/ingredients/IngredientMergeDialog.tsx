@@ -194,7 +194,7 @@ export default function IngredientMergeDialog({
                       >
                         <span className="font-medium">{s.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {(100 - s.distance * 100).toFixed(0)}%
+                          {s.similarity_pct.toFixed(0)}%
                         </span>
                       </button>
                     ))}

@@ -45,6 +45,7 @@ export default function ListPageSearchBar({
         </div>
         <button
           type="submit"
+          aria-label="Suchen"
           className="shrink-0 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:bg-primary/95 hover:shadow-sm active:bg-primary/90 transition-all flex items-center justify-center"
         >
           <span className="material-symbols-outlined text-[20px]">search</span>

@@ -71,7 +71,7 @@ def _resolve_ingredient_weight_g(
     if portion_cache is not None:
         portion = portion_cache.get((item.ingredient_id, item.measuring_unit_id))
     else:
-        portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit).first()
+        portion = item.ingredient.portions.filter(measuring_unit=item.measuring_unit, deleted_at__isnull=True).first()
 
     if portion and portion.weight_g:
         return portion.weight_g * float(item.quantity)
@@ -90,7 +90,7 @@ def _resolve_ingredient_weight_g(
         if default_portion:
             return float(default_portion.weight_g) * float(item.quantity)
     else:
-        default_portions = item.ingredient.portions.filter(rank=1, weight_g__isnull=False)
+        default_portions = item.ingredient.portions.filter(rank=1, weight_g__isnull=False, deleted_at__isnull=True)
         if default_portions.exists():
             return float(default_portions.first().weight_g) * float(item.quantity)
 

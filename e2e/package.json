@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
+    "test:mocked": "playwright test --project=mocked",
+    "test:live": "playwright test --project=live",
+    "test:responsive": "playwright test --project=mobile-320 --project=tablet --project=desktop",
     "test:headed": "playwright test --headed",
     "test:mobile-autocomplete": "bash smoke-test.sh --food-only --reuse-running --grep=autocomplete"
   },

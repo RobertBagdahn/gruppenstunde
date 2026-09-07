@@ -2,13 +2,12 @@
 
 import json
 import logging
-from typing import Optional
 
 from django.contrib.auth.models import AbstractBaseUser
-
-from core.services.gemini import gemini_call, GeminiUnavailableError
 from ninja.errors import HttpError
-from recipe.models import RecipeItem, Recipe
+
+from core.services.gemini import GeminiUnavailableError, gemini_call
+from recipe.models import Recipe
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ class AiStepService:
     @staticmethod
     def generate_steps_from_items(
         recipe: Recipe,
-        user: Optional[AbstractBaseUser] = None,
+        user: AbstractBaseUser | None = None,
         bypass_limits: bool = False,
     ) -> list[dict]:
         """Generate structured steps from a recipe's ingredients using Gemini.
@@ -61,24 +60,26 @@ class AiStepService:
         # Build ingredient list for prompt
         ingredients = []
         item_id_map = {}  # Map ingredient name to recipe_item_id
-        
+
         for recipe_item in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").all():
             ingredient = recipe_item.portion.ingredient
             unit = recipe_item.portion.measuring_unit
-            
+
             ingredient_name = ingredient.name
             unit_short = unit.unit if unit else ""
             quantity = recipe_item.quantity
             note = recipe_item.note or ""
-            
-            ingredients.append({
-                "id": recipe_item.id,
-                "name": ingredient_name,
-                "quantity": quantity,
-                "unit": unit_short,
-                "note": note,
-            })
-            
+
+            ingredients.append(
+                {
+                    "id": recipe_item.id,
+                    "name": ingredient_name,
+                    "quantity": quantity,
+                    "unit": unit_short,
+                    "note": note,
+                }
+            )
+
             item_id_map[ingredient_name.lower()] = recipe_item.id
 
         # Build prompt for Gemini
@@ -97,7 +98,7 @@ class AiStepService:
             raise
         except Exception as exc:
             logger.error(f"Gemini call failed for recipe {recipe.slug}: {exc}")
-            raise GeminiUnavailableError(f"Step generation failed: {str(exc)}") from exc
+            raise GeminiUnavailableError(f"Step generation failed: {exc!s}") from exc
 
         if not response or not response.text:
             raise GeminiUnavailableError("Empty response from step generation")
@@ -109,13 +110,13 @@ class AiStepService:
             return steps
         except Exception as exc:
             logger.error(f"Failed to parse Gemini response for recipe {recipe.slug}: {exc}")
-            raise ValueError(f"Invalid step generation response: {str(exc)}") from exc
+            raise ValueError(f"Invalid step generation response: {exc!s}") from exc
 
     @staticmethod
     def suggest_ingredient_assignment(
         step_instruction: str,
         recipe: Recipe,
-        user: Optional[AbstractBaseUser] = None,
+        user: AbstractBaseUser | None = None,
         bypass_limits: bool = False,
     ) -> list[dict]:
         """Suggest which ingredients belong to a given step using Gemini.
@@ -141,15 +142,19 @@ class AiStepService:
         """
         if not recipe.recipe_items.exists():
             return []
+        if not step_instruction.strip():
+            raise ValueError("step_instruction must not be empty")
 
         # Build ingredient list for context
         ingredients = []
         for recipe_item in recipe.recipe_items.select_related("portion__ingredient").all():
             ingredient = recipe_item.portion.ingredient
-            ingredients.append({
-                "id": recipe_item.id,
-                "name": ingredient.name,
-            })
+            ingredients.append(
+                {
+                    "id": recipe_item.id,
+                    "name": ingredient.name,
+                }
+            )
 
         # Build prompt
         prompt = _build_ingredient_suggestion_prompt(step_instruction, ingredients)
@@ -167,7 +172,7 @@ class AiStepService:
             raise
         except Exception as exc:
             logger.error(f"Gemini call failed for ingredient suggestion: {exc}")
-            raise GeminiUnavailableError(f"Ingredient suggestion failed: {str(exc)}") from exc
+            raise GeminiUnavailableError(f"Ingredient suggestion failed: {exc!s}") from exc
 
         if not response or not response.text:
             return []
@@ -185,7 +190,7 @@ class AiStepService:
     def convert_markdown_to_steps(
         recipe: Recipe,
         description: str,
-        user: Optional[AbstractBaseUser] = None,
+        user: AbstractBaseUser | None = None,
         bypass_limits: bool = False,
     ) -> list[dict]:
         """Convert a recipe's markdown description to structured steps (one-time migration).
@@ -204,18 +209,20 @@ class AiStepService:
         """
         if not recipe.recipe_items.exists():
             logger.warning(f"Recipe {recipe.slug} has no ingredients")
-            return []
+            raise ValueError("Recipe has no ingredients")
 
         # Build ingredient list
         ingredients = []
         item_id_map = {}
-        
+
         for recipe_item in recipe.recipe_items.select_related("portion__ingredient").all():
             ingredient = recipe_item.portion.ingredient
-            ingredients.append({
-                "id": recipe_item.id,
-                "name": ingredient.name,
-            })
+            ingredients.append(
+                {
+                    "id": recipe_item.id,
+                    "name": ingredient.name,
+                }
+            )
             item_id_map[ingredient.name.lower()] = recipe_item.id
 
         # Build prompt
@@ -234,7 +241,7 @@ class AiStepService:
             raise
         except Exception as exc:
             logger.error(f"Gemini call failed for markdown conversion: {exc}")
-            raise GeminiUnavailableError(f"Markdown conversion failed: {str(exc)}") from exc
+            raise GeminiUnavailableError(f"Markdown conversion failed: {exc!s}") from exc
 
         if not response or not response.text:
             raise GeminiUnavailableError("Empty response from markdown conversion")
@@ -246,13 +253,13 @@ class AiStepService:
             return steps
         except Exception as exc:
             logger.error(f"Failed to parse markdown conversion response: {exc}")
-            raise ValueError(f"Invalid conversion response: {str(exc)}") from exc
+            raise ValueError(f"Invalid conversion response: {exc!s}") from exc
 
     @staticmethod
     def improve_step_instruction(
         instruction: str,
         tone: str = "normal",
-        user: Optional[AbstractBaseUser] = None,
+        user: AbstractBaseUser | None = None,
         bypass_limits: bool = False,
     ) -> str:
         """Rewrite a step instruction with a specific tone using Gemini.
@@ -301,7 +308,7 @@ class AiStepService:
             raise
         except Exception as exc:
             logger.error(f"Gemini call failed for step improvement: {exc}")
-            raise GeminiUnavailableError(f"Step improvement failed: {str(exc)}") from exc
+            raise GeminiUnavailableError(f"Step improvement failed: {exc!s}") from exc
 
         if not response or not response.text:
             return instruction
@@ -317,8 +324,7 @@ class AiStepService:
 def _build_step_generation_prompt(recipe: Recipe, ingredients: list[dict]) -> str:
     """Build the prompt for step generation from ingredients."""
     ingredients_str = "\n".join(
-        f"- {ing['name']}: {ing['quantity']} {ing['unit']}" + 
-        (f" ({ing['note']})" if ing['note'] else "")
+        f"- {ing['name']}: {ing['quantity']} {ing['unit']}" + (f" ({ing['note']})" if ing["note"] else "")
         for ing in ingredients
     )
 
@@ -432,25 +438,30 @@ def _parse_step_generation_response(response_text: str, item_id_map: dict) -> li
     # Try to extract JSON from response
     try:
         # Try to find JSON block in response
-        start = response_text.find("{")
-        end = response_text.rfind("}") + 1
-        if start == -1 or end == 0:
+        start_object = response_text.find("{")
+        start_array = response_text.find("[")
+        if start_object == -1 and start_array == -1:
             raise ValueError("No JSON found in response")
-        
-        json_str = response_text[start:end]
+        if start_array != -1 and (start_object == -1 or start_array < start_object):
+            json_str = response_text[start_array : response_text.rfind("]") + 1]
+        else:
+            json_str = response_text[start_object : response_text.rfind("}") + 1]
         data = json.loads(json_str)
     except json.JSONDecodeError as exc:
         raise ValueError(f"Invalid JSON in response: {exc}") from exc
 
-    steps_data = data.get("steps", [])
+    steps_data = data if isinstance(data, list) else data.get("steps", [])
     if not steps_data:
         raise ValueError("No steps found in response")
 
     # Convert to step format
     steps = []
     for idx, step_data in enumerate(steps_data):
-        # Extract ingredient IDs from referenced names
+        # Extract ingredient IDs from referenced names or explicit IDs.
         ingredient_ids = []
+        for ingredient in step_data.get("step_ingredients", []):
+            if ingredient.get("recipe_item_id") in item_id_map.values():
+                ingredient_ids.append(ingredient["recipe_item_id"])
         referenced_names = step_data.get("referenced_ingredient_names", [])
         for name in referenced_names:
             item_id = item_id_map.get(name.lower())
@@ -488,14 +499,14 @@ def _parse_ingredient_suggestion_response(response_text: str) -> list[dict]:
         end = response_text.rfind("}") + 1
         if start == -1 or end == 0:
             return []
-        
+
         json_str = response_text[start:end]
         data = json.loads(json_str)
     except (json.JSONDecodeError, ValueError):
         return []
 
     suggestions = data.get("suggestions", [])
-    
+
     # Filter and return
     return [
         {

@@ -11,18 +11,17 @@ from ninja import Query, Router
 from ninja.errors import HttpError
 
 from content.services.search_service import log_search, log_search_structured
-from recipe.models import Recipe
 from recipe.schemas import PaginatedRecipeOut
 from supply.models import (
     Ingredient,
     IngredientAlias,
-    IngredientGroup,
     MeasuringUnit,
     Package,
     Portion,
 )
 from supply.schemas import (
     AiApplyIn,
+    AiApplyOut,
     AliasCreateIn,
     IngredientAiCreateIn,
     IngredientAliasOut,
@@ -32,6 +31,7 @@ from supply.schemas import (
     IngredientImportUrlOut,
     IngredientSimilarOut,
     IngredientSuggestAllOut,
+    IngredientSuggestionOut,
     IngredientUpdateIn,
     PackageCreateIn,
     PackageOut,
@@ -59,7 +59,7 @@ ingredient_router = Router(tags=["ingredients"])
 
 def _is_staff_or_admin_user(user) -> bool:
     """Check if user is Django-staff or has a staff/admin profile role."""
-    if not user.is_authenticated:
+    if user is None or not user.is_authenticated:
         return False
     if user.is_staff:
         return True
@@ -78,9 +78,7 @@ def _shared_ingredient_ids(user) -> list[int]:
     from content.models import ContentCollaborator
 
     ct = ContentType.objects.get_for_model(Ingredient)
-    return list(
-        ContentCollaborator.objects.filter(content_type=ct, user=user).values_list("object_id", flat=True)
-    )
+    return list(ContentCollaborator.objects.filter(content_type=ct, user=user).values_list("object_id", flat=True))
 
 
 def _can_view_ingredient(ingredient: Ingredient, request) -> bool:
@@ -107,6 +105,16 @@ def _has_editor_collab_access(ingredient: Ingredient, user) -> bool:
 
 def _can_edit_ingredient(ingredient: Ingredient, user) -> bool:
     """Whether `user` may edit/delete this ingredient's own fields."""
+    if user is None:
+        return False
+    if not user.is_authenticated:
+        return False
+    if _is_staff_or_admin_user(user):
+        return True
+    if ingredient.status == "verified" and ingredient.owner_id is None:
+        return False
+    if ingredient.status == "approved" and ingredient.owner_id is None:
+        return True
     from content.services.food_access import can_edit
 
     return can_edit(ingredient, user)
@@ -119,6 +127,14 @@ def _can_edit_portions(ingredient: Ingredient, user) -> bool:
     staff; any other status (e.g. community-submitted) is open to any
     authenticated user, consistent with crowd-sourced portion sizes.
     """
+    if not user.is_authenticated:
+        return False
+    if _is_staff_or_admin_user(user):
+        return True
+    if ingredient.status == "verified" and ingredient.owner_id is None:
+        return False
+    if ingredient.status == "approved" and ingredient.owner_id is None:
+        return True
     from content.services.food_access import can_edit
 
     return can_edit(ingredient, user)
@@ -126,7 +142,7 @@ def _can_edit_portions(ingredient: Ingredient, user) -> bool:
 
 def _visible_ingredients_qs(request):
     """Base queryset of ingredients visible to the requesting user (hides drafts).
-    
+
     Handles both:
     - Old model: status-based visibility (draft/approved/verified)
     - New model: owner/visibility/shared_groups (breakfast wizard)
@@ -144,7 +160,7 @@ def _visible_ingredients_qs(request):
 
 def _can_view_ingredient_breakfast(ingredient: Ingredient, user) -> bool:
     """Check if user can view ingredient in breakfast wizard context.
-    
+
     Rules:
     - System ingredients (owner=None, status=approved) are always visible
     - User-owned ingredients (owner=user) are visible to owner
@@ -152,25 +168,23 @@ def _can_view_ingredient_breakfast(ingredient: Ingredient, user) -> bool:
     - Ingredients shared with user's groups (visibility=shared, shared_groups contains user's groups)
     - Staff can see everything
     """
-    if not user.is_authenticated:
+    if user is None or not user.is_authenticated:
         # Unauthenticated users can only see system ingredients
         return ingredient.owner_id is None and ingredient.status == "approved"
-    
+
     if _is_staff_or_admin_user(user):
         return True
-    
+
     # System ingredients are always visible
     if ingredient.owner_id is None:
         return ingredient.status == "approved"
-    
+
     # Owner can always see their own ingredient
     if ingredient.owner_id == user.id:
         return True
-    
-    # Check shared groups: get user's groups
-    from profiles.models import Group
-    user_groups = Group.objects.filter(members=user)
-    
+
+    from content.services.food_access import can_read
+
     if ingredient.visibility == "private":
         # Private ingredients visible to members of owner's groups
         # Need to check if owner is in any of user's groups
@@ -184,44 +198,46 @@ def _can_view_ingredient_breakfast(ingredient: Ingredient, user) -> bool:
         # "user erstellt neue Zutat im Wizard (Gruppe: Wölflinge Hütte)" -> owner set, but where's the group stored?
         # I think the group is determined by context (group_id param) not stored on ingredient.
         # For now, let's say private items are only visible to owner.
-        return False
-    
+        return can_read(ingredient, user)
+
     if ingredient.visibility == "shared":
         # Shared ingredients visible to members of shared_groups
-        return ingredient.shared_groups.filter(members=user).exists()
-    
+        return can_read(ingredient, user)
+
     return False
 
 
 def _get_visible_ingredients_for_breakfast_qs(user, group_ids: list[int] | None = None):
     """Get ingredients visible to user for breakfast wizard.
-    
+
     Args:
         user: The requesting user
         group_ids: Optional list of group IDs to filter for (e.g., user's current group context)
-    
+
     Returns:
         Queryset of visible Ingredient objects
     """
-    from profiles.models import Group
-    
-    qs = Ingredient.objects.select_related("owner", "retail_section").prefetch_related("shared_groups", "tags", "groups")
-    
+    from profiles.models import UserGroup as Group
+
+    qs = Ingredient.objects.select_related("owner", "retail_section").prefetch_related(
+        "shared_groups", "tags", "groups"
+    )
+
     if _is_staff_or_admin_user(user):
         return qs
-    
+
     # System ingredients (owner=None, status=approved) are always visible
     system_q = Q(owner__isnull=True, status="approved")
-    
+
     if not user.is_authenticated:
         return qs.filter(system_q)
-    
+
     # User's own ingredients
     own_q = Q(owner=user)
-    
+
     # Get user's groups
-    user_groups = Group.objects.filter(members=user)
-    
+    user_groups = Group.objects.filter(memberships__user=user)
+
     # Private ingredients visible to owner (we don't have group ownership, so only owner sees)
     # Actually, reconsidering: the spec says "sichtbar für: alle Users der Gruppe Wölflinge Hütte"
     # But the ingredient itself doesn't know its "group". This seems like a limitation.
@@ -230,22 +246,18 @@ def _get_visible_ingredients_for_breakfast_qs(user, group_ids: list[int] | None 
     # But we didn't add a group field to Ingredient, only shared_groups M2M.
     # I think the spec might be using "group" to refer to context, not a stored field.
     # For now, let's implement: private items only visible to owner.
-    
+
     # Shared ingredients visible to members of shared_groups
     # This needs to check if any of the ingredient's shared_groups contain the user
     shared_q = Q(visibility="shared", shared_groups__in=user_groups)
-    
+
     visibility_q = system_q | own_q | shared_q
-    
+
     if group_ids:
         # If specific groups are requested, filter shared items to only those groups
-        visibility_q = visibility_q | Q(
-            visibility="shared",
-            shared_groups__in=Group.objects.filter(id__in=group_ids)
-        )
-    
-    return qs.filter(visibility_q).distinct()
+        visibility_q = visibility_q | Q(visibility="shared", shared_groups__in=Group.objects.filter(id__in=group_ids))
 
+    return qs.filter(visibility_q).distinct()
 
 
 # ===========================================================================
@@ -272,9 +284,7 @@ def list_ingredients(
 
     if name:
         qs = qs.filter(
-            Q(name__icontains=name)
-            | Q(aliases__name__icontains=name)
-            | Q(groups__name__icontains=name)
+            Q(name__icontains=name) | Q(aliases__name__icontains=name) | Q(groups__name__icontains=name)
         ).distinct()
 
     if group:
@@ -325,7 +335,7 @@ def list_ingredients(
     }
 
 
-@ingredient_router.get("/suggest/", response=list[dict])
+@ingredient_router.get("/suggest/", response=list[IngredientSuggestionOut])
 def suggest_ingredients(request, q: str = "", limit: int = Query(default=5, le=50)):
     """Fuzzy-match ingredients by name using trigram similarity."""
     require_auth(request)
@@ -361,7 +371,7 @@ def ai_create(request, payload: IngredientAiCreateIn):
 @ingredient_router.get("/{slug}/", response=IngredientDetailOut)
 def get_ingredient(request, slug: str):
     """Get ingredient detail by slug.
-    
+
     Checks both old (status-based) and new (breakfast wizard visibility) permission models.
     """
     from content.services.food_access import get_ingredient_detail_or_404
@@ -380,10 +390,18 @@ def get_ingredient(request, slug: str):
 @ingredient_router.post("/", response=IngredientDetailOut)
 def create_ingredient(request, payload: IngredientCreateIn):
     """Create a new ingredient.
-    
+
     For breakfast wizard items, sets owner to current user and handles visibility/sharing.
     """
     require_auth(request)
+
+    if payload.visibility == "shared" and payload.shared_group_ids:
+        from profiles.models import UserGroup as Group
+
+        user_group_ids = set(Group.objects.filter(memberships__user=request.user).values_list("id", flat=True))
+        invalid_group_ids = set(payload.shared_group_ids) - user_group_ids
+        if invalid_group_ids:
+            raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
 
     data = payload.dict(exclude={"nutritional_tag_ids", "group_ids", "tag_ids", "visibility", "shared_group_ids"})
     data["retail_section_id"] = data.pop("retail_section_id", None)
@@ -398,11 +416,11 @@ def create_ingredient(request, payload: IngredientCreateIn):
     ingredient = Ingredient(**data)
     ingredient.created_by = request.user
     ingredient.status = "draft"
-    
+
     # Breakfast wizard: set ownership and visibility
     ingredient.owner = request.user
     ingredient.visibility = payload.visibility or "private"
-    
+
     ingredient.save()
 
     if payload.nutritional_tag_ids:
@@ -410,21 +428,15 @@ def create_ingredient(request, payload: IngredientCreateIn):
 
     if payload.group_ids:
         ingredient.groups.set(payload.group_ids)
-    
+
     # Add breakfast tags if provided
     if payload.tag_ids:
         ingredient.tags.set(payload.tag_ids)
-    
+
     # Set shared groups if visibility is "shared"
     if payload.visibility == "shared" and payload.shared_group_ids:
-        from profiles.models import Group
-        
-        # Validate that user is member of all shared groups
-        user_group_ids = set(Group.objects.filter(members=request.user).values_list("id", flat=True))
-        invalid_group_ids = set(payload.shared_group_ids) - user_group_ids
-        if invalid_group_ids:
-            raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
-        
+        from profiles.models import UserGroup as Group
+
         ingredient.shared_groups.set(payload.shared_group_ids)
 
     # Calculate nutri-score if nutritional data is present
@@ -446,7 +458,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
 @ingredient_router.patch("/{slug}/", response=IngredientDetailOut)
 def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
     """Update an ingredient.
-    
+
     Only the owner can modify visibility and shared_group_ids.
     """
     require_auth(request)
@@ -510,21 +522,21 @@ def update_ingredient(request, slug: str, payload: IngredientUpdateIn):
 
     if group_ids is not None:
         ingredient.groups.set(group_ids)
-    
+
     if breakfast_tag_ids is not None:
         ingredient.tags.set(breakfast_tag_ids)
-    
+
     # Handle shared_group_ids
     if shared_group_ids is not None:
         if visibility == "shared" or (visibility is None and ingredient.visibility == "shared"):
-            from profiles.models import Group
-            
+            from profiles.models import UserGroup as Group
+
             # Validate that user is member of all shared groups
-            user_group_ids = set(Group.objects.filter(members=request.user).values_list("id", flat=True))
+            user_group_ids = set(Group.objects.filter(memberships__user=request.user).values_list("id", flat=True))
             invalid_group_ids = set(shared_group_ids) - user_group_ids
             if invalid_group_ids:
                 raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
-            
+
             ingredient.shared_groups.set(shared_group_ids)
         elif visibility == "private":
             # Clear shared groups if switching to private
@@ -586,19 +598,18 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     if not payload.name or not payload.name.strip():
         raise HttpError(422, "Portionsname darf nicht leer sein.")
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
-    name = payload.name.strip()
-
+    ingredient = Ingredient.all_objects.filter(slug=slug).first()
+    if ingredient is None:
+        raise HttpError(404, "Zutat nicht gefunden")
     if not _can_edit_portions(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat anzulegen")
+    name = payload.name.strip()
 
     # Check for duplicate names (case-insensitive, excluding soft-deleted)
     if Portion.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
         raise HttpError(422, f"Portionsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
 
-    if payload.rank == 1 and Portion.objects.filter(
-        ingredient=ingredient, rank=1, deleted_at__isnull=True
-    ).exists():
+    if payload.rank == 1 and Portion.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exists():
         raise HttpError(
             422,
             "Es existiert bereits eine Normalportion (Rang 1) für diese Zutat. "
@@ -647,7 +658,16 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
     """
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
+
+    for order in payload.orders:
+        portion = Portion.objects.filter(id=order.id, ingredient=ingredient).first()
+        if portion and portion.name.casefold() == "g" and order.rank != 9999:
+            raise HttpError(422, "Die Basisportion g muss Rang 9999 behalten.")
 
     with transaction.atomic():
         ordered = sorted(payload.orders, key=lambda o: o.rank == 1)
@@ -661,7 +681,7 @@ def reorder_portions(request, slug: str, payload: PortionReorderIn):
     )
 
 
-@ingredient_router.post("/{slug}/ai-apply/", response=dict)
+@ingredient_router.post("/{slug}/ai-apply/", response=AiApplyOut)
 def ai_apply(request, slug: str, payload: AiApplyIn):
     """Atomically apply selected KI suggestions for portions AND packages.
 
@@ -670,7 +690,9 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
     """
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
 
     if not _can_edit_portions(ingredient, request.user):
         raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat anzulegen")
@@ -678,26 +700,33 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
     try:
         with transaction.atomic():
             if payload.replace_all:
-                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).update(
-                    deleted_at=timezone.now()
-                )
-                Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).update(
-                    deleted_at=timezone.now()
-                )
+                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).update(deleted_at=timezone.now())
+                Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).update(deleted_at=timezone.now())
+                gramm = MeasuringUnit.objects.filter(name__iexact="Gramm").first()
+                if gramm:
+                    Portion.objects.create(
+                        ingredient=ingredient,
+                        name="g",
+                        measuring_unit=gramm,
+                        quantity=1,
+                        weight_g=1,
+                        rank=9999,
+                        created_by=request.user,
+                    )
 
             existing_portion_names_lower = {
-                n.lower() for n in
-                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-                .values_list("name", flat=True)
+                n.lower()
+                for n in Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list(
+                    "name", flat=True
+                )
             }
             existing_package_names_lower = {
-                n.lower() for n in
-                Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
-                .values_list("name", flat=True)
+                n.lower()
+                for n in Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list(
+                    "name", flat=True
+                )
             }
-            has_active_rank1 = Portion.objects.filter(
-                ingredient=ingredient, rank=1, deleted_at__isnull=True
-            ).exists()
+            has_active_rank1 = Portion.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exists()
             has_active_pkg_rank1 = Package.objects.filter(
                 ingredient=ingredient, rank=1, deleted_at__isnull=True
             ).exists()
@@ -716,7 +745,7 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
                 return mu_cache[key]
 
             # Create portions
-            for suggestion in payload.portions:
+            for suggestion in [*payload.portions, *payload.selected]:
                 name = suggestion.name.strip()
                 if not name or name.lower() in existing_portion_names_lower:
                     continue
@@ -775,17 +804,23 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
     except IntegrityError:
         raise HttpError(422, "Mindestens ein Vorschlag konnte wegen eines Namenskonflikts nicht angelegt werden.")
 
-    portions_qs = Portion.objects.filter(
-        ingredient=ingredient, deleted_at__isnull=True
-    ).order_by("rank", "id").select_related("measuring_unit")
-    packages_qs = Package.objects.filter(
-        ingredient=ingredient, deleted_at__isnull=True
-    ).order_by("rank", "id")
+    portions_qs = (
+        Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+        .order_by("rank", "id")
+        .select_related("measuring_unit")
+    )
+    packages_qs = Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank", "id")
 
     return {
         "portions": [PortionOut.from_orm(p) for p in portions_qs],
         "packages": [PackageOut.from_orm(p) for p in packages_qs],
     }
+
+
+@ingredient_router.post("/{slug}/portions/ai-apply/", response=list[PortionOut])
+def ai_apply_legacy(request, slug: str, payload: AiApplyIn):
+    """Return the historical plain portion list for the legacy route."""
+    return ai_apply(request, slug, payload)["portions"]
 
 
 @ingredient_router.patch("/{slug}/portions/{portion_id}/", response=PortionOut)
@@ -803,7 +838,9 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
     """
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
 
     if not _can_edit_portions(ingredient, request.user):
@@ -828,9 +865,11 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
 
     new_rank = data.get("rank", portion.rank)
     if new_rank == 1 and new_rank != portion.rank:
-        if Portion.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exclude(
-            id=portion.id
-        ).exists():
+        if (
+            Portion.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True)
+            .exclude(id=portion.id)
+            .exists()
+        ):
             raise HttpError(
                 422,
                 "Es existiert bereits eine Normalportion (Rang 1) für diese Zutat. "
@@ -852,7 +891,11 @@ def update_portion(request, slug: str, portion_id: int, payload: PortionUpdateIn
         name=new_name,
         quantity=new_quantity,
         measuring_unit=new_unit,
-        weight_g=explicit_weight_g if weight_g_was_set else (None if ("quantity" in data or unit_id is not None) else portion.weight_g),
+        weight_g=(
+            explicit_weight_g
+            if weight_g_was_set
+            else (None if ("quantity" in data or unit_id is not None) else portion.weight_g)
+        ),
     )
     prospective_weight_g = scratch.compute_weight_g(scratch.weight_g)
 
@@ -925,8 +968,13 @@ def delete_portion(request, slug: str, portion_id: int):
     """
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
+
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, diese Portion zu löschen")
 
     if is_referenced_by_recipe_items(portion):
         try:
@@ -956,8 +1004,13 @@ def move_portion_rank(request, slug: str, portion_id: int, direction: str):
 
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     portion = get_object_or_404(Portion, id=portion_id, ingredient=ingredient)
+
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Portionen für diese Zutat zu bearbeiten")
 
     portions = list(Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank", "id"))
 
@@ -1011,7 +1064,9 @@ def create_package(request, slug: str, payload: PackageCreateIn):
     if not payload.name or not payload.name.strip():
         raise HttpError(422, "Packungsname darf nicht leer sein.")
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     name = payload.name.strip()
 
     if not _can_edit_portions(ingredient, request.user):
@@ -1020,9 +1075,7 @@ def create_package(request, slug: str, payload: PackageCreateIn):
     if Package.objects.filter(ingredient=ingredient, name__iexact=name, deleted_at__isnull=True).exists():
         raise HttpError(422, f"Packungsname '{name}' existiert bereits für diese Zutat (case-insensitive).")
 
-    if payload.rank == 1 and Package.objects.filter(
-        ingredient=ingredient, rank=1, deleted_at__isnull=True
-    ).exists():
+    if payload.rank == 1 and Package.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exists():
         raise HttpError(
             422,
             "Es existiert bereits eine Standardpackung (Rang 1) für diese Zutat. "
@@ -1051,16 +1104,18 @@ def reorder_packages(request, slug: str, payload: PackageReorderIn):
     """Reorder multiple packages atomically."""
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Packungen für diese Zutat zu bearbeiten")
 
     with transaction.atomic():
         ordered = sorted(payload.orders, key=lambda o: o.rank == 1)
         for order in ordered:
             Package.objects.filter(id=order.id, ingredient=ingredient).update(rank=order.rank)
 
-    return list(
-        Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank")
-    )
+    return list(Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank"))
 
 
 @ingredient_router.patch("/{slug}/packages/{package_id}/", response=PackageOut)
@@ -1068,7 +1123,9 @@ def update_package(request, slug: str, package_id: int, payload: PackageUpdateIn
     """Update a package."""
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     package = get_object_or_404(Package, id=package_id, ingredient=ingredient)
 
     if not _can_edit_portions(ingredient, request.user):
@@ -1088,9 +1145,11 @@ def update_package(request, slug: str, package_id: int, payload: PackageUpdateIn
 
     if payload.rank is not None:
         if payload.rank == 1 and payload.rank != package.rank:
-            if Package.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exclude(
-                id=package.id
-            ).exists():
+            if (
+                Package.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True)
+                .exclude(id=package.id)
+                .exists()
+            ):
                 raise HttpError(
                     422,
                     "Es existiert bereits eine Standardpackung (Rang 1) für diese Zutat.",
@@ -1117,8 +1176,13 @@ def delete_package(request, slug: str, package_id: int):
     """Soft-delete a package."""
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     package = get_object_or_404(Package, id=package_id, ingredient=ingredient)
+
+    if not _can_edit_portions(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, diese Packung zu löschen")
 
     package.soft_delete()
     return {"success": True}
@@ -1134,7 +1198,11 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
     """Create an alias for an ingredient."""
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    if not _can_edit_ingredient(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, Aliase für diese Zutat zu verwalten")
 
     name = payload.name.strip()
     if not name:
@@ -1159,13 +1227,15 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
                     raise HttpError(409, f"Alias '{name}' existiert bereits für diese Zutat.")
 
                 # 2. Non-generic aliases must be globally unique (across all ingredients)
-                if not payload.is_generic and IngredientAlias.objects.filter(name__iexact=name, is_generic=False).exists():
+                if (
+                    not payload.is_generic
+                    and IngredientAlias.objects.filter(name__iexact=name, is_generic=False).exists()
+                ):
                     raise HttpError(409, f"Alias '{name}' wird bereits für eine andere Zutat verwendet.")
 
                 # Calculate rank
                 existing_ranks = set(
-                    IngredientAlias.objects.filter(ingredient=locked_ingredient)
-                    .values_list("rank", flat=True)
+                    IngredientAlias.objects.filter(ingredient=locked_ingredient).values_list("rank", flat=True)
                 )
                 if rank is None or rank in existing_ranks:
                     rank = max(existing_ranks) + 1 if existing_ranks else 1
@@ -1188,8 +1258,10 @@ def create_alias(request, slug: str, payload: AliasCreateIn):
             error_msg = str(e)
             if "unique_alias_name_per_ingredient" in error_msg or "unique_alias_name_when_not_generic" in error_msg:
                 # Name constraint violation despite our checks (should be very rare in production)
-                raise HttpError(409, f"Alias '{name}' konnte nicht erstellt werden – wahrscheinlich bereits als Duplikat vorhanden.")
-            
+                raise HttpError(
+                    409, f"Alias '{name}' konnte nicht erstellt werden – wahrscheinlich bereits als Duplikat vorhanden."
+                )
+
             # Unexpected integrity error (e.g. rank constraint)
             if attempt == max_attempts - 1:
                 logger.exception(f"Unexpected IntegrityError creating alias for {ingredient.slug}: {e}")
@@ -1202,8 +1274,13 @@ def delete_alias(request, slug: str, alias_id: int):
     """Delete an alias."""
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     alias = get_object_or_404(IngredientAlias, id=alias_id, ingredient=ingredient)
+
+    if not _can_edit_ingredient(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, diesen Alias zu löschen")
     alias.delete()
     return {"success": True}
 
@@ -1218,7 +1295,11 @@ def ai_suggest_all(request, slug: str):
     """Get AI-powered suggestions for all fields of an ingredient."""
     require_auth(request)
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    if not _can_edit_ingredient(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, KI-Vorschläge für diese Zutat anzufordern")
 
     from supply.services.ingredient_ai_suggest_service import suggest_all_fields
 
@@ -1246,10 +1327,13 @@ def import_from_url(request, payload: IngredientImportUrlIn):
 
 @ingredient_router.get("/{slug}/recipes/", response=PaginatedRecipeOut)
 def list_recipes_by_ingredient(request, slug: str, page: int = 1, page_size: int = 20):
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    from content.services.food_access import get_ingredient_detail_or_404, visible_recipe_queryset
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
 
     base_qs = (
-        Recipe.objects.filter(
+        visible_recipe_queryset(request.user)
+        .filter(
             recipe_items__portion__ingredient=ingredient,
             status="approved",
         )
@@ -1258,20 +1342,8 @@ def list_recipes_by_ingredient(request, slug: str, page: int = 1, page_size: int
         .prefetch_related("scout_levels", "tags__parent", "authors")
     )
 
-    if not request.user.is_authenticated or not request.user.is_staff:
-        from django.db.models import Q
-
-        system_q = Q(owner__isnull=True, status="approved")
-        community_q = Q(owner__isnull=False, visibility="public", status="approved")
-
-        if request.user.is_authenticated:
-            own_q = Q(owner=request.user)
-            created_q = Q(created_by=request.user)
-            visibility_q = system_q | community_q | own_q | created_q
-        else:
-            visibility_q = system_q | community_q
-
-        base_qs = base_qs.filter(visibility_q)
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
 
     total = base_qs.count()
     total_pages = max(1, (total + page_size - 1) // page_size)
@@ -1296,7 +1368,8 @@ def get_similar_ingredients(request, slug: str):
     Schweinebauch vs. Schweinenacken being flagged as duplicates.
     """
     from content.services.embedding_service import find_similar_ingredients
+    from content.services.food_access import get_ingredient_detail_or_404
 
-    ingredient = get_object_or_404(Ingredient, slug=slug)
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
     # Threshold: 70% similarity percentage (calibrated to distinguish similar ingredients)
     return find_similar_ingredients(ingredient, similarity_threshold_pct=70.0, limit=6)

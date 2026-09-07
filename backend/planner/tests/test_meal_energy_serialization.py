@@ -182,7 +182,7 @@ class TestMealEnergySerialization:
             salt_g=0.0,
             price_per_kg=8.0,
         )
-        g_unit = MeasuringUnit.objects.get(name="g")
+        g_unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
         make_portion(ingredient=ingredient, measuring_unit=g_unit, weight_g=1.0)
 
         # Create meal item with ingredient (no recipe)
@@ -225,7 +225,7 @@ class TestMealEnergySerialization:
             salt_g=0.1,
             price_per_kg=5.0,
         )
-        g_unit = MeasuringUnit.objects.get(name="g")
+        g_unit = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})[0]
         make_portion(ingredient=ingredient1, measuring_unit=g_unit, weight_g=1.0)
 
         ingredient2 = make_ingredient(

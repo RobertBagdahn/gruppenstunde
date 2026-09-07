@@ -78,6 +78,8 @@ api.add_router("/packing-lists/", packing_list_router)
 api.add_router("/shopping-lists/", shopping_router)
 api.add_router("/kitchen-reminders/", kitchen_reminder_router)
 api.add_router("/ingredients/", ingredient_router)
+# Keep the supply-prefixed ingredient URL used by the breakfast wizard client.
+api.add_router("/supplies/ingredients/", ingredient_router, url_name_prefix="supply_ingredients_")
 api.add_router("/retail-sections/", retail_section_router)
 api.add_router("/ingredient-groups/", ingredient_group_router)
 api.add_router("/nutritional-tags/", nutritional_tag_router)

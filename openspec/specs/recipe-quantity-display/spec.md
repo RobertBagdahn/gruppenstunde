@@ -6,7 +6,7 @@ Skalierte und präzise Mengenanzeige in Rezeptansichten.
 
 ### Requirement: Korrekte Mengenskalierung pro Portion
 
-Das System SHALL `RecipeItem.quantity` als Pro-1-Person-Menge behandeln. Die angezeigte Menge für N Portionen SHALL `quantity × N` sein.
+Das System SHALL `RecipeItem.quantity` als Pro-1-Person-Menge behandeln. Die angezeigte Menge für N Portionen SHALL `quantity × N` sein. Im Rezepteditor SHALL eine einmalig festgelegte Eingabepersonenzahl von 1 bis 100 als Gesamtmengen-Kontext verwendet werden; bestehende Pro-1-Person-Mengen SHALL für diesen Kontext angezeigt und beim Speichern wieder auf Pro-1-Person-Mengen normiert werden.
 
 #### Scenario: Anzeige für 1 Portion
 - **WHEN** ein Rezept mit `quantity=3.75` und `measuring_unit=g` angezeigt wird bei 1 Portion
@@ -15,6 +15,12 @@ Das System SHALL `RecipeItem.quantity` als Pro-1-Person-Menge behandeln. Die ang
 #### Scenario: Anzeige für 4 Portionen
 - **WHEN** dasselbe Rezept bei 4 Portionen angezeigt wird
 - **THEN** wird `3.75 × 4 = 15g` berechnet und als `15 g` angezeigt
+
+#### Scenario: Editor-Kontext für vier Personen
+- **GIVEN** der Nutzer wählt vor der Zutatenbearbeitung 4 Personen
+- **WHEN** ein bestehendes Rezept mit `quantity=3.75` bearbeitet wird
+- **THEN** zeigt der Editor die Gesamtmenge `3.75 × 4 = 15g`
+- **AND** speichert eine unveränderte Eingabe beim Bestätigen wieder als `3.75` pro Person
 
 ### Requirement: Keine Null-Anzeige bei positiven Werten
 

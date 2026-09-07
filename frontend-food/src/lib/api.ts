@@ -1,3 +1,4 @@
+
 export type ApiErrorBody = {
   detail?: unknown;
   message?: unknown;
@@ -23,9 +24,16 @@ export class ApiError extends Error {
 function formatApiErrorBody(body: ApiErrorBody): string | null {
   const detail = body.detail ?? body.message;
   if (typeof detail === 'string') return detail;
-  if (Array.isArray(detail)) return detail.map((item) => formatApiErrorBody(item as ApiErrorBody) ?? String(item)).join(', ');
+  if (Array.isArray(detail)) {
+    return detail.map((item) => formatApiErrorBody(item as ApiErrorBody) ?? String(item)).join(', ');
+  }
   if (detail && typeof detail === 'object') {
     return Object.entries(detail)
+      .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
+      .join('; ');
+  }
+  if (body.errors && typeof body.errors === 'object') {
+    return Object.entries(body.errors as Record<string, unknown>)
       .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
       .join('; ');
   }
@@ -36,6 +44,7 @@ export function getApiErrorMessage(error: unknown, fallback = 'Ein unerwarteter 
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+/** Parse a JSON API response and preserve structured backend errors. */
 export async function parseApiResponse<T>(response: Response, schema?: { parse(data: unknown): T }): Promise<T> {
   let body: unknown = null;
   if (response.status !== 204) {

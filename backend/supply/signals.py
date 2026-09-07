@@ -5,7 +5,8 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from core.services.background import run_in_background
-from .models.ingredient import Ingredient, Portion
+
+from .models import Ingredient, MeasuringUnit, Portion
 
 
 @receiver(pre_save, sender=Portion, dispatch_uid="supply.calculate_portion_weight_g")
@@ -53,6 +54,28 @@ def update_ingredient_embedding_and_score(sender, instance: Ingredient, created:
                 delattr(instance, "_updating_embedding")
 
     transaction.on_commit(lambda: run_in_background(_do_update))
+
+
+@receiver(post_save, sender=Ingredient, dispatch_uid="supply.ensure_ingredient_gram_portion")
+def ensure_ingredient_gram_portion(sender, instance: Ingredient, created: bool, **kwargs):
+    """Give every ingredient the stable one-gram base portion."""
+    if not created:
+        return
+
+    unit = MeasuringUnit.objects.filter(name="Gramm").order_by("id").first()
+    if unit is None:
+        unit = MeasuringUnit.objects.create(name="Gramm", unit="g", quantity=1.0)
+    Portion.objects.get_or_create(
+        ingredient=instance,
+        name="g",
+        defaults={
+            "measuring_unit": unit,
+            "quantity": 1.0,
+            "weight_g": 1.0,
+            "rank": 9999,
+            "created_by": instance.created_by,
+        },
+    )
 
 
 def _embedding_fields_changed(instance, created: bool) -> bool:

@@ -364,3 +364,33 @@ class TestUpdateRefMealAutoSync:
             content_type="application/json",
         )
         assert resp.status_code == 403
+
+    def test_ref_meal_items_excluded_from_shopping_and_nutrition(self):
+        """RefMeal template items must NOT leak into shopping list or plan nutrition summary."""
+        from recipe.tests import make_recipe, make_recipe_item
+        from supply.services.shopping_service import generate_shopping_list
+        from supply.tests import make_ingredient, make_portion
+
+        ing = make_ingredient(name="Exklusiver Ref-Käse", energy_kcal=300)
+        portion = make_portion(ingredient=ing, weight_g=100)
+        recipe = make_recipe()
+        make_recipe_item(recipe=recipe, portion=portion, quantity=1)
+
+        # 1. Create a plan with ONLY a RefMeal
+        ref = _make_ref_meal(self.plan)
+        MealItem.objects.create(meal=ref, recipe=recipe, factor=1.0)
+
+        # Shopping list must be empty (0 items)
+        shopping_items = generate_shopping_list(self.plan)
+        assert len(shopping_items) == 0
+
+        # Nutrition summary endpoint must report 0 kcal
+        resp = self.client.get(f"/api/meal-plans/{self.plan.id}/nutrition-summary/")
+        assert resp.status_code == 200
+        assert resp.json()["energy_kcal"] == 0.0
+
+        # Cockpit plan aggregation must report 0 kcal
+        from recipe.services.nutrition_aggregation import _aggregate_meal_plan_values
+
+        cockpit_vals = _aggregate_meal_plan_values(self.plan)
+        assert cockpit_vals["energy_kcal"] == 0.0

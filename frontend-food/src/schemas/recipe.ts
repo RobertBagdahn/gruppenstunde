@@ -12,16 +12,24 @@ import {
 import { NutritionalTagSchema, PortionSchema } from './supply';
 import { RecipeStepSchema } from './recipeStep';
 
+export const SharedGroupSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type SharedGroup = z.infer<typeof SharedGroupSchema>;
+
 // --- RecipeItem ---
 
 export const RecipeItemSchema = z.object({
   id: z.number(),
-  portion_id: z.number(),
+  portion_id: z.number().nullable(),
   portion_name: z.string().nullable().optional(),
   ingredient_id: z.number().nullable().optional(),
   ingredient_name: z.string().default(''),
   ingredient_slug: z.string().nullable().optional(),
   quantity: z.number(),
+  client_request_id: z.string().nullable().optional(),
+  idempotency_key: z.string().nullable().optional(),
   measuring_unit_id: z.number().nullable().optional(),
   measuring_unit_name: z.string().nullable().optional(),
   sort_order: z.number(),
@@ -85,8 +93,8 @@ export const RecipeListItemSchema = ContentListItemSchema.extend({
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),
-  visibility: z.string().nullable().optional(),
-  recipe_badge: z.string().nullable().optional(), // "verified" | "community" | "personal"
+  visibility: z.enum(['private', 'group', 'public']).nullable().optional(),
+  recipe_badge: z.enum(['verified', 'community', 'personal']).nullable().optional(),
 });
 export type RecipeListItem = z.infer<typeof RecipeListItemSchema>;
 
@@ -105,6 +113,7 @@ export type RecipeSimilar = z.infer<typeof RecipeSimilarSchema>;
 export const RecipeDetailSchema = ContentDetailSchema.extend({
   recipe_type: z.string(),
   portions: z.number().nullable(),
+  input_servings: z.number().nullable().optional(),
   preparation_method: z.string().default(''),
   equipment: z.array(z.object({
     id: z.number(),
@@ -125,12 +134,13 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   // Cached micronutrient values
   cached_vitamin_c_mg: z.number().nullable().optional(),
   cached_weight_g: z.number().nullable().optional(),
+  shared_groups: z.array(SharedGroupSchema).default([]),
   // Personal recipe fields
   owner_name: z.string().nullable().optional(),
   forked_from_title: z.string().nullable().optional(),
   forked_from_slug: z.string().nullable().optional(),
-  visibility: z.string().nullable().optional(),
-  recipe_badge: z.string().nullable().optional(), // "verified" | "community" | "personal"
+  visibility: z.enum(['private', 'group', 'public']).nullable().optional(),
+  recipe_badge: z.enum(['verified', 'community', 'personal']).nullable().optional(),
   source_url: z.string().optional().default(''),
   is_owner: z.boolean().default(false),
   usage_in_meal_plans_count: z.number().default(0),
@@ -292,7 +302,7 @@ export const ImprovementSchema = z.object({
   threshold_value: z.number(),
   delta: z.number(),
   unit: z.string(),
-  direction: z.string(), // "reduce" | "increase"
+  direction: z.enum(['reduce', 'increase']),
   impact_score: z.number(),
   suggested_ingredients: z.array(SuggestedIngredientSchema),
   source: z.string(), // "nutri_score" | "recipe_hint" | "merged"

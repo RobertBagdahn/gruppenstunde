@@ -1,11 +1,9 @@
 """Pydantic schemas for recipe steps."""
 
 import datetime as dt
-from typing import Optional
 
-from pydantic import field_validator
 from ninja import Schema
-
+from pydantic import field_validator
 
 # --- Output Schemas ---
 
@@ -101,16 +99,13 @@ class RecipeStepIngredientIn(Schema):
     preparation: str = ""
     sort_order: int = 0
 
-    @field_validator('recipe_item_id')
+    @field_validator("recipe_item_id")
     @classmethod
     def validate_recipe_item_exists(cls, v):
-        """Validate that the recipe_item_id refers to an existing RecipeItem."""
-        from recipe.models import RecipeItem
-        if not RecipeItem.objects.filter(id=v).exists():
-            raise ValueError(f"RecipeItem with id {v} does not exist")
+        """Validate the identifier shape; ownership is checked by the API."""
         return v
 
-    @field_validator('quantity_modifier')
+    @field_validator("quantity_modifier")
     @classmethod
     def validate_quantity_modifier(cls, v):
         """Validate quantity_modifier is positive."""
@@ -128,7 +123,7 @@ class RecipeStepIn(Schema):
     section: str = ""
     step_ingredients: list[RecipeStepIngredientIn] = []
 
-    @field_validator('instruction')
+    @field_validator("instruction")
     @classmethod
     def validate_instruction_not_empty(cls, v):
         """Validate that instruction is not empty."""
@@ -136,7 +131,7 @@ class RecipeStepIn(Schema):
             raise ValueError("instruction must not be empty")
         return v
 
-    @field_validator('sort_order')
+    @field_validator("sort_order")
     @classmethod
     def validate_sort_order(cls, v):
         """Validate sort_order is non-negative."""
@@ -144,7 +139,7 @@ class RecipeStepIn(Schema):
             raise ValueError("sort_order must be non-negative")
         return v
 
-    @field_validator('duration_minutes')
+    @field_validator("duration_minutes")
     @classmethod
     def validate_duration_minutes(cls, v):
         """Validate duration_minutes is positive if set."""
@@ -158,25 +153,6 @@ class RecipeStepsBatchIn(Schema):
 
     recipe_slug: str
     steps: list[RecipeStepIn]
-
-    @field_validator('recipe_slug')
-    @classmethod
-    def validate_recipe_slug_exists(cls, v):
-        """Validate that the recipe_slug refers to an existing Recipe."""
-        from recipe.models import Recipe
-        if not Recipe.objects.filter(slug=v).exists():
-            raise ValueError(f"Recipe with slug {v} does not exist")
-        return v
-
-    @field_validator('steps')
-    @classmethod
-    def validate_steps_sorted(cls, v):
-        """Validate that steps are provided in sorted order."""
-        if v:
-            for i, step in enumerate(v):
-                if step.sort_order != i:
-                    raise ValueError(f"steps must be sorted by sort_order (expected {i}, got {step.sort_order})")
-        return v
 
 
 # --- Update to RecipeDetailOut ---

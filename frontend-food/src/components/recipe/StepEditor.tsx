@@ -5,7 +5,7 @@
  * and inline editing of instructions and ingredients.
  */
 
-import { useEffect } from 'react';
+import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -16,7 +16,6 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -47,14 +46,18 @@ interface StepEditorProps {
   }>;
 }
 
-export default function StepEditor({
+export interface StepEditorHandle {
+  save: () => Promise<boolean>;
+}
+
+const StepEditor = forwardRef<StepEditorHandle, StepEditorProps>(function StepEditor({
   recipeSlug,
   onSave,
   onError,
   availableRecipeItems = [],
-}: StepEditorProps) {
+}: StepEditorProps, ref) {
   const { data: steps, isLoading, error: fetchError } = useRecipeSteps(recipeSlug);
-  const { mutate: batchUpdate, isPending: isSaving } = useBatchUpdateSteps();
+  const { mutateAsync: batchUpdate, isPending: isSaving } = useBatchUpdateSteps();
   const { mutate: generateSteps, isPending: isGenerating } = useGenerateStepsFromItems();
 
   const {
@@ -74,6 +77,7 @@ export default function StepEditor({
     redo,
     setChanges,
     setError,
+    recipeSlug: storedRecipeSlug,
   } = useRecipeStepStore();
 
   // DnD setup
@@ -86,10 +90,10 @@ export default function StepEditor({
 
   // Load initial steps from API
   useEffect(() => {
-    if (steps && !storeLoading) {
-      setSteps(steps);
+    if (steps && !storeLoading && (storedRecipeSlug !== recipeSlug || !hasChanges)) {
+      setSteps(steps, recipeSlug);
     }
-  }, [steps, storeLoading, setSteps]);
+  }, [steps, storeLoading, setSteps, recipeSlug, storedRecipeSlug, hasChanges]);
 
   // Show errors
   useEffect(() => {
@@ -107,44 +111,43 @@ export default function StepEditor({
   }, [storeError, onError]);
 
   // Handle save
-  const handleSave = async () => {
-    if (!hasChanges) return;
+  const handleSave = async (): Promise<boolean> => {
+    const currentStore = useRecipeStepStore.getState();
+    if (!currentStore.hasChanges) return true;
 
     try {
-      batchUpdate(
-        {
-          recipe_slug: recipeSlug,
-          steps: storeSteps.map((step) => ({
-            sort_order: step.sort_order,
-            instruction: step.instruction,
-            duration_minutes: step.duration_minutes ?? null,
-            section: step.section ?? '',
-            step_ingredients: step.step_ingredients.map((ing) => ({
-              recipe_item_id: ing.recipe_item_id,
-              quantity_modifier: ing.quantity_modifier,
-              preparation: ing.preparation,
-              sort_order: ing.sort_order,
-            })),
+      const savedSteps = await batchUpdate({
+        recipe_slug: recipeSlug,
+        steps: currentStore.steps.map((step) => ({
+          sort_order: step.sort_order,
+          instruction: step.instruction,
+          duration_minutes: step.duration_minutes ?? null,
+          section: step.section ?? '',
+          step_ingredients: step.step_ingredients.map((ing) => ({
+            recipe_item_id: ing.recipe_item_id,
+            quantity_modifier: ing.quantity_modifier,
+            preparation: ing.preparation,
+            sort_order: ing.sort_order,
           })),
-        },
-        {
-          onSuccess: () => {
-            setChanges(false);
-            onSave?.();
-          },
-          onError: (error) => {
-            const message = error instanceof Error ? error.message : 'Failed to save steps';
-            setError(message);
-            onError?.(message);
-          },
-        }
-      );
+        })),
+      });
+      setSteps(savedSteps, recipeSlug);
+      setChanges(false);
+      onSave?.();
+      return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const detail = err instanceof Error ? err.message : '';
+      const message = detail && !detail.startsWith('Failed')
+        ? detail
+        : 'Die Zubereitungsschritte konnten nicht gespeichert werden.';
       setError(message);
       onError?.(message);
+      toast.error('Speichern der Schritte fehlgeschlagen', { description: message });
+      return false;
     }
   };
+
+  useImperativeHandle(ref, () => ({ save: handleSave }));
 
   const handleAddStep = () => {
     addStep({
@@ -169,7 +172,7 @@ export default function StepEditor({
       { recipe_slug: recipeSlug },
       {
         onSuccess: (generatedSteps) => {
-          setSteps(generatedSteps || []);
+          setSteps(generatedSteps || [], recipeSlug);
           toast.success('Schritte wurden von KI generiert!');
         },
         onError: (error) => {
@@ -189,13 +192,8 @@ export default function StepEditor({
       const newIndex = storeSteps.findIndex((s) => s.id === over.id);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        const newSteps = arrayMove(storeSteps, oldIndex, newIndex);
         // Update sort_order
-        const sortedSteps = newSteps.map((step, index) => ({
-          ...step,
-          sort_order: index,
-        }));
-        setSteps(sortedSteps);
+        useRecipeStepStore.getState().reorderSteps(oldIndex, newIndex);
       }
     }
   };
@@ -205,7 +203,7 @@ export default function StepEditor({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="recipe-step-editor">
       <StepActionsBar
         hasChanges={hasChanges}
         canUndo={canUndo}
@@ -258,4 +256,6 @@ export default function StepEditor({
       )}
     </div>
   );
-}
+});
+
+export default StepEditor;

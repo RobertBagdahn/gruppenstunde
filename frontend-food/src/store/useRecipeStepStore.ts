@@ -18,6 +18,7 @@ type RecipeStepUpdate = Partial<Omit<RecipeStep, 'id' | 'created_at' | 'updated_
 interface RecipeStepStoreState {
   // --- Data ---
   steps: RecipeStep[];
+  recipeSlug: string | null;
   lastState: RecipeStep[];
   selectedStepId: number | null;
   isLoading: boolean;
@@ -31,7 +32,7 @@ interface RecipeStepStoreState {
   // --- Actions ---
 
   /** Load steps from API response */
-  setSteps: (steps: RecipeStep[]) => void;
+  setSteps: (steps: RecipeStep[], recipeSlug?: string) => void;
 
   /** Add a new step */
   addStep: (step: RecipeStepInput, atIndex?: number) => void;
@@ -76,6 +77,7 @@ interface RecipeStepStoreState {
 export const useRecipeStepStore = create<RecipeStepStoreState>()(
   immer((set, get) => ({
     steps: [],
+    recipeSlug: null,
     lastState: [],
     selectedStepId: null,
     isLoading: false,
@@ -84,9 +86,10 @@ export const useRecipeStepStore = create<RecipeStepStoreState>()(
     canUndo: false,
     canRedo: false,
 
-    setSteps: (steps) =>
+    setSteps: (steps, recipeSlug) =>
       set((state) => {
         state.steps = steps;
+        if (recipeSlug !== undefined) state.recipeSlug = recipeSlug;
         state.lastState = [];
         state.hasChanges = false;
         state.canUndo = false;

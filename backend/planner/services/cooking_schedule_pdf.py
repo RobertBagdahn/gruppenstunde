@@ -7,7 +7,6 @@ from weasyprint import HTML
 
 from planner.models import Meal, MealPlan
 
-
 MEAL_TYPE_LABELS = {
     "breakfast": "Frühstück",
     "lunch": "Mittagessen",
@@ -168,6 +167,50 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
             start_time = meal.start_datetime.strftime("%H:%M") if meal.start_datetime else ""
 
             for item in meal.items.all():
+                if not item.recipe and item.ingredient and item.ingredient.deleted_at is None:
+                    ing = item.ingredient
+                    item_portions = meal.effective_portions
+                    scale = item.factor * item_portions
+                    from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
+
+                    weight_g = _resolve_ingredient_weight_g(item) * scale
+                    qty = float(item.quantity or 0) * scale
+                    unit = item.measuring_unit.name if item.measuring_unit else ""
+                    recipe_cost = (float(ing.price_per_kg or 0)) * weight_g / 1000.0
+                    day_cost += recipe_cost
+                    recipe_energy = (float(ing.energy_kcal or 0)) * weight_g / 100.0
+
+                    allergens = []
+                    for tag in ing.nutritional_tags.filter(is_dangerous=True):
+                        allergens.append(
+                            {
+                                "name": tag.name,
+                                "css_class": _get_allergen_css_class(tag.name),
+                            }
+                        )
+
+                    recipes.append(
+                        {
+                            "recipe_name": item.display_name or ing.name,
+                            "meal_type_label": meal_type_label,
+                            "portions_display": f"{item_portions} Pers.",
+                            "start_time": start_time,
+                            "serving_time": "",
+                            "cost": _format_currency(recipe_cost),
+                            "ingredients": [
+                                {
+                                    "name": ing.name,
+                                    "amount": f"{_format_decimal(qty, 1)} {unit}",
+                                    "optional": False,
+                                }
+                            ],
+                            "steps": [],
+                            "allergens": allergens,
+                            "note": meal.note if (meal.note and meal.note_is_published) else "",
+                        }
+                    )
+                    continue
+
                 if not item.recipe:
                     continue
 
@@ -183,40 +226,46 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
                         scale = item_portions * meal_plan.reserve_factor / max(recipe.portions or 1, 1)
                         qty = float(ri.quantity) * scale
                         unit = ri.portion.measuring_unit.name if ri.portion.measuring_unit else ""
-                        ingredients.append({
-                            "name": ri.portion.ingredient.name,
-                            "amount": f"{_format_decimal(qty, 1)} {unit}",
-                            "optional": ri.is_optional if hasattr(ri, "is_optional") else False,
-                        })
+                        ingredients.append(
+                            {
+                                "name": ri.portion.ingredient.name,
+                                "amount": f"{_format_decimal(qty, 1)} {unit}",
+                                "optional": ri.is_optional if hasattr(ri, "is_optional") else False,
+                            }
+                        )
 
                 steps = _extract_recipe_steps(recipe)
                 allergens = _get_recipe_allergens(recipe)
                 recipe_name = item.display_name or recipe.title
 
-                recipes.append({
-                    "recipe_name": recipe_name,
-                    "meal_type_label": meal_type_label,
-                    "portions_display": f"{item_portions} Pers.",
-                    "start_time": start_time,
-                    "serving_time": "",
-                    "cost": _format_currency(recipe_cost),
-                    "ingredients": ingredients,
-                    "steps": steps,
-                    "allergens": allergens,
-                    "note": meal.note if (meal.note and meal.note_is_published) else "",
-                })
+                recipes.append(
+                    {
+                        "recipe_name": recipe_name,
+                        "meal_type_label": meal_type_label,
+                        "portions_display": f"{item_portions} Pers.",
+                        "start_time": start_time,
+                        "serving_time": "",
+                        "cost": _format_currency(recipe_cost),
+                        "ingredients": ingredients,
+                        "steps": steps,
+                        "allergens": allergens,
+                        "note": meal.note if (meal.note and meal.note_is_published) else "",
+                    }
+                )
 
         day_cost_total = day_cost * meal_plan.reserve_factor
         total_cost += day_cost_total
         total_energy += recipe_energy
 
-        days.append({
-            "label": day_label,
-            "portions": portions,
-            "time_range": time_range,
-            "day_cost": _format_currency(day_cost_total),
-            "recipes": recipes,
-        })
+        days.append(
+            {
+                "label": day_label,
+                "portions": portions,
+                "time_range": time_range,
+                "day_cost": _format_currency(day_cost_total),
+                "recipes": recipes,
+            }
+        )
 
     start_date = meal_plan.start_datetime.date() if meal_plan.start_datetime else None
     end_date = meal_plan.end_datetime.date() if meal_plan.end_datetime else None

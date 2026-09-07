@@ -20,38 +20,94 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 STATE_MODIFIERS: set[str] = {
-    "frisch", "frische", "frischer", "frisches",
-    "tk", "tiefgefroren", "tiefgefrorene",
-    "getrocknet", "getrocknete", "getrockneter",
-    "geräuchert", "geräucherte", "geräucherter",
-    "eingelegt", "eingelegte", "eingelegter",
-    "gemahlen", "gemahlene", "gemahlener",
-    "gerieben", "geriebene", "geriebener",
-    "geröstet", "geröstete", "gerösteter",
+    "frisch",
+    "frische",
+    "frischer",
+    "frisches",
+    "tk",
+    "tiefgefroren",
+    "tiefgefrorene",
+    "getrocknet",
+    "getrocknete",
+    "getrockneter",
+    "geräuchert",
+    "geräucherte",
+    "geräucherter",
+    "eingelegt",
+    "eingelegte",
+    "eingelegter",
+    "gemahlen",
+    "gemahlene",
+    "gemahlener",
+    "gerieben",
+    "geriebene",
+    "geriebener",
+    "geröstet",
+    "geröstete",
+    "gerösteter",
 }
 
 COLOR_MODIFIERS: set[str] = {
-    "rot", "rote", "roter", "rotes",
-    "grün", "grüne", "grüner", "grünes",
-    "gelb", "gelbe", "gelber", "gelbes",
-    "weiß", "weiße", "weißer", "weißes",
-    "schwarz", "schwarze", "schwarzer", "schwarzes",
+    "rot",
+    "rote",
+    "roter",
+    "rotes",
+    "grün",
+    "grüne",
+    "grüner",
+    "grünes",
+    "gelb",
+    "gelbe",
+    "gelber",
+    "gelbes",
+    "weiß",
+    "weiße",
+    "weißer",
+    "weißes",
+    "schwarz",
+    "schwarze",
+    "schwarzer",
+    "schwarzes",
 }
 
 SIZE_MODIFIERS: set[str] = {
-    "groß", "große", "großer", "großes",
-    "klein", "kleine", "kleiner", "kleines",
-    "dick", "dicke", "dicker", "dickes",
-    "dünn", "dünne", "dünner", "dünnes",
-    "mittelgroß", "mittelgroße",
+    "groß",
+    "große",
+    "großer",
+    "großes",
+    "klein",
+    "kleine",
+    "kleiner",
+    "kleines",
+    "dick",
+    "dicke",
+    "dicker",
+    "dickes",
+    "dünn",
+    "dünne",
+    "dünner",
+    "dünnes",
+    "mittelgroß",
+    "mittelgroße",
 }
 
 PREP_MODIFIERS: set[str] = {
-    "gehackt", "gehackte", "gehackter", "gehacktes",
-    "gewürfelt", "gewürfelte", "gewürfelter",
-    "geschnitten", "geschnittene", "geschnittener",
-    "geschält", "geschälte", "geschälter",
-    "gepresst", "gepresste", "gepresster",
+    "gehackt",
+    "gehackte",
+    "gehackter",
+    "gehacktes",
+    "gewürfelt",
+    "gewürfelte",
+    "gewürfelter",
+    "geschnitten",
+    "geschnittene",
+    "geschnittener",
+    "geschält",
+    "geschälte",
+    "geschälter",
+    "gepresst",
+    "gepresste",
+    "gepresster",
 }
 
 ALL_MODIFIERS: set[str] = STATE_MODIFIERS | COLOR_MODIFIERS | SIZE_MODIFIERS | PREP_MODIFIERS
@@ -63,18 +119,30 @@ QUANTITY_UNIT_PATTERN = re.compile(
 )
 
 UNIT_CANONICAL: dict[str, str] = {
-    "g": "g", "kg": "kg", "ml": "ml", "l": "l",
-    "el": "EL", "tl": "TL",
-    "msp": "Messerspitze", "msp.": "Messerspitze",
-    "pck": "Packung", "pck.": "Packung",
-    "pkg": "Packung", "pkg.": "Packung",
-    "bd": "Bund", "bd.": "Bund",
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "l": "l",
+    "el": "EL",
+    "tl": "TL",
+    "msp": "Messerspitze",
+    "msp.": "Messerspitze",
+    "pck": "Packung",
+    "pck.": "Packung",
+    "pkg": "Packung",
+    "pkg.": "Packung",
+    "bd": "Bund",
+    "bd.": "Bund",
     "stück": "Stück",
-    "dose": "Dose", "glas": "Glas",
+    "dose": "Dose",
+    "glas": "Glas",
     "bund": "Bund",
-    "prise": "Prise", "schuss": "Schuss",
-    "scheibe": "Scheibe", "scheiben": "Scheiben",
-    "zehe": "Zehe", "zehen": "Zehen",
+    "prise": "Prise",
+    "schuss": "Schuss",
+    "scheibe": "Scheibe",
+    "scheiben": "Scheiben",
+    "zehe": "Zehe",
+    "zehen": "Zehen",
 }
 
 
@@ -103,6 +171,11 @@ class IngredientNameParser:
     def parse(cls, raw_name: str) -> ParsedIngredient:
         """Main entry point — cascading parse through rule-based → Jaccard → Gemini."""
         raw = raw_name.strip()
+
+        if re.match(r"^etwas\b", raw, flags=re.IGNORECASE):
+            return ParsedIngredient(name=raw, confidence=0.0)
+        if re.search(r"\baus der Dose\b", raw, flags=re.IGNORECASE):
+            return ParsedIngredient(name=raw, confidence=0.0)
 
         result = cls._parse_rule_based(raw)
         if result is not None and result.confidence >= 0.9:
@@ -154,7 +227,7 @@ class IngredientNameParser:
             quantity = float(qty_str)
             unit_raw = (m.group("unit") or "").strip().rstrip(".")
             unit = UNIT_CANONICAL.get(unit_raw.lower(), unit_raw)
-            rest = raw[m.end():].strip()
+            rest = raw[m.end() :].strip()
             return quantity, unit, rest
         return 0, "", raw
 
@@ -208,6 +281,11 @@ class IngredientNameParser:
     def _parse_jaccard(cls, raw: str) -> ParsedIngredient | None:
         from supply.models import Ingredient, IngredientAlias
 
+        # Filler phrases are not ingredient modifiers and must not turn an
+        # otherwise unknown name into a database match.
+        if re.search(r"\betwas\b", raw, flags=re.IGNORECASE):
+            return None
+
         # Build candidate list: ingredient names + aliases
         candidates: list[tuple[str, str]] = []  # (name, type: "name"|"alias")
         seen: set[str] = set()
@@ -242,10 +320,12 @@ class IngredientNameParser:
                 best_match = cand_name
                 best_note_words = list(query_words - cand_words)
 
-        if best_score < 0.3 or not best_match:
+        if best_score < 0.5 or not best_match:
             return None
 
-        note = " ".join(w for w in best_note_words if w not in {"für", "mit", "und", "oder", "ca", "etwa", "nach", "geschmack"})
+        note = " ".join(
+            w for w in best_note_words if w not in {"für", "mit", "und", "oder", "ca", "etwa", "nach", "geschmack"}
+        )
         return ParsedIngredient(
             quantity=0,
             unit="",
@@ -260,8 +340,10 @@ class IngredientNameParser:
 
     @classmethod
     def _parse_gemini(cls, raw: str) -> ParsedIngredient | None:
+        from pydantic import BaseModel as _BaseModel
+        from pydantic import Field as _Field
+
         from core.services.gemini import gemini_call
-        from pydantic import BaseModel as _BaseModel, Field as _Field
 
         class _GeminiParseResult(_BaseModel):
             name: str = _Field(description="Reiner Zutat-Name ohne Modifikatoren")

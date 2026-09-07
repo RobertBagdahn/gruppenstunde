@@ -1,10 +1,14 @@
 """RecipeItem CRUD endpoints."""
 
+import hashlib
+import json
+
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from ninja import Router
 from ninja.errors import HttpError
 
-from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup
+from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup, RecipeItemIdempotencyRecord
 from recipe.schemas import (
     AiIngredientApplyIn,
     AiIngredientSuggestionOut,
@@ -70,27 +74,106 @@ def list_recipe_items(request, recipe_id: int):
     )
 
 
+def _compute_item_payload_hash(payload: RecipeItemCreateIn) -> str:
+    data = {
+        "portion_id": payload.portion_id,
+        "quantity": payload.quantity,
+        "sort_order": payload.sort_order,
+        "note": payload.note.strip(),
+        "is_optional": bool(payload.is_optional),
+    }
+    dumped = json.dumps(data, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(dumped.encode("utf-8")).hexdigest()
+
+
 @router.post("/{recipe_id}/recipe-items/", response=RecipeItemOut)
 def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
     """Add a recipe item to a recipe."""
     _require_auth(request)
 
-    recipe = _get_visible_recipe_or_404(request, recipe_id)
-    if not _can_edit_recipe(request, recipe):
-        raise HttpError(403, "Keine Berechtigung")
+    request_key = (payload.idempotency_key or payload.client_request_id or "").strip() or None
+    payload_hash = _compute_item_payload_hash(payload) if request_key else ""
 
-    # Manual creation requires a valid portion_id
-    if payload.portion_id is None:
-        raise HttpError(400, "portion_id ist erforderlich")
+    with transaction.atomic():
+        recipe = _get_visible_recipe_or_404(request, recipe_id)
+        recipe = Recipe.objects.select_for_update().get(pk=recipe.pk)
+        if not _can_edit_recipe(request, recipe):
+            raise HttpError(403, "Keine Berechtigung")
 
-    item = RecipeItem.objects.create(
-        recipe=recipe,
-        portion_id=payload.portion_id,
-        quantity=payload.quantity,
-        sort_order=payload.sort_order,
-        note=payload.note,
-        is_optional=payload.is_optional,
-    )
+        item = None
+        if request_key:
+            record = (
+                RecipeItemIdempotencyRecord.objects.select_for_update()
+                .filter(
+                    user=request.user,
+                    recipe=recipe,
+                    operation=RecipeItemIdempotencyRecord.OPERATION_CREATE,
+                    request_key=request_key,
+                )
+                .first()
+            )
+            if record:
+                if record.payload_hash != payload_hash:
+                    raise HttpError(
+                        409,
+                        "Dieser Idempotency-Key wurde bereits für eine abweichende Zutat verwendet.",
+                    )
+                if record.recipe_item:
+                    item = record.recipe_item
+
+        if item is None:
+            # Fallback legacy lookup by client_request_id directly on RecipeItem
+            if request_key:
+                existing_item = RecipeItem.objects.filter(
+                    recipe=recipe,
+                    client_request_id=request_key,
+                ).first()
+                if existing_item:
+                    item = existing_item
+
+        if item is None:
+            if payload.portion_id is not None:
+                if not Portion.objects.filter(id=payload.portion_id).exists():
+                    raise HttpError(400, "Portion existiert nicht")
+            if payload.quantity <= 0:
+                raise HttpError(400, "Menge muss größer als 0 sein")
+
+            item = RecipeItem.objects.create(
+                recipe=recipe,
+                portion_id=payload.portion_id,
+                client_request_id=request_key,
+                quantity=payload.quantity,
+                sort_order=payload.sort_order,
+                note=payload.note,
+                is_optional=payload.is_optional,
+            )
+            if request_key:
+                try:
+                    RecipeItemIdempotencyRecord.objects.create(
+                        user=request.user,
+                        recipe=recipe,
+                        operation=RecipeItemIdempotencyRecord.OPERATION_CREATE,
+                        request_key=request_key,
+                        payload_hash=payload_hash,
+                        recipe_item=item,
+                    )
+                except IntegrityError:
+                    record = RecipeItemIdempotencyRecord.objects.get(
+                        user=request.user,
+                        recipe=recipe,
+                        operation=RecipeItemIdempotencyRecord.OPERATION_CREATE,
+                        request_key=request_key,
+                    )
+                    if record.payload_hash != payload_hash:
+                        raise HttpError(
+                            409,
+                            "Dieser Idempotency-Key wurde bereits für eine abweichende Zutat verwendet.",
+                        )
+                    item.delete()
+                    item = record.recipe_item
+                    if item is None:
+                        raise HttpError(500, "Fehler beim Auflösen der idempotenten Zutat")
+
     # Reload with relations for schema resolvers
     item = RecipeItem.objects.select_related(
         "portion",
@@ -141,9 +224,7 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
         result_portion_id = data.get("portion_id", item.portion_id)
         result_quantity = data.get("quantity", item.quantity)
         portion = (
-            item.portion
-            if result_portion_id == item.portion_id
-            else get_object_or_404(Portion, id=result_portion_id)
+            item.portion if result_portion_id == item.portion_id else get_object_or_404(Portion, id=result_portion_id)
         )
         resulting_weight_g = portion.weight_g if (portion.weight_g and portion.weight_g > 0) else 1.0
         resulting_grams = result_quantity * resulting_weight_g
@@ -297,7 +378,8 @@ def ai_suggest_ingredients(request, recipe_id: int):
     filtered = [
         r
         for r in results
-        if r.ingredient_id not in all_excluded_ids and normalize_term(r.ingredient_name) not in existing_normalized_names
+        if r.ingredient_id not in all_excluded_ids
+        and normalize_term(r.ingredient_name) not in existing_normalized_names
     ]
 
     return [

@@ -40,12 +40,12 @@ class Tag(models.Model):
             descendants = descendants | child.get_descendants()
         return descendants
 
-    def get_ancestor_ids(self) -> list:
+    def get_ancestor_ids(self) -> list[uuid.UUID]:
         """Return list of ancestor tag IDs (from root to parent)."""
-        ancestors: list = []
+        ancestors: list[uuid.UUID] = []
         current = self.parent
         while current:
-            ancestors.insert(0, str(current.id))
+            ancestors.insert(0, current.id)
             current = current.parent
         return ancestors
 

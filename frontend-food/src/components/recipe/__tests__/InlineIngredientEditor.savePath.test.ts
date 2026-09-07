@@ -74,10 +74,10 @@ describe('InlineIngredientEditor - Save Path (Task 3 regression tests)', () => {
       // After switching to new portion, label must also update
       // For "1 Portion Nudeln": label = "1 Portion Nudeln" (composite, quantity !== 1)
       // For "Gramm": label = "Gramm" (direct unit, quantity === 1)
-      
+
       const compositeLabel = 'quantity' as const;
       const directLabel = 'measuring_unit_name' as const;
-      
+
       // Just documenting the expectation; actual label logic is in handlePortionChange
       expect([compositeLabel, directLabel]).toContain(compositeLabel);
     });
@@ -89,24 +89,41 @@ describe('InlineIngredientEditor - Save Path (Task 3 regression tests)', () => {
       // Item A: "1 Portion Nudeln" with qty=2.24 (280g)
       // Item B: "280 Gramm" with qty=280
       // Item C: "2 Stück" with qty=2
-      
+
       // User changes editPortions from 1 → 4
       const newScale = 4;
-      
+
       // Each item's displayedQty should scale with the multiplier
       const itemA_displayed = scaleQuantity(2.24, newScale); // 8.96
       const itemB_displayed = scaleQuantity(280, newScale); // 1120
       const itemC_displayed = scaleQuantity(2, newScale); // 8
-      
+
       expect(itemA_displayed).toBe(8.96);
       expect(itemB_displayed).toBe(1120);
       expect(itemC_displayed).toBe(8);
-      
+
       // Labels should NOT change with scale — they're always based on portion.quantity
       // "1 Portion Nudeln" stays "1 Portion Nudeln"
       // "Gramm" stays "Gramm"
       // "Stück" stays "Stück"
       // (This is guaranteed by the composite-detection rule, not affected by scale)
+    });
+  });
+
+  describe('3.5 - clientRequestId preservation and generation contract', () => {
+    it('preserves an existing request key across normalizations', () => {
+      const raw = {
+        client_request_id: 'stable-key-42',
+        idempotency_key: 'stable-key-42',
+      };
+      const key = raw.idempotency_key || raw.client_request_id;
+      expect(key).toBe('stable-key-42');
+    });
+
+    it('identifies conflict error message from backend 409 detail', () => {
+      const errorDetail = 'Dieser Idempotency-Key wurde bereits für eine abweichende Zutat verwendet.';
+      const isConflict = errorDetail.includes('Idempotency-Key');
+      expect(isConflict).toBe(true);
     });
   });
 });

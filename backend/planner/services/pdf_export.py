@@ -7,8 +7,7 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from weasyprint import HTML
 
-from planner.models import Meal, MealItem, MealPlan, MealPlanGroupMember
-from recipe.models import RecipeItem
+from planner.models import Meal, MealItem, MealPlan
 from supply.data.dge_reference import (
     NORM_PERSON_DAILY_CARBS_G,
     NORM_PERSON_DAILY_FAT_G,
@@ -131,26 +130,30 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                 for variant_id, variant_items in sorted(items_by_variant.items()):
                     for item in variant_items:
                         sub_meals.append(_build_sub_meal(item, portions, meal_plan.reserve_factor, overrides))
-                meal_data.append({
-                    "meal_type_label": meal_type_label,
-                    "icon": icon,
-                    "time_label": time_label,
-                    "sub_meals": sub_meals,
-                    "items": [],
-                    "note": meal.note if (meal.note and meal.note_is_published) else "",
-                })
+                meal_data.append(
+                    {
+                        "meal_type_label": meal_type_label,
+                        "icon": icon,
+                        "time_label": time_label,
+                        "sub_meals": sub_meals,
+                        "items": [],
+                        "note": meal.note if (meal.note and meal.note_is_published) else "",
+                    }
+                )
             else:
                 items_data = []
                 for item in items:
                     items_data.append(_build_item_data(item, portions, meal_plan.reserve_factor, overrides))
-                meal_data.append({
-                    "meal_type_label": meal_type_label,
-                    "icon": icon,
-                    "time_label": time_label,
-                    "sub_meals": [],
-                    "items": items_data,
-                    "note": meal.note if (meal.note and meal.note_is_published) else "",
-                })
+                meal_data.append(
+                    {
+                        "meal_type_label": meal_type_label,
+                        "icon": icon,
+                        "time_label": time_label,
+                        "sub_meals": [],
+                        "items": items_data,
+                        "note": meal.note if (meal.note and meal.note_is_published) else "",
+                    }
+                )
 
         result.append({"label": day_label, "meals": meal_data})
 
@@ -159,13 +162,15 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
 
 def _build_sub_meal(item: MealItem, portions: int, reserve_factor: float, overrides: dict) -> dict:
     """Build a sub-meal block for exchange-split variants."""
-    recipe_name = item.display_name or (item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?"))
+    recipe_name = item.display_name or (
+        item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?")
+    )
     portions_display = _format_decimal(portions * item.factor, 0) if item.factor != 1.0 else str(portions)
 
     if item.recipe:
         ingredients = _get_recipe_ingredients(item.recipe, portions, reserve_factor, overrides.get(item.id, {}))
     elif item.ingredient:
-        quantity_display = f"{_format_decimal(float(item.quantity or 0), 1)} {item.measuring_unit.name if item.measuring_unit else ''}"
+        quantity_display = _format_scaled_direct_quantity(item, portions, reserve_factor)
         ingredients = [f"{item.ingredient.name} — {quantity_display}"]
     else:
         ingredients = []
@@ -179,7 +184,9 @@ def _build_sub_meal(item: MealItem, portions: int, reserve_factor: float, overri
 
 def _build_item_data(item: MealItem, portions: int, reserve_factor: float, overrides: dict) -> dict:
     """Build item data for a single (non-exchange-split) meal item."""
-    recipe_name = item.display_name or (item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?"))
+    recipe_name = item.display_name or (
+        item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?")
+    )
     portions_label = f"{_format_decimal(portions * item.factor, 0)} Pers." if item.factor != 1.0 else None
     item_overrides = overrides.get(item.id, {})
 
@@ -187,7 +194,7 @@ def _build_item_data(item: MealItem, portions: int, reserve_factor: float, overr
     if item.recipe:
         ingredients = _get_recipe_ingredients(item.recipe, portions, reserve_factor, item_overrides)
     elif item.ingredient:
-        quantity_display = f"{_format_decimal(float(item.quantity or 0), 1)} {item.measuring_unit.name if item.measuring_unit else ''}"
+        quantity_display = _format_scaled_direct_quantity(item, portions, reserve_factor)
         ingredients = [f"{item.ingredient.name} — {quantity_display}"]
     else:
         ingredients = []
@@ -198,6 +205,17 @@ def _build_item_data(item: MealItem, portions: int, reserve_factor: float, overr
         "ingredients": ingredients,
         "excluded": excluded,
     }
+
+
+def _format_scaled_direct_quantity(item: MealItem, portions: int, reserve_factor: float) -> str:
+    """Format a direct ingredient quantity scaled by portions * reserve_factor * item.factor."""
+    quantity_display = (
+        f"{_format_decimal(float(item.quantity or 0), 1)} {item.measuring_unit.name if item.measuring_unit else ''}"
+    )
+    if item.factor == 1.0 and portions == 1 and reserve_factor == 1.0:
+        return quantity_display.strip()
+    scaled = float(item.quantity or 0) * item.factor * portions * reserve_factor
+    return f"{_format_decimal(scaled, 1)} {item.measuring_unit.name if item.measuring_unit else ''}".strip()
 
 
 def _get_recipe_ingredients(recipe, portions: int, reserve_factor: float, item_overrides: dict) -> list[str]:
@@ -241,13 +259,15 @@ def _build_group_member_context(meal_plan: MealPlan) -> list[dict]:
                     ranges.append(f"{dr['start']}–{dr['end']}")
             date_range_label = ", ".join(ranges) if ranges else ""
 
-        result.append({
-            "name": member.name or f"Person ({member.age})",
-            "age": member.age,
-            "gender_label": gender_label,
-            "tags": tags,
-            "date_range_label": date_range_label,
-        })
+        result.append(
+            {
+                "name": member.name or f"Person ({member.age})",
+                "age": member.age,
+                "gender_label": gender_label,
+                "tags": tags,
+                "date_range_label": date_range_label,
+            }
+        )
 
     return result
 
@@ -259,7 +279,9 @@ def _collect_ingredient_overrides(meal_plan: MealPlan) -> dict:
     overrides = MealItemOverride.objects.filter(meal_item__meal__meal_plan=meal_plan).select_related(
         "meal_item", "recipe_item"
     )
-    result: dict[int, dict] = defaultdict(lambda: {"excluded_items": set(), "quantity_overrides": {}, "excluded": False})
+    result: dict[int, dict] = defaultdict(
+        lambda: {"excluded_items": set(), "quantity_overrides": {}, "excluded": False}
+    )
 
     for override in overrides:
         item_id = override.meal_item_id
@@ -271,92 +293,45 @@ def _collect_ingredient_overrides(meal_plan: MealPlan) -> dict:
     return dict(result)
 
 
-def _aggregate_shopping_list(meals) -> dict:
-    """Aggregate ingredients summed by day and total, grouped by RetailSection."""
-    from collections import defaultdict as dd
+def _aggregate_shopping_list(meal_plan: MealPlan) -> dict:
+    """Aggregate the shopping list using the domain service.
 
-    per_day_list = []
-    total_by_section: dict[str, dict[str, dict]] = dd(lambda: dd(lambda: {"total": 0.0, "unit": "", "fresh": False}))
+    Reuses `generate_shopping_list(meal_plan)` which provides verified retail
+    section grouping, weight-based unit formatting, natural portion options,
+    and portion-option resolution — replacing the former fragile regex parsing.
+    """
+    from supply.services.shopping_service import generate_shopping_list
 
-    for day in meals:
-        day_sections: dict[str, dict[str, dict]] = dd(lambda: dd(lambda: {"total": 0.0, "unit": "", "fresh": False}))
+    items = generate_shopping_list(meal_plan)
 
-        for meal in day.get("meals", []):
-            all_items = []
-            if meal.get("sub_meals"):
-                for sub in meal["sub_meals"]:
-                    all_items.extend(sub.get("ingredients", []))
-            else:
-                for item in meal.get("items", []):
-                    all_items.extend(item.get("ingredients", []))
-
-            for ing_str in all_items:
-                _parse_and_accumulate_ingredient(ing_str, day_sections, total_by_section)
-
-        day_entry = {"label": day["label"], "sections": []}
-        for section_name in sorted(day_sections.keys()):
-            items = []
-            for ing_name in sorted(day_sections[section_name].keys()):
-                data = day_sections[section_name][ing_name]
-                items.append({
-                    "name": ing_name,
-                    "amount": f"{_format_decimal(data['total'], 1)} {data['unit']}",
-                    "fresh": data["fresh"],
-                })
-            day_entry["sections"].append({"name": section_name, "items": items})
-        per_day_list.append(day_entry)
-
-    total_sections = []
+    total_by_section: dict[str, list[dict]] = defaultdict(list)
     total_count = 0
     fresh_count = 0
-    for section_name in sorted(total_by_section.keys()):
-        items = []
-        for ing_name in sorted(total_by_section[section_name].keys()):
-            data = total_by_section[section_name][ing_name]
-            items.append({
-                "name": ing_name,
-                "amount": f"{_format_decimal(data['total'], 1)} {data['unit']}",
-                "fresh": data["fresh"],
-            })
-            total_count += 1
-            if data["fresh"]:
-                fresh_count += 1
-        total_sections.append({"name": section_name, "items": items})
+
+    for item in items:
+        section_name = item.retail_section or "Sonstiges"
+        amount = item.natural_portions or item.display_text or item.display_quantity or "0 g"
+        total_by_section[section_name].append(
+            {
+                "name": item.ingredient_name,
+                "amount": amount,
+                "fresh": section_name in FRESH_SECTION_NAMES,
+            }
+        )
+        total_count += 1
+        if section_name in FRESH_SECTION_NAMES:
+            fresh_count += 1
+
+    total_sections = [
+        {"name": section_name, "items": items_list} for section_name, items_list in sorted(total_by_section.items())
+    ]
 
     return {
-        "per_day": per_day_list if per_day_list else None,
+        "per_day": None,
         "total": total_sections,
         "total_count": total_count,
         "fresh_count": fresh_count,
     }
-
-
-def _parse_and_accumulate_ingredient(ing_str: str, day_sections: dict, total_by_section: dict) -> None:
-    """Parse an ingredient string and accumulate to day and total sections."""
-    parts = ing_str.split(" — ")
-    if len(parts) < 2:
-        return
-    ing_name = parts[0].strip()
-    amount_str = parts[1].split(" (")[0].strip()
-
-    try:
-        qty_str = amount_str.replace(",", ".").split(" ")[0]
-        qty = float(qty_str)
-    except (ValueError, IndexError):
-        qty = 0.0
-
-    unit = " ".join(amount_str.split(" ")[1:]) if " " in amount_str else ""
-
-    section_name = "Sonstiges"
-    fresh = False
-
-    day_sections[section_name][ing_name]["total"] += qty
-    day_sections[section_name][ing_name]["unit"] = unit
-    day_sections[section_name][ing_name]["fresh"] = fresh
-
-    total_by_section[section_name][ing_name]["total"] += qty
-    total_by_section[section_name][ing_name]["unit"] = unit
-    total_by_section[section_name][ing_name]["fresh"] = fresh
 
 
 def _build_allergen_matrix(meals) -> dict | None:
@@ -413,23 +388,25 @@ def _build_nutrition_table(meals, group_members: list[dict]) -> list[dict]:
         fat_delta = fat_ist - fat_soll
         carbs_delta = carbs_ist - carbs_soll
 
-        result.append({
-            "label": day["label"],
-            "nutrition": {
-                "energy_soll": _format_decimal(energy_soll, 0),
-                "energy_ist": _format_decimal(energy_ist, 0),
-                "energy_delta": int(energy_delta),
-                "protein_soll": _format_decimal(protein_soll, 1),
-                "protein_ist": _format_decimal(protein_ist, 1),
-                "protein_delta": int(protein_delta),
-                "fat_soll": _format_decimal(fat_soll, 1),
-                "fat_ist": _format_decimal(fat_ist, 1),
-                "fat_delta": int(fat_delta),
-                "carbs_soll": _format_decimal(carbs_soll, 1),
-                "carbs_ist": _format_decimal(carbs_ist, 1),
-                "carbs_delta": int(carbs_delta),
-            },
-        })
+        result.append(
+            {
+                "label": day["label"],
+                "nutrition": {
+                    "energy_soll": _format_decimal(energy_soll, 0),
+                    "energy_ist": _format_decimal(energy_ist, 0),
+                    "energy_delta": int(energy_delta),
+                    "protein_soll": _format_decimal(protein_soll, 1),
+                    "protein_ist": _format_decimal(protein_ist, 1),
+                    "protein_delta": int(protein_delta),
+                    "fat_soll": _format_decimal(fat_soll, 1),
+                    "fat_ist": _format_decimal(fat_ist, 1),
+                    "fat_delta": int(fat_delta),
+                    "carbs_soll": _format_decimal(carbs_soll, 1),
+                    "carbs_ist": _format_decimal(carbs_ist, 1),
+                    "carbs_delta": int(carbs_delta),
+                },
+            }
+        )
 
     return result
 
@@ -470,7 +447,7 @@ def generate_meal_plan_pdf(
     """Generate a PDF for a meal plan."""
     days = _build_meal_context(meal_plan)
     group_members = _build_group_member_context(meal_plan)
-    shopping_list = _aggregate_shopping_list(days)
+    shopping_list = _aggregate_shopping_list(meal_plan)
     allergen_matrix = _build_allergen_matrix(days)
     nutrition_data = _build_nutrition_table(days, group_members)
 

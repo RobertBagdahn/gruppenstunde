@@ -204,17 +204,23 @@ class TestExclusions:
         assert len(result.days) == 0
         assert result.excluded_meal_count == 1
 
-    def test_excludes_meal_items_without_recipe(self):
-        """MealItems ohne Rezept (z.B. Zutaten-Items) erscheinen nicht im Kochplan."""
-        plan = make_meal_plan()
+    def test_includes_direct_ingredient_items(self):
+        """MealItems ohne Rezept (Zutaten-Items) erscheinen als eigener Block im Kochplan."""
+        plan = make_meal_plan(norm_portions=4)
         serving = timezone.make_aware(datetime.datetime(2026, 8, 1, 12, 0))
         meal = make_meal(meal_plan=plan, start_datetime=serving)
         # MealItem ohne Rezept (ingredient-only)
-        ingredient = baker.make("supply.Ingredient", name="Salz")
+        ingredient = baker.make("supply.Ingredient", name="Salz", energy_kcal=0.0)
         baker.make("planner.MealItem", meal=meal, recipe=None, ingredient=ingredient, factor=1.0)
 
         result = build_cooking_schedule(plan)
-        assert len(result.days) == 0
+        assert len(result.days) == 1
+        day = result.days[0]
+        direct_block = next(rb for m in day.meals for rb in m.recipe_blocks if rb.recipe_slug == "direkte-zutaten")
+        assert direct_block.recipe_title == "Direkte Zutaten"
+        assert len(direct_block.variants) == 1
+        assert len(direct_block.variants[0].ingredients) == 1
+        assert direct_block.variants[0].ingredients[0].name == "Salz"
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 """Tests for AI recipe creation endpoint."""
 
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -75,10 +75,12 @@ class TestAiCreateEndpoint:
         data = resp.json()
         assert data["title"] == "Nudelauflauf"
         assert data["recipe_type"] == "warm_meal"
-        assert data["portions"] == 4
+        assert data["portions"] == 1
+        assert data["input_servings"] == 4
         assert data["status"] == "draft"
         assert len(data["recipe_items"]) == 4
         assert data["recipe_items"][0]["ingredient_name"] == "Nudeln"
+        assert data["recipe_items"][0]["quantity"] == 125
 
         recipe = Recipe.objects.get(id=data["id"])
         assert recipe.owner == auth_client._user

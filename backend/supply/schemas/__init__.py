@@ -2,6 +2,7 @@
 
 from .ingredients import (
     AiApplyIn,
+    AiApplyOut,
     AliasCreateIn,
     IngredientAiCreateIn,
     IngredientAiSuggestOut,
@@ -15,6 +16,7 @@ from .ingredients import (
     IngredientNutritionDraftOut,
     IngredientSimilarOut,
     IngredientSuggestAllOut,
+    IngredientSuggestionOut,
     IngredientUpdateIn,
     PackageApplySuggestionIn,
     PackageCreateIn,
@@ -29,6 +31,7 @@ from .ingredients import (
     PortionReorderIn,
     PortionSuggestionOut,
     PortionUpdateIn,
+    SharedGroupOut,
 )
 from .materials import (
     ContentMaterialItemIn,
@@ -58,28 +61,31 @@ from .reference import (
     RetailSectionOut,
     RetailSectionUpdateIn,
 )
+from .unit_conversion import UnitConversionResultOut
 
 __all__ = [
     "AiApplyIn",
+    "AiApplyOut",
     "AliasCreateIn",
     "ContentMaterialItemIn",
     "ContentMaterialItemOut",
     "DgeReferencePointOut",
     "EquipmentIn",
     "EquipmentOut",
-    "IngredientGroupOut",
     "IngredientAiCreateIn",
     "IngredientAiSuggestOut",
     "IngredientAliasOut",
     "IngredientCreateIn",
     "IngredientDetailOut",
     "IngredientDraftOut",
+    "IngredientGroupOut",
     "IngredientImportUrlIn",
     "IngredientImportUrlOut",
     "IngredientListOut",
     "IngredientNutritionDraftOut",
     "IngredientSimilarOut",
     "IngredientSuggestAllOut",
+    "IngredientSuggestionOut",
     "IngredientUpdateIn",
     "MaterialCreateIn",
     "MaterialListOut",
@@ -110,4 +116,6 @@ __all__ = [
     "RetailSectionIn",
     "RetailSectionOut",
     "RetailSectionUpdateIn",
+    "SharedGroupOut",
+    "UnitConversionResultOut",
 ]

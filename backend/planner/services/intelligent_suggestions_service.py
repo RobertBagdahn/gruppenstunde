@@ -9,12 +9,10 @@ Provides the IntelligentSuggestionsService which:
 
 from __future__ import annotations
 
-import datetime as dt
 import logging
-from collections import Counter
 from typing import TYPE_CHECKING
 
-from django.db.models import Count, Max, Q
+from django.db.models import Max, Q
 from django.utils import timezone
 from ninja.errors import HttpError
 
@@ -22,14 +20,15 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
 
     from planner.models import Meal, MealPlan
+    from recipe.models import Recipe
 
 logger = logging.getLogger(__name__)
 
 # Meal type → allowed recipe types mapping
 MEAL_TYPE_TO_RECIPE_TYPES: dict[str, list[str]] = {
     "breakfast": ["breakfast", "drink", "dessert"],
-    "lunch": ["warm_meal", "cold_meal", "soup", "salad", "side", "drink"],
-    "dinner": ["warm_meal", "cold_meal", "soup", "salad", "side", "drink"],
+    "lunch": ["warm_meal", "cold_meal", "drink"],
+    "dinner": ["warm_meal", "cold_meal", "drink"],
     "snack": ["snack", "drink", "dessert"],
 }
 
@@ -60,11 +59,7 @@ class ScoredRecipe:
 
     def compute_total(self) -> None:
         self.total_score = (
-            self.season_score
-            + self.popularity_score
-            + self.variety_score
-            + self.recency_score
-            + self.budget_score
+            self.season_score + self.popularity_score + self.variety_score + self.recency_score + self.budget_score
         )
 
     def set_reason(self) -> None:
@@ -203,9 +198,11 @@ class IntelligentSuggestionsService:
         """Proportion of recipe ingredients in season this month (0.0-1.0)."""
         from recipe.models import RecipeItem
 
-        items = RecipeItem.objects.filter(recipe=recipe, portion__isnull=False).exclude(
-            portion__ingredient__isnull=True
-        ).select_related("portion__ingredient")
+        items = (
+            RecipeItem.objects.filter(recipe=recipe, portion__isnull=False)
+            .exclude(portion__ingredient__isnull=True)
+            .select_related("portion__ingredient")
+        )
 
         if not items:
             return 0.0
@@ -233,9 +230,7 @@ class IntelligentSuggestionsService:
             self._usage_count_max = agg["max_usage"] or 1
 
             all_counts = list(
-                Recipe.objects.filter(status="approved")
-                .values_list("usage_count", flat=True)
-                .order_by("usage_count")
+                Recipe.objects.filter(status="approved").values_list("usage_count", flat=True).order_by("usage_count")
             )
             n = len(all_counts)
             self._usage_percentiles = {}
@@ -453,11 +448,7 @@ class IntelligentSuggestionsService:
         meals_qs = self.meal_plan.meals.filter(is_reference=False).order_by("start_datetime")
         for m in meals_qs:
             date_str = m.start_datetime.strftime("%a %d.%m.") if m.start_datetime else "?"
-            item_titles = [
-                item.recipe.title
-                for item in m.items.select_related("recipe").all()
-                if item.recipe
-            ]
+            item_titles = [item.recipe.title for item in m.items.select_related("recipe").all() if item.recipe]
             items_str = ", ".join(item_titles) if item_titles else "(leer)"
             parts.append(f"- {date_str} {m.get_meal_type_display()}: {items_str}")
         parts.append("")
@@ -545,9 +536,7 @@ class IntelligentSuggestionsService:
     # Public API
     # ------------------------------------------------------------------
 
-    def get_suggestions(
-        self, context_enhance: bool = True
-    ) -> dict[str, list[dict]]:
+    def get_suggestions(self, context_enhance: bool = True) -> dict[str, list[dict]]:
         """Generate 9 categorized recipe suggestions.
 
         When context_enhance is True (default), Gemini receives enriched context
@@ -600,9 +589,7 @@ class IntelligentSuggestionsService:
             "ai_enhanced": False,
         }
 
-    def _categorize_from_ai_result(
-        self, reranked: list[ScoredRecipe]
-    ) -> dict[str, list[ScoredRecipe]]:
+    def _categorize_from_ai_result(self, reranked: list[ScoredRecipe]) -> dict[str, list[ScoredRecipe]]:
         """Categorize AI-reranked results by their reason_text category assignment."""
         result: dict[str, list[ScoredRecipe]] = {
             "top_picks": [],
@@ -618,9 +605,7 @@ class IntelligentSuggestionsService:
                 result["discovery"].append(sr)
         return result
 
-    def _to_dict(
-        self, categorized: dict[str, list[ScoredRecipe]], ai_enhanced: bool
-    ) -> dict[str, list[dict]]:
+    def _to_dict(self, categorized: dict[str, list[ScoredRecipe]], ai_enhanced: bool) -> dict[str, list[dict]]:
         """Convert ScoredRecipe objects to serializable dicts."""
         result: dict[str, list[dict]] = {}
         for category, recipes in categorized.items():

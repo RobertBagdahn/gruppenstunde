@@ -3,6 +3,7 @@
 import math
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -62,8 +63,9 @@ def _require_auth(request) -> None:
 def _get_user_role(shopping_list: ShoppingList, user) -> str | None:
     """Return the effective role of a user for a shopping list.
 
-    Returns 'owner' for the list owner, or the collaborator role string,
-    or None if the user has no access.
+    Returns 'owner' for the list owner, the collaborator role string,
+    or None if the user has no access. Staff has full admin/owner access
+    unless a specific collaborator role is set.
     """
     if shopping_list.owner_id == user.id:
         return "owner"
@@ -71,6 +73,8 @@ def _get_user_role(shopping_list: ShoppingList, user) -> str | None:
         collab = ShoppingListCollaborator.objects.get(shopping_list=shopping_list, user=user)
         return collab.role
     except ShoppingListCollaborator.DoesNotExist:
+        if getattr(user, "is_staff", False):
+            return "owner"
         return None
 
 
@@ -100,7 +104,7 @@ def _require_admin(shopping_list: ShoppingList, user) -> str:
 
 def _require_owner(shopping_list: ShoppingList, user) -> None:
     """Require owner access."""
-    if shopping_list.owner_id != user.id:
+    if shopping_list.owner_id != user.id and not getattr(user, "is_staff", False):
         raise HttpError(403, "Nur der Besitzer kann die Liste löschen")
 
 
@@ -220,7 +224,7 @@ def rewe_export_get_list(request, token: str):
         export_items.append(
             ReweExportItem(
                 item_id=item.id,
-                ingredient_name=item.ingredient.name if item.ingredient else item.name,
+                ingredient_name=item.name,
                 nan_art_id_rewe=nan_art_id,
                 order_quantity=order_quantity,
                 unit=unit,
@@ -253,9 +257,7 @@ def rewe_export_report(request, token: str, payload: ReweReportRequest):
     shopping_list = export_token.shopping_list
     now = timezone.now()
 
-    valid_item_ids = set(
-        ShoppingListItem.objects.filter(shopping_list=shopping_list).values_list("id", flat=True)
-    )
+    valid_item_ids = set(ShoppingListItem.objects.filter(shopping_list=shopping_list).values_list("id", flat=True))
 
     successful = []
     ignored = []
@@ -274,8 +276,10 @@ def rewe_export_report(request, token: str, payload: ReweReportRequest):
 def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
     """Compute the order quantity and display unit for REWE export.
 
-    Uses the ingredient's purchasable portion to calculate how many
-    packages are needed (rounding up), or falls back to raw grams.
+    Uses the ingredient's purchasable package to calculate how many
+    packages are needed (rounding up). Small cooking sub-portions
+    (e.g. 1 TL = 5g) are NOT used as package units to avoid runaway
+    order quantities; the export falls back to raw grams instead.
     """
     from supply.utils import format_weight, get_shopping_portion
 
@@ -286,7 +290,16 @@ def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
     if not item.ingredient:
         return quantity_g, item.unit or "g"
 
+    # Prefer the ingredient's rank=1 Package (a real purchasable unit).
     portion = get_shopping_portion(item.ingredient)
+    if portion is None:
+        # Fall back to a shopping-relevant Portion only. Small cooking
+        # portions (<= 20g) are not meaningful package units.
+        portion = item.ingredient.portions.filter(
+            deleted_at__isnull=True,
+            rank=1,
+            weight_g__gt=20,
+        ).first()
     if portion and portion.weight_g and portion.weight_g > 0:
         count = math.ceil(quantity_g / portion.weight_g)
         label = portion.name or "Packung"
@@ -383,21 +396,23 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
         return {"view": "summarized", "groups": list(grouped.values())}
 
     elif view == "by_recipe":
-        # Group by source (note field or manual)
+        # Group by persisted provenance instead of the editable note field.
         by_source: dict[str, list] = {}
         for item in items:
-            source = item.note or "Sonstiges"
-            if source not in by_source:
-                by_source[source] = []
-            by_source[source].append(
-                {
-                    "id": item.id,
-                    "name": item.ingredient.name if item.ingredient else item.name,
-                    "quantity_g": float(item.quantity_g or 0),
-                    "unit": item.unit or "g",
-                    "is_checked": item.is_checked,
-                }
-            )
+            sources = list(item.sources.all()) or [None]
+            for source_obj in sources:
+                source = (
+                    (source_obj.recipe_name or source_obj.meal_label) if source_obj else (item.note or "Sonstiges")
+                ) or ("Direkte Zutat" if source_obj and source_obj.ingredient_id else "Sonstiges")
+                by_source.setdefault(source, []).append(
+                    {
+                        "id": item.id,
+                        "name": item.ingredient.name if item.ingredient else item.name,
+                        "quantity_g": float(source_obj.quantity_g if source_obj else item.quantity_g or 0),
+                        "unit": item.unit or "g",
+                        "is_checked": item.is_checked,
+                    }
+                )
 
         return {"view": "by_recipe", "groups": [{"source": k, "items": v} for k, v in by_source.items()]}
 
@@ -441,10 +456,14 @@ def add_item(request, shopping_list_id: int, payload: ShoppingListItemCreateIn):
     ingredient = None
     if payload.ingredient_id:
         ingredient = Ingredient.objects.filter(id=payload.ingredient_id).first()
+        if ingredient is None:
+            raise HttpError(422, "Zutat nicht gefunden")
 
     retail_section = None
     if payload.retail_section_id:
         retail_section = RetailSection.objects.filter(id=payload.retail_section_id).first()
+        if retail_section is None:
+            raise HttpError(422, "Supermarkt-Abteilung nicht gefunden")
 
     item = ShoppingListItem.objects.create(
         shopping_list=shopping_list,
@@ -627,56 +646,83 @@ def create_from_recipe(request, recipe_id: int, payload: FromRecipeIn):
     """Create a shopping list from a recipe's ingredients."""
     _require_auth(request)
 
-    from recipe.models import Recipe
+    from content.services.food_access import get_visible_recipe_or_404
+    from planner.services.calculation_context import resolve_active_recipe_items
 
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+    recipe = get_visible_recipe_or_404(request.user, recipe_id)
     portions = payload.portions
+    active_items = {item.recipe_item.id: item for item in resolve_active_recipe_items(recipe)}
 
-    shopping_list = ShoppingList.objects.create(
-        name=f"Einkaufsliste: {recipe.title}",
-        owner=request.user,
-        source_type=SourceType.RECIPE,
-        source_id=recipe.id,
-    )
+    with transaction.atomic():
+        shopping_list = ShoppingList.objects.create(
+            name=f"Einkaufsliste: {recipe.title}",
+            owner=request.user,
+            source_type=SourceType.RECIPE,
+            source_id=recipe.id,
+        )
 
-    recipe_items = recipe.recipe_items.select_related(
-        "portion__ingredient__retail_section",
-    )
+        recipe_items = recipe.recipe_items.select_related(
+            "portion__ingredient__retail_section",
+            "portion__measuring_unit",
+        )
 
-    for sort_idx, ri in enumerate(recipe_items):
-        if not ri.portion or not ri.portion.ingredient:
-            # Free-text items without linked ingredient
-            ShoppingListItem.objects.create(
+        sort_idx = 0
+        for ri in recipe_items:
+            if ri.portion is None:
+                ShoppingListItem.objects.create(
+                    shopping_list=shopping_list,
+                    name=ri.note or "Unbekannte Zutat",
+                    quantity_g=0,
+                    note="Gewicht unbekannt",
+                    sort_order=sort_idx,
+                )
+                sort_idx += 1
+                continue
+
+            active_item = active_items.get(ri.id)
+            if not active_item:
+                continue
+
+            if not ri.portion or not ri.portion.ingredient:
+                ShoppingListItem.objects.create(
+                    shopping_list=shopping_list,
+                    name=ri.note or "Unbekannte Zutat",
+                    quantity_g=0,
+                    unit=ri.portion.measuring_unit.name if ri.portion else "",
+                    note=f"Menge: {active_item.quantity:g}; Gewicht unbekannt",
+                    sort_order=sort_idx,
+                )
+                sort_idx += 1
+                continue
+
+            ing = ri.portion.ingredient
+            recipe_servings = getattr(recipe, "portions", 1) or 1
+            weight_g = (active_item.weight_g or 0) * portions / recipe_servings
+            note = ""
+            if active_item.weight_g is None:
+                note = f"Menge: {active_item.quantity:g} {ri.portion.measuring_unit.name}; Gewicht unbekannt"
+
+            item = ShoppingListItem.objects.create(
                 shopping_list=shopping_list,
-                name=ri.note or "Unbekannte Zutat",
-                quantity_g=0,
+                ingredient=ing,
+                name=ing.name,
+                quantity_g=weight_g,
+                unit="g" if active_item.weight_g is not None else ri.portion.measuring_unit.name,
+                note=note,
+                retail_section=ing.retail_section,
                 sort_order=sort_idx,
             )
-            continue
 
-        ing = ri.portion.ingredient
-        recipe_servings = getattr(recipe, "portions", 1) or 1
-        weight_g = ri.quantity * (ri.portion.weight_g or 0) * portions / recipe_servings
-
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            ingredient=ing,
-            name=ing.name,
-            quantity_g=weight_g,
-            unit="g",
-            retail_section=ing.retail_section,
-            sort_order=sort_idx,
-        )
-
-        # Create single source for this recipe
-        ShoppingListItemSource.objects.create(
-            shopping_list_item=item,
-            recipe=recipe,
-            quantity_g=weight_g,
-            recipe_name=recipe.title,
-            recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
-            meal_label="",
-        )
+            ShoppingListItemSource.objects.create(
+                shopping_list_item=item,
+                recipe=recipe,
+                ingredient=ing,
+                quantity_g=weight_g,
+                recipe_name=recipe.title,
+                recipe_slug=recipe.slug if hasattr(recipe, "slug") else "",
+                meal_label="",
+            )
+            sort_idx += 1
 
     # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True
@@ -692,53 +738,66 @@ def create_from_meal_plan(request, meal_plan_id: int):
     from planner.models import MealPlan
 
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    from planner.api.meal_plan import _require_access
+
+    _require_access(meal_plan, request.user)
 
     from supply.services.shopping_service import generate_shopping_list
 
     transient_items = generate_shopping_list(meal_plan)
 
-    shopping_list = ShoppingList.objects.create(
-        name=f"Einkaufsliste: {meal_plan.name}",
-        owner=request.user,
-        source_type=SourceType.MEAL_EVENT,
-        source_id=meal_plan.id,
-    )
-
     from recipe.models import Recipe as RecipeModel
     from supply.models.ingredient import Ingredient
 
-    for sort_idx, ti in enumerate(transient_items):
-        # Try to resolve ingredient and its retail section
-        ingredient = None
-        retail_section = None
-        try:
-            ingredient = Ingredient.objects.get(id=ti.ingredient_id)
-            retail_section = ingredient.retail_section
-        except Ingredient.DoesNotExist:
-            pass
-
-        item = ShoppingListItem.objects.create(
-            shopping_list=shopping_list,
-            ingredient=ingredient,
-            name=ti.ingredient_name,
-            quantity_g=ti.total_quantity_g,
-            unit=ti.unit,
-            retail_section=retail_section,
-            sort_order=sort_idx,
+    with transaction.atomic():
+        shopping_list = ShoppingList.objects.create(
+            name=f"Einkaufsliste: {meal_plan.name}",
+            owner=request.user,
+            source_type=SourceType.MEAL_EVENT,
+            source_id=meal_plan.id,
         )
 
-        # Persist sources
-        if ti.sources:
-            for source in ti.sources:
-                recipe_obj = RecipeModel.objects.filter(id=source.recipe_id).first()
-                ShoppingListItemSource.objects.create(
-                    shopping_list_item=item,
-                    recipe=recipe_obj,
-                    quantity_g=source.quantity_g,
-                    recipe_name=source.recipe_name,
-                    recipe_slug=source.recipe_slug,
-                    meal_label=source.meal_label,
-                )
+        for sort_idx, ti in enumerate(transient_items):
+            # Try to resolve ingredient and its retail section
+            ingredient = None
+            retail_section = None
+            try:
+                ingredient = Ingredient.objects.get(id=ti.ingredient_id)
+                retail_section = ingredient.retail_section
+            except Ingredient.DoesNotExist:
+                pass
+
+            item = ShoppingListItem.objects.create(
+                shopping_list=shopping_list,
+                ingredient=ingredient,
+                name=ti.ingredient_name,
+                quantity_g=ti.total_quantity_g,
+                unit=ti.unit,
+                note=ti.display_text if not ti.total_quantity_g and ti.display_text else "",
+                retail_section=retail_section,
+                sort_order=sort_idx,
+            )
+
+            # Persist sources
+            if ti.sources:
+                for source in ti.sources:
+                    recipe_obj = RecipeModel.objects.filter(id=source.recipe_id).first() if source.recipe_id else None
+                    meal_obj = meal_plan.meals.filter(id=source.meal_id).first() if source.meal_id else None
+                    ingredient_obj = (
+                        Ingredient.objects.filter(id=source.ingredient_id).first()
+                        if source.ingredient_id
+                        else ingredient
+                    )
+                    ShoppingListItemSource.objects.create(
+                        shopping_list_item=item,
+                        recipe=recipe_obj,
+                        meal=meal_obj,
+                        ingredient=ingredient_obj,
+                        quantity_g=source.quantity_g,
+                        recipe_name=source.recipe_name,
+                        recipe_slug=source.recipe_slug,
+                        meal_label=source.meal_label,
+                    )
 
     # Attach can_edit and is_owner for the response
     shopping_list._can_edit = True

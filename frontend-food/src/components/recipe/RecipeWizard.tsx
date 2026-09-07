@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { useCreateRecipe } from '@/api/recipes';
+import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
 
 import WizardStepMethod, { type WizardStepMethodHandle } from './WizardStepMethod';
 import WizardStepIngredients from './WizardStepIngredients';
+import type { WizardStepIngredientsHandle } from './WizardStepIngredients';
+import type { DraftCreationResult, DraftIngredientItem } from './InlineIngredientEditor';
 import WizardStepMetadata from './WizardStepMetadata';
 import WizardStepSteps from './WizardStepSteps';
+import type { WizardStepStepsHandle } from './WizardStepSteps';
 import WizardStepPreview, { type WizardStepPreviewHandle } from './WizardStepPreview';
 
 type CreationMethod = 'manual' | 'ai' | 'url' | null;
@@ -17,6 +21,8 @@ interface WizardState {
   recipeId: number | null;
   recipeSlug: string | null;
   creationMethod: CreationMethod;
+  inputServings: number | null;
+  inputItemsAreContextual: boolean;
 }
 
 const STEP_LABELS = ['Methode', 'Zutaten', 'Metadaten', 'Schritte', 'Vorschau'];
@@ -72,6 +78,7 @@ function validateStep(state: WizardState, hasTitle: boolean, hasRecipeType: bool
 }
 
 export interface MetadataSnapshot {
+  summary: string;
   description: string;
   difficulty: string;
   executionTime: string;
@@ -87,6 +94,33 @@ function getCsrfToken(): string {
   return cookie ? cookie.split('=')[1] : '';
 }
 
+export function formatSaveError(body: unknown): string {
+  if (body && typeof body === 'object' && 'msg' in body) {
+    const message = (body as { msg?: unknown }).msg;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  if (typeof body === 'string' && body.trim()) return body;
+  if (Array.isArray(body)) {
+    const messages = body.map(formatSaveError).filter(Boolean);
+    if (messages.length > 0) return messages.join(', ');
+  }
+  if (body && typeof body === 'object') {
+    const record = body as Record<string, unknown>;
+    for (const key of ['detail', 'message', 'errors']) {
+      const message = formatSaveError(record[key]);
+      if (message) return message;
+    }
+    const fields = Object.entries(record)
+      .map(([field, value]) => {
+        const message = formatSaveError(value);
+        return message ? `${field}: ${message}` : '';
+      })
+      .filter(Boolean);
+    if (fields.length > 0) return fields.join('; ');
+  }
+  return 'Speichern fehlgeschlagen';
+}
+
 export default function RecipeWizard() {
   const navigate = useNavigate();
   const createRecipe = useCreateRecipe();
@@ -96,12 +130,15 @@ export default function RecipeWizard() {
     recipeId: null,
     recipeSlug: null,
     creationMethod: null,
+    inputServings: null,
+        inputItemsAreContextual: false,
   });
 
   const [stepTitle, setStepTitle] = useState('');
   const [stepRecipeType, setStepRecipeType] = useState<string | null>(null);
 
   const metadataRef = useRef<MetadataSnapshot>({
+    summary: '',
     description: '',
     difficulty: '',
     executionTime: '',
@@ -117,16 +154,21 @@ export default function RecipeWizard() {
   const [isSaving, setIsSaving] = useState(false);
   const methodStepRef = useRef<WizardStepMethodHandle>(null);
   const previewStepRef = useRef<WizardStepPreviewHandle>(null);
+  const ingredientsStepRef = useRef<WizardStepIngredientsHandle>(null);
+  const stepsStepRef = useRef<WizardStepStepsHandle>(null);
+  const createdManualRecipeRef = useRef<{ recipeId: number; recipeSlug: string } | null>(null);
 
   const saveRecipe = useCallback(async (recipeId: number, body: Record<string, unknown>) => {
-    const url = `/api/recipes/${recipeId}/`;
-    const res = await fetch(url, {
+    const res = await fetchWithCsrf(`${API_BASE_URL}/api/recipes/${recipeId}/`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
       credentials: 'include',
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error('Speichern fehlgeschlagen');
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(formatSaveError(body));
+    }
   }, []);
 
   const handleNext = useCallback(async () => {
@@ -145,38 +187,38 @@ export default function RecipeWizard() {
           setIsSaving(false);
           return;
         }
-        if (state.creationMethod === 'manual' && !state.recipeId) {
-          const recipe = await createRecipe.mutateAsync({
-            title: stepTitle || 'Neues Rezept',
-            recipe_type: stepRecipeType || 'warm_meal',
-            portions: 1,
-          });
-          updateState({ recipeId: recipe.id, recipeSlug: recipe.slug });
-        }
       }
 
-      if (state.currentStep === 1 && state.recipeId) {
+      if (state.currentStep === 1) {
+        if (!(await (ingredientsStepRef.current?.save() ?? Promise.resolve(false)))) {
+          setIsSaving(false);
+          return;
+        }
+        const createdRecipe = createdManualRecipeRef.current;
+        const activeRecipeId = state.recipeId ?? createdRecipe?.recipeId ?? null;
         const body: Record<string, unknown> = {};
         if (stepTitle) body.title = stepTitle;
         if (stepRecipeType) body.recipe_type = stepRecipeType;
-        if (Object.keys(body).length > 0) {
-          await saveRecipe(state.recipeId, body);
-        }
+        if (activeRecipeId) await saveRecipe(activeRecipeId, body);
       }
 
       if (state.currentStep === 2 && state.recipeId) {
         const meta = metadataRef.current;
         const body: Record<string, unknown> = {};
-        if (meta.description) body.description = meta.description;
-        if (meta.difficulty) body.difficulty = meta.difficulty;
-        if (meta.executionTime) body.execution_time = meta.executionTime;
-        if (meta.preparationTime) body.preparation_time = meta.preparationTime;
-        if (meta.visibility) body.visibility = meta.visibility;
-        if (meta.selectedTagSlugs.length > 0) {
-          body.tag_ids = meta.selectedTagSlugs;
-        }
-        if (Object.keys(body).length > 0) {
-          await saveRecipe(state.recipeId, body);
+        body.summary = meta.summary;
+        body.description = meta.description;
+        body.difficulty = meta.difficulty;
+        body.execution_time = meta.executionTime;
+        body.preparation_time = meta.preparationTime;
+        body.tag_ids = meta.selectedTagSlugs;
+        body.visibility = meta.visibility;
+        await saveRecipe(state.recipeId, body);
+      }
+
+      if (state.currentStep === 3) {
+        if (!(await (stepsStepRef.current?.save() ?? Promise.resolve(true)))) {
+          setIsSaving(false);
+          return;
         }
       }
     } catch (err) {
@@ -188,12 +230,47 @@ export default function RecipeWizard() {
     }
 
     setIsSaving(false);
-    setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
-  }, [state, stepTitle, stepRecipeType, createRecipe, updateState, saveRecipe]);
+    setState((prev) => ({
+      ...prev,
+      ...(createdManualRecipeRef.current && prev.recipeId === null
+        ? createdManualRecipeRef.current
+        : {}),
+      currentStep: prev.currentStep + 1,
+    }));
+  }, [state, stepTitle, stepRecipeType, saveRecipe, createdManualRecipeRef]);
 
-  const handleBack = useCallback(() => {
-    setState((prev) => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }));
-  }, []);
+  const handleBack = useCallback(async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      if (state.currentStep === 1 && state.recipeId) {
+        const saved = await (ingredientsStepRef.current?.save() ?? Promise.resolve(true));
+        if (!saved) return;
+        await saveRecipe(state.recipeId, { title: stepTitle, recipe_type: stepRecipeType });
+      }
+      if (state.currentStep === 2 && state.recipeId) {
+        const meta = metadataRef.current;
+        await saveRecipe(state.recipeId, {
+          summary: meta.summary,
+          description: meta.description,
+          difficulty: meta.difficulty,
+          execution_time: meta.executionTime,
+          preparation_time: meta.preparationTime,
+          tag_ids: meta.selectedTagSlugs,
+          visibility: meta.visibility,
+        });
+      }
+      if (state.currentStep === 3) {
+        const saved = await (stepsStepRef.current?.save() ?? Promise.resolve(true));
+        if (!saved) return;
+      }
+      setState((prev) => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }));
+    } catch (err) {
+      toast.error('Speichern fehlgeschlagen', { description: err instanceof Error ? err.message : 'Unbekannter Fehler' });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isSaving, state.currentStep, state.recipeId, stepTitle, stepRecipeType, saveRecipe]);
 
   const handleFinish = useCallback(async () => {
     setIsSaving(true);
@@ -202,13 +279,45 @@ export default function RecipeWizard() {
     return success;
   }, []);
 
-  const handleCreated = useCallback((recipeId: number, recipeSlug: string) => {
-    updateState({ recipeId, recipeSlug });
+  const handleCreated = useCallback((
+    recipeId: number,
+    recipeSlug: string,
+    inputServings?: number | null,
+    inputItemsAreContextual = false,
+  ) => {
+    updateState({
+      recipeId,
+      recipeSlug,
+      inputServings: inputServings ?? null,
+      inputItemsAreContextual,
+    });
   }, [updateState]);
+
+  const handleCreateManualDraft = useCallback(async (items: DraftIngredientItem[]): Promise<DraftCreationResult | null> => {
+    try {
+      const recipe = await createRecipe.mutateAsync({
+        title: stepTitle.trim(),
+        recipe_type: stepRecipeType ?? 'warm_meal',
+        portions: 1,
+        recipe_items: items,
+      });
+      updateState({ recipeId: recipe.id, recipeSlug: recipe.slug });
+      createdManualRecipeRef.current = { recipeId: recipe.id, recipeSlug: recipe.slug };
+      return { recipeId: recipe.id, recipeSlug: recipe.slug, items: recipe.recipe_items };
+    } catch (err) {
+      toast.error('Rezept konnte nicht angelegt werden', {
+        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
+      });
+      return null;
+    }
+  }, [createRecipe, stepRecipeType, stepTitle, updateState]);
 
   const handleMetadataChange = useCallback((snapshot: MetadataSnapshot) => {
     metadataRef.current = snapshot;
   }, []);
+
+  const activeRecipeId = state.recipeId ?? createdManualRecipeRef.current?.recipeId ?? null;
+  const activeRecipeSlug = state.recipeSlug ?? createdManualRecipeRef.current?.recipeSlug ?? null;
 
   const stepComponents: Record<number, ReactNode> = {
     0: (
@@ -222,41 +331,42 @@ export default function RecipeWizard() {
         onRecipeTypeChange={setStepRecipeType}
       />
     ),
-    1: state.recipeId && state.recipeSlug ? (
+    1: (
       <WizardStepIngredients
+        ref={ingredientsStepRef}
         recipeId={state.recipeId}
-        recipeSlug={state.recipeSlug}
+        recipeSlug={state.recipeSlug ?? ''}
         creationMethod={state.creationMethod}
         onIngredientsCountChange={() => {}}
         onTitleChange={setStepTitle}
         onRecipeTypeChange={setStepRecipeType}
         title={stepTitle}
         recipeType={stepRecipeType}
+        initialInputPortions={state.inputServings}
+        initialItemsAreContextual={state.inputItemsAreContextual}
+        onCreateDraft={state.creationMethod === 'manual' ? handleCreateManualDraft : undefined}
       />
-    ) : (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        Erstelle dein Rezept...
-      </div>
     ),
-    2: state.recipeId && state.recipeSlug ? (
+    2: activeRecipeId && activeRecipeSlug ? (
       <WizardStepMetadata
-        recipeId={state.recipeId}
-        recipeSlug={state.recipeSlug}
+        recipeId={activeRecipeId}
+        recipeSlug={activeRecipeSlug}
         onDataChange={handleMetadataChange}
         initialData={metadataRef.current}
       />
     ) : null,
-    3: state.recipeSlug ? (
+    3: activeRecipeSlug ? (
       <WizardStepSteps
-        recipeSlug={state.recipeSlug}
+        ref={stepsStepRef}
+        recipeSlug={activeRecipeSlug}
       />
     ) : null,
-    4: state.recipeSlug ? (
+    4: activeRecipeSlug ? (
       <WizardStepPreview
         ref={previewStepRef}
-        recipeSlug={state.recipeSlug}
+        recipeSlug={activeRecipeSlug}
         onFinish={() => {
-          if (state.recipeSlug) navigate(`/recipes/${state.recipeSlug}`);
+          if (activeRecipeSlug) navigate(`/recipes/${activeRecipeSlug}`);
         }}
       />
     ) : null,
@@ -282,6 +392,7 @@ export default function RecipeWizard() {
               type="button"
               onClick={handleBack}
               disabled={isSaving}
+              data-testid="recipe-wizard-back"
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -294,6 +405,7 @@ export default function RecipeWizard() {
             type="button"
             onClick={handleNext}
             disabled={isSaving}
+            data-testid="recipe-wizard-next"
             className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
           >
             {isSaving ? 'Speichert...' : (
@@ -309,6 +421,7 @@ export default function RecipeWizard() {
             type="button"
             onClick={handleFinish}
             disabled={isSaving}
+            data-testid="recipe-wizard-finish"
             className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
           >
             {isSaving ? 'Speichert...' : (

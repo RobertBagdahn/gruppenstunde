@@ -1,10 +1,15 @@
-import { useEffect } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useRecipeBySlug } from '@/api/recipes';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 import InlineIngredientEditor from './InlineIngredientEditor';
+import type { InlineIngredientEditorHandle } from './InlineIngredientEditor';
+import type { DraftCreationResult, DraftIngredientItem } from './InlineIngredientEditor';
+import RecipeServingContextSelector from './RecipeServingContextSelector';
+import { normalizeServingContext } from '@/lib/cookingQuantityScale';
+import { toast } from 'sonner';
 
 interface WizardStepIngredientsProps {
-  recipeId: number;
+  recipeId: number | null;
   recipeSlug: string;
   creationMethod: 'manual' | 'ai' | 'url' | null;
   onIngredientsCountChange: (count: number) => void;
@@ -12,9 +17,16 @@ interface WizardStepIngredientsProps {
   onRecipeTypeChange: (type: string | null) => void;
   title: string;
   recipeType: string | null;
+  initialInputPortions?: number | null;
+  initialItemsAreContextual?: boolean;
+  onCreateDraft?: (items: DraftIngredientItem[]) => Promise<DraftCreationResult | null>;
 }
 
-export default function WizardStepIngredients({
+export interface WizardStepIngredientsHandle {
+  save: () => Promise<boolean>;
+}
+
+const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStepIngredientsProps>(function WizardStepIngredients({
   recipeId,
   recipeSlug,
   creationMethod: _creationMethod,
@@ -23,10 +35,30 @@ export default function WizardStepIngredients({
   onRecipeTypeChange,
   title,
   recipeType,
-}: WizardStepIngredientsProps) {
+  initialInputPortions,
+  initialItemsAreContextual = false,
+  onCreateDraft,
+}: WizardStepIngredientsProps, ref) {
   const { data: recipe, isLoading } = useRecipeBySlug(recipeSlug);
   const items = recipe?.recipe_items ?? [];
   const portions = recipe?.portions ?? 1;
+  const editorRef = useRef<InlineIngredientEditorHandle>(null);
+  const [selectionValue, setSelectionValue] = useState(() =>
+    normalizeServingContext(initialInputPortions ?? 1),
+  );
+  const [inputPortions, setInputPortions] = useState<number | null>(() =>
+    initialInputPortions == null ? null : normalizeServingContext(initialInputPortions),
+  );
+
+  useImperativeHandle(ref, () => ({
+    save: () => {
+      if (!editorRef.current) {
+        toast.error('Bitte lege zuerst die Personenzahl fest.');
+        return Promise.resolve(false);
+      }
+      return editorRef.current.save();
+    },
+  }), []);
 
   void _creationMethod;
 
@@ -38,7 +70,7 @@ export default function WizardStepIngredients({
   // load before mounting InlineIngredientEditor — its internal state is only
   // initialized once on mount, so mounting with an empty `items` array (before
   // the fetch resolves) would permanently show an empty ingredient list.
-  if (isLoading || !recipe) {
+  if (recipeId !== null && (isLoading || !recipe)) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         Lade Zutaten...
@@ -93,19 +125,32 @@ export default function WizardStepIngredients({
 
       <div>
         <label className="block text-sm font-medium mb-1.5">Zutaten *</label>
-        <div className="bg-card rounded-xl border">
-          <InlineIngredientEditor
-            recipeId={recipeId}
-            recipeSlug={recipeSlug}
-            items={items}
-            portions={portions}
-            initialEditPortions={1}
-            onClose={() => {}}
-            onSaved={() => {}}
-            onSave={() => {}}
+        {inputPortions === null ? (
+          <RecipeServingContextSelector
+            value={selectionValue}
+            onChange={setSelectionValue}
+            onConfirm={() => setInputPortions(selectionValue)}
           />
-        </div>
+        ) : (
+          <div className="bg-card rounded-xl border">
+            <InlineIngredientEditor
+              ref={editorRef}
+              recipeId={recipeId}
+              recipeSlug={recipeSlug}
+              items={items}
+              portions={portions}
+              inputPortions={inputPortions}
+              itemsAreContextual={initialItemsAreContextual}
+              onClose={() => {}}
+              onSaved={() => {}}
+              onSave={() => {}}
+              onCreateDraft={onCreateDraft}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
-}
+});
+
+export default WizardStepIngredients;

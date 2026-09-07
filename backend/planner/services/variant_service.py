@@ -109,10 +109,13 @@ def _compute_total_with_overrides(
     """
     total = 0.0
     for ri in recipe_items:
-        # Exchange/optional filtering same as standard path
-        if ri.exchange_group_id is not None or ri.is_optional:
-            if ri.id not in active_ids:
+        if ri.exchange_group_id is not None:
+            if active_ids and ri.id not in active_ids:
                 continue
+            if not active_ids and ri.exchange_position != 0:
+                continue
+        elif ri.is_optional and active_ids and ri.id not in active_ids:
+            continue
 
         override = overrides_map.get(ri.id)
         if override and override.excluded:
@@ -172,27 +175,3 @@ def _compute_delta(
         active_value += val
 
     return active_value - default_value
-
-
-def compute_variant_contributions(
-    meal_plan,
-) -> dict[int, float]:
-    """Return total weight-g per RecipeItem summed across all variant items.
-
-    Returns {recipe_item_id: total_weight_g} for the shopping list.
-    """
-    from collections import defaultdict
-
-    contributions: dict[int, float] = defaultdict(float)
-
-    for meal in meal_plan.meals.all():
-        for item in meal.items.filter(recipe__isnull=False).select_related("recipe"):
-            active_ids = list(item.active_recipe_item_ids or [])
-            if not active_ids:
-                continue
-            recipe_items = item.recipe.recipe_items.filter(id__in=active_ids).select_related("portion__ingredient")
-            for ri in recipe_items:
-                weight_g = float(ri.quantity) * (float(ri.portion.weight_g) if ri.portion else 0)
-                contributions[ri.id] += weight_g * item.factor
-
-    return contributions

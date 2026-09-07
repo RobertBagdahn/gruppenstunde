@@ -405,7 +405,7 @@ class Meal(models.Model):
         return f"{date_str} – {self.get_meal_type_display()}"
 
     @property
-    def effective_portions(self) -> int:
+    def effective_portions(self) -> float:
         """Number of people this meal is cooked for.
 
         Uses the meal's ``override_portions`` (e.g. day guests) when set,
@@ -413,8 +413,8 @@ class Meal(models.Model):
         concept all per-meal energy/cost calculations must use.
         """
         if self.override_portions is not None:
-            return self.override_portions
-        return self.meal_plan.norm_portions or 1
+            return float(self.override_portions)
+        return float(self.meal_plan.norm_portions or 1)
 
     def clean(self) -> None:
         """Validate meal constraints."""

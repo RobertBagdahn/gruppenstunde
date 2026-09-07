@@ -312,6 +312,7 @@ function MealPlanListPageInner() {
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
+                aria-label={`Aktionen für ${plan.name}`}
                 className="p-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
                 <MoreVertical className="w-4 h-4" />

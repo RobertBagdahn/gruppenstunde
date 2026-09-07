@@ -1,5 +1,7 @@
 """Nutrition-related schemas (NutriScore, Breakdown, Improvements, Suggestions)."""
 
+from typing import Literal
+
 from ninja import Schema
 
 # --- Nutri Score Schemas ---
@@ -110,10 +112,10 @@ class ImprovementOut(Schema):
     threshold_value: float
     delta: float
     unit: str
-    direction: str  # "reduce" | "increase"
+    direction: Literal["reduce", "increase"]
     impact_score: float  # 0–100
     suggested_ingredients: list[SuggestedIngredientOut]
-    source: str  # "nutri_score" | "recipe_hint" | "merged"
+    source: Literal["nutri_score", "recipe_hint", "merged"]
     recommendation_text: str
 
 
@@ -133,7 +135,7 @@ class LlmSuggestionRequestIn(Schema):
     """Request body for LLM suggestion endpoint."""
 
     objective: str
-    direction: str = "reduce"  # "reduce" | "increase"
+    direction: Literal["reduce", "increase"] = "reduce"
 
 
 class LlmSuggestionOut(Schema):
@@ -155,12 +157,12 @@ class RecipeRuleResult(Schema):
     rule_id: int
     name: str
     parameter: str
-    status: str  # "green" | "yellow" | "red"
+    status: Literal["green", "yellow", "red"]
     value_per_serving: float
     display_value: str | None = None
     unit: str
     threshold: float | None = None
-    threshold_direction: str | None = None  # "min" | "max"
+    threshold_direction: Literal["min", "max"] | None = None
     tip_text: str
 
 

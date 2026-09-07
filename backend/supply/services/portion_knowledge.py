@@ -47,6 +47,7 @@ _DIGIT_RE = re.compile(r"\d")
 class PortionType(str, Enum):
     """Kategorie eines Portionsvorschlags."""
 
+    SYSTEM_GRAMM = "system_gramm"
     REZEPTPORTION = "rezeptportion"
     PACKUNG = "packung"
     BELAG = "belag"
@@ -65,9 +66,7 @@ class PortionSuggestion(BaseModel):
     name: str = Field(description="Name der Portion OHNE Ziffern, z.B. 'Packung', 'Esslöffel', 'Scheibe'")
     weight_g: float = Field(description="Gewicht dieser Portion in Gramm")
     quantity: float = Field(default=1.0, description="Menge in der angegebenen Maßeinheit")
-    measuring_unit_name: str = Field(
-        description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Esslöffel', 'Tasse'"
-    )
+    measuring_unit_name: str = Field(description="Maßeinheit, z.B. 'Gramm', 'Milliliter', 'Esslöffel', 'Tasse'")
     rank: int = Field(default=1, description="Rang (Sortierung) innerhalb der Portionsliste")
     portion_type: PortionType = Field(description="Kategorie: system_gramm/rezeptportion/packung/belag/backmenge")
 

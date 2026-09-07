@@ -18,13 +18,13 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 interface CollaboratorManagerProps {
   listId: number;
   collaborators: ShoppingListCollaborator[];
-  isOwner: boolean;
+  canManage: boolean;
 }
 
 export default function CollaboratorManager({
   listId,
   collaborators,
-  isOwner,
+  canManage,
 }: CollaboratorManagerProps) {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteUserId, setInviteUserId] = useState('');
@@ -100,7 +100,7 @@ export default function CollaboratorManager({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                {isOwner ? (
+                {canManage ? (
                   <select
                     value={collab.role}
                     onChange={(e) =>
@@ -129,7 +129,7 @@ export default function CollaboratorManager({
                   </span>
                 )}
 
-                {isOwner && (
+                {canManage && (
                   <button
                     type="button"
                     onClick={() => setRemoveTarget(collab.id)}
@@ -152,7 +152,7 @@ export default function CollaboratorManager({
       )}
 
       {/* Invite form */}
-      {isOwner && (
+      {canManage && (
         <div>
           {showInvite ? (
             <div className="flex items-end gap-2 p-3 bg-muted/30 rounded-lg border">

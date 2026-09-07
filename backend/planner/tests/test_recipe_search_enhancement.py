@@ -154,3 +154,39 @@ class TestSearchEndpoint:
             data = response.json()
             assert "fallback_applied" in data
             assert "recipes" in data
+
+
+@pytest.mark.django_db
+class TestRecipeSearchContracts:
+    def test_excluded_tags_are_applied_before_limit(self):
+        from django.contrib.auth import get_user_model
+
+        from supply.models import NutritionalTag
+
+        user = get_user_model().objects.create_user(username="search-user", password="pass")
+        excluded = NutritionalTag.objects.create(name="Erdnüsse")
+        blocked = make_recipe(title="Blocked", portions=1, owner=None, status="approved")
+        blocked.nutritional_tags.add(excluded)
+        allowed = make_recipe(title="Allowed", portions=1, owner=None, status="approved")
+
+        client = Client()
+        client.force_login(user)
+        response = client.get(f"/api/meal-plans/recipes/search/?exclude_nutritional_tag_ids={excluded.id}&limit=1")
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.json()["recipes"]] == [allowed.id]
+
+    def test_suggestion_response_uses_image_url(self):
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(username="suggest-user", password="pass")
+        make_recipe(title="Suggestion", portions=1, owner=None, status="approved")
+
+        client = Client()
+        client.force_login(user)
+        response = client.get("/api/meal-plans/recipes/suggestions/?limit=1")
+
+        assert response.status_code == 200
+        if response.json():
+            assert "image_url" in response.json()[0]
+            assert "image_thumbnail" not in response.json()[0]

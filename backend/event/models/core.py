@@ -273,10 +273,10 @@ class Event(models.Model):
         super().save(*args, **kwargs)
 
     def user_can_manage(self, user) -> bool:
-        """Check if a user is a responsible person or staff."""
+        """Check if a user is the creator, responsible, or staff."""
         if user.is_staff:
             return True
-        return self.responsible_persons.filter(pk=user.pk).exists()
+        return self.created_by_id == user.pk or self.responsible_persons.filter(pk=user.pk).exists()
 
     def user_is_invited(self, user) -> bool:
         """Check if user can see and register for this event."""

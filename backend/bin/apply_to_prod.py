@@ -6,6 +6,7 @@ Usage:
 
 Sets DB_HOST=localhost, DB_PORT=5433, DB_NAME=inspi, DB_USER=inspi.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,7 +16,6 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import django
-from django.conf import settings
 
 # ── Target DB config ───────────────────────────────────────────────────
 os.environ.setdefault("DB_HOST", "localhost")
@@ -30,26 +30,32 @@ sys.path.insert(0, str(BASE_DIR))
 django.setup()
 
 from django.core import serializers
-from django.db import connection, transaction
-
+from django.db import connection
 
 IMPORT_ORDER: list[tuple[str, list[str]]] = [
-    ("masterdata", [
-        "content_tag",
-        "content_scoutlevel",
-        "supply_measuringunit",
-        "supply_retailsection",
-        "supply_nutritionaltag",
-    ]),
-    ("food", [
-        "supply_ingredient",
-        "supply_ingredientalias",
-        "supply_portion",
-        "recipe_recipe",
-        "recipe_recipetypestats",
-        "recipe_rule",
-        "recipe_recipeitem",
-    ]),
+    (
+        "masterdata",
+        [
+            "content_tag",
+            "content_scoutlevel",
+            "supply_measuringunit",
+            "supply_retailsection",
+            "supply_nutritionaltag",
+        ],
+    ),
+    (
+        "food",
+        [
+            "supply_ingredient",
+            "supply_ingredientalias",
+            "supply_portion",
+            "supply_package",
+            "recipe_recipe",
+            "recipe_recipetypestats",
+            "recipe_rule",
+            "recipe_recipeitem",
+        ],
+    ),
 ]
 
 ALLOWED_TABLES = {
@@ -61,6 +67,7 @@ ALLOWED_TABLES = {
     "supply_ingredient",
     "supply_ingredientalias",
     "supply_portion",
+    "supply_package",
     "recipe_recipe",
     "recipe_recipetypestats",
     "recipe_rule",
@@ -70,9 +77,10 @@ ALLOWED_TABLES = {
 
 @contextmanager
 def _silence_signals():
+    from django.db.models.signals import post_delete, post_save, pre_save
+
     import recipe.signals  # noqa: F401
     import supply.signals  # noqa: F401
-    from django.db.models.signals import post_delete, post_save, pre_save
 
     signals = [pre_save, post_save, post_delete]
     saved = {}
@@ -90,6 +98,7 @@ def _deduplicate_portions():
     from django.db.models import Count
     from django.db.models.functions import Lower
     from django.utils import timezone
+
     from supply.models.ingredient import Portion
 
     dupes = (
@@ -257,11 +266,13 @@ def main():
     deduped = _deduplicate_portions()
     with connection.cursor() as cursor:
         cursor.execute("DROP INDEX IF EXISTS unique_portion_name_per_ingredient")
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE UNIQUE INDEX unique_portion_name_per_ingredient
             ON supply_portion (LOWER(name), ingredient_id)
             WHERE deleted_at IS NULL
-        """)
+        """
+        )
     if deduped:
         print(f"  ↻ {deduped} doppelte Portionen als gelöscht markiert")
 

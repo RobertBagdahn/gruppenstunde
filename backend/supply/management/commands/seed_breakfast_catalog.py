@@ -26,8 +26,15 @@ WARM_MEAL_TAG_SLUG = "breakfast-warm-meal"
 
 # Existing generic bread ingredients to tag with breakfast-base when --tag-existing is used.
 EXISTING_BREAD_SLUGS = [
-    "brot", "brotchen", "brot-vollkorn", "toastbrot", "vollkorn-toast",
-    "koernerbrot", "roggenbrot", "weissbrot", "ciabatta",
+    "brot",
+    "brotchen",
+    "brot-vollkorn",
+    "toastbrot",
+    "vollkorn-toast",
+    "koernerbrot",
+    "roggenbrot",
+    "weissbrot",
+    "ciabatta",
 ]
 
 # (name, slug, standard_recipe_weight_g, energy_kcal, protein_g, carb_g)
@@ -61,6 +68,7 @@ TOPPING_INGREDIENTS = [
     ("Salami", "salami", 400, 22, 1, 35, 15.0, (25, 30, 40), 200),
     ("Schinken (gekocht)", "schinken-gekocht", 120, 20, 1, 4, 10.0, (25, 30, 40), 200),
     ("Putenbrust (Aufschnitt)", "putenbrust-aufschnitt", 105, 22, 0.5, 2, 12.0, (25, 30, 40), 200),
+    ("Käse", "kaese", 356, 24, 0.1, 28, 12.0, (20, 25, 35), 250),
 ]
 
 # (name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, standard_g, package_g)
@@ -98,14 +106,16 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
         parser.add_argument("--skip-tags", action="store_true", help="Skip tag creation (for re-seeding data only)")
-        parser.add_argument("--tag-existing", action="store_true", help="Tag existing generic bread ingredients with breakfast-base")
+        parser.add_argument(
+            "--tag-existing", action="store_true", help="Tag existing generic bread ingredients with breakfast-base"
+        )
 
     def handle(self, *args, **options):
         dry_run = options.get("dry_run", False)
         skip_tags = options.get("skip_tags", False)
 
-        g_unit = MeasuringUnit.objects.get(name="g")
-        ml_unit = MeasuringUnit.objects.get(name="ml")
+        g_unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"unit": "g", "quantity": 1.0})
+        ml_unit, _ = MeasuringUnit.objects.get_or_create(name="Milliliter", defaults={"unit": "ml", "quantity": 1.0})
 
         # ── Tags ───────────────────────────────────────────────────────────
         if not skip_tags:
@@ -386,23 +396,33 @@ class Command(BaseCommand):
                     kakaopulver = Ingredient.objects.filter(name="Kakaopulver").first()
                     milch = Ingredient.objects.filter(name="Milch").first()
                     if kakaopulver:
+                        next_rank = (
+                            Portion.objects.filter(ingredient=kakaopulver)
+                            .order_by("-rank")
+                            .values_list("rank", flat=True)
+                            .first()
+                            or 0
+                        ) + 1
                         portion, _ = Portion.objects.get_or_create(
                             ingredient=kakaopulver,
                             name="20g",
-                            defaults={"measuring_unit": g_unit, "quantity": 20, "weight_g": 20},
+                            defaults={"measuring_unit": g_unit, "quantity": 20, "weight_g": 20, "rank": next_rank},
                         )
-                        RecipeItem.objects.create(
-                            recipe=recipe, ingredient=kakaopulver, portion=portion, quantity=1, sort_order=0
-                        )
+                        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=1, sort_order=0)
                     if milch:
+                        next_rank = (
+                            Portion.objects.filter(ingredient=milch)
+                            .order_by("-rank")
+                            .values_list("rank", flat=True)
+                            .first()
+                            or 0
+                        ) + 1
                         portion, _ = Portion.objects.get_or_create(
                             ingredient=milch,
                             name="200ml",
-                            defaults={"measuring_unit": ml_unit, "quantity": 200, "weight_g": 200},
+                            defaults={"measuring_unit": ml_unit, "quantity": 200, "weight_g": 200, "rank": next_rank},
                         )
-                        RecipeItem.objects.create(
-                            recipe=recipe, ingredient=milch, portion=portion, quantity=1, sort_order=1
-                        )
+                        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=1, sort_order=1)
 
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed drink recipe {title}: {e}"))

@@ -1,13 +1,13 @@
 """Tests for MealPlan PDF export service and API endpoint."""
 
 import pytest
-from django.test import Client
 
 from planner.models import MealItemOverride, MealPlanGroupMember
 from planner.services.pdf_export import (
     _aggregate_shopping_list,
     _build_allergen_matrix,
     _build_group_member_context,
+    _build_item_data,
     _build_meal_context,
     _build_nutrition_table,
     _collect_ingredient_overrides,
@@ -37,13 +37,16 @@ class TestMealContext:
         recipe = make_recipe()
         make_recipe_item(recipe=recipe)
         import datetime
+
         from django.utils import timezone
 
         meal1 = make_meal(meal_plan=plan)
         make_meal_item(meal=meal1, recipe=recipe)
         meal2 = make_meal(
             meal_plan=plan,
-            start_datetime=timezone.make_aware(datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1), datetime.time(12, 0))),
+            start_datetime=timezone.make_aware(
+                datetime.datetime.combine(datetime.date.today() + datetime.timedelta(days=1), datetime.time(12, 0))
+            ),
         )
         make_meal_item(meal=meal2, recipe=recipe)
         days = _build_meal_context(plan)
@@ -79,9 +82,7 @@ class TestGroupMemberContext:
     def test_members_with_tags(self):
         plan = make_meal_plan()
         tag = NutritionalTag.objects.create(name="Nüsse", is_dangerous=True)
-        member = MealPlanGroupMember.objects.create(
-            meal_plan=plan, name="Anna", age=12, gender="female"
-        )
+        member = MealPlanGroupMember.objects.create(meal_plan=plan, name="Anna", age=12, gender="female")
         member.nutritional_tags.add(tag)
         members = _build_group_member_context(plan)
         assert len(members) == 1
@@ -116,14 +117,37 @@ class TestShoppingListAggregation:
         make_recipe_item(recipe=recipe, quantity=500)
         meal = make_meal(meal_plan=plan)
         make_meal_item(meal=meal, recipe=recipe)
-        days = _build_meal_context(plan)
-        sl = _aggregate_shopping_list(days)
+        sl = _aggregate_shopping_list(plan)
         assert sl["total_count"] > 0
 
     @pytest.mark.django_db
     def test_empty_shopping_list(self):
-        sl = _aggregate_shopping_list([])
+        plan = make_meal_plan()
+        sl = _aggregate_shopping_list(plan)
         assert sl["total_count"] == 0
+
+    @pytest.mark.django_db
+    def test_direct_ingredient_scaled_in_item_data(self):
+        """Direct ingredient quantities are scaled by portions * reserve_factor * item.factor."""
+        from planner.models import MealItem
+        from supply.tests import make_ingredient, make_measuring_unit
+
+        plan = make_meal_plan(norm_portions=4, reserve_factor=1.5)
+        ing = make_ingredient(name="Haferflocken")
+        unit = make_measuring_unit(name="g")
+        meal = make_meal(meal_plan=plan)
+        item = MealItem.objects.create(
+            meal=meal,
+            recipe=None,
+            ingredient=ing,
+            quantity=100,
+            measuring_unit=unit,
+            factor=2.0,
+        )
+        data = _build_item_data(item, portions=4, reserve_factor=1.5, overrides={})
+        # 100 g * 2.0 * 4 * 1.5 = 1200 g
+        assert "1.200" in data["ingredients"][0] or "1200" in data["ingredients"][0]
+        assert data["ingredients"][0].endswith("g")
 
 
 class TestAllergenMatrix:

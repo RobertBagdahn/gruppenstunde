@@ -43,7 +43,9 @@ export default function StepInstructionEditor({
   }, [section]);
 
   const handleInstructionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalInstruction(e.target.value);
+    const val = e.target.value;
+    setLocalInstruction(val);
+    onUpdate({ instruction: val });
   };
 
   const handleInstructionBlur = () => {
@@ -53,7 +55,10 @@ export default function StepInstructionEditor({
   };
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalDuration(e.target.value);
+    const val = e.target.value;
+    setLocalDuration(val);
+    const duration = val ? parseInt(String(val), 10) : null;
+    onUpdate({ duration_minutes: duration });
   };
 
   const handleDurationBlur = () => {
@@ -64,7 +69,9 @@ export default function StepInstructionEditor({
   };
 
   const handleSectionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalSection(e.target.value);
+    const val = e.target.value;
+    setLocalSection(val);
+    onUpdate({ section: val });
   };
 
   const handleSectionBlur = () => {
@@ -85,7 +92,8 @@ export default function StepInstructionEditor({
     const newText = before + placeholder + after;
 
     setLocalInstruction(newText);
-    
+    onUpdate({ instruction: newText });
+
     // Move cursor after inserted placeholder
     setTimeout(() => {
       textarea.focus();
@@ -121,6 +129,7 @@ export default function StepInstructionEditor({
         </div>
         <textarea
           ref={textareaRef}
+          data-testid="recipe-step-instruction"
           value={localInstruction}
           onChange={handleInstructionChange}
           onBlur={handleInstructionBlur}

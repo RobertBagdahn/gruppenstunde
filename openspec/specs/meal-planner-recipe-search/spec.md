@@ -1,5 +1,8 @@
 ## Requirements
 
+Recipe portion storage is defined by `recipe-portion-normalization`; this spec owns only the
+meal-planner search and preview contract.
+
 <!-- Modified from recipe-search-enhancement -->
 
 ### Requirement: Recipe search results display

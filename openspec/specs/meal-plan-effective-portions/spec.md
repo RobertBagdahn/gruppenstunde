@@ -3,6 +3,9 @@
 ## Purpose
 Define a single, consistent "effective portions" concept per meal so that all meal-related energy and cost calculations honor `override_portions` when set, instead of hardcoding the plan's `norm_portions`.
 
+This is the canonical source for meal-level portion scaling. Output-specific specs SHALL reference
+this definition instead of repeating the formula.
+
 ## Requirements
 ### Requirement: Effektive Portionszahl pro Mahlzeit
 

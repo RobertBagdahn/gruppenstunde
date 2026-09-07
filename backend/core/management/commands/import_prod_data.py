@@ -13,10 +13,12 @@ Usage:
 from __future__ import annotations
 
 import json
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from django.apps import apps
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
@@ -26,40 +28,56 @@ DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
 # Complete import order: groups + files within each group
 # FK-safe ordering — parents before children
 IMPORT_ORDER: list[tuple[str, list[str]]] = [
-    ("masterdata", [
-        "content_tag",
-        "content_scoutlevel",
-        "supply_measuringunit",
-        "supply_retailsection",
-        "supply_nutritionaltag",
-    ]),
-    ("users", [
-        "auth_user",
-    ]),
-    ("food", [
-        "supply_ingredient",
-        "supply_ingredientalias",
-        "supply_portion",
-        "recipe_recipe",
-        "recipe_recipetypestats",
-        "recipe_rule",
-        "recipe_recipeitem",
-    ]),
-    ("planner", [
-        "planner_mealplan",
-        "planner_meal",
-        "planner_mealitem",
-        "planner_planner",
-        "planner_plannerentry",
-        "planner_plannercollaborator",
-    ]),
-    ("shopping", [
-        "shopping_shoppinglist",
-        "shopping_kitchenremindercategory",
-        "shopping_kitchenreminder",
-        "shopping_shoppinglistitem",
-        "shopping_shoppinglistitemsource",
-    ]),
+    (
+        "masterdata",
+        [
+            "content_tag",
+            "content_scoutlevel",
+            "supply_measuringunit",
+            "supply_retailsection",
+            "supply_nutritionaltag",
+        ],
+    ),
+    (
+        "users",
+        [
+            "auth_user",
+        ],
+    ),
+    (
+        "food",
+        [
+            "supply_ingredient",
+            "supply_ingredientalias",
+            "supply_portion",
+            "supply_package",
+            "recipe_recipe",
+            "recipe_recipetypestats",
+            "recipe_rule",
+            "recipe_recipeitem",
+        ],
+    ),
+    (
+        "planner",
+        [
+            "planner_mealplan",
+            "planner_meal",
+            "planner_mealitem",
+            "planner_planner",
+            "planner_plannerentry",
+            "planner_plannercollaborator",
+        ],
+    ),
+    (
+        "shopping",
+        [
+            "shopping_shoppinglist",
+            "shopping_kitchenremindercategory",
+            "shopping_kitchenreminder",
+            "shopping_shoppinglistitem",
+            "shopping_shoppinglistitemsource",
+        ],
+    ),
 ]
 
 GROUP_NAMES = [g[0] for g in IMPORT_ORDER]
@@ -68,8 +86,6 @@ GROUP_NAMES = [g[0] for g in IMPORT_ORDER]
 @contextmanager
 def _silence_signals():
     # Ensure signal modules are registered before we manipulate the receivers list
-    import recipe.signals  # noqa: F811
-    import supply.signals  # noqa: F811
     from django.db.models.signals import post_delete, post_save, pre_save
 
     signals = [pre_save, post_save, post_delete]
@@ -89,6 +105,7 @@ def _deduplicate_portions():
     from django.db.models import Count
     from django.db.models.functions import Lower
     from django.utils import timezone
+
     from supply.models.ingredient import Portion
 
     dupes = (
@@ -128,16 +145,20 @@ def _drop_portion_unique_index():
         dedup_count = _deduplicate_portions()
         rank1_dedup = _deduplicate_rank1_portions()
         with connection.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE UNIQUE INDEX unique_portion_name_per_ingredient
                 ON supply_portion (LOWER(name), ingredient_id)
                 WHERE deleted_at IS NULL
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE UNIQUE INDEX unique_rank1_portion_per_ingredient
                 ON supply_portion (ingredient_id)
                 WHERE deleted_at IS NULL AND rank = 1
-            """)
+            """
+            )
         if dedup_count:
             print(f"  ↻ {dedup_count} doppelte Portionen (Name) als gelöscht markiert")
         if rank1_dedup:
@@ -145,20 +166,19 @@ def _drop_portion_unique_index():
 
 
 def _deduplicate_ingredient_aliases():
-    from supply.models.ingredient import IngredientAlias
     from django.db.models import Count, Min
 
+    from supply.models.ingredient import IngredientAlias
+
     dupes = (
-        IngredientAlias.objects
-        .values("ingredient_id", "rank")
+        IngredientAlias.objects.values("ingredient_id", "rank")
         .annotate(cnt=Count("id"), min_id=Min("id"))
         .filter(cnt__gt=1)
     )
     total = 0
     for dupe in dupes:
         ids = (
-            IngredientAlias.objects
-            .filter(ingredient_id=dupe["ingredient_id"], rank=dupe["rank"])
+            IngredientAlias.objects.filter(ingredient_id=dupe["ingredient_id"], rank=dupe["rank"])
             .exclude(id=dupe["min_id"])
             .values_list("id", flat=True)
         )
@@ -169,6 +189,7 @@ def _deduplicate_ingredient_aliases():
 
 def _deduplicate_rank1_portions():
     from django.db.models import Count, Min
+
     from supply.models.ingredient import Portion
 
     dupes = (
@@ -180,12 +201,12 @@ def _deduplicate_rank1_portions():
     total = 0
     for dupe in dupes:
         ids = (
-            Portion.objects
-            .filter(deleted_at__isnull=True, ingredient_id=dupe["ingredient_id"], rank=1)
+            Portion.objects.filter(deleted_at__isnull=True, ingredient_id=dupe["ingredient_id"], rank=1)
             .exclude(id=dupe["min_id"])
             .values_list("id", flat=True)
         )
         from django.utils import timezone
+
         count = Portion.objects.filter(id__in=list(ids)).update(deleted_at=timezone.now())
         total += count
     return total
@@ -194,7 +215,9 @@ def _deduplicate_rank1_portions():
 @contextmanager
 def _drop_ingredientalias_unique_indexes():
     with connection.cursor() as cursor:
-        cursor.execute("ALTER TABLE supply_ingredientalias DROP CONSTRAINT IF EXISTS supply_ingredientalias_ingredient_id_rank_e49b396a_uniq")
+        cursor.execute(
+            "ALTER TABLE supply_ingredientalias DROP CONSTRAINT IF EXISTS supply_ingredientalias_ingredient_id_rank_e49b396a_uniq"
+        )
         cursor.execute("DROP INDEX IF EXISTS unique_alias_name_per_ingredient")
         cursor.execute("DROP INDEX IF EXISTS unique_alias_name_when_not_generic")
     try:
@@ -202,19 +225,25 @@ def _drop_ingredientalias_unique_indexes():
     finally:
         alias_dedup = _deduplicate_ingredient_aliases()
         with connection.cursor() as cursor:
-            cursor.execute("""
+            cursor.execute(
+                """
                 ALTER TABLE supply_ingredientalias
                 ADD CONSTRAINT supply_ingredientalias_ingredient_id_rank_e49b396a_uniq
                 UNIQUE (ingredient_id, rank)
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE UNIQUE INDEX unique_alias_name_per_ingredient
                 ON supply_ingredientalias (LOWER(name), ingredient_id)
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE UNIQUE INDEX unique_alias_name_when_not_generic
                 ON supply_ingredientalias (LOWER(name)) WHERE NOT is_generic
-            """)
+            """
+            )
         if alias_dedup:
             print(f"  ↻ {alias_dedup} doppelte IngredientAliases gelöscht")
 
@@ -241,6 +270,11 @@ class Command(BaseCommand):
             choices=GROUP_NAMES,
             help="Only import a specific group",
         )
+        parser.add_argument(
+            "--overwrite-existing",
+            action="store_true",
+            help="Allow fixture rows to overwrite existing rows with the same primary key",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         data_dir = Path(options["data_dir"])
@@ -249,6 +283,7 @@ class Command(BaseCommand):
 
         do_flush = options["flush"]
         only_group = options["only"]
+        overwrite_existing = options["overwrite_existing"]
 
         if do_flush:
             self.stdout.write(self.style.WARNING("Flushe Datenbank..."))
@@ -263,12 +298,24 @@ class Command(BaseCommand):
         with _silence_signals():
             total = 0
             for group_name, file_prefixes in groups:
-                count = self._import_group(data_dir, group_name, file_prefixes)
+                count = self._import_group(
+                    data_dir,
+                    group_name,
+                    file_prefixes,
+                    overwrite_existing=overwrite_existing,
+                )
                 total += count
 
         self.stdout.write(self.style.SUCCESS(f"\nImport abgeschlossen: {total} Einträge"))
 
-    def _import_group(self, data_dir: Path, group_name: str, file_prefixes: list[str]) -> int:
+    def _import_group(
+        self,
+        data_dir: Path,
+        group_name: str,
+        file_prefixes: list[str],
+        *,
+        overwrite_existing: bool = False,
+    ) -> int:
         group_dir = data_dir / group_name
         if not group_dir.is_dir():
             self.stdout.write(f"  {group_name}: Verzeichnis nicht gefunden")
@@ -298,7 +345,18 @@ class Command(BaseCommand):
                 continue
 
             short_name = fixture_file.stem
-            self.stdout.write(f"    {short_name}: {count} Einträge...", ending=" ")
+            import_file = fixture_file
+            skipped_count = 0
+            if not overwrite_existing:
+                entries, skipped_count = self._exclude_existing_entries(short_name, entries)
+                if not entries:
+                    self.stdout.write(f"    {short_name}: übersprungen ({skipped_count} vorhandene Einträge)")
+                    continue
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".json", encoding="utf-8", delete=False) as temp_file:
+                    json.dump(entries, temp_file, ensure_ascii=False)
+                import_file = Path(temp_file.name)
+
+            self.stdout.write(f"    {short_name}: {len(entries)} Einträge...", ending=" ")
             self.stdout.flush()
 
             try:
@@ -310,9 +368,9 @@ class Command(BaseCommand):
                     ctx = _noop_context()
                 with ctx:
                     with transaction.atomic():
-                        call_command("loaddata", str(fixture_file), verbosity=0, skip_checks=True)
+                        call_command("loaddata", str(import_file), verbosity=0, skip_checks=True)
                 self.stdout.write(self.style.SUCCESS("✓"))
-                group_total += count
+                group_total += len(entries)
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"FEHLER: {e}"))
                 if "violates foreign key constraint" in str(e):
@@ -322,8 +380,20 @@ class Command(BaseCommand):
                             "Importiere in der richtigen Reihenfolge."
                         )
                     )
+            finally:
+                if import_file != fixture_file:
+                    import_file.unlink(missing_ok=True)
 
         return group_total
+
+    @staticmethod
+    def _exclude_existing_entries(short_name: str, entries: list[dict]) -> tuple[list[dict], int]:
+        """Keep existing rows untouched unless explicit overwrite was requested."""
+        app_label, model_name = short_name.split("_", 1)
+        model = apps.get_model(app_label, model_name)
+        existing_ids = set(model.objects.filter(pk__in=[entry["pk"] for entry in entries]).values_list("pk", flat=True))
+        fresh_entries = [entry for entry in entries if entry["pk"] not in existing_ids]
+        return fresh_entries, len(entries) - len(fresh_entries)
 
 
 @contextmanager

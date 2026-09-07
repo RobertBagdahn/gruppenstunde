@@ -76,8 +76,9 @@ export default function RecipeMobileActionBar({
 
   return (
     <div
+      data-testid="recipe-mobile-action-bar"
       className={cn(
-        'fixed bottom-0 inset-x-0 h-16 pb-[env(safe-area-inset-bottom)] lg:hidden',
+        'fixed bottom-16 inset-x-0 h-16 pb-[env(safe-area-inset-bottom)] lg:hidden',
         'bg-background border-t z-40',
         'flex items-center gap-2 px-4',
         'transition-transform duration-200',

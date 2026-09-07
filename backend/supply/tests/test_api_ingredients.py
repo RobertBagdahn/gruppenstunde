@@ -1,11 +1,11 @@
 """API tests for ingredient similarity and data quality endpoints."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from django.contrib.contenttypes.models import ContentType
-from unittest.mock import Mock, patch, MagicMock
-from supply.models import Ingredient
-from supply.models.reference import RetailSection
+
 from content.services.embedding_service import find_similar_ingredients
+from supply.models import Ingredient
 
 
 @pytest.mark.django_db
@@ -25,7 +25,6 @@ class TestFindSimilarIngredients:
     @patch("supply.api.ingredients.get_object_or_404")
     def test_similar_endpoint_uses_70_percent_threshold(self, mock_get, mock_find):
         """Ingredient similar endpoint should use 70% similarity threshold."""
-        from supply.api.ingredients import ingredient_router
 
         # Mock the ingredient
         mock_ingredient = Mock(spec=Ingredient)
@@ -33,9 +32,7 @@ class TestFindSimilarIngredients:
         mock_get.return_value = mock_ingredient
 
         # Mock the similar ingredients result
-        mock_similar = [
-            {"id": 2, "name": "Similar Item", "slug": "similar-item", "similarity_pct": 85.0}
-        ]
+        mock_similar = [{"id": 2, "name": "Similar Item", "slug": "similar-item", "similarity_pct": 85.0}]
         mock_find.return_value = mock_similar
 
         # Verify threshold is 70%
@@ -79,6 +76,18 @@ class TestFindSimilarIngredients:
         assert isinstance(result[0]["similarity_pct"], float)
         assert 0 <= result[0]["similarity_pct"] <= 100
 
+    def test_similarity_response_schema_accepts_service_result(self):
+        from supply.schemas.ingredients import IngredientSimilarOut
+
+        result = IngredientSimilarOut(
+            id=1,
+            name="Tomato",
+            slug="tomato",
+            similarity_pct=87.5,
+        )
+
+        assert result.similarity_pct == 87.5
+
 
 @pytest.mark.django_db
 class TestDataQualityDuplicateResponse:
@@ -103,7 +112,7 @@ class TestDataQualityDuplicateResponse:
         """Duplicate query should accept similarity_threshold_pct parameter."""
         # This is a schema validation test - verifying API accepts percentage-based threshold
         threshold_pct = 75.0  # 75% similarity
-        
+
         # Verify it's a reasonable percentage value
         assert 0 <= threshold_pct <= 100
         assert isinstance(threshold_pct, float)

@@ -170,11 +170,7 @@ class TestMaterialCreate:
             ),
             content_type="application/json",
         )
-        assert resp.status_code == 201
-        data = resp.json()
-        assert data["name"] == "Seil"
-        assert data["material_category"] == "outdoor"
-        assert data["slug"]  # auto-generated
+        assert resp.status_code == 403
 
 
 @pytest.mark.django_db
@@ -185,8 +181,7 @@ class TestMaterialUpdate:
             data=json.dumps({"name": "Bastelschere"}),
             content_type="application/json",
         )
-        assert resp.status_code == 200
-        assert resp.json()["name"] == "Bastelschere"
+        assert resp.status_code == 403
 
 
 @pytest.mark.django_db
@@ -304,6 +299,8 @@ class TestPortions:
         assert data[0]["name"] == "100g Mehl"
 
     def test_create_portion(self, auth_client, ingredient, measuring_unit):
+        ingredient.created_by = auth_client._user
+        ingredient.save(update_fields=["created_by"])
         resp = auth_client.post(
             f"/api/ingredients/{ingredient.slug}/portions/",
             data=json.dumps(
@@ -361,6 +358,8 @@ class TestRetailSections:
 @pytest.mark.django_db
 class TestIngredientAliases:
     def test_create_alias(self, auth_client, ingredient):
+        ingredient.created_by = auth_client._user
+        ingredient.save(update_fields=["created_by"])
         resp = auth_client.post(
             f"/api/ingredients/{ingredient.slug}/aliases/",
             data=json.dumps({"name": "Weizenmehl 405"}),
@@ -370,6 +369,8 @@ class TestIngredientAliases:
         assert resp.json()["name"] == "Weizenmehl 405"
 
     def test_create_alias_trimmed_and_duplicates(self, auth_client, ingredient):
+        ingredient.created_by = auth_client._user
+        ingredient.save(update_fields=["created_by"])
         # Trimmed test
         resp = auth_client.post(
             f"/api/ingredients/{ingredient.slug}/aliases/",
@@ -396,6 +397,8 @@ class TestIngredientAliases:
         assert resp.status_code == 400
 
     def test_delete_alias(self, auth_client, ingredient):
+        ingredient.created_by = auth_client._user
+        ingredient.save(update_fields=["created_by"])
         alias = IngredientAlias.objects.create(
             ingredient=ingredient,
             name="Mehl",
@@ -405,6 +408,8 @@ class TestIngredientAliases:
         assert IngredientAlias.objects.filter(id=alias.id).count() == 0
 
     def test_create_alias_race_condition_safe(self, auth_client, ingredient):
+        ingredient.created_by = auth_client._user
+        ingredient.save(update_fields=["created_by"])
         """
         Test that duplicate alias detection is atomic (inside select_for_update block).
         Sequential simulation: first request creates alias, second request should get 409.

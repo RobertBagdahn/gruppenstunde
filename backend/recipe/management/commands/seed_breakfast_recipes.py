@@ -142,15 +142,17 @@ class Command(BaseCommand):
             for ing in base_ings:
                 if not ing.standard_recipe_weight_g:
                     continue
-                _, was_created = Portion.objects.get_or_create(
-                    ingredient=ing,
-                    measuring_unit=scheibe_unit,
-                    name="Scheibe",
-                    defaults={
-                        "quantity": 1,
-                        "weight_g": ing.standard_recipe_weight_g,
-                    },
-                )
+                portion = Portion.objects.filter(ingredient=ing, rank=1, deleted_at__isnull=True).first()
+                was_created = portion is None
+                if was_created:
+                    portion = Portion.objects.create(
+                        ingredient=ing,
+                        measuring_unit=scheibe_unit,
+                        name=f"Scheibe ({ing.standard_recipe_weight_g}g)",
+                        quantity=1,
+                        weight_g=ing.standard_recipe_weight_g,
+                        rank=1,
+                    )
                 if was_created:
                     base_portions_created += 1
                     if not dry_run:
@@ -232,12 +234,20 @@ class Command(BaseCommand):
 
                 if not portion:
                     gram_unit = MeasuringUnit.objects.filter(name="g").first()
+                    next_rank = (
+                        Portion.objects.filter(ingredient=ingredient)
+                        .order_by("-rank")
+                        .values_list("rank", flat=True)
+                        .first()
+                        or 0
+                    ) + 1
                     portion, _ = Portion.objects.get_or_create(
                         ingredient=ingredient,
                         name=f"{weight_g}g",
                         defaults={
                             "quantity": weight_g,
                             "weight_g": weight_g,
+                            "rank": next_rank,
                             "measuring_unit": gram_unit,
                         },
                     )

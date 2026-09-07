@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from ninja import Schema
+from pydantic import Field
 
 # --- Collaborator schemas ---
 
@@ -28,6 +29,8 @@ class ShoppingItemSourceOut(Schema):
 
     id: int
     recipe_id: int | None = None
+    meal_id: int | None = None
+    ingredient_id: int | None = None
     recipe_name: str = ""
     recipe_slug: str = ""
     meal_label: str = ""
@@ -168,7 +171,7 @@ class ShoppingListItemCreateIn(Schema):
     """Input schema for adding an item to a shopping list."""
 
     name: str
-    quantity_g: float = 0
+    quantity_g: float = Field(default=0, ge=0)
     unit: str = "g"
     retail_section_id: int | None = None
     ingredient_id: int | None = None
@@ -180,7 +183,7 @@ class ShoppingListItemUpdateIn(Schema):
     """Input schema for updating a shopping list item (partial)."""
 
     name: str | None = None
-    quantity_g: float | None = None
+    quantity_g: float | None = Field(default=None, ge=0)
     unit: str | None = None
     retail_section_id: int | None = None
     is_checked: bool | None = None
@@ -308,7 +311,7 @@ class CollaboratorUpdateIn(Schema):
 class FromRecipeIn(Schema):
     """Input schema for creating a shopping list from a recipe."""
 
-    portions: int = 1
+    portions: int = Field(default=1, ge=1)
 
 
 from core.schemas import PaginatedUserOut, UserSimpleOut  # noqa: F401 — re-export for backward compat

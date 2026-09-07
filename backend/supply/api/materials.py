@@ -136,7 +136,7 @@ def update_material(request, material_id: int, payload: MaterialUpdateIn):
 @router.delete("/materials/{material_id}/", response={204: None})
 def delete_material(request, material_id: int):
     """Soft-delete a material (admin only)."""
-    if not request.user.is_authenticated or not request.user.is_staff:
+    if not _is_staff_user(request.user):
         raise HttpError(403, "Nur Admins dürfen Materialien löschen.")
 
     material = get_object_or_404(Material, id=material_id)
@@ -153,6 +153,7 @@ def delete_material(request, material_id: int):
 def list_measuring_units(request):
     """List all measuring units, sorted by kitchen relevance."""
     from django.db.models import Case, IntegerField, Value, When
+
     from supply.models import MeasuringUnit
 
     return MeasuringUnit.objects.annotate(

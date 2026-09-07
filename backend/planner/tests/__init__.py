@@ -92,12 +92,18 @@ def make_meal_plan(created_by=None, **kwargs) -> MealPlan:
         "norm_portions": 10,
         "reserve_factor": 1.1,
     }
+    event = kwargs.pop("event", None)
     defaults.update(kwargs)
     # MealPlan has no `status` field — it uses `visibility` (which includes
     # "draft"). Accept `status` as a convenience alias for readability in tests.
     if "status" in defaults:
         defaults["visibility"] = defaults.pop("status")
-    return baker.make(MealPlan, created_by=created_by, **defaults)
+    meal_plan = baker.make(MealPlan, created_by=created_by, **defaults)
+    if event is not None:
+        from event.models import EventMealPlanRelation
+
+        EventMealPlanRelation.objects.create(event=event, meal_plan=meal_plan)
+    return meal_plan
 
 
 # ---------------------------------------------------------------------------
