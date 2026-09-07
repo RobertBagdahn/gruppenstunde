@@ -76,6 +76,11 @@ class MealPlan(models.Model):
     slug = models.SlugField(max_length=220, unique=True, blank=True, verbose_name=_("Slug"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
     norm_portions = models.FloatField(default=10.0, verbose_name=_("Norm-Portionen"))
+    norm_portions_manual = models.BooleanField(
+        default=False,
+        verbose_name=_("Norm-Portionen manuell festgelegt"),
+        help_text=_("Verhindert die automatische Neuberechnung aus Gruppenmitgliedern"),
+    )
     previous_norm_portions = models.FloatField(default=10.0, verbose_name=_("Vorherige Norm-Portionen"))
     reserve_factor = models.FloatField(default=1.1, verbose_name=_("Reservefaktor"))
     activity_factor = models.FloatField(default=1.5, verbose_name=_("Aktivitätsfaktor (PAL)"))
@@ -153,6 +158,9 @@ class MealPlan(models.Model):
         return self.group_members.exists()
 
     def recalculate_norm_portions(self) -> None:
+        if self.norm_portions_manual:
+            return
+
         from supply.services.norm_person_service import (
             Gender,
             PersonSpec,
@@ -167,19 +175,19 @@ class MealPlan(models.Model):
         persons = []
         for member in members:
             if member.gender == "no_answer":
-                male = calculate_group_norm_factor([
-                    PersonSpec(age=member.age, gender=Gender.MALE, pal=self.activity_factor)
-                ])
-                female = calculate_group_norm_factor([
-                    PersonSpec(age=member.age, gender=Gender.FEMALE, pal=self.activity_factor)
-                ])
+                male = calculate_group_norm_factor(
+                    [PersonSpec(age=member.age, gender=Gender.MALE, pal=self.activity_factor)]
+                )
+                female = calculate_group_norm_factor(
+                    [PersonSpec(age=member.age, gender=Gender.FEMALE, pal=self.activity_factor)]
+                )
                 persons.append(0.5 * (male + female))
             else:
                 gender = Gender.MALE if member.gender == "male" else Gender.FEMALE
                 persons.append(PersonSpec(age=member.age, gender=gender, pal=self.activity_factor))
 
         total = calculate_group_norm_factor([p for p in persons if isinstance(p, PersonSpec)])
-        total += sum(p for p in persons if isinstance(p, (int, float)))
+        total += sum(p for p in persons if isinstance(p, int | float))
         self.norm_portions = round(total, 3)
 
     def save(self, *args, **kwargs) -> None:

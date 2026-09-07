@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Literal
 
 from ninja import Schema
+from pydantic import model_validator
 
 from planner.services.meal_item_helpers import (
     resolve_ingredient_cost_eur,
@@ -360,6 +361,7 @@ class MealPlanOut(Schema):
     slug: str
     description: str
     norm_portions: float
+    norm_portions_manual: bool = False
     previous_norm_portions: float = 10.0
     activity_factor: float = 1.5
     reserve_factor: float
@@ -478,6 +480,7 @@ class MealPlanUpdateIn(Schema):
     name: str | None = None
     description: str | None = None
     norm_portions: float | None = None
+    norm_portions_manual: bool | None = None
     reserve_factor: float | None = None
     activity_factor: float | None = None
     budget_per_person_per_day: float | None = None
@@ -488,6 +491,15 @@ class MealPlanUpdateIn(Schema):
     visibility: Literal["private", "group", "public", "draft"] | None = None
     nutritional_tag_ids: list[int] | None = None
     is_template: bool | None = None  # Only respected when set by admins
+
+    @model_validator(mode="after")
+    def validate_manual_norm_portions(self):
+        if "norm_portions_manual" in self.model_fields_set and self.norm_portions_manual is None:
+            raise ValueError("norm_portions_manual darf nicht null sein")
+        if self.norm_portions_manual and self.norm_portions is not None:
+            if self.norm_portions <= 0 or not self.norm_portions.is_integer():
+                raise ValueError("Manuelle Normportionen müssen eine positive ganze Zahl sein")
+        return self
 
 
 # ==========================================================================
@@ -535,6 +547,7 @@ class MealPlanDetailOut(Schema):
     slug: str
     description: str
     norm_portions: float
+    norm_portions_manual: bool = False
     previous_norm_portions: float = 10.0
     activity_factor: float = 1.5
     reserve_factor: float

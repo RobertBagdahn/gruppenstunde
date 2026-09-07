@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanTag } from '@/schemas/mealPlan';
 import { useMealPlanTags, useCreateMealPlanTag, useDeleteMealPlanTag } from '@/api/mealPlans';
+import { Switch } from '@/components/ui/switch';
+import { fromLocalDateTimeInput, toLocalDateTimeInput } from '@/lib/mealPlanDateTime';
 import NutritionalTagMultiSelect from '@/components/recipe/NutritionalTagMultiSelect';
 
 interface SettingsPanelProps {
@@ -10,12 +12,14 @@ interface SettingsPanelProps {
     name: string;
     description: string;
     norm_portions: number;
+    norm_portions_manual?: boolean;
     previous_norm_portions?: number;
     activity_factor?: number;
     reserve_factor: number;
     budget_per_person_per_day: number | null;
     start_datetime: string | null;
     end_datetime: string | null;
+    event_id?: number | null;
     day_part_factors?: Record<string, number>;
     meal_default_times?: Record<string, string[]>;
     nutritional_tag_ids?: number[];
@@ -26,6 +30,7 @@ interface SettingsPanelProps {
     name?: string;
     description?: string;
     norm_portions?: number;
+    norm_portions_manual?: boolean;
     reserve_factor?: number;
     activity_factor?: number;
     budget_per_person_per_day?: number | null;
@@ -50,13 +55,17 @@ export default function SettingsPanel({
   const [reserve, setReserve] = useState(plan.reserve_factor);
   const [activityFactor, setActivityFactor] = useState(plan.activity_factor ?? 1.5);
   const [budget, setBudget] = useState(plan.budget_per_person_per_day ?? '');
-  const [startDatetime, setStartDatetime] = useState(plan.start_datetime ? plan.start_datetime.slice(0, 16) : '');
-  const [endDatetime, setEndDatetime] = useState(plan.end_datetime ? plan.end_datetime.slice(0, 16) : '');
+  const [startDatetime, setStartDatetime] = useState(toLocalDateTimeInput(plan.start_datetime));
+  const [endDatetime, setEndDatetime] = useState(toLocalDateTimeInput(plan.end_datetime));
   const [nutritionalTagIds, setNutritionalTagIds] = useState<number[]>(plan.nutritional_tag_ids || []);
   const [tagInput, setTagInput] = useState('');
   const { data: tags = [] } = useMealPlanTags(planId);
   const createTag = useCreateMealPlanTag(planId);
   const deleteTag = useDeleteMealPlanTag(planId);
+  const [manualNormPortions, setManualNormPortions] = useState(plan.norm_portions_manual ?? false);
+  const isEventLinked = plan.event_id != null;
+  const hasValidManualNormPortions = Number.isInteger(portions) && portions >= 1;
+  const hasValidDateRange = Boolean(startDatetime) && (!endDatetime || endDatetime > startDatetime);
 
   const toggleTag = (tagId: number) => {
     setNutritionalTagIds(prev =>
@@ -107,21 +116,24 @@ export default function SettingsPanel({
         </div>
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-            Portionen (Personen)
+            Normportionen
           </label>
-          {plan.has_group_members ? (
+          {isEventLinked ? (
             <div className="space-y-1">
               <div className="rounded-xl border border-primary/30 bg-primary/5 px-3.5 py-2.5 text-sm font-semibold">
                 <span className="text-muted-foreground line-through mr-2">{plan.previous_norm_portions?.toFixed(1)}</span>
                 <span className="text-muted-foreground">→</span>
-                <span className="text-primary ml-2">{plan.norm_portions.toFixed(1)}</span>
+                <span className="text-primary ml-2">{manualNormPortions ? 'Manuell' : plan.norm_portions.toFixed(1)}</span>
               </div>
+              <Switch checked={manualNormPortions} onCheckedChange={setManualNormPortions} aria-label="Normportionen manuell festlegen" />
+              {manualNormPortions && <input type="number" min={1} step={1} value={portions} onChange={(e) => setPortions(Number(e.target.value))} aria-label="Manuelle Normportionen" />}
               <p className="text-xs text-muted-foreground">
                 Berechnet aus {plan.group_members_count} {plan.group_members_count === 1 ? 'Person' : 'Personen'}
               </p>
             </div>
           ) : (
             <input
+              id="norm-portions-input"
               type="number"
               min={1}
               step={0.5}
@@ -171,6 +183,7 @@ export default function SettingsPanel({
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Start (Datum & Uhrzeit)</label>
           <input
+            id="start-datetime-input"
             type="datetime-local"
             value={startDatetime}
             onChange={(e) => setStartDatetime(e.target.value)}
@@ -180,6 +193,7 @@ export default function SettingsPanel({
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ende (Datum & Uhrzeit)</label>
           <input
+            id="end-datetime-input"
             type="datetime-local"
             value={endDatetime}
             onChange={(e) => setEndDatetime(e.target.value)}
@@ -306,17 +320,18 @@ export default function SettingsPanel({
           onClick={() => onSave({
             name,
             description,
-            norm_portions: portions,
+            ...(isEventLinked && !manualNormPortions ? {} : { norm_portions: portions }),
+            ...(isEventLinked ? { norm_portions_manual: manualNormPortions } : {}),
             reserve_factor: reserve,
             activity_factor: activityFactor,
             budget_per_person_per_day: budget === '' ? null : Number(budget),
-            start_datetime: startDatetime ? startDatetime + ':00' : null,
-            end_datetime: endDatetime ? endDatetime + ':00' : null,
+            start_datetime: fromLocalDateTimeInput(startDatetime),
+            end_datetime: fromLocalDateTimeInput(endDatetime),
             day_part_factors: factors,
             meal_default_times: mealTimes,
             nutritional_tag_ids: nutritionalTagIds,
           })}
-          disabled={isPending}
+          disabled={isPending || !hasValidDateRange || (isEventLinked && manualNormPortions && !hasValidManualNormPortions)}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 shadow-soft"
         >
           {isPending ? 'Speichern...' : 'Speichern'}

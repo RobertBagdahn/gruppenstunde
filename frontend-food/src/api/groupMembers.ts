@@ -3,6 +3,7 @@
  * MUST stay in sync with backend/planner/api/meal_plan.py
  */
 import { API_BASE_URL } from '@/lib/api';
+import { invalidateMealPlanQueries } from '@/api/mealPlans';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   GroupMemberSchema,
@@ -89,10 +90,7 @@ export function useCreateGroupMember(mealPlanId: number) {
   return useMutation({
     mutationFn: (body: GroupMemberCreate) =>
       postJson(`${API_BASE}/${mealPlanId}/group-members/`, body, GroupMemberSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'group-members'] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
-    },
+    onSuccess: () => invalidateMealPlanQueries(queryClient, mealPlanId),
   });
 }
 
@@ -101,10 +99,7 @@ export function useUpdateGroupMember(mealPlanId: number) {
   return useMutation({
     mutationFn: ({ memberId, body }: { memberId: number; body: GroupMemberUpdate }) =>
       patchJson(`${API_BASE}/${mealPlanId}/group-members/${memberId}/`, body, GroupMemberSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'group-members'] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
-    },
+    onSuccess: () => invalidateMealPlanQueries(queryClient, mealPlanId),
   });
 }
 
@@ -113,10 +108,7 @@ export function useDeleteGroupMember(mealPlanId: number) {
   return useMutation({
     mutationFn: (memberId: number) =>
       deleteJson(`${API_BASE}/${mealPlanId}/group-members/${memberId}/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'group-members'] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
-    },
+    onSuccess: () => invalidateMealPlanQueries(queryClient, mealPlanId),
   });
 }
 
@@ -125,10 +117,7 @@ export function useBulkCreateGroupMembers(mealPlanId: number) {
   return useMutation({
     mutationFn: (body: GroupMemberBulkCreate) =>
       postJson(`${API_BASE}/${mealPlanId}/group-members/bulk/`, body, GroupMemberListSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'group-members'] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
-    },
+    onSuccess: () => invalidateMealPlanQueries(queryClient, mealPlanId),
   });
 }
 
@@ -137,9 +126,6 @@ export function useSyncEventParticipants(mealPlanId: number) {
   return useMutation({
     mutationFn: () =>
       postJson(`${API_BASE}/${mealPlanId}/sync-event-participants/`, {}, GroupMemberListSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'group-members'] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
-    },
+    onSuccess: () => invalidateMealPlanQueries(queryClient, mealPlanId),
   });
 }

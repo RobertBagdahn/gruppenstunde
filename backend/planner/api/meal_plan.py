@@ -57,9 +57,6 @@ from planner.schemas import (
     NutritionSummaryOut,
     PopularRecipesResponseOut,
     RecentlyUsedRecipesResponseOut,
-    RecipePopularItemOut,
-    RecipeRecentlyUsedOut,
-    RecipeSearchResultOut,
     RecipeSuggestionOut,
     SearchRecipesResponseOut,
     ShoppingListItemOut,
@@ -162,9 +159,9 @@ def raise_if_duplicate_meal_item(meal: Meal, recipe_id: int | None = None, ingre
 
 def _describe_integrity_error(error: IntegrityError, ingredient, recipe) -> HttpError:
     detail = str(error.__cause__) if error.__cause__ else str(error)
-    ing_id: int | None = ingredient if isinstance(ingredient, int) else (ingredient.pk if hasattr(ingredient, "pk") else None)
-    rec_id: int | None = recipe if isinstance(recipe, int) else (recipe.pk if hasattr(recipe, "pk") else None)
-
+    ing_id: int | None = (
+        ingredient if isinstance(ingredient, int) else (ingredient.pk if hasattr(ingredient, "pk") else None)
+    )
     if "unique_ingredient_per_meal" in detail:
         from supply.models import Ingredient
 
@@ -475,39 +472,80 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
         exclude_fields.add("is_template")
 
     patch_data = payload.dict(exclude_unset=True, exclude=exclude_fields)
+    requested_norm_portions_manual = patch_data.get("norm_portions_manual", meal_plan.norm_portions_manual)
+    was_norm_portions_manual = meal_plan.norm_portions_manual
+
+    from event.models import EventMealPlanRelation
+
+    has_event_relation = EventMealPlanRelation.objects.filter(meal_plan_id=meal_plan.id).exists()
+    if requested_norm_portions_manual and not has_event_relation:
+        raise HttpError(400, "Manuelle Normportionen sind nur für eventgebundene Pläne möglich")
+
+    if requested_norm_portions_manual:
+        requested_norm_portions = patch_data.get("norm_portions")
+        if requested_norm_portions is None:
+            if not was_norm_portions_manual:
+                raise HttpError(400, "Bitte eine positive ganze Anzahl an Normportionen angeben")
+        elif requested_norm_portions <= 0 or not float(requested_norm_portions).is_integer():
+            raise HttpError(422, "Manuelle Normportionen müssen eine positive ganze Zahl sein")
+    elif has_event_relation and not was_norm_portions_manual:
+        patch_data.pop("norm_portions", None)
+
+    manual_mode_enabled = requested_norm_portions_manual and not was_norm_portions_manual
+    if manual_mode_enabled:
+        meal_plan.previous_norm_portions = meal_plan.norm_portions
+
     has_range_change = False
     new_start = None
     new_end = None
+    range_merged = False
 
     if "start_datetime" in patch_data or "end_datetime" in patch_data:
         old_start = meal_plan.start_datetime
         old_end = meal_plan.end_datetime
         new_start_raw = patch_data.get("start_datetime", old_start)
         new_end_raw = patch_data.get("end_datetime", old_end)
+        if new_start_raw is None:
+            raise HttpError(400, "Das Startdatum darf nicht leer sein.")
         new_start = timezone.make_aware(new_start_raw) if timezone.is_naive(new_start_raw) else new_start_raw
-        new_end = timezone.make_aware(new_end_raw) if timezone.is_naive(new_end_raw) else new_end_raw
+        new_end = (
+            timezone.make_aware(new_end_raw)
+            if new_end_raw is not None and timezone.is_naive(new_end_raw)
+            else new_end_raw
+        )
+        if new_end is not None and new_end <= new_start:
+            raise HttpError(400, "Die Endzeit muss nach der Startzeit liegen.")
         if old_start != new_start or old_end != new_end:
             has_range_change = True
 
-    if has_range_change and new_start and new_end:
+    if has_range_change and new_end is not None:
         from planner.services.contiguity import smart_merge_days, validate_meal_plan_contiguity
 
         smart_merge_days(meal_plan, new_start, new_end)
+        range_merged = True
+        fields_to_apply = {
+            field: value for field, value in patch_data.items() if field not in ("start_datetime", "end_datetime")
+        }
     else:
-        activity_changed = "activity_factor" in patch_data
-        for field, value in patch_data.items():
+        fields_to_apply = patch_data
+
+    if fields_to_apply:
+        activity_changed = "activity_factor" in fields_to_apply
+        for field, value in fields_to_apply.items():
             if field in ("start_datetime", "end_datetime") and value is not None and timezone.is_naive(value):
                 value = timezone.make_aware(value)
             setattr(meal_plan, field, value)
         meal_plan.save()
-        if activity_changed:
+        manual_mode_disabled = was_norm_portions_manual and not meal_plan.norm_portions_manual
+        automatic_group_plan = has_event_relation or meal_plan.group_members.exists()
+        if manual_mode_disabled or (activity_changed and automatic_group_plan):
             meal_plan.recalculate_norm_portions()
             meal_plan.save(update_fields=["norm_portions"])
 
     if nutritional_tags_to_set is not None:
         meal_plan.nutritional_tags.set(nutritional_tags_to_set)
 
-    if has_range_change:
+    if range_merged:
         from planner.services.contiguity import validate_meal_plan_contiguity
 
         validate_meal_plan_contiguity(meal_plan)
@@ -549,9 +587,7 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
         else payload.start_datetime
     )
     end_dt = (
-        timezone.make_aware(payload.end_datetime)
-        if timezone.is_naive(payload.end_datetime)
-        else payload.end_datetime
+        timezone.make_aware(payload.end_datetime) if timezone.is_naive(payload.end_datetime) else payload.end_datetime
     )
     target_days = (end_dt.date() - start_dt.date()).days
 
@@ -600,7 +636,9 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
             day_index = (meal.start_datetime.date() - source_start_date).days
             new_date = new_start_date + dt.timedelta(days=day_index)
             new_meal_start = dt.datetime.combine(new_date, meal.start_datetime.time())
-            new_meal_start = timezone.make_aware(new_meal_start) if timezone.is_naive(new_meal_start) else new_meal_start
+            new_meal_start = (
+                timezone.make_aware(new_meal_start) if timezone.is_naive(new_meal_start) else new_meal_start
+            )
             new_meal_end = dt.datetime.combine(new_date, meal.end_datetime.time())
             new_meal_end = timezone.make_aware(new_meal_end) if timezone.is_naive(new_meal_end) else new_meal_end
 
@@ -899,14 +937,14 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
 
             # Auto-create Portion if it doesn't exist for this ingredient + measuring_unit
             if ingredient and item_in.measuring_unit_id:
-                from supply.models import MeasuringUnit as MU
+                from supply.models import MeasuringUnit
 
-                mu = MU.objects.filter(id=item_in.measuring_unit_id).first()
+                mu = MeasuringUnit.objects.filter(id=item_in.measuring_unit_id).first()
                 if mu and not ingredient.portions.filter(measuring_unit=mu).exists():
                     weight_g = _derive_portion_weight_g(ingredient, mu)
-                    from supply.models import Portion as PT
+                    from supply.models import Portion
 
-                    PT.objects.get_or_create(
+                    Portion.objects.get_or_create(
                         ingredient=ingredient,
                         measuring_unit=mu,
                         defaults={
@@ -1374,9 +1412,7 @@ def cost_summary(request, meal_plan_id: int):
     # Aggregate costs per day and meal. ``per_person`` sums the per-meal
     # cost_per_person values so meals with differing effective_portions
     # (e.g. day guests) aggregate correctly.
-    day_costs: dict[str, dict] = defaultdict(
-        lambda: {"total": Decimal("0"), "portions": Decimal("0"), "meals": []}
-    )
+    day_costs: dict[str, dict] = defaultdict(lambda: {"total": Decimal("0"), "portions": Decimal("0"), "meals": []})
 
     # Aggregate costs per recipe:
     # total_cost   = sum of scaled cost across all meals this recipe appears in
@@ -1393,9 +1429,7 @@ def cost_summary(request, meal_plan_id: int):
         if meal.is_external:
             if meal.external_cost_per_person is not None:
                 meal_cost = Decimal(str(meal.external_cost_per_person)) * Decimal(str(effective_portions))
-            cost_per_person = (
-                meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
-            )
+            cost_per_person = meal_cost / Decimal(str(effective_portions)) if effective_portions > 0 else Decimal("0")
             day_costs[str(meal_date)]["total"] += meal_cost
             day_costs[str(meal_date)]["portions"] += Decimal(str(effective_portions))
             day_costs[str(meal_date)]["meals"].append(
@@ -1509,9 +1543,7 @@ def cost_summary(request, meal_plan_id: int):
     # Build response
     total_cost = sum(d["total"] for d in day_costs.values())
     total_effective_portions = sum(d["portions"] for d in day_costs.values())
-    cost_per_person = (
-        total_cost / total_effective_portions if total_effective_portions > 0 else Decimal("0")
-    )
+    cost_per_person = total_cost / total_effective_portions if total_effective_portions > 0 else Decimal("0")
     reserve_factor = meal_plan.reserve_factor or 1.0
     total_cost_with_reserve = total_cost * Decimal(str(reserve_factor))
 
@@ -1522,9 +1554,7 @@ def cost_summary(request, meal_plan_id: int):
             {
                 "date": date_str,
                 "total_cost": d["total"],
-                "cost_per_person": (
-                    d["total"] / d["portions"] if d["portions"] > 0 else Decimal("0")
-                ),
+                "cost_per_person": (d["total"] / d["portions"] if d["portions"] > 0 else Decimal("0")),
                 "meals": d["meals"],
             }
         )
@@ -2497,9 +2527,11 @@ def get_ingredient_scan(request, meal_plan_id: int):
                                 "meal_type": meal.meal_type,
                                 "date": meal_date,
                                 "recipe_id": item.recipe.id if item.recipe else None,
-                                "recipe_title": item.recipe.title
-                                if item.recipe
-                                else (item.ingredient.name if item.ingredient else "Unbekannt"),
+                                "recipe_title": (
+                                    item.recipe.title
+                                    if item.recipe
+                                    else (item.ingredient.name if item.ingredient else "Unbekannt")
+                                ),
                                 "recipe_slug": item.recipe.slug if item.recipe else "",
                                 "nutritional_tag": tag,
                                 "source": "recipe_tag" if item.recipe else "ingredient_tag",
@@ -2834,20 +2866,22 @@ def sync_event_participants(request, meal_plan_id: int):
     from event.models.core import Participant
 
     participants = list(
-        Participant.objects.filter(
-            registration__event=event
-        ).select_related("person").prefetch_related("nutritional_tags")
+        Participant.objects.filter(registration__event=event)
+        .select_related("person")
+        .prefetch_related("nutritional_tags")
     )
 
-    meal_plan.group_members.filter(synced_from_event=False).delete()
+    meal_plan.group_members.filter(synced_from_event=True).delete()
 
     members = []
     for participant in participants:
         age = None
         if participant.birthday:
             today = dt.date.today()
-            age = today.year - participant.birthday.year - (
-                (today.month, today.day) < (participant.birthday.month, participant.birthday.day)
+            age = (
+                today.year
+                - participant.birthday.year
+                - ((today.month, today.day) < (participant.birthday.month, participant.birthday.day))
             )
         member = MealPlanGroupMember(
             meal_plan=meal_plan,

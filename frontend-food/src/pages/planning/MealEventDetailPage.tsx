@@ -302,7 +302,9 @@ export default function MealPlanDetailPage() {
     name?: string;
     description?: string;
     norm_portions?: number;
+    norm_portions_manual?: boolean;
     reserve_factor?: number;
+    activity_factor?: number;
     budget_per_person_per_day?: number | null;
     start_datetime?: string | null;
     end_datetime?: string | null;
@@ -310,7 +312,7 @@ export default function MealPlanDetailPage() {
   }) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
-        toast.success('Einstellungen gespeichert');
+        toast.success(data.norm_portions_manual === false ? 'Automatische Normportionen aktiviert' : data.norm_portions_manual === true ? 'Manuelle Normportionen gespeichert' : 'Einstellungen gespeichert');
         setShowSettingsDialog(false);
       },
       onError: (err) => toast.error('Fehler', { description: err.message }),

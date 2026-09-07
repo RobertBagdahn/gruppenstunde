@@ -2,8 +2,8 @@
  * TanStack Query hooks for the MealPlan API.
  * MUST stay in sync with backend/planner/api/meal_plan.py
  */
-import { API_BASE_URL } from '@/lib/api';
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { API_BASE_URL, parseApiResponse } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from '@tanstack/react-query';
 import {
   MealPlanCollaboratorSchema,
   MealPlanSchema,
@@ -46,6 +46,21 @@ import type { AiApplyOut, AiSuggestOut } from '@/schemas/mealPlan';
 
 const API_BASE = `${API_BASE_URL}/api/meal-plans`;
 
+export function invalidateMealPlanQueries(queryClient: QueryClient, mealPlanId: number) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['meal-plans'] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'group-members'] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan-ingredient-scan', mealPlanId] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'nutrition'] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'shopping-list'] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'costs'] }),
+    queryClient.invalidateQueries({ queryKey: ['cooking-schedule', mealPlanId] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan-suggestions', mealPlanId] }),
+    queryClient.invalidateQueries({ queryKey: ['intelligent-suggestions', mealPlanId] }),
+  ]);
+}
+
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
   return match ? match[1] : '';
@@ -53,11 +68,7 @@ function getCsrfToken(): string {
 
 async function fetchJson<T>(url: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse<T>(res, schema);
 }
 
 async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
@@ -70,11 +81,7 @@ async function postJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.Zo
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse<T>(res, schema);
 }
 
 async function patchJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
@@ -87,11 +94,7 @@ async function patchJson<T>(url: string, body: unknown, schema: z.ZodType<T, z.Z
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  return schema.parse(data);
+  return parseApiResponse<T>(res, schema);
 }
 
 async function deleteJson(url: string): Promise<void> {
@@ -205,18 +208,16 @@ export function useUpdateMealPlan(id: number) {
       name?: string;
       description?: string;
       norm_portions?: number;
+      norm_portions_manual?: boolean;
       reserve_factor?: number;
+      activity_factor?: number;
       budget_per_person_per_day?: number | null;
       start_datetime?: string | null;
       end_datetime?: string | null;
       day_part_factors?: Record<string, number>;
       nutritional_tag_ids?: number[];
     }) => patchJson(`${API_BASE}/${id}/`, body, MealPlanSchema),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', id] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan-ingredient-scan', id] });
-    },
+    onSuccess: () => invalidateMealPlanQueries(queryClient, id),
   });
 }
 
