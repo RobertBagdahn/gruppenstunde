@@ -4,6 +4,7 @@ import json
 import logging
 import time
 
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -109,7 +110,7 @@ def _is_transitively_visible_recipe(recipe: Recipe, request) -> bool:
 
 def _can_view_recipe_breakfast(recipe: Recipe, user) -> bool:
     """Check if user can view recipe in breakfast wizard context.
-    
+
     Rules:
     - System recipes (owner=None, status=approved) are always visible
     - User-owned recipes (owner=user) are visible to owner
@@ -119,19 +120,19 @@ def _can_view_recipe_breakfast(recipe: Recipe, user) -> bool:
     if not user.is_authenticated:
         # Unauthenticated users can only see system recipes
         return recipe.owner_id is None and recipe.status == "approved"
-    
+
     # Staff can see everything
     if user.is_staff:
         return True
-    
+
     # System recipes are always visible
     if recipe.owner_id is None:
         return recipe.status == "approved"
-    
+
     # Owner can always see their own recipe
     if recipe.owner_id == user.id:
         return True
-    
+
     # Check shared groups
     if recipe.visibility in ("group", "public"):
         # Old visibility model (group/public) - handled by existing logic
@@ -141,61 +142,61 @@ def _can_view_recipe_breakfast(recipe: Recipe, user) -> bool:
             # Group visibility - need to check if user is in recipe's group
             # This requires additional logic
             return False
-    
+
     # New shared_groups model
     from profiles.models import UserGroup
+
     user_groups = UserGroup.objects.filter(memberships__user=user)
     return recipe.shared_groups.filter(id__in=user_groups).exists()
 
 
 def _get_visible_recipes_for_breakfast_qs(user, group_ids: list[int] | None = None):
     """Get recipes visible to user for breakfast wizard.
-    
+
     Args:
         user: The requesting user
         group_ids: Optional list of group IDs to filter for
-    
+
     Returns:
         Queryset of visible Recipe objects
     """
     from profiles.models import UserGroup
-    
+
     qs = Recipe.objects.select_related("owner", "forked_from").prefetch_related("shared_groups", "scout_levels", "tags")
-    
+
     if user.is_authenticated and user.is_staff:
         return qs
-    
+
     # System recipes (owner=None, status=approved) are always visible
     system_q = Q(owner__isnull=True, status="approved")
-    
+
     if not user.is_authenticated:
         return qs.filter(system_q)
-    
+
     # User's own recipes
     own_q = Q(owner=user)
-    
+
     # Get user's groups
     user_groups = UserGroup.objects.filter(memberships__user=user)
-    
+
     # Recipes shared with user's groups
     shared_q = Q(visibility="shared", shared_groups__in=user_groups)
-    
+
     # Public recipes
     public_q = Q(visibility="public", status="approved")
-    
+
     # For "group" visibility, check if user is in recipe's group context
     # This would require knowing which group the recipe belongs to
     # For now, we only handle explicit shared_groups model
-    
+
     visibility_q = system_q | own_q | shared_q | public_q
-    
+
     if group_ids:
         # If specific groups are requested, also include recipes shared with those groups
         visibility_q = visibility_q | Q(
-            visibility="shared",
-            shared_groups__in=UserGroup.objects.filter(id__in=group_ids)
+            visibility="shared", shared_groups__in=UserGroup.objects.filter(id__in=group_ids)
         )
-    
+
     return qs.filter(visibility_q).distinct()
 
 
@@ -284,7 +285,7 @@ def list_recipes(request, filters: Query[RecipeFilterIn]):
 def list_my_recipes(request, page: int = 1, page_size: int = 20, folder: int | None = None):
     """List current user's personal recipes."""
     if not request.user.is_authenticated:
-        raise HttpError(403, "Anmeldung erforderlich")
+        raise HttpError(401, "Anmeldung erforderlich")
 
     qs = (
         Recipe.objects.filter(owner=request.user)
@@ -370,6 +371,8 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
             "IMPORT_NO_RECIPE_FOUND",
             "Auf der Seite wurden keine Rezeptdaten gefunden. Bitte prüfe den Link oder gib das Rezept manuell ein.",
         )
+    except ValueError as exc:
+        return _error_response(422, "IMPORT_INVALID_URL", str(exc))
     except HttpError:
         raise
     except Exception:
@@ -388,6 +391,7 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
             "servings": result.servings,
             "preparation_time": result.preparation_time,
             "execution_time": result.execution_time,
+            "image_url": getattr(result, "image_url", ""),
             "recipe_type": result.recipe_type,
             "difficulty": result.difficulty,
             "execution_time_choice": result.execution_time_choice,
@@ -416,6 +420,7 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
                 "name": ci.name,
                 "aliases": ci.aliases,
                 "nutri_class": ci.nutri_class,
+                "name_warning": getattr(ci, "name_warning", None),
             }
             for ci in result.created_ingredients
         ],
@@ -544,10 +549,30 @@ def _attach_similar_recipes(recipe: Recipe):
     recipe.next_best_recipes = find_similar_recipes(recipe, limit=6)
 
 
+def _resolve_tag_ids(tag_identifiers: list[str]) -> list:
+    """Resolve a mixed list of Tag UUIDs and slugs to Tag UUIDs."""
+    import uuid
+
+    from content.models.tags import Tag
+
+    resolved = []
+    slugs = []
+    for item in tag_identifiers:
+        try:
+            val = uuid.UUID(str(item))
+            resolved.append(val)
+        except (ValueError, AttributeError):
+            slugs.append(str(item))
+    if slugs:
+        resolved.extend(list(Tag.objects.filter(slug__in=slugs).values_list("id", flat=True)))
+    return resolved
+
+
 @router.post("/", response=RecipeDetailOut)
+@transaction.atomic
 def create_recipe(request, payload: RecipeCreateIn):
     """Create a new recipe.
-    
+
     For breakfast wizard items, sets owner to current user and handles visibility/sharing.
     """
     _require_auth(request)
@@ -577,6 +602,16 @@ def create_recipe(request, payload: RecipeCreateIn):
     )
     recipe.save()
 
+    if payload.image_url:
+        from content.services.image_service import download_external_image
+
+        try:
+            saved_image_path = download_external_image(payload.image_url, "content/")
+        except (RuntimeError, ValueError) as exc:
+            raise HttpError(422, "Das Rezeptbild konnte nicht übernommen werden") from exc
+        recipe.image.name = saved_image_path
+        recipe.save(update_fields=["image"])
+
     # Set M2M relations (except nutritional tags — handled after items)
     if payload.scout_level_ids:
         from content.models.tags import ScoutLevel
@@ -584,40 +619,64 @@ def create_recipe(request, payload: RecipeCreateIn):
         valid_ids = set(ScoutLevel.objects.filter(id__in=payload.scout_level_ids).values_list("id", flat=True))
         recipe.scout_levels.set(valid_ids)
     if payload.tag_ids:
-        recipe.tags.set(payload.tag_ids)
+        recipe.tags.set(_resolve_tag_ids(payload.tag_ids))
     if payload.equipment_ids:
         recipe.equipment.set(payload.equipment_ids)
 
     recipe.authors.add(request.user)
 
     # Create recipe items first (triggers sync_recipe_nutritional_tags via signal)
-    # Skip items without portion_id (can happen in URL imports if portion resolution failed)
     for item_data in payload.recipe_items:
-        if item_data.portion_id is None:
-            continue  # Skip items without a portion
         RecipeItem.objects.create(
             recipe=recipe,
             portion_id=item_data.portion_id,
+            client_request_id=item_data.client_request_id,
             quantity=item_data.quantity,
             sort_order=item_data.sort_order,
             note=item_data.note,
             is_optional=item_data.is_optional,
         )
 
+    from recipe.models import RecipeStep, RecipeStepIngredient
+
+    for step_data in payload.steps:
+        step = RecipeStep.objects.create(
+            recipe=recipe,
+            sort_order=step_data.sort_order,
+            instruction=step_data.instruction,
+            duration_minutes=step_data.duration_minutes,
+            section=step_data.section,
+        )
+        for ingredient_data in step_data.step_ingredients:
+            recipe_item = recipe.recipe_items.filter(id=ingredient_data.recipe_item_id).first()
+            if recipe_item is None:
+                raise HttpError(400, "Step verweist auf eine unbekannte Rezept-Zutat")
+            RecipeStepIngredient.objects.create(
+                step=step,
+                recipe_item=recipe_item,
+                quantity_modifier=ingredient_data.quantity_modifier,
+                preparation=ingredient_data.preparation,
+                sort_order=ingredient_data.sort_order,
+            )
+
+    if payload.source_url:
+        recipe.source_url = payload.source_url
+        recipe.save(update_fields=["source_url"])
+
     # Store manually-set nutritional tags after sync (M2M .set() does NOT trigger post_save)
     if payload.nutritional_tag_ids:
         recipe.manual_nutritional_tags.set(payload.nutritional_tag_ids)
-    
+
     # Handle shared_group_ids for breakfast wizard recipes
     if payload.shared_group_ids:
         from profiles.models import UserGroup
-        
+
         # Validate that user is member of all shared groups
         user_group_ids = set(UserGroup.objects.filter(memberships__user=request.user).values_list("id", flat=True))
         invalid_group_ids = set(payload.shared_group_ids) - user_group_ids
         if invalid_group_ids:
             raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
-        
+
         recipe.shared_groups.set(payload.shared_group_ids)
 
     recipe.emotion_counts = {}
@@ -629,13 +688,14 @@ def create_recipe(request, payload: RecipeCreateIn):
 
 
 @router.patch("/{recipe_id}/", response=RecipeDetailOut)
+@transaction.atomic
 def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     """Update a recipe.
-    
+
     Staff-only fields: status, source_url, authors_ids
     Owner-only fields: shared_group_ids, visibility (for breakfast wizard)
     Non-staff users attempting to modify staff-only fields will receive a 403 Forbidden error.
-    
+
     Example staff request:
     {
         "title": "New Title",
@@ -643,7 +703,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         "source_url": "https://example.com/recipe",
         "authors_ids": [1, 2, 3]
     }
-    
+
     Non-staff users can only modify: title, summary, description, recipe_type,
     execution_time, preparation_time, difficulty, tag_ids, scout_level_ids,
     nutritional_tag_ids, recipe_items, shared_group_ids (breakfast wizard).
@@ -656,18 +716,24 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         raise HttpError(403, "Keine Berechtigung")
 
     data = payload.dict(exclude_unset=True)
-    
+
     # Staff-only field protection
     if "status" in data and not request.user.is_staff:
         raise HttpError(403, "Nur Admins können den Rezept-Status ändern")
     if "authors_ids" in data and not request.user.is_staff:
         raise HttpError(403, "Nur Admins können die Autoren ändern")
-    
+
+    if "visibility" in data:
+        if recipe.owner_id != request.user.id and not request.user.is_staff:
+            raise HttpError(403, "Nur der Owner darf die Sichtbarkeit ändern")
+        if data["visibility"] not in {"private", "group", "public"}:
+            raise HttpError(400, "Ungültige Sichtbarkeit")
+
     # Owner-only field protection (breakfast wizard)
     if recipe.owner and ("shared_group_ids" in data):
         if recipe.owner_id != request.user.id and not request.user.is_staff:
             raise HttpError(403, "Nur der Owner darf Sharing-Einstellungen ändern")
-    
+
     data.pop("portions", None)  # Always enforce portions=1
     scout_level_ids = data.pop("scout_level_ids", None)
     tag_ids = data.pop("tag_ids", None)
@@ -689,7 +755,7 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         valid_ids = set(ScoutLevel.objects.filter(id__in=scout_level_ids).values_list("id", flat=True))
         recipe.scout_levels.set(valid_ids)
     if tag_ids is not None:
-        recipe.tags.set(tag_ids)
+        recipe.tags.set(_resolve_tag_ids(tag_ids))
     if equipment_ids is not None:
         recipe.equipment.set(equipment_ids)
     if authors_ids is not None:
@@ -706,32 +772,44 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
     if recipe_items_data is not None:
         if not recipe_items_data and recipe.status != "draft":
             raise HttpError(400, "Bei veröffentlichten Rezepten können nicht alle Zutaten entfernt werden")
+
+        from supply.models import Portion
+
+        portion_ids = {
+            item_data["portion_id"] for item_data in recipe_items_data if item_data["portion_id"] is not None
+        }
+        valid_portion_ids = set(Portion.objects.filter(id__in=portion_ids).values_list("id", flat=True))
+        missing_portion_ids = portion_ids - valid_portion_ids
+        if missing_portion_ids:
+            raise HttpError(400, f"Portionen nicht gefunden: {missing_portion_ids}")
+
         recipe.recipe_items.all().delete()
         for item_data in recipe_items_data:
             RecipeItem.objects.create(
                 recipe=recipe,
                 portion_id=item_data["portion_id"],
-                quantity=item_data["quantity"],
-                sort_order=item_data["sort_order"],
-                note=item_data["note"],
+                client_request_id=item_data.get("client_request_id"),
+                quantity=item_data.get("quantity", 1),
+                sort_order=item_data.get("sort_order", 0),
+                note=item_data.get("note", ""),
                 is_optional=item_data.get("is_optional", False),
             )
 
     # Store manually-set nutritional tags AFTER items (M2M .set() does NOT trigger post_save)
     if nutritional_tag_ids is not None:
         recipe.manual_nutritional_tags.set(nutritional_tag_ids)
-    
+
     # Handle shared_group_ids for breakfast wizard recipes
     if shared_group_ids is not None:
         if recipe.visibility == "shared" or data.get("visibility") == "shared":
             from profiles.models import UserGroup
-            
+
             # Validate that user is member of all shared groups
             user_group_ids = set(UserGroup.objects.filter(memberships__user=request.user).values_list("id", flat=True))
             invalid_group_ids = set(shared_group_ids) - user_group_ids
             if invalid_group_ids:
                 raise HttpError(400, f"User is not a member of groups: {invalid_group_ids}")
-            
+
             recipe.shared_groups.set(shared_group_ids)
         else:
             # Clear shared groups if not sharing
@@ -753,6 +831,16 @@ def delete_recipe(request, recipe_id: int):
 
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
     require_action(recipe, request.user, "delete")
+
+    from planner.models import MealItem
+
+    recipe_item_ids = set(recipe.recipe_items.values_list("id", flat=True))
+    has_active_variant = any(
+        recipe_item_ids.intersection(meal_item.active_recipe_item_ids or [])
+        for meal_item in MealItem.objects.filter(recipe=recipe).only("active_recipe_item_ids")
+    )
+    if has_active_variant:
+        raise HttpError(409, "Das Rezept wird mit aktiven Varianten in einem Essensplan verwendet.")
 
     recipe.soft_delete()
     return {"success": True}
@@ -909,53 +997,50 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
         "nutritional_tags",
     ).get(pk=original.pk)
 
-    # Create the fork
-    fork = Recipe(
-        title=payload.title or original.title,
-        summary=original.summary,
-        summary_long=original.summary_long,
-        description=original.description,
-        recipe_type=original.recipe_type,
-        portions=1,  # Always normalize to 1 portion (consistent with create_recipe)
-        execution_time=original.execution_time,
-        preparation_time=original.preparation_time,
-        difficulty=original.difficulty,
-        owner=request.user,
-        forked_from=original,
-        visibility="private",
-        status="draft",
-        created_by=request.user,
-    )
-    fork.save()
-
-    # Copy M2M relations
-    fork.tags.set(original.tags.all())
-    fork.scout_levels.set(original.scout_levels.all())
-    fork.nutritional_tags.set(original.nutritional_tags.all())
-    fork.authors.add(request.user)
-
-    # Copy exchange groups first, mapping original group id -> new group.
-    from recipe.models import RecipeItemExchangeGroup
-
-    group_map: dict[int, RecipeItemExchangeGroup] = {}
-    for group in original.exchange_groups.all():
-        group_map[group.id] = RecipeItemExchangeGroup.objects.create(
-            recipe=fork,
-            name=group.name,
+    with transaction.atomic():
+        fork = Recipe(
+            title=payload.title or original.title,
+            summary=original.summary,
+            summary_long=original.summary_long,
+            description=original.description,
+            recipe_type=original.recipe_type,
+            portions=1,  # Always normalize to 1 portion (consistent with create_recipe)
+            execution_time=original.execution_time,
+            preparation_time=original.preparation_time,
+            difficulty=original.difficulty,
+            owner=request.user,
+            forked_from=original,
+            visibility="private",
+            status="draft",
+            created_by=request.user,
         )
+        fork.save()
 
-    # Copy all RecipeItems, preserving optional flag and exchange membership.
-    for item in original.recipe_items.all():
-        RecipeItem.objects.create(
-            recipe=fork,
-            portion_id=item.portion_id,
-            quantity=item.quantity,
-            sort_order=item.sort_order,
-            note=item.note,
-            is_optional=item.is_optional,
-            exchange_group=group_map.get(item.exchange_group_id),
-            exchange_position=item.exchange_position,
-        )
+        fork.tags.set(original.tags.all())
+        fork.scout_levels.set(original.scout_levels.all())
+        fork.nutritional_tags.set(original.nutritional_tags.all())
+        fork.authors.add(request.user)
+
+        from recipe.models import RecipeItemExchangeGroup
+
+        group_map: dict[int, RecipeItemExchangeGroup] = {}
+        for group in original.exchange_groups.all():
+            group_map[group.id] = RecipeItemExchangeGroup.objects.create(
+                recipe=fork,
+                name=group.name,
+            )
+
+        for item in original.recipe_items.all():
+            RecipeItem.objects.create(
+                recipe=fork,
+                portion_id=item.portion_id,
+                quantity=item.quantity,
+                sort_order=item.sort_order,
+                note=item.note,
+                is_optional=item.is_optional,
+                exchange_group=group_map.get(item.exchange_group_id),
+                exchange_position=item.exchange_position,
+            )
 
     fork.emotion_counts = {}
     fork.user_emotion = None
@@ -988,7 +1073,6 @@ def verify_recipe_endpoint(request, recipe_id: int, payload: VerifyRequestIn):
 @router.get("/{recipe_id}/verification-status/", response=VerifyStatusOut)
 def get_verification_status(request, recipe_id: int):
     """Get the verification readiness status for a recipe."""
-    _require_auth(request)
     recipe = _get_visible_recipe_or_404(request, recipe_id)
 
     from recipe.services.verification_service import check_verification_readiness

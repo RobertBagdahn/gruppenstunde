@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q
 
-from content.models.approval import ApprovalLog
 from content.choices import ApprovalAction
+from content.models.approval import ApprovalLog
 from recipe.models import Rule
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import User
+
     from recipe.models import Recipe
 
 
@@ -80,6 +80,12 @@ def _evaluate_rules(recipe: Recipe) -> tuple[list[dict], int, int]:
 
     active_rules = Rule.objects.filter(is_active=True, scope="recipe")
 
+    recipe_servings = max(recipe.portions or 1, 1)
+    if recipe.cached_weight_g and recipe.cached_weight_g > 0:
+        factor = (recipe.cached_weight_g / 100.0) / recipe_servings
+    else:
+        factor = 1.0
+
     for rule in active_rules:
         rules_total += 1
         cached_field = RULE_PARAMETER_TO_CACHED_FIELD.get(rule.parameter)
@@ -89,25 +95,36 @@ def _evaluate_rules(recipe: Recipe) -> tuple[list[dict], int, int]:
 
         value = getattr(recipe, cached_field, None)
         if value is None:
-            warnings.append({
-                "rule_name": rule.name,
-                "rule_description": rule.description,
-                "hint_level": rule.hint_level,
-                "message": f"Kein Wert für {rule.name} verfügbar",
-            })
+            warnings.append(
+                {
+                    "rule_name": rule.name,
+                    "rule_description": rule.description,
+                    "hint_level": rule.hint_level,
+                    "message": f"Kein Wert für {rule.name} verfügbar",
+                }
+            )
             continue
 
-        status = rule.evaluate(float(value))
+        if rule.parameter == "nutri_class":
+            eval_value = float(value)
+        elif rule.parameter in ["weight_g", "price_total"]:
+            eval_value = float(value) / recipe_servings if recipe_servings > 0 else float(value)
+        else:
+            eval_value = float(value) * factor
+
+        status = rule.evaluate(eval_value)
         if status != "green":
-            warnings.append({
-                "rule_name": rule.name,
-                "rule_description": rule.description,
-                "hint_level": rule.hint_level,
-                "current_value": float(value),
-                "unit": rule.unit,
-                "status": status,
-                "tip_text": rule.tip_text,
-            })
+            warnings.append(
+                {
+                    "rule_name": rule.name,
+                    "rule_description": rule.description,
+                    "hint_level": rule.hint_level,
+                    "current_value": round(eval_value, 2),
+                    "unit": rule.unit,
+                    "status": status,
+                    "tip_text": rule.tip_text,
+                }
+            )
         else:
             rules_passed += 1
 
@@ -120,15 +137,17 @@ def check_verification_readiness(recipe: Recipe) -> VerificationResult:
 
     all_warnings = []
     for mf in missing_fields:
-        all_warnings.append({
-            "rule_name": "Pflichtfeld",
-            "rule_description": mf,
-            "hint_level": "error",
-            "message": mf,
-        })
+        all_warnings.append(
+            {
+                "rule_name": "Pflichtfeld",
+                "rule_description": mf,
+                "hint_level": "error",
+                "message": mf,
+            }
+        )
     all_warnings.extend(rule_warnings)
 
-    can_verify = len(missing_fields) == 0
+    can_verify = not missing_fields
 
     return VerificationResult(
         can_verify=can_verify,
@@ -142,17 +161,16 @@ def check_verification_readiness(recipe: Recipe) -> VerificationResult:
 def verify_recipe(recipe: Recipe, reviewer: User, confirm: bool = False) -> VerificationResult:
     result = check_verification_readiness(recipe)
 
-    if confirm and result.can_verify:
+    # Submitted recipes may be explicitly approved by staff with warnings;
+    # draft recipes still require all mandatory fields before confirmation.
+    if confirm and (result.can_verify or recipe.status == "submitted"):
         recipe.status = "approved"
         recipe.save(update_fields=["status"])
 
         ct = ContentType.objects.get_for_model(recipe)
         reason = ""
         if result.warnings:
-            warning_summaries = [
-                w.get("rule_description", w.get("rule_name", ""))
-                for w in result.warnings
-            ]
+            warning_summaries = [w.get("rule_description", w.get("rule_name", "")) for w in result.warnings]
             reason = "Warnungen beim Verifizieren: " + "; ".join(warning_summaries)
 
         ApprovalLog.objects.create(

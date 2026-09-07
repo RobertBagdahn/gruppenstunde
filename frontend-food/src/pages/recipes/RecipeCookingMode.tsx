@@ -27,7 +27,23 @@ export default function RecipeCookingMode({
   portionsMultiplier,
 }: RecipeCookingModeProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
+  const storageKey = `cooking_mode_ingredients_${recipe.id}`;
+
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return new Set<number>(parsed);
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return new Set();
+  });
 
   // Determine steps: use structured steps if available, otherwise parse from description
   const steps = useMemo(() => {
@@ -94,7 +110,7 @@ export default function RecipeCookingMode({
     );
   }, [setSearchParams]);
 
-  // Toggle ingredient checkbox (session-scoped, no server save)
+  // Toggle ingredient checkbox (session-scoped, persisted in sessionStorage)
   const toggleIngredientCheck = useCallback((itemId: number) => {
     setCheckedIngredients((prev) => {
       const newSet = new Set(prev);
@@ -103,9 +119,14 @@ export default function RecipeCookingMode({
       } else {
         newSet.add(itemId);
       }
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(Array.from(newSet)));
+      } catch {
+        // ignore storage errors
+      }
       return newSet;
     });
-  }, []);
+  }, [storageKey]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -146,7 +167,7 @@ export default function RecipeCookingMode({
             const scale = basePortions > 0 ? portionsMultiplier / basePortions : 1;
             const scaledQty = item.quantity * scale;
             const isChecked = checkedIngredients.has(item.id);
-            
+
             return (
               <label
                 key={item.id}

@@ -154,15 +154,29 @@ export function DayPlanView({
                     )}
                   </div>
                 </div>
-                {canEdit && (
-                  <button
-                    onClick={() => onDeleteDay(group.date)}
-                    className="p-1.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors self-end sm:self-auto"
-                    title="Tag löschen"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
+                {canEdit && (() => {
+                  const isEdgeDay = dayGroups.length > 1 && (group.date === dayGroups[0].date || group.date === dayGroups[dayGroups.length - 1].date);
+                  const deleteReason = dayGroups.length <= 1
+                    ? 'Der letzte Tag eines Plans kann nicht gelöscht werden.'
+                    : !isEdgeDay
+                    ? 'Nur der erste oder letzte Tag eines Plans kann gelöscht werden (zusammenhängender Zeitraum).'
+                    : 'Tag löschen';
+                  return (
+                    <button
+                      onClick={() => isEdgeDay && onDeleteDay(group.date)}
+                      disabled={!isEdgeDay}
+                      className={`p-1.5 rounded-full transition-colors self-end sm:self-auto ${
+                        isEdgeDay
+                          ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer'
+                          : 'text-muted-foreground/30 cursor-not-allowed'
+                      }`}
+                      title={deleteReason}
+                      aria-label={deleteReason}
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  );
+                })()}
               </div>
 
               {/* Meals */}

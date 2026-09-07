@@ -58,8 +58,11 @@ export function invalidateMealPlanQueries(queryClient: QueryClient, mealPlanId: 
     queryClient.invalidateQueries({ queryKey: ['cooking-schedule', mealPlanId] }),
     queryClient.invalidateQueries({ queryKey: ['meal-plan-suggestions', mealPlanId] }),
     queryClient.invalidateQueries({ queryKey: ['intelligent-suggestions', mealPlanId] }),
+    queryClient.invalidateQueries({ queryKey: ['refMeals', mealPlanId] }),
   ]);
 }
+
+export const invalidateMealPlanData = invalidateMealPlanQueries;
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -252,7 +255,7 @@ export function useAddDay(mealPlanId: number) {
     mutationFn: (body: { date: string }) =>
       postJson(`${API_BASE}/${mealPlanId}/days/`, body, z.array(MealSchema)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -263,8 +266,7 @@ export function useAddDayBefore(mealPlanId: number) {
     mutationFn: () =>
       postJson(`${API_BASE}/${mealPlanId}/add-day-before/`, {}, z.array(MealSchema)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -275,8 +277,7 @@ export function useAddDayAfter(mealPlanId: number) {
     mutationFn: () =>
       postJson(`${API_BASE}/${mealPlanId}/add-day-after/`, {}, z.array(MealSchema)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plans'] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -287,7 +288,7 @@ export function useRemoveDay(mealPlanId: number) {
     mutationFn: (date: string) =>
       deleteJson(`${API_BASE}/${mealPlanId}/days/?date=${date}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -306,7 +307,7 @@ export function useAddMeal(mealPlanId: number) {
       day_part_factor?: number | null;
     }) => postJson(`${API_BASE}/${mealPlanId}/meals/`, body, MealSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -317,7 +318,7 @@ export function useRemoveMeal(mealPlanId: number) {
     mutationFn: (mealId: number) =>
       deleteJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -341,7 +342,7 @@ export function useAddMealItem(mealPlanId: number) {
       factor?: number;
     }) => postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/items/`, body, MealItemSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -352,7 +353,7 @@ export function useRemoveMealItem(mealPlanId: number) {
     mutationFn: (itemId: number) =>
       deleteJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -367,7 +368,7 @@ export function useUpdateMealItem(mealPlanId: number) {
         MealItemSchema,
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -382,7 +383,7 @@ export function useUpdateMeal(mealPlanId: number) {
       mealId: number;
     } & MealUpdateIn) => patchJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/`, body, MealSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -393,7 +394,7 @@ export function useScaleMealToTarget(mealPlanId: number) {
     mutationFn: (mealId: number) =>
       postJson(`${API_BASE}/${mealPlanId}/meals/${mealId}/scale-to-target/`, {}, MealSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }
@@ -413,7 +414,7 @@ export function useCopyItemsFromPlan(planId: number) {
         z.array(MealItemSchema),
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+      invalidateMealPlanQueries(queryClient, planId);
     },
   });
 }
@@ -642,15 +643,10 @@ export function useBatchCreateMealItems(mealPlanId: number, mealId: number) {
           body: JSON.stringify({ items: validated }),
         },
       );
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.detail || `API error: ${res.status}`);
-      }
-      const data = await res.json();
-      return z.array(MealItemSchema).parse(data);
+      return parseApiResponse(res, z.array(MealItemSchema));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId] });
+      invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
 }

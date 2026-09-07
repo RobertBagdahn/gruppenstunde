@@ -305,6 +305,24 @@ class TestCreateRecipe:
         data = resp.json()
         assert len(data["recipe_items"]) == 1
 
+    def test_create_keeps_normalized_item_quantity_when_portions_is_provided(self, auth_client, portion):
+        resp = auth_client.post(
+            "/api/recipes/",
+            data=json.dumps(
+                {
+                    "title": "Vier Personen",
+                    "portions": 4,
+                    "recipe_items": [{"portion_id": portion.id, "quantity": 125, "sort_order": 0, "note": ""}],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["portions"] == 1
+        assert data["recipe_items"][0]["quantity"] == 125
+
     def test_honeypot_protection(self, auth_client):
         resp = auth_client.post(
             "/api/recipes/",
@@ -312,6 +330,16 @@ class TestCreateRecipe:
             content_type="application/json",
         )
         assert resp.status_code == 400
+
+    def test_create_recipe_resolves_tag_slugs(self, auth_client, tag):
+        resp = auth_client.post(
+            "/api/recipes/",
+            data=json.dumps({"title": "Mit Tag Slug", "tag_ids": [tag.slug]}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        recipe = Recipe.objects.get(id=resp.json()["id"])
+        assert tag in recipe.tags.all()
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +375,27 @@ class TestUpdateRecipe:
         data = resp.json()
         assert data["title"] == "Updated"
         assert data["recipe_type"] == "dessert"
+
+    def test_update_keeps_normalized_portions(self, auth_client, portion):
+        recipe = Recipe.objects.create(title="Normalisiert", status=ContentStatus.DRAFT, created_by=auth_client._user)
+        recipe.authors.add(auth_client._user)
+        RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=125, sort_order=0)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps(
+                {
+                    "portions": 4,
+                    "recipe_items": [{"portion_id": portion.id, "quantity": 125, "sort_order": 0}],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        assert resp.status_code == 200
+        recipe.refresh_from_db()
+        assert recipe.portions == 1
+        assert recipe.recipe_items.get().quantity == 125
 
     def test_admin_can_update_any(self, admin_client, approved_recipe):
         resp = admin_client.patch(
@@ -396,6 +445,24 @@ class TestUpdateRecipe:
 
         recipe.refresh_from_db()
         assert recipe.status == ContentStatus.APPROVED
+
+    def test_update_recipe_resolves_tag_slugs(self, auth_client, db, tag):
+        user = auth_client._user
+        recipe = Recipe.objects.create(
+            title="Original",
+            status=ContentStatus.DRAFT,
+            created_by=user,
+        )
+        recipe.authors.add(user)
+
+        resp = auth_client.patch(
+            f"/api/recipes/{recipe.id}/",
+            data=json.dumps({"tag_ids": [tag.slug]}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        recipe.refresh_from_db()
+        assert tag in recipe.tags.all()
 
     def test_staff_can_set_authors(self, admin_client, db):
         """Staff user CAN set recipe.authors via API."""
@@ -521,12 +588,14 @@ class TestUpdateRecipe:
 
         resp = auth_client.patch(
             f"/api/recipes/{recipe.id}/",
-            data=json.dumps({
-                "title": "Aktualisiert",
-                "recipe_items": [
-                    {"portion_id": portion.id, "quantity": 250.0, "sort_order": 0, "note": "neu"},
-                ],
-            }),
+            data=json.dumps(
+                {
+                    "title": "Aktualisiert",
+                    "recipe_items": [
+                        {"portion_id": portion.id, "quantity": 250.0, "sort_order": 0, "note": "neu"},
+                    ],
+                }
+            ),
             content_type="application/json",
         )
         assert resp.status_code == 200

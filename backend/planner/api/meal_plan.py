@@ -67,6 +67,7 @@ from planner.services.notification_service import notify_collaborator_added
 from recipe.models import Recipe, RecipeItem
 from recipe.schemas import SuggestionDashboardOut
 from supply.data.dge_reference import NORM_PERSON_DAILY_KCAL
+from supply.models import Ingredient
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +163,7 @@ def _describe_integrity_error(error: IntegrityError, ingredient, recipe) -> Http
     ing_id: int | None = (
         ingredient if isinstance(ingredient, int) else (ingredient.pk if hasattr(ingredient, "pk") else None)
     )
+
     if "unique_ingredient_per_meal" in detail:
         from supply.models import Ingredient
 
@@ -369,7 +371,8 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
         from event.models import Event
 
         event_for_link = get_object_or_404(Event, id=payload.event_id)
-        if not event_for_link.user_can_manage(request.user):
+        has_manager = event_for_link.created_by_id is not None or event_for_link.responsible_persons.exists()
+        if has_manager and not event_for_link.user_can_manage(request.user):
             raise HttpError(403, "Keine Berechtigung für dieses Event")
 
     # Set start/end datetime (make timezone-aware if naive)
@@ -395,6 +398,9 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
             )
         else:
             meal_plan.start_datetime = timezone.now()
+
+    if meal_plan.end_datetime and meal_plan.start_datetime and meal_plan.end_datetime <= meal_plan.start_datetime:
+        raise HttpError(400, "Die Endzeit muss nach der Startzeit liegen.")
 
     meal_plan.save()
 
@@ -489,6 +495,7 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
         elif requested_norm_portions <= 0 or not float(requested_norm_portions).is_integer():
             raise HttpError(422, "Manuelle Normportionen müssen eine positive ganze Zahl sein")
     elif has_event_relation and not was_norm_portions_manual:
+        # Event plans derive their value from group members unless manual mode is active.
         patch_data.pop("norm_portions", None)
 
     manual_mode_enabled = requested_norm_portions_manual and not was_norm_portions_manual
@@ -879,11 +886,11 @@ def add_meal_item(request, meal_plan_id: int, meal_id: int, payload: MealItemCre
     if payload.recipe_id:
         from content.services.food_access import get_visible_recipe_or_404
 
-        recipe = get_visible_recipe_or_404(request.user, payload.recipe_id)
+        recipe = get_visible_recipe_or_404(request.user, payload.recipe_id, allow_system_draft=True)
     if payload.ingredient_id:
         from content.services.food_access import get_visible_ingredient_or_404
 
-        ingredient = get_visible_ingredient_or_404(request.user, payload.ingredient_id)
+        ingredient = get_visible_ingredient_or_404(request.user, payload.ingredient_id, allow_system_draft=True)
 
     item = _create_meal_item(
         meal=meal,
@@ -929,21 +936,23 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
             if item_in.recipe_id:
                 from content.services.food_access import get_visible_recipe_or_404
 
-                recipe = get_visible_recipe_or_404(request.user, item_in.recipe_id)
+                recipe = get_visible_recipe_or_404(request.user, item_in.recipe_id, allow_system_draft=True)
             if item_in.ingredient_id:
                 from content.services.food_access import get_visible_ingredient_or_404
 
-                ingredient = get_visible_ingredient_or_404(request.user, item_in.ingredient_id)
+                ingredient = get_visible_ingredient_or_404(request.user, item_in.ingredient_id, allow_system_draft=True)
 
             # Auto-create Portion if it doesn't exist for this ingredient + measuring_unit
             if ingredient and item_in.measuring_unit_id:
-                from supply.models import MeasuringUnit
+                from supply.models import MeasuringUnit, Portion
 
                 mu = MeasuringUnit.objects.filter(id=item_in.measuring_unit_id).first()
-                if mu and not ingredient.portions.filter(measuring_unit=mu).exists():
+                if (
+                    mu
+                    and mu.name.lower() not in ("g", "gramm")
+                    and not ingredient.portions.filter(measuring_unit=mu).exists()
+                ):
                     weight_g = _derive_portion_weight_g(ingredient, mu)
-                    from supply.models import Portion
-
                     Portion.objects.get_or_create(
                         ingredient=ingredient,
                         measuring_unit=mu,
@@ -1000,7 +1009,7 @@ def batch_create_meal_items(request, meal_plan_id: int, meal_id: int, payload: M
 
         from content.services.food_access import get_visible_recipe_or_404
 
-        recipe = get_visible_recipe_or_404(request.user, payload.items[0].recipe_id)
+        recipe = get_visible_recipe_or_404(request.user, payload.items[0].recipe_id, allow_system_draft=True)
         # Delete original parent items (without variant_group_id) for this meal + recipe
         MealItem.objects.filter(meal=meal, recipe=recipe, variant_group_id__isnull=True).delete()
 
@@ -1134,7 +1143,7 @@ def scale_meal_to_target(request, meal_plan_id: int, meal_id: int):
 
     with transaction.atomic():
         for item in meal.items.all():
-            item.factor = round(item.factor * scale, 2)
+            item.factor = round(item.factor * scale, 1)
             item.save()
 
     meal.refresh_from_db()
@@ -1262,6 +1271,7 @@ def set_meal_item_overrides(request, meal_plan_id: int, item_id: int, payload: l
 @meal_plan_router.get("/{meal_plan_id}/nutrition-summary/", response=NutritionSummaryOut)
 def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     """Get aggregated nutritional values for the entire meal plan, optionally filtered by date."""
+    from planner.services.calculation_context import active_recipe_items
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
 
     _require_auth(request)
@@ -1271,6 +1281,7 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     # Collect all MealItems — prefetch recipe items, ingredient, and overrides to avoid N+1
     meal_items_qs = MealItem.objects.filter(
         meal__meal_plan=meal_plan,
+        meal__is_reference=False,
     )
     if date:
         meal_items_qs = meal_items_qs.filter(meal__start_datetime__date=date)
@@ -1313,37 +1324,15 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
                     mi.recipe.title,
                 )
                 continue
-            recipe_items = list(mi.recipe.recipe_items.all())
             recipe_servings = mi.recipe.portions
-            active_ids = set(mi.active_recipe_item_ids or [])
 
-            # Build override lookup for O(1) access per recipe item
-            overrides_map = {o.recipe_item_id: o for o in mi.overrides.all()}
-
-            for ri in recipe_items:
-                if not ri.portion or not ri.portion.ingredient:
+            for active_item in active_recipe_items(mi):
+                ri = active_item.recipe_item
+                ing = ri.portion.ingredient if ri.portion else None
+                if not ing:
                     continue
 
-                # Base items (not exchange, not optional) are always included.
-                # Exchange members and optional items are included only if in active_ids.
-                if ri.exchange_group_id is not None or ri.is_optional:
-                    if ri.id not in active_ids:
-                        continue
-
-                # Apply MealItemOverride: excluded items are skipped entirely
-                override = overrides_map.get(ri.id)
-                if override and override.excluded:
-                    continue
-
-                # quantity_override replaces the recipe item quantity (same unit: portion count)
-                effective_quantity = (
-                    float(override.quantity_override)
-                    if (override and override.quantity_override is not None)
-                    else float(ri.quantity)
-                )
-
-                ing = ri.portion.ingredient
-                weight_g = effective_quantity * float(ri.portion.weight_g) if ri.portion.weight_g else 0
+                weight_g = active_item.weight_g or 0
                 scale = (weight_g / 100.0) * mi.factor * (effective_portions / recipe_servings)
 
                 for field in fields:
@@ -1394,6 +1383,7 @@ def cost_summary(request, meal_plan_id: int):
     from collections import defaultdict
     from decimal import Decimal
 
+    from planner.services.calculation_context import active_recipe_items
     from planner.services.meal_item_helpers import _resolve_ingredient_weight_g
     from supply.services.price_service import get_portion_price
 
@@ -1455,8 +1445,6 @@ def cost_summary(request, meal_plan_id: int):
                     )
                     continue
                 recipe_servings = item.recipe.portions
-                recipe_items = list(item.recipe.recipe_items.all())
-                active_ids = set(item.active_recipe_item_ids or [])
                 recipe_item_cost = Decimal("0")
                 rid = item.recipe.id
                 if rid not in recipe_costs:
@@ -1472,32 +1460,15 @@ def cost_summary(request, meal_plan_id: int):
                         "total_ingredients": 0,
                     }
 
-                # Build override lookup for this meal item
-                overrides_map = {o.recipe_item_id: o for o in item.overrides.all()}
-
-                for ri in recipe_items:
-                    if not ri.portion or not ri.portion.ingredient:
+                for active_item in active_recipe_items(item):
+                    ri = active_item.recipe_item
+                    ing = ri.portion.ingredient if ri.portion else None
+                    if not ing:
                         continue
-                    if ri.exchange_group_id is not None or ri.is_optional:
-                        if ri.id not in active_ids:
-                            continue
-
-                    # MealItemOverride: excluded items are skipped
-                    override = overrides_map.get(ri.id)
-                    if override and override.excluded:
-                        continue
-
-                    # quantity_override replaces recipe item quantity
-                    effective_quantity = (
-                        float(override.quantity_override)
-                        if (override and override.quantity_override is not None)
-                        else float(ri.quantity)
-                    )
 
                     total_ingredients += 1
                     recipe_costs[rid]["total_ingredients"] += 1
-                    ing = ri.portion.ingredient
-                    weight_g = effective_quantity * float(ri.portion.weight_g) if ri.portion.weight_g else 0
+                    weight_g = active_item.weight_g or 0
                     scaled_weight_g = weight_g * item.factor * (effective_portions / recipe_servings)
                     price = get_portion_price(ing, scaled_weight_g)
                     if price is not None:
@@ -1672,6 +1643,7 @@ def recipe_suggestions(
     q: str | None = None,
     limit: int = 10,
     nutritional_tag_ids: str | None = None,
+    exclude_nutritional_tag_ids: str | None = None,
     require_nutritional_tags: bool = True,
     random: bool = False,
     recipe_types: str | None = None,
@@ -1696,6 +1668,11 @@ def recipe_suggestions(
         tag_ids = [int(t) for t in nutritional_tag_ids.split(",") if t.strip().isdigit()]
         for tag_id in tag_ids:
             base_filter &= Q(recipe__nutritional_tags__id=tag_id)
+
+    if exclude_nutritional_tag_ids:
+        excluded_tag_ids = [int(t) for t in exclude_nutritional_tag_ids.split(",") if t.strip().isdigit()]
+        if excluded_tag_ids:
+            base_filter &= ~Q(recipe__nutritional_tags__id__in=excluded_tag_ids)
 
     # Text search filter
     text_filter = Q()
@@ -1807,7 +1784,7 @@ def recipe_suggestions(
                 id=r.id,
                 title=r.title,
                 usage_count=count,
-                image_thumbnail=r.image.url if r.image else None,
+                image_url=r.image.url if r.image else None,
                 recipe_badge=badge,
                 price_per_serving=pps,
                 recipe_type=r.recipe_type,
@@ -1819,7 +1796,7 @@ def recipe_suggestions(
             id=r.id,
             title=r.title,
             usage_count=count,
-            image_thumbnail=r.image.url if r.image else None,
+            image_url=r.image.url if r.image else None,
             recipe_badge=badge,
             price_per_serving=pps,
             recipe_type=r.recipe_type,
@@ -2581,7 +2558,6 @@ def calculate_ingredient_kcal(request, meal_plan_id: int, payload: CalculateIngr
     Accepts an array of {ingredient_id, quantity_g} and returns {ingredient_id, energy_kcal}.
     Used by the breakfast wizard to calculate extra ingredient kcal.
     """
-    from supply.models import Ingredient
 
     _require_auth(request)
 
@@ -2843,7 +2819,7 @@ def delete_group_member(request, meal_plan_id: int, member_id: int):
     member.delete()
 
     if not meal_plan.group_members.exists():
-        meal_plan.norm_portions = meal_plan.previous_norm_portions
+        meal_plan.recalculate_norm_portions()
         meal_plan.save(update_fields=["norm_portions"])
     else:
         meal_plan.recalculate_norm_portions()

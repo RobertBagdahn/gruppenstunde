@@ -27,6 +27,7 @@ import {
   type RecipeAiCreateIn,
   type VerifyRequest,
 } from '@/schemas/recipe';
+import type { RecipeStepInput } from '@/schemas/recipeStep';
 import { ContentCommentSchema } from '@/schemas/content';
 
 const API_BASE = `${API_BASE_URL}/api/recipes`;
@@ -190,6 +191,7 @@ export function invalidateRecipeData(queryClient: QueryClient, recipeId: number)
   queryClient.invalidateQueries({ queryKey: ['recipe-rules', recipeId] });
   queryClient.invalidateQueries({ queryKey: ['recipe-comments', recipeId] });
   queryClient.invalidateQueries({ queryKey: ['recipe-similar', recipeId] });
+  queryClient.invalidateQueries({ queryKey: ['recipe-verification-status', recipeId] });
   queryClient.invalidateQueries({ queryKey: ['recipe-type-stats'] });
   queryClient.invalidateQueries({ queryKey: ['recipes'] });
   queryClient.invalidateQueries({ queryKey: ['my-recipes'] });
@@ -283,10 +285,15 @@ export interface RecipeCreatePayload {
     sort_order?: number;
     note?: string;
     is_optional?: boolean;
+    client_request_id?: string;
   }>;
+  steps?: RecipeStepInput[];
   website?: string;
   form_loaded_at?: number;
   visibility?: string;
+  source_url?: string;
+  image_url?: string;
+  client_request_id?: string;
 }
 
 export function useCreateRecipe() {
@@ -330,6 +337,7 @@ export interface RecipeUpdatePayload {
   shared_group_ids?: number[];
   nutritional_tag_ids?: number[];
   source_url?: string;
+  image_url?: string;
   authors_ids?: number[];
   recipe_items?: Array<{
     portion_id?: number | null;
@@ -339,6 +347,7 @@ export interface RecipeUpdatePayload {
     sort_order?: number;
     note?: string;
     is_optional?: boolean;
+    client_request_id?: string;
   }>;
 }
 
@@ -380,11 +389,13 @@ export function useCreateRecipeItem(recipeId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: {
-      portion_id: number;
+      portion_id: number | null;
       quantity?: number;
       sort_order?: number;
       note?: string;
       is_optional?: boolean;
+      client_request_id?: string;
+      idempotency_key?: string;
     }) => postJson(`${API_BASE}/${recipeId}/recipe-items/`, data, RecipeItemSchema),
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);

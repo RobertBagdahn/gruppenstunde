@@ -17,6 +17,7 @@ import {
   type WizardItemsResponse,
 } from '@/schemas/breakfast';
 import { RefMealSchema, type RefMeal } from '@/schemas/mealPlan';
+import { invalidateMealPlanQueries } from '@/api/mealPlans';
 
 const SUPPLY_BASE = `${API_BASE_URL}/api/supply`;
 
@@ -159,8 +160,7 @@ export function useSaveBreakfastWizard(planId: number) {
   return useMutation({
     mutationFn: (payload: SaveWizardPayload) => saveWizardRefMeal(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['refMeals', planId] });
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+      invalidateMealPlanQueries(queryClient, planId);
     },
   });
 }
@@ -199,7 +199,7 @@ export function useSaveDirectMeal(planId: number) {
   return useMutation({
     mutationFn: (payload: SaveDirectMealPayload) => saveWizardDirectMeal(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meal-plan', planId] });
+      invalidateMealPlanQueries(queryClient, planId);
     },
   });
 }

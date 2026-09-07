@@ -7,7 +7,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { RecipeStep, RecipeStepsBatchInput } from '@/schemas/recipeStep';
-import { API_BASE_URL } from '@/lib/api';
+import { RecipeStepSchema } from '@/schemas/recipeStep';
+import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
 
 const API_BASE = `${API_BASE_URL}/api/recipes`;
 
@@ -41,7 +42,7 @@ export function useRecipeSteps(recipeSlug: string) {
   return useQuery({
     queryKey: recipeStepsKeys.bySlug(recipeSlug),
     queryFn: async (): Promise<RecipeStep[]> => {
-      const response = await fetch(`${API_BASE}/${recipeSlug}/steps/`);
+      const response = await fetch(`${API_BASE}/${recipeSlug}/steps/`, { credentials: 'include' });
       if (!response.ok) {
         throw new Error(`Failed to fetch steps: ${response.statusText}`);
       }
@@ -61,11 +62,13 @@ export function useRecipeStep(recipeSlug: string, stepId: number) {
   return useQuery({
     queryKey: recipeStepsKeys.detail(recipeSlug, stepId),
     queryFn: async (): Promise<RecipeStep> => {
-      const response = await fetch(`${API_BASE}/${recipeSlug}/steps/${stepId}/`);
+      const response = await fetch(`${API_BASE}/${recipeSlug}/steps/${stepId}/`, { credentials: 'include' });
       if (!response.ok) {
         throw new Error(`Failed to fetch step: ${response.statusText}`);
       }
-      return response.json();
+      const data: unknown = await response.json();
+      if (Array.isArray(data)) throw new Error('Ungültige Einzelantwort für einen Schritt');
+      return RecipeStepSchema.parse(data);
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -89,7 +92,7 @@ export function useBatchUpdateSteps() {
 
   return useMutation({
     mutationFn: async (input: RecipeStepsBatchInput) => {
-      const response = await fetch(`${API_BASE}/${input.recipe_slug}/steps/batch`, {
+      const response = await fetchWithCsrf(`${API_BASE}/${input.recipe_slug}/steps/batch`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +106,12 @@ export function useBatchUpdateSteps() {
         throw new Error(errorData.detail || `Failed to update steps: ${response.statusText}`);
       }
 
-      return response.json();
+      const data: unknown = await response.json();
+      if (!Array.isArray(data)) {
+        if (typeof data === 'object' && data !== null && 'success' in data) return [];
+        throw new Error('Ungültige Antwort beim Speichern der Schritte');
+      }
+      return data.map((step) => RecipeStepSchema.parse(step));
     },
     onSuccess: (_, variables) => {
       // Invalidate all steps queries for this recipe
@@ -112,7 +120,10 @@ export function useBatchUpdateSteps() {
       });
       // Also invalidate the recipe detail query (to refresh has_structured_steps, etc.)
       queryClient.invalidateQueries({
-        queryKey: ['recipe', variables.recipe_slug],
+        queryKey: ['recipe', 'slug', variables.recipe_slug],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['recipe-verification-status'],
       });
     },
   });
