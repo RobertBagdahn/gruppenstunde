@@ -123,26 +123,26 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
 
       <div>
         <h5 className="font-display font-bold text-xs text-foreground mb-2">Standard-Uhrzeiten</h5>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {mealTypes.map((type) => {
             const times = state.meal_default_times[type] || ['08:00', '09:00'];
             return (
-              <div key={type}>
+              <div key={type} data-testid={`meal-time-group-${type}`} className="min-w-0">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 capitalize">
                   {MEAL_TYPE_LABELS[type] || type}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex min-w-0 gap-2">
                   <input
                     type="time"
                     value={times[0] || '08:00'}
                     onChange={(e) => updateTime(type, 0, e.target.value)}
-                    className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                    className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   />
                   <input
                     type="time"
                     value={times[1] || '09:00'}
                     onChange={(e) => updateTime(type, 1, e.target.value)}
-                    className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                    className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   />
                 </div>
               </div>

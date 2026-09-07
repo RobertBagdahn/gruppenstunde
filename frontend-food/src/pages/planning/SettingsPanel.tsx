@@ -221,24 +221,24 @@ export default function SettingsPanel({
 
       <div className="border-t border-border pt-5">
         <h4 className="font-display font-bold text-sm text-foreground mb-3">Standard-Uhrzeiten pro Mahlzeit</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {Object.entries(mealTimes).map(([key, [start, end]]) => (
-            <div key={key}>
+            <div key={key} data-testid={`meal-time-group-${key}`} className="min-w-0">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
                 {MEAL_TYPE_LABELS[key] || key}
               </label>
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <input
                   type="time"
                   value={start}
                   onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [e.target.value, prev[key][1]] }))}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 />
                 <input
                   type="time"
                   value={end}
                   onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [prev[key][0], e.target.value] }))}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 />
               </div>
             </div>
