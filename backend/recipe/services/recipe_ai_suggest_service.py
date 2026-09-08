@@ -211,6 +211,7 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
     execution_time = _duration_to_execution_time_choice(data.duration_minutes)
 
     # Create recipe
+    is_authenticated = bool(user and user.is_authenticated)
     recipe = Recipe.objects.create(
         title=data.title,
         slug=slug,
@@ -220,9 +221,14 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         portions=1,
         recipe_type=_map_recipe_type(data.recipe_type),
         status="draft",
-        owner=user if user and user.is_authenticated else None,
-        created_by=user if user and user.is_authenticated else None,
+        owner=user if is_authenticated else None,
+        created_by=user if is_authenticated else None,
+        # An owned recipe without visibility is neither private nor shared and
+        # is skipped by every visibility filter. Match `POST /api/recipes/`.
+        visibility="private" if is_authenticated else None,
     )
+    if is_authenticated:
+        recipe.authors.add(user)
     # Keep the AI's source context only on this response object. The recipe model
     # remains normalized to one portion for all persisted consumers.
     recipe.input_servings = data.portions

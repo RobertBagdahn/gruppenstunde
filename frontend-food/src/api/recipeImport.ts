@@ -18,6 +18,19 @@ export const RecipeItemDraftSchema = z.object({
   note: z.string(),
   is_new_ingredient: z.boolean(),
   portion_id: z.number().nullable(),
+  // A null portion is stored as grams, so such items must be clarified by the
+  // user before the recipe can be saved.
+  needs_unit_clarification: z.boolean().optional().default(false),
+  suggested_unit_name: z.string().optional().default(''),
+  suggested_portion_weight_g: z.number().nullable().optional().default(null),
+  available_portions: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    quantity: z.number(),
+    weight_g: z.number().nullable(),
+    measuring_unit_id: z.number().nullable(),
+    measuring_unit_name: z.string().nullable(),
+  })).optional().default([]),
 });
 
 export const CreatedIngredientInfoSchema = z.object({
@@ -40,7 +53,10 @@ export const RecipeDraftSchema = z.object({
   execution_time_choice: z.string().optional().default('less_30'),
   preparation_time_choice: z.string().optional().default('none'),
   scout_level_ids: z.array(z.number()).optional().default([]),
-  tag_ids: z.array(z.number()).optional().default([]),
+  // Tag.id is a UUID, so the backend sends strings (RecipeDraftOut.tag_ids is
+  // `list[str]`). Validating as numbers rejected every response that carried
+  // at least one tag.
+  tag_ids: z.array(z.string()).optional().default([]),
   steps: z.array(z.string()),
   source_url: z.string(),
   image_url: z.string().optional().default(''),
@@ -50,6 +66,10 @@ export const RecipeImportUrlResponseSchema = z.object({
   recipe_draft: RecipeDraftSchema,
   recipe_items: z.array(RecipeItemDraftSchema),
   created_ingredients: z.array(CreatedIngredientInfoSchema),
+  input_type: z.enum(['url', 'text', 'prompt']).default('url'),
+  // True when the page was unreachable and the data was reconstructed via
+  // search grounding. The UI must ask the user to verify it.
+  is_reconstructed: z.boolean().optional().default(false),
 });
 
 export type RecipeImportUrlResponse = z.infer<typeof RecipeImportUrlResponseSchema>;
@@ -123,6 +143,27 @@ export function useRecipeImportUrl() {
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: 'Import fehlgeschlagen' }));
+        throw new RecipeImportError(getImportErrorMessage(error.error_code, error.detail), error.error_code);
+      }
+      return RecipeImportUrlResponseSchema.parse(await res.json());
+    },
+  });
+}
+
+export function useRecipeSmartInput() {
+  return useMutation({
+    mutationFn: async (input: string): Promise<RecipeImportUrlResponse> => {
+      const res = await fetch(`${API_BASE_URL}/api/recipes/smart-input/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ input }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Analyse fehlgeschlagen' }));
         throw new RecipeImportError(getImportErrorMessage(error.error_code, error.detail), error.error_code);
       }
       return RecipeImportUrlResponseSchema.parse(await res.json());

@@ -42,19 +42,29 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
   useEffect(() => {
     if (recipe && !hasInitializedRef.current) {
       hasInitializedRef.current = true;
-      setSummary(initialData?.summary || recipe.summary || '');
-      setDescription(initialData?.description || recipe.description || '');
-      setDifficulty(initialData?.difficulty || recipe.difficulty || '');
-      setExecutionTime(initialData?.executionTime || recipe.execution_time || '');
-      setPreparationTime(initialData?.preparationTime || recipe.preparation_time || '');
-      setVisibility(initialData?.visibility || recipe.visibility || 'private');
-      setSelectedTagSlugs(
-        initialData?.selectedTagSlugs?.length
+      const initial: MetadataSnapshot = {
+        summary: initialData?.summary || recipe.summary || '',
+        description: initialData?.description || recipe.description || '',
+        difficulty: initialData?.difficulty || recipe.difficulty || '',
+        executionTime: initialData?.executionTime || recipe.execution_time || '',
+        preparationTime: initialData?.preparationTime || recipe.preparation_time || '',
+        visibility: initialData?.visibility || recipe.visibility || 'private',
+        selectedTagSlugs: initialData?.selectedTagSlugs?.length
           ? initialData.selectedTagSlugs
           : recipe.tags?.map((t: { id: string }) => t.id) || [],
-      );
+      };
+      setSummary(initial.summary);
+      setDescription(initial.description);
+      setDifficulty(initial.difficulty);
+      setExecutionTime(initial.executionTime);
+      setPreparationTime(initial.preparationTime);
+      setVisibility(initial.visibility);
+      setSelectedTagSlugs(initial.selectedTagSlugs);
+      // Report the loaded values, otherwise the wizard would keep its
+      // uninitialised defaults and wipe the recipe on "Weiter".
+      onDataChange?.(initial);
     }
-  }, [recipe, initialData]);
+  }, [recipe, initialData, onDataChange]);
 
   const notify = useCallback((next: Partial<MetadataSnapshot> = {}) => {
     onDataChange?.({
@@ -79,9 +89,9 @@ export default function WizardStepMetadata({ recipeId, recipeSlug, onDataChange,
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-display font-bold">Metadaten</h2>
+        <h2 className="text-xl font-display font-bold">Zubereitung</h2>
         <p className="text-sm text-muted-foreground mt-2">
-          Ergänze Details zu deinem Rezept.
+          Prüfe Beschreibung, Zeiten, Schwierigkeit und ergänze anschließend die Zubereitungsschritte.
         </p>
       </div>
 

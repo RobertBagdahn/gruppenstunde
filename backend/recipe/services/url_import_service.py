@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
+from urllib.parse import urlparse
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import IntegrityError, transaction
@@ -71,6 +73,10 @@ def _minutes_to_preparation_choice(minutes: int) -> str:
 class GeminiIngredientMatch(BaseModel):
     """Single ingredient result from Gemini."""
 
+    source_index: int = Field(
+        -1,
+        description="Zero-based index of the source ingredient this entry refers to. Echo it unchanged.",
+    )
     original_name: str = Field(description="Original ingredient name from recipe")
     matched_ingredient_id: int | None = Field(None, description="ID of matched existing ingredient, or null if new")
     quantity: float = Field(description="Numeric quantity")
@@ -155,6 +161,7 @@ class RecipeItemDraftResult:
         needs_unit_clarification: bool = False,
         suggested_unit_name: str = "",
         suggested_portion_weight_g: float | None = None,
+        available_portions: list[dict[str, Any]] | None = None,
     ):
         self.ingredient_id = ingredient_id
         self.ingredient_name = ingredient_name
@@ -170,6 +177,7 @@ class RecipeItemDraftResult:
         self.needs_unit_clarification = needs_unit_clarification
         self.suggested_unit_name = suggested_unit_name
         self.suggested_portion_weight_g = suggested_portion_weight_g
+        self.available_portions = available_portions or []
 
 
 class CreatedIngredientResult:
@@ -204,6 +212,8 @@ class UrlImportResult:
         recipe_items: list[RecipeItemDraftResult],
         created_ingredients: list[CreatedIngredientResult],
         image_url: str = "",
+        is_reconstructed: bool = False,
+        input_type: str = "url",
     ):
         self.title = title
         self.description = description
@@ -222,6 +232,10 @@ class UrlImportResult:
         self.recipe_items = recipe_items
         self.created_ingredients = created_ingredients
         self.image_url = image_url
+        # True when the page could not be fetched and the data was
+        # reconstructed via search grounding, so the user must review it.
+        self.is_reconstructed = is_reconstructed
+        self.input_type = input_type
 
 
 # ---------------------------------------------------------------------------
@@ -229,40 +243,48 @@ class UrlImportResult:
 # ---------------------------------------------------------------------------
 
 
-def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
+def import_recipe_from_url(
+    url: str,
+    user: AbstractBaseUser,
+    *,
+    parsed_override: Any | None = None,
+    gemini_result_override: GeminiRecipeExtraction | None = None,
+    input_type: str = "url",
+    source_url: str | None = None,
+) -> UrlImportResult:
     """Full URL import pipeline with IngredientMatcher + Gemini metadata."""
+    from recipe.services.exceptions import SourceUnreachableError
     from recipe.services.import_service import import_from_url
     from recipe.services.ingredient_enrichment import enrich_ingredient
     from recipe.services.ingredient_matcher import IngredientMatcher
 
     # Step 1: Fetch and parse (schema.org / fallback)
-    parsed = import_from_url(url)
+    is_reconstructed = False
+    if parsed_override is not None:
+        parsed = parsed_override
+    else:
+        try:
+            parsed = import_from_url(url)
+        except SourceUnreachableError:
+            # Many recipe sites block automated fetches. Reconstruct via search
+            # grounding before giving up; only then report the source as
+            # unreachable. A NoRecipeFoundError from the fallback would be
+            # misleading, because the page itself was never readable.
+            try:
+                parsed = _reconstruct_recipe_via_search(url, user)
+            except NoRecipeFoundError as fallback_exc:
+                raise SourceUnreachableError(
+                    "Seite blockiert und ueber die Websuche nicht rekonstruierbar."
+                ) from fallback_exc
+            is_reconstructed = True
 
     # Step 2: Gemini call for recipe metadata + quantity/unit parsing only
-    gemini_result = _call_gemini_for_metadata(
+    gemini_result = gemini_result_override or _call_gemini_for_metadata(
         parsed=parsed,
         user=user,
     )
 
-    parsed_ingredients = {
-        _ingredient_key(ingredient.name): GeminiIngredientMatch(
-            original_name=ingredient.name,
-            quantity=_parse_import_quantity(ingredient.quantity),
-            unit=ingredient.unit,
-            note="",
-            estimated_portion_weight_g=100,
-        )
-        for ingredient in parsed.ingredients
-    }
-    extracted_ingredients = []
-    for ingredient in gemini_result.ingredients:
-        parsed_ingredient = parsed_ingredients.pop(_ingredient_key(ingredient.original_name), None)
-        if parsed_ingredient and not ingredient.unit:
-            ingredient.unit = parsed_ingredient.unit
-        if parsed_ingredient and not ingredient.quantity:
-            ingredient.quantity = parsed_ingredient.quantity
-        extracted_ingredients.append(ingredient)
-    extracted_ingredients.extend(parsed_ingredients.values())
+    extracted_ingredients = _merge_ingredient_sources(parsed.ingredients, gemini_result.ingredients)
 
     if not (gemini_result.title or parsed.title) and not gemini_result.ingredients and not parsed.ingredients:
         raise NoRecipeFoundError("Keine verwertbaren Rezeptdaten gefunden")
@@ -416,13 +438,176 @@ def import_recipe_from_url(url: str, user: AbstractBaseUser) -> UrlImportResult:
         scout_level_ids=list(valid_scout_level_ids),
         tag_ids=[str(tag_id) for tag_id in gemini_result.tag_ids],
         steps=_merge_steps(parsed.steps, gemini_result.steps),
-        source_url=url,
+        source_url=url if source_url is None else source_url,
         recipe_items=recipe_items,
         image_url=parsed.image_url,
+        is_reconstructed=is_reconstructed,
+        input_type=input_type,
         created_ingredients=[
             CreatedIngredientResult(id=ci["id"], name=ci["name"], aliases=ci["aliases"], nutri_class=ci["nutri_class"])
             for ci in created_ingredients
         ],
+    )
+
+
+def classify_smart_input(value: str) -> str:
+    """Classify smart input without exposing that heuristic to the frontend."""
+    stripped = value.strip()
+    parsed = urlparse(stripped)
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        return "url"
+    has_quantity = bool(re.search(r"\b\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l|el|tl|stk|stück|packung|dose)\b", stripped, re.I))
+    has_recipe_sections = bool(re.search(r"\b(zutaten|zubereitung|portionen|personen)\b", stripped, re.I))
+    if "\n" in stripped and (has_quantity or has_recipe_sections):
+        return "text"
+    return "prompt"
+
+
+def extract_smart_recipe_input(
+    value: str,
+    user: AbstractBaseUser,
+) -> tuple[str, Any, GeminiRecipeExtraction]:
+    """Use Gemini to turn copied text or a recipe idea into import data."""
+    from google.genai import types
+
+    from recipe.services.import_service import ImportedIngredient, ImportedRecipe
+
+    input_type = classify_smart_input(value)
+    if input_type == "url":
+        raise ValueError("URL-Eingaben müssen über den URL-Import verarbeitet werden")
+
+    if input_type == "text":
+        instruction = (
+            "Extrahiere das folgende kopierte Rezept exakt. Übernimm vorhandene Mengen, Einheiten und Schritte "
+            "und erfinde keine fehlenden Zutaten."
+        )
+    else:
+        instruction = (
+            "Erstelle aus der folgenden Rezeptidee ein vollständiges, realistisches Rezept mit Zutaten, "
+            "Mengen, Portionen und Zubereitungsschritten."
+        )
+    prompt = f"""{instruction}
+
+EINGABE:
+{value.strip()}
+
+Antworte ausschließlich im angegebenen JSON-Format. Für jede Zutat müssen quantity, unit und original_name """
+
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=GeminiRecipeExtraction,
+    )
+    response, _interaction_id = gemini_call(
+        user=user,
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=config,
+        context="recipe_smart_input",
+    )
+    if response is None:
+        raise GeminiUnavailableError()
+
+    extracted = GeminiRecipeExtraction.model_validate_json(response.text)
+    if not extracted.title or not (extracted.ingredients or extracted.steps):
+        raise NoRecipeFoundError("Keine verwertbaren Rezeptdaten gefunden")
+    parsed = ImportedRecipe(
+        title=extracted.title,
+        description=extracted.description,
+        servings=extracted.servings,
+        ingredients=[
+            ImportedIngredient(
+                name=item.original_name,
+                quantity=str(item.quantity),
+                unit=item.unit,
+            )
+            for item in extracted.ingredients
+        ],
+        steps=extracted.steps,
+        source_url="",
+        prep_time_minutes=extracted.preparation_time,
+        cook_time_minutes=extracted.execution_time,
+    )
+    return input_type, parsed, extracted
+
+
+class GroundedIngredient(BaseModel):
+    """One ingredient of a recipe reconstructed via search grounding."""
+
+    name: str = Field(description="Zutatenname ohne Menge und Einheit")
+    quantity: str = Field("", description="Menge als Zahl, z.B. '300'")
+    unit: str = Field("", description="Einheit, z.B. g, ml, EL, TL, Stück")
+
+
+class GroundedRecipe(BaseModel):
+    """Recipe data reconstructed from the web when the page cannot be fetched."""
+
+    found: bool = Field(description="Ob ein Rezept zu dieser URL gefunden wurde")
+    title: str = Field("", description="Rezepttitel")
+    description: str = Field("", description="Beschreibung oder Zubereitungstext")
+    servings: int | None = Field(None, description="Anzahl Portionen des Originalrezepts")
+    ingredients: list[GroundedIngredient] = Field(default_factory=list)
+    steps: list[str] = Field(default_factory=list, description="Zubereitungsschritte")
+    prep_time_minutes: int | None = None
+    cook_time_minutes: int | None = None
+
+
+def _reconstruct_recipe_via_search(url: str, user: AbstractBaseUser):
+    """Rebuild recipe data from the web when the page itself is unreachable.
+
+    Many recipe sites block automated fetches. Instead of failing outright, the
+    model is asked to look the URL up via Google Search Grounding. The caller
+    marks the result as reconstructed so the user reviews it.
+
+    Raises `NoRecipeFoundError` when nothing usable could be reconstructed.
+    """
+    from google.genai import types
+
+    from recipe.services.import_service import ImportedIngredient, ImportedRecipe
+
+    prompt = f"""Diese Rezeptseite konnte nicht abgerufen werden: {url}
+
+Suche im Web nach genau diesem Rezept und rekonstruiere seine Daten.
+Nutze ausschliesslich Informationen, die du tatsaechlich findest.
+
+- found: true nur, wenn du das Rezept sicher identifizieren konntest.
+- ingredients: Name OHNE Mengen- und Einheitenpraefix, Menge und Einheit getrennt.
+- servings: Portionsanzahl des Originalrezepts.
+- steps: Zubereitungsschritte in der richtigen Reihenfolge.
+
+Wenn du das Rezept nicht findest, setze found=false und lasse die Felder leer."""
+
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=GroundedRecipe,
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+    )
+
+    response, _interaction_id = gemini_call(
+        user=user,
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=config,
+        context="url_import_grounding_fallback",
+    )
+    if response is None:
+        raise GeminiUnavailableError()
+
+    data = GroundedRecipe.model_validate_json(response.text)
+    if not data.found or not data.title or not (data.ingredients or data.steps):
+        raise NoRecipeFoundError("Kein Rezept ueber die Websuche rekonstruierbar")
+
+    return ImportedRecipe(
+        title=data.title,
+        description=data.description,
+        servings=data.servings,
+        ingredients=[
+            ImportedIngredient(name=item.name, quantity=item.quantity, unit=item.unit) for item in data.ingredients
+        ],
+        steps=data.steps,
+        image_url="",
+        source_url=url,
+        prep_time_minutes=data.prep_time_minutes,
+        cook_time_minutes=data.cook_time_minutes,
     )
 
 
@@ -435,7 +620,77 @@ def _parse_import_quantity(value: str) -> float:
 
 
 def _ingredient_key(value: str) -> str:
-    return " ".join(value.lower().split())
+    """Normalize an ingredient name for fallback matching.
+
+    Leading quantity and unit tokens are stripped, because models frequently
+    echo the full source line ("300 g Hähnchenbrustfilet(s)") instead of the
+    bare name.
+    """
+    cleaned = " ".join(value.lower().split())
+    cleaned = re.sub(r"^[\d.,/\s]+", "", cleaned)
+    cleaned = re.sub(
+        r"^(g|kg|ml|l|el|tl|msp|prise[n]?|pck\.?|packung|bd\.?|bund|stk\.?|stück|dose[n]?|glas|tasse[n]?)\b\s*",
+        "",
+        cleaned,
+    )
+    return re.sub(r"[^\wäöüß]+", "", cleaned)
+
+
+def _merge_ingredient_sources(
+    parsed_ingredients: list[Any],
+    gemini_ingredients: list[GeminiIngredientMatch],
+) -> list[GeminiIngredientMatch]:
+    """Combine parser and model output into exactly one entry per source ingredient.
+
+    Matching is primarily done via the echoed `source_index`; a normalized-name
+    lookup remains as a fallback for degraded responses. Every source
+    ingredient yields exactly one result, so the pipeline cannot emit
+    duplicated recipe items.
+    """
+    slots: list[GeminiIngredientMatch | None] = [None] * len(parsed_ingredients)
+    name_to_index: dict[str, int] = {}
+    for index, ingredient in enumerate(parsed_ingredients):
+        name_to_index.setdefault(_ingredient_key(ingredient.name), index)
+
+    leftovers: list[GeminiIngredientMatch] = []
+    for entry in gemini_ingredients:
+        index = entry.source_index
+        if not (0 <= index < len(slots)) or slots[index] is not None:
+            index = name_to_index.get(_ingredient_key(entry.original_name), -1)
+        if 0 <= index < len(slots) and slots[index] is None:
+            slots[index] = entry
+        else:
+            leftovers.append(entry)
+
+    merged: list[GeminiIngredientMatch] = []
+    for index, source in enumerate(parsed_ingredients):
+        entry = slots[index]
+        if entry is None:
+            entry = leftovers.pop(0) if leftovers else None
+        if entry is None:
+            merged.append(
+                GeminiIngredientMatch(
+                    source_index=index,
+                    original_name=source.name,
+                    quantity=_parse_import_quantity(source.quantity),
+                    unit=source.unit,
+                    note="",
+                    estimated_portion_weight_g=100,
+                )
+            )
+            continue
+        # The parser is authoritative for values the model left empty.
+        if not entry.unit:
+            entry.unit = source.unit
+        if not entry.quantity:
+            entry.quantity = _parse_import_quantity(source.quantity)
+        # The model only parses quantities and units here; ingredient matching
+        # runs on the parser name. Echoing the model name would feed
+        # "300 g Hähnchenbrustfilet(s)" into IngredientMatcher.
+        entry.original_name = source.name
+        merged.append(entry)
+
+    return merged
 
 
 def _merge_steps(source_steps: list[str], ai_steps: list[str]) -> list[str]:
@@ -741,10 +996,19 @@ def _call_gemini_for_metadata(
     scout_levels_str = json.dumps(scout_levels, ensure_ascii=False)
     tags_str = json.dumps(tags, ensure_ascii=False)
 
+    # The ingredients are passed as an indexed list with separate fields. A
+    # concatenated "300 g Mehl" string makes the model echo the whole string as
+    # `original_name`, which then no longer matches the parser entry and
+    # produces duplicated recipe items.
+    ingredient_lines = "\n".join(
+        f"  [{index}] menge={ingredient.quantity!r} einheit={ingredient.unit!r} name={ingredient.name!r}"
+        for index, ingredient in enumerate(parsed.ingredients)
+    )
     recipe_text = f"""Titel: {parsed.title}
 Beschreibung: {parsed.description}
 Portionen: {parsed.servings}
-Zutaten: {", ".join(f"{i.quantity} {i.unit} {i.name}" for i in parsed.ingredients)}
+Zutaten (indiziert):
+{ingredient_lines}
 Schritte: {chr(10).join(parsed.steps[:10])}"""
 
     prompt = f"""Du bist ein Ernährungsexperte. Analysiere dieses Rezept und extrahiere Metadaten.
@@ -769,6 +1033,9 @@ AUFGABEN:
    - scout_level_ids: Passende Altersgruppen
    - tag_ids: Passende Tags
 3. Für jede Zutat: quantity und unit aus dem Rezept-Kontext parsen (KEIN Ingredient-Matching, KEIN new_ingredient):
+   - Gib GENAU EINEN Eintrag pro indizierter Quellzutat zurück, in derselben Reihenfolge.
+   - source_index: MUSS der Index [n] der Quellzutat sein, unverändert übernommen.
+   - original_name: MUSS exakt der Wert aus name=... sein, OHNE Mengen- oder Einheitenangabe.
    - "2 rote Zwiebeln" → quantity=2, unit="Stück"
    - "0.25 Pck. Feta" → quantity=0.25, unit="Packung"
    - "200g Mehl" → quantity=200, unit="g"
@@ -1054,6 +1321,23 @@ def _build_recipe_items_v2(
         # the item so the wizard can ask the user for the missing unit.
         needs_clarification = portion_id is None
         suggested_weight = item.get("estimated_portion_weight_g") or None
+        available_portions = (
+            [
+                {
+                    "id": portion.id,
+                    "name": portion.name,
+                    "quantity": portion.quantity,
+                    "weight_g": portion.weight_g,
+                    "measuring_unit_id": portion.measuring_unit_id,
+                    "measuring_unit_name": portion.measuring_unit.name if portion.measuring_unit else None,
+                }
+                for portion in ingredient.portions.filter(deleted_at__isnull=True)
+                .select_related("measuring_unit")
+                .order_by("rank", "id")
+            ]
+            if needs_clarification
+            else []
+        )
 
         results.append(
             RecipeItemDraftResult(
@@ -1068,6 +1352,7 @@ def _build_recipe_items_v2(
                 needs_unit_clarification=needs_clarification,
                 suggested_unit_name=unit_str if needs_clarification else "",
                 suggested_portion_weight_g=suggested_weight if needs_clarification else None,
+                available_portions=available_portions,
             )
         )
 

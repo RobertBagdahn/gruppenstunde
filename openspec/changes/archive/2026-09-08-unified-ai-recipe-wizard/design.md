@@ -172,6 +172,7 @@ Rollback: Alle Schritte sind rein code-seitig und ohne Schemaänderung revidierb
 
 ## Open Questions
 
-- Sollen `RecipeItem`-Zeilen mit `portion_id = NULL` nach Auswertung des Reports aktiv bereinigt werden, und falls ja, in einem eigenen Change?
-- Soll der Grounding-Fallback auch dann greifen, wenn der Abruf zwar gelingt, aber kein Rezept gefunden wird (`NoRecipeFoundError`), oder nur bei `SourceUnreachableError`?
-- Ist eine Obergrenze für die Länge der Smart-Feld-Eingabe nötig, um Prompt-Kosten bei eingefügten Langtexten zu begrenzen?
+- ~~Sollen `RecipeItem`-Zeilen mit `portion_id = NULL` nach Auswertung des Reports aktiv bereinigt werden?~~ **Beantwortet:** `report_recipe_items_without_portion` meldet null Treffer im aktuellen Datenbestand. Kein Folge-Change nötig; der Command bleibt als Wächter erhalten.
+- ~~Soll der Grounding-Fallback auch dann greifen, wenn der Abruf zwar gelingt, aber kein Rezept gefunden wird (`NoRecipeFoundError`)?~~ **Beantwortet:** Grounding greift nur bei `SourceUnreachableError`. Bei einer lesbaren Seite ohne Rezeptdaten bleibt `IMPORT_NO_RECIPE_FOUND` präzise.
+- ~~Ist eine Obergrenze für die Länge der Smart-Feld-Eingabe nötig?~~ **Beantwortet:** `SmartRecipeInputIn.input` begrenzt die Eingabe auf 20.000 Zeichen.
+- Mit dem Wegfall von `RecipeImportPage.tsx` hat der Basis-Endpunkt `POST /api/recipes/import-from-url/` (`backend/recipe/api/recipes.py`) keinen Frontend-Aufrufer mehr. Er ist weiterhin in `openspec/specs/recipe/spec.md` spezifiziert und wurde daher bewusst nicht entfernt. Der Rückbau bleibt ein möglicher Folge-Change.

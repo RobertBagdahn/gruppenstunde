@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ImprovementSchema, RecipeDetailSchema } from './recipe';
 import { PortionOptionSchema, ShoppingItemSourceSchema } from './mealPlan';
 import { IngredientDetailSchema } from './supply';
+import { RecipeImportUrlResponseSchema } from '../api/recipeImport';
 
 describe('food API contracts', () => {
   it('accepts ingredient shopping sources and applies numeric defaults', () => {
@@ -59,5 +60,63 @@ describe('food API contracts', () => {
 
     expect(result.portions).toBe(1);
     expect(result.input_servings).toBe(4);
+  });
+  it('accepts UUID tag ids from the recipe import endpoint', () => {
+    // Tag.id is a UUID. RecipeDraftOut.tag_ids is `list[str]`, so validating
+    // as numbers rejected every import response that carried a tag.
+    const response = {
+      recipe_draft: {
+        title: 'Möhrchenpfanne',
+        description: '',
+        summary: '',
+        servings: 2,
+        preparation_time: null,
+        execution_time: null,
+        recipe_type: 'warm_meal',
+        steps: [],
+        source_url: 'https://example.com/recipe',
+        tag_ids: ['058e7081-bb7d-4412-a67c-a828052c3910'],
+      },
+      recipe_items: [],
+      created_ingredients: [],
+    };
+
+    const parsed = RecipeImportUrlResponseSchema.parse(response);
+    expect(parsed.recipe_draft.tag_ids).toEqual(['058e7081-bb7d-4412-a67c-a828052c3910']);
+  });
+
+  it('flags import items whose unit could not be resolved', () => {
+    const parsed = RecipeImportUrlResponseSchema.parse({
+      recipe_draft: {
+        title: 'Möhrchenpfanne',
+        description: '',
+        summary: '',
+        servings: 2,
+        preparation_time: null,
+        execution_time: null,
+        recipe_type: 'warm_meal',
+        steps: [],
+        source_url: 'https://example.com/recipe',
+      },
+      recipe_items: [
+        {
+          ingredient_id: 1,
+          ingredient_name: 'Möhre',
+          quantity: 4,
+          measuring_unit_id: null,
+          measuring_unit_name: '',
+          note: '',
+          is_new_ingredient: false,
+          portion_id: null,
+          needs_unit_clarification: true,
+          suggested_unit_name: '',
+          suggested_portion_weight_g: 80,
+        },
+      ],
+      created_ingredients: [],
+    });
+
+    expect(parsed.recipe_items[0].needs_unit_clarification).toBe(true);
+    expect(parsed.recipe_items[0].suggested_portion_weight_g).toBe(80);
   });
 });

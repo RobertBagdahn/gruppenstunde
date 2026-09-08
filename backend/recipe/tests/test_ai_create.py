@@ -84,6 +84,46 @@ class TestAiCreateEndpoint:
 
         recipe = Recipe.objects.get(id=data["id"])
         assert recipe.owner == auth_client._user
+        # An owned recipe without visibility is skipped by every visibility
+        # filter, and can_edit defaults to False on the schema.
+        assert data["can_edit"] is True
+        assert data["is_owner"] is True
+        assert data["visibility"] == "private"
+        assert recipe.visibility == "private"
+        assert auth_client._user in recipe.authors.all()
+
+    @patch("recipe.services.recipe_ai_suggest_service.gemini_call")
+    @patch("recipe.services.ingredient_matcher.IngredientMatcher.match")
+    @patch("recipe.services.ingredient_enrichment.enrich_ingredient")
+    def test_created_recipe_stays_editable_on_detail_endpoint(
+        self,
+        mock_enrich,
+        mock_match,
+        mock_gemini_call,
+        auth_client,
+    ):
+        """The wizard reloads the recipe by slug right after creation."""
+        from recipe.services.ingredient_matcher import MatchResult
+
+        mock_gemini_call.return_value = (_build_mock_gemini_response(), "test-interaction-id")
+        mock_enrich.return_value = None
+        mock_match.return_value = MatchResult(
+            ingredient_id=None,
+            confidence=0.5,
+            note="",
+            needs_review=False,
+        )
+
+        created = auth_client.post(
+            "/api/recipes/ai-create/",
+            data=json.dumps({"prompt": "Nudelauflauf mit Hackfleisch"}),
+            content_type="application/json",
+        ).json()
+
+        detail = auth_client.get(f"/api/recipes/by-slug/{created['slug']}/")
+
+        assert detail.status_code == 200
+        assert detail.json()["can_edit"] is True
 
     @patch("recipe.services.recipe_ai_suggest_service.gemini_call")
     def test_returns_503_when_gemini_unavailable(self, mock_gemini_call, auth_client):

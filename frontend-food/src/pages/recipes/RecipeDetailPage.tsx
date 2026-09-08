@@ -1028,8 +1028,8 @@ export default function RecipeDetailPage() {
         loading={updateVisibility.isPending}
       />
 
-      {/* Description (Zubereitung) — default open, direkt nach Zutaten */}
-      {recipe.description && (
+      {/* Description (Zubereitung) — also shown when empty so editors can add it */}
+      {(recipe.description || recipe.can_edit) && (
         <InlineEditor
           mode="markdown"
           label="Zubereitung"
@@ -1043,7 +1043,7 @@ export default function RecipeDetailPage() {
           <AnalysisSection
             icon="description"
             title="Zubereitung"
-            defaultOpen={false}
+            defaultOpen={!recipe.description}
             accentColor="text-primary"
             preview={
               <div className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground flex items-center gap-1">
@@ -1059,7 +1059,13 @@ export default function RecipeDetailPage() {
               </div>
             }
           >
-            <MarkdownRenderer content={recipe.description} />
+            {recipe.description ? (
+              <MarkdownRenderer content={recipe.description} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Noch keine Zubereitung hinterlegt. Ergänze sie über das Stift-Symbol.
+              </p>
+            )}
           </AnalysisSection>
         </InlineEditor>
       )}

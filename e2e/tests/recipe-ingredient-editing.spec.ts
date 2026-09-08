@@ -31,22 +31,49 @@ async function login(page: Page) {
 }
 
 async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
+  await page.route('**/api/recipes/smart-input/', (route) => route.fulfill({
+    json: {
+      recipe_draft: {
+        title: 'E2E Rezept',
+        description: '',
+        summary: '',
+        servings: 1,
+        preparation_time: null,
+        execution_time: null,
+        recipe_type: 'warm_meal',
+        difficulty: 'easy',
+        execution_time_choice: 'less_30',
+        preparation_time_choice: 'none',
+        scout_level_ids: [],
+        tag_ids: [],
+        steps: [],
+        source_url: '',
+        image_url: '',
+      },
+      recipe_items: [],
+      created_ingredients: [],
+      input_type: 'prompt',
+      is_reconstructed: false,
+    },
+  }));
   await page.goto(`${FOOD_URL}/recipes/new`);
   await page.waitForLoadState('networkidle');
 
-  const manualCard = page.locator('.cursor-pointer:has-text("Manuell")').first();
-  await expect(manualCard).toBeVisible({ timeout: 10000 });
-  await manualCard.click();
+  await page.getByTestId('recipe-smart-input').fill('E2E Rezept');
+  await page.getByTestId('recipe-smart-analyze').click();
 
   const nextButton = page.getByRole('button', { name: 'Weiter', exact: true });
   await expect(nextButton).toBeEnabled();
   await nextButton.click();
 
+  await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible({
+    timeout: 15000,
+  });
+  await page.getByTestId('recipe-serving-context-confirm').click();
+  await page.getByTestId('recipe-wizard-next').click();
   await expect(page.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible({
     timeout: 15000,
   });
-  const initialServingConfirm = page.getByTestId('recipe-serving-context-confirm');
-  if (await initialServingConfirm.isVisible().catch(() => false)) await initialServingConfirm.click();
   await expect(page.getByRole('combobox', { name: /Zutat/i }).first()).toBeVisible({
     timeout: 15000,
   });
@@ -59,22 +86,10 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
  *  checks — the wizard has no per-step URL/route, so reloading it resets to
  *  step 0 even though the draft was already saved server-side. */
 async function createManualRecipe(page: Page, title: string): Promise<string> {
-  await page.goto(`${FOOD_URL}/recipes/new`);
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
-
-  const manualCard = page.locator('.cursor-pointer:has-text("Manuell")').first();
-  await expect(manualCard).toBeVisible({ timeout: 5000 });
-  await manualCard.click();
-
-  const weiterBtn = page.locator('button:has-text("Weiter")').last();
-  await weiterBtn.click();
-  await page.waitForTimeout(3000);
+  await openManualRecipeIngredientsStep(page);
 
   const titleInput = page.locator('input[placeholder="z.B. Nudelauflauf mit Hackfleisch"]');
   await expect(titleInput).toBeVisible({ timeout: 8000 });
-  const servingConfirm = page.getByTestId('recipe-serving-context-confirm');
-  if (await servingConfirm.isVisible().catch(() => false)) await servingConfirm.click();
   await titleInput.fill(title);
 
   const warmMealBtn = page.locator('button:has-text("Warme Mahlzeit")').first();
@@ -93,8 +108,8 @@ async function createManualRecipe(page: Page, title: string): Promise<string> {
     await page.waitForTimeout(1500);
   }
 
-  // Step 2 (Zutaten) → 3 (Metadaten) → 4 (Schritte) → 5 (Vorschau) → Fertigstellen
-  for (let i = 0; i < 3; i++) {
+  // Step 2 (Zutaten) → 3 (Zubereitung) → 4 (Vorschau) → Fertigstellen
+  for (let i = 0; i < 2; i++) {
     const next = page.getByTestId('recipe-wizard-next');
     if (await next.isVisible({ timeout: 3000 }).catch(() => false)) await next.click();
     const dialog = page.getByRole('dialog');

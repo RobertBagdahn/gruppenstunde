@@ -1,45 +1,55 @@
+# recipe-url-import Specification
+
 ## Purpose
-Diese Spec definiert den URL-Import von Rezepten einschließlich Vorschau, Portionen und Quellen-URL.
+Diese Spec definiert den URL-Import von Rezepten einschließlich Vorschau, Portionen und Quellen-URL innerhalb des vereinheitlichten Smart-Eingabeflusses.
 
 ## Requirements
 
 ### Requirement: URL Import Option in Recipe Creation UI
-The system SHALL display a third option "Von URL importieren" in the RecipeWizard Step 0 (Methoden-Wahl) alongside "Manuell" and "Mit KI-Hilfe". Selecting the option SHALL expose the URL input and the canonical import action used by the enhanced import endpoint.
+Der URL-Import SHALL keine eigenständige Auswahloption mehr sein. Die Rezepterstellung SHALL ein einzelnes Smart-Eingabefeld anbieten, das eine URL entgegennimmt und den Importpfad serverseitig auslöst.
 
-#### Scenario: User selects URL import
-- **WHEN** the user clicks the "Von URL importieren" option in Wizard Step 0
-- **THEN** the system SHALL display a URL input field and an actionable import control
-- **THEN** activating the control SHALL call `POST /api/recipes/import-from-url-enhanced/`
+#### Scenario: User pastes a recipe URL
+- **WHEN** the user pastes a URL into the smart input field and triggers the analysis
+- **THEN** the system SHALL detect the input as a URL server-side
+- **THEN** the system SHALL run the enhanced import pipeline
+- **THEN** no method selection cards SHALL be shown
+
+#### Scenario: Keine separate Importmethode mehr wählbar
+- **WHEN** ein Nutzer die Rezepterstellung öffnet
+- **THEN** SHALL keine Option "Von URL importieren" als eigene Auswahl erscheinen
 
 ### Requirement: Recipe Import from URL Endpoint
-The system SHALL provide a `POST /api/recipes/import-from-url-enhanced/` endpoint that accepts a JSON body with a `url` field and returns a parsed recipe preview with matched/created ingredients. The response SHALL include `recipe_draft.servings` (number of servings of the original recipe), preparation steps, source URL, and all fields required by the synchronized frontend Zod schema.
+The system SHALL provide an import endpoint that accepts the smart input value and returns a parsed recipe preview with matched or created ingredients. The response SHALL include the number of servings of the original recipe, preparation steps, source URL, the detected input type, a flag indicating whether the data was reconstructed via search grounding, and all fields required by the synchronized frontend Zod schema. Every returned recipe item SHALL either carry a usable portion reference or be explicitly flagged as requiring user clarification.
 
 #### Scenario: Successful import returns complete preview
 - **WHEN** a user submits a URL containing valid recipe data
-- **THEN** the response SHALL include `recipe_draft.servings`, metadata, steps, `recipe_items`, and `created_ingredients`
-- **THEN** each returned recipe item SHALL include a usable `portion_id` or an explicit review-safe null value
+- **THEN** the response SHALL include servings, metadata, steps, recipe items, and created ingredients
+- **THEN** each returned recipe item SHALL include a usable portion reference or an explicit clarification flag
+- **THEN** no recipe item SHALL carry a null portion reference without that flag
 
 #### Scenario: Successful import from schema.org JSON-LD
 - **WHEN** a user submits a URL containing valid schema.org/Recipe JSON-LD markup
 - **THEN** the system SHALL parse the structured data first
 - **THEN** the preview SHALL contain title, description, servings, ingredients, steps, and durations when present
 
-#### Scenario: Successful import via Gemini fallback
-- **WHEN** a user submits a URL without schema.org markup or with incomplete structured data
-- **THEN** the system SHALL send the page content to Gemini with Google Search Grounding and extract the same recipe fields
+#### Scenario: Successful import via search grounding fallback
+- **WHEN** the direct page fetch fails with a source error
+- **THEN** the system SHALL attempt reconstruction via Gemini with Google Search Grounding
+- **THEN** the response SHALL mark the result as reconstructed
 
 #### Scenario: Import uses one canonical user-facing flow
-- **WHEN** the user imports a recipe from either the wizard or the standalone import page
-- **THEN** both interfaces SHALL use the enhanced endpoint and the same response contract
-- **THEN** neither interface SHALL silently fall back to a different user-facing parser contract
+- **WHEN** the user creates a recipe from a URL
+- **THEN** the smart input field SHALL be the only user-facing entry point
+- **THEN** no alternative import page SHALL exist
 
 #### Scenario: Invalid or unreachable URL
-- **WHEN** a user submits a malformed or unreachable URL
-- **THEN** the system SHALL return HTTP 422 with a German error message indicating the URL is invalid or unreachable
+- **WHEN** a user submits a malformed URL, or neither direct fetch nor grounding yields recipe data
+- **THEN** the system SHALL return HTTP 422 with a German error message
+- **THEN** no recipe draft SHALL be created
 
-#### Scenario: No recipe found on page
-- **WHEN** a user submits a valid URL that contains no recognizable recipe data
-- **THEN** the system SHALL return HTTP 422 with a German error message indicating no recipe was found
+#### Scenario: Response contract matches the frontend schema
+- **WHEN** the endpoint returns a successful response containing tags
+- **THEN** the frontend Zod validation SHALL succeed without error
 
 ### Requirement: Ingredient Matching via Text Search and Gemini
 The system SHALL match extracted ingredients against existing database entries using text search (icontains on name + aliases) as pre-filter, then Gemini for final matching decision.
@@ -69,42 +79,25 @@ When creating a new Ingredient via URL import, the system SHALL populate the fol
 - **THEN** child_score, scout_score, environmental_score, nova_score, and nutri_class SHALL be populated
 
 ### Requirement: Recipe Items with Quantity and Unit
-The system SHALL create RecipeItem associations with correct `portion_id`, quantity, and optional note for each ingredient. The Import-Service SHALL resolve or create the appropriate Portion during import, not at save time. Portion-Erzeugung MUSS die zentrale `Portion`-Logik verwenden: Einheiten MÜSSEN auf kanonische `MeasuringUnit` gemappt werden (kein `get_or_create(name=...)`), Portionen MÜSSEN pro `(ingredient, name, measuring_unit, quantity)` dedupliziert werden, und `weight_g` MUSS über die zentrale Berechnung gesetzt werden, wenn Gemini keinen gültigen Wert liefert.
+Jede zurückgegebene Rezeptposition SHALL Menge und Einheit tragen. Kann keine Einheit aufgelöst werden, SHALL die Position als klärungsbedürftig gekennzeichnet werden, anstatt ohne Portionsbezug gespeichert zu werden.
 
-#### Scenario: Portion exists for ingredient + measuring_unit
-- **WHEN** eine Portion für die Kombination (ingredient_id, measuring_unit_id) in der DB existiert
-- **THEN** SHALL der Import-Service diese `portion_id` im Draft-Response zurückgeben
+#### Scenario: Einheit ist auflösbar
+- **WHEN** für eine Zutat eine Einheit erkannt wird
+- **THEN** SHALL die Position eine aufgelöste Portion mit dieser Einheit erhalten
 
-#### Scenario: Portion does not exist — created with estimated weight_g
-- **WHEN** keine Portion für die Kombination (ingredient_id, measuring_unit_id) existiert
-- **THEN** SHALL der Import-Service eine neue Portion erstellen mit `weight_g` aus Geminis `estimated_portion_weight_g`, sofern dieser `> 0` ist
-- **THEN** wenn Gemini keinen gültigen `weight_g` liefert, MUSS der Wert über die zentrale Berechnung (`quantity × measuring_unit.quantity`) gesetzt werden
-- **THEN** die neue `portion_id` SHALL im Draft-Response enthalten sein
+#### Scenario: Einheit ist nicht auflösbar
+- **WHEN** für eine Zutat keine Einheit erkannt wird
+- **THEN** SHALL die Position als klärungsbedürftig gekennzeichnet werden
+- **THEN** SHALL ein KI-Vorschlag für die Einheit mitgeliefert werden
+- **THEN** SHALL die Menge nicht stillschweigend als Gramm interpretiert werden
 
-#### Scenario: Einheit wird kanonisiert statt dupliziert
-- **WHEN** Gemini einen Einheitennamen liefert (z. B. „g", „EL"), der einer kanonischen `MeasuringUnit` (per Name oder Alias) entspricht
-- **THEN** MUSS die Portion die kanonische `MeasuringUnit` referenzieren
-- **THEN** DARF KEINE neue Dubletten-Einheit per `MeasuringUnit.objects.get_or_create(name=...)` angelegt werden
-
-#### Scenario: Neue Zutat erzeugt keine Duplikat-Portion
-- **WHEN** beim Anlegen einer neuen Zutat eine Default-Portion erstellt wird, die mit `(ingredient, name, measuring_unit, quantity)` bereits existiert
-- **THEN** MUSS die bestehende Portion wiederverwendet werden (`get_or_create`) statt eine neue zu erstellen
-
-#### Scenario: Frontend sends portion_id when saving
-- **WHEN** der User das Rezept speichert
-- **THEN** SHALL das Frontend `portion_id` (nicht `ingredient_id`) an `POST /api/recipes/{id}/recipe-items/` senden
-
-#### Scenario: Quantity and unit extracted
-- **WHEN** the source recipe specifies "2 EL Olivenöl"
-- **THEN** the system SHALL return a draft item with the correct portion_id (Olivenöl + EL), quantity=2
-
-#### Scenario: Note extracted
-- **WHEN** the source recipe specifies "2 Zwiebeln, fein gewürfelt"
-- **THEN** the system SHALL set note="fein gewürfelt" on the draft item
+#### Scenario: Klärung erfolgt vor dem Speichern
+- **WHEN** der Nutzer die Einheit einer klärungsbedürftigen Position festlegt
+- **THEN** SHALL die Position eine gültige Portion erhalten
+- **THEN** SHALL das Rezept gespeichert werden können
 
 ### Requirement: Source URL Storage
-The system SHALL store the original import URL on the Recipe model in a `source_url` field when
-the user saves an imported draft.
+The system SHALL store the original import URL on the Recipe model in a `source_url` field when the user saves an imported draft.
 
 #### Scenario: Source URL persisted
 - **WHEN** a recipe draft created from a URL is saved
@@ -115,14 +108,12 @@ the user saves an imported draft.
 - **THEN** the original import URL SHALL remain unchanged
 
 ### Requirement: Preview Before Save
-The system SHALL persist the recipe draft immediately after the user confirms the URL import
-preview. After successful draft creation via `POST /api/recipes/`, the Wizard navigates to Step 1
-(Zutaten) where the user can review and edit the imported ingredients using the InlineIngredientEditor.
+The system SHALL persist the recipe draft immediately after the user confirms the URL import preview. After successful draft creation via `POST /api/recipes/`, the Wizard navigates to Step 1 (Basis & Portionen) before the user reviews and edits the imported ingredients in Step 2 (Zutaten) using the InlineIngredientEditor.
 
 #### Scenario: User reviews and edits before saving
 - **WHEN** the user confirms the URL import preview
 - **THEN** the system SHALL create a recipe draft via `POST /api/recipes/` with the imported data and `status="draft"`
-- **THEN** the Wizard SHALL navigate to Step 1 (Zutaten) with the imported ingredients loaded in the InlineIngredientEditor
+- **THEN** the Wizard SHALL navigate to Step 1 (Basis & Portionen) before showing the imported ingredients in Step 2 (Zutaten) in the InlineIngredientEditor
 - **THEN** the user can modify title, recipe type, ingredients before proceeding
 
 ### Requirement: Loading State During Import
@@ -133,14 +124,22 @@ The system SHALL display a loading indicator with the message "Rezept wird analy
 - **THEN** the loading message SHALL remain visible until the response arrives or an error occurs
 
 ### Requirement: Single Gemini Call for All Ingredients
-The system SHALL process all ingredient matching and creation in a single Gemini API call to minimize latency.
+Der Import SHALL alle Zutaten in einem einzigen KI-Aufruf verarbeiten. Die Zuordnung zwischen Quellzutat und KI-Ergebnis SHALL über eine stabile, nicht textbasierte Referenz erfolgen, sodass keine Duplikate entstehen.
 
-#### Scenario: Recipe with 12 ingredients
-- **WHEN** a recipe with 12 ingredients is imported
-- **THEN** the system SHALL make exactly one Gemini call that handles extraction, matching, and new-ingredient data generation for all 12 ingredients combined
+#### Scenario: Ein Aufruf für alle Zutaten
+- **WHEN** ein Rezept mit mehreren Zutaten importiert wird
+- **THEN** SHALL genau ein KI-Aufruf für die Zutatenverarbeitung erfolgen
+
+#### Scenario: Zuordnung ist unabhängig von der Schreibweise
+- **WHEN** die KI eine Zutat mit abweichender Schreibweise oder Mengenpräfix zurückgibt
+- **THEN** SHALL die Zuordnung über die stabile Referenz gelingen
+- **THEN** SHALL keine zusätzliche Rezeptposition entstehen
+
+#### Scenario: Positionsanzahl entspricht der Quelle
+- **WHEN** die Quelle zehn Zutaten enthält
+- **THEN** SHALL das Ergebnis zehn Rezeptpositionen enthalten
 
 ### Requirement: Frontend reads servings from import response
-
 The CreateRecipePage SHALL read `data.recipe_draft.servings` (not `portions`) from the import response for portion normalization. The Zod schema `RecipeDraftSchema` SHALL use `servings` as the field name.
 
 #### Scenario: Import normalizes quantities from servings
@@ -154,28 +153,26 @@ The CreateRecipePage SHALL read `data.recipe_draft.servings` (not `portions`) fr
 - **THEN** quantities SHALL be used as-is
 
 ### Requirement: Import-Flow Portionsvalidierung
-Beim Rezept-Import aus URL SHALL der Import-Stepper einen expliziten Validierungsschritt enthalten,
-in dem der User die erkannte Portionsanzahl bestätigt oder korrigiert. Die Mengen werden
-automatisch auf 1 Portion normalisiert.
+Der vereinheitlichte Wizard SHALL im Schritt "Basis & Portionen" die erkannte Personenzahl anzeigen und vom Nutzer bestätigen oder korrigieren lassen, bevor Zutatenmengen dargestellt werden. Die Mengen SHALL beim Speichern automatisch auf eine Portion normalisiert werden.
 
-#### Scenario: Import mit servings > 1 zeigt Normalisierungs-Schritt
-- **WHEN** ein Rezept per URL importiert wird und die Quelle `servings > 1` zurückgibt
-- **THEN** der Stepper SHALL einen Schritt "Portionsmenge prüfen" anzeigen mit der erkannten Portionsanzahl und den Original-Mengen
-- **THEN** der User MUSS bestätigen oder die Portionsanzahl korrigieren
+#### Scenario: Erkannte Personenzahl wird bestätigt
+- **WHEN** die Analyse eine Personenzahl liefert
+- **THEN** SHALL der Schritt "Basis & Portionen" diesen Wert vorbelegt anzeigen
+- **THEN** SHALL der Nutzer bestätigen oder korrigieren können
 
 #### Scenario: Automatische Normalisierung auf 1 Portion
-- **WHEN** der User die Portionsanzahl bestätigt (z.B. `servings=4`)
-- **THEN** alle importierten Mengen SHALL durch die Portionsanzahl geteilt und als per-1-Portion gespeichert werden
-- **THEN** `servings` SHALL auf `1` gesetzt werden
+- **WHEN** der Nutzer die Personenzahl bestätigt
+- **THEN** SHALL alle Mengen durch diese Zahl geteilt und als Menge pro Portion gespeichert werden
+- **THEN** SHALL die gespeicherte Portionszahl 1 betragen
 
-#### Scenario: Import mit servings=1 überspringt Normalisierung
-- **WHEN** ein Rezept per URL importiert wird und die Quelle `servings=1` zurückgibt
-- **THEN** der Normalisierungs-Schritt SHALL übersprungen werden
+#### Scenario: Keine Personenzahl erkannt
+- **WHEN** die Analyse keine verlässliche Personenzahl liefert
+- **THEN** SHALL der Nutzer zur Eingabe aufgefordert werden
+- **THEN** SHALL der Schritt ohne Eingabe nicht verlassen werden können
 
-#### Scenario: User kann Portionsanzahl manuell korrigieren
-- **WHEN** die erkannte Portionsanzahl falsch ist
-- **THEN** der User SHALL die korrekte Anzahl eingeben können
-- **THEN** die Mengen SHALL mit dem korrigierten Wert normalisiert werden
+#### Scenario: Hilfetext erklärt die Normierung
+- **WHEN** der Schritt "Basis & Portionen" aktiv ist
+- **THEN** SHALL ein deutscher Hilfetext die interne Normierung auf eine Portion erklären
 
 ### Requirement: Neue Zutaten in Vorschau als NEU markiert
 Das Frontend SHALL Zutaten, die vom Import neu erstellt wurden, in der Vorschau visuell als "NEU" kennzeichnen.
@@ -196,18 +193,18 @@ Die Import-Vorschau SHALL für jede Zutat den lesbaren `ingredient_name` und `me
 - **THEN** SHALL jede Zutat als "{quantity} {measuring_unit_name} {ingredient_name}" dargestellt werden (z.B. "2 EL Olivenöl")
 
 ### Requirement: URL-Import stabil auf Production
-Der Rezept-URL-Import (z.B. von Chefkoch) SHALL auf der Production-Umgebung stabil funktionieren. Fehler SHALL dem Nutzer klar kommuniziert werden. The import implementation SHALL support complete extraction from supported Chefkoch structured-data or fallback fixtures.
+Der Rezept-URL-Import SHALL auf der Production-Umgebung stabil funktionieren und MUST NICHT mit HTTP 500 antworten, wenn Portionsnamen kollidieren. Fehler SHALL dem Nutzer klar auf Deutsch kommuniziert werden.
 
-#### Scenario: URL-Import schlägt fehl
-- **WHEN** der URL-Import auf Production einen Fehler wirft
-- **THEN** wird dem Nutzer angezeigt: „Import fehlgeschlagen — bitte URL prüfen oder Rezept manuell anlegen"
-- **THEN** wird kein leerer weißer Screen angezeigt
+#### Scenario: Wiederholter Import derselben Quelle
+- **WHEN** dieselbe Rezept-URL mehrfach importiert wird
+- **THEN** SHALL jeder Import erfolgreich abschließen
+- **THEN** SHALL kein `IntegrityError` auftreten
 
-#### Scenario: URL-Import erfolgreich auf Production
-- **WHEN** der Nutzer eine gültige unterstützte Chefkoch-Rezept-URL eingibt
-- **THEN** funktioniert der Import auf Production identisch wie lokal
-- **THEN** Titel, Zutaten, Portionszahl und Zubereitung werden in der Preview angezeigt
+#### Scenario: Portionsname kollidiert mit bestehendem Datensatz
+- **WHEN** eine anzulegende Portion einen bereits vergebenen Namen bei derselben Zutat trägt
+- **THEN** SHALL das System einen eindeutigen Namen verwenden
+- **THEN** SHALL der Import mit HTTP 200 antworten
 
-#### Scenario: Fehlerdiagnose
-- **WHEN** der URL-Import auf Production fehlschlägt
-- **THEN** wird der Fehler in Sentry geloggt mit der verwendeten URL (anonymisiert falls nötig)
+#### Scenario: Chefkoch-Rezept wird vollständig importiert
+- **WHEN** ein Chefkoch-Rezept mit strukturierten Daten importiert wird
+- **THEN** SHALL Titel, Personenzahl, alle Zutaten und alle Zubereitungsschritte übernommen werden

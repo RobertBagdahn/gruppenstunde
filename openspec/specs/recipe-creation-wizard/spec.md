@@ -1,7 +1,7 @@
 # recipe-creation-wizard Specification
 
 ## Purpose
-Multi-step wizard for creating recipes with manual, AI-assisted, and URL import methods.
+Multi-step wizard for creating recipes through one unified smart input flow, editing all recipe data, and preserving it through completion.
 
 ## Requirements
 
@@ -10,7 +10,7 @@ Die `CreateRecipePage` SHALL einen Rezept-spezifischen 5-Step Wizard (`RecipeWiz
 
 #### Scenario: Rezept-Erstellungsseite lädt RecipeWizard
 - **WHEN** ein Nutzer `/recipes/new` aufruft
-- **THEN** wird der `RecipeWizard` mit Step 0 (Methoden-Wahl) angezeigt
+- **THEN** wird der `RecipeWizard` mit Step 0 (Smart-Eingabe) angezeigt
 - **THEN** der `ContentStepper` wird NICHT gerendert
 
 #### Scenario: Andere Content-Typen unverändert
@@ -18,7 +18,7 @@ Die `CreateRecipePage` SHALL einen Rezept-spezifischen 5-Step Wizard (`RecipeWiz
 - **THEN** wird weiterhin der `ContentStepper` verwendet
 
 ### Requirement: 5-Step Wizard Struktur
-Der `RecipeWizard` SHALL aus fünf aufeinanderfolgenden Steps bestehen: (0) Methoden-Wahl, (1) Zutaten, (2) Metadaten, (3) Steps, (4) Vorschau & Speichern. Jeder Step SHALL einen "Weiter"-Button haben, der die Änderungen des aktuellen Steps via API persistiert und erst nach erfolgreichem Abschluss zum nächsten Step navigiert. Ein "Zurück"-Button SHALL zum vorherigen Step navigieren. Die Fertigstellung in Step 4 SHALL den Status gemäß der Sichtbarkeit des Rezepts behandeln.
+Der `RecipeWizard` SHALL aus fünf aufeinanderfolgenden Steps bestehen: (0) Smart-Eingabe, (1) Basis & Portionen, (2) Zutaten, (3) Zubereitung, (4) Vorschau & Speichern. Jeder Step SHALL einen "Weiter"-Button haben, der die Änderungen des aktuellen Steps via API persistiert und erst nach erfolgreichem Abschluss zum nächsten Step navigiert. Ein "Zurück"-Button SHALL zum vorherigen Step navigieren. Die Fertigstellung in Step 4 SHALL den Status gemäß der Sichtbarkeit des Rezepts behandeln. Jeder Step SHALL einen erklärenden deutschen Hilfetext anzeigen.
 
 #### Scenario: Step-Navigation vorwärts
 - **WHEN** der Nutzer auf "Weiter" klickt
@@ -39,6 +39,10 @@ Der `RecipeWizard` SHALL aus fünf aufeinanderfolgenden Steps bestehen: (0) Meth
 - **WHEN** der Wizard gerendert wird
 - **THEN** eine visuelle Step-Anzeige (z.B. nummerierte Punkte) zeigt den aktuellen Fortschritt
 
+#### Scenario: Hilfetext pro Step
+- **WHEN** ein beliebiger Step aktiv ist
+- **THEN** SHALL ein deutscher Hilfetext den Zweck des Steps erklären
+
 #### Scenario: Private Fertigstellung
 - **WHEN** ein Nutzer im Vorschau-Step ein privates Rezept fertigstellt
 - **THEN** wird kein öffentlicher Statusübergang ausgelöst
@@ -54,97 +58,68 @@ Der `RecipeWizard` SHALL aus fünf aufeinanderfolgenden Steps bestehen: (0) Meth
 - **THEN** bleibt der Nutzer im Vorschau-Step
 - **THEN** wird eine deutsche Fehlermeldung angezeigt
 
-### Requirement: Step 0 — Methoden-Wahl
-Step 0 SHALL dem Nutzer drei Methoden zur Rezept-Erstellung anbieten: "Manuell", "Mit KI-Hilfe", "Von URL importieren". Die gewählte Methode bestimmt, wie Step 1 initial befüllt wird.
+### Requirement: Step 0 — Smart-Eingabe
+Step 0 SHALL ein einzelnes Smart-Eingabefeld anbieten, das eine URL, einen kopierten Rezepttext oder eine Freitext-Idee entgegennimmt. Der Eingabetyp SHALL serverseitig erkannt werden. Eine Auswahl zwischen Erstellungsmethoden SHALL NICHT angeboten werden.
 
-#### Scenario: Nutzer wählt "Manuell"
-- **WHEN** der Nutzer "Manuell" auswählt und auf "Weiter" klickt
-- **THEN** der Wizard navigiert zu Step 1 mit leerem Zutaten-Editor
-- **THEN** es wird KEIN Draft in der DB erstellt
+#### Scenario: Nutzer fügt eine Rezept-URL ein
+- **WHEN** der Nutzer eine URL einfügt und die Analyse auslöst
+- **THEN** SHALL das Backend die Seite abrufen und die Rezeptdaten extrahieren
+- **THEN** SHALL bei Erfolg ein Draft erstellt werden und der Wizard zu Step 1 navigieren
 
-#### Scenario: Nutzer wählt "Mit KI-Hilfe"
-- **WHEN** der Nutzer "Mit KI-Hilfe" auswählt
-- **THEN** ein Textfeld erscheint für die Freitext-Beschreibung des Rezepts
-- **THEN** nach Eingabe und Klick auf "Generieren" wird `POST /api/recipes/ai-create/` aufgerufen
-- **THEN** bei Erfolg wird ein Draft in der DB erstellt und der Wizard navigiert zu Step 1 mit vorausgefülltem Zutaten-Editor
+#### Scenario: Nutzer fügt einen kopierten Rezepttext ein
+- **WHEN** der Nutzer einen mehrzeiligen Rezepttext mit Mengenangaben einfügt und die Analyse auslöst
+- **THEN** SHALL das Backend Zutaten und Schritte aus dem Text extrahieren
+- **THEN** SHALL bei Erfolg ein Draft erstellt werden und der Wizard zu Step 1 navigieren
 
-#### Scenario: Nutzer wählt "Von URL importieren"
-- **WHEN** der Nutzer "Von URL importieren" auswählt
-- **THEN** ein URL-Eingabefeld erscheint
-- **THEN** nach Eingabe und Klick auf "Importieren" wird `POST /api/recipes/import-from-url-enhanced/` aufgerufen
-- **THEN** eine Vorschau der importierten Daten wird angezeigt
-- **THEN** nach Bestätigung wird `POST /api/recipes/` aufgerufen und ein Draft erstellt
-- **THEN** der Wizard navigiert zu Step 1 mit vorausgefülltem Zutaten-Editor
+#### Scenario: Nutzer beschreibt eine Rezeptidee
+- **WHEN** der Nutzer eine kurze Beschreibung wie "Käsespätzle für 4 Personen" eingibt und die Analyse auslöst
+- **THEN** SHALL das Backend ein vollständiges Rezept generieren
+- **THEN** SHALL bei Erfolg ein Draft erstellt werden und der Wizard zu Step 1 navigieren
 
-#### Scenario: Fehler bei KI-Generierung
-- **WHEN** `POST /api/recipes/ai-create/` fehlschlägt
-- **THEN** eine verständliche Fehlermeldung wird angezeigt
-- **THEN** der Nutzer bleibt in Step 0 und kann es erneut versuchen oder die Methode wechseln
+#### Scenario: Analyse schlägt fehl
+- **WHEN** die Analyse mit einem Fehler endet
+- **THEN** SHALL eine verständliche deutsche Fehlermeldung angezeigt werden
+- **THEN** SHALL der Nutzer in Step 0 bleiben und die Eingabe korrigieren können
+- **THEN** SHALL kein unvollständiger Draft zurückbleiben
 
-#### Scenario: Fehler bei URL-Import
-- **WHEN** `POST /api/recipes/import-from-url-enhanced/` fehlschlägt
-- **THEN** eine verständliche Fehlermeldung wird angezeigt
-- **THEN** der Nutzer bleibt im URL-Dialog und kann die URL korrigieren
+### Requirement: Step 2 — Zutaten
+Step 2 SHALL den `InlineIngredientEditor` als integrierte Komponente darstellen. Die Mengen SHALL für die in Step 1 festgelegte Original-Personenzahl angezeigt werden. Positionen ohne aufgelöste Einheit SHALL hervorgehoben und vor dem Fortfahren geklärt werden.
 
-### Requirement: Step 1 — Zutaten (InlineIngredientEditor)
-Step 1 SHALL den `InlineIngredientEditor` aus der Rezept-Detailseite als integrierte Komponente darstellen. Oberhalb des Editors SHALL ein Titel-Eingabefeld und eine Rezept-Typ-Auswahl platziert sein. Der Draft wird erstellt, sobald Titel, Rezept-Typ und mindestens eine Zutat existieren.
-
-#### Scenario: Manuelle Zutaten-Eingabe
-- **WHEN** der Nutzer in Step 1 mit leerem Editor startet (Manuell-Methode)
-- **THEN** kann er Zutaten per `IngredientAutocomplete` oder `IngredientDetailSearchDialog` hinzufügen
-- **THEN** der Draft wird via `POST /api/recipes/` erstellt, sobald Titel + Rezept-Typ + ≥1 Zutat vorhanden sind
-
-#### Scenario: Vorausgefüllte Zutaten nach KI/URL
-- **WHEN** der Nutzer Step 1 nach KI-Generierung oder URL-Import betritt
-- **THEN** ist der Zutaten-Editor mit den generierten/importierten Zutaten vorausgefüllt
+#### Scenario: Vorausgefüllte Zutaten nach der Analyse
+- **WHEN** der Nutzer Step 2 betritt
+- **THEN** ist der Zutaten-Editor mit den analysierten Zutaten vorausgefüllt
 - **THEN** der Nutzer kann Zutaten bearbeiten, hinzufügen oder entfernen
-- **THEN** der Draft existiert bereits in der DB (durch KI- oder URL-Flow erstellt)
 
-#### Scenario: Titel und Rezept-Typ im Header
-- **WHEN** Step 1 gerendert wird
-- **THEN** ein Titel-Eingabefeld und eine Rezept-Typ-Auswahl (Grid mit Icons) sind oberhalb des Zutaten-Editors sichtbar
-- **THEN** beide Felder sind Pflichtfelder für die Draft-Erstellung
+#### Scenario: Mengen im Kontext der Original-Personenzahl
+- **WHEN** der Nutzer in Step 1 eine Original-Personenzahl festgelegt hat
+- **THEN** SHALL der Editor die Gesamtmengen für diese Personenzahl anzeigen
+- **THEN** SHALL beim Speichern auf eine Portion normiert werden
 
-#### Scenario: Portion-Scaling im Editor
-- **WHEN** der Nutzer die Portionszahl im Editor ändert
-- **THEN** werden die angezeigten Mengen skaliert
-- **THEN** gespeichert wird immer normalisiert auf 1 Portion
+#### Scenario: Klärungsbedürftige Position blockiert das Fortfahren
+- **WHEN** mindestens eine Zutat keine aufgelöste Einheit besitzt
+- **THEN** SHALL der "Weiter"-Button die Navigation verhindern
+- **THEN** SHALL eine deutsche Meldung die betroffenen Zutaten benennen
 
-### Requirement: Step 2 — Metadaten
-Step 2 SHALL die Rezept-Metadaten zur Bearbeitung anbieten: Summary, Description (Markdown-Editor), Difficulty, Execution Time, Preparation Time, Tags, Scout Levels, und Visibility. Beim Klick auf "Weiter" SHALL ein `PATCH /api/recipes/{id}/` die Metadaten persistieren, ohne die in Step 1 gespeicherten Zutaten zu verändern.
+#### Scenario: Zutat per Suche ergänzen
+- **WHEN** der Nutzer eine weitere Zutat hinzufügen möchte
+- **THEN** stehen `IngredientAutocomplete` und `IngredientDetailSearchDialog` zur Verfügung
 
-#### Scenario: Metadaten speichern ohne Zutaten zu löschen
-- **WHEN** der Nutzer in Step 2 auf "Weiter" klickt
-- **THEN** wird `PATCH /api/recipes/{id}/` mit den Metadaten-Feldern aufgerufen
-- **THEN** die in Step 1 gespeicherten `recipe_items` bleiben unverändert erhalten
+### Requirement: Step 3 — Metadaten und Zubereitung
+Step 3 SHALL die Zubereitungsschritte sowie Schwierigkeit, Zubereitungszeit und Vorbereitungszeit zur Bearbeitung anbieten. Beim Fortfahren SHALL ausschließlich veränderter oder aus dem Rezept geladener Inhalt persistiert werden; uninitialisierte Standardwerte MUST NICHT gesendet werden.
 
-#### Scenario: Description als Markdown
-- **WHEN** der Nutzer die Beschreibung eingibt
-- **THEN** ein `MarkdownEditor` steht zur Verfügung
-- **THEN** die Beschreibung wird als Markdown gespeichert
+#### Scenario: Zubereitung bearbeiten
+- **WHEN** der Nutzer Zubereitungsschritte hinzufügt, ändert oder umsortiert
+- **THEN** SHALL genau ein Batch-Update die Änderungen persistieren
 
-### Requirement: Step 3 — Steps (StepEditor)
-Step 3 SHALL den `StepEditor` aus der Rezept-Detailseite als integrierte Komponente darstellen. Der Editor lädt existierende Steps via `useRecipeSteps(slug)` und speichert via `PUT /api/recipes/{slug}/steps/batch`. Die verfügbaren RecipeItems aus Step 1 werden als `availableRecipeItems` an den Editor übergeben. Der Editor SHALL seinen aktuellen Stand dem Wizard zum Speichern zur Verfügung stellen.
+#### Scenario: Vorhandene Inhalte bleiben ohne Eingabe erhalten
+- **WHEN** der Nutzer Step 3 ohne jede Eingabe verlässt
+- **THEN** SHALL die vorhandene Beschreibung des Rezepts unverändert bleiben
+- **THEN** SHALL Schwierigkeit, Zubereitungszeit und Vorbereitungszeit unverändert bleiben
 
-#### Scenario: StepEditor im Wizard
-- **WHEN** Step 3 aktiv ist
-- **THEN** der `StepEditor` wird mit den RecipeItems aus Step 1 als `availableRecipeItems` geladen
-- **THEN** Steps können per Drag & Drop sortiert werden
-- **THEN** Zutaten-Referenzen in Steps verweisen auf reale DB-IDs der RecipeItems
-
-#### Scenario: Steps speichern bei "Weiter"
-- **WHEN** der Nutzer in Step 3 auf "Weiter" klickt
-- **THEN** wird der aktuelle Stand des StepEditors genau einmal mit `PUT /api/recipes/{slug}/steps/batch` gespeichert
-- **THEN** wird bei erfolgreicher Antwort der lokale Dirty-Status gelöscht
-
-#### Scenario: Stepspeicherung schlägt fehl
-- **WHEN** `PUT /api/recipes/{slug}/steps/batch` fehlschlägt
-- **THEN** bleibt der Nutzer in Step 3
-- **THEN** bleiben die lokalen Änderungen im Editor erhalten
-
-#### Scenario: Keine Steps vorhanden
-- **WHEN** das Rezept noch keine Steps hat
-- **THEN** der StepEditor zeigt einen leeren Zustand mit "Schritt hinzufügen"-Button und "Aus Zutaten generieren"-Button
+#### Scenario: Beschreibung als Markdown
+- **WHEN** der Nutzer die Beschreibung bearbeitet
+- **THEN** steht ein `MarkdownEditor` zur Verfügung
+- **THEN** wird die Beschreibung als Markdown gespeichert
 
 ### Requirement: Step 4 — Vorschau & Speichern
 Step 4 SHALL eine vollständige Vorschau des Rezepts anzeigen: Titel, Rezept-Typ, Zutatenliste, Metadaten (Difficulty, Time, Tags), Beschreibung, und Steps. Ein "Fertigstellen"-Button SHALL den Status auf `submitted` setzen (falls `visibility=public`) und zur Detail-Seite navigieren.
@@ -165,10 +140,10 @@ Step 4 SHALL eine vollständige Vorschau des Rezepts anzeigen: Titel, Rezept-Typ
 - **THEN** der Nutzer wird auf `/recipes/{slug}` weitergeleitet
 
 ### Requirement: InlineIngredientEditor als standalone Komponente
-Der `InlineIngredientEditor` SHALL aus der `RecipeDetailPage` extrahiert werden, sodass er sowohl auf der Detail-Seite (`?edit=ingredients`) als auch im Wizard (Step 1) funktioniert. Der Editor akzeptiert Props für `recipeId`/`slug` und optional `initialItems`.
+Der `InlineIngredientEditor` SHALL aus der `RecipeDetailPage` extrahiert werden, sodass er sowohl auf der Detail-Seite (`?edit=ingredients`) als auch im Wizard (Step 2) funktioniert. Der Editor akzeptiert Props für `recipeId`/`slug` und optional `initialItems`.
 
 #### Scenario: Editor im Wizard-Kontext
-- **WHEN** der `InlineIngredientEditor` im Wizard Step 1 gerendert wird
+- **WHEN** der `InlineIngredientEditor` im Wizard Step 2 gerendert wird
 - **THEN** er nutzt die gleichen API-Hooks (`useCreateRecipeItem`, `useUpdateRecipeItem`, `useDeleteRecipeItem`)
 - **THEN** er zeigt die gleichen UI-Komponenten (`IngredientAutocomplete`, `IngredientDetailSearchDialog`, `PortionScaler`)
 
@@ -196,17 +171,17 @@ Der Wizard SHALL auf mobilen Geräten (320px+ Breakpoint) vollständig bedienbar
 - **THEN** "Weiter" und "Zurück" Buttons sind am unteren Rand fixiert (sticky)
 - **THEN** der Step-Indikator ist kompakt und benötigt maximal eine Zeile
 
-### Requirement: KI-gestützte Erstbefüllung über ai-create
-Der Wizard Step 0 SHALL bei Auswahl von "Mit KI-Hilfe" den existierenden `POST /api/recipes/ai-create/` Endpoint nutzen. Dieser erstellt einen vollständigen Draft mit Titel, Beschreibung, Rezept-Typ, Difficulty, Dauer und Zutaten (inkl. Portion-Matching). Alle danach im Wizard vorgenommenen manuellen Änderungen SHALL beim Weitergehen und nach einem Reload erhalten bleiben.
+### Requirement: KI-gestützte Erstbefüllung über die Smart-Eingabe
+Der Wizard SHALL die Smart-Eingabe in Step 0 nutzen, um einen vollständigen Draft mit Titel, Beschreibung, Rezept-Typ, Schwierigkeit, Dauer und Zutaten inklusive Portion-Matching zu erzeugen. Alle danach im Wizard vorgenommenen manuellen Änderungen SHALL beim Weitergehen und nach einem Reload erhalten bleiben.
 
-#### Scenario: KI erstellt vollständigen Draft
-- **WHEN** der Nutzer eine Beschreibung wie "Nudelauflauf mit Hackfleisch und Käse überbacken" eingibt
-- **THEN** `POST /api/recipes/ai-create/` liefert einen Draft mit Titel, recipe_type, difficulty, execution_time und recipe_items
-- **THEN** der Draft wird in der DB gespeichert (status=draft)
-- **THEN** der Wizard navigiert zu Step 1 mit den KI-generierten Zutaten
+#### Scenario: Analyse erstellt vollständigen Draft
+- **WHEN** der Nutzer eine URL, einen Rezepttext oder eine Beschreibung eingibt und die Analyse auslöst
+- **THEN** SHALL ein Draft mit Titel, recipe_type, difficulty, execution_time und recipe_items entstehen
+- **THEN** SHALL der Draft mit Status `draft` gespeichert werden
+- **THEN** SHALL der Wizard zu Step 1 navigieren
 
-#### Scenario: KI-Draft wird manuell angepasst
-- **WHEN** der Nutzer Zutaten, Metadaten oder Zubereitung eines KI-Drafts ändert und den jeweiligen Step verlässt
+#### Scenario: Draft wird manuell angepasst
+- **WHEN** der Nutzer Zutaten, Metadaten oder Zubereitung des Drafts ändert und den jeweiligen Step verlässt
 - **THEN** werden die manuellen Änderungen via API gespeichert
 - **THEN** überschreibt kein späterer Query-Refresh die manuellen Änderungen
 
@@ -215,7 +190,7 @@ The recipe creation wizard SHALL persist the complete state of the active step b
 
 #### Scenario: Ingredient edits are persisted before metadata navigation
 - **WHEN** a user changes the recipe title, type, or ingredients and clicks `Weiter`
-- **THEN** the ingredient state and recipe title/type SHALL be persisted before the metadata step becomes active
+- **THEN** the ingredient state and recipe title/type SHALL be persisted before the preparation step becomes active
 
 #### Scenario: Metadata summary and description are persisted before step navigation
 - **WHEN** a user changes the short summary and Markdown description and clicks `Weiter`
@@ -230,16 +205,17 @@ The recipe creation wizard SHALL persist the complete state of the active step b
 - **THEN** the wizard SHALL remain on the active step, SHALL show the structured German error, and SHALL preserve the local edit for retry
 
 ### Requirement: Recipe creation import paths are deterministic and complete
-The manual, AI, and enhanced URL-import paths SHALL preserve editable ingredients, metadata, preparation steps, servings semantics, and source metadata through completion and reload.
+Der vereinheitlichte Erstellungsweg SHALL editierbare Zutaten, Metadaten, Zubereitungsschritte, Portionssemantik und Quellenangaben über Fertigstellung und Reload hinweg erhalten. Dies gilt gleichermaßen für die Eingabetypen URL, Rezepttext und Freitext-Idee.
 
-#### Scenario: AI-created draft supports subsequent manual edits
-- **WHEN** a deterministic AI-created draft is returned and the user edits its ingredient or preparation data
-- **THEN** the manual edits SHALL be persisted and SHALL not be replaced by stale AI response data
+#### Scenario: Draft aus Freitext-Idee unterstützt manuelle Anpassungen
+- **WHEN** ein deterministischer Draft aus einer Freitext-Idee erzeugt wurde und der Nutzer Zutaten oder Zubereitung ändert
+- **THEN** SHALL die manuellen Änderungen persistiert und nicht durch veraltete KI-Antwortdaten ersetzt werden
 
-#### Scenario: Enhanced URL import preserves source metadata
-- **WHEN** a deterministic enhanced import preview is confirmed
-- **THEN** the created recipe SHALL retain the source URL, supported tags, detected servings semantics, imported items, and imported preparation steps
+#### Scenario: URL-Eingabe erhält Quellenangaben
+- **WHEN** eine deterministische URL-Analyse bestätigt wurde
+- **THEN** SHALL das erzeugte Rezept Quell-URL, unterstützte Tags, erkannte Portionssemantik, importierte Positionen und importierte Zubereitungsschritte behalten
 
-#### Scenario: Import failure does not create a partial recipe
-- **WHEN** enhanced import returns a classified source or parsing error
-- **THEN** the UI SHALL show the mapped German error and SHALL not navigate to a partially created recipe
+#### Scenario: Fehlgeschlagene Analyse erzeugt kein Teilrezept
+- **WHEN** die Analyse einen klassifizierten Quellen- oder Verarbeitungsfehler zurückgibt
+- **THEN** SHALL die Oberfläche den zugeordneten deutschen Fehler anzeigen
+- **THEN** SHALL nicht zu einem teilweise erstellten Rezept navigiert werden

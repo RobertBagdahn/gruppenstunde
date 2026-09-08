@@ -1,6 +1,14 @@
-"""Schemas for recipe URL import."""
+"""Schemas for recipe URL and smart-input import."""
+
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+
+class SmartRecipeInputIn(BaseModel):
+    """Free-form recipe input; the backend detects its source type."""
+
+    input: str = Field(min_length=1, max_length=20_000)
 
 
 class RecipeImportRequestIn(BaseModel):
@@ -42,6 +50,7 @@ class RecipeItemDraftOut(BaseModel):
     needs_unit_clarification: bool = False
     suggested_unit_name: str = ""
     suggested_portion_weight_g: float | None = None
+    available_portions: list[dict] = Field(default_factory=list)
 
 
 class CreatedIngredientInfoOut(BaseModel):
@@ -64,6 +73,8 @@ class RecipeDraftOut(BaseModel):
     execution_time_choice: str = "less_30"
     preparation_time_choice: str = "none"
     scout_level_ids: list[int] = Field(default_factory=list)
+    # Tag.id is a UUID, so these are strings. The frontend Zod schema
+    # (recipeImport.ts) must validate them as strings, not numbers.
     tag_ids: list[str] = Field(default_factory=list)
     steps: list[str] = Field(default_factory=list)
     source_url: str = ""
@@ -74,3 +85,7 @@ class RecipeImportUrlResponseOut(BaseModel):
     recipe_draft: RecipeDraftOut
     recipe_items: list[RecipeItemDraftOut] = Field(default_factory=list)
     created_ingredients: list[CreatedIngredientInfoOut] = Field(default_factory=list)
+    input_type: Literal["url", "text", "prompt"] = "url"
+    # True when the page was unreachable and the data was reconstructed via
+    # search grounding. The UI must ask the user to verify it.
+    is_reconstructed: bool = False

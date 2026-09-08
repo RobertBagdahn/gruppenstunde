@@ -11,7 +11,6 @@ import RecipeFoldersPage from './pages/recipes/RecipeFoldersPage';
 import CreateRecipePage from './pages/recipes/CreateRecipePage';
 import EditRecipePage from './pages/recipes/EditRecipePage';
 import RecipeDetailPage from './pages/recipes/RecipeDetailPage';
-import RecipeImportPage from './pages/recipes/RecipeImportPage';
 
 // Ingredient pages
 import IngredientListPage from './pages/ingredients/IngredientListPage';
@@ -75,7 +74,6 @@ export default function App() {
         <Route path="/recipes" element={<RecipeListPage />} />
         <Route path="/recipes/my-recipes" element={<MyRecipesPage />} />
         <Route path="/recipes/folders" element={<RecipeFoldersPage />} />
-        <Route path="/recipes/import" element={<RecipeImportPage />} />
         <Route path="/recipes/new" element={<CreateRecipePage />} />
         <Route path="/recipes/:slug/edit" element={<EditRecipePage />} />
         <Route path="/recipes/:slug" element={<RecipeDetailPage />} />

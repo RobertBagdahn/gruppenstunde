@@ -39,8 +39,7 @@ async function createRecipeFixture(
 }
 
 async function advanceToPreview(page: import('@playwright/test').Page): Promise<void> {
-  await page.getByTestId('recipe-wizard-next').click();
-  await expect(page.getByRole('heading', { name: 'Schritte' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Zubereitung' })).toBeVisible();
   await page.getByTestId('recipe-wizard-next').click();
   await expect(page.getByRole('heading', { name: 'Vorschau & Speichern' })).toBeVisible();
 }
@@ -55,23 +54,48 @@ async function confirmIngredientSave(page: import('@playwright/test').Page): Pro
 test.describe('Recipe persistence integrity', () => {
   test('persists manual title, metadata, and preparation through the full wizard', async ({ foodPage, resources, uniqueName }) => {
     const title = uniqueName('E2E Wizard Rezept');
+    await foodPage.route('**/api/recipes/smart-input/', async (route) => {
+      await route.fulfill({ json: {
+        recipe_draft: {
+          title,
+          description: '',
+          summary: '',
+          servings: 1,
+          preparation_time: null,
+          execution_time: null,
+          recipe_type: 'warm_meal',
+          difficulty: 'easy',
+          execution_time_choice: 'less_30',
+          preparation_time_choice: 'none',
+          scout_level_ids: [],
+          tag_ids: [],
+          steps: [],
+          source_url: '',
+          image_url: '',
+        },
+        recipe_items: [],
+        created_ingredients: [],
+        input_type: 'prompt',
+        is_reconstructed: false,
+      } });
+    });
     await foodPage.goto('/recipes/new');
-    await foodPage.getByText('Manuell', { exact: true }).first().click();
+    await foodPage.getByTestId('recipe-smart-input').fill(title);
+    await foodPage.getByTestId('recipe-smart-analyze').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
-    await foodPage.getByPlaceholder('z.B. Nudelauflauf mit Hackfleisch').fill(title);
-    await foodPage.getByRole('button', { name: 'Warme Mahlzeit' }).first().click();
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
+    await foodPage.getByTestId('recipe-wizard-next').click();
+    await foodPage.getByRole('button', { name: 'Warme Mahlzeit' }).first().click();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await confirmIngredientSave(foodPage);
 
     await foodPage.getByPlaceholder('Kurze Zusammenfassung...').fill('E2E Zusammenfassung');
     await foodPage.getByPlaceholder('Ausführliche Beschreibung in Markdown...').fill('E2E Beschreibung');
-    await foodPage.getByTestId('recipe-wizard-next').click();
-    await expect(foodPage.getByRole('heading', { name: 'Schritte' })).toBeVisible();
+    await expect(foodPage.getByRole('heading', { name: 'Zubereitung' })).toBeVisible();
     await foodPage.getByRole('button', { name: /Ersten Schritt hinzufügen/i }).click();
-    await foodPage.locator('textarea').first().fill('E2E Zubereitungsschritt');
+    await foodPage.getByPlaceholder(/Mehl und/).fill('E2E Zubereitungsschritt');
     // Ensure blur triggers state update
-    await foodPage.locator('textarea').first().blur();
+    await foodPage.getByPlaceholder(/Mehl und/).blur();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await expect(foodPage.getByTestId('recipe-wizard-finish')).toBeVisible({ timeout: 15000 });
     await foodPage.getByTestId('recipe-wizard-finish').click();
@@ -91,14 +115,27 @@ test.describe('Recipe persistence integrity', () => {
     const fixture = await createRecipeFixture(api, resources, uniqueName);
     // When ai-create returns input_servings, the wizard skips the context selector
     fixture.input_servings = 4;
-    await foodPage.route('**/api/recipes/ai-create/', (route) => route.fulfill({ json: fixture }));
+    await foodPage.route('**/api/recipes/smart-input/', (route) => route.fulfill({ json: {
+      recipe_draft: {
+        title: String(fixture.title), description: String(fixture.description ?? ''), summary: '', servings: 4,
+        preparation_time: null, execution_time: null, recipe_type: 'warm_meal', difficulty: 'easy',
+        execution_time_choice: 'less_30', preparation_time_choice: 'none', scout_level_ids: [], tag_ids: [],
+        steps: [], source_url: '', image_url: '',
+      },
+      recipe_items: (fixture.recipe_items as Array<Record<string, unknown>>).map((item) => ({
+        ingredient_id: item.ingredient_id ?? 1, ingredient_name: 'Fixture Zutat', quantity: 42,
+        measuring_unit_id: 1, measuring_unit_name: 'g', note: '', is_new_ingredient: false,
+        portion_id: item.portion_id, needs_unit_clarification: false, suggested_unit_name: '',
+        suggested_portion_weight_g: null, available_portions: [],
+      })),
+      created_ingredients: [], input_type: 'prompt', is_reconstructed: false,
+    } }));
 
     await foodPage.goto('/recipes/new');
-    await foodPage.getByText('Mit KI-Hilfe', { exact: true }).first().click();
-    await foodPage.locator('textarea[placeholder*="Nudelauflauf"]').fill('E2E KI Rezept');
-    const aiResponse = foodPage.waitForResponse((response) => response.url().includes('/api/recipes/ai-create/') && response.ok());
-    await foodPage.getByRole('button', { name: 'Generieren' }).click();
-    await aiResponse;
+    await foodPage.getByTestId('recipe-smart-input').fill('E2E KI Rezept');
+    await foodPage.getByTestId('recipe-smart-analyze').click();
+    await foodPage.getByTestId('recipe-wizard-next').click();
+    await foodPage.getByTestId('recipe-serving-context-confirm').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await expect(foodPage.getByRole('heading', { name: 'Titel, Typ & Zutaten' })).toBeVisible();
     const quantity = foodPage.locator('input[data-testid^="item-quantity-"]').first();
@@ -124,8 +161,9 @@ test.describe('Recipe persistence integrity', () => {
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
     await expect(foodPage.getByTestId('recipe-serving-context-summary')).toContainText('Gesamtmengen für 4 Personen');
     await foodPage.getByTestId('ingredient-editor-save').click();
-    await expect(foodPage.getByRole('dialog')).toContainText('Mengen für 4 Personen speichern?');
-    await foodPage.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click();
+    // With no ingredient changes, saving is a no-op and does not need a
+    // confirmation dialog. The serving context itself remains visible.
+    await expect(foodPage.getByRole('dialog')).toHaveCount(0);
     await expect(foodPage.getByTestId('recipe-ingredient-editor')).toBeVisible();
   });
 });

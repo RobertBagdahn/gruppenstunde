@@ -1,17 +1,16 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { useRecipeBySlug } from '@/api/recipes';
 import { RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 import InlineIngredientEditor from './InlineIngredientEditor';
 import type { InlineIngredientEditorHandle } from './InlineIngredientEditor';
 import type { DraftCreationResult, DraftIngredientItem } from './InlineIngredientEditor';
-import RecipeServingContextSelector from './RecipeServingContextSelector';
 import { normalizeServingContext } from '@/lib/cookingQuantityScale';
 import { toast } from 'sonner';
 
 interface WizardStepIngredientsProps {
   recipeId: number | null;
   recipeSlug: string;
-  creationMethod: 'manual' | 'ai' | 'url' | null;
+  creationMethod: 'manual' | 'ai' | 'url' | 'smart' | null;
   onIngredientsCountChange: (count: number) => void;
   onTitleChange: (title: string) => void;
   onRecipeTypeChange: (type: string | null) => void;
@@ -43,17 +42,12 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
   const items = recipe?.recipe_items ?? [];
   const portions = recipe?.portions ?? 1;
   const editorRef = useRef<InlineIngredientEditorHandle>(null);
-  const [selectionValue, setSelectionValue] = useState(() =>
-    normalizeServingContext(initialInputPortions ?? 1),
-  );
-  const [inputPortions, setInputPortions] = useState<number | null>(() =>
-    initialInputPortions == null ? null : normalizeServingContext(initialInputPortions),
-  );
+  const inputPortions = normalizeServingContext(initialInputPortions ?? 1);
 
   useImperativeHandle(ref, () => ({
     save: () => {
       if (!editorRef.current) {
-        toast.error('Bitte lege zuerst die Personenzahl fest.');
+        toast.error('Die Zutaten werden noch geladen.');
         return Promise.resolve(false);
       }
       return editorRef.current.save();
@@ -125,29 +119,25 @@ const WizardStepIngredients = forwardRef<WizardStepIngredientsHandle, WizardStep
 
       <div>
         <label className="block text-sm font-medium mb-1.5">Zutaten *</label>
-        {inputPortions === null ? (
-          <RecipeServingContextSelector
-            value={selectionValue}
-            onChange={setSelectionValue}
-            onConfirm={() => setInputPortions(selectionValue)}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Gesamtmengen für <strong>{inputPortions} {inputPortions === 1 ? 'Person' : 'Personen'}</strong>.
+          Beim Speichern werden sie auf eine Portion normiert.
+        </div>
+        <div className="bg-card rounded-xl border">
+          <InlineIngredientEditor
+            ref={editorRef}
+            recipeId={recipeId}
+            recipeSlug={recipeSlug}
+            items={items}
+            portions={portions}
+            inputPortions={inputPortions}
+            itemsAreContextual={initialItemsAreContextual}
+            onClose={() => {}}
+            onSaved={() => {}}
+            onSave={() => {}}
+            onCreateDraft={onCreateDraft}
           />
-        ) : (
-          <div className="bg-card rounded-xl border">
-            <InlineIngredientEditor
-              ref={editorRef}
-              recipeId={recipeId}
-              recipeSlug={recipeSlug}
-              items={items}
-              portions={portions}
-              inputPortions={inputPortions}
-              itemsAreContextual={initialItemsAreContextual}
-              onClose={() => {}}
-              onSaved={() => {}}
-              onSave={() => {}}
-              onCreateDraft={onCreateDraft}
-            />
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

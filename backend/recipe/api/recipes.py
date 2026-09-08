@@ -42,6 +42,7 @@ from recipe.schemas.import_schemas import (
     RecipeImportPreviewOut,
     RecipeImportRequestIn,
     RecipeImportUrlResponseOut,
+    SmartRecipeInputIn,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,14 @@ router = Router()
 def _require_auth(request):
     if not request.user.is_authenticated:
         raise HttpError(403, "Sitzung nicht gefunden. Bitte erneut anmelden.")
+
+
+# Choice fields that must never be set to an empty string via PATCH.
+EMPTY_REJECTING_CHOICE_FIELDS = {
+    "difficulty": "Schwierigkeit",
+    "execution_time": "Zubereitungszeit",
+    "preparation_time": "Vorbereitungszeit",
+}
 
 
 def _can_edit_recipe(request, recipe: Recipe) -> bool:
@@ -334,55 +343,8 @@ def import_recipe_from_url(request, payload: RecipeImportRequestIn):
     )
 
 
-@router.post("/import-from-url-enhanced/", response=RecipeImportUrlResponseOut)
-def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
-    """Import a recipe from URL with Gemini-based ingredient matching and creation."""
-    _require_auth(request)
-
-    from core.services.gemini import GeminiAuthError, GeminiUnavailableError
-    from recipe.services.exceptions import NoRecipeFoundError, SourceUnreachableError
-    from recipe.services.url_import_service import import_recipe_from_url
-
-    def _error_response(status: int, error_code: str, detail: str) -> HttpResponse:
-        return HttpResponse(
-            json.dumps({"error_code": error_code, "detail": detail}),
-            status=status,
-            content_type="application/json",
-        )
-
-    try:
-        result = import_recipe_from_url(payload.url, request.user)
-    except SourceUnreachableError:
-        return _error_response(
-            422,
-            "IMPORT_SOURCE_UNREACHABLE",
-            "Die Seite konnte nicht geladen werden. Manche Rezeptseiten blockieren den automatischen Abruf — "
-            "bitte kopiere die Zutaten manuell oder versuche eine andere Quelle.",
-        )
-    except (GeminiUnavailableError, GeminiAuthError):
-        return _error_response(
-            503,
-            "IMPORT_AI_UNAVAILABLE",
-            "Der KI-Dienst ist gerade nicht erreichbar. Bitte versuche es in ein paar Minuten erneut.",
-        )
-    except NoRecipeFoundError:
-        return _error_response(
-            422,
-            "IMPORT_NO_RECIPE_FOUND",
-            "Auf der Seite wurden keine Rezeptdaten gefunden. Bitte prüfe den Link oder gib das Rezept manuell ein.",
-        )
-    except ValueError as exc:
-        return _error_response(422, "IMPORT_INVALID_URL", str(exc))
-    except HttpError:
-        raise
-    except Exception:
-        logger.exception("Enhanced recipe import failed for URL: %s", payload.url)
-        return _error_response(
-            500,
-            "INTERNAL_ERROR",
-            "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
-        )
-
+def _recipe_import_response(result) -> RecipeImportUrlResponseOut:
+    """Serialize every smart-input source through one response contract."""
     return RecipeImportUrlResponseOut(
         recipe_draft={
             "title": result.title,
@@ -414,6 +376,7 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
                 "needs_unit_clarification": getattr(item, "needs_unit_clarification", False),
                 "suggested_unit_name": getattr(item, "suggested_unit_name", ""),
                 "suggested_portion_weight_g": getattr(item, "suggested_portion_weight_g", None),
+                "available_portions": getattr(item, "available_portions", []),
             }
             for item in result.recipe_items
         ],
@@ -427,7 +390,96 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
             }
             for ci in result.created_ingredients
         ],
+        input_type=getattr(result, "input_type", "url"),
+        is_reconstructed=getattr(result, "is_reconstructed", False),
     )
+
+
+def _import_error_response(status: int, error_code: str, detail: str) -> HttpResponse:
+    return HttpResponse(
+        json.dumps({"error_code": error_code, "detail": detail}),
+        status=status,
+        content_type="application/json",
+    )
+
+
+def _handle_smart_import_error(exc: Exception, source: str) -> HttpResponse:
+    from core.services.gemini import GeminiAuthError, GeminiUnavailableError
+    from recipe.services.exceptions import NoRecipeFoundError, SourceUnreachableError
+
+    if isinstance(exc, SourceUnreachableError):
+        return _import_error_response(
+            422,
+            "IMPORT_SOURCE_UNREACHABLE",
+            "Die Seite konnte nicht geladen werden und auch die Websuche hat kein passendes Rezept gefunden. "
+            "Bitte kopiere den Rezepttext oder versuche eine andere Quelle.",
+        )
+    if isinstance(exc, GeminiUnavailableError | GeminiAuthError):
+        return _import_error_response(
+            503,
+            "IMPORT_AI_UNAVAILABLE",
+            "Der KI-Dienst ist gerade nicht erreichbar. Bitte versuche es in ein paar Minuten erneut.",
+        )
+    if isinstance(exc, NoRecipeFoundError):
+        return _import_error_response(
+            422,
+            "IMPORT_NO_RECIPE_FOUND",
+            "Es wurden keine verwertbaren Rezeptdaten gefunden. Bitte prüfe deine Eingabe.",
+        )
+    if isinstance(exc, ValueError):
+        return _import_error_response(422, "IMPORT_INVALID_URL", str(exc))
+    logger.exception("Smart recipe import failed for %s", source)
+    return _import_error_response(
+        500,
+        "INTERNAL_ERROR",
+        "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+    )
+
+
+@router.post("/import-from-url-enhanced/", response=RecipeImportUrlResponseOut)
+def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
+    """Import a recipe from URL with Gemini-based ingredient matching and creation."""
+    _require_auth(request)
+    from recipe.services.url_import_service import import_recipe_from_url
+
+    try:
+        result = import_recipe_from_url(payload.url, request.user)
+    except Exception as exc:
+        return _handle_smart_import_error(exc, payload.url)
+    return _recipe_import_response(result)
+
+
+@router.post("/smart-input/", response=RecipeImportUrlResponseOut)
+def import_recipe_from_smart_input(request, payload: SmartRecipeInputIn):
+    """Analyze a URL, copied recipe text, or recipe idea through one contract."""
+    _require_auth(request)
+    from recipe.services.url_import_service import (
+        classify_smart_input,
+        extract_smart_recipe_input,
+        import_recipe_from_url,
+    )
+
+    value = payload.input.strip()
+    if not value:
+        return _import_error_response(422, "IMPORT_EMPTY_INPUT", "Bitte gib einen Link, Rezepttext oder eine Idee ein.")
+
+    input_type = classify_smart_input(value)
+    try:
+        if input_type == "url":
+            result = import_recipe_from_url(value, request.user, input_type="url")
+        else:
+            detected_type, parsed, gemini_result = extract_smart_recipe_input(value, request.user)
+            result = import_recipe_from_url(
+                value,
+                request.user,
+                parsed_override=parsed,
+                gemini_result_override=gemini_result,
+                input_type=detected_type,
+                source_url="",
+            )
+    except Exception as exc:
+        return _handle_smart_import_error(exc, value[:120])
+    return _recipe_import_response(result)
 
 
 # ===========================================================================
@@ -443,6 +495,11 @@ def ai_create(request, payload: RecipeAiCreateIn):
     from recipe.services.recipe_ai_suggest_service import ai_create_recipe
 
     recipe = ai_create_recipe(payload.prompt, user=request.user)
+    # `can_edit` defaults to False on the schema, so the freshly created draft
+    # would be reported as read-only to its own creator.
+    recipe.can_edit = _can_edit_recipe(request, recipe)
+    recipe.can_delete = request.user.is_staff
+    recipe.is_owner = recipe.owner_id == request.user.id
     return recipe
 
 
@@ -719,6 +776,13 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         raise HttpError(403, "Keine Berechtigung")
 
     data = payload.dict(exclude_unset=True)
+
+    # Choice fields have no meaningful empty value. Accepting "" would silently
+    # wipe existing metadata, which is how the creation wizard used to destroy
+    # AI-generated recipes. Free-text fields stay clearable on purpose.
+    for field, label in EMPTY_REJECTING_CHOICE_FIELDS.items():
+        if field in data and not (data[field] or "").strip():
+            raise HttpError(422, f"{label} darf nicht leer sein")
 
     # Staff-only field protection
     if "status" in data and not request.user.is_staff:
