@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from recipe.services.ingredient_parser import IngredientNameParser, ParsedIngredient
+from recipe.services.ingredient_parser import IngredientNameParser
 from supply.tests import make_ingredient
 
 
@@ -50,6 +50,14 @@ class TestParseRuleBased:
         make_ingredient(name="Zwiebel")
         result = IngredientNameParser.parse("Zwiebel gehackt")
         assert result.name == "Zwiebel"
+        assert result.note == "gehackt"
+
+    def test_parenthesized_modifier_extracted(self):
+        make_ingredient(name="Petersilie")
+        result = IngredientNameParser.parse("2 g Petersilie (gehackt)")
+        assert result.quantity == 2
+        assert result.unit == "g"
+        assert result.name == "Petersilie"
         assert result.note == "gehackt"
 
     def test_multi_word_ingredient_with_container_preserved(self):

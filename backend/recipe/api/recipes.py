@@ -411,6 +411,9 @@ def import_recipe_from_url_enhanced(request, payload: RecipeImportRequestIn):
                 "note": item.note,
                 "is_new_ingredient": item.is_new_ingredient,
                 "portion_id": item.portion_id,
+                "needs_unit_clarification": getattr(item, "needs_unit_clarification", False),
+                "suggested_unit_name": getattr(item, "suggested_unit_name", ""),
+                "suggested_portion_weight_g": getattr(item, "suggested_portion_weight_g", None),
             }
             for item in result.recipe_items
         ],
@@ -778,7 +781,9 @@ def update_recipe(request, recipe_id: int, payload: RecipeUpdateIn):
         portion_ids = {
             item_data["portion_id"] for item_data in recipe_items_data if item_data["portion_id"] is not None
         }
-        valid_portion_ids = set(Portion.objects.filter(id__in=portion_ids).values_list("id", flat=True))
+        valid_portion_ids = set(
+            Portion.objects.filter(id__in=portion_ids, deleted_at__isnull=True).values_list("id", flat=True)
+        )
         missing_portion_ids = portion_ids - valid_portion_ids
         if missing_portion_ids:
             raise HttpError(400, f"Portionen nicht gefunden: {missing_portion_ids}")

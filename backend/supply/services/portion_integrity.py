@@ -76,8 +76,7 @@ def rebind_recipe_items_to_rank1(portion, *, updated_by=None) -> list[int]:
     target = get_active_rank1_portion(ingredient, exclude_portion_id=portion.pk)
     if target is None:
         raise ValueError(
-            f"Keine andere aktive rank=1-Portion für Zutat '{ingredient.name}' verfügbar — "
-            "Rebind nicht möglich."
+            f"Keine andere aktive rank=1-Portion für Zutat '{ingredient.name}' verfügbar — " "Rebind nicht möglich."
         )
     return rebind_recipe_items_to_portion(portion, target, updated_by=updated_by)
 
@@ -113,13 +112,9 @@ def create_replacement_portion(old_portion, **new_attrs):
         name = f"{name} (neu)"
 
     rank = new_attrs.get("rank", old_portion.rank)
-    if rank == 1 and Portion.objects.filter(
-        ingredient=ingredient, rank=1, deleted_at__isnull=True
-    ).exists():
+    if rank == 1 and Portion.objects.filter(ingredient=ingredient, rank=1, deleted_at__isnull=True).exists():
         taken_ranks = set(
-            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list(
-                "rank", flat=True
-            )
+            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).values_list("rank", flat=True)
         )
         rank = 2
         while rank in taken_ranks:
@@ -223,7 +218,7 @@ def dedupe_rank1_portions(*, dry_run: bool = False) -> list[dict]:
     return changes
 
 
-def rebind_dead_portion_references(*, dry_run: bool = False) -> list[dict]:
+def rebind_dead_portion_references(*, dry_run: bool = False, recipe_id: int | None = None) -> list[dict]:
     """Find all RecipeItems pointing to a soft-deleted portion and rebind them
     onto the ingredient's current active rank=1 portion, preserving gram amounts.
 
@@ -233,20 +228,29 @@ def rebind_dead_portion_references(*, dry_run: bool = False) -> list[dict]:
     from recipe.models import RecipeItem
 
     changes: list[dict] = []
-    items = list(
-        RecipeItem.objects.filter(portion__deleted_at__isnull=False).select_related(
-            "portion",
-            "portion__ingredient",
-        ),
+    qs = RecipeItem.objects.filter(portion__deleted_at__isnull=False).select_related(
+        "portion",
+        "portion__ingredient",
     )
+    if recipe_id is not None:
+        qs = qs.filter(recipe_id=recipe_id)
+    items = list(qs)
     for item in items:
         portion = item.portion
         ingredient = portion.ingredient
         target = get_active_rank1_portion(ingredient, exclude_portion_id=portion.pk)
         if target is None:
+            # Fall back to any active portion for this ingredient
+            target = (
+                ingredient.portions.filter(deleted_at__isnull=True)
+                .exclude(pk=portion.pk)
+                .order_by("rank", "id")
+                .first()
+            )
+        if target is None:
             logger.warning(
                 "RecipeItem %s references deleted portion %s (%s) but no active "
-                "rank=1 portion exists for ingredient '%s' — skipping",
+                "portion exists for ingredient '%s' — skipping",
                 item.id,
                 portion.id,
                 portion.name,

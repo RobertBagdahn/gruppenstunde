@@ -215,7 +215,7 @@ class IngredientNameParser:
             quantity=quantity,
             unit=unit,
             name=name,
-            note=note,
+            note=note.strip().strip("()").strip(),
             confidence=confidence,
         )
 
@@ -233,6 +233,14 @@ class IngredientNameParser:
 
     @classmethod
     def _split_name_note(cls, name_part: str) -> tuple[str, str]:
+        # Check for parenthesized suffix, e.g. "Petersilie (gehackt)" -> "Petersilie", "gehackt"
+        paren_match = re.match(r"^(.*?)\s*\(([^)]+)\)\s*$", name_part.strip())
+        if paren_match:
+            base = paren_match.group(1).strip()
+            note = paren_match.group(2).strip()
+            if base:
+                return base, note
+
         words = name_part.split()
         if len(words) <= 1:
             return name_part, ""
@@ -330,7 +338,7 @@ class IngredientNameParser:
             quantity=0,
             unit="",
             name=best_match,
-            note=note,
+            note=note.strip().strip("()").strip(),
             confidence=best_score,
         )
 
@@ -374,7 +382,7 @@ class IngredientNameParser:
                 quantity=result.quantity,
                 unit=result.unit,
                 name=result.name,
-                note=result.note,
+                note=result.note.strip().strip("()").strip(),
                 confidence=0.8,
             )
         except HttpError:

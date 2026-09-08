@@ -86,6 +86,33 @@ class TestRecipeRulesService:
         assert protein_item["threshold"] == 3.0
         assert protein_item["threshold_direction"] == "min"
 
+    def test_range_rule_threshold_direction_when_below_min_or_above_max(self):
+        """Range rules select min threshold when value is too low, max when too high."""
+        recipe = self._setup_recipe()
+        # Brokkoli gives 8g protein per serving
+        rule = make_recipe_hint(
+            name="Protein Bereich",
+            parameter="protein_g",
+            min_green=10.0,
+            max_green=20.0,
+            unit="g",
+            sort_order=1,
+        )
+        # Value is 8.0, which is below min_green (10.0)
+        result = evaluate_recipe_rules(recipe)
+        item = next(i for i in result["items"] if i["rule_id"] == rule.id)
+        assert item["threshold_direction"] == "min"
+        assert item["threshold"] == 10.0
+
+        # Now test when value is above max_green
+        rule.min_green = 2.0
+        rule.max_green = 5.0
+        rule.save()
+        result = evaluate_recipe_rules(recipe)
+        item = next(i for i in result["items"] if i["rule_id"] == rule.id)
+        assert item["threshold_direction"] == "max"
+        assert item["threshold"] == 5.0
+
     def test_recipe_rules_apply_to_cold_meal(self):
         recipe = self._setup_recipe()
         recipe.recipe_type = "cold_meal"

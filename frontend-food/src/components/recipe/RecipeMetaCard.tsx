@@ -133,7 +133,7 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
               <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1.5">
                 {item.label}
               </p>
-              <p className="font-semibold text-foreground text-sm leading-snug truncate" title={item.value}>
+              <p className="font-semibold text-foreground text-sm leading-snug line-clamp-2 break-words" title={item.value}>
                 {item.value}
               </p>
             </div>
@@ -155,7 +155,7 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
               <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide leading-none mb-1.5">
                 {item.label}
               </p>
-              <p className="font-semibold text-foreground text-sm leading-snug truncate" title={item.value}>
+              <p className="font-semibold text-foreground text-sm leading-snug line-clamp-2 break-words" title={item.value}>
                 {item.value}
               </p>
             </div>
@@ -175,7 +175,7 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
               <p className="text-[11px] text-muted-foreground/60 font-medium uppercase tracking-wide leading-none mb-1.5">
                 Erstellt am
               </p>
-              <p className="font-semibold text-foreground/60 text-sm leading-snug truncate" title={createdAtLabel}>
+              <p className="font-semibold text-foreground/60 text-sm leading-snug line-clamp-2 break-words" title={createdAtLabel}>
                 {createdAtLabel}
               </p>
             </div>

@@ -1,4 +1,10 @@
+import importlib
+import json
+from pathlib import Path
+
 import pytest
+from django.apps import apps
+from django.conf import settings
 from django.core.management import call_command
 
 from recipe.models import Rule
@@ -77,3 +83,27 @@ class TestEnergyInKcal:
         for rule in energy_rules:
             assert rule.unit == "kcal"
             assert "kJ" not in rule.tip_text
+
+    def test_recipe_rule_fixture_contains_no_energy_kj(self):
+        fixture_path = Path(settings.BASE_DIR) / "data" / "food" / "recipe_rule.json"
+        if fixture_path.exists():
+            with open(fixture_path, encoding="utf-8") as f:
+                rules = json.load(f)
+            for entry in rules:
+                assert (
+                    entry["fields"]["parameter"] != "energy_kj"
+                ), f"Rule {entry['pk']} '{entry['fields']['name']}' still has parameter='energy_kj'"
+
+    def test_data_migration_0007_updates_energy_kj_rules(self):
+        mod = importlib.import_module("recipe.migrations.0007_migrate_energy_kj_rules_to_energy_kcal")
+        Rule.objects.all().delete()
+        Rule.objects.create(
+            name="Energie (Rezept)",
+            parameter="energy_kj",
+            scope="recipe",
+            min_green=430.0,
+            unit="kcal",
+        )
+        mod.migrate_energy_kj_rules_to_kcal(apps, None)
+        assert Rule.objects.filter(parameter="energy_kcal").count() == 1
+        assert Rule.objects.filter(parameter="energy_kj").count() == 0

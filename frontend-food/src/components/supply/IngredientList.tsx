@@ -38,10 +38,10 @@ const UNIT_SHORT: Record<string, string> = {
   'Schuss': 'Schuss',
 };
 
-const GRAM_UNIT_NAMES = new Set(['Gramm', 'kg', 'Kilogramm']);
+const BASE_METRIC_UNIT_NAMES = new Set(['Gramm', 'g', 'kg', 'Kilogramm', 'Milliliter', 'ml', 'Liter', 'l']);
 
 function isGramPortion(portionName?: string | null, unitName?: string | null): boolean {
-  return GRAM_UNIT_NAMES.has(unitName ?? '') || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg)\b/i.test(portionName ?? '');
+  return BASE_METRIC_UNIT_NAMES.has(unitName ?? '') || /^(?:\d+(?:[.,]\d+)?\s*)?(?:g|kg|ml|l)\b/i.test(portionName ?? '');
 }
 
 function formatPortionAmount(amount: number, portionName: string): string {
@@ -182,7 +182,7 @@ export default function IngredientList({
           // unit (e.g. "Tasse", "EL"). For numeric unit portions (e.g. "100 ml",
           // "200g"), gramDisplay would just repeat the same unit → skip it.
           const portionIsNumericUnit = /^\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l)\b/i.test(highPrioPortion?.name ?? '');
-          const isGramUnit = GRAM_UNIT_NAMES.has(highPrioUnitName ?? '') || portionIsNumericUnit;
+          const isGramUnit = BASE_METRIC_UNIT_NAMES.has(highPrioUnitName ?? '') || portionIsNumericUnit;
           const gramDisplay = highPrioDisplay && !isGramUnit && highPrioPortion?.weight_g
             ? formatQuantity(highPrioPortion.weight_g, item.ingredient_viscosity, item.ingredient_density).display
             : null;
@@ -284,7 +284,7 @@ export default function IngredientList({
                   )}
                   {item.note && (
                     <span className="text-sm text-muted-foreground italic">
-                      ({item.note})
+                      ({item.note.trim().replace(/^\((.*)\)$/, '$1').trim()})
                     </span>
                   )}
                 </div>
@@ -316,7 +316,9 @@ export default function IngredientList({
                       <span className="material-symbols-outlined text-[14px]">
                         {isExpanded ? 'expand_less' : 'expand_more'}
                       </span>
-                      {isExpanded ? 'weniger anzeigen' : `${allPortions.length - 1} weitere Portionen`}
+                      {isExpanded
+                        ? 'weniger anzeigen'
+                        : `${allPortions.length - 1} weitere ${allPortions.length - 1 === 1 ? 'Portion' : 'Portionen'}`}
                     </button>
                   </div>
                 )}

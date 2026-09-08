@@ -133,7 +133,7 @@ def create_recipe_item(request, recipe_id: int, payload: RecipeItemCreateIn):
 
         if item is None:
             if payload.portion_id is not None:
-                if not Portion.objects.filter(id=payload.portion_id).exists():
+                if not Portion.objects.filter(id=payload.portion_id, deleted_at__isnull=True).exists():
                     raise HttpError(400, "Portion existiert nicht")
             if payload.quantity <= 0:
                 raise HttpError(400, "Menge muss größer als 0 sein")
@@ -416,7 +416,8 @@ def ai_apply_ingredients(request, recipe_id: int, payload: list[AiIngredientAppl
     )
     portion_ids = [item.portion_id for item in payload]
     portion_to_ingredient = {
-        p["id"]: p["ingredient_id"] for p in Portion.objects.filter(id__in=portion_ids).values("id", "ingredient_id")
+        p["id"]: p["ingredient_id"]
+        for p in Portion.objects.filter(id__in=portion_ids, deleted_at__isnull=True).values("id", "ingredient_id")
     }
     filtered_payload = [
         item for item in payload if portion_to_ingredient.get(item.portion_id) not in existing_ingredient_ids

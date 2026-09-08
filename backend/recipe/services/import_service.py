@@ -5,7 +5,6 @@ Supports:
 - Chefkoch.de fallback scraping
 """
 
-import ipaddress
 import json
 import logging
 import re
@@ -16,6 +15,11 @@ from urllib.parse import urlparse
 import httpx
 from bs4 import BeautifulSoup
 
+from core.services.url_safety import (
+    hostname_is_blocked,
+    is_blocked_address,
+    resolve_public_addresses,
+)
 from recipe.services.exceptions import NoRecipeFoundError, SourceUnreachableError
 
 logger = logging.getLogger(__name__)
@@ -289,17 +293,14 @@ def _validate_public_hostname(hostname: str | None) -> None:
     """Reject loopback, private, link-local, and metadata destinations."""
     if not hostname:
         raise ValueError("Ungültige Rezept-URL")
-    lowered = hostname.lower().rstrip(".")
-    if lowered in {"localhost", "metadata.google.internal", "metadata"}:
+    if hostname_is_blocked(hostname):
         raise ValueError("Diese Rezept-URL ist nicht zulässig")
     try:
-        addresses = socket.getaddrinfo(lowered, None)
+        addresses = resolve_public_addresses(hostname.lower().rstrip("."))
     except socket.gaierror as exc:
         raise SourceUnreachableError("Die Seite konnte nicht geladen werden.") from exc
-    for address in addresses:
-        parsed_ip = ipaddress.ip_address(address[4][0])
-        if parsed_ip.is_private or parsed_ip.is_loopback or parsed_ip.is_link_local or parsed_ip.is_reserved:
-            raise ValueError("Diese Rezept-URL ist nicht zulässig")
+    if any(is_blocked_address(address) for address in addresses):
+        raise ValueError("Diese Rezept-URL ist nicht zulässig")
 
 
 def _parse_duration(iso_str: str | None) -> int | None:

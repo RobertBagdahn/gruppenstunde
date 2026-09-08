@@ -37,6 +37,11 @@ class RecipeItemDraftOut(BaseModel):
     note: str = ""
     is_new_ingredient: bool = False
     portion_id: int | None = None
+    # A null portion is stored as grams, so such items must be clarified by the
+    # user before the recipe can be saved.
+    needs_unit_clarification: bool = False
+    suggested_unit_name: str = ""
+    suggested_portion_weight_g: float | None = None
 
 
 class CreatedIngredientInfoOut(BaseModel):

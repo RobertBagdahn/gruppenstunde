@@ -141,7 +141,7 @@ export default function ShoppingListItemRow({
             )}
             {item.estimated_price_eur !== null && item.estimated_price_eur !== undefined && (
               <span className="text-xs font-semibold text-foreground">
-                {item.estimated_price_eur.toFixed(2)} €
+                {item.estimated_price_eur.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </span>
             )}
             {item.estimated_price_eur === null && item.ingredient_id && (

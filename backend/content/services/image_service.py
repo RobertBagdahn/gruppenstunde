@@ -4,7 +4,6 @@ Provides shared logic for downloading images from URLs and validating
 that URLs point to the application's own storage.
 """
 
-import ipaddress
 import logging
 import socket
 import uuid
@@ -14,6 +13,12 @@ import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+
+from core.services.url_safety import (
+    hostname_is_blocked,
+    is_blocked_address,
+    resolve_public_addresses,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -127,16 +132,14 @@ def download_external_image(image_url: str, upload_to: str) -> str:
         raise ValueError("Ungültige Bild-URL")
     if parsed.username or parsed.password:
         raise ValueError("Bild-URL ist nicht zulässig")
-    if parsed.hostname.lower() in {"localhost", "metadata", "metadata.google.internal"}:
+    if hostname_is_blocked(parsed.hostname):
         raise ValueError("Bild-URL ist nicht zulässig")
     try:
-        addresses = socket.getaddrinfo(parsed.hostname, None)
+        addresses = resolve_public_addresses(parsed.hostname)
     except socket.gaierror as exc:
         raise ValueError("Bild-URL konnte nicht aufgelöst werden") from exc
-    for address in addresses:
-        ip = ipaddress.ip_address(address[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            raise ValueError("Bild-URL ist nicht zulässig")
+    if any(is_blocked_address(address) for address in addresses):
+        raise ValueError("Bild-URL ist nicht zulässig")
 
     try:
         response = requests.get(

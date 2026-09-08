@@ -186,7 +186,7 @@ export default function RecipeCookingMode({
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {item.ingredient_name}
-                    {item.note && <span className="italic ml-1">({item.note})</span>}
+                    {item.note && <span className="italic ml-1">({item.note.trim().replace(/^\((.*)\)$/, '$1').trim()})</span>}
                   </div>
                 </div>
               </label>

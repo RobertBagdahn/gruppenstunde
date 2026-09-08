@@ -156,15 +156,15 @@ def test_resolve_portion_url_import(ingredient, measuring_unit):
     p_id_2 = _resolve_portion(ingredient.id, measuring_unit.id, 120.0, "Gramm")
     assert p_id_1 == p_id_2
 
-    # The exact identity is reused on the second resolution.
-    assert Portion.objects.filter(ingredient=ingredient).count() == 1
+    # The exact identity is reused on the second resolution (plus the 1g base portion).
+    assert Portion.objects.filter(ingredient=ingredient).exclude(rank=9999).count() == 1
 
 
 @pytest.mark.django_db
 def test_resolve_portion_does_not_mutate_referenced_weight(ingredient, measuring_unit):
     from recipe.models import RecipeItem
-    from recipe.tests import make_recipe
     from recipe.services.url_import_service import _resolve_portion
+    from recipe.tests import make_recipe
 
     portion = Portion.objects.create(
         ingredient=ingredient,

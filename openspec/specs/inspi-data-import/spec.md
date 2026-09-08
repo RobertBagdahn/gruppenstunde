@@ -70,7 +70,7 @@ The command MUST import Inspi ingredients with full nutritional data, pricing, a
 #### Scenario: Nährwert-Felder korrekt mappen
 
 - **WHEN** ein Ingredient importiert wird
-- **THEN** MÜSSEN folgende Felder befüllt sein: `name`, `slug`, `energy_kj`, `protein_g`, `fat_g`, `fat_sat_g`, `carbohydrate_g`, `sugar_g`, `fibre_g`, `salt_g`, `nutri_score`, `nutri_class`, `price_per_kg`
+- **THEN** MÜSSEN folgende Felder befüllt sein: `name`, `slug`, `energy_kcal`, `protein_g`, `fat_g`, `fat_sat_g`, `carbohydrate_g`, `sugar_g`, `fibre_g`, `salt_g`, `nutri_score`, `nutri_class`, `price_per_kg`
 - **THEN** MUSS `status = user_content` gesetzt sein (vorher: `verified`)
 
 #### Scenario: Portionen importieren
@@ -261,7 +261,7 @@ Nutritional data MUST be flattened onto the Ingredient row. Nährwertdaten aus `
 #### Scenario: Nährwert-Felder-Mapping
 
 - **WHEN** ein Ingredient mit `meta_info`-Referenz importiert wird
-- **THEN** MÜSSEN folgende Felder aus dem referenzierten MetaInfo auf das Ingredient kopiert werden: `energy_kj`, `protein_g`, `fat_g`, `fat_sat_g`, `carbohydrate_g`, `sugar_g`, `fibre_g`, `salt_g`, `sodium_mg`, `fruit_factor`, `nutri_class`, `price_per_kg`
+- **THEN** MÜSSEN folgende Felder aus dem referenzierten MetaInfo auf das Ingredient kopiert werden: `energy_kcal`, `protein_g`, `fat_g`, `fat_sat_g`, `carbohydrate_g`, `sugar_g`, `fibre_g`, `salt_g`, `sodium_mg`, `fruit_factor`, `nutri_class`, `price_per_kg`
 - **THEN** MUSS `nutri_score` aus `metainfo.nutri_points` befüllt werden
 
 #### Scenario: Fehlende MetaInfo

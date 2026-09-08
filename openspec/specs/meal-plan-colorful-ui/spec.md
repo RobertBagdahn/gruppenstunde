@@ -2,26 +2,26 @@
 This specification defines the visual accent logic, color usage, typography scale, and responsive behavior for the colorful meal plan UI in the food frontend.
 ## Requirements
 ### Requirement: MealItem SHALL include energy and cost data
-The API response for `MealItemOut` SHALL include `energy_kj` (float | null) and `cost_eur` (float | null) fields. These values MUST be calculated from the linked Recipe's cached values, scaled by the item's `factor` and `effective_portions / recipe.portions`.
+The API response for `MealItemOut` SHALL include `energy_kcal` (float | null) and `cost_eur` (float | null) fields. These values MUST be calculated from the linked Recipe's cached values, scaled by the item's `factor` and `effective_portions / recipe.portions`.
 
 #### Scenario: MealItem with linked recipe that has cached nutrition
-- **WHEN** a MealItem references a Recipe with `cached_energy_kj = 4200` and `cached_price_total = 8.50`, the Recipe has `servings = 4`, the Meal has `effective_portions = 10`, and the MealItem has `factor = 1.0`
-- **THEN** the API returns `energy_kj = 4200 * (10/4) * 1.0 = 10500` and `cost_eur = 8.50 * (10/4) * 1.0 = 21.25`
+- **WHEN** a MealItem references a Recipe with `cached_energy_kcal = 1000` and `cached_price_total = 8.50`, the Recipe has `servings = 4`, the Meal has `effective_portions = 10`, and the MealItem has `factor = 1.0`
+- **THEN** the API returns `energy_kcal = 1000 * (10/4) * 1.0 = 2500` and `cost_eur = 8.50 * (10/4) * 1.0 = 21.25`
 
 #### Scenario: MealItem with recipe without cached data
-- **WHEN** a MealItem references a Recipe where `cached_energy_kj` is null
-- **THEN** the API returns `energy_kj = null` and `cost_eur = null`
+- **WHEN** a MealItem references a Recipe where `cached_energy_kcal` is null
+- **THEN** the API returns `energy_kcal = null` and `cost_eur = null`
 
 #### Scenario: MealItem with only ingredient (no recipe)
 - **WHEN** a MealItem has `recipe_id = null` and `ingredient_id` set
-- **THEN** the API returns `energy_kj = null` and `cost_eur = null`
+- **THEN** the API returns `energy_kcal = null` and `cost_eur = null`
 
 ### Requirement: Meal SHALL include total energy and cost sums
-The API response for `MealOut` SHALL include `total_energy_kj` (float) and `total_cost_eur` (float) as the sum of all items' energy/cost values (null items count as 0).
+The API response for `MealOut` SHALL include `total_energy_kcal` (float) and `total_cost_eur` (float) as the sum of all items' energy/cost values (null items count as 0).
 
 #### Scenario: Meal with multiple items
-- **WHEN** a Meal has items with energy_kj values [4200, null, 3000]
-- **THEN** `total_energy_kj = 7200` and items with null are excluded from sum
+- **WHEN** a Meal has items with energy_kcal values [1000, null, 700]
+- **THEN** `total_energy_kcal = 1700` and items with null are excluded from sum
 
 ### Requirement: Meals without recipes SHALL be visually highlighted as missing
 The UI MUST display meals with zero items using a red accent (border, background, or icon) to signal that a recipe assignment is needed.
@@ -35,7 +35,7 @@ The UI MUST display meals with zero items using a red accent (border, background
 - **THEN** no red accent is shown on the meal container
 
 ### Requirement: Each meal SHALL display calorie coverage percentage
-The UI MUST show a percentage indicating how much of the expected calorie need the meal covers. The expected need is the central Norm-Person daily target (`NORM_PERSON_DAILY_KCAL`) multiplied by `day_part_factor`. The meal energy value used for the comparison MUST be in kcal (converted from the stored kJ value via `/ 4,184`).
+The UI MUST show a percentage indicating how much of the expected calorie need the meal covers. The expected need is the central Norm-Person daily target (`NORM_PERSON_DAILY_KCAL`) multiplied by `day_part_factor`. The meal energy value used for the comparison MUST be in kcal directly.
 
 #### Scenario: Meal covers expected calories exactly
 - **WHEN** the meal energy in kcal equals `NORM_PERSON_DAILY_KCAL * day_part_factor` (coverage = 100%)

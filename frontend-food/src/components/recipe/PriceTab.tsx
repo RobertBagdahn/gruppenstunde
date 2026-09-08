@@ -28,14 +28,14 @@ export function PriceTab({
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200">
           <p className="text-2xl font-extrabold text-yellow-700">
-            {displayedPriceTotal.toFixed(2)} EUR
+            {displayedPriceTotal.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
           </p>
           <p className="text-xs text-muted-foreground mt-1">Gesamtpreis</p>
         </div>
         {displayedPricePerPortion !== null && (
           <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200">
             <p className="text-2xl font-extrabold text-emerald-700">
-              {displayedPricePerPortion.toFixed(2)} EUR
+              {displayedPricePerPortion.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
             </p>
             <p className="text-xs text-muted-foreground mt-1">pro Portion</p>
           </div>

@@ -35,13 +35,20 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
     RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
     recipe.execution_time;
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
-  const costsLabel = recipe.cached_price_total != null
-    ? `${recipe.cached_price_total.toFixed(2)} €`
+  const pricePerPortion = recipe.cached_price_total != null
+    ? (recipe.portions && recipe.portions > 1 ? recipe.cached_price_total / recipe.portions : recipe.cached_price_total)
+    : null;
+  const costsLabel = pricePerPortion != null
+    ? `${pricePerPortion.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
     : null;
 
   const hasActions = (canEdit && onEdit) || (canDelete && onDelete) || onClone;
   const nutriClass = recipe.cached_nutri_class;
   const nutriColors = nutriClass ? NUTRI_SCORE_COLORS[nutriClass] : null;
+
+  const effectiveBadge = recipe.status === 'draft'
+    ? 'draft'
+    : (recipe.recipe_badge && recipe.recipe_badge !== 'verified' ? recipe.recipe_badge : null);
 
   return (
     <Link
@@ -73,11 +80,8 @@ export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, on
         )}
         {/* Nutri-Score & Recipe badge */}
         <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-          {recipe.recipe_badge && recipe.recipe_badge !== 'verified' && (
-            <RecipeBadge badge={recipe.recipe_badge as 'draft' | 'verified' | 'community'} />
-          )}
-          {recipe.status === 'draft' && (
-            <RecipeBadge badge="draft" />
+          {effectiveBadge && (
+            <RecipeBadge badge={effectiveBadge as 'draft' | 'verified' | 'community' | 'personal'} />
           )}
           {nutriColors && (
             <div className={`flex items-center justify-center w-6 h-6 rounded-full ${nutriColors.bg} ${nutriColors.text} text-[10px] font-extrabold shadow-md`}>

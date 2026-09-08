@@ -274,12 +274,27 @@ def evaluate_recipe_rules(recipe: Recipe) -> dict:
 
         threshold_direction = None
         threshold = None
-        if rule.max_green is not None or rule.max_yellow is not None:
+        has_min = rule.min_green is not None or rule.min_yellow is not None
+        has_max = rule.max_green is not None or rule.max_yellow is not None
+        min_val = rule.min_green if rule.min_green is not None else rule.min_yellow
+        max_val = rule.max_green if rule.max_green is not None else rule.max_yellow
+
+        if has_min and has_max:
+            if value_per_serving < min_val:
+                threshold_direction = "min"
+                threshold = min_val
+            elif value_per_serving > max_val:
+                threshold_direction = "max"
+                threshold = max_val
+            else:
+                threshold_direction = "min" if (value_per_serving - min_val) < (max_val - value_per_serving) else "max"
+                threshold = min_val if threshold_direction == "min" else max_val
+        elif has_max:
             threshold_direction = "max"
-            threshold = rule.max_green if rule.max_green is not None else rule.max_yellow
-        elif rule.min_green is not None or rule.min_yellow is not None:
+            threshold = max_val
+        elif has_min:
             threshold_direction = "min"
-            threshold = rule.min_green if rule.min_green is not None else rule.min_yellow
+            threshold = min_val
 
         items.append(
             {

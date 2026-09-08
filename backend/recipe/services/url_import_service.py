@@ -152,6 +152,9 @@ class RecipeItemDraftResult:
         note: str,
         is_new_ingredient: bool,
         portion_id: int | None = None,
+        needs_unit_clarification: bool = False,
+        suggested_unit_name: str = "",
+        suggested_portion_weight_g: float | None = None,
     ):
         self.ingredient_id = ingredient_id
         self.ingredient_name = ingredient_name
@@ -161,6 +164,12 @@ class RecipeItemDraftResult:
         self.note = note
         self.is_new_ingredient = is_new_ingredient
         self.portion_id = portion_id
+        # A null portion would be stored as grams (see RecipeItem.portion help
+        # text), silently turning "4 Möhren" into "4 g". Such items must be
+        # clarified by the user instead.
+        self.needs_unit_clarification = needs_unit_clarification
+        self.suggested_unit_name = suggested_unit_name
+        self.suggested_portion_weight_g = suggested_portion_weight_g
 
 
 class CreatedIngredientResult:
@@ -1041,6 +1050,11 @@ def _build_recipe_items_v2(
             portion_quantity=1.0,
         )
 
+        # Without a portion the quantity would be interpreted as grams. Flag
+        # the item so the wizard can ask the user for the missing unit.
+        needs_clarification = portion_id is None
+        suggested_weight = item.get("estimated_portion_weight_g") or None
+
         results.append(
             RecipeItemDraftResult(
                 ingredient_id=ingredient_id,
@@ -1051,6 +1065,9 @@ def _build_recipe_items_v2(
                 note=item.get("note", ""),
                 is_new_ingredient=ingredient_id in created_ids,
                 portion_id=portion_id,
+                needs_unit_clarification=needs_clarification,
+                suggested_unit_name=unit_str if needs_clarification else "",
+                suggested_portion_weight_g=suggested_weight if needs_clarification else None,
             )
         )
 
@@ -1096,6 +1113,7 @@ def _resolve_portion(
                 quantity=portion_quantity,
                 deleted_at__isnull=True,
             )
+            .exclude(rank=9999)
             .order_by("id")
             .first()
         )
@@ -1108,13 +1126,26 @@ def _resolve_portion(
                     quantity=portion_quantity,
                     deleted_at__isnull=True,
                 )
+                .exclude(rank=9999)
                 .order_by("id")
                 .first()
             )
         if existing_unit_portion and not existing_unit_portion.recipe_items.exists():
-            existing_unit_portion.name = p_name or existing_unit_portion.name
+            update_fields = ["weight_g"]
             existing_unit_portion.weight_g = estimated_weight_g
-            existing_unit_portion.save(update_fields=["name", "weight_g"])
+            if p_name and p_name.lower() != existing_unit_portion.name.lower():
+                if (
+                    not Portion.objects.filter(
+                        ingredient_id=ingredient_id,
+                        name__iexact=p_name,
+                        deleted_at__isnull=True,
+                    )
+                    .exclude(id=existing_unit_portion.id)
+                    .exists()
+                ):
+                    existing_unit_portion.name = p_name
+                    update_fields.append("name")
+            existing_unit_portion.save(update_fields=update_fields)
             return existing_unit_portion.id
 
         portion = Portion.objects.filter(
@@ -1180,16 +1211,27 @@ def _resolve_portion(
                 or 1
             ) + 1
 
+        # Only active portions may be reused. A plain `get_or_create` lookup
+        # omits the soft-delete filter and would resurrect a deleted portion,
+        # attaching new recipe items to it.
+        portion = Portion.objects.filter(
+            ingredient_id=ingredient_id,
+            name__iexact=p_name,
+            measuring_unit_id=measuring_unit_id,
+            quantity=portion_quantity,
+            deleted_at__isnull=True,
+        ).first()
+        if portion is not None:
+            return portion.id
+
         try:
-            portion, _ = Portion.objects.get_or_create(
+            portion = Portion.objects.create(
                 ingredient_id=ingredient_id,
                 name=p_name,
                 measuring_unit_id=measuring_unit_id,
                 quantity=portion_quantity,
-                defaults={
-                    "weight_g": weight,
-                    "rank": next_rank,
-                },
+                weight_g=weight,
+                rank=next_rank,
             )
         except IntegrityError:
             # Lost a race against a concurrent insert of the same (case-insensitive) name.

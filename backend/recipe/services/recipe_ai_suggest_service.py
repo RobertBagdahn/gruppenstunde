@@ -253,6 +253,11 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         if instruction.strip():
             RecipeStep.objects.create(recipe=recipe, sort_order=index, instruction=instruction.strip())
 
+    from recipe.services.recipe_checks import recalculate_recipe_cache
+
+    recalculate_recipe_cache(recipe)
+    recipe.refresh_from_db()
+
     return recipe
 
 
@@ -335,13 +340,21 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: Abstr
             unit = resolve_canonical_unit(nutrition.portion_name)
             if not unit:
                 unit, _ = MeasuringUnit.objects.get_or_create(name="Gramm")
-            Portion.objects.get_or_create(
+            portion_name = nutrition.portion_name or unit.name or "Stück"
+            portion = Portion.objects.filter(
                 ingredient=ingredient,
-                name=nutrition.portion_name or unit.name or "Stück",
+                name=portion_name,
                 measuring_unit=unit,
-                quantity=1.0,
-                defaults={"weight_g": nutrition.portion_weight_g if nutrition.portion_weight_g > 0 else None},
-            )
+                deleted_at__isnull=True,
+            ).first()
+            if not portion:
+                Portion.objects.create(
+                    ingredient=ingredient,
+                    name=portion_name,
+                    measuring_unit=unit,
+                    quantity=1.0,
+                    weight_g=nutrition.portion_weight_g if nutrition.portion_weight_g > 0 else None,
+                )
 
         return ingredient
 
@@ -419,7 +432,11 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
     name = unit_str or (measuring_unit.name if measuring_unit else "Stück")
 
     # Exact name match is the most precise signal (unambiguous regardless of unit).
-    existing_by_name = Portion.objects.filter(ingredient=ingredient, name__iexact=name).first()
+    existing_by_name = Portion.objects.filter(
+        ingredient=ingredient,
+        name__iexact=name,
+        deleted_at__isnull=True,
+    ).first()
     if existing_by_name:
         return existing_by_name
 
@@ -431,6 +448,7 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
                 ingredient=ingredient,
                 measuring_unit=measuring_unit,
                 quantity=1,
+                deleted_at__isnull=True,
             )
             .order_by("rank")
             .first()
@@ -444,14 +462,17 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
             name=name,
             quantity=1.0,
             rank=(
-                Portion.objects.filter(ingredient=ingredient).order_by("-rank").values_list("rank", flat=True).first()
+                Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+                .order_by("-rank")
+                .values_list("rank", flat=True)
+                .first()
                 or 0
             )
             + 1,
         )
 
     # No measuring_unit matched → reuse any existing portion for this ingredient
-    portion = Portion.objects.filter(ingredient=ingredient).first()
+    portion = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).order_by("rank", "id").first()
     if portion:
         return portion
 
@@ -462,7 +483,11 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         fallback_unit = MeasuringUnit.objects.create(name="Stück")
 
     name = "Stück"
-    existing_by_name = Portion.objects.filter(ingredient=ingredient, name__iexact=name).first()
+    existing_by_name = Portion.objects.filter(
+        ingredient=ingredient,
+        name__iexact=name,
+        deleted_at__isnull=True,
+    ).first()
     if existing_by_name:
         return existing_by_name
 
@@ -471,4 +496,12 @@ def _resolve_or_create_portion(ingredient, measuring_unit, unit_str: str):
         measuring_unit=fallback_unit,
         name=name,
         quantity=1.0,
+        rank=(
+            Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
+            .order_by("-rank")
+            .values_list("rank", flat=True)
+            .first()
+            or 0
+        )
+        + 1,
     )
