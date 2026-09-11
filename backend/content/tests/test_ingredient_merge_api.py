@@ -83,8 +83,8 @@ class TestIngredientMerge:
 
     def test_merge_with_recipe_items(self, admin_client, ingredient, target_ingredient):
         from recipe.models import Recipe, RecipeItem
-        from supply.models import IngredientAlias, Portion
-        from supply.tests import make_measuring_unit, make_portion
+        from supply.models import IngredientAlias
+        from supply.tests import make_portion
 
         source_portion = make_portion(
             ingredient=ingredient,
@@ -259,3 +259,18 @@ class TestIngredientMerge:
 
         resp = admin_client.get(f"/api/ingredients/{ing.slug}/")
         assert resp.status_code == 404
+
+
+class TestIngredientDuplicates:
+    def test_duplicates_are_normalized_and_capped(self, admin_client, ingredient, target_ingredient):
+        ingredient.embedding = [0.1] * 768
+        ingredient.save(update_fields=["embedding"])
+        target_ingredient.embedding = [0.1] * 768
+        target_ingredient.save(update_fields=["embedding"])
+
+        resp = admin_client.get(f"{BASE}/ingredients/duplicates/?page_size=100")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["page_size"] == 50
+        assert len(data["items"]) <= 50
+        assert all(0 <= item["similarity"] <= 1 for item in data["items"])

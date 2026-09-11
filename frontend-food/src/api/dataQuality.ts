@@ -132,11 +132,15 @@ export function usePriceApply() {
 // Duplicate Detection
 // ============================================================================
 
+const DUPLICATE_PAGE_SIZE = 50;
+
 export function useIngredientDuplicates() {
   return useQuery({
     queryKey: ['ingredient-duplicates'],
     queryFn: async () => {
-      const data = await fetchJson(`${ADMIN_DQ}/ingredients/duplicates/`);
+      const data = await fetchJson(
+        `${ADMIN_DQ}/ingredients/duplicates/?page=1&page_size=${DUPLICATE_PAGE_SIZE}`
+      );
       return PaginatedDuplicatePairSchema.parse(data);
     },
   });
@@ -146,7 +150,9 @@ export function useRecipeDuplicates() {
   return useQuery({
     queryKey: ['recipe-duplicates'],
     queryFn: async () => {
-      const data = await fetchJson(`${ADMIN_DQ}/recipes/duplicates/`);
+      const data = await fetchJson(
+        `${ADMIN_DQ}/recipes/duplicates/?page=1&page_size=${DUPLICATE_PAGE_SIZE}`
+      );
       return PaginatedDuplicatePairSchema.parse(data);
     },
   });

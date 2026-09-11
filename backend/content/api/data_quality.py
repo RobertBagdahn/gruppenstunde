@@ -56,6 +56,10 @@ logger = logging.getLogger(__name__)
 admin_router = Router(tags=["Data Quality Admin"])
 public_router = Router(tags=["Data Quality Public"])
 
+DUPLICATE_CANDIDATE_LIMIT = 100
+DUPLICATE_NEIGHBOR_LIMIT = 10
+DUPLICATE_MAX_PAGE_SIZE = 50
+
 
 def _require_staff(request):
     if not request.user.is_authenticated or not request.user.is_staff:
@@ -230,127 +234,188 @@ def price_apply(request, body: PriceApplyRequestIn):
 # ============================================================================
 
 
+def _paginate_duplicate_pairs(
+    pairs: list[dict[str, object]], page: int = 1, page_size: int = DUPLICATE_MAX_PAGE_SIZE
+) -> dict[str, object]:
+    """Return a bounded page of the highest-scoring embedding pairs."""
+    page_size = max(1, min(page_size, DUPLICATE_MAX_PAGE_SIZE))
+    total = len(pairs)
+    total_pages = max(1, math.ceil(total / page_size))
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * page_size
+    return {
+        "items": pairs[start : start + page_size],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+def _normalize_duplicate_similarity(cosine_similarity: float) -> float:
+    """Return the calibrated duplicate score in the API's 0-1 range."""
+    from content.services.embedding_service import similarity_to_pct
+
+    return round(similarity_to_pct(float(cosine_similarity)) / 100.0, 4)
+
+
 @admin_router.get("/ingredients/duplicates/", response=PaginatedDuplicatePairOut)
-def ingredient_duplicates(request):
+def ingredient_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX_PAGE_SIZE):
     _require_staff(request)
 
     from django.db import connection
-    from content.services.embedding_service import similarity_to_pct
 
+    ct = ContentType.objects.get_for_model(Ingredient)
     dismissed = set(
         DuplicateDismissal.objects.filter(
-            source_content_type=ContentType.objects.get_for_model(Ingredient),
+            source_content_type=ct,
+        ).values_list("source_object_id", "target_object_id")
+    )
+    merged = set(
+        ContentLink.objects.filter(
+            source_content_type=ct,
+            link_type=LinkType.DUPLICATE_MERGED,
         ).values_list("source_object_id", "target_object_id")
     )
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            WITH candidates AS (
-                SELECT id, name, slug, embedding
-                FROM supply_ingredient
-                WHERE embedding IS NOT NULL
-                ORDER BY id DESC
-                LIMIT 100
-            )
-            SELECT a.id, a.name, a.slug,
-                   b.id, b.name, b.slug,
-                   1 - b.dist AS sim
-            FROM candidates a
-            CROSS JOIN LATERAL (
-                SELECT sub.id, sub.name, sub.slug,
-                       a.embedding <=> sub.embedding AS dist
-                FROM supply_ingredient sub
-                WHERE sub.id != a.id
-                  AND sub.embedding IS NOT NULL
-                ORDER BY dist
-                LIMIT 10
-            ) b
-            ORDER BY sim DESC
-            LIMIT 5
-            """
+    if connection.vendor == "sqlite":
+        from content.services.embedding_service import cosine_similarity
+
+        candidates = list(
+            Ingredient.objects.filter(embedding__isnull=False).order_by("-id")[:DUPLICATE_CANDIDATE_LIMIT]
         )
-        rows = cursor.fetchall()
+        rows = []
+        for index, source in enumerate(candidates):
+            for target in candidates[index + 1 :]:
+                score = cosine_similarity(list(source.embedding), list(target.embedding))
+                rows.append((source.id, source.name, source.slug, target.id, target.name, target.slug, score))
+        rows.sort(key=lambda row: row[6], reverse=True)
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                WITH candidates AS (
+                    SELECT id, name, slug, embedding
+                    FROM supply_ingredient
+                    WHERE embedding IS NOT NULL
+                      AND deleted_at IS NULL
+                    ORDER BY id DESC
+                    LIMIT {DUPLICATE_CANDIDATE_LIMIT}
+                )
+                SELECT a.id, a.name, a.slug,
+                       b.id, b.name, b.slug,
+                       1 - b.dist AS sim
+                FROM candidates a
+                CROSS JOIN LATERAL (
+                    SELECT sub.id, sub.name, sub.slug,
+                           a.embedding <=> sub.embedding AS dist
+                    FROM supply_ingredient sub
+                    WHERE sub.id != a.id
+                      AND sub.embedding IS NOT NULL
+                      AND sub.deleted_at IS NULL
+                    ORDER BY dist
+                    LIMIT {DUPLICATE_NEIGHBOR_LIMIT}
+                ) b
+                ORDER BY sim DESC
+                """
+            )
+            rows = cursor.fetchall()
 
     seen = set()
     pairs = []
     for id_a, name_a, slug_a, id_b, name_b, slug_b, sim in rows:
         pair_key = (id_a, id_b) if id_a < id_b else (id_b, id_a)
-        if pair_key in seen or pair_key in dismissed:
+        if pair_key in seen or pair_key in dismissed or (id_a, id_b) in merged or (id_b, id_a) in merged:
             continue
         seen.add(pair_key)
-        # Convert cosine similarity to percentage using sigmoid calibration
-        sim_pct = similarity_to_pct(sim)
         pairs.append(
             {
                 "ingredient_a": {"id": id_a, "name": name_a, "slug": slug_a},
                 "ingredient_b": {"id": id_b, "name": name_b, "slug": slug_b},
-                "similarity": round(sim_pct, 1),
+                "similarity": _normalize_duplicate_similarity(sim),
             }
         )
 
-    return {"items": pairs, "total": len(pairs), "page": 1, "page_size": 5, "total_pages": 1}
+    return _paginate_duplicate_pairs(pairs, page=page, page_size=page_size)
 
 
 @admin_router.get("/recipes/duplicates/", response=PaginatedDuplicatePairOut)
-def recipe_duplicates(request):
+def recipe_duplicates(request, page: int = 1, page_size: int = DUPLICATE_MAX_PAGE_SIZE):
     _require_staff(request)
 
+    from content.services.embedding_service import cosine_similarity
     from recipe.models import Recipe
 
+    ct = ContentType.objects.get_for_model(Recipe)
     dismissed = set(
         DuplicateDismissal.objects.filter(
-            source_content_type=ContentType.objects.get_for_model(Recipe),
+            source_content_type=ct,
+        ).values_list("source_object_id", "target_object_id")
+    )
+    merged = set(
+        ContentLink.objects.filter(
+            source_content_type=ct,
+            link_type=LinkType.DUPLICATE_MERGED,
         ).values_list("source_object_id", "target_object_id")
     )
 
     from django.db import connection
 
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            WITH candidates AS (
-                SELECT id, title, slug, embedding
-                FROM recipe_recipe
-                WHERE embedding IS NOT NULL
-                ORDER BY id DESC
-                LIMIT 100
+    if connection.vendor == "sqlite":
+        candidates = list(Recipe.objects.filter(embedding__isnull=False).order_by("-id")[:DUPLICATE_CANDIDATE_LIMIT])
+        rows = []
+        for index, source in enumerate(candidates):
+            for target in candidates[index + 1 :]:
+                score = cosine_similarity(list(source.embedding), list(target.embedding))
+                rows.append((source.id, source.title, source.slug, target.id, target.title, target.slug, score))
+        rows.sort(key=lambda row: row[6], reverse=True)
+    else:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                WITH candidates AS (
+                    SELECT id, title, slug, embedding
+                    FROM recipe_recipe
+                    WHERE embedding IS NOT NULL
+                      AND deleted_at IS NULL
+                    ORDER BY id DESC
+                    LIMIT {DUPLICATE_CANDIDATE_LIMIT}
+                )
+                SELECT a.id, a.title, a.slug,
+                       b.id, b.title, b.slug,
+                       1 - b.dist AS sim
+                FROM candidates a
+                CROSS JOIN LATERAL (
+                    SELECT sub.id, sub.title, sub.slug,
+                           a.embedding <=> sub.embedding AS dist
+                    FROM recipe_recipe sub
+                    WHERE sub.id != a.id
+                      AND sub.embedding IS NOT NULL
+                      AND sub.deleted_at IS NULL
+                    ORDER BY dist
+                    LIMIT {DUPLICATE_NEIGHBOR_LIMIT}
+                ) b
+                ORDER BY sim DESC
+                """
             )
-            SELECT a.id, a.title, a.slug,
-                   b.id, b.title, b.slug,
-                   1 - b.dist AS sim
-            FROM candidates a
-            CROSS JOIN LATERAL (
-                SELECT sub.id, sub.title, sub.slug,
-                       a.embedding <=> sub.embedding AS dist
-                FROM recipe_recipe sub
-                WHERE sub.id != a.id
-                  AND sub.embedding IS NOT NULL
-                ORDER BY dist
-                LIMIT 10
-            ) b
-            ORDER BY sim DESC
-            LIMIT 5
-            """
-        )
-        rows = cursor.fetchall()
+            rows = cursor.fetchall()
 
     seen = set()
     pairs = []
     for id_a, title_a, slug_a, id_b, title_b, slug_b, sim in rows:
         pair_key = (id_a, id_b) if id_a < id_b else (id_b, id_a)
-        if pair_key in seen or pair_key in dismissed:
+        if pair_key in seen or pair_key in dismissed or (id_a, id_b) in merged or (id_b, id_a) in merged:
             continue
         seen.add(pair_key)
         pairs.append(
             {
                 "ingredient_a": {"id": id_a, "name": title_a, "slug": slug_a},
                 "ingredient_b": {"id": id_b, "name": title_b, "slug": slug_b},
-                "similarity": round(sim, 4),
+                "similarity": _normalize_duplicate_similarity(sim),
             }
         )
 
-    return {"items": pairs, "total": len(pairs), "page": 1, "page_size": 5, "total_pages": 1}
+    return _paginate_duplicate_pairs(pairs, page=page, page_size=page_size)
 
 
 @admin_router.post("/recipes/duplicates/dismiss/")
@@ -556,8 +621,7 @@ def merge_ingredients(request, body: MergeRequestIn):
         affected = RecipeItem.objects.filter(portion__ingredient=source).count()
 
         target_max_alias_rank = (
-            IngredientAlias.objects.filter(ingredient=target)
-            .aggregate(m=db_models.Max("rank"))["m"] or 0
+            IngredientAlias.objects.filter(ingredient=target).aggregate(m=db_models.Max("rank"))["m"] or 0
         )
 
         IngredientAlias.objects.get_or_create(
@@ -587,13 +651,8 @@ def merge_ingredients(request, body: MergeRequestIn):
         source_portions = list(source.portions.filter(deleted_at__isnull=True))
         portions_moved = 0
 
-        target_portion_names = {
-            p.name.lower(): p
-            for p in target.portions.filter(deleted_at__isnull=True)
-        }
-        max_target_rank = target.portions.aggregate(
-            m=db_models.Max("rank")
-        )["m"] or 1
+        target_portion_names = {p.name.lower(): p for p in target.portions.filter(deleted_at__isnull=True)}
+        max_target_rank = target.portions.aggregate(m=db_models.Max("rank"))["m"] or 1
 
         for source_portion in source_portions:
             existing = target_portion_names.get(source_portion.name.lower())
@@ -610,11 +669,13 @@ def merge_ingredients(request, body: MergeRequestIn):
                 portions_moved += 1
 
         from planner.models import MealItem
+
         MealItem.objects.filter(ingredient=source).update(ingredient=target)
 
         UnitConversion.objects.filter(ingredient=source).delete()
 
         from content.services.embedding_service import update_ingredient_embedding
+
         try:
             update_ingredient_embedding(target, force=True)
         except Exception:

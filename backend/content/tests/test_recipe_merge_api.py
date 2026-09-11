@@ -199,3 +199,18 @@ class TestRecipeDismiss:
             content_type="application/json",
         )
         assert resp.status_code == 403
+
+
+class TestRecipeDuplicates:
+    def test_duplicates_are_normalized_and_capped(self, admin_client, recipe, target_recipe):
+        recipe.embedding = [0.1] * 768
+        recipe.save(update_fields=["embedding"])
+        target_recipe.embedding = [0.1] * 768
+        target_recipe.save(update_fields=["embedding"])
+
+        resp = admin_client.get(f"{BASE}/recipes/duplicates/?page_size=100")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["page_size"] == 50
+        assert len(data["items"]) <= 50
+        assert all(0 <= item["similarity"] <= 1 for item in data["items"])
