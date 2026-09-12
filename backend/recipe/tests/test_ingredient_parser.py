@@ -118,6 +118,31 @@ class TestParseRuleBased:
         assert result.note == ""
         assert result.quantity == 0
 
+    def test_plural_suffix_parentheses_not_extracted_as_note(self):
+        make_ingredient(name="Möhre")
+        make_ingredient(name="Kartoffel")
+        make_ingredient(name="Zwiebel")
+
+        r1 = IngredientNameParser.parse("100 g Möhre(n)")
+        assert r1.name == "Möhre"
+        assert r1.note == ""
+
+        r2 = IngredientNameParser.parse("300 g Kartoffel(n)")
+        assert r2.name == "Kartoffel"
+        assert r2.note == ""
+
+        r3 = IngredientNameParser.parse("2 Stück Zwiebel(n)")
+        assert r3.name == "Zwiebel"
+        assert r3.note == ""
+
+    def test_zehe_unit_parsed(self):
+        make_ingredient(name="Knoblauch")
+        result = IngredientNameParser.parse("2 Zehen Knoblauch")
+        assert result.quantity == 2.0
+        assert result.unit == "Zehe"
+        assert result.name == "Knoblauch"
+        assert result.note == ""
+
 
 @pytest.mark.django_db
 class TestParseJaccardFallback:

@@ -151,11 +151,18 @@ class RecipeDetailOut(ContentDetailOut):
     steps: list[RecipeStepOut] = []
     steps_count: int = 0
     next_best_recipes: list[RecipeSimilarOut] = []
+    # Transient AI interaction id (set by ai-create) for feedback voting
+    ai_interaction_id: str | None = None
 
     @staticmethod
     def resolve_input_servings(obj) -> int | None:
         """Expose the transient creation context when a service attaches one."""
         return getattr(obj, "input_servings", None)
+
+    @staticmethod
+    def resolve_ai_interaction_id(obj) -> str | None:
+        """Expose the transient AI interaction id when a service attaches one."""
+        return getattr(obj, "ai_interaction_id", None)
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
@@ -426,6 +433,7 @@ class RecipeSuggestAllOut(Schema):
     recipe_type: str | None = None
     scout_levels: list[str] = []
     tags: list[str] = []
+    ai_interaction_id: str | None = None
 
 
 class RecipeAiCreateIn(Schema):

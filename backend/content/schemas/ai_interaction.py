@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 
 from ninja import Schema
 
@@ -25,6 +24,15 @@ class AiContextStatsOut(Schema):
     total_cost_eur: float = 0
 
 
+class AiModelStatsOut(Schema):
+    model: str
+    total_calls: int
+    total_tokens: int = 0
+    total_cost_eur: float = 0
+    thumbs_up: int = 0
+    thumbs_down: int = 0
+
+
 class AiTimelineEntryOut(Schema):
     date: str
     total: int
@@ -32,6 +40,7 @@ class AiTimelineEntryOut(Schema):
     thumbs_down: int
     total_cost_eur: float = 0
     total_tokens: int = 0
+    embedding_cost_eur: float = 0
 
 
 class AiInteractionStatsOut(Schema):
@@ -42,6 +51,7 @@ class AiInteractionStatsOut(Schema):
     total_tokens_all: int = 0
     total_cost_eur: float = 0
     by_context: list[AiContextStatsOut] = []
+    by_model: list[AiModelStatsOut] = []
     timeline: list[AiTimelineEntryOut] = []
 
 
@@ -66,6 +76,14 @@ class AiInteractionItemOut(Schema):
 class AiInteractionDetailOut(AiInteractionItemOut):
     prompt: dict | list | str | None = None
     response: str = ""
+
+
+class PaginatedAiInteractionsOut(Schema):
+    items: list[AiInteractionItemOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 
 class UserCostOut(Schema):

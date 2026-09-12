@@ -1,12 +1,14 @@
 """PDF export service for MealPlans using WeasyPrint."""
 
+import re
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from django.conf import settings
 from django.template.loader import render_to_string
 from weasyprint import HTML
 
+from content.choices import ExecutionTimeChoices, PreparationTimeChoices
 from planner.models import Meal, MealItem, MealPlan
 from supply.data.dge_reference import (
     NORM_PERSON_DAILY_CARBS_G,
@@ -23,10 +25,48 @@ MEAL_TYPE_LABELS = {
 }
 
 MEAL_TYPE_ICONS = {
-    "breakfast": "☀️",
-    "lunch": "🍽️",
-    "dinner": "🌙",
-    "snack": "🍎",
+    "breakfast": "F",
+    "lunch": "M",
+    "dinner": "A",
+    "snack": "S",
+}
+
+ALLERGEN_COLORS = {
+    "gluten": "gluten",
+    "laktose": "lactose",
+    "milch": "lactose",
+    "milch/laktose": "lactose",
+    "eier": "eggs",
+    "ei": "eggs",
+    "nüsse": "nuts",
+    "nuss": "nuts",
+    "schalenfrüchte": "nuts",
+    "erdnüsse": "nuts",
+    "erbsen": "nuts",
+    "fisch": "fish",
+    "krebstiere": "crustaceans",
+    "soja": "soy",
+    "sellerie": "celery",
+    "senf": "mustard",
+    "sesam": "sesame",
+    "sulfite": "sulfites",
+    "lupinen": "lupin",
+    "weichtiere": "molluscs",
+}
+
+PREPARATION_TIME_MINUTES = {
+    PreparationTimeChoices.NONE: 0,
+    PreparationTimeChoices.LESS_15: 15,
+    PreparationTimeChoices.BETWEEN_15_30: 30,
+    PreparationTimeChoices.BETWEEN_30_60: 60,
+    PreparationTimeChoices.MORE_60: 90,
+}
+
+EXECUTION_TIME_MINUTES = {
+    ExecutionTimeChoices.LESS_30: 30,
+    ExecutionTimeChoices.BETWEEN_30_60: 60,
+    ExecutionTimeChoices.BETWEEN_60_90: 90,
+    ExecutionTimeChoices.MORE_90: 120,
 }
 
 EU_ALLERGENS = [
@@ -47,6 +87,235 @@ EU_ALLERGENS = [
 ]
 
 FRESH_SECTION_NAMES = {"Fleisch", "Fisch", "Frische Kräuter", "Frischgemüse"}
+
+
+def _get_allergen_css_class(allergen_name: str) -> str:
+    """Map allergen name to CSS class for badge coloring."""
+    name_lower = allergen_name.lower()
+    for key, css_class in ALLERGEN_COLORS.items():
+        if key in name_lower:
+            return css_class
+    return "default"
+
+
+def _get_recipe_allergens(recipe) -> list[dict]:
+    """Get distinct dangerous allergen tags from recipe's ingredients."""
+    if not recipe:
+        return []
+    allergens = {}
+    for ri in recipe.recipe_items.select_related("portion__ingredient").all():
+        if ri.portion and ri.portion.ingredient:
+            for tag in ri.portion.ingredient.nutritional_tags.all():
+                if _get_eu_allergen(tag.name) and tag.name not in allergens:
+                    allergens[tag.name] = {
+                        "name": tag.name,
+                        "css_class": _get_allergen_css_class(tag.name),
+                    }
+    return sorted(allergens.values(), key=lambda a: a["name"])
+
+
+def _get_ingredient_allergens(ingredient) -> list[dict]:
+    """Get distinct dangerous allergen tags from a direct ingredient."""
+    if not ingredient:
+        return []
+    allergens = {}
+    for tag in ingredient.nutritional_tags.all():
+        if _get_eu_allergen(tag.name) and tag.name not in allergens:
+            allergens[tag.name] = {
+                "name": tag.name,
+                "css_class": _get_allergen_css_class(tag.name),
+            }
+    return sorted(allergens.values(), key=lambda a: a["name"])
+
+
+def _get_eu_allergen(name: str) -> str | None:
+    """Return the canonical EU allergen name for a tag, including non-dangerous tags."""
+    normalized = name.lower().replace("ä", "a").replace("ö", "o").replace("ü", "u")
+    aliases = {
+        "gluten": "gluten",
+        "weizen": "gluten",
+        "roggen": "gluten",
+        "gerste": "gluten",
+        "hafer": "gluten",
+        "milch": "milch/laktose",
+        "laktose": "milch/laktose",
+        "ei": "eier",
+        "eier": "eier",
+        "erdnuss": "erdnüsse",
+        "erdnüsse": "erdnüsse",
+        "nuss": "schalenfrüchte",
+        "nüsse": "schalenfrüchte",
+        "schalenfrucht": "schalenfrüchte",
+        "schalenfrüchte": "schalenfrüchte",
+    }
+    for alias, canonical in aliases.items():
+        if alias in normalized:
+            return canonical
+    for allergen in EU_ALLERGENS:
+        if allergen.lower() in name.lower():
+            return allergen.lower()
+    return None
+
+
+def _extract_steps_from_markdown(markdown_text: str) -> list[dict]:
+    """Extract preparation steps from markdown description."""
+    if not markdown_text or not markdown_text.strip():
+        return []
+    lines = markdown_text.strip().split("\n")
+    steps = []
+    step_num = 1
+    current_section = ""
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        heading_match = re.match(r"^#{1,3}\s*(.+)$", line)
+        if heading_match:
+            current_section = heading_match.group(1).strip()
+            continue
+        match = re.match(r"^\d+[.)]\s*(.+)$", line)
+        if match:
+            text = match.group(1).strip()
+        elif line.startswith("- ") or line.startswith("* "):
+            text = line[2:].strip()
+        else:
+            text = line
+
+        timer = None
+        timer_match = re.search(
+            r"(?:\[|\()(?:Timer|timer|Zeit|zeit|ca\.?)?\s*(\d+)\s*(?:min|Min|Minuten|minuten)?\.?\s*(?:\]|\))",
+            text,
+        )
+        if timer_match:
+            try:
+                timer = int(timer_match.group(1))
+            except (ValueError, TypeError):
+                timer = None
+
+        steps.append(
+            {
+                "number": step_num,
+                "instruction": text,
+                "duration_minutes": timer,
+                "section": current_section,
+            }
+        )
+        step_num += 1
+    return steps
+
+
+def _get_recipe_steps(recipe) -> list[dict]:
+    """Get structured recipe steps with resolved placeholders or parsed from description."""
+    if not recipe:
+        return []
+
+    steps_qs = recipe.steps.all().order_by("sort_order")
+    if steps_qs.exists():
+        recipe_items_map = {
+            ri.id: ri for ri in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit")
+        }
+        from recipe.services.step_helpers import resolve_placeholders
+
+        result = []
+        for idx, s in enumerate(steps_qs, 1):
+            try:
+                instruction = resolve_placeholders(s, recipe_items_map)
+            except Exception:
+                instruction = s.instruction
+            instruction = re.sub(r"\{([^{}]+)\}", r"\1", instruction)
+            if re.match(r"^#{1,3}\s*.+$", instruction.strip()):
+                continue
+            result.append(
+                {
+                    "number": len(result) + 1,
+                    "instruction": instruction,
+                    "duration_minutes": s.duration_minutes,
+                    "section": s.section or "",
+                }
+            )
+        return result
+
+    if recipe.description:
+        return _extract_steps_from_markdown(recipe.description)
+
+    return []
+
+
+def _compute_recipe_lead_minutes(recipe) -> int:
+    """Calculate preparation and cooking lead time in minutes for a recipe."""
+    if not recipe:
+        return 30
+    prep = PREPARATION_TIME_MINUTES.get(recipe.preparation_time or "", 0)
+    exec_ = EXECUTION_TIME_MINUTES.get(recipe.execution_time or "", 0)
+    total = prep + exec_
+    if total > 0:
+        return total
+    step_duration = sum(s.duration_minutes or 0 for s in recipe.steps.all())
+    if step_duration > 0:
+        return step_duration
+    return 30
+
+
+def _compute_meal_lead_minutes(meal: Meal, recipes: list) -> int:
+    """Calculate preparation lead time in minutes for an entire meal."""
+    valid_recipes = [r for r in recipes if r]
+    if valid_recipes:
+        return max(_compute_recipe_lead_minutes(r) for r in valid_recipes)
+    type_defaults = {
+        "breakfast": 20,
+        "lunch": 45,
+        "dinner": 45,
+        "snack": 15,
+    }
+    return type_defaults.get(meal.meal_type, 30)
+
+
+def _compute_meal_timing(meal: Meal, lead_minutes: int) -> dict:
+    """Compute eating start time and cooking start time for a meal."""
+    from django.utils import timezone
+
+    if meal.start_datetime:
+        start_dt = (
+            timezone.localtime(meal.start_datetime) if timezone.is_aware(meal.start_datetime) else meal.start_datetime
+        )
+        eating_time = start_dt.strftime("%H:%M")
+        eating_time_full = f"{eating_time} Uhr"
+        cook_start_dt = start_dt - timedelta(minutes=lead_minutes)
+        cook_start_time = cook_start_dt.strftime("%H:%M")
+        cook_start_time_full = f"{cook_start_time} Uhr"
+    else:
+        fallback_times = {
+            "breakfast": ("07:30", "08:00"),
+            "lunch": ("11:45", "12:30"),
+            "snack": ("15:15", "15:30"),
+            "dinner": ("18:00", "18:45"),
+        }
+        fallback = fallback_times.get(meal.meal_type)
+        if fallback:
+            cook_start_time = fallback[0]
+            cook_start_time_full = f"{fallback[0]} Uhr"
+            eating_time = fallback[1]
+            eating_time_full = f"{fallback[1]} Uhr"
+        else:
+            cook_start_time = "--:--"
+            cook_start_time_full = "Vor Beginn"
+            eating_time = "--:--"
+            eating_time_full = "Nach Absprache"
+
+    return {
+        "eating_time": eating_time,
+        "eating_time_full": eating_time_full,
+        "cook_start_time": cook_start_time,
+        "cook_start_time_full": cook_start_time_full,
+        "lead_minutes": lead_minutes,
+        "lead_display": f"{lead_minutes} Min.",
+    }
+
+
+def _get_short_weekday(d: date) -> str:
+    """Get short German weekday abbreviation."""
+    weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    return weekdays[d.weekday()]
 
 
 def _format_date(d: date) -> str:
@@ -82,8 +351,10 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
         .select_related("meal_plan")
         .prefetch_related(
             "items__recipe__recipe_items__portion__ingredient__retail_section",
+            "items__recipe__recipe_items__portion__ingredient__nutritional_tags",
             "items__recipe__recipe_items__portion__measuring_unit",
             "items__recipe__nutritional_tags",
+            "items__recipe__steps",
             "items__ingredient__retail_section",
             "items__ingredient__nutritional_tags",
             "items__measuring_unit",
@@ -94,10 +365,17 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
 
     overrides = _collect_ingredient_overrides(meal_plan)
 
+    from django.utils import timezone
+
     days: dict[str, list[Meal]] = defaultdict(list)
     for meal in meals:
         if meal.start_datetime:
-            date_str = meal.start_datetime.strftime("%Y-%m-%d")
+            dt = (
+                timezone.localtime(meal.start_datetime)
+                if timezone.is_aware(meal.start_datetime)
+                else meal.start_datetime
+            )
+            date_str = dt.strftime("%Y-%m-%d")
         else:
             date_str = "unbekannt"
         days[date_str].append(meal)
@@ -107,17 +385,38 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
         try:
             day_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             day_label = f"{_get_weekday(day_date)}, {day_date.strftime('%d.%m.%Y')}"
+            day_short = f"{_get_short_weekday(day_date)}, {day_date.strftime('%d.%m.')}"
         except ValueError:
             day_label = date_str
+            day_short = date_str
 
         meal_data = []
         for meal in day_meals:
             portions = meal.effective_portions
-            time_label = meal.start_datetime.strftime("%H:%M") if meal.start_datetime else ""
             meal_type_label = MEAL_TYPE_LABELS.get(meal.meal_type, meal.meal_type)
             icon = MEAL_TYPE_ICONS.get(meal.meal_type, "•")
 
             items = list(meal.items.all())
+            recipes = [item.recipe for item in items if item.recipe]
+            lead_minutes = _compute_meal_lead_minutes(meal, recipes)
+            timing = _compute_meal_timing(meal, lead_minutes)
+
+            dishes = []
+            allergens_map = {}
+            for item in items:
+                name = item.display_name or (
+                    item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?")
+                )
+                dishes.append(name)
+                if item.recipe:
+                    for a in _get_recipe_allergens(item.recipe):
+                        allergens_map[a["name"]] = a
+                elif item.ingredient:
+                    for a in _get_ingredient_allergens(item.ingredient):
+                        allergens_map[a["name"]] = a
+
+            meal_allergens = sorted(allergens_map.values(), key=lambda a: a["name"])
+
             items_by_variant: dict[str, list[MealItem]] = defaultdict(list)
             for item in items:
                 if item.variant_group_id:
@@ -125,16 +424,38 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                 else:
                     items_by_variant[f"single_{item.id}"].append(item)
 
-            if len(items_by_variant) > 1 or any(len(v) > 1 for v in items_by_variant.values()):
+            portions_str = str(int(portions)) if float(portions).is_integer() else _format_decimal(float(portions), 1)
+
+            grouped_variants = [
+                variant_items
+                for variant_key, variant_items in items_by_variant.items()
+                if not variant_key.startswith("single_")
+            ]
+            has_exchange_split = bool(grouped_variants) and (
+                len(grouped_variants) > 1 or any(len(variant_items) > 1 for variant_items in grouped_variants)
+            )
+
+            if has_exchange_split:
                 sub_meals = []
                 for variant_id, variant_items in sorted(items_by_variant.items()):
                     for item in variant_items:
                         sub_meals.append(_build_sub_meal(item, portions, meal_plan.reserve_factor, overrides))
                 meal_data.append(
                     {
+                        "meal_id": meal.id,
+                        "meal_type": meal.meal_type,
                         "meal_type_label": meal_type_label,
                         "icon": icon,
-                        "time_label": time_label,
+                        "time_label": timing["eating_time"],
+                        "eating_time": timing["eating_time_full"],
+                        "cook_start_time": timing["cook_start_time_full"],
+                        "lead_display": timing["lead_display"],
+                        "lead_minutes": timing["lead_minutes"],
+                        "portions": portions,
+                        "portions_formatted": portions_str,
+                        "portions_display": f"{portions_str} Personen",
+                        "dishes": dishes,
+                        "allergens": meal_allergens,
                         "sub_meals": sub_meals,
                         "items": [],
                         "note": meal.note if (meal.note and meal.note_is_published) else "",
@@ -146,16 +467,34 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
                     items_data.append(_build_item_data(item, portions, meal_plan.reserve_factor, overrides))
                 meal_data.append(
                     {
+                        "meal_id": meal.id,
+                        "meal_type": meal.meal_type,
                         "meal_type_label": meal_type_label,
                         "icon": icon,
-                        "time_label": time_label,
+                        "time_label": timing["eating_time"],
+                        "eating_time": timing["eating_time_full"],
+                        "cook_start_time": timing["cook_start_time_full"],
+                        "lead_display": timing["lead_display"],
+                        "lead_minutes": timing["lead_minutes"],
+                        "portions": portions,
+                        "portions_formatted": portions_str,
+                        "portions_display": f"{portions_str} Personen",
+                        "dishes": dishes,
+                        "allergens": meal_allergens,
                         "sub_meals": [],
                         "items": items_data,
                         "note": meal.note if (meal.note and meal.note_is_published) else "",
                     }
                 )
 
-        result.append({"label": day_label, "meals": meal_data})
+        result.append(
+            {
+                "label": day_label,
+                "day_short": day_short,
+                "meals": meal_data,
+                "day_meals_raw": day_meals,
+            }
+        )
 
     return result
 
@@ -165,20 +504,35 @@ def _build_sub_meal(item: MealItem, portions: int, reserve_factor: float, overri
     recipe_name = item.display_name or (
         item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?")
     )
-    portions_display = _format_decimal(portions * item.factor, 0) if item.factor != 1.0 else str(portions)
+    portions_value = portions * item.factor
+    portions_display = (
+        str(int(portions_value)) if float(portions_value).is_integer() else _format_decimal(portions_value, 1)
+    )
 
     if item.recipe:
-        ingredients = _get_recipe_ingredients(item.recipe, portions, reserve_factor, overrides.get(item.id, {}))
+        ingredients = _get_recipe_ingredients(item, portions, reserve_factor, overrides.get(item.id, {}))
+        steps = _get_recipe_steps(item.recipe)
+        allergens = _get_recipe_allergens(item.recipe)
+        lead_minutes = _compute_recipe_lead_minutes(item.recipe)
     elif item.ingredient:
         quantity_display = _format_scaled_direct_quantity(item, portions, reserve_factor)
         ingredients = [f"{item.ingredient.name} — {quantity_display}"]
+        steps = []
+        allergens = _get_ingredient_allergens(item.ingredient)
+        lead_minutes = 15
     else:
         ingredients = []
+        steps = []
+        allergens = []
+        lead_minutes = 0
 
     return {
         "recipe_name": recipe_name,
         "portions_display": portions_display,
         "ingredients": ingredients,
+        "steps": steps,
+        "allergens": allergens,
+        "lead_minutes": lead_minutes,
     }
 
 
@@ -192,18 +546,30 @@ def _build_item_data(item: MealItem, portions: int, reserve_factor: float, overr
 
     excluded = item_overrides.get("excluded", False)
     if item.recipe:
-        ingredients = _get_recipe_ingredients(item.recipe, portions, reserve_factor, item_overrides)
+        ingredients = _get_recipe_ingredients(item, portions, reserve_factor, item_overrides)
+        steps = _get_recipe_steps(item.recipe)
+        allergens = _get_recipe_allergens(item.recipe)
+        lead_minutes = _compute_recipe_lead_minutes(item.recipe)
     elif item.ingredient:
         quantity_display = _format_scaled_direct_quantity(item, portions, reserve_factor)
         ingredients = [f"{item.ingredient.name} — {quantity_display}"]
+        steps = []
+        allergens = _get_ingredient_allergens(item.ingredient)
+        lead_minutes = 15
     else:
         ingredients = []
+        steps = []
+        allergens = []
+        lead_minutes = 0
 
     return {
         "recipe_name": recipe_name,
         "portions_label": portions_label,
         "ingredients": ingredients,
         "excluded": excluded,
+        "steps": steps,
+        "allergens": allergens,
+        "lead_minutes": lead_minutes,
     }
 
 
@@ -218,23 +584,31 @@ def _format_scaled_direct_quantity(item: MealItem, portions: int, reserve_factor
     return f"{_format_decimal(scaled, 1)} {item.measuring_unit.name if item.measuring_unit else ''}".strip()
 
 
-def _get_recipe_ingredients(recipe, portions: int, reserve_factor: float, item_overrides: dict) -> list[str]:
-    """Get formatted ingredient strings for a recipe, scaled to effective portions."""
-    recipe_items = recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").all()
-    ingredients = []
+def _get_recipe_ingredients(item: MealItem, portions: int, reserve_factor: float, item_overrides: dict) -> list[str]:
+    """Get formatted ingredient strings for a recipe item, scaled to effective portions and active variants."""
+    from planner.services.calculation_context import active_recipe_items
 
-    for ri in recipe_items:
+    recipe = item.recipe
+    if not recipe:
+        return []
+
+    ingredients = []
+    active_items = active_recipe_items(item)
+    recipe_servings = max(recipe.portions or 1, 1)
+
+    for active in active_items:
+        ri = active.recipe_item
         if ri.portion and ri.portion.ingredient:
             override_key = str(ri.id)
             if override_key in item_overrides.get("excluded_items", set()):
                 continue
 
-            base_qty = float(ri.quantity)
+            base_qty = float(active.quantity)
             override_qty = item_overrides.get("quantity_overrides", {}).get(override_key)
             if override_qty is not None:
                 base_qty = float(override_qty)
 
-            scale = portions * reserve_factor / max(recipe.portions or 1, 1)
+            scale = (portions * item.factor * reserve_factor) / recipe_servings
             scaled_qty = base_qty * scale
             unit = ri.portion.measuring_unit.name if ri.portion.measuring_unit else ""
             note = f" ({ri.note})" if ri.note else ""
@@ -336,6 +710,8 @@ def _aggregate_shopping_list(meal_plan: MealPlan) -> dict:
 
 def _build_allergen_matrix(meals) -> dict | None:
     """Build allergen cross-table: days as columns, 14 EU allergens as rows."""
+    from planner.services.calculation_context import active_recipe_items
+
     allergen_map = {a.lower(): a for a in EU_ALLERGENS}
     day_labels = []
     day_allergens: list[set] = []
@@ -343,6 +719,25 @@ def _build_allergen_matrix(meals) -> dict | None:
     for day in meals:
         day_labels.append(day["label"])
         day_set: set[str] = set()
+
+        raw_meals = day.get("day_meals_raw") or []
+        for meal in raw_meals:
+            for item in meal.items.all():
+                if item.recipe:
+                    # Collect from active recipe items
+                    for active in active_recipe_items(item):
+                        ri = active.recipe_item
+                        if ri.portion and ri.portion.ingredient:
+                            for tag in ri.portion.ingredient.nutritional_tags.all():
+                                allergen = _get_eu_allergen(tag.name)
+                                if allergen:
+                                    day_set.add(allergen_map.get(allergen, allergen.title()))
+                elif item.ingredient:
+                    for tag in item.ingredient.nutritional_tags.all():
+                        allergen = _get_eu_allergen(tag.name)
+                        if allergen:
+                            day_set.add(allergen_map.get(allergen, allergen.title()))
+
         day_allergens.append(day_set)
 
     if not day_labels:
@@ -382,6 +777,25 @@ def _build_nutrition_table(meals, group_members: list[dict]) -> list[dict]:
         protein_ist = 0.0
         fat_ist = 0.0
         carbs_ist = 0.0
+
+        from planner.services.cooking_schedule_service import (
+            _compute_direct_item_nutrition,
+            _compute_item_nutrition,
+        )
+
+        for raw_meal in day.get("day_meals_raw") or []:
+            portions = raw_meal.effective_portions
+            for meal_item in raw_meal.items.all():
+                if meal_item.recipe:
+                    values = _compute_item_nutrition(None, meal_item, portions)
+                elif meal_item.ingredient:
+                    values = _compute_direct_item_nutrition(meal_item, portions)
+                else:
+                    continue
+                energy_ist += values["energy_kcal"]
+                protein_ist += values["protein_g"]
+                fat_ist += values["fat_g"]
+                carbs_ist += values["carbohydrate_g"]
 
         energy_delta = energy_ist - energy_soll
         protein_delta = protein_ist - protein_soll
@@ -450,9 +864,45 @@ def generate_meal_plan_pdf(
     shopping_list = _aggregate_shopping_list(meal_plan)
     allergen_matrix = _build_allergen_matrix(days)
     nutrition_data = _build_nutrition_table(days, group_members)
+    if not any(day.get("day_meals_raw") and any(meal.items.exists() for meal in day["day_meals_raw"]) for day in days):
+        nutrition_data = []
 
     for i, day in enumerate(days):
         day["timeline"] = []
+
+    schedule_table = []
+    total_meals_count = 0
+    for day in days:
+        for meal in day["meals"]:
+            total_meals_count += 1
+            portions_val = meal["portions"]
+            portions_str = (
+                str(int(portions_val)) if float(portions_val).is_integer() else _format_decimal(float(portions_val), 1)
+            )
+            schedule_table.append(
+                {
+                    "day_label": day["label"],
+                    "day_short": day.get("day_short", day["label"]),
+                    "meal_type": meal["meal_type"],
+                    "meal_type_label": meal["meal_type_label"],
+                    "icon": meal["icon"],
+                    "dishes_text": ", ".join(meal["dishes"]) if meal["dishes"] else "—",
+                    "cook_start_time": meal["cook_start_time"],
+                    "eating_time": meal["eating_time"],
+                    "lead_display": meal["lead_display"],
+                    "portions": portions_str,
+                    "allergens": meal["allergens"],
+                }
+            )
+
+    eating_schedule = [
+        {
+            "day_label": day["label"],
+            "day_short": day.get("day_short", day["label"]),
+            "meals": day["meals"],
+        }
+        for day in days
+    ]
 
     start_date = meal_plan.start_datetime.date() if meal_plan.start_datetime else None
     end_date = meal_plan.end_datetime.date() if meal_plan.end_datetime else None
@@ -464,22 +914,38 @@ def generate_meal_plan_pdf(
     else:
         date_label = ""
 
+    norm_portions_str = (
+        str(int(meal_plan.norm_portions))
+        if float(meal_plan.norm_portions).is_integer()
+        else _format_decimal(float(meal_plan.norm_portions), 1)
+    )
+    reserve_factor_str = _format_decimal(float(meal_plan.reserve_factor), 2)
+    scaling_factor_str = _format_decimal(float(meal_plan.scaling_factor), 2)
+
     context = {
         "meal_plan": meal_plan,
         "logo_path": _get_logo_path(),
         "date_label": date_label,
         "norm_portions": meal_plan.norm_portions,
+        "norm_portions_display": norm_portions_str,
         "reserve_factor": meal_plan.reserve_factor,
+        "reserve_factor_display": reserve_factor_str,
         "scaling_factor": meal_plan.scaling_factor,
+        "scaling_factor_display": scaling_factor_str,
         "days": days,
         "group_members": group_members,
         "shopping_list": shopping_list,
         "allergen_matrix": allergen_matrix,
+        "nutrition_data": nutrition_data,
+        "schedule_table": schedule_table,
+        "eating_schedule": eating_schedule,
+        "total_meals_count": total_meals_count,
         "include_notes": include_notes,
         "exclude_shopping_list": exclude_shopping_list,
         "exclude_nutrition": exclude_nutrition,
         "exclude_allergens": exclude_allergens,
         "compact_mode": compact_mode,
+        "page_format": page_format,
     }
 
     html = render_to_string("planner/meal_plan_pdf.html", context)

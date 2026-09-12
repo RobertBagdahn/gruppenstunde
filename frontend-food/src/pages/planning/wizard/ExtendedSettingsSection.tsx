@@ -131,18 +131,18 @@ export default function ExtendedSettingsSection({ state, onChange }: ExtendedSet
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 capitalize">
                   {MEAL_TYPE_LABELS[type] || type}
                 </label>
-                <div className="flex min-w-0 gap-2">
+                <div className="flex min-w-0 gap-1.5 sm:gap-2">
                   <input
                     type="time"
                     value={times[0] || '08:00'}
                     onChange={(e) => updateTime(type, 0, e.target.value)}
-                    className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                    className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   />
                   <input
                     type="time"
                     value={times[1] || '09:00'}
                     onChange={(e) => updateTime(type, 1, e.target.value)}
-                    className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                    className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                   />
                 </div>
               </div>

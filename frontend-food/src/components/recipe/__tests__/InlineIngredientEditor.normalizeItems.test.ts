@@ -44,7 +44,7 @@ describe('InlineIngredientEditor.normalizeItems', () => {
   });
 
   describe('composite portions (quantity !== 1)', () => {
-    it('displays grams and uses measuring_unit_name as label', () => {
+    it('displays the portion count and uses the composite portion name as label', () => {
       const items = [
         makeRecipeItem({
           id: 1,
@@ -56,12 +56,12 @@ describe('InlineIngredientEditor.normalizeItems', () => {
       ];
 
       const result = normalizeItems(items, 1);
-      expect(result[0].quantity).toBe(280);
-      expect(result[0].measuring_unit_name).toBe('Gramm');
+      expect(result[0].quantity).toBe(2.24);
+      expect(result[0].measuring_unit_name).toBe('1 Portion Nudeln');
       expect(getItemWeightG(result[0])).toBe(280);
     });
 
-    it('at 4 portions, scales correctly to 1120g', () => {
+    it('at 4 portions, scales the portion count correctly', () => {
       const items = [
         makeRecipeItem({
           id: 1,
@@ -74,9 +74,9 @@ describe('InlineIngredientEditor.normalizeItems', () => {
 
       const result = normalizeItems(items, 1);
       const scaledQty = Math.round(result[0].quantity * 4 * 100) / 100;
-      expect(result[0].quantity).toBe(280);
-      expect(scaledQty).toBe(1120);
-      expect(result[0].measuring_unit_name).toBe('Gramm');
+      expect(result[0].quantity).toBe(2.24);
+      expect(scaledQty).toBe(8.96);
+      expect(result[0].measuring_unit_name).toBe('1 Portion Nudeln');
     });
 
     it('uses the selected editor context for existing normalized quantities', () => {
@@ -91,7 +91,7 @@ describe('InlineIngredientEditor.normalizeItems', () => {
 
       const result = normalizeItems(items, 1, 4);
 
-      expect(result[0].quantity).toBe(1120);
+      expect(result[0].quantity).toBe(8.96);
     });
 
     it('does not scale imported totals a second time', () => {
@@ -106,7 +106,9 @@ describe('InlineIngredientEditor.normalizeItems', () => {
 
       const result = normalizeItems(items, 1, 4, true);
 
-      expect(result[0].quantity).toBe(500);
+      expect(result[0].quantity).toBe(4);
+      expect(result[0].measuring_unit_name).toBe('1 Portion Nudeln');
+      expect(getItemWeightG(result[0])).toBe(500);
     });
   });
 
@@ -219,8 +221,8 @@ describe('InlineIngredientEditor.normalizeItems', () => {
     });
   });
 
-  describe('piece-based portions', () => {
-    it('labels with Stück and shows gram quantity', () => {
+  describe('piece-based and spoon portions', () => {
+    it('labels with Stück and shows piece count in quantity', () => {
       const items = [
         makeRecipeItem({
           id: 1,
@@ -234,14 +236,33 @@ describe('InlineIngredientEditor.normalizeItems', () => {
       ];
 
       const result = normalizeItems(items, 1);
-      expect(result[0].quantity).toBe(30);
+      expect(result[0].quantity).toBe(0.25);
       expect(result[0].measuring_unit_name).toBe('Stück');
       expect(getItemWeightG(result[0])).toBe(30);
+    });
+
+    it('labels with Esslöffel and shows spoon count in quantity', () => {
+      const items = [
+        makeRecipeItem({
+          id: 2,
+          quantity: 1,
+          portion_id: 91743,
+          weight_g: 15,
+          ingredient_portions: [
+            { id: 91743, name: 'Esslöffel', quantity: 1, weight_g: 15, rank: 1, is_default: true, measuring_unit_id: null, measuring_unit_name: 'Esslöffel' },
+          ],
+        }),
+      ];
+
+      const result = normalizeItems(items, 1);
+      expect(result[0].quantity).toBe(1);
+      expect(result[0].measuring_unit_name).toBe('Esslöffel');
+      expect(getItemWeightG(result[0])).toBe(15);
     });
   });
 
   describe('regression: recipe #434 Nudeln — now shows grams with gram label', () => {
-    it('displays grams (280) with "Gramm" label for composite portions', () => {
+    it('displays the portion count with the composite portion label', () => {
       const items = [
         makeRecipeItem({
           id: 3383,
@@ -256,8 +277,8 @@ describe('InlineIngredientEditor.normalizeItems', () => {
       ];
 
       const result = normalizeItems(items, 1);
-      expect(result[0].quantity).toBe(280);
-      expect(result[0].measuring_unit_name).toBe('Gramm');
+      expect(result[0].quantity).toBe(2.24);
+      expect(result[0].measuring_unit_name).toBe('1 Portion Nudeln');
       expect(getItemWeightG(result[0])).toBe(280);
     });
 

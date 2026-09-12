@@ -278,7 +278,12 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
     return data
 
 
-def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass_limits: bool = False) -> Ingredient:
+def ai_create_ingredient(
+    name: str,
+    user: AbstractBaseUser | None = None,
+    bypass_limits: bool = False,
+    is_background: bool = False,
+) -> Ingredient:
     """Create a complete ingredient from just a name using Gemini + Search Grounding.
 
     Creates the Ingredient in the database with Portions and Aliases.
@@ -313,6 +318,7 @@ def ai_create_ingredient(name: str, user: AbstractBaseUser | None = None, bypass
         config=config,
         context="ingredient_ai_create",
         bypass_limits=bypass_limits,
+        is_background=is_background,
     )
 
     if response is None:

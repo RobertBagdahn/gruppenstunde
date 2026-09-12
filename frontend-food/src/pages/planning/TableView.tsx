@@ -5,22 +5,24 @@ import {
   Coffee,
   Utensils,
   Cookie,
-  BookOpen,
-  Egg,
   X,
   AlertCircle,
   FileText,
   TrendingUp,
   MoreVertical,
   Clock,
+  Plus,
+  ChevronDown,
 } from 'lucide-react';
 import type { Meal } from '@/schemas/mealPlan';
 import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, MEAL_TYPE_COLORS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getEffectiveCoverage, getCoverageBadge, getSkippedMealTypes, effectivePortions, formatMealTime } from '@/schemas/mealPlan';
 import { useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
 import { cn } from '@/lib/utils';
+import { formatItemPortion, getBreakfastSummary } from '@/utils/formatItemDisplay';
 import RecipeSearchDialog from './RecipeSearchDialog';
 import { FactorInput } from './FactorInput';
+import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import {
   DropdownMenu,
@@ -54,6 +56,7 @@ interface TableViewProps {
   ) => void;
   onDeleteItem?: (id: number) => void;
   onUpdateItemFactor?: (itemId: number, factor: number) => void;
+  onUpdateItemQuantity?: (itemId: number, quantity: number) => void;
   onDeleteMeal?: (id: number) => void;
   onUpdateMeal?: (
     mealId: number,
@@ -85,6 +88,7 @@ export default function TableView({
   onAddIngredient,
   onDeleteItem,
   onUpdateItemFactor,
+  onUpdateItemQuantity,
   onDeleteMeal,
   onUpdateMeal,
   onScaleMeal,
@@ -97,6 +101,23 @@ export default function TableView({
 
   // Dialog state for recipe details/search
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
+  const [searchDialogIngredientOnly, setSearchDialogIngredientOnly] = useState(false);
+
+  // Buffet collapsed state for breakfast slots
+  const [expandedBuffetMealIds, setExpandedBuffetMealIds] = useState<Set<number>>(new Set());
+
+  const toggleBuffet = (mealId: number) => {
+    setExpandedBuffetMealIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(mealId)) next.delete(mealId);
+      else next.add(mealId);
+      return next;
+    });
+  };
+
+  const handleDeleteItemWithUndo = (_mealId: number, item: Meal['items'][number]) => {
+    onDeleteItem?.(item.id);
+  };
 
   // Note inline-editor state
   const [editingNoteMealId, setEditingNoteMealId] = useState<number | null>(null);
@@ -207,7 +228,7 @@ export default function TableView({
                 return (
                   <th
                     key={date}
-                    className="px-4 py-3.5 text-left font-display font-semibold text-base border-b border-border min-w-[240px]"
+                    className="px-4 py-3.5 text-left font-display font-semibold text-base border-b border-border min-w-[270px]"
                   >
                     <div className="font-bold text-foreground">{weekday}</div>
                     <div className="text-sm text-muted-foreground font-medium">{day}</div>
@@ -285,42 +306,6 @@ export default function TableView({
                                           try {
                                             const newMeal = await onAddMealType?.(date, mealType);
                                             if (newMeal) {
-                                              setSearchDialogMeal(newMeal);
-                                            }
-                                          } catch {
-                                            toast.error('Mahlzeit konnte nicht angelegt werden');
-                                          } finally {
-                                            setIsCreatingSlot(null);
-                                          }
-                                        }}
-                                      >
-                                        <BookOpen className="mr-2 h-4 w-4 text-primary" />
-                                        <span>Rezept hinzufügen...</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={async () => {
-                                          setIsCreatingSlot(`${date}_${mealType}`);
-                                          try {
-                                            const newMeal = await onAddMealType?.(date, mealType);
-                                            if (newMeal) {
-                                              setSearchDialogMeal(newMeal);
-                                            }
-                                          } catch {
-                                            toast.error('Mahlzeit konnte nicht angelegt werden');
-                                          } finally {
-                                            setIsCreatingSlot(null);
-                                          }
-                                        }}
-                                      >
-                                        <Egg className="mr-2 h-4 w-4 text-primary" />
-                                        <span>Zutat hinzufügen...</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={async () => {
-                                          setIsCreatingSlot(`${date}_${mealType}`);
-                                          try {
-                                            const newMeal = await onAddMealType?.(date, mealType);
-                                            if (newMeal) {
                                               setEditingNoteMealId(newMeal.id);
                                               setLocalNoteValue('');
                                             }
@@ -339,7 +324,55 @@ export default function TableView({
                                 )
                               )}
                             </div>
-                            <div className="text-sm text-muted-foreground/40 italic py-2">—</div>
+
+                            {canEdit ? (
+                              <div className="flex flex-col gap-1.5 py-1">
+                                <button
+                                  onClick={async () => {
+                                    setIsCreatingSlot(`${date}_${mealType}`);
+                                    try {
+                                      const newMeal = await onAddMealType?.(date, mealType);
+                                      if (newMeal) {
+                                        setSearchDialogIngredientOnly(false);
+                                        setSearchDialogMeal(newMeal);
+                                      }
+                                    } catch {
+                                      toast.error('Mahlzeit konnte nicht angelegt werden');
+                                    } finally {
+                                      setIsCreatingSlot(null);
+                                    }
+                                  }}
+                                  disabled={isCreatingSlot !== null}
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors text-xs font-semibold cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Rezept hinzufügen</span>
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    setIsCreatingSlot(`${date}_${mealType}`);
+                                    try {
+                                      const newMeal = await onAddMealType?.(date, mealType);
+                                      if (newMeal) {
+                                        setSearchDialogIngredientOnly(true);
+                                        setSearchDialogMeal(newMeal);
+                                      }
+                                    } catch {
+                                      toast.error('Mahlzeit konnte nicht angelegt werden');
+                                    } finally {
+                                      setIsCreatingSlot(null);
+                                    }
+                                  }}
+                                  disabled={isCreatingSlot !== null}
+                                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-dashed border-border text-muted-foreground bg-muted/20 hover:bg-muted/50 hover:text-foreground transition-colors text-xs font-semibold cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Zutat hinzufügen</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground/40 italic py-2">—</div>
+                            )}
                           </td>
                         );
                       }
@@ -416,23 +449,27 @@ export default function TableView({
                                           }
                                         }
 
-                                        const cells: React.ReactNode[] = [];
+                                        const effPortions = effectivePortions(meal, normPortions);
 
-                                        for (const item of regularItems) {
+                                        const renderRegularItem = (item: (typeof meal.items)[number]) => {
                                           const name = item.recipe_title || item.ingredient_name || item.display_name || '';
-                                          const itemEffPortions = effectivePortions(meal, normPortions);
-                                          const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / itemEffPortions) : null;
-                                          const cost = item.cost_eur != null ? item.cost_eur / itemEffPortions : null;
+                                          const kcal = item.energy_kcal != null ? Math.round(item.energy_kcal / effPortions) : null;
+                                          const cost = item.cost_eur != null ? item.cost_eur / effPortions : null;
 
                                           const itemViolations = scanData?.violations.filter(
                                             (v) => v.meal_id === meal.id && v.recipe_id === item.recipe_id
                                           ) || [];
                                           const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
+                                          const portionLabel = item.ingredient_id && !item.recipe_id ? formatItemPortion(item) : null;
 
-                                          cells.push(
-                                            <div key={item.id} className="group flex items-center justify-between gap-1.5 p-2 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-sm">
-                                              <div className="min-w-0 flex-1">
-                                                <div className="text-xs font-bold text-foreground truncate max-w-[150px] flex items-center gap-1" title={name}>
+                                          return (
+                                            <div
+                                              key={item.id}
+                                              className="group p-2 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted hover:border-border transition-all shadow-xs space-y-1"
+                                            >
+                                              {/* Line 1: Title (left) & Portion / Quantity (right) */}
+                                              <div className="flex items-start justify-between gap-1.5 min-w-0">
+                                                <div className="min-w-0 flex-1 flex items-center gap-1 font-bold text-xs text-foreground" title={name}>
                                                   {item.recipe_id && item.recipe_slug ? (
                                                     <Link
                                                       to={`/recipes/${item.recipe_slug}`}
@@ -452,49 +489,121 @@ export default function TableView({
                                                   )}
                                                   <NutriTagBadge allergenTags={itemAllergenTags} />
                                                 </div>
-                                                <div className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1 mt-0.5">
+
+                                                {portionLabel && (
+                                                  <span
+                                                    className={cn(
+                                                      "text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground shrink-0 max-w-[130px] truncate",
+                                                      item.has_missing_weight && "text-orange-500"
+                                                    )}
+                                                    title={portionLabel}
+                                                  >
+                                                    {portionLabel}
+                                                  </span>
+                                                )}
+                                              </div>
+
+                                              {/* Line 2: Calories & Cost (left) & Stepper/Delete (right) */}
+                                              <div className="flex items-center justify-between gap-1 text-[11px] text-muted-foreground pt-0.5">
+                                                <div className="flex items-center gap-1 font-medium min-w-0 truncate">
                                                   {kcal != null && <span>{kcal} kcal</span>}
                                                   {kcal != null && cost != null && <span className="text-muted-foreground/40">•</span>}
                                                   {cost != null && <span>{cost.toFixed(2).replace('.', ',')} €</span>}
                                                 </div>
-                                              </div>
 
-                                              <div className="flex items-center gap-1 shrink-0">
-                                                {item.ingredient_id && !item.recipe_id && item.portion_display ? (
-                                                  <span className={`text-[11px] font-extrabold px-1.5 py-0.5 rounded-full bg-muted/60 ${item.has_missing_weight ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                                                    {item.portion_display}
-                                                    {item.is_per_norm_person && <span className="ml-0.5 text-muted-foreground/60">/ P.</span>}
-                                                  </span>
-                                                ) : item.ingredient_id && !item.recipe_id && item.quantity != null ? (
-                                                  <span className="text-[11px] font-extrabold text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/60">
-                                                    &times;{item.quantity}
-                                                    {item.measuring_unit_name ? ` ${item.measuring_unit_name}` : ''}
-                                                  </span>
-                                                ) : canEdit && !meal.is_synced ? (
-                                                  <FactorInput
-                                                    value={item.factor}
-                                                    onChange={(f) => onUpdateItemFactor?.(item.id, f)}
-                                                  />
-                                                ) : (
-                                                  item.factor !== 1.0 && (
-                                                    <span className="text-[11px] font-extrabold text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/60">
-                                                      &times;{item.factor.toFixed(1).replace('.', ',')}
-                                                    </span>
-                                                  )
-                                                )}
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                  {canEdit && !meal.is_synced ? (
+                                                    item.ingredient_id && !item.recipe_id && onUpdateItemQuantity && item.quantity != null ? (
+                                                      <QuantityInput value={item.quantity} onChange={(q) => onUpdateItemQuantity(item.id, q)} />
+                                                    ) : (
+                                                      <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor?.(item.id, f)} />
+                                                    )
+                                                  ) : (
+                                                    item.factor !== 1.0 && (
+                                                      <span className="text-[10px] font-bold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                        &times;{item.factor.toFixed(1).replace('.', ',')}
+                                                      </span>
+                                                    )
+                                                  )}
 
-                                                {canEdit && !meal.is_synced && (
-                                                  <button
-                                                    onClick={() => onDeleteItem?.(item.id)}
-                                                    className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
-                                                    title="Entfernen"
-                                                  >
-                                                    <X className="w-3 h-3" />
-                                                  </button>
-                                                )}
+                                                  {canEdit && !meal.is_synced && (
+                                                    <button
+                                                      onClick={() => handleDeleteItemWithUndo(meal.id, item)}
+                                                      className="p-1 rounded text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                      title="Entfernen"
+                                                      aria-label="Item entfernen"
+                                                    >
+                                                      <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                  )}
+                                                </div>
                                               </div>
                                             </div>
                                           );
+                                        };
+
+                                        const isBreakfast = meal.meal_type === 'breakfast';
+                                        const isBuffetCandidate = isBreakfast && regularItems.length >= 3;
+                                        const isBuffetExpanded = expandedBuffetMealIds.has(meal.id);
+
+                                        const cells: React.ReactNode[] = [];
+
+                                        if (isBuffetCandidate && !isBuffetExpanded) {
+                                          const summary = getBreakfastSummary(regularItems, effPortions);
+                                          cells.push(
+                                            <div key="buffet-summary" className="p-2.5 rounded-lg bg-card border border-border shadow-xs space-y-2">
+                                              <div className="flex items-center justify-between gap-1">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                  <Coffee className="w-4 h-4 text-primary shrink-0" />
+                                                  <span className="text-xs font-bold text-foreground truncate">
+                                                    Frühstücksbuffet ({summary.itemsCount} Zutaten)
+                                                  </span>
+                                                </div>
+                                                <button
+                                                  onClick={() => toggleBuffet(meal.id)}
+                                                  className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline px-1.5 py-0.5 rounded hover:bg-primary/5 transition-colors shrink-0"
+                                                >
+                                                  Details
+                                                  <ChevronDown className="w-3.5 h-3.5" />
+                                                </button>
+                                              </div>
+
+                                              <div className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
+                                                <span>{summary.totalKcalPerPerson} kcal</span>
+                                                <span>{summary.totalCostPerPerson.toFixed(2).replace('.', ',')} € / P.</span>
+                                              </div>
+
+                                              {summary.previewNames.length > 0 && (
+                                                <div className="text-[10px] text-muted-foreground/80 line-clamp-2">
+                                                  {summary.previewNames.join(', ')}
+                                                  {summary.itemsCount > summary.previewNames.length && (
+                                                    <span className="text-muted-foreground/50"> +{summary.itemsCount - summary.previewNames.length} weitere</span>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        } else {
+                                          if (isBuffetCandidate && isBuffetExpanded) {
+                                            cells.push(
+                                              <div key="buffet-collapse-bar" className="flex items-center justify-between px-2 py-1 rounded bg-primary/5 text-primary text-xs font-semibold">
+                                                <span className="flex items-center gap-1">
+                                                  <Coffee className="w-3.5 h-3.5" />
+                                                  Frühstücksbuffet ({regularItems.length} Zutaten)
+                                                </span>
+                                                <button
+                                                  onClick={() => toggleBuffet(meal.id)}
+                                                  className="inline-flex items-center gap-0.5 text-[11px] hover:underline"
+                                                >
+                                                  Einklappen
+                                                  <ChevronDown className="w-3.5 h-3.5 rotate-180" />
+                                                </button>
+                                              </div>
+                                            );
+                                          }
+                                          for (const item of regularItems) {
+                                            cells.push(renderRegularItem(item));
+                                          }
                                         }
 
                                         for (const [groupId, variants] of variantGroups) {
@@ -505,8 +614,8 @@ export default function TableView({
                                           const itemAllergenTags = itemViolations.map((v) => v.nutritional_tag);
 
                                           cells.push(
-                                            <div key={groupId} className="p-1.5 rounded-lg bg-muted/40 border border-border/50">
-                                              <div className="text-[11px] font-bold text-foreground truncate flex items-center gap-1 mb-1">
+                                            <div key={groupId} className="p-2 rounded-lg bg-muted/40 border border-border/50 space-y-1.5">
+                                              <div className="text-xs font-bold text-foreground truncate flex items-center gap-1" title={first.recipe_title}>
                                                 {first.recipe_id && first.recipe_slug ? (
                                                   <Link
                                                     to={`/recipes/${first.recipe_slug}`}
@@ -519,34 +628,33 @@ export default function TableView({
                                                 )}
                                                 <NutriTagBadge allergenTags={itemAllergenTags} />
                                               </div>
-                                              <div className="space-y-0.5">
+                                              <div className="space-y-1">
                                                 {variants.map((v) => {
-                                                  const itemEffPortions = effectivePortions(meal, normPortions);
-                                                  const kcal = v.energy_kcal != null ? Math.round(v.energy_kcal / itemEffPortions) : null;
+                                                  const kcal = v.energy_kcal != null ? Math.round(v.energy_kcal / effPortions) : null;
                                                   return (
-                                                    <div key={v.id} className="flex items-center justify-between gap-1 pl-3 group">
-                                                      <span className="text-[10px] text-muted-foreground truncate flex-1">
+                                                    <div key={v.id} className="flex items-center justify-between gap-1 pl-2 group text-[11px]">
+                                                      <span className="text-muted-foreground truncate flex-1">
                                                         {v.display_name || v.recipe_title}
                                                       </span>
                                                       <div className="flex items-center gap-1 shrink-0">
-                                                        {kcal != null && <span className="text-[9px] text-muted-foreground">{kcal} kcal</span>}
+                                                        {kcal != null && <span className="text-[10px] text-muted-foreground">{kcal} kcal</span>}
                                                         {canEdit && !meal.is_synced ? (
                                                           <FactorInput
                                                             value={v.factor}
                                                             onChange={(f) => onUpdateItemFactor?.(v.id, f)}
                                                           />
                                                         ) : (
-                                                          <span className="text-[9px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
+                                                          <span className="text-[10px] font-extrabold text-muted-foreground px-1 py-0.5 rounded bg-muted/60">
                                                             &times;{v.factor.toFixed(2).replace('.', ',')}
                                                           </span>
                                                         )}
                                                         {canEdit && !meal.is_synced && (
                                                           <button
-                                                            onClick={() => onDeleteItem?.(v.id)}
-                                                            className="p-0.5 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                                                            onClick={() => handleDeleteItemWithUndo(meal.id, v)}
+                                                            className="p-1 rounded text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
                                                             title="Entfernen"
                                                           >
-                                                            <X className="w-2.5 h-2.5" />
+                                                            <X className="w-3.5 h-3.5" />
                                                           </button>
                                                         )}
                                                       </div>
@@ -565,6 +673,33 @@ export default function TableView({
                                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive font-semibold text-xs uppercase tracking-wider mb-2">
                                       <AlertCircle className="w-3.5 h-3.5" />
                                       Mahlzeit leer
+                                    </div>
+                                  )}
+
+                                  {/* Quick action bar for adding items to this meal */}
+                                  {canEdit && !meal.is_synced && (
+                                    <div className="flex items-center gap-2 pt-1.5 mt-1 border-t border-border/30">
+                                      <button
+                                        onClick={() => {
+                                          setSearchDialogIngredientOnly(false);
+                                          setSearchDialogMeal(meal);
+                                        }}
+                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline py-0.5"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                        <span>Rezept</span>
+                                      </button>
+                                      <span className="text-muted-foreground/30">•</span>
+                                      <button
+                                        onClick={() => {
+                                          setSearchDialogIngredientOnly(true);
+                                          setSearchDialogMeal(meal);
+                                        }}
+                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:underline py-0.5"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                        <span>Zutat</span>
+                                      </button>
                                     </div>
                                   )}
 
@@ -746,6 +881,7 @@ export default function TableView({
         }}
         nutritionalTagIds={nutritionalTagIds}
         nutritionalTagNames={nutritionalTagNames}
+        ingredientOnly={searchDialogIngredientOnly}
       />
     </div>
   );

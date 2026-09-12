@@ -4,6 +4,7 @@ import math
 
 from django.shortcuts import get_object_or_404
 from ninja import Router
+from ninja.errors import HttpError
 
 from event.models import EventLocation
 from event.schemas import (
@@ -61,6 +62,8 @@ def update_location(request, location_id: int, payload: EventLocationUpdateIn):
     """Update a location."""
     require_auth(request)
     location = get_object_or_404(EventLocation, id=location_id)
+    if location.created_by_id != request.user.id and not request.user.is_staff:
+        raise HttpError(403, "Nur der Ersteller kann diesen Veranstaltungsort bearbeiten")
     for field, value in payload.dict(exclude_unset=True).items():
         setattr(location, field, value)
     location.save()
@@ -72,5 +75,7 @@ def delete_location(request, location_id: int):
     """Delete a location."""
     require_auth(request)
     location = get_object_or_404(EventLocation, id=location_id)
+    if location.created_by_id != request.user.id and not request.user.is_staff:
+        raise HttpError(403, "Nur der Ersteller kann diesen Veranstaltungsort löschen")
     location.delete()
     return {"success": True, "message": "Veranstaltungsort gelöscht"}

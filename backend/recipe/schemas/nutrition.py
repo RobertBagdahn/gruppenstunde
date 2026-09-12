@@ -148,6 +148,13 @@ class LlmSuggestionOut(Schema):
     expected_improvement: str
 
 
+class LlmSuggestionsOut(Schema):
+    """Wrapper for LLM ingredient suggestions including the interaction id for feedback."""
+
+    suggestions: list[LlmSuggestionOut]
+    ai_interaction_id: str | None = None
+
+
 # --- Unified Recipe Rule Schemas ---
 
 

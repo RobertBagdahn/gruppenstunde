@@ -55,6 +55,10 @@ export default function PriceAnalysisTable() {
   const { data, isLoading, error } = usePriceAnalysis({ page, page_size: 20, anomaly_type: anomalyType || undefined });
   const evaluateMutation = usePriceEvaluate();
   const applyMutation = usePriceApply();
+  const missingItems = data?.items.filter((item) => {
+    const price = item.price_per_kg == null ? null : Number(item.price_per_kg);
+    return item.anomaly_type === 'missing' || price == null || price <= 0;
+  }) ?? [];
 
   const toggleSelect = useCallback((id: number) => {
     setSelected((prev) => {
@@ -75,13 +79,13 @@ export default function PriceAnalysisTable() {
     }
   }, [data, selected]);
 
-  const handleEvaluate = async () => {
-    if (selected.size === 0) {
-      toast.error('Mindestens eine Zutat auswählen');
+  const handleEvaluate = async (ingredientIds: number[] = [...selected]) => {
+    if (ingredientIds.length === 0) {
+      toast.error('Keine Zutaten mit fehlendem Preis auf dieser Seite');
       return;
     }
     try {
-      const res = await evaluateMutation.mutateAsync({ ingredient_ids: [...selected] });
+      const res = await evaluateMutation.mutateAsync({ ingredient_ids: ingredientIds });
       setSuggestions(res.suggestions);
       setShowComparison(true);
     } catch (err) {
@@ -138,7 +142,7 @@ export default function PriceAnalysisTable() {
           <Button
             variant="default"
             size="sm"
-            onClick={handleEvaluate}
+            onClick={() => handleEvaluate()}
             disabled={evaluateMutation.isPending}
           >
             {evaluateMutation.isPending ? (
@@ -147,6 +151,23 @@ export default function PriceAnalysisTable() {
               <Sparkles className="h-4 w-4 mr-1.5" />
             )}
             {selected.size} {selected.size === 1 ? 'Zutat' : 'Zutaten'} mit KI bewerten
+          </Button>
+        )}
+
+        {selected.size === 0 && !showComparison && missingItems.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleEvaluate(missingItems.map((item) => item.id))}
+            disabled={evaluateMutation.isPending}
+            title="Schätzt fehlende und auf 0 gesetzte Preise mit KI"
+          >
+            {evaluateMutation.isPending ? (
+              <Loader2 className="animate-spin h-4 w-4 mr-1.5" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-1.5 text-primary" />
+            )}
+            0-Werte mit KI schätzen
           </Button>
         )}
 
@@ -246,35 +267,60 @@ export default function PriceAnalysisTable() {
                   <th className="text-left px-4 py-2.5 font-medium">Abteilung</th>
                   <th className="text-right px-4 py-2.5 font-medium">Z-Score</th>
                   <th className="text-left px-4 py-2.5 font-medium">Typ</th>
+                  <th className="text-right px-4 py-2.5 font-medium">Aktion</th>
                 </tr>
               </thead>
               <tbody>
-                {data.items.map((item: PriceAnomaly) => (
-                  <tr key={item.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                    <td className="px-3 py-2.5">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(item.id)}
-                        onChange={() => toggleSelect(item.id)}
-                        className="rounded border-border"
-                      />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <a
-                        href={`/ingredients/${item.slug}`}
-                        className="font-medium hover:text-primary transition-colors"
-                      >
-                        {item.name}
-                      </a>
-                    </td>
-                    <td className="px-4 py-2.5">{formatPrice(item.price_per_kg)}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{item.retail_section ?? '–'}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-xs">
-                      {item.z_score != null ? item.z_score.toFixed(2) : '–'}
-                    </td>
-                    <td className="px-4 py-2.5">{anomalyBadge(item.anomaly_type)}</td>
-                  </tr>
-                ))}
+                {data.items.map((item: PriceAnomaly) => {
+                  const isMissingPrice = missingItems.some((missingItem) => missingItem.id === item.id);
+
+                  return (
+                    <tr key={item.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                      <td className="px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(item.id)}
+                          onChange={() => toggleSelect(item.id)}
+                          className="rounded border-border"
+                        />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <a
+                          href={`/ingredients/${item.slug}`}
+                          className="font-medium hover:text-primary transition-colors"
+                        >
+                          {item.name}
+                        </a>
+                      </td>
+                      <td className="px-4 py-2.5">{formatPrice(item.price_per_kg)}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{item.retail_section ?? '–'}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-xs">
+                        {item.z_score != null ? item.z_score.toFixed(2) : '–'}
+                      </td>
+                      <td className="px-4 py-2.5">{anomalyBadge(item.anomaly_type)}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        {isMissingPrice && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEvaluate([item.id])}
+                            disabled={evaluateMutation.isPending}
+                            className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                            title="Fehlenden oder 0er-Preis mit KI schätzen"
+                          >
+                            {evaluateMutation.isPending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3.5 w-3.5" />
+                            )}
+                            <span className="hidden sm:inline">KI-Zauberstab</span>
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

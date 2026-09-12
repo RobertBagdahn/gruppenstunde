@@ -5,7 +5,7 @@
  *   refMeal:    /meal-plans/:id/ref-meals/breakfast/wizard
  *   directMeal: /meal-plans/:id/meals/:mealId/breakfast-wizard
  */
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 import { useMealPlan } from '@/api/mealPlans';
 import { useRefMeals } from '@/api/refMeals';
@@ -22,13 +22,16 @@ import { CreateRecipeModal } from '@/components/breakfast/CreateRecipeModal';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import type { WizardItemIn } from '@/api/breakfast';
+import type { MealItem } from '@/schemas/mealPlan';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
 import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson, FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
 
 export default function BreakfastWizardPage() {
   const { id, mealId: mealIdParam } = useParams<{ id: string; mealId?: string }>();
+  const [searchParams] = useSearchParams();
   const planId = Number(id) || 0;
-  const mealId = mealIdParam ? Number(mealIdParam) : null;
+  const queryMealId = searchParams.get('mealId');
+  const mealId = mealIdParam ? Number(mealIdParam) : (queryMealId ? Number(queryMealId) : null);
   const navigate = useNavigate();
 
   const saveMode: 'refMeal' | 'directMeal' = mealId != null ? 'directMeal' : 'refMeal';
@@ -44,21 +47,28 @@ export default function BreakfastWizardPage() {
     [saveMode, refMeals],
   );
 
-  const normPortions = plan?.norm_portions ?? 10;
-  const dayPartFactor = existingRefMeal?.day_part_factor ?? 0.25;
+  const targetMeal = useMemo(() => {
+    if (saveMode !== 'directMeal' || !plan || !mealId) return null;
+    return plan.meals.find((m) => m.id === mealId) ?? null;
+  }, [saveMode, plan, mealId]);
 
-  // Compute initial wizard state from existing RefMeal (if any)
+  const normPortions = plan?.norm_portions ?? 10;
+  const dayPartFactor =
+    (saveMode === 'directMeal' ? targetMeal?.day_part_factor : existingRefMeal?.day_part_factor) ?? 0.25;
+
+  // Compute initial wizard state from existing items (RefMeal or directMeal)
   const initialWizardState = useMemo(() => {
-    if (saveMode !== 'refMeal' || !existingRefMeal?.items || !catalog) return undefined;
-    const mapped = refMealItemsToWizardState(existingRefMeal.items as import('@/schemas/mealPlan').MealItem[], catalog, normPortions);
+    const sourceItems = (saveMode === 'directMeal' ? targetMeal?.items : existingRefMeal?.items) as MealItem[] | undefined;
+    if (!sourceItems || sourceItems.length === 0 || !catalog) return undefined;
+    const mapped = refMealItemsToWizardState(sourceItems, catalog, normPortions);
     // Count unmappable items
-    const mappableCount = existingRefMeal.items.filter((i) => i.ingredient_id || i.recipe_id || i.display_name).length;
-    const unmappableCount = existingRefMeal.items.length - mappableCount;
+    const mappableCount = sourceItems.filter((i: MealItem) => i.ingredient_id || i.recipe_id || i.display_name).length;
+    const unmappableCount = sourceItems.length - mappableCount;
     if (unmappableCount > 0) {
       toast.warning(`${unmappableCount} Item${unmappableCount === 1 ? '' : 's'} konnten nicht geladen werden.`);
     }
     return mapped;
-  }, [saveMode, existingRefMeal, catalog, normPortions]);
+  }, [saveMode, targetMeal, existingRefMeal, catalog, normPortions]);
 
   const wiz = useWizardState(initialWizardState);
   const { state, step, currentStepIndex, canGoNext, canGoPrev, goNext, goPrev } = wiz;
@@ -168,7 +178,7 @@ export default function BreakfastWizardPage() {
 
       if (saveMode === 'directMeal' && mealId != null) {
         await saveWizardDirectMeal.mutateAsync({ planId, mealId, items });
-        navigate(`/meal-plans/${planId}`);
+        navigate(`/meal-plans/${planId}/plan`);
       } else {
         await saveWizardRefMeal.mutateAsync({
           planId,
@@ -185,13 +195,13 @@ export default function BreakfastWizardPage() {
 
   const savePending = saveMode === 'directMeal' ? saveWizardDirectMeal.isPending : saveWizardRefMeal.isPending;
   const isCockpit = step === 'cockpit';
-  const isEditMode = saveMode === 'refMeal' && existingRefMeal != null;
+  const isEditMode = saveMode === 'refMeal' ? existingRefMeal != null : (targetMeal?.items?.length ?? 0) > 0;
 
   const handleBack = () => {
     if (saveMode === 'refMeal') {
       navigate(`/meal-plans/${planId}/ref-meals/breakfast`);
     } else {
-      navigate(`/meal-plans/${planId}`);
+      navigate(`/meal-plans/${planId}/plan`);
     }
   };
 

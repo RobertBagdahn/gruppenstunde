@@ -407,4 +407,24 @@ test.describe('MealPlan persistence and controls', () => {
     await planPdfDialog.getByRole('button', { name: 'PDF öffnen', exact: true }).click();
     await expectOpenedUrl(foodPage, new RegExp(`/api/meal-plans/${plan.id}/export/pdf/`));
   });
+
+  test('renders budget cockpit and quick actions in table view', async ({ foodPage, api, resources, uniqueName }) => {
+    const plan = await createMealPlan(api, uniqueName('E2E Cockpit Plan'), {
+      budget_per_person_per_day: 6.5,
+      norm_portions: 10,
+    });
+    resources.track({ kind: 'meal-plan', id: plan.id });
+
+    await foodPage.goto(`/meal-plans/${plan.id}/plan`);
+    await expect(foodPage.getByText('Tagesbudget / Person')).toBeVisible();
+    await expect(foodPage.getByText('Kalorienschnitt / Tag')).toBeVisible();
+    await expect(foodPage.getByText('10.0 Personen')).toBeVisible();
+
+    await foodPage.getByRole('link', { name: /Tabelle/ }).click();
+    await foodPage.waitForURL(new RegExp(`/meal-plans/${plan.id}/table$`));
+
+    // Check quick add buttons in meal slots
+    await expect(foodPage.getByRole('button', { name: 'Rezept', exact: true }).first()).toBeVisible();
+    await expect(foodPage.getByRole('button', { name: 'Zutat', exact: true }).first()).toBeVisible();
+  });
 });

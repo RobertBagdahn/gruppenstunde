@@ -91,11 +91,12 @@ def generate_shopping_list(
     reserve_factor = meal_plan.reserve_factor if (meal_plan.reserve_factor or 0) > 0 else 1.0
     scaling = scaling_override if scaling_override is not None else meal_plan.norm_portions * reserve_factor
 
-    # Collect all MealItems from non-reference meals
+    # Collect all MealItems from non-reference, non-external meals
     meal_items = list(
         MealItem.objects.filter(
             meal__meal_plan=meal_plan,
             meal__is_reference=False,
+            meal__is_external=False,
         )
         .select_related(
             "recipe",

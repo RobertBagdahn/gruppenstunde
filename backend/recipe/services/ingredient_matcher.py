@@ -114,8 +114,46 @@ class IngredientMatcher:
             return None
 
         candidates = cls._get_candidates_ordered()
-        results: list[MatchCandidate] = []
 
+        # Decision 4: Prefer exact name or alias matches
+        clean_lower = clean_name.lower()
+        raw_lower = raw_name.lower()
+        for cand in candidates:
+            cand_name_lower = cand["name"].lower()
+            if cand_name_lower in (clean_lower, raw_lower):
+                return MatchResult(
+                    ingredient_id=cand["id"],
+                    name=cand["name"],
+                    confidence=1.0,
+                    matched_via="jaccard",
+                    note=note,
+                )
+
+        from supply.models import IngredientAlias
+
+        alias = (
+            IngredientAlias.objects.filter(name__iexact=clean_name)
+            .select_related("ingredient")
+            .filter(ingredient__deleted_at__isnull=True)
+            .first()
+        )
+        if not alias and raw_name != clean_name:
+            alias = (
+                IngredientAlias.objects.filter(name__iexact=raw_name)
+                .select_related("ingredient")
+                .filter(ingredient__deleted_at__isnull=True)
+                .first()
+            )
+        if alias:
+            return MatchResult(
+                ingredient_id=alias.ingredient_id,
+                name=alias.ingredient.name,
+                confidence=1.0,
+                matched_via="jaccard",
+                note=note,
+            )
+
+        results: list[MatchCandidate] = []
         for cand in candidates:
             cand_words = set(cand["name"].lower().split())
             intersection = query_words & cand_words
@@ -123,18 +161,30 @@ class IngredientMatcher:
             if not union:
                 continue
             score = len(intersection) / len(union)
+            if score >= 1.0:
+                return MatchResult(
+                    ingredient_id=cand["id"],
+                    name=cand["name"],
+                    confidence=1.0,
+                    matched_via="jaccard",
+                    note=note,
+                )
             if score >= GREY_ZONE_MIN:
                 results.append(MatchCandidate(id=cand["id"], name=cand["name"], confidence=score))
-            if len(results) >= MAX_CANDIDATES_PER_STAGE:
-                break
 
         if not results:
             return None
 
+        results.sort(key=lambda c: c.confidence, reverse=True)
         best = results[0]
 
-        # Multiple close matches?
-        if len(results) > 1 and (results[0].confidence - results[1].confidence) < MULTI_MATCH_SCORE_DIFF:
+        # Multiple close matches? (Only if not an exact match)
+        is_exact = best.confidence >= 1.0 or best.name.lower() == clean_name.lower()
+        if (
+            not is_exact
+            and len(results) > 1
+            and (results[0].confidence - results[1].confidence) < MULTI_MATCH_SCORE_DIFF
+        ):
             return MatchResult(
                 needs_review=True,
                 name=clean_name,
@@ -222,7 +272,12 @@ class IngredientMatcher:
 
         best = results[0]
 
-        if len(results) > 1 and (results[0].confidence - results[1].confidence) < MULTI_MATCH_SCORE_DIFF:
+        is_exact = best.confidence >= 1.0 or best.name.lower() == clean_name.lower()
+        if (
+            not is_exact
+            and len(results) > 1
+            and (results[0].confidence - results[1].confidence) < MULTI_MATCH_SCORE_DIFF
+        ):
             return MatchResult(
                 needs_review=True,
                 name=clean_name,

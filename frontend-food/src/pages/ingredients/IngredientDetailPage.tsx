@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChefHat, Plus, X, Search, CheckCircle } from 'lucide-react';
+import { ChefHat, Plus, X, Search, CheckCircle, Sparkles, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { useAiFillMissingIngredient } from '@/api/dataQuality';
 import {
   DndContext,
   closestCenter,
@@ -49,6 +50,17 @@ import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { AiSuggestDialog, type SuggestionField } from '@/components/shared/AiSuggestDialog';
 import { IngredientBenchmarkSection } from '@/components/ingredient/IngredientBenchmarkSection';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 import { SortablePortionItem } from '@/components/ingredients/SortablePortionItem';
 import RecipeCard from '@/components/recipe/RecipeCard';
@@ -258,6 +270,231 @@ function PackageRow({
 }
 
 // ---------------------------------------------------------------------------
+// Portion form dialog
+// ---------------------------------------------------------------------------
+interface PortionFormValues {
+  name: string;
+  quantity: string;
+  unitId: string;
+  rank: string;
+  weight: string;
+}
+
+interface PortionFormSubmission {
+  name: string;
+  quantity: number;
+  measuring_unit_id: number;
+  rank: number;
+  weight_g: number | null;
+}
+
+interface PortionFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  mode: 'create' | 'edit';
+  idPrefix: string;
+  initialValues: PortionFormValues;
+  measuringUnits: MeasuringUnit[];
+  isPending: boolean;
+  onSubmit: (values: PortionFormSubmission) => void;
+}
+
+function PortionFormDialog({
+  open,
+  onOpenChange,
+  mode,
+  idPrefix,
+  initialValues,
+  measuringUnits,
+  isPending,
+  onSubmit,
+}: PortionFormDialogProps) {
+  const [values, setValues] = useState<PortionFormValues>(initialValues);
+
+  useEffect(() => {
+    if (open) {
+      setValues(initialValues);
+    }
+  }, [
+    open,
+    initialValues.name,
+    initialValues.quantity,
+    initialValues.unitId,
+    initialValues.rank,
+    initialValues.weight,
+  ]);
+
+  const setValue = (field: keyof PortionFormValues, value: string) => {
+    setValues((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSubmit = () => {
+    const name = values.name.trim();
+    if (!name) {
+      toast.error('Name darf nicht leer sein');
+      return;
+    }
+
+    const quantity = Number(values.quantity.trim().replace(',', '.'));
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error('Die Anzahl muss größer als 0 sein');
+      return;
+    }
+
+    const rank = Number(values.rank.trim());
+    if (!Number.isInteger(rank) || rank < 1) {
+      toast.error('Der Rang muss eine positive ganze Zahl sein');
+      return;
+    }
+
+    const measuringUnitId = Number(values.unitId);
+    if (!Number.isInteger(measuringUnitId) || measuringUnitId < 1) {
+      toast.error('Bitte wähle eine Einheit aus');
+      return;
+    }
+
+    const weightInput = values.weight.trim();
+    const weight = weightInput ? Number(weightInput.replace(',', '.')) : null;
+    if (weight !== null && (!Number.isFinite(weight) || weight <= 0)) {
+      toast.error('Gewicht muss größer als 0 g sein');
+      return;
+    }
+
+    onSubmit({
+      name,
+      quantity,
+      measuring_unit_id: measuringUnitId,
+      rank,
+      weight_g: weight,
+    });
+  };
+
+  const isCreate = mode === 'create';
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && isPending) {
+          return;
+        }
+        onOpenChange(nextOpen);
+      }}
+    >
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display">
+            {isCreate ? 'Portion hinzufügen' : 'Portion bearbeiten'}
+          </DialogTitle>
+          <DialogDescription>
+            {isCreate
+              ? 'Lege Name, Menge, Einheit, Rang und optional ein exaktes Gewicht fest.'
+              : 'Stelle alle Werte dieser Portion genau ein. Die Änderungen werden erst beim Speichern übernommen.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSubmit();
+          }}
+        >
+          <div className="space-y-2">
+            <Label htmlFor={`${idPrefix}-name`}>Name</Label>
+            <Input
+              id={`${idPrefix}-name`}
+              value={values.name}
+              onChange={(event) => setValue('name', event.target.value)}
+              placeholder="z. B. Esslöffel"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-quantity`}>Anzahl</Label>
+              <Input
+                id={`${idPrefix}-quantity`}
+                value={values.quantity}
+                onChange={(event) => setValue('quantity', event.target.value)}
+                type="text"
+                inputMode="decimal"
+                placeholder="z. B. 1,5"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-unit`}>Einheit</Label>
+              <select
+                id={`${idPrefix}-unit`}
+                value={values.unitId}
+                onChange={(event) => setValue('unitId', event.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="" disabled>
+                  Einheit auswählen
+                </option>
+                {measuringUnits.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {formatMeasuringUnitLabel(unit)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-rank`}>Rang</Label>
+              <Input
+                id={`${idPrefix}-rank`}
+                value={values.rank}
+                onChange={(event) => setValue('rank', event.target.value)}
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+              />
+              <p className="text-xs text-muted-foreground">Rang 1 ist die Standardportion.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`${idPrefix}-weight`}>Gewicht (g)</Label>
+              <Input
+                id={`${idPrefix}-weight`}
+                value={values.weight}
+                onChange={(event) => setValue('weight', event.target.value)}
+                type="text"
+                inputMode="decimal"
+                placeholder="Automatisch"
+              />
+              <p className="text-xs text-muted-foreground">
+                Feld leer lassen, damit das Gewicht aus Anzahl und Einheit berechnet wird.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
+              Abbrechen
+            </Button>
+            <Button type="submit" disabled={isPending || !values.name.trim()}>
+              {isPending ? (isCreate ? 'Hinzufügen ...' : 'Speichern ...') : isCreate ? 'Portion hinzufügen' : 'Speichern'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Portion Card
 // ---------------------------------------------------------------------------
 function PortionCard({
@@ -274,34 +511,19 @@ function PortionCard({
   const { data: measuringUnits } = useMeasuringUnits();
 
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(portion.name);
-  const [editRank, setEditRank] = useState(String(portion.rank));
-  const [editQuantity, setEditQuantity] = useState(String(portion.quantity ?? 1));
-  const [editUnitId, setEditUnitId] = useState(String(portion.measuring_unit_id ?? ''));
-  const [editWeight, setEditWeight] = useState(portion.weight_g?.toString() || '');
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const handleSavePortion = () => {
-    const trimmed = editName.trim();
-    if (!trimmed) {
-      toast.error('Name darf nicht leer sein');
-      return;
-    }
-    const weight = editWeight.trim() ? Number(editWeight) : null;
-    if (weight !== null && (!Number.isFinite(weight) || weight <= 0)) {
-      toast.error('Gewicht muss größer als 0 g sein');
-      return;
-    }
+  const handleSavePortion = (values: PortionFormSubmission) => {
     updatePortion.mutate(
       {
         portionId: portion.id,
         data: {
-          name: trimmed,
-          rank: Number(editRank),
-          quantity: Number(editQuantity) || 1,
-          measuring_unit_id: editUnitId ? Number(editUnitId) : null,
-          weight_g: weight,
+          name: values.name,
+          rank: values.rank,
+          quantity: values.quantity,
+          measuring_unit_id: values.measuring_unit_id,
+          weight_g: values.weight_g,
         },
       },
       {
@@ -323,118 +545,48 @@ function PortionCard({
           scale
         </span>
         <div className="flex-1 min-w-0">
-          {editing ? (
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col flex-1">
-                <label className="text-[10px] text-muted-foreground font-medium mb-0.5">Name</label>
-                <input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
-                  placeholder="z.B. EL, ml, Gramm"
-                />
-              </div>
-              <div className="flex flex-col w-20">
-                <label className="text-[10px] text-muted-foreground font-medium mb-0.5">Anzahl</label>
-                <input
-                  value={editQuantity}
-                  onChange={(e) => setEditQuantity(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
-                />
-              </div>
-              <div className="flex flex-col w-28">
-                <label className="text-[10px] text-muted-foreground font-medium mb-0.5">Einheit</label>
-                <select
-                  value={editUnitId}
-                  onChange={(e) => setEditUnitId(e.target.value)}
-                  className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
-                >
-                  <option value="">—</option>
-                  {measuringUnits?.map((u) => (
-                    <option key={u.id} value={u.id}>{formatMeasuringUnitLabel(u)}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col w-16">
-                <label className="text-[10px] text-muted-foreground font-medium mb-0.5">Rank</label>
-                <input
-                  value={editRank}
-                  onChange={(e) => setEditRank(e.target.value)}
-                  type="number"
-                  step="1"
-                  className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
-                />
-              </div>
-              <div className="flex flex-col w-20">
-                <label className="text-[10px] text-muted-foreground font-medium mb-0.5">Gewicht (g)</label>
-                <input
-                  value={editWeight}
-                  onChange={(e) => setEditWeight(e.target.value)}
-                  type="number"
-                  min="0.01"
-                  step="0.1"
-                  className="bg-background border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full"
-                  placeholder="z. B. 15"
-                />
-              </div>
-              <button
-                onClick={handleSavePortion}
-                disabled={!editName.trim()}
-                className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded self-end disabled:opacity-50"
-              >
-                OK
-              </button>
-              <button
-                onClick={() => setEditing(false)}
-                className="text-xs px-2 py-1 bg-muted rounded self-end"
-              >
-                Abbrechen
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm">
-                {portion.name.trim() || <span className="text-destructive font-medium italic">Unbenannt</span>}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm">
+              {portion.name.trim() || <span className="text-destructive font-medium italic">Unbenannt</span>}
+            </span>
+            {isDefault && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
+                Standard
               </span>
-              {isDefault && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
-                  Standard
-                </span>
-              )}
-              {portion.weight_g ? (
-                <span className="text-xs text-muted-foreground">
-                  ≈ {portion.weight_g}g
-                </span>
-              ) : (
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] font-medium px-1.5 py-0.5 rounded border border-[hsl(var(--chart-4))]/20"
-                  title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
-                >
-                  <span className="material-symbols-outlined text-[12px]">warning</span>
-                  Kein Gewicht
-                </span>
-              )}
-            </div>
-          )}
+            )}
+            {portion.weight_g ? (
+              <span className="text-xs text-muted-foreground">
+                ≈ {portion.weight_g}g
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] font-medium px-1.5 py-0.5 rounded border border-[hsl(var(--chart-4))]/20"
+                title="Gewicht konnte nicht automatisch berechnet werden. Bitte manuell pflegen, um die Portion in Rezepten nutzen zu können."
+              >
+                <span className="material-symbols-outlined text-[12px]">warning</span>
+                Kein Gewicht
+              </span>
+            )}
+          </div>
         </div>
 
-        {!editing && canEdit && (
+        {canEdit && (
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setEditing(true)}
               className="text-muted-foreground hover:text-foreground rounded p-1 transition"
               title="Bearbeiten"
+              aria-label={`Portion bearbeiten: ${portion.name}`}
             >
-              <span className="material-symbols-outlined text-sm">edit</span>
+              <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => setConfirmDelete(true)}
               className="text-destructive/60 hover:text-destructive rounded p-1 transition"
               title="Löschen"
+              aria-label={`Portion löschen: ${portion.name}`}
             >
-              <span className="material-symbols-outlined text-sm">delete</span>
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -459,6 +611,23 @@ function PortionCard({
         description="Die Portion wird unwiderruflich gelöscht."
         confirmLabel="Löschen"
         loading={deletePortion.isPending}
+      />
+
+      <PortionFormDialog
+        open={editing}
+        onOpenChange={setEditing}
+        mode="edit"
+        idPrefix={`portion-${portion.id}`}
+        initialValues={{
+          name: portion.name,
+          quantity: String(portion.quantity ?? 1),
+          unitId: String(portion.measuring_unit_id ?? ''),
+          rank: String(portion.rank),
+          weight: portion.weight_g?.toString() || '',
+        }}
+        measuringUnits={measuringUnits || []}
+        isPending={updatePortion.isPending}
+        onSubmit={handleSavePortion}
       />
     </div>
   );
@@ -540,14 +709,8 @@ interface PortionsSectionProps {
   canEdit: boolean;
   showAddPortion: boolean;
   setShowAddPortion: (show: boolean) => void;
-  newPortionName: string;
-  setNewPortionName: (name: string) => void;
-  newPortionQuantity: string;
-  setNewPortionQuantity: (qty: string) => void;
-  newPortionUnitId: string;
-  setNewPortionUnitId: (id: string) => void;
   measuringUnits: MeasuringUnit[];
-  onAddPortion: () => void;
+  onAddPortion: (values: PortionFormSubmission) => void;
   isAddingPortion: boolean;
 }
 
@@ -556,12 +719,6 @@ function PortionsSection({
   canEdit,
   showAddPortion,
   setShowAddPortion,
-  newPortionName,
-  setNewPortionName,
-  newPortionQuantity,
-  setNewPortionQuantity,
-  newPortionUnitId,
-  setNewPortionUnitId,
   measuringUnits,
   onAddPortion,
   isAddingPortion,
@@ -630,6 +787,14 @@ function PortionsSection({
 
   const portionIds = useMemo(() => sortedPortions.map((p) => p.id), [sortedPortions]);
 
+  const nextPortionRank = useMemo(() => {
+    const ranks = sortedPortions
+      .filter((portion) => portion.name.toLowerCase() !== 'g')
+      .map((portion) => portion.rank)
+      .filter((rank) => Number.isInteger(rank) && rank > 0);
+    return ranks.length > 0 ? Math.max(...ranks) + 1 : 1;
+  }, [sortedPortions]);
+
   // Check if Packung portion is missing weight
   const packungPortion = sortedPortions.find((p) => p.name === 'Packung');
   const packungHasWeight = packungPortion && packungPortion.weight_g && packungPortion.weight_g > 0;
@@ -668,48 +833,22 @@ function PortionsSection({
         )}
       </div>
 
-      {showAddPortion && (
-        <div className="border border-border rounded-xl p-4 mb-4 bg-card shadow-soft">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              value={newPortionName}
-              onChange={(e) => setNewPortionName(e.target.value)}
-              placeholder="Portionsname (z.B. Tasse, EL)"
-              className="flex-1 px-3 py-2 border rounded-md text-sm bg-background"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onAddPortion();
-              }}
-              autoFocus
-            />
-            <input
-              type="number"
-              value={newPortionQuantity}
-              onChange={(e) => setNewPortionQuantity(e.target.value)}
-              placeholder="Anzahl"
-              className="w-20 px-3 py-2 border rounded-md text-sm bg-background"
-            />
-            <select
-              value={newPortionUnitId}
-              onChange={(e) => setNewPortionUnitId(e.target.value)}
-              className="w-28 px-3 py-2 border rounded-md text-sm bg-background"
-            >
-              <option value="">Einheit…</option>
-              {measuringUnits?.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {formatMeasuringUnitLabel(u)}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={onAddPortion}
-              disabled={!newPortionName.trim() || isAddingPortion}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm disabled:opacity-50"
-            >
-              Hinzufügen
-            </button>
-          </div>
-        </div>
-      )}
+      <PortionFormDialog
+        open={showAddPortion}
+        onOpenChange={setShowAddPortion}
+        mode="create"
+        idPrefix="new-portion"
+        initialValues={{
+          name: '',
+          quantity: '1',
+          unitId: '',
+          rank: String(nextPortionRank),
+          weight: '',
+        }}
+        measuringUnits={measuringUnits}
+        isPending={isAddingPortion}
+        onSubmit={onAddPortion}
+      />
 
       {ingredient.portions.length === 0 && <p className="text-sm text-muted-foreground italic">Keine Portionen definiert.</p>}
 
@@ -772,9 +911,6 @@ export default function IngredientDetailPage() {
 
   // Portion add
   const [showAddPortion, setShowAddPortion] = useState(false);
-  const [newPortionName, setNewPortionName] = useState('');
-  const [newPortionQuantity, setNewPortionQuantity] = useState('1');
-  const [newPortionUnitId, setNewPortionUnitId] = useState('');
   const { data: measuringUnits } = useMeasuringUnits();
 
   // Alias add
@@ -786,6 +922,24 @@ export default function IngredientDetailPage() {
   const [showAiSuggest, setShowAiSuggest] = useState(false);
   const [replacePortions, setReplacePortions] = useState(false);
   const aiSuggest = useAiSuggestIngredientAll(slug || '');
+  const fillMissing = useAiFillMissingIngredient();
+
+  const handleFillMissing = async () => {
+    if (!ingredient) return;
+    try {
+      const res = await fillMissing.mutateAsync(ingredient.id);
+      if (res.filled_fields.length > 0) {
+        const labels = res.filled_fields.map((f) => f.label).slice(0, 4).join(', ');
+        const more = res.filled_fields.length > 4 ? ` und ${res.filled_fields.length - 4} weitere` : '';
+        toast.success(`${res.filled_fields.length} fehlende Stammdaten ergänzt: ${labels}${more}`);
+        refetch();
+      } else {
+        toast.info('Alle Stammdaten sind bereits vollständig erfasst. Keine leeren Felder vorhanden.');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Fehler bei der KI-Ergänzung');
+    }
+  };
 
   const canEdit = ingredient?.can_edit ?? false;
   const canAiSuggest = !!user && user.is_staff;
@@ -952,24 +1106,18 @@ export default function IngredientDetailPage() {
     });
   };
 
-  const handleAddPortion = () => {
-    const trimmed = newPortionName.trim();
-    if (!trimmed) {
-      toast.error('Name darf nicht leer sein');
-      return;
-    }
+  const handleAddPortion = (values: PortionFormSubmission) => {
     createPortion.mutate(
       {
-        name: trimmed,
-        quantity: Number(newPortionQuantity) || 1,
-        measuring_unit_id: newPortionUnitId ? Number(newPortionUnitId) : undefined,
+        name: values.name,
+        quantity: values.quantity,
+        measuring_unit_id: values.measuring_unit_id,
+        rank: values.rank,
+        ...(values.weight_g !== null ? { weight_g: values.weight_g } : {}),
       },
       {
         onSuccess: () => {
           toast.success('Portion hinzugefügt');
-          setNewPortionName('');
-          setNewPortionQuantity('1');
-          setNewPortionUnitId('');
           setShowAddPortion(false);
         },
         onError: (err) => toast.error('Fehler', { description: err.message }),
@@ -1080,18 +1228,32 @@ export default function IngredientDetailPage() {
         {(canEdit || canAiSuggest) && (
           <div className="flex items-center gap-1 shrink-0">
             {canAiSuggest && (
-              <button
-                onClick={() => {
-                  setShowAiSuggest(true);
-                  if (!aiSuggest.data && !aiSuggest.isPending) {
-                    aiSuggest.mutate();
-                  }
-                }}
-                className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
-                title="KI-Vorschläge"
-              >
-                <span className="material-symbols-outlined text-lg">auto_fix_high</span>
-              </button>
+              <>
+                <button
+                  onClick={handleFillMissing}
+                  disabled={fillMissing.isPending}
+                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground hover:text-primary"
+                  title="Fehlende Stammdaten mit KI ergänzen (bestehende bleiben erhalten)"
+                >
+                  {fillMissing.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAiSuggest(true);
+                    if (!aiSuggest.data && !aiSuggest.isPending) {
+                      aiSuggest.mutate();
+                    }
+                  }}
+                  className="p-2 rounded-md hover:bg-muted transition text-muted-foreground"
+                  title="Alle KI-Vorschläge prüfen & vergleichen"
+                >
+                  <span className="material-symbols-outlined text-lg">auto_fix_high</span>
+                </button>
+              </>
             )}
             {canEdit && (
               <>
@@ -1378,12 +1540,6 @@ export default function IngredientDetailPage() {
         canEdit={canEdit}
         showAddPortion={showAddPortion}
         setShowAddPortion={setShowAddPortion}
-        newPortionName={newPortionName}
-        setNewPortionName={setNewPortionName}
-        newPortionQuantity={newPortionQuantity}
-        setNewPortionQuantity={setNewPortionQuantity}
-        newPortionUnitId={newPortionUnitId}
-        setNewPortionUnitId={setNewPortionUnitId}
         measuringUnits={measuringUnits || []}
         onAddPortion={handleAddPortion}
         isAddingPortion={createPortion.isPending}

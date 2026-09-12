@@ -8,6 +8,7 @@ from .dashboard import (
 from .items import (
     AiIngredientApplyIn,
     AiIngredientSuggestionOut,
+    AiIngredientSuggestionsOut,
     EstimateQuantitiesOut,
     EstimateQuantityItemOut,
     ExchangeGroupMemberOut,
@@ -23,6 +24,7 @@ from .nutrition import (
     ImprovementOut,
     LlmSuggestionOut,
     LlmSuggestionRequestIn,
+    LlmSuggestionsOut,
     NutriScoreDetailOut,
     RecipeItemNutritionOut,
     RecipeNutritionBreakdownOut,
@@ -76,6 +78,7 @@ from .type_stats import (
 __all__ = [
     "AiIngredientApplyIn",
     "AiIngredientSuggestionOut",
+    "AiIngredientSuggestionsOut",
     "BucketOut",
     "BucketSchema",
     "ContributionOut",
@@ -89,6 +92,7 @@ __all__ = [
     "ImprovementOut",
     "LlmSuggestionOut",
     "LlmSuggestionRequestIn",
+    "LlmSuggestionsOut",
     "NutriScoreDetailOut",
     "NutritionalTagOut",
     "PaginatedRecipeOut",

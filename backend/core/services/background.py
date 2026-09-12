@@ -1,14 +1,18 @@
 """Background task execution utilities for fire-and-forget operations."""
 
 import logging
-import threading
-from typing import Callable
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 
 from django.db import connection
 
+# Bounded thread pool prevents DB connection exhaustion on small DB instances
+# (e.g. Cloud SQL db-f1-micro) when many post_save signals fire simultaneously.
+_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="bg-task")
+
 
 def run_in_background(fn: Callable[[], None]) -> None:
-    """Run fn in a daemon thread with its own short-lived DB connection.
+    """Run fn in a bounded background thread pool with its own short-lived DB connection.
 
     Closes the connection explicitly when fn returns (or raises), instead of
     relying on CONN_MAX_AGE to eventually reclaim it. Must be called from
@@ -44,4 +48,4 @@ def run_in_background(fn: Callable[[], None]) -> None:
             # which can exhaust the connection pool on high-concurrency operations
             connection.close()
 
-    threading.Thread(target=_wrapper, daemon=True).start()
+    _EXECUTOR.submit(_wrapper)

@@ -12,6 +12,7 @@ import type { AiTimelineEntry } from '@/schemas/aiInteraction';
 
 interface Props {
   timeline: AiTimelineEntry[];
+  includeEmbeddings?: boolean;
 }
 
 function formatDate(iso: string): string {
@@ -21,7 +22,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function AiCostChart({ timeline }: Props) {
+export default function AiCostChart({ timeline, includeEmbeddings = false }: Props) {
   if (timeline.length === 0) {
     return (
       <Card>
@@ -75,12 +76,28 @@ export default function AiCostChart({ timeline }: Props) {
               strokeWidth={2}
               dot={false}
             />
+            {includeEmbeddings && (
+              <Line
+                type="monotone"
+                dataKey="embedding_cost_eur"
+                name="Embeddings"
+                stroke="var(--muted-foreground)"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={false}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 bg-primary rounded-sm" /> Kosten (€)
           </span>
+          {includeEmbeddings && (
+            <span className="flex items-center gap-1">
+              <span className="w-3 border-t-2 border-dashed border-muted-foreground" /> Embeddings (€)
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>

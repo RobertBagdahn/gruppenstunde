@@ -1,33 +1,40 @@
+/* ==========================================================================
+   Inspi Meal Plan PDF Styling
+   Clean, vibrant, high-readability design for kitchen and camp planning.
+   ========================================================================== */
+
 @page {
-  margin: 2cm;
+  margin: 12mm 14mm 16mm 14mm;
   size: A4;
 
   @top-left {
-    content: string(plan-name);
+    content: "Inspi · Essensplaner";
     font-size: 8pt;
-    color: #666;
-    font-family: sans-serif;
+    font-weight: 600;
+    color: #64748b;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   @top-right {
-    content: string(day-label);
+    content: string(doc-title, first);
     font-size: 8pt;
-    color: #666;
-    font-family: sans-serif;
+    color: #64748b;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   @bottom-left {
-    content: string(footer-ref);
-    font-size: 7pt;
-    color: #999;
-    font-family: sans-serif;
+    content: "essensplan.app · Alle Angaben ohne Gewähr";
+    font-size: 7.5pt;
+    color: #94a3b8;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   @bottom-right {
     content: "Seite " counter(page) " von " counter(pages);
-    font-size: 7pt;
-    color: #999;
-    font-family: sans-serif;
+    font-size: 7.5pt;
+    font-weight: 600;
+    color: #64748b;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 }
 
@@ -35,384 +42,1118 @@
   size: letter;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: 'Source Sans Pro', 'Segoe UI', sans-serif;
-  font-size: 11pt;
-  line-height: 1.4;
-  color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  color: #1e293b;
   margin: 0;
   padding: 0;
 }
 
-h1 {
-  font-size: 24pt;
+/* ==========================================================================
+   Typography & Shared Elements
+   ========================================================================== */
+h1, h2, h3, h4, h5 {
+  margin: 0;
+  color: #0f172a;
   font-weight: 700;
-  color: #000;
-  margin: 0 0 4pt 0;
 }
 
-h2 {
-  font-size: 18pt;
+.muted {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.section-hero {
+  margin-bottom: 12pt;
+  padding-bottom: 8pt;
+  border-bottom: 2pt solid #e2e8f0;
+}
+
+.section-tag {
+  display: inline-block;
+  font-size: 7pt;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 2pt 6pt;
+  border-radius: 3pt;
+  margin-bottom: 3pt;
+}
+
+.section-hero h2 {
+  font-size: 17pt;
+  color: #0f172a;
+  margin-bottom: 2pt;
+}
+
+.section-desc {
+  font-size: 8.5pt;
+  color: #64748b;
+}
+
+.subsection-title {
+  font-size: 11pt;
   font-weight: 700;
-  color: #000;
-  margin: 0 0 12pt 0;
+  color: #334155;
+  margin: 10pt 0 6pt 0;
+  display: flex;
+  align-items: center;
 }
 
-h3 {
-  font-size: 14pt;
-  font-weight: 700;
-  color: #333;
-  margin: 0 0 4pt 0;
+.subsection-title .title-icon {
+  margin-right: 4pt;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  padding: 4pt 8pt;
-  text-align: left;
-  vertical-align: top;
-}
-
+/* ==========================================================================
+   1. Cover Page
+   ========================================================================== */
 .cover-page {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 600pt;
+  min-height: 680pt;
   text-align: center;
   page-break-after: always;
+  break-after: page;
+  padding: 20pt;
 }
 
-.cover-page .logo {
-  max-width: 120pt;
-  max-height: 120pt;
-  margin-bottom: 24pt;
-}
-
-.cover-page h1 {
-  font-size: 28pt;
-  margin-bottom: 8pt;
-}
-
-.cover-page .meta {
-  font-size: 12pt;
-  color: #555;
-  line-height: 1.6;
-}
-
-.day-section {
-  page-break-before: always;
-}
-
-.day-section:first-of-type {
-  page-break-before: auto;
-}
-
-.compact .day-section {
-  page-break-before: auto;
-}
-
-.day-header {
-  string-set: day-label "Tag " counter(day-counter) ": " attr(data-label);
-  font-size: 18pt;
-  font-weight: 700;
-  color: hsl(142, 76%, 36%);
-  border-bottom: 2pt solid hsl(142, 76%, 36%);
-  padding-bottom: 4pt;
-  margin-bottom: 12pt;
-}
-
-.meal-row {
-  display: flex;
-  gap: 6pt;
-  margin-bottom: 12pt;
-  break-inside: avoid;
-}
-
-.meal-box {
-  flex: 1;
-  border: 2pt solid #d4d4d8;
-  padding: 8pt 12pt;
-  background: white;
-}
-
-.meal-box-wide {
-  border: 2pt solid #d4d4d8;
-  padding: 8pt 12pt;
-  background: white;
-  margin-bottom: 12pt;
-  break-inside: avoid;
-}
-
-.meal-box h3 {
-  font-size: 14pt;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4pt;
+.cover-top-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #ffffff;
+  font-size: 8.5pt;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 4pt 12pt;
+  border-radius: 12pt;
+  margin-bottom: 16pt;
   text-transform: uppercase;
 }
 
-.meal-box .meal-icon {
-  font-size: 12pt;
+.cover-logo {
+  max-width: 100pt;
+  max-height: 100pt;
+  margin-bottom: 16pt;
+}
+
+.cover-title {
+  font-size: 26pt;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  margin-bottom: 6pt;
+  max-width: 500pt;
+  string-set: doc-title attr(data-title);
+}
+
+.cover-subtitle {
+  font-size: 11pt;
+  color: #64748b;
+  margin-bottom: 24pt;
+  max-width: 420pt;
+}
+
+.cover-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10pt;
+  max-width: 460pt;
+  margin-top: 8pt;
+}
+
+.cover-meta-card {
+  flex: 1 1 200pt;
+  background: #f8fafc;
+  border: 1pt solid #e2e8f0;
+  border-radius: 6pt;
+  padding: 10pt 12pt;
+  text-align: left;
+}
+
+.meta-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20pt;
+  height: 20pt;
+  border-radius: 5pt;
+  background: #d1fae5;
+  color: #047857;
+  font-size: 7pt;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 2pt;
+}
+
+.meta-card-label {
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.meta-card-value {
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 1pt;
+}
+
+/* ==========================================================================
+   2. Zeitplan & Essenszeiten (Schedule & Eating Times)
+   ========================================================================== */
+.schedule-section {
+  page-break-before: always;
+  break-before: page;
+}
+
+.eating-times-overview {
+  margin-bottom: 14pt;
+}
+
+.eating-days-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8pt;
+}
+
+.eating-day-card {
+  background: #ffffff;
+  border: 1pt solid #e2e8f0;
+  border-radius: 6pt;
+  overflow: hidden;
+  break-inside: avoid;
+}
+
+.eating-day-header {
+  background: #f1f5f9;
+  padding: 5pt 10pt;
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 1pt solid #e2e8f0;
+}
+
+.eating-meals-list {
+  padding: 4pt 8pt;
+}
+
+.eating-meal-item {
+  display: flex;
+  align-items: center;
+  gap: 12pt;
+  padding: 5pt 6pt;
+  border-bottom: 0.5pt solid #f1f5f9;
+  font-size: 8.5pt;
+}
+
+.eating-meal-item:last-child {
+  border-bottom: none;
+}
+
+.meal-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4pt;
+  min-width: 95pt;
+  font-weight: 700;
+  padding: 2.5pt 7pt;
+  border-radius: 4pt;
+  flex: 0 0 auto;
+}
+
+.meal-theme-breakfast .meal-type-pill {
+  background: #fef3c7;
+  color: #92400e;
+  border: 0.5pt solid #fde68a;
+}
+
+.meal-theme-lunch .meal-type-pill {
+  background: #d1fae5;
+  color: #065f46;
+  border: 0.5pt solid #a7f3d0;
+}
+
+.meal-theme-snack .meal-type-pill {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 0.5pt solid #ddd6fe;
+}
+
+.meal-theme-dinner .meal-type-pill {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 0.5pt solid #bfdbfe;
+}
+
+.meal-timing-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 8pt;
+  flex: 0 0 auto;
+}
+
+.badge-eat {
+  background: #ecfdf5;
+  border: 1pt solid #a7f3d0;
+  color: #065f46;
+  padding: 2pt 6pt;
+  border-radius: 4pt;
+  font-size: 8.5pt;
+}
+
+.badge-eat strong {
+  font-size: 9.5pt;
+}
+
+.badge-cook {
+  background: #fffbeb;
+  border: 0.5pt solid #fde68a;
+  color: #92400e;
+  padding: 2pt 5pt;
+  border-radius: 4pt;
+  font-size: 8pt;
+}
+
+.badge-lead {
+  color: #64748b;
+  font-size: 7.5pt;
+  margin-right: 6pt;
+}
+
+.meal-dishes-summary {
+  flex: 1;
+  color: #334155;
+  font-size: 8.5pt;
+  padding-left: 4pt;
+}
+
+/* Schedule Table */
+.schedule-table-wrap {
+  margin-top: 10pt;
+  break-inside: avoid;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+  border: 1pt solid #cbd5e1;
+  border-radius: 4pt;
+}
+
+.schedule-table thead th {
+  background: #1e293b;
+  color: #ffffff;
+  padding: 5pt 7pt;
+  font-size: 8pt;
+  font-weight: 700;
+  text-align: left;
+  border: none;
+}
+
+.schedule-table tbody tr {
+  border-bottom: 0.5pt solid #e2e8f0;
+}
+
+.schedule-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.schedule-table td {
+  padding: 4.5pt 6pt;
   vertical-align: middle;
 }
 
-.meal-box .meal-time {
-  font-weight: 400;
-  text-transform: none;
-  font-size: 10pt;
-  color: #666;
-}
-
-.recipe-title {
+.table-meal-badge {
+  display: inline-block;
+  padding: 2pt 5pt;
+  font-size: 7.5pt;
   font-weight: 700;
-  font-size: 12pt;
-  color: #000;
-  margin-bottom: 2pt;
+  border-radius: 3pt;
+  white-space: nowrap;
 }
 
-.variant-block {
-  margin: 4pt 0 8pt 12pt;
-  padding: 4pt 8pt;
-  border-left: 3pt solid hsl(142, 76%, 36%);
+.table-meal-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12pt;
+  height: 12pt;
+  margin-right: 2pt;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 6.5pt;
+  font-weight: 800;
 }
 
-.variant-label {
+.badge-breakfast { background: #fef3c7; color: #92400e; }
+.badge-lunch { background: #d1fae5; color: #065f46; }
+.badge-snack { background: #ede9fe; color: #5b21b6; }
+.badge-dinner { background: #dbeafe; color: #1e40af; }
+
+.cell-time {
+  font-size: 8pt;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.cell-eat {
+  color: #065f46;
   font-weight: 700;
-  font-size: 11pt;
-  color: #333;
-  margin-bottom: 2pt;
 }
 
-.ingredient-list {
-  margin-top: 4pt;
+.cell-cook {
+  color: #92400e;
 }
 
-.ingredient-list p {
-  font-size: 10pt;
-  line-height: 1.4;
-  color: #000;
-  margin: 1pt 0;
+.cell-lead {
+  font-size: 7.5pt;
+  color: #64748b;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.notes-box {
-  width: 3.5cm;
-  min-width: 3cm;
-  max-width: 4cm;
-  border: 1pt solid #d4d4d8;
-  background: hsl(240, 5%, 96%);
-  padding: 6pt;
+.cell-portions {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.notes-label {
-  font-size: 7pt;
-  color: #999;
-  text-transform: uppercase;
-  margin-bottom: 12pt;
+.table-allergens {
+  margin-top: 2pt;
 }
 
-.day-end-notes {
-  margin-top: 6pt;
-  margin-bottom: 12pt;
+.allergen-mini {
+  display: inline-block;
+  font-size: 6.5pt;
+  padding: 1pt 3pt;
+  border-radius: 2pt;
+  margin-right: 2pt;
+  font-weight: 600;
 }
 
-.day-end-notes hr {
-  border: none;
-  border-top: 0.5pt solid #ccc;
-  margin: 6pt 0;
+/* ==========================================================================
+   3. Personenliste
+   ========================================================================= */
+.person-section {
+  page-break-before: always;
+  break-before: page;
 }
 
 .person-table {
-  margin-bottom: 24pt;
-  font-size: 10pt;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+  border: 1pt solid #cbd5e1;
 }
 
-.person-table th {
-  background: #f5f5f5;
-  font-weight: 700;
-  text-transform: uppercase;
+.person-table thead th {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 5pt 8pt;
   font-size: 8pt;
-  border-bottom: 2pt solid #d4d4d8;
+  font-weight: 700;
+  text-align: left;
 }
 
 .person-table td {
-  border-bottom: 0.5pt solid #e5e5e5;
+  padding: 5pt 8pt;
+  border-bottom: 0.5pt solid #e2e8f0;
+  vertical-align: middle;
 }
 
-.cooking-timeline {
-  margin-top: 12pt;
-  margin-bottom: 12pt;
-  padding: 8pt;
-  background: #f9fafb;
-  border: 1pt solid #e5e5e5;
+.person-table tbody tr:nth-child(even) {
+  background: #f8fafc;
 }
 
-.cooking-timeline h4 {
-  font-size: 11pt;
-  font-weight: 700;
-  margin: 0 0 6pt 0;
+.date-range-badge {
+  font-size: 7pt;
+  color: #64748b;
+  background: #e2e8f0;
+  padding: 1pt 4pt;
+  border-radius: 3pt;
+  margin-left: 4pt;
 }
 
-.timeline-item {
+.member-tag {
+  display: inline-block;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 0.5pt solid #fca5a5;
+  font-size: 7.5pt;
+  font-weight: 600;
+  padding: 1pt 5pt;
+  border-radius: 3pt;
+  margin: 1pt 2pt 1pt 0;
+}
+
+/* ==========================================================================
+   4. Mahlzeiten-Blätter (Single Sheet Per Meal)
+   Jedes Mahlzeit soll ein einzelnes Blatt bekommen mit allen Infos, Essen und
+   Schritt für Schritt Anleitung.
+   ========================================================================== */
+.meal-sheet {
+  page-break-before: always;
+  break-before: page;
+  min-height: 660pt;
   display: flex;
-  gap: 8pt;
-  padding: 3pt 0;
-  font-size: 10pt;
+  flex-direction: column;
 }
 
-.timeline-time {
+/* Sheet Header Banner */
+.sheet-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8pt 12pt;
+  border-radius: 6pt 6pt 0 0;
+  color: #ffffff;
+}
+
+.banner-breakfast {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+.banner-lunch {
+  background: linear-gradient(135deg, #047857, #10b981);
+}
+
+.banner-snack {
+  background: linear-gradient(135deg, #6d28d9, #8b5cf6);
+}
+
+.banner-dinner {
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+}
+
+.banner-left {
+  display: flex;
+  align-items: center;
+  gap: 6pt;
+}
+
+.banner-icon-box {
+  width: 28pt;
+  min-width: 28pt;
+  height: 28pt;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6pt;
+}
+
+.banner-icon {
+  font-size: 22pt;
+  line-height: 1;
+}
+
+.banner-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.banner-type {
+  font-size: 14pt;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.banner-date {
+  font-size: 9pt;
+  opacity: 0.95;
+  font-weight: 500;
+}
+
+.banner-portions-pill {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  padding: 4pt 10pt;
+  border-radius: 12pt;
+  font-size: 9pt;
   font-weight: 700;
-  color: #555;
-  min-width: 40pt;
+  border: 1pt solid rgba(255, 255, 255, 0.4);
 }
 
-.shopping-list {
-  margin-top: 24pt;
-  padding-top: 12pt;
-  border-top: 2pt solid #000;
-}
-
-.shopping-list h2 {
-  font-size: 18pt;
-  font-weight: 700;
-  color: #000;
+/* Quick-Info Bar */
+.sheet-info-bar {
+  display: flex;
+  gap: 6pt;
+  background: #f8fafc;
+  border: 1pt solid #e2e8f0;
+  border-top: none;
+  padding: 6pt 10pt;
   margin-bottom: 8pt;
 }
 
-.shopping-list h3 {
-  font-size: 12pt;
-  font-weight: 700;
-  color: #333;
-  margin-top: 8pt;
-  margin-bottom: 4pt;
+.info-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6pt;
+  background: #ffffff;
+  border: 1pt solid #cbd5e1;
+  border-radius: 4pt;
+  padding: 4pt 8pt;
 }
 
-.shopping-list ul {
+.info-pill-icon {
+  font-size: 8pt;
+  font-weight: 800;
+  color: #475569;
+  line-height: 1;
+  min-width: 18pt;
+  margin-right: 4pt;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-pill-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-pill-label {
+  font-size: 6.5pt;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.info-pill-value {
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.info-pill.pill-eat {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.info-pill-value.value-eat {
+  color: #166534;
+  font-size: 10.5pt;
+}
+
+.info-pill.pill-cook {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+/* Allergens Bar */
+.sheet-allergens-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4pt;
+  background: #fef2f2;
+  border: 1pt solid #fecaca;
+  border-radius: 4pt;
+  padding: 4pt 8pt;
+  margin-bottom: 8pt;
+}
+
+.allergens-title {
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #991b1b;
+  margin-right: 4pt;
+}
+
+.allergens-badges-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3pt;
+}
+
+/* Note box */
+.sheet-note-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 6pt;
+  background: #fffbeb;
+  border: 1pt solid #fde68a;
+  border-radius: 4pt;
+  padding: 6pt 10pt;
+  margin-bottom: 8pt;
+  font-size: 8.5pt;
+  color: #78350f;
+}
+
+.note-box-icon {
+  font-size: 11pt;
+}
+
+/* Content: Dish Cards */
+.sheet-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10pt;
+}
+
+.dish-card {
+  border: 1.5pt solid #cbd5e1;
+  border-radius: 6pt;
+  overflow: hidden;
+  background: #ffffff;
+  break-inside: avoid;
+}
+
+.dish-card-header {
+  background: #f1f5f9;
+  border-bottom: 1pt solid #e2e8f0;
+  padding: 6pt 10pt;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dish-title {
+  font-size: 12pt;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.dish-subtitle {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #475569;
+  margin-left: 4pt;
+}
+
+.dish-portions-badge {
+  font-size: 7.5pt;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+  padding: 2pt 6pt;
+  border-radius: 10pt;
+}
+
+.excluded-marker {
+  color: #dc2626;
+  font-size: 9pt;
+}
+
+.dish-allergens {
+  padding: 4pt 10pt;
+  background: #fafafa;
+  border-bottom: 0.5pt solid #f1f5f9;
+}
+
+/* Two Columns: Ingredients + Steps */
+.dish-two-columns {
+  display: flex;
+  gap: 14pt;
+  padding: 10pt 12pt;
+}
+
+.dish-col-ingredients {
+  flex: 0 0 38%;
+  border-right: 1pt solid #e2e8f0;
+  padding-right: 12pt;
+}
+
+.dish-col-steps {
+  flex: 1 1 62%;
+}
+
+.col-heading {
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: #334155;
+  border-bottom: 1pt solid #e2e8f0;
+  padding-bottom: 3pt;
+  margin-bottom: 6pt;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Ingredient list */
+.ingredient-items {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.shopping-list li {
-  font-size: 10pt;
+.ingredient-items li {
+  font-size: 9pt;
   line-height: 1.5;
-  color: #000;
-  padding-left: 12pt;
-  position: relative;
+  padding: 2.5pt 0;
+  border-bottom: 0.5pt solid #f8fafc;
+  color: #1e293b;
 }
 
-.shopping-list li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: #666;
+.ing-bullet {
+  color: #10b981;
+  font-weight: bold;
+  margin-right: 2pt;
 }
 
-.fresh-marker {
+/* Steps list */
+.steps-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 6pt;
+}
+
+.step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8pt;
+  background: #f8fafc;
+  border: 0.5pt solid #e2e8f0;
+  border-radius: 4pt;
+  padding: 6pt 8pt;
+}
+
+.step-number-bubble {
+  flex: 0 0 18pt;
+  width: 18pt;
+  height: 18pt;
+  border-radius: 50%;
+  background: #059669;
+  color: #ffffff;
+  font-size: 8.5pt;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 18pt;
+}
+
+.meal-sheet-breakfast .step-number-bubble { background: #d97706; }
+.meal-sheet-lunch .step-number-bubble { background: #059669; }
+.meal-sheet-snack .step-number-bubble { background: #7c3aed; }
+.meal-sheet-dinner .step-number-bubble { background: #2563eb; }
+
+.step-details {
+  flex: 1;
+}
+
+.step-instruction {
+  font-size: 9pt;
+  line-height: 1.45;
+  color: #1e293b;
+}
+
+.step-timer-badge {
+  display: inline-block;
+  margin-top: 3pt;
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 1pt 5pt;
+  border-radius: 3pt;
+}
+
+.no-steps-notice {
+  padding: 8pt;
+  background: #f8fafc;
+  border: 0.5pt dashed #cbd5e1;
+  border-radius: 4pt;
   font-size: 8pt;
-  color: hsl(142, 76%, 36%);
-  margin-left: 4pt;
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
 }
 
-.per-day-section {
+/* Handwritten Kitchen Notes */
+.kitchen-handwritten-box {
+  margin-top: auto;
+  padding: 6pt 10pt;
+  background: #f8fafc;
+  border: 1pt dashed #cbd5e1;
+  border-radius: 4pt;
+  break-inside: avoid;
+}
+
+.handwritten-title {
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 6pt;
+}
+
+.handwritten-line {
+  border-bottom: 0.5pt solid #cbd5e1;
+  height: 14pt;
+  margin-bottom: 2pt;
+}
+
+/* ==========================================================================
+   5. Einkaufsliste (Shopping List)
+   ========================================================================== */
+.shopping-list-section {
+  page-break-before: always;
+  break-before: page;
+}
+
+.shopping-summary-bar {
+  display: flex;
+  gap: 8pt;
+  margin-bottom: 10pt;
+}
+
+.sum-pill {
+  background: #f1f5f9;
+  border: 1pt solid #cbd5e1;
+  color: #334155;
+  font-size: 8.5pt;
+  padding: 3pt 8pt;
+  border-radius: 12pt;
+}
+
+.sum-pill.sum-fresh {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.shopping-grid {
+  column-count: 2;
+  column-gap: 10pt;
+}
+
+.shopping-category-card {
+  display: inline-block;
+  width: 100%;
+  background: #ffffff;
+  border: 1pt solid #e2e8f0;
+  border-radius: 4pt;
+  padding: 6pt 10pt;
+  break-inside: avoid;
+  margin-bottom: 10pt;
+}
+
+.category-title {
+  font-size: 9.5pt;
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1.5pt solid #059669;
+  padding-bottom: 3pt;
+  margin-bottom: 6pt;
+}
+
+.shopping-items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.shopping-items-list li {
+  font-size: 8.5pt;
+  line-height: 1.45;
+  padding: 2pt 0;
+  border-bottom: 0.5pt solid #f1f5f9;
+  display: grid;
+  grid-template-columns: 10pt minmax(0, 1fr) minmax(60pt, 38%);
+  align-items: baseline;
+  gap: 4pt;
+}
+
+.item-check {
+  font-size: 9pt;
+  color: #94a3b8;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #1e293b;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.item-amount {
+  color: #475569;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fresh-pill {
+  font-size: 7pt;
+  color: #047857;
+  background: #d1fae5;
+  padding: 1pt 4pt;
+  border-radius: 3pt;
+  margin-left: auto;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   6. Allergen-Matrix
+   ========================================================================== */
+.allergen-matrix-section {
+  page-break-before: always;
+  break-before: page;
+}
+
+.allergen-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  border: 1pt solid #cbd5e1;
+}
+
+.allergen-table thead th {
+  background: #1e293b;
+  color: #ffffff;
+  padding: 5pt 6pt;
+  font-size: 7.5pt;
+  font-weight: 700;
+  border: 0.5pt solid #334155;
+}
+
+.allergen-table td {
+  padding: 4pt 6pt;
+  border: 0.5pt solid #cbd5e1;
+  vertical-align: middle;
+}
+
+.allergen-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.cell-allergen-name {
+  color: #0f172a;
+}
+
+.cell-allergen-mark {
+  text-align: center;
+}
+
+.allergen-cross {
+  color: #dc2626;
+  font-weight: 800;
+  background: #fee2e2;
+  padding: 1pt 4pt;
+  border-radius: 2pt;
+}
+
+.cross-empty {
+  color: #cbd5e1;
+}
+
+/* ==========================================================================
+   7. Nährwert-Übersicht
+   ========================================================================== */
+.nutrition-section {
+  page-break-before: always;
+  break-before: page;
+}
+
+.nutrition-day-card {
   margin-bottom: 12pt;
+  border: 1pt solid #e2e8f0;
+  border-radius: 4pt;
+  overflow: hidden;
+  break-inside: avoid;
 }
 
-.allergen-matrix {
-  margin-top: 24pt;
-  padding-top: 12pt;
-  border-top: 2pt solid #000;
-}
-
-.allergen-matrix h2 {
-  font-size: 18pt;
-  font-weight: 700;
-  margin-bottom: 8pt;
-}
-
-.allergen-matrix th {
-  background: #f5f5f5;
-  font-weight: 700;
-  font-size: 8pt;
-  border: 0.5pt solid #ddd;
-  padding: 3pt 6pt;
-  text-align: center;
-}
-
-.allergen-matrix td {
+.nutrition-day-title {
+  background: #f1f5f9;
+  padding: 4pt 8pt;
   font-size: 9pt;
-  border: 0.5pt solid #ddd;
-  padding: 3pt 6pt;
-  text-align: center;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 1pt solid #e2e8f0;
 }
 
-.allergen-matrix .allergen-name {
-  text-align: left;
+.nutrition-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+}
+
+.nutrition-table thead th {
+  background: #334155;
+  color: #ffffff;
+  padding: 4pt 8pt;
+  font-size: 7.5pt;
+  font-weight: 700;
+}
+
+.nutrition-table td {
+  padding: 4pt 8pt;
+  border-bottom: 0.5pt solid #f1f5f9;
+}
+
+.cell-row-label {
   font-weight: 600;
+  color: #334155;
 }
 
-.allergen-matrix .mark {
-  font-weight: 700;
-  color: hsl(0, 76%, 50%);
-}
-
-.nutrition-table-section {
-  margin-top: 24pt;
-  padding-top: 12pt;
-  border-top: 2pt solid #000;
-}
-
-.nutrition-table-section h2 {
-  font-size: 18pt;
-  font-weight: 700;
-  margin-bottom: 8pt;
-}
-
-.nutrition-table-section .day-nutrition {
-  margin-bottom: 16pt;
-}
-
-.nutrition-table-section h4 {
-  font-size: 11pt;
-  font-weight: 700;
-  margin-bottom: 4pt;
-}
-
-.nutrition-table-section th {
-  background: #f5f5f5;
-  font-weight: 700;
-  font-size: 8pt;
-  border: 0.5pt solid #ddd;
-  padding: 3pt 6pt;
-  text-align: center;
-}
-
-.nutrition-table-section td {
-  font-size: 9pt;
-  border: 0.5pt solid #ddd;
-  padding: 3pt 6pt;
+.cell-num {
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
-.nutrition-table-section .row-label {
-  text-align: left;
-  font-weight: 600;
+.row-delta {
+  background: #f8fafc;
+  font-weight: 700;
 }
 
-.nutrition-table-section .delta-positive {
-  color: hsl(142, 76%, 36%);
+.delta-pos {
+  color: #059669;
 }
 
-.nutrition-table-section .delta-negative {
-  color: hsl(0, 76%, 50%);
+.delta-neg {
+  color: #dc2626;
 }
+
+/* ==========================================================================
+   Allergen Badge Styles (14 EU allergens)
+   ========================================================================== */
+.allergen-badge {
+  display: inline-block;
+  padding: 1.5pt 5pt;
+  font-size: 7pt;
+  font-weight: 700;
+  border-radius: 3pt;
+  white-space: nowrap;
+}
+
+.allergen-badge.gluten { background: #ffedd5; color: #9a3412; border: 0.5pt solid #fdba74; }
+.allergen-badge.lactose { background: #dbeafe; color: #1e40af; border: 0.5pt solid #93c5fd; }
+.allergen-badge.eggs { background: #fef3c7; color: #92400e; border: 0.5pt solid #fcd34d; }
+.allergen-badge.nuts { background: #fee2e2; color: #991b1b; border: 0.5pt solid #fca5a5; }
+.allergen-badge.fish { background: #cffafe; color: #155e75; border: 0.5pt solid #67e8f9; }
+.allergen-badge.crustaceans { background: #ffe4e6; color: #9f1239; border: 0.5pt solid #fda4af; }
+.allergen-badge.soy { background: #f3e8ff; color: #6b21a8; border: 0.5pt solid #d8b4fe; }
+.allergen-badge.celery { background: #ecfccb; color: #3f6212; border: 0.5pt solid #bef264; }
+.allergen-badge.mustard { background: #fef9c3; color: #854d0e; border: 0.5pt solid #fde047; }
+.allergen-badge.sesame { background: #ffedd5; color: #9a3412; border: 0.5pt solid #fdba74; }
+.allergen-badge.sulfites { background: #f1f5f9; color: #334155; border: 0.5pt solid #cbd5e1; }
+.allergen-badge.lupin { background: #fae8ff; color: #86198f; border: 0.5pt solid #f0abfc; }
+.allergen-badge.molluscs { background: #e0e7ff; color: #3730a3; border: 0.5pt solid #a5b4fc; }
+.allergen-badge.default { background: #f1f5f9; color: #475569; border: 0.5pt solid #cbd5e1; }
 
 .empty-state {
-  padding: 24pt;
+  padding: 16pt;
   text-align: center;
-  color: #999;
-  font-size: 12pt;
+  color: #94a3b8;
+  font-size: 9.5pt;
+  background: #f8fafc;
+  border: 1pt dashed #cbd5e1;
+  border-radius: 4pt;
 }

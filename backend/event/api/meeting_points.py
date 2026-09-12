@@ -14,6 +14,7 @@ from event.schemas import (
     MeetingPointUpdateIn,
     PaginatedMeetingPointOut,
 )
+from profiles.choices import MembershipRoleChoices
 from profiles.models import GroupMembership, UserGroup
 
 from .helpers import require_auth
@@ -86,12 +87,24 @@ def get_meeting_point(request, meeting_point_id: int):
 
 @meeting_point_router.patch("/{meeting_point_id}/", response=MeetingPointOut)
 def update_meeting_point(request, meeting_point_id: int, payload: MeetingPointUpdateIn):
-    """Update a MeetingPoint (creator or group member)."""
+    """Update a MeetingPoint (creator or group admin)."""
     require_auth(request)
     qs = _visible_meeting_points_qs(request.user)
     meeting_point = qs.filter(id=meeting_point_id).first()
     if not meeting_point:
         raise HttpError(404, "Treffpunkt nicht gefunden")
+
+    is_creator = meeting_point.created_by_id == request.user.id
+    is_group_admin = False
+    if meeting_point.group_id:
+        is_group_admin = GroupMembership.objects.filter(
+            user=request.user,
+            group=meeting_point.group,
+            role=MembershipRoleChoices.ADMIN,
+            is_active=True,
+        ).exists()
+    if not is_creator and not is_group_admin and not request.user.is_staff:
+        raise HttpError(403, "Nur der Ersteller oder ein Gruppen-Admin kann diesen Treffpunkt bearbeiten")
 
     for field, value in payload.dict(exclude_unset=True).items():
         setattr(meeting_point, field, value)

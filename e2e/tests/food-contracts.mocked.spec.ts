@@ -110,11 +110,10 @@ test('unified smart recipe wizard accepts one AI result and preserves the draft 
   await expect(foodPage.getByTestId('recipe-smart-input')).toBeVisible();
   await expect(foodPage.getByText('Manuell', { exact: true })).toHaveCount(0);
   await foodPage.getByTestId('recipe-smart-input').fill('Kartoffelsuppe für 4 Personen');
-  await foodPage.getByTestId('recipe-smart-analyze').click();
+  await foodPage.getByTestId('recipe-wizard-next').click();
   await expect.poll(() => smartBodies).toHaveLength(1);
   expect(smartBodies[0]).toEqual({ input: 'Kartoffelsuppe für 4 Personen' });
 
-  await foodPage.getByTestId('recipe-wizard-next').click();
   await expect(foodPage.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
   await foodPage.getByTestId('recipe-serving-context-confirm').click();
   await foodPage.getByTestId('recipe-wizard-next').click();
@@ -168,7 +167,6 @@ test('smart input maps a URL result and preserves metadata on create', async ({ 
 
   await foodPage.goto('/recipes/new');
   await foodPage.getByTestId('recipe-smart-input').fill('https://example.test/recipe');
-  await foodPage.getByTestId('recipe-smart-analyze').click();
   await foodPage.getByTestId('recipe-wizard-next').click();
   await expect(foodPage.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
   await expect(foodPage.getByTestId('recipe-serving-context-input')).toHaveValue('4');
@@ -195,7 +193,7 @@ test('smart input shows classified German errors without partial navigation', as
 
   await foodPage.goto('/recipes/new');
   await foodPage.getByTestId('recipe-smart-input').fill('https://example.test/no-recipe');
-  await foodPage.getByTestId('recipe-smart-analyze').click();
+  await foodPage.getByTestId('recipe-wizard-next').click();
   await expect(foodPage.getByText('Auf der Seite wurden keine Rezeptdaten gefunden.')).toBeVisible();
   expect(foodPage.url()).toContain('/recipes/new');
 });

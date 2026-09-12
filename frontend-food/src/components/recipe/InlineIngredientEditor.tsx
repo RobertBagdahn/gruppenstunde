@@ -111,21 +111,21 @@ export interface InlineIngredientEditorHandle {
 
 // --- Helpers ---
 
-/** Normalize items to per-1-serving quantities in grams.
- *  Converts portion-based quantities to grams for editing,
- *  and switches to the rank=1 (Normalportion) portion.
+/** Normalize items to quantities matching their selected portion unit.
+ *  Direct metric portions are shown in grams; composite and non-metric
+ *  portions are shown as counts of that portion.
  *
  *  CRITICAL LABELING RULE (fix for recipe #434 bug):
  *  ================================================
  *  Portions fall into two categories by their `quantity` field:
  *
- *  1. Composite portions (quantity !== 1):
- *     Example: "1 Portion Nudeln" (quantity=125, weight_g=125, measuring_unit="Gramm")
- *     These are pre-scaled portions. The quantity field is a CONVERSION FACTOR,
- *     not a count. The label MUST be the portion's own name ("1 Portion Nudeln"),
+  *  1. Composite portions (quantity !== 1):
+  *     Example: "1 Portion Nudeln" (quantity=125, weight_g=125, measuring_unit="Gramm")
+  *     These are pre-scaled portions. The editor quantity is a count of those
+  *     portions. The label MUST be the portion's own name ("1 Portion Nudeln"),
  *     NOT the underlying measuring_unit_name ("Gramm").
  *     Bug scenario: User sees "Gramm" label, enters "500", saved as 500×125=62,500g
- *     Fix: Label is "1 Portion Nudeln" so user enters "2.24" correctly.
+  *     Fix: Label is "1 Portion Nudeln" so user enters "2.24" correctly.
  *
  *  2. Direct-unit portions (quantity === 1):
  *     Examples: "Gramm" (quantity=1, measuring_unit="Gramm"),
@@ -150,6 +150,18 @@ function formatGramsShort(grams: number): string {
   return `${Math.round(grams * 10) / 10}g`;
 }
 
+export const BASE_METRIC_UNIT_NAMES = new Set(['Gramm', 'g', 'kg', 'Kilogramm', 'Milliliter', 'ml', 'Liter', 'l']);
+
+type EditablePortion = EditableItem['ingredient_portions'][number];
+
+/** A portion is entered directly in a metric unit only when it is not a
+ * pre-scaled/composite portion. For example, "1 Portion trocken" uses the
+ * underlying unit "Gramm", but the editor quantity is a portion count. */
+function isDirectMetricPortion(portion: EditablePortion | undefined, fallbackUnit: string | null | undefined): boolean {
+  if (portion && portion.quantity !== 1) return false;
+  return BASE_METRIC_UNIT_NAMES.has(portion?.measuring_unit_name ?? fallbackUnit ?? 'g');
+}
+
 /** Authoritative gram weight for an item's *current* quantity.
  *
  *  Prefers the backend-computed `baseWeightG`/`baseQuantity` ratio over a
@@ -164,7 +176,12 @@ function formatGramsShort(grams: number): string {
  *  backend resolves it from the item's actual `portion` FK, not by name) and
  *  is kept in sync whenever `quantity` or `portion_id` changes. */
 export function getItemWeightG(item: EditableItem): number {
-  return item.quantity;
+  const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
+  if (isDirectMetricPortion(currentPortion, item.measuring_unit_name)) {
+    return item.quantity;
+  }
+  const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : (currentPortion?.weight_g ?? 1);
+  return Math.round(item.quantity * portionWeightG * 100) / 100;
 }
 
 /** Merges an AI quantity estimate into an EditableItem, applying `portion_id`
@@ -183,18 +200,38 @@ export function applyEstimateToItem(
   estimate: EstimateQuantityItem,
   displayScale = 1,
 ): EditableItem {
+  const targetPortion = item.ingredient_portions?.find((p) => p.id === estimate.portion_id);
+  const isMetric = isDirectMetricPortion(targetPortion, estimate.unit);
+  const displayedQty = isMetric
+    ? scaleQuantity(estimate.grams_total, displayScale)
+    : scaleQuantity(estimate.quantity_per_portion, displayScale);
   const displayedGrams = scaleQuantity(estimate.grams_total, displayScale);
+
   return {
     ...item,
     portion_id: estimate.portion_id,
     measuring_unit_name: estimate.unit,
-    quantity: displayedGrams,
-    quantityInput: String(displayedGrams),
+    quantity: displayedQty,
+    quantityInput: String(displayedQty),
     baseWeightG: estimate.grams_total,
     baseQuantity: estimate.quantity_per_portion,
     aiExpectedGramsTotal: displayedGrams,
     isDirty: true,
   };
+}
+
+/** Convert an editor value back to the normalized RecipeItem quantity sent to
+ * the API. Composite portions keep their unit count; direct metric portions
+ * convert the displayed grams through their grams-per-unit ratio. */
+export function toPersistedRecipeItemQuantity(item: EditableItem, scale: number): number {
+  const currentPortion = item.ingredient_portions?.find((p) => p.id === item.portion_id);
+  const isMetric = isDirectMetricPortion(currentPortion, item.measuring_unit_name);
+  const portionWeightG = item.baseQuantity > 0
+    ? item.baseWeightG / item.baseQuantity
+    : (currentPortion?.weight_g ?? 1);
+  const multiplier = isMetric ? item.quantity / portionWeightG : item.quantity;
+  const normalizedMultiplier = Math.round(multiplier * 1000) / 1000;
+  return toBasePerServing(normalizedMultiplier, scale);
 }
 
 export function normalizeItems(
@@ -222,13 +259,25 @@ export function normalizeItems(
     // column — normalizeItems() must use the same authoritative source for
     // the actual editable value, not just for that one preview column.
     const portionWeightG = item.quantity > 0 ? item.weight_g / item.quantity : (currentPortion?.weight_g ?? 1);
+    const isMetric = isDirectMetricPortion(currentPortion, item.measuring_unit_name);
 
-    // Convert to grams: quantity × portion.weight_g
-    const quantityInGrams = item.quantity * portionWeightG;
-    const normalizedQuantity = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
-    const qty = itemsAreContextual ? quantityInGrams : scaleQuantity(normalizedQuantity, context);
+    let qty: number;
+    if (isMetric) {
+      // Metric mass/volume units: quantity represents grams/ml directly
+      const quantityInGrams = item.quantity * portionWeightG;
+      const normalizedQuantity = s > 1 ? Math.round((quantityInGrams / s) * 100) / 100 : quantityInGrams;
+      qty = itemsAreContextual ? quantityInGrams : scaleQuantity(normalizedQuantity, context);
+    } else {
+      // Non-metric unit portions (e.g. EL, TL, Stück, Prise): quantity represents portion count
+      const normalizedQuantity = s > 1 ? Math.round((item.quantity / s) * 1000) / 1000 : item.quantity;
+      qty = itemsAreContextual ? item.quantity : scaleQuantity(normalizedQuantity, context);
+    }
 
-    const label = currentPortion?.measuring_unit_name ?? 'g';
+    const label = currentPortion
+      ? currentPortion.quantity !== 1
+        ? currentPortion.name
+        : (currentPortion.measuring_unit_name || currentPortion.name)
+      : (item.measuring_unit_name || 'g');
 
     return {
       id: item.id,
@@ -359,7 +408,7 @@ function IngredientRow({
         </span>
       )}
       <span className="text-xs text-muted-foreground min-w-[4rem] text-right tabular-nums">
-        = {item.quantity} g
+        = {Math.round(getItemWeightG(item) * 10) / 10} g
       </span>
       <span className="flex-1 text-sm font-medium truncate">{item.ingredient_name}</span>
       {expandedNotes.has(item.id) || item.note ? (
@@ -578,9 +627,14 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const newPortion = item.ingredient_portions.find((p) => p.id === portionId);
         if (!newPortion) return item;
 
+        const currentGrams = getItemWeightG(item);
         const newWeightG = newPortion.weight_g ?? 1;
-        const quantityInGrams = item.quantity;
-        const newMultiplier = Math.round((quantityInGrams / newWeightG) * 100) / 100;
+        const isNewMetric = isDirectMetricPortion(newPortion, newPortion.measuring_unit_name);
+
+        const newMultiplier = Math.round((currentGrams / newWeightG) * 100) / 100;
+        const newQty = isNewMetric
+          ? currentGrams
+          : newMultiplier;
 
         const label = newPortion.quantity !== 1
           ? newPortion.name
@@ -590,9 +644,9 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           ...item,
           portion_id: portionId,
           measuring_unit_name: label,
-          quantity: quantityInGrams,
-          quantityInput: String(quantityInGrams),
-          baseWeightG: quantityInGrams,
+          quantity: newQty,
+          quantityInput: String(newQty),
+          baseWeightG: currentGrams,
           baseQuantity: newMultiplier,
           isDirty: true,
           aiExpectedGramsTotal: undefined,
@@ -636,7 +690,9 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
           ? bestPortion.name
           : (bestPortion.measuring_unit_name || 'g');
 
-        const initialQuantity = bestPortion.weight_g ?? 1;
+        const isMetric = bestPortion.quantity === 1
+          && BASE_METRIC_UNIT_NAMES.has(bestPortion.measuring_unit_name ?? 'g');
+        const initialQuantity = isMetric ? (bestPortion.weight_g ?? 1) : 1;
         const displayedQuantity = scaleQuantity(initialQuantity, scale);
         const rowKey = `ing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         setEditItems((prev) => [
@@ -662,7 +718,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             is_optional: false,
             exchange_group_id: null,
             exchange_position: null,
-            baseWeightG: initialQuantity,
+            baseWeightG: bestPortion.weight_g ?? 1,
             baseQuantity: 1,
             clientRequestId: rowKey,
             isNew: true,
@@ -756,7 +812,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
 
         const selectedWeightG = selectedPortion!.weight_g ?? 1;
         const totalWeightG = selectedWeightG * quantity;
-        const displayedQuantity = scaleQuantity(totalWeightG, scale);
+        const isMetric = selectedPortion!.quantity === 1
+          && BASE_METRIC_UNIT_NAMES.has(selectedPortion!.measuring_unit_name ?? 'g');
+        const displayedBaseQuantity = isMetric ? totalWeightG : quantity;
+        const displayedQuantity = scaleQuantity(displayedBaseQuantity, scale);
         const rowKey = `ing-dlg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
         setEditItems((prev) => [
@@ -947,7 +1006,10 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
 
         const maxSort = editItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
-        const alternativeQuantity = bestPortion.weight_g ?? 1;
+        const alternativeWeightG = bestPortion.weight_g ?? 1;
+        const isMetric = bestPortion.quantity === 1
+          && BASE_METRIC_UNIT_NAMES.has(bestPortion.measuring_unit_name ?? 'g');
+        const alternativeQuantity = isMetric ? alternativeWeightG : 1;
         const displayedAlternativeQuantity = scaleQuantity(alternativeQuantity, scale);
         const altKey = `ing-alt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         setEditItems((prev) => [
@@ -986,7 +1048,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
             is_optional: false,
             exchange_group_id: groupId,
             exchange_position: nextPosition,
-            baseWeightG: alternativeQuantity,
+            baseWeightG: alternativeWeightG,
             baseQuantity: 1,
             clientRequestId: altKey,
             isNew: true,
@@ -1020,14 +1082,12 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         const draftItems: DraftIngredientItem[] = editItems
           .filter((item) => !item.isDeleted)
           .map((item) => {
-            const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : 1;
-            const multiplier = Math.round((item.quantity / portionWeightG) * 1000) / 1000;
             const requestKey = item.clientRequestId || `ingredient-${item.id}`;
             return {
               portion_id: item.portion_id,
               client_request_id: requestKey,
               idempotency_key: requestKey,
-              quantity: toBasePerServing(multiplier, scale),
+              quantity: toPersistedRecipeItemQuantity(item, scale),
               sort_order: item.sort_order,
               note: item.note,
               is_optional: item.is_optional,
@@ -1082,17 +1142,15 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         );
       }
 
-      // Create new items (convert grams to portion multiplier, then divide by scale)
+      // Create new items (convert metric grams to portion multiplier, keep non-metric portion count, then divide by scale)
       for (const item of editItems.filter((i) => i.isNew && !i.isDeleted)) {
-        const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : 1;
-        const multiplier = Math.round((item.quantity / portionWeightG) * 1000) / 1000;
         const requestKey = item.clientRequestId || `ingredient-${item.id}`;
         const promise = createItem
           .mutateAsync({
             portion_id: item.portion_id,
             client_request_id: requestKey,
             idempotency_key: requestKey,
-            quantity: toBasePerServing(multiplier, scale),
+            quantity: toPersistedRecipeItemQuantity(item, scale),
             sort_order: item.sort_order,
             note: item.note,
             is_optional: item.is_optional,
@@ -1112,16 +1170,14 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         promises.push(promise);
       }
 
-      // Update dirty existing items (convert grams to portion multiplier, then divide by scale)
+      // Update dirty existing items using the same unit-aware conversion as new items.
       for (const item of editItems.filter((i) => i.isDirty && !i.isNew && !i.isDeleted)) {
-        const portionWeightG = item.baseQuantity > 0 ? item.baseWeightG / item.baseQuantity : 1;
-        const multiplier = Math.round((item.quantity / portionWeightG) * 1000) / 1000;
         promises.push(
           updateItem.mutateAsync({
             itemId: item.id,
             data: {
               portion_id: item.portion_id,
-              quantity: toBasePerServing(multiplier, scale),
+              quantity: toPersistedRecipeItemQuantity(item, scale),
               note: item.note,
               sort_order: item.sort_order,
               // Only present right after an AI estimate was applied to this

@@ -25,7 +25,15 @@ export function refMealItemsToWizardState(
 
   if (items.length === 0) return result;
 
-  const perPerson = (total: number) => (normPortions > 0 ? total / normPortions : total);
+  // Direct ingredient MealItem.quantity is already stored per norm person in grams / portion unit.
+  // We only divide if is_per_norm_person is explicitly false.
+  const perPerson = (item: MealItem) => {
+    const q = item.quantity ?? 0;
+    if (item.is_per_norm_person === false && normPortions > 0) {
+      return q / normPortions;
+    }
+    return q;
+  };
 
   // ── 1. Basis items ────────────────────────────────────────────────────────
   const basisItems = items.filter((i) => (i.ingredient_tags ?? []).includes('breakfast-base'));
@@ -38,7 +46,7 @@ export function refMealItemsToWizardState(
       if (!item.ingredient_id || !item.quantity) continue;
       const catalogIng = catalog.base_ingredients.find((b) => b.id === item.ingredient_id);
       const sliceWeightG = catalogIng?.standard_recipe_weight_g ?? 70;
-      const grams = perPerson(item.quantity);
+      const grams = perPerson(item);
       gramPerItem.push({ ingredientId: item.ingredient_id, grams, sliceWeightG });
       totalGrams += grams;
     }
@@ -72,7 +80,7 @@ export function refMealItemsToWizardState(
       if (!item.ingredient_id || !item.quantity) continue;
       const catIng = catalog.fat_ingredients.find((f) => f.id === item.ingredient_id);
       if (!catIng) continue;
-      const grams = perPerson(item.quantity);
+      const grams = perPerson(item);
       gramPerFat.push({ ingredientId: item.ingredient_id, grams });
       totalGrams += grams;
     }
@@ -135,7 +143,7 @@ export function refMealItemsToWizardState(
       if (!item.ingredient_id || !item.quantity) continue;
       const catIng = catalog.topping_ingredients.find((t) => t.id === item.ingredient_id);
       if (!catIng) continue;
-      const grams = perPerson(item.quantity);
+      const grams = perPerson(item);
       gramPerTopping.push({ ingredientId: item.ingredient_id, grams });
       totalGrams += grams;
     }
@@ -196,7 +204,7 @@ export function refMealItemsToWizardState(
   );
   for (const item of extraItems) {
     if (!item.ingredient_id || !item.quantity) continue;
-    result.extraIngredients[String(item.ingredient_id)] = Math.round(perPerson(item.quantity));
+    result.extraIngredients[String(item.ingredient_id)] = Math.round(perPerson(item));
   }
 
   return result;

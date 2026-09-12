@@ -5,15 +5,15 @@ from ninja import Router
 from ninja.errors import HttpError
 
 from recipe.models import RecipeItem
-from recipe.services.recipe_checks import _calculate_item_weight_g
 from recipe.schemas import (
     ImprovementListOut,
-    LlmSuggestionOut,
     LlmSuggestionRequestIn,
+    LlmSuggestionsOut,
     NutriScoreDetailOut,
     RecipeNutritionBreakdownOut,
     RecipeRulesOut,
 )
+from recipe.services.recipe_checks import _calculate_item_weight_g
 
 router = Router()
 
@@ -26,10 +26,9 @@ router = Router()
 @router.get("/{recipe_id}/nutri-score/", response=NutriScoreDetailOut)
 def get_recipe_nutri_score(request, recipe_id: int):
     """Get detailed Nutri-Score for a recipe."""
+    from content.services.food_access import get_visible_recipe_or_404
     from recipe.services.recipe_checks import get_recipe_nutritional_values
     from supply.services.nutri_service import get_nutri_score_details
-
-    from content.services.food_access import get_visible_recipe_or_404
 
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
     values = get_recipe_nutritional_values(recipe)
@@ -53,9 +52,8 @@ def get_recipe_nutri_score(request, recipe_id: int):
 @router.get("/{recipe_id}/improvements/", response=ImprovementListOut)
 def get_recipe_improvements(request, recipe_id: int):
     """Get ranked improvement suggestions (merged Nutri-Score + RecipeHint)."""
-    from recipe.services.improvement_ranking_service import compute_improvement_ranking
-
     from content.services.food_access import get_visible_recipe_or_404
+    from recipe.services.improvement_ranking_service import compute_improvement_ranking
 
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
     return compute_improvement_ranking(recipe)
@@ -69,9 +67,8 @@ def get_recipe_improvements(request, recipe_id: int):
 @router.get("/{recipe_id}/rules/", response=RecipeRulesOut)
 def get_recipe_rules(request, recipe_id: int):
     """Evaluate all active recipe-scoped rules for a recipe."""
-    from recipe.services.recipe_checks import evaluate_recipe_rules
-
     from content.services.food_access import get_visible_recipe_or_404
+    from recipe.services.recipe_checks import evaluate_recipe_rules
 
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
     return evaluate_recipe_rules(recipe)
@@ -82,18 +79,18 @@ def get_recipe_rules(request, recipe_id: int):
 # ==========================================================================
 
 
-@router.post("/{recipe_id}/suggestions/", response=list[LlmSuggestionOut])
+@router.post("/{recipe_id}/suggestions/", response=LlmSuggestionsOut)
 def get_llm_suggestions(request, recipe_id: int, body: LlmSuggestionRequestIn):
     """Get LLM-generated ingredient suggestions for a recipe improvement objective."""
     if not request.user.is_authenticated:
         raise HttpError(403, "Anmeldung erforderlich")
 
+    from content.services.food_access import get_visible_recipe_or_404
     from recipe.services.suggestion_service import get_suggestions
 
-    from content.services.food_access import get_visible_recipe_or_404
-
     recipe = get_visible_recipe_or_404(request.user, recipe_id)
-    return get_suggestions(recipe, body.objective, request.user, direction=body.direction)
+    suggestions, interaction_id = get_suggestions(recipe, body.objective, request.user, direction=body.direction)
+    return {"suggestions": suggestions, "ai_interaction_id": interaction_id}
 
 
 # ==========================================================================

@@ -133,16 +133,22 @@ UNIT_CANONICAL: dict[str, str] = {
     "pkg.": "Packung",
     "bd": "Bund",
     "bd.": "Bund",
+    "stk": "Stück",
+    "stk.": "Stück",
     "stück": "Stück",
+    "stueck": "Stück",
     "dose": "Dose",
+    "dosen": "Dose",
     "glas": "Glas",
+    "gläser": "Glas",
     "bund": "Bund",
     "prise": "Prise",
+    "prisen": "Prise",
     "schuss": "Schuss",
-    "scheibe": "Scheibe",
-    "scheiben": "Scheiben",
     "zehe": "Zehe",
-    "zehen": "Zehen",
+    "zehen": "Zehe",
+    "scheibe": "Scheibe",
+    "scheiben": "Scheibe",
 }
 
 
@@ -233,17 +239,22 @@ class IngredientNameParser:
 
     @classmethod
     def _split_name_note(cls, name_part: str) -> tuple[str, str]:
+        # Strip plural suffix in parentheses first: e.g. "Möhre(n)" -> "Möhre", "Kartoffel(n)" -> "Kartoffel"
+        cleaned_part = re.sub(r"\((?:n|s|en|r)\)", "", name_part.strip(), flags=re.IGNORECASE).strip()
+
         # Check for parenthesized suffix, e.g. "Petersilie (gehackt)" -> "Petersilie", "gehackt"
-        paren_match = re.match(r"^(.*?)\s*\(([^)]+)\)\s*$", name_part.strip())
+        paren_match = re.match(r"^(.*?)\s*\(([^)]+)\)\s*$", cleaned_part)
         if paren_match:
             base = paren_match.group(1).strip()
             note = paren_match.group(2).strip()
+            if note.lower() in {"n", "s", "en", "r"}:
+                return base, ""
             if base:
                 return base, note
 
-        words = name_part.split()
+        words = cleaned_part.split()
         if len(words) <= 1:
-            return name_part, ""
+            return cleaned_part, ""
 
         # Try removing trailing modifiers one at a time
         for i in range(min(3, len(words)), 0, -1):

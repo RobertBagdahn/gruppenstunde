@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Link2 } from 'lucide-react';
+import { useReorderMeals } from '@/api/mealPlans';
+import { toast } from 'sonner';
 import { MealSlot } from './MealSlot';
 import { MEAL_TYPE_ORDER, MEAL_TYPE_LABELS, NORM_PERSON_DAILY_KCAL, getDayCoverage, getCoverageBadge, effectivePortions } from '@/schemas/mealPlan';
 import type { Meal } from '@/schemas/mealPlan';
@@ -71,6 +73,7 @@ export function DayPlanView({
   };
 
   const [searchDialogMeal, setSearchDialogMeal] = useState<Meal | null>(null);
+  const reorderMutation = useReorderMeals(mealPlanId);
 
   return (
     <div className="space-y-6">
@@ -182,7 +185,47 @@ export function DayPlanView({
               {/* Meals */}
               <div className="divide-y">
                 {group.meals.map((meal) => (
-                  <div key={meal.id} id={`meal-${group.date}-${meal.meal_type}`} className="scroll-mt-24">
+                  <div
+                    key={meal.id}
+                    id={`meal-${meal.id}`}
+                    data-date-meal-type={`meal-${group.date}-${meal.meal_type}`}
+                    className="scroll-mt-24 transition-all"
+                    draggable={canEdit && !meal.is_synced}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/json', JSON.stringify({ mealId: meal.id }));
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragOver={(e) => {
+                      if (!canEdit) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      e.currentTarget.classList.add('bg-primary/5');
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('bg-primary/5');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('bg-primary/5');
+                      try {
+                        const raw = e.dataTransfer.getData('application/json');
+                        if (!raw) return;
+                        const data = JSON.parse(raw);
+                        if (data.mealId && data.mealId !== meal.id) {
+                          reorderMutation.mutate(
+                            { source_meal_id: data.mealId, target_meal_id: meal.id, mode: 'swap' },
+                            {
+                              onSuccess: () => toast.success('Mahlzeiten erfolgreich getauscht'),
+                              onError: (err) => toast.error('Fehler beim Tauschen', { description: err.message }),
+                            }
+                          );
+                        }
+                      } catch {
+                        // ignore invalid drop
+                      }
+                    }}
+                  >
+                    <span id={`meal-${group.date}-${meal.meal_type}`} className="sr-only pointer-events-none" />
                     <MealSlot
                       meal={meal}
                       canEdit={canEdit}

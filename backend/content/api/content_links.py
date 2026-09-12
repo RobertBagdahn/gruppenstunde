@@ -14,6 +14,27 @@ from content.schemas.content_links import ContentLinkDetailOut
 router = Router(tags=["content"])
 
 
+def _user_can_read_content(obj, user) -> bool:
+    """Return whether ``user`` may read a linked content object."""
+    from content.choices import ContentStatus
+    from content.services.food_access import can_read as food_can_read
+
+    if obj.__class__.__name__ in {"Recipe", "Ingredient"}:
+        return food_can_read(obj, user)
+
+    if getattr(user, "is_staff", False):
+        return True
+    status = getattr(obj, "status", None)
+    if status == ContentStatus.APPROVED:
+        return True
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(obj, "created_by_id", None) == user.id:
+        return True
+    authors = getattr(obj, "authors", None)
+    return authors is not None and authors.filter(id=user.id).exists()
+
+
 def _resolve_link(link: ContentLink) -> dict:
     """Resolve a ContentLink to a dict with titles and slugs."""
 
@@ -108,6 +129,20 @@ def create_content_link(request, payload: ContentLinkCreateIn):
         tgt_ct = ContentType.objects.get(model=payload.target_content_type)
     except ContentType.DoesNotExist:
         raise HttpError(400, "Ungültiger Content-Typ")
+
+    try:
+        src_obj = src_ct.get_object_for_this_type(pk=payload.source_object_id)
+    except ObjectDoesNotExist:
+        raise HttpError(404, "Quell-Inhalt nicht gefunden")
+    try:
+        tgt_obj = tgt_ct.get_object_for_this_type(pk=payload.target_object_id)
+    except ObjectDoesNotExist:
+        raise HttpError(404, "Ziel-Inhalt nicht gefunden")
+
+    if not _user_can_read_content(src_obj, request.user):
+        raise HttpError(404, "Quell-Inhalt nicht gefunden")
+    if not _user_can_read_content(tgt_obj, request.user):
+        raise HttpError(404, "Ziel-Inhalt nicht gefunden")
 
     existing = ContentLink.objects.filter(
         source_content_type=src_ct,

@@ -52,9 +52,12 @@ from planner.schemas import (
     MealPlanTagCreateIn,
     MealPlanTagOut,
     MealPlanUpdateIn,
+    MealReorderIn,
     MealUpdateIn,
     NutritionalTagScanOut,
     NutritionSummaryOut,
+    PlanCheckAlertOut,
+    PlanCheckResponseOut,
     PopularRecipesResponseOut,
     RecentlyUsedRecipesResponseOut,
     RecipeSuggestionOut,
@@ -388,6 +391,8 @@ def create_meal_plan(request, payload: MealPlanCreateIn):
             if timezone.is_naive(payload.end_datetime)
             else payload.end_datetime
         )
+        if meal_plan.end_datetime.time() == dt.time(0, 0):
+            meal_plan.end_datetime = meal_plan.end_datetime.replace(hour=23, minute=59, second=59)
     if not meal_plan.start_datetime:
         if event_for_link and event_for_link.start_date and event_for_link.end_date:
             meal_plan.start_datetime = timezone.make_aware(
@@ -670,6 +675,8 @@ def duplicate_meal_plan(request, meal_plan_id: int, payload: MealPlanDuplicateIn
                     measuring_unit=item.measuring_unit,
                     display_name=item.display_name,
                     factor=item.factor,
+                    active_recipe_item_ids=item.active_recipe_item_ids,
+                    variant_group_id=item.variant_group_id,
                 )
                 items_copied += 1
 
@@ -846,6 +853,89 @@ def add_meal(request, meal_plan_id: int, payload: MealCreateIn):
         display_name=payload.display_name or "",
     )
     return meal
+
+
+@meal_plan_router.post("/{meal_plan_id}/meals/reorder/", response=MealPlanDetailOut)
+def reorder_meals(request, meal_plan_id: int, payload: MealReorderIn):
+    """Reorder or swap meals across days or slots."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+
+    source_meal = get_object_or_404(Meal, id=payload.source_meal_id, meal_plan=meal_plan)
+
+    target_meal = None
+    if payload.target_meal_id:
+        target_meal = get_object_or_404(Meal, id=payload.target_meal_id, meal_plan=meal_plan)
+    elif payload.target_date and payload.target_meal_type:
+        target_meal = Meal.objects.filter(
+            meal_plan=meal_plan,
+            start_datetime__date=payload.target_date,
+            meal_type=payload.target_meal_type,
+            is_reference=False,
+        ).first()
+
+    if target_meal and target_meal.id != source_meal.id:
+        if payload.mode == "swap":
+            source_items = list(source_meal.items.all())
+            target_items = list(target_meal.items.all())
+
+            for it in source_items:
+                it.meal = target_meal
+                it.save(update_fields=["meal"])
+            for it in target_items:
+                it.meal = source_meal
+                it.save(update_fields=["meal"])
+
+            (
+                source_meal.note,
+                target_meal.note,
+                source_meal.display_name,
+                target_meal.display_name,
+                source_meal.is_external,
+                target_meal.is_external,
+                source_meal.external_energy_kcal,
+                target_meal.external_energy_kcal,
+                source_meal.external_cost_per_person,
+                target_meal.external_cost_per_person,
+            ) = (
+                target_meal.note,
+                source_meal.note,
+                target_meal.display_name,
+                source_meal.display_name,
+                target_meal.is_external,
+                source_meal.is_external,
+                target_meal.external_energy_kcal,
+                source_meal.external_energy_kcal,
+                target_meal.external_cost_per_person,
+                source_meal.external_cost_per_person,
+            )
+            source_meal.save()
+            target_meal.save()
+        else:
+            for it in source_meal.items.all():
+                it.meal = target_meal
+                it.save(update_fields=["meal"])
+            if source_meal.note and not target_meal.note:
+                target_meal.note = source_meal.note
+                source_meal.note = ""
+            if source_meal.display_name and not target_meal.display_name:
+                target_meal.display_name = source_meal.display_name
+                source_meal.display_name = ""
+            source_meal.save()
+            target_meal.save()
+    elif payload.target_date:
+        current_date = source_meal.start_datetime.date() if source_meal.start_datetime else payload.target_date
+        delta_days = (payload.target_date - current_date).days
+        if source_meal.start_datetime:
+            source_meal.start_datetime += dt.timedelta(days=delta_days)
+        if source_meal.end_datetime:
+            source_meal.end_datetime += dt.timedelta(days=delta_days)
+        if payload.target_meal_type:
+            source_meal.meal_type = payload.target_meal_type
+        source_meal.save()
+
+    return get_meal_plan(request, meal_plan_id)
 
 
 @meal_plan_router.delete("/{meal_plan_id}/meals/{meal_id}/")
@@ -1062,6 +1152,15 @@ def update_meal_item(request, meal_plan_id: int, item_id: int, payload: MealItem
     if payload.factor is not None:
         item.factor = payload.factor
         item.save(update_fields=["factor"])
+    elif payload.servings is not None:
+        if item.recipe:
+            recipe_servings = float(item.recipe.portions or 1)
+            item.factor = round(payload.servings / recipe_servings, 4)
+            item.save(update_fields=["factor"])
+        elif item.meal:
+            effective = float(item.meal.effective_portions or 1)
+            item.factor = round(payload.servings / effective, 4)
+            item.save(update_fields=["factor"])
     if payload.quantity is not None:
         item.quantity = payload.quantity
         item.save(update_fields=["quantity"])
@@ -1204,6 +1303,9 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
             display_name=item.display_name,
             factor=item.factor,
         )
+        copied.active_recipe_item_ids = item.active_recipe_item_ids
+        copied.variant_group_id = item.variant_group_id
+        copied.save(update_fields=["active_recipe_item_ids", "variant_group_id"])
         copied_items.append(copied)
 
     if payload.note:
@@ -1216,6 +1318,123 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
         target_meal.save(update_fields=["note"])
 
     return copied_items
+
+
+@meal_plan_router.get("/{meal_plan_id}/plan-check/", response=PlanCheckResponseOut)
+def plan_check(request, meal_plan_id: int):
+    """Analyze meal plan for empty slots, budget excess, and allergen/nutritional issues."""
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_access(meal_plan, request.user)
+
+    alerts: list[PlanCheckAlertOut] = []
+
+    meals = (
+        Meal.objects.filter(meal_plan=meal_plan, is_reference=False)
+        .prefetch_related(
+            "items__recipe__nutritional_tags",
+            "items__ingredient__nutritional_tags",
+            "items__recipe__recipe_items__portion__ingredient",
+            "items__ingredient__portions",
+            "items__measuring_unit",
+            "items__overrides",
+        )
+        .order_by("start_datetime")
+    )
+
+    # 1. Check for empty scheduled meal slots
+    for meal in meals:
+        if not meal.start_datetime:
+            continue
+        if not meal.is_external and meal.items.count() == 0:
+            date_str = meal.start_datetime.strftime("%Y-%m-%d")
+            alerts.append(
+                PlanCheckAlertOut(
+                    id=f"empty-slot-{meal.id}",
+                    type="empty_slot",
+                    severity="warning",
+                    title=f"{meal.get_meal_type_display()} ist noch leer",
+                    description=f"Am {meal.start_datetime.strftime('%d.%m.')} ist noch kein Gericht für {meal.get_meal_type_display()} hinterlegt.",
+                    date=date_str,
+                    meal_id=meal.id,
+                    meal_type=meal.meal_type,
+                    action_label="Gericht vorschlagen",
+                    action_type="suggest_recipe",
+                    action_payload={
+                        "meal_id": meal.id,
+                        "meal_type": meal.meal_type,
+                        "date": date_str,
+                    },
+                )
+            )
+
+    # 2. Check for daily budget exceedance
+    if meal_plan.budget_per_person_per_day and meal_plan.budget_per_person_per_day > 0:
+        budget_limit = meal_plan.budget_per_person_per_day
+        day_totals: dict[str, float] = {}
+        for meal in meals:
+            if not meal.start_datetime:
+                continue
+            date_str = meal.start_datetime.strftime("%Y-%m-%d")
+            eff = meal.effective_portions or 1.0
+            cost_eur = MealOut.resolve_total_cost_eur(meal)
+            cost_p = (cost_eur / eff) if eff > 0 else 0.0
+            day_totals[date_str] = day_totals.get(date_str, 0.0) + cost_p
+
+        for date_str, day_cost in sorted(day_totals.items()):
+            if day_cost > budget_limit:
+                excess = day_cost - budget_limit
+                alerts.append(
+                    PlanCheckAlertOut(
+                        id=f"budget-excess-{date_str}",
+                        type="budget_excess",
+                        severity="warning",
+                        title=f"Budget am {date_str} überschritten",
+                        description=f"Geplant sind {day_cost:.2f} € / Person ({excess:.2f} € über dem Budget von {budget_limit:.2f} €).",
+                        date=date_str,
+                        meal_id=None,
+                        meal_type=None,
+                        action_label="Budget ansehen",
+                        action_type="open_budget",
+                        action_payload={"date": date_str},
+                    )
+                )
+
+    # 3. Check for nutritional tag conflicts
+    plan_tag_ids = {tag.id for tag in meal_plan.nutritional_tags.all()}
+    if plan_tag_ids:
+        for meal in meals:
+            if not meal.start_datetime:
+                continue
+            date_str = meal.start_datetime.strftime("%Y-%m-%d")
+            for item in meal.items.all():
+                item_tags = set()
+                if item.recipe:
+                    for tag in item.recipe.nutritional_tags.all():
+                        item_tags.add(tag)
+                if item.ingredient:
+                    for tag in item.ingredient.nutritional_tags.all():
+                        item_tags.add(tag)
+
+                for tag in item_tags:
+                    if tag.id in plan_tag_ids:
+                        alerts.append(
+                            PlanCheckAlertOut(
+                                id=f"tag-conflict-{meal.id}-{item.id}-{tag.id}",
+                                type="allergen_conflict",
+                                severity="error",
+                                title=f"Einschränkung verletzt bei {meal.get_meal_type_display()}",
+                                description=f"«{item.recipe.title if item.recipe else item.ingredient.name}» enthält «{tag.name}».",
+                                date=date_str,
+                                meal_id=meal.id,
+                                meal_type=meal.meal_type,
+                                action_label="Gericht ansehen",
+                                action_type="open_slot",
+                                action_payload={"meal_id": meal.id},
+                            )
+                        )
+
+    return PlanCheckResponseOut(total_issues=len(alerts), alerts=alerts)
 
 
 # ==========================================================================
@@ -1282,6 +1501,7 @@ def nutrition_summary(request, meal_plan_id: int, date: dt.date | None = None):
     meal_items_qs = MealItem.objects.filter(
         meal__meal_plan=meal_plan,
         meal__is_reference=False,
+        meal__is_external=False,
     )
     if date:
         meal_items_qs = meal_items_qs.filter(meal__start_datetime__date=date)

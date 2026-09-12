@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAiUserInteractions } from '@/api/aiInteraction';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,23 @@ interface Props {
 }
 
 export default function AiUserCallsModal({ open, onClose, userId, userName }: Props) {
-  const { data, isLoading, isError } = useAiUserInteractions(userId, 1);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState<Record<number, AiInteractionItem[]>>({});
+  const { data, isLoading, isFetching, isError } = useAiUserInteractions(userId, page);
+
+  useEffect(() => {
+    setPage(1);
+    setPages({});
+  }, [open, userId]);
+
+  useEffect(() => {
+    if (data) setPages((current) => ({ ...current, [data.page]: data.items }));
+  }, [data]);
+
+  const items = useMemo(
+    () => Object.keys(pages).sort((a, b) => Number(a) - Number(b)).flatMap((key) => pages[Number(key)]),
+    [pages],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -50,18 +67,19 @@ export default function AiUserCallsModal({ open, onClose, userId, userName }: Pr
               Fehler beim Laden der KI-Aufrufe
             </p>
           )}
-          {data && data.items.length === 0 && (
+          {data && items.length === 0 && (
             <p className="text-center text-muted-foreground py-8">
               Keine KI-Aufrufe gefunden
             </p>
           )}
-          {data && data.items.length > 0 && (
+          {data && items.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-2 pr-3">Datum</th>
                     <th className="pb-2 pr-3">Kontext</th>
+                    <th className="pb-2 pr-3">Modell</th>
                     <th className="pb-2 pr-3 text-right">Tokens</th>
                     <th className="pb-2 pr-3 text-right">Kosten</th>
                     <th className="pb-2 pr-3 text-right">Dauer</th>
@@ -69,7 +87,7 @@ export default function AiUserCallsModal({ open, onClose, userId, userName }: Pr
                   </tr>
                 </thead>
                 <tbody>
-                  {data.items.map((item: AiInteractionItem) => (
+                  {items.map((item: AiInteractionItem) => (
                     <tr key={item.id} className="border-b last:border-0">
                       <td className="py-2 pr-3 whitespace-nowrap">
                         {new Date(item.created_at).toLocaleDateString('de-DE', {
@@ -83,6 +101,7 @@ export default function AiUserCallsModal({ open, onClose, userId, userName }: Pr
                       <td className="py-2 pr-3">
                         {AiContextChoices[item.context] || item.context}
                       </td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground">{item.model}</td>
                       <td className="py-2 pr-3 text-right">
                         {item.total_tokens !== null
                           ? new Intl.NumberFormat('de-DE').format(item.total_tokens)
@@ -103,8 +122,14 @@ export default function AiUserCallsModal({ open, onClose, userId, userName }: Pr
           )}
           {data && data.page < data.total_pages && (
             <div className="flex justify-end">
-              <Button variant="outline" size="sm">
-                Mehr laden
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((current) => current + 1)}
+                disabled={isFetching}
+              >
+                {isFetching && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+                {isFetching ? 'Lade...' : 'Mehr laden'}
               </Button>
             </div>
           )}

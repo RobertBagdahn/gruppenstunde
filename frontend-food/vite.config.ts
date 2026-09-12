@@ -24,6 +24,19 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/recharts')) return 'vendor-charts';
+          if (id.includes('node_modules/@uiw/react-md-editor') || id.includes('node_modules/react-markdown')) return 'vendor-editor';
+          if (id.includes('node_modules/@dnd-kit')) return 'vendor-dnd';
+          if (id.includes('node_modules/@tanstack/react-query')) return 'vendor-query';
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) return 'vendor-react';
+        },
+      },
+    },
+  },
   server: {
     port: 5174,
     proxy: {

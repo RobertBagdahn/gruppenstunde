@@ -180,6 +180,20 @@ class TestUpdateBlog:
         )
         assert resp.status_code == 403
 
+    def test_author_cannot_self_approve(self, auth_client):
+        from blog.models import Blog
+
+        blog = Blog.objects.create(title="Entwurf", status=ContentStatus.DRAFT)
+        blog.authors.add(auth_client._user)
+        resp = auth_client.patch(
+            f"/api/blogs/{blog.id}/",
+            data=json.dumps({"status": ContentStatus.APPROVED}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        blog.refresh_from_db()
+        assert blog.status == ContentStatus.DRAFT
+
 
 # ---------------------------------------------------------------------------
 # Delete

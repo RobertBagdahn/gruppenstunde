@@ -12,7 +12,10 @@ import {
   Clock,
   ChefHat,
   AlertTriangle,
+  ArrowRightLeft,
 } from 'lucide-react';
+import { useReorderMeals } from '@/api/mealPlans';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,8 +86,13 @@ export function MealActionsMenu({
   siblingMeals = [],
 }: MealActionsMenuProps) {
   const navigate = useNavigate();
+  const reorderMutation = useReorderMeals(planId);
   const [showSettings, setShowSettings] = useState(false);
   const [showTimeEdit, setShowTimeEdit] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [targetDate, setTargetDate] = useState(meal.start_datetime ? meal.start_datetime.slice(0, 10) : '');
+  const [targetMealType, setTargetMealType] = useState(meal.meal_type);
+  const [moveMode, setMoveMode] = useState<'move' | 'swap'>('move');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
@@ -205,7 +213,7 @@ export function MealActionsMenu({
             </DropdownMenuItem>
           )}
           {meal.meal_type === 'breakfast' && (
-            <DropdownMenuItem onClick={() => navigate(`/meal-plans/${planId}/ref-meals/breakfast/wizard`)}>
+            <DropdownMenuItem onClick={() => navigate(`/meal-plans/${planId}/meals/${meal.id}/breakfast-wizard`)}>
               <ChefHat className="mr-2 h-4 w-4 text-primary" />
               <span>Frühstücksassistent</span>
             </DropdownMenuItem>
@@ -214,6 +222,12 @@ export function MealActionsMenu({
             <DropdownMenuItem onClick={() => onScaleMeal(meal.id)}>
               <Scale className="mr-2 h-4 w-4 text-primary" />
               <span>Auf Soll skalieren</span>
+            </DropdownMenuItem>
+          )}
+          {canEdit && !meal.is_synced && (
+            <DropdownMenuItem onClick={() => setShowMoveDialog(true)}>
+              <ArrowRightLeft className="mr-2 h-4 w-4 text-primary" />
+              <span>Verschieben / Tauschen...</span>
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
@@ -370,6 +384,85 @@ export function MealActionsMenu({
             </Button>
             <Button onClick={handleSaveTime} disabled={timeInvalid}>
               Speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Mahlzeit verschieben oder tauschen</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="target_date">Zieldatum</Label>
+              <Input
+                id="target_date"
+                type="date"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="target_type">Mahlzeittyp</Label>
+              <select
+                id="target_type"
+                value={targetMealType}
+                onChange={(e) => setTargetMealType(e.target.value)}
+                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+              >
+                <option value="breakfast">Frühstück</option>
+                <option value="lunch">Mittagessen</option>
+                <option value="dinner">Abendessen</option>
+                <option value="snack">Snack</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="move_mode">Aktion</Label>
+              <select
+                id="move_mode"
+                value={moveMode}
+                onChange={(e) => setMoveMode(e.target.value as 'move' | 'swap')}
+                className="w-full px-3 py-2 text-sm border rounded-lg bg-background"
+              >
+                <option value="move">Verschieben (in leeren Slot)</option>
+                <option value="swap">Tauschen (mit vorhandenem Gericht)</option>
+              </select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
+              Abbrechen
+            </Button>
+            <Button
+              onClick={() => {
+                if (!targetDate) return;
+                reorderMutation.mutate(
+                  {
+                    source_meal_id: meal.id,
+                    target_date: targetDate,
+                    target_meal_type: targetMealType,
+                    mode: moveMode,
+                  },
+                  {
+                    onSuccess: () => {
+                      toast.success('Mahlzeit erfolgreich verschoben');
+                      setShowMoveDialog(false);
+                    },
+                    onError: (err) => {
+                      toast.error('Fehler beim Verschieben', { description: err.message });
+                    },
+                  }
+                );
+              }}
+              disabled={reorderMutation.isPending || !targetDate}
+            >
+              {reorderMutation.isPending ? 'Verschiebt...' : 'Ausführen'}
             </Button>
           </DialogFooter>
         </DialogContent>

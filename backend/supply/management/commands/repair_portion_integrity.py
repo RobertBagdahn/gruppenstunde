@@ -84,7 +84,7 @@ class Command(BaseCommand):
                     )
                     repaired += 1
                     continue
-                if service.check_and_repair_recipe(recipe, bypass_limits=True):
+                if service.check_and_repair_recipe(recipe, bypass_limits=True, is_background=True):
                     repaired += 1
                     affected_recipe_ids.add(recipe.id)
                     self.stdout.write(f"    Repaired recipe '{recipe.title}' (id={recipe.id})")

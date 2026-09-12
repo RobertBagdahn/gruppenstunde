@@ -304,6 +304,9 @@ def clone_packing_list(request, packing_list_id: int):
         PackingList.objects.prefetch_related("categories__items"),
         id=packing_list_id,
     )
+    if not original.is_template and original.visibility == VisibilityChoices.PRIVATE:
+        if not original.user_can_edit(request.user):
+            raise HttpError(404, "Packliste nicht gefunden")
     new_list = original.clone_for_user(request.user)
     new_list.can_edit = True
     return new_list
@@ -316,6 +319,10 @@ def export_text(request, packing_list_id: int):
         PackingList.objects.prefetch_related("categories__items"),
         id=packing_list_id,
     )
+
+    if not packing_list.is_template and packing_list.visibility == VisibilityChoices.PRIVATE:
+        if not request.user.is_authenticated or not packing_list.user_can_edit(request.user):
+            raise HttpError(404, "Packliste nicht gefunden")
 
     lines = [
         f"# {packing_list.title}",

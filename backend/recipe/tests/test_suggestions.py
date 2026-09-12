@@ -141,7 +141,7 @@ class TestGetSuggestions:
         """When gemini_call() returns None → empty list."""
         mock_gemini_call.return_value = (None, None)
 
-        result = get_suggestions(recipe_with_items, "mehr Protein", user)
+        result, _interaction_id = get_suggestions(recipe_with_items, "mehr Protein", user)
         assert result == []
 
     def test_returns_cached_result(self, recipe_with_items, user):
@@ -151,7 +151,7 @@ class TestGetSuggestions:
         cache_key = f"recipe_suggestion:{recipe_with_items.id}:{cached_at_ts}:{hash('test objective')}"
         cache.set(cache_key, cached_data, timeout=3600)
 
-        result = get_suggestions(recipe_with_items, "test objective", user)
+        result, _interaction_id = get_suggestions(recipe_with_items, "test objective", user)
         assert result == cached_data
 
     @patch("recipe.services.suggestion_service.gemini_call")
@@ -160,7 +160,7 @@ class TestGetSuggestions:
         mock_gemini_call.return_value = (_mock_gemini_response(), 1)
 
         objective = "mehr Ballaststoffe"
-        result = get_suggestions(recipe_with_items, objective, user)
+        result, _interaction_id = get_suggestions(recipe_with_items, objective, user)
 
         # Verify suggestions returned
         assert len(result) == 3
@@ -170,6 +170,6 @@ class TestGetSuggestions:
         assert mock_gemini_call.call_count == 1
 
         # Verify result is cached (second call doesn't hit Gemini again)
-        result2 = get_suggestions(recipe_with_items, objective, user)
+        result2, _cached_interaction_id = get_suggestions(recipe_with_items, objective, user)
         assert result2 == result
         assert mock_gemini_call.call_count == 1

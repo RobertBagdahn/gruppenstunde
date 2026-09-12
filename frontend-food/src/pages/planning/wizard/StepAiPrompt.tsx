@@ -1,10 +1,10 @@
 import { Sparkles, Loader2 } from 'lucide-react';
-import type { MealPlanWizardState } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@/schemas/mealPlan';
 
 interface StepAiPromptProps {
   state: MealPlanWizardState;
   isLoading: boolean;
-  onPromptChange: (prompt: string) => void;
+  onPromptChange: (prompt: string, resetSuggestions?: boolean) => void;
   onGenerate: () => void;
 }
 
@@ -59,21 +59,33 @@ export default function StepAiPrompt({
             <Sparkles className="w-4 h-4 text-primary" />
             Generierte Vorschläge
           </h4>
-          <div className="space-y-2">
-            {(state.ai_suggestions as { days: { date: string; meals: { meal_type: string; recipe_title: string }[] }[] }).days.map((day: { date: string; meals: { meal_type: string; recipe_title: string }[] }) => (
-              <div key={day.date} className="border border-border rounded-lg p-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+          <div className="space-y-3">
+            {(state.ai_suggestions as AiSuggestOut).days.map((day) => (
+              <div key={day.date} className="border border-border rounded-lg p-3 bg-muted/20 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   {new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE', {
                     weekday: 'long',
                     day: '2-digit',
                     month: '2-digit',
                   })}
                 </p>
-                <div className="space-y-0.5">
+                <div className="grid gap-2">
                   {day.meals.map((meal, idx) => (
-                    <p key={idx} className="text-sm font-semibold text-foreground">
-                      {meal.recipe_title}
-                    </p>
+                    <div key={idx} className="flex flex-col gap-0.5 rounded-md bg-card border border-border/60 p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-primary">
+                          {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
+                        </span>
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">
+                        {meal.recipe_title}
+                      </span>
+                      {meal.items && meal.items.length > 1 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Enthält: {meal.items.map((it) => it.title).join(', ')}
+                        </p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -88,7 +100,9 @@ export default function StepAiPrompt({
       {state.ai_suggestions && (
         <button
           type="button"
-          onClick={() => onPromptChange(state.ai_prompt)}
+          onClick={() => {
+            onPromptChange('', true);
+          }}
           className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
         >
           Anderen Prompt ausprobieren

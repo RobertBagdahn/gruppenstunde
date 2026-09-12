@@ -53,6 +53,11 @@ class MealItemOut(Schema):
     portion_display: str = ""
     has_missing_weight: bool = False
     is_per_norm_person: bool = True
+    recipe_portions: int | None = None
+
+    @staticmethod
+    def resolve_recipe_portions(obj) -> int | None:
+        return obj.recipe.portions if obj.recipe else None
 
     @staticmethod
     def resolve_recipe_title(obj) -> str:
@@ -234,6 +239,34 @@ class MealItemCreateIn(Schema):
 class MealItemUpdateIn(Schema):
     factor: float | None = None
     quantity: float | None = None
+    servings: float | None = None
+
+
+class MealReorderIn(Schema):
+    source_meal_id: int
+    target_date: dt.date | None = None
+    target_meal_type: str | None = None
+    target_meal_id: int | None = None
+    mode: Literal["move", "swap"] = "move"
+
+
+class PlanCheckAlertOut(Schema):
+    id: str
+    type: Literal["empty_slot", "budget_excess", "allergen_conflict", "info"]
+    severity: Literal["error", "warning", "info"]
+    title: str
+    description: str
+    date: str | None = None
+    meal_id: int | None = None
+    meal_type: str | None = None
+    action_label: str | None = None
+    action_type: str | None = None
+    action_payload: dict | None = None
+
+
+class PlanCheckResponseOut(Schema):
+    total_issues: int
+    alerts: list[PlanCheckAlertOut]
 
 
 class WizardItemsIn(Schema):

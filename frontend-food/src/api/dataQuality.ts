@@ -17,7 +17,10 @@ import {
   type RecipeDismissRequest,
   PaginatedCompletenessSchema,
   MissingClassificationSchema,
-  NutritionPlausibilitySchema,
+  PaginatedNutritionPlausibilitySchema,
+  IngredientFillResultSchema,
+  AiFillMissingBatchSchema,
+  type AiFillMissingRequest,
   RecipeMetadataCheckSchema,
   CacheStalenessSchema,
   PortionPlausibilitySchema,
@@ -202,6 +205,10 @@ export function useMergeIngredients() {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredient-duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient-search'] });
+      queryClient.invalidateQueries({ queryKey: ['similar-ingredients'] });
     },
   });
 }
@@ -229,6 +236,8 @@ export function useRecipeMerge() {
     mutationFn: (data: MergeRequest) => postJson(`${ADMIN_DQ}/recipes/merge/`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipe-duplicates'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe'] });
     },
   });
 }
@@ -285,15 +294,52 @@ export function useMissingClassification(params: { page?: number; page_size?: nu
   });
 }
 
-export function useNutritionPlausibility(params: { page?: number; page_size?: number } = {}) {
+export function useNutritionPlausibility(params: {
+  page?: number;
+  page_size?: number;
+  anomaly_type?: string;
+  search?: string;
+} = {}) {
   const searchParams = new URLSearchParams();
   if (params.page) searchParams.set('page', String(params.page));
   if (params.page_size) searchParams.set('page_size', String(params.page_size));
+  if (params.anomaly_type) searchParams.set('anomaly_type', params.anomaly_type);
+  if (params.search) searchParams.set('search', params.search);
   return useQuery({
     queryKey: ['nutrition-plausibility', params] as const,
     queryFn: async () => {
       const data = await fetchJson(`${ADMIN_DQ}/ingredients/nutrition-plausibility/?${searchParams}`);
-      return PaginatedListSchema(NutritionPlausibilitySchema).parse(data);
+      return PaginatedNutritionPlausibilitySchema.parse(data);
+    },
+  });
+}
+
+export function useAiFillMissingIngredient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (ingredientId: number) => {
+      const data = await postJson(`${ADMIN_DQ}/ingredients/${ingredientId}/ai-fill-missing/`, {});
+      return IngredientFillResultSchema.parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-plausibility'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient-completeness'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+  });
+}
+
+export function useAiFillMissingBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (req: AiFillMissingRequest) => {
+      const data = await postJson(`${ADMIN_DQ}/ingredients/ai-fill-missing/`, req);
+      return AiFillMissingBatchSchema.parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-plausibility'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredient-completeness'] });
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 }

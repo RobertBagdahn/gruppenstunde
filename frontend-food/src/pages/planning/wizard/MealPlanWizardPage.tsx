@@ -135,7 +135,7 @@ export default function MealPlanWizardPage() {
 
   if (userLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="h-96 rounded-xl bg-muted animate-pulse" />
       </div>
     );
@@ -161,7 +161,7 @@ export default function MealPlanWizardPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
+    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-display font-bold text-2xl text-foreground">Neuen Essensplan erstellen</h1>
@@ -221,7 +221,14 @@ export default function MealPlanWizardPage() {
           <StepAiPrompt
             state={state}
             isLoading={aiSuggestMutation.isPending}
-            onPromptChange={(prompt) => updateState({ ai_prompt: prompt })}
+            onPromptChange={(prompt: string, resetSuggestions?: boolean) => {
+              if (resetSuggestions) {
+                setAiSuggestions(null);
+                updateState({ ai_prompt: prompt, ai_suggestions: null });
+              } else {
+                updateState({ ai_prompt: prompt });
+              }
+            }}
             onGenerate={handleGenerate}
           />
         )}

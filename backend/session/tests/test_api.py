@@ -194,6 +194,18 @@ class TestUpdateSession:
         )
         assert resp.status_code == 403
 
+    def test_author_cannot_self_approve(self, auth_client):
+        session = GroupSession.objects.create(title="Entwurf", status=ContentStatus.DRAFT)
+        session.authors.add(auth_client._user)
+        resp = auth_client.patch(
+            f"/api/sessions/{session.id}/",
+            data=json.dumps({"status": ContentStatus.APPROVED}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        session.refresh_from_db()
+        assert session.status == ContentStatus.DRAFT
+
 
 # ---------------------------------------------------------------------------
 # Delete Endpoint

@@ -440,7 +440,9 @@ def _get_recipe_suggestions(recipe_type: str, limit: int = 3) -> list[RecipeSugg
     recipes = Recipe.objects.filter(
         recipe_type=recipe_type,
         status="approved",
-    ).order_by("-like_score")[:limit]
+    ).order_by(
+        "-like_score"
+    )[:limit]
 
     return [
         RecipeSuggestionOut(
@@ -619,7 +621,7 @@ def _check_rate_limit(user: AbstractBaseUser) -> None:
 
 def get_suggestions(
     recipe: Recipe, objective: str, user: AbstractBaseUser, direction: str = "reduce"
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], str | None]:
     """Generate LLM-based ingredient suggestions for improving a recipe.
 
     Args:
@@ -629,8 +631,9 @@ def get_suggestions(
         direction: "reduce" or "increase" — whether the objective should be lowered or raised.
 
     Returns:
-        List of dicts with keys: ingredient_name, recommended_amount, unit,
-        reasoning, expected_improvement. Returns empty list on error.
+        Tuple of (suggestions, ai_interaction_id). Suggestions is a list of
+        dicts with keys: ingredient_name, recommended_amount, unit,
+        reasoning, expected_improvement. Empty list on error.
     """
     # --- Rate limit ---
     _check_rate_limit(user)
@@ -640,7 +643,7 @@ def get_suggestions(
     cache_key = f"recipe_suggestion:{recipe.id}:{cached_at_ts}:{hash(objective)}"
     cached = cache.get(cache_key)
     if cached is not None:
-        return cached
+        return cached, None
 
     # --- Gather recipe context ---
     from recipe.services.recipe_checks import get_recipe_nutritional_values
@@ -690,16 +693,16 @@ def get_suggestions(
         )
         if response is None:
             logger.warning("Gemini client not available — returning empty suggestions")
-            return []
+            return [], str(interaction_id) if interaction_id else None
         result = SuggestionsOutput.model_validate_json(response.text)
         suggestions = [item.model_dump() for item in result.suggestions]
     except HttpError:
         raise
     except Exception:
         logger.warning("Gemini suggestion request failed", exc_info=True)
-        return []
+        return [], None
 
     # --- Cache result ---
     cache.set(cache_key, suggestions, timeout=CACHE_TTL_SECONDS)
 
-    return suggestions
+    return suggestions, str(interaction_id) if interaction_id else None

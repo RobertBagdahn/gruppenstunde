@@ -56,8 +56,8 @@ export default function KiKostenPage() {
                   <td className="px-4 py-3 text-sm font-medium">{user.user_name}</td>
                   <td className="px-4 py-3 text-sm text-right tabular-nums">{user.total_calls.toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm text-right tabular-nums">{user.total_tokens.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm text-right tabular-nums font-medium">{user.total_cost_eur.toFixed(6)} €</td>
-                  <td className="px-4 py-3 text-sm text-right tabular-nums">{user.cost_30d_eur.toFixed(6)} €</td>
+                  <td className="px-4 py-3 text-sm text-right tabular-nums font-medium">{user.total_cost_eur.toFixed(2)} €</td>
+                  <td className="px-4 py-3 text-sm text-right tabular-nums">{user.cost_30d_eur.toFixed(2)} €</td>
                   <td className="px-4 py-3 text-sm text-right">{user.vote_rate}%</td>
                 </tr>
               ))}

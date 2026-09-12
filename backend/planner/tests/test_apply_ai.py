@@ -3,7 +3,7 @@ import json
 from django.test import Client, TestCase
 from model_bakery import baker
 
-from planner.models import MealItem, MealPlan
+from planner.models import Meal, MealItem, MealPlan
 from recipe.models import Recipe
 
 
@@ -14,9 +14,33 @@ class TestAiApplyEndpoint(TestCase):
         self.client = Client()
         self.client.force_login(self.user)
 
-        self.recipe1 = baker.make(Recipe, id=42, title="Haferporridge", recipe_type="breakfast", _fill_optional=False)
-        self.recipe2 = baker.make(Recipe, id=128, title="Kartoffelsuppe", recipe_type="lunch", _fill_optional=False)
-        self.recipe3 = baker.make(Recipe, id=256, title="Veganes Curry", recipe_type="dinner", _fill_optional=False)
+        self.recipe1 = baker.make(
+            Recipe,
+            id=42,
+            title="Haferporridge",
+            recipe_type="breakfast",
+            status="approved",
+            owner=None,
+            _fill_optional=False,
+        )
+        self.recipe2 = baker.make(
+            Recipe,
+            id=128,
+            title="Kartoffelsuppe",
+            recipe_type="lunch",
+            status="approved",
+            owner=None,
+            _fill_optional=False,
+        )
+        self.recipe3 = baker.make(
+            Recipe,
+            id=256,
+            title="Veganes Curry",
+            recipe_type="dinner",
+            status="approved",
+            owner=None,
+            _fill_optional=False,
+        )
 
         self.plan = MealPlan.objects.create(
             name="Testplan",
@@ -126,3 +150,41 @@ class TestAiApplyEndpoint(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_multi_item_breakfast_apply_creates_all_items(self):
+        from supply.models import Ingredient
+
+        ing1 = baker.make(Ingredient, name="Bauernbrot", status="approved", owner=None)
+        ing2 = baker.make(Ingredient, name="Butter", status="approved", owner=None)
+
+        payload = {
+            "days": [
+                {
+                    "date": "2026-08-14",
+                    "meals": [
+                        {
+                            "meal_type": "breakfast",
+                            "recipe_title": "Pfadfinder-Brotzeit",
+                            "source_meal_id": 99,
+                            "items": [
+                                {"ingredient_id": ing1.id, "title": "Bauernbrot", "quantity": 150.0, "unit": "g"},
+                                {"ingredient_id": ing2.id, "title": "Butter", "quantity": 20.0, "unit": "g"},
+                                {"recipe_id": 42, "title": "Haferporridge"},
+                            ],
+                        },
+                    ],
+                }
+            ]
+        }
+        response = self.client.post(
+            f"/api/meal-plans/{self.plan.id}/apply-ai/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["applied"], 1)
+        self.assertEqual(data["skipped"], 0)
+
+        bf_meal = Meal.objects.get(meal_plan=self.plan, meal_type="breakfast", start_datetime__date="2026-08-14")
+        self.assertEqual(bf_meal.items.count(), 3)

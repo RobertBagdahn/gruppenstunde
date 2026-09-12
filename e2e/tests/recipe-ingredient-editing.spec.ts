@@ -60,11 +60,7 @@ async function openManualRecipeIngredientsStep(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 
   await page.getByTestId('recipe-smart-input').fill('E2E Rezept');
-  await page.getByTestId('recipe-smart-analyze').click();
-
-  const nextButton = page.getByRole('button', { name: 'Weiter', exact: true });
-  await expect(nextButton).toBeEnabled();
-  await nextButton.click();
+  await page.getByTestId('recipe-wizard-next').click();
 
   await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible({
     timeout: 15000,

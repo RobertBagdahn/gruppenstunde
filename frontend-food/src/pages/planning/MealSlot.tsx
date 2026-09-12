@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   PlusCircle,
   X,
   RefreshCw,
   FileText,
-  Search,
   Shuffle,
-  Clock,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Users,
 } from 'lucide-react';
 import { useRandomRecipeSuggestion, useIngredientScan } from '@/api/mealPlans';
 import { NutriTagBadge } from '@/components/shared/NutriTagBadge';
@@ -23,9 +24,11 @@ import {
   formatMealTime,
 } from '@/schemas/mealPlan';
 import type { Meal, RecipeSearchResult } from '@/schemas/mealPlan';
-import RecipeSearchDialog from './RecipeSearchDialog';
+import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
+import { BreakfastQuickBuilder } from '@/components/breakfast/BreakfastQuickBuilder';
 import RecipePreviewDialog from './RecipePreviewDialog';
 import { FactorInput } from './FactorInput';
+import { PortionPersonsInput } from '@/components/planning/PortionPersonsInput';
 import { QuantityInput } from './QuantityInput';
 import { MealActionsMenu } from '@/components/planning/MealActionsMenu';
 import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
@@ -46,7 +49,7 @@ export function MealSlot({
   onScaleMeal,
   onCopyFromPlan,
   nutritionalTagIds,
-  nutritionalTagNames,
+  nutritionalTagNames: _nutritionalTagNames,
 }: {
   meal: Meal;
   canEdit: boolean;
@@ -76,12 +79,35 @@ export function MealSlot({
 }) {
   const { id } = useParams<{ id: string }>();
   const mealPlanId = Number(id) || 0;
-  const navigate = useNavigate();
   const { data: scanData } = useIngredientScan(mealPlanId);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [randomPreviewRecipe, setRandomPreviewRecipe] = useState<RecipeSearchResult | null>(null);
-  const [showWizardWarning, setShowWizardWarning] = useState(false);
+  const [showQuickBuilder, setShowQuickBuilder] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const primaryTitle = useMemo(() => {
+    if (meal.display_name) return meal.display_name;
+    const recipeTitles = meal.items.filter((i) => Boolean(i.recipe_title)).map((i) => i.recipe_title);
+    if (recipeTitles.length > 0) return recipeTitles.join(', ');
+    const ingNames = meal.items.filter((i) => Boolean(i.ingredient_name)).map((i) => i.ingredient_name);
+    if (ingNames.length > 0) return ingNames.join(', ');
+    return '';
+  }, [meal.display_name, meal.items]);
+
+  const prominentIngredientTags = useMemo(() => {
+    const tags: string[] = [];
+    for (const item of meal.items) {
+      if (item.ingredient_tags && item.ingredient_tags.length > 0) {
+        for (const t of item.ingredient_tags) {
+          if (!tags.includes(t) && tags.length < 4) tags.push(t);
+        }
+      } else if (item.ingredient_name && !tags.includes(item.ingredient_name) && tags.length < 4) {
+        tags.push(item.ingredient_name);
+      }
+    }
+    return tags;
+  }, [meal.items]);
 
   const excludedRecipeIds = useMemo(
     () => new Set(meal.items.filter((i) => i.recipe_id != null).map((i) => i.recipe_id!)),
@@ -93,11 +119,7 @@ export function MealSlot({
   );
 
   const handleOpenWizard = () => {
-    if (meal.items.length > 0) {
-      setShowWizardWarning(true);
-    } else {
-      navigate(`/meal-plans/${mealPlanId}/meals/${meal.id}/breakfast-wizard`);
-    }
+    setShowQuickBuilder(true);
   };
 
   const randomQuery = useRandomRecipeSuggestion({
@@ -142,7 +164,6 @@ export function MealSlot({
   const mealActualCost = meal.total_cost_eur / effPortions;
   const mealTime = formatMealTime(meal.start_datetime);
 
-  const showEditUI = canEdit && !meal.is_synced && !meal.is_external;
   const isPortionUnit = (name: string) => !['g', 'ml'].includes(name.toLowerCase());
   const formatPortion = (item: Meal['items'][number]): string => {
     if (item.portion_display) {
@@ -155,178 +176,210 @@ export function MealSlot({
     return 'Menge nicht angegeben';
   };
 
-  return (
-    <div className={`px-4 py-3 border-l-4 ${isEmpty && !meal.is_external ? 'border-destructive bg-destructive/5' : mealColors.border}`}>
-      {/* Meal Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {isEmpty && !meal.is_external ? (
-            <AlertCircle className="w-5 h-5 text-destructive animate-pulse" />
-          ) : (
+  if (isEmpty && !meal.is_external) {
+    return (
+      <div className={`p-4 rounded-xl border-2 border-dashed ${mealColors.border}/40 bg-card/60 hover:bg-muted/30 transition-all space-y-3`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <span className={`material-symbols-outlined text-[20px] ${mealColors.text}`}>
               {MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'}
             </span>
+            <span className="font-bold text-sm text-foreground">
+              {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
+            </span>
+            {mealTime && <span className="text-xs text-muted-foreground">· {mealTime}</span>}
+          </div>
+          {canEdit && (
+            <MealActionsMenu
+              meal={meal}
+              canEdit={canEdit}
+              planId={mealPlanId}
+              siblingMeals={siblingMeals}
+              onDeleteMeal={onDeleteMeal}
+              onUpdateMeal={onUpdateMeal}
+              onScaleMeal={onScaleMeal}
+              onCopyFromPlan={() => onCopyFromPlan(meal.id)}
+            />
           )}
-          <span className="font-semibold text-base">
-            {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
-          </span>
-          {meal.meal_type !== 'drinks' && (
-            <>
-              <span className="text-sm text-muted-foreground">
-                Soll: {Math.round(meal.day_part_factor * 100)}%
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+          <p className="text-xs text-muted-foreground italic flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 text-amber-500/80 shrink-0" />
+            Noch kein Gericht geplant
+          </p>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            {canEdit && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setDialogOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Gericht hinzufügen
+                </button>
+                {meal.meal_type === 'breakfast' && (
+                  <button
+                    type="button"
+                    onClick={handleOpenWizard}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-chart-4/30 bg-chart-4/10 text-chart-4 hover:bg-chart-4/20 transition-all"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Frühstücksbaukasten
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleRandomSuggest}
+                  disabled={randomQuery.isFetching}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-border bg-card hover:bg-muted/60 transition-all disabled:opacity-50"
+                  title="Schneller KI-Vorschlag"
+                >
+                  <Shuffle className="w-3.5 h-3.5 text-primary" />
+                  Was passt hier?
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Dialogs */}
+        <MealOmnibarDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          mealType={meal.meal_type}
+          mealId={meal.id}
+          normPortions={effPortions}
+          onSelectRecipe={handleSelect}
+          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
+            onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity);
+            setDialogOpen(false);
+          }}
+          nutritionalTagIds={nutritionalTagIds}
+          excludedRecipeIds={excludedRecipeIds}
+          excludedIngredientIds={excludedIngredientIds}
+        />
+        {randomPreviewRecipe && (
+          <RecipePreviewDialog
+            recipe={randomPreviewRecipe}
+            open={!!randomPreviewRecipe}
+            onOpenChange={(op) => { if (!op) setRandomPreviewRecipe(null); }}
+            onConfirm={(recId) => {
+              handleSelect(recId);
+              setRandomPreviewRecipe(null);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`rounded-xl border ${mealColors.border}/40 bg-card shadow-soft overflow-hidden transition-all`}>
+      {/* Compact Card Header */}
+      <div
+        className="p-3.5 flex items-start justify-between gap-3 cursor-pointer select-none hover:bg-muted/20 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <div className="p-2 rounded-lg bg-muted/60 shrink-0 mt-0.5">
+            <span className={`material-symbols-outlined text-[20px] ${mealColors.text}`}>
+              {MEAL_TYPE_ICONS[meal.meal_type] || 'restaurant'}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}
               </span>
-              {(!isEmpty || meal.is_external) && meal.total_energy_kcal > 0 && (
-                <span className={`text-sm font-medium ${coverageColorClass}`}>
-                  │ Ist: {fulfillmentPercent}% erfüllt
+              {mealTime && <span className="text-xs text-muted-foreground">· {mealTime}</span>}
+              {meal.is_synced && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                  <RefreshCw className="w-3 h-3 animate-spin-slow" />
+                  Referenz
                 </span>
               )}
-            </>
-          )}
+            </div>
+            <h4 className="text-base font-display font-bold text-foreground truncate mt-0.5">
+              {primaryTitle || 'Mahlzeit'}
+            </h4>
 
+            {/* Quick Metrics & Tags */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap text-xs">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted font-semibold text-muted-foreground">
+                <Users className="w-3 h-3" />
+                {effPortions} P.
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                {mealActualCost.toFixed(2)} €/P. ({meal.total_cost_eur.toFixed(2)} €)
+              </span>
+              {prominentIngredientTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground text-[11px]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          {canEdit && (
-            <>
-              {!meal.is_synced && !meal.is_external && (
-                <>
-                  {meal.meal_type === 'breakfast' && !isEmpty && (
-                    <button
-                      onClick={handleOpenWizard}
-                      className="p-1 rounded text-chart-4 hover:bg-chart-4/10 transition-colors"
-                      title="Frühstücksassistent"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setDialogOpen(true)}
-                    className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-muted/10 transition-colors"
-                    title="Rezept hinzufügen"
-                  >
-                    <PlusCircle className="w-4.5 h-4.5 text-primary" />
-                  </button>
-                </>
-              )}
-              <MealActionsMenu
-                meal={meal}
-                canEdit={canEdit}
-                planId={mealPlanId}
-                siblingMeals={siblingMeals}
-                onDeleteMeal={onDeleteMeal}
-                onUpdateMeal={onUpdateMeal}
-                onScaleMeal={onScaleMeal}
-                onCopyFromPlan={() => onCopyFromPlan(meal.id)}
-              />
-            </>
-          )}
+
+        <div className="flex items-center gap-1 shrink-0 self-start" onClick={(e) => e.stopPropagation()}>
+          <MealActionsMenu
+            meal={meal}
+            canEdit={canEdit}
+            planId={mealPlanId}
+            siblingMeals={siblingMeals}
+            onDeleteMeal={onDeleteMeal}
+            onUpdateMeal={onUpdateMeal}
+            onScaleMeal={onScaleMeal}
+            onCopyFromPlan={() => onCopyFromPlan(meal.id)}
+          />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(!isOpen);
+            }}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            aria-label={isOpen ? 'Details einklappen' : 'Details aufklappen'}
+          >
+            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
-      {/* Meal Time */}
-      {mealTime && (
-        <div className="pl-7 text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5" />
-          <span>
-            {mealTime}
-            {formatMealTime(meal.end_datetime) && `–${formatMealTime(meal.end_datetime)}`}
-          </span>
-        </div>
-      )}
-
-      {/* Meal Note */}
-      {meal.note && (
-        <div className="pl-7 text-xs text-muted-foreground italic mb-2 flex items-center gap-1">
-          <FileText className="w-3.5 h-3.5" />
-          <span>{meal.note}</span>
-        </div>
-      )}
-
-      {/* Meal Soll/Ist stats */}
-      {(!isEmpty || meal.is_external) && (
-        <div className="pl-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
-          {meal.meal_type === 'drinks' ? (
-            <>
-              <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
-                <span>Kcal: <span className="text-primary font-medium">Ist {mealActualKcal} kcal</span></span>
-              </span>
-              {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
-                <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                  <span className="material-symbols-outlined text-[14px]">payments</span>
-                  <span>Preis: Ist {mealActualCost.toFixed(2)} €</span>
-                </span>
-              )}
-            </>
-          ) : (
-            <>
-              <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
-                <span>Kcal: Soll {mealTargetKcal} / <span className={`${coverageColorClass} font-medium`}>Ist {mealActualKcal} kcal</span></span>
-              </span>
-              {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
-                <span className="inline-flex items-center gap-1 bg-muted/40 px-2 py-0.5 rounded border border-border/30">
-                  <span className="material-symbols-outlined text-[14px]">payments</span>
-                  <span>Preis: Soll {mealTargetCost.toFixed(2)} € / Ist {mealActualCost.toFixed(2)} €</span>
-                </span>
-              )}
-            </>
+      {/* Accordion Body */}
+      {isOpen && (
+        <div className="border-t border-border/60 p-4 space-y-4 bg-muted/10 animate-in fade-in-50 duration-200">
+          {/* Meal Note */}
+          {meal.note && (
+            <div className="text-xs text-muted-foreground italic flex items-center gap-1 bg-card p-2 rounded-lg border border-border/40">
+              <FileText className="w-3.5 h-3.5 shrink-0" />
+              <span>{meal.note}</span>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Meal Items */}
-      {meal.is_synced && !isEmpty && (
-        <p className="text-xs text-primary font-medium pl-7 flex items-center gap-1 mb-1">
-          <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" />
-          Referenz-Mahlzeit
-        </p>
-      )}
-
-      {/* Empty state CTA */}
-      {isEmpty && showEditUI && (
-        <div className="pl-7 space-y-2">
-          <button
-            onClick={() => setDialogOpen(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors text-sm font-medium"
-          >
-            <Search className="w-4 h-4" />
-            Rezept oder Zutat wählen
-          </button>
-          {meal.meal_type === 'breakfast' && (
-            <button
-              onClick={handleOpenWizard}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-chart-4/30 text-chart-4 hover:bg-chart-4/5 transition-colors text-sm font-medium"
-            >
-              <Sparkles className="w-4 h-4" />
-              Frühstücksassistent
-            </button>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={handleRandomSuggest}
-              disabled={randomQuery.isFetching}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-primary border rounded-md hover:bg-muted transition-colors disabled:opacity-50"
-            >
-              <Shuffle className="w-3 h-3" />
-              Rezept vorschlagen
-            </button>
-            <button
-              onClick={() => setDialogOpen(true)}
-              className="text-xs text-destructive italic hover:underline"
-            >
-              <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
-              Noch kein Rezept zugeordnet
-            </button>
+          {/* Meal Soll/Ist stats */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {meal.meal_type !== 'drinks' && (
+              <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-lg border border-border/40">
+                <span className="material-symbols-outlined text-[14px]">local_fire_department</span>
+                <span>Kcal: Soll {mealTargetKcal} / <span className={`${coverageColorClass} font-medium`}>Ist {mealActualKcal} kcal</span> ({fulfillmentPercent}%)</span>
+              </span>
+            )}
+            {budgetPerPersonPerDay != null && budgetPerPersonPerDay > 0 && (
+              <span className="inline-flex items-center gap-1 bg-card px-2.5 py-1 rounded-lg border border-border/40">
+                <span className="material-symbols-outlined text-[14px]">payments</span>
+                <span>Preis: Soll {mealTargetCost.toFixed(2)} € / Ist {mealActualCost.toFixed(2)} €</span>
+              </span>
+            )}
           </div>
-        </div>
-      )}
 
-      {isEmpty && !showEditUI && (
-        <p className="text-sm text-destructive italic pl-7 flex items-center gap-1">
-          <AlertCircle className="w-4 h-4 text-destructive" />
-          Noch kein Rezept zugeordnet
-        </p>
-      )}
+          {/* Meal Items Rendering */}
+          <div className="space-y-2">
 
         {(() => {
           if (meal.meal_type !== 'breakfast') {
@@ -508,9 +561,17 @@ export function MealSlot({
                             ) : (
                               <>
                                 {canEdit && !meal.is_synced ? (
-                                  <FactorInput value={item.factor} onChange={(f) => onUpdateItemFactor(item.id, f)} />
+                                  <PortionPersonsInput
+                                    factor={item.factor}
+                                    basePortions={item.recipe_portions || 4}
+                                    onChangeFactor={(f: number) => onUpdateItemFactor(item.id, f)}
+                                  />
                                 ) : (
-                                  item.factor !== 1.0 && <span>&times;{item.factor.toFixed(2).replace('.', ',')}</span>
+                                  item.factor !== 1.0 && (
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-muted">
+                                      {Math.round(item.factor * (item.recipe_portions || 4))} P.
+                                    </span>
+                                  )
                                 )}
                               </>
                             )}
@@ -562,52 +623,59 @@ export function MealSlot({
 
           return rendered;
         })()}
+          </div>
 
-      {/* Recipe Search Dialog */}
-      <RecipeSearchDialog
-        mealType={meal.meal_type}
+          {canEdit && !meal.is_synced && (
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border/40">
+              <button
+                type="button"
+                onClick={() => setDialogOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                Weiteres Gericht oder Zutat hinzufügen
+              </button>
+              {meal.meal_type === 'breakfast' && (
+                <button
+                  type="button"
+                  onClick={handleOpenWizard}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-chart-4/30 text-chart-4 hover:bg-chart-4/5 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Im Frühstücksbaukasten bearbeiten
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Unified Meal Omnibar Dialog */}
+      <MealOmnibarDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSelect={(recipeId) => handleSelect(recipeId)}
-        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity, _ingredientName) => {
+        mealType={meal.meal_type}
+        mealId={meal.id}
+        normPortions={effPortions}
+        onSelectRecipe={(recipeId) => handleSelect(recipeId)}
+        onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
           onAddIngredient(meal.id, ingredientId, portionId, measuringUnitId, quantity);
           setDialogOpen(false);
         }}
         nutritionalTagIds={nutritionalTagIds}
-        nutritionalTagNames={nutritionalTagNames}
         excludedRecipeIds={excludedRecipeIds}
         excludedIngredientIds={excludedIngredientIds}
-        planId={mealPlanId}
-        mealId={meal.id}
       />
 
-      {/* Warning dialog for overwriting existing items */}
-      {showWizardWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-card rounded-xl shadow-xl border border-border p-6 max-w-sm mx-4 space-y-4">
-            <h3 className="font-display font-bold text-lg">Frühstück ersetzen?</h3>
-            <p className="text-sm text-muted-foreground">
-              Dieses Frühstück enthält bereits Einträge. Der Assistent wird alle vorhandenen Einträge ersetzen. Fortfahren?
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowWizardWarning(false)}
-                className="px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors"
-              >
-                Abbrechen
-              </button>
-              <button
-                onClick={() => {
-                  setShowWizardWarning(false);
-                  navigate(`/meal-plans/${mealPlanId}/meals/${meal.id}/breakfast-wizard`);
-                }}
-                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-              >
-                Trotzdem ersetzen
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Breakfast Quick Builder */}
+      {meal.meal_type === 'breakfast' && (
+        <BreakfastQuickBuilder
+          open={showQuickBuilder}
+          onOpenChange={setShowQuickBuilder}
+          mealPlanId={mealPlanId}
+          mealId={meal.id}
+          normPortions={effPortions}
+        />
       )}
 
       {/* Random Recipe Preview */}

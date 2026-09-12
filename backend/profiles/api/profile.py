@@ -173,31 +173,26 @@ def get_public_user_food_profile(request, slug: str):
     from content.choices import ContentStatus
     from recipe.models import Recipe, RecipeVisibility
 
-    profile.recipes = list(
-        Recipe.objects.filter(
-            Q(owner_id=profile.user_id) | Q(authors__id=profile.user_id),
-            visibility=RecipeVisibility.PUBLIC,
-            status=ContentStatus.APPROVED,
-        )
-        .distinct()
-        .order_by("-created_at")[:20]
+    recipe_qs = Recipe.objects.filter(
+        Q(owner_id=profile.user_id) | Q(authors__id=profile.user_id),
+        visibility=RecipeVisibility.PUBLIC,
+        status=ContentStatus.APPROVED,
     )
+    profile.recipes = list(recipe_qs.distinct().order_by("-created_at")[:20])
 
     from shopping.models import ShoppingList
 
-    profile.shopping_lists = list(
-        ShoppingList.objects.filter(
-            owner_id=profile.user_id,
-        ).order_by("-created_at")[:20]
-    )
+    profile.shopping_lists = []
+    if is_own_profile:
+        shopping_list_qs = ShoppingList.objects.filter(owner_id=profile.user_id)
+        profile.shopping_lists = list(shopping_list_qs.order_by("-created_at")[:20])
 
-    from planner.models.meal_plan import MealPlan
+    from planner.models.meal_plan import MealPlan, MealPlanVisibility
 
-    profile.meal_plans = list(
-        MealPlan.objects.filter(
-            created_by_id=profile.user_id,
-        ).order_by("-created_at")[:20]
-    )
+    meal_plan_qs = MealPlan.objects.filter(created_by_id=profile.user_id)
+    if not is_own_profile:
+        meal_plan_qs = meal_plan_qs.filter(visibility=MealPlanVisibility.PUBLIC)
+    profile.meal_plans = list(meal_plan_qs.order_by("-created_at")[:20])
 
     return profile
 

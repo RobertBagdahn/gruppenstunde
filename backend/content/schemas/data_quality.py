@@ -1,6 +1,7 @@
 """Schemas for data quality features."""
 
 from datetime import datetime
+from typing import Any
 
 from ninja import Schema
 
@@ -148,12 +149,49 @@ class NutritionPlausibilityOut(Schema):
     id: int
     name: str
     slug: str
-    energy_kcal: float
-    protein_g: float
-    fat_g: float
-    carbohydrate_g: float
-    macro_sum: float
+    energy_kcal: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    carbohydrate_g: float | None = None
+    sugar_g: float | None = None
+    fat_sat_g: float | None = None
+    macro_sum: float | None = None
     issue: str
+    anomaly_type: str | None = None
+    severity: str = "error"
+    missing_fields: list[str] = []
+
+
+class PaginatedNutritionPlausibilityOut(Schema):
+    items: list[NutritionPlausibilityOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class FilledFieldInfoOut(Schema):
+    field: str
+    label: str
+    value: Any = None
+
+
+class IngredientFillResultOut(Schema):
+    id: int
+    name: str
+    slug: str
+    filled_fields: list[FilledFieldInfoOut]
+    quality_score: int | None = None
+    message: str | None = None
+
+
+class AiFillMissingRequestIn(Schema):
+    ingredient_ids: list[int]
+
+
+class AiFillMissingBatchOut(Schema):
+    results: list[IngredientFillResultOut]
+    total_filled: int
 
 
 class RecipeMetadataCheckOut(Schema):

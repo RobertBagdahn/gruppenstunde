@@ -1,7 +1,11 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, useLocation, NavLink } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { useParams, useNavigate, useLocation, useSearchParams, NavLink } from 'react-router-dom';
 import { BackButton } from '@/components/shared/BackButton';
 import { PdfExportDialog } from '@/components/PdfExportDialog';
+import { PlanCheckFlyout } from '@/components/planning/PlanCheckFlyout';
+import { MealOmnibarDialog } from '@/components/planning/MealOmnibarDialog';
+import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/lib/api';
 import { toast } from 'sonner';
 import {
@@ -18,7 +22,6 @@ import {
   Settings,
   Grid3X3,
   DollarSign,
-  Lightbulb,
   ShieldAlert,
   ChefHat,
   Share2,
@@ -38,14 +41,13 @@ import {
   useUpdateMeal,
   useScaleMealToTarget,
 } from '@/api/mealPlans';
-import { MEAL_TYPE_ORDER, minutesToHHMM, getMealDefaultTimes } from '@/schemas/mealPlan';
-import type { Meal } from '@/schemas/mealPlan';
+import { MEAL_TYPE_ORDER, minutesToHHMM, getMealDefaultTimes, effectivePortions } from '@/schemas/mealPlan';
+import type { Meal, MealItem } from '@/schemas/mealPlan';
 import ErrorDisplay from '@/components/ErrorDisplay';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import TableView from './TableView';
 import CostDashboard from './CostDashboard';
 import SettingsPanel from './SettingsPanel';
-import SuggestionsView from './SuggestionsView';
 import ShoppingView from './ShoppingView';
 import { DayPlanView } from './DayPlanView';
 import { CopyFromPlanDialog } from './CopyFromPlanDialog';
@@ -55,6 +57,7 @@ import { useRecipeItems } from '@/api/recipes';
 import MealPlanCollaboratorManager from '@/components/planner/MealPlanCollaboratorManager';
 import { GroupMemberPanel } from '@/components/groupMembers/GroupMemberPanel';
 import CookingScheduleTab from './CookingScheduleTab';
+import { MealPlanBudgetCockpit } from '@/components/planning/MealPlanBudgetCockpit';
 
 /** Group a flat list of meals by date (from start_datetime), sorted by MEAL_TYPE_ORDER. */
 function groupMealsByDate(meals: Meal[]): { date: string; meals: Meal[] }[] {
@@ -98,25 +101,45 @@ export default function MealPlanDetailPage() {
   const updateMealMutation = useUpdateMeal(mealPlanId);
 
   const scaleMealMutation = useScaleMealToTarget(mealPlanId);
+  const queryClient = useQueryClient();
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  const TAB_KEYS = ['plan', 'table', 'cooking-schedule', 'costs', 'shopping', 'suggestions', 'ingredient-scan'] as const;
-  type TabKey = typeof TAB_KEYS[number];
+  const MAIN_TAB_KEYS = ['plan', 'shopping', 'cooking'] as const;
+  type MainTabKey = typeof MAIN_TAB_KEYS[number];
 
   const tabPath = useParams()['*'] || '';
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (!tabPath) {
       navigate(`/meal-plans/${mealPlanId}/plan`, { replace: true });
-    } else if (tabPath === 'nutrition') {
-      // Legacy route: nutrition was merged into the suggestions tab
-      navigate(`/meal-plans/${mealPlanId}/suggestions`, { replace: true });
+    } else if (tabPath === 'table') {
+      navigate(`/meal-plans/${mealPlanId}/plan?view=table`, { replace: true });
+    } else if (tabPath === 'costs') {
+      navigate(`/meal-plans/${mealPlanId}/shopping?sub=costs`, { replace: true });
+    } else if (tabPath === 'cooking-schedule') {
+      navigate(`/meal-plans/${mealPlanId}/cooking?sub=schedule`, { replace: true });
+    } else if (tabPath === 'ingredient-scan') {
+      navigate(`/meal-plans/${mealPlanId}/cooking?sub=helpers`, { replace: true });
+    } else if (tabPath === 'nutrition' || tabPath === 'suggestions') {
+      navigate(`/meal-plans/${mealPlanId}/plan`, { replace: true });
     }
   }, [tabPath, navigate, mealPlanId]);
 
-  const activeTab = (TAB_KEYS.includes(tabPath as TabKey) ? tabPath : 'plan') as TabKey;
+  const activeTab = (MAIN_TAB_KEYS.includes(tabPath as MainTabKey) ? tabPath : 'plan') as MainTabKey;
+  const planView = searchParams.get('view') === 'table' ? 'table' : 'cards';
+  const shoppingSub = searchParams.get('sub') === 'costs' ? 'costs' : 'list';
+  const cookingSub = searchParams.get('sub') === 'helpers' ? 'helpers' : 'schedule';
+
+  // Omnibar meal state (e.g. triggered from PlanCheckFlyout or direct action)
+  const [omnibarMealId, setOmnibarMealId] = useState<number | null>(null);
+
+  const omnibarMeal = useMemo(() => {
+    if (!omnibarMealId || !plan) return null;
+    return plan.meals.find((m) => m.id === omnibarMealId) || null;
+  }, [omnibarMealId, plan]);
 
   // Variant dialog state
   const [variantDialog, setVariantDialog] = useState<{
@@ -134,7 +157,51 @@ export default function MealPlanDetailPage() {
   // Delete confirmations
   const [deleteDayDate, setDeleteDayDate] = useState<string | null>(null);
   const [deleteMealId, setDeleteMealId] = useState<number | null>(null);
-  const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+
+  const handleDeleteItem = useCallback(
+    (itemId: number) => {
+      let itemTitle = 'Eintrag';
+      if (plan) {
+        for (const m of plan.meals) {
+          const it = m.items.find((i) => i.id === itemId);
+          if (it) {
+            itemTitle = it.recipe_title || it.ingredient_name || 'Eintrag';
+            break;
+          }
+        }
+      }
+
+      removeMealItemMutation.mutate(itemId, {
+        onSuccess: (_data, _vars, context) => {
+          toast.success(`«${itemTitle}» entfernt`, {
+            duration: 6000,
+            action: {
+              label: 'Rückgängig',
+              onClick: () => {
+                if (context?.previousPlan) {
+                  queryClient.setQueryData(['meal-plan', mealPlanId], context.previousPlan);
+                  if (context?.removedItem && context.removedFromMealId) {
+                    const it = context.removedItem as MealItem;
+                    if (it.recipe_id) {
+                      addMealItemMutation.mutate({
+                        mealId: context.removedFromMealId,
+                        recipe_id: it.recipe_id,
+                        factor: it.factor,
+                      });
+                    }
+                  }
+                }
+              },
+            },
+          });
+        },
+        onError: (err: { message: string }) => {
+          toast.error('Fehler beim Entfernen', { description: err.message });
+        },
+      });
+    },
+    [plan, removeMealItemMutation, queryClient, mealPlanId, addMealItemMutation]
+  );
 
   // Cross-plan copy dialog state
   const [copyDialogTargetMealId, setCopyDialogTargetMealId] = useState<number | null>(null);
@@ -150,12 +217,6 @@ export default function MealPlanDetailPage() {
     if (!plan) return [];
     return groupMealsByDate(plan.meals);
   }, [plan]);
-
-  useEffect(() => {
-    if (activeTab === 'ingredient-scan' && !(plan?.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)) {
-      navigate(`/meal-plans/${mealPlanId}/plan`, { replace: true });
-    }
-  }, [activeTab, plan?.nutritional_tag_ids, navigate, mealPlanId]);
 
   // Scroll to the day/meal anchor referenced by the URL hash (e.g. coming from a suggestion card)
   useEffect(() => {
@@ -325,16 +386,6 @@ export default function MealPlanDetailPage() {
     });
   };
 
-  const TAB_ICONS = {
-    plan: Calendar,
-    table: Grid3X3,
-    'cooking-schedule': ChefHat,
-    costs: DollarSign,
-    shopping: ShoppingCart,
-    suggestions: Lightbulb,
-    'ingredient-scan': ShieldAlert,
-  };
-
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 font-sans">
       {/* Header */}
@@ -372,6 +423,19 @@ export default function MealPlanDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 self-start">
+          <PlanCheckFlyout
+            mealPlanId={mealPlanId}
+            onNavigateToCosts={() => navigate(`/meal-plans/${mealPlanId}/shopping?sub=costs`)}
+            onScrollToMeal={(mId) => {
+              navigate(`/meal-plans/${mealPlanId}/plan#meal-${mId}`);
+              setTimeout(() => {
+                document.getElementById(`meal-${mId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 50);
+            }}
+            onOpenOmnibar={(mId) => {
+              if (mId) setOmnibarMealId(mId);
+            }}
+          />
           <button
             onClick={() => setShowShareDialog(true)}
             className="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all shadow-soft"
@@ -411,7 +475,7 @@ export default function MealPlanDetailPage() {
 
       {/* Settings Dialog */}
       <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary" />
@@ -455,24 +519,30 @@ export default function MealPlanDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Tab Bar */}
-      <div className="flex gap-1 border-b border-border overflow-x-auto">
-        {([
-          { key: 'plan' as const, label: 'Tagesplan' },
-          { key: 'table' as const, label: 'Tabelle' },
-          { key: 'cooking-schedule' as const, label: 'Kochplan' },
-          { key: 'costs' as const, label: 'Kosten' },
-          { key: 'shopping' as const, label: 'Einkaufsliste' },
-          { key: 'suggestions' as const, label: 'Vorschläge & Nährwerte' },
-          { key: 'ingredient-scan' as const, label: 'Zutaten-Radar' },
-        ] as const).filter(tab => tab.key !== 'ingredient-scan' || (plan.nutritional_tag_ids && plan.nutritional_tag_ids.length > 0)).map((tab) => {
-          const IconComponent = TAB_ICONS[tab.key];
+      {/* Budget & Nutrition Cockpit */}
+      <MealPlanBudgetCockpit
+        normPortions={plan.norm_portions}
+        budgetPerPersonPerDay={plan.budget_per_person_per_day}
+        reserveFactor={plan.reserve_factor}
+        meals={plan.meals}
+        onNavigateToCosts={() => navigate(`/meal-plans/${mealPlanId}/shopping?sub=costs`)}
+        onNavigateToSuggestions={() => navigate(`/meal-plans/${mealPlanId}/plan`)}
+      />
+
+      {/* Main 3-Pillar Tab Bar */}
+      <div className="flex gap-2 border-b border-border overflow-x-auto">
+        {[
+          { key: 'plan' as const, label: 'Planen', icon: Calendar },
+          { key: 'shopping' as const, label: 'Einkaufen', icon: ShoppingCart },
+          { key: 'cooking' as const, label: 'Kochen', icon: ChefHat },
+        ].map((tab) => {
+          const IconComponent = tab.icon;
           return (
             <NavLink
               key={tab.key}
               to={`/meal-plans/${mealPlanId}/${tab.key}`}
               className={({ isActive }) =>
-                `flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
+                `flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition-all -mb-px whitespace-nowrap ${
                   isActive
                     ? 'border-primary text-primary'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
@@ -488,63 +558,203 @@ export default function MealPlanDetailPage() {
 
       {/* Tab Content */}
       {activeTab === 'plan' && (
-        <DayPlanView
-          mealPlanId={mealPlanId}
-          dayGroups={dayGroups}
-          canEdit={plan.can_edit}
-          hasTimeframe={!!(plan.start_datetime && plan.end_datetime)}
-          normPortions={plan.norm_portions}
-          budgetPerPersonPerDay={plan.budget_per_person_per_day}
-          onAddDayBefore={handleAddDayBefore}
-          addDayBeforePending={addDayBeforeMutation.isPending}
-          onAddDayAfter={handleAddDayAfter}
-          addDayAfterPending={addDayAfterMutation.isPending}
-          onDeleteDay={setDeleteDayDate}
-          onAddMealType={handleAddMealType}
-          onDeleteMeal={setDeleteMealId}
-          onAddRecipe={handleAddRecipe}
-          onAddIngredient={handleAddIngredient}
-          onDeleteItem={setDeleteItemId}
-          onUpdateItemFactor={handleUpdateItemFactor}
-          onUpdateItemQuantity={handleUpdateItemQuantity}
-          onUpdateMeal={handleUpdateMeal}
-          onScaleMeal={handleScaleMeal}
-          onCopyFromPlan={setCopyDialogTargetMealId}
-          nutritionalTagIds={plan.nutritional_tag_ids}
-          nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
-        />
+        <div className="space-y-4">
+          {/* Header View Switcher */}
+          <div className="flex items-center justify-between pb-1">
+            <div className="inline-flex items-center p-1 rounded-xl bg-muted/60 border border-border">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete('view');
+                  setSearchParams(next, { replace: true });
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
+                  planView === 'cards'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                Tagesplan
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set('view', 'table');
+                  setSearchParams(next, { replace: true });
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all',
+                  planView === 'table'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Grid3X3 className="w-3.5 h-3.5" />
+                Tabelle
+              </button>
+            </div>
+          </div>
+
+          {planView === 'cards' ? (
+            <DayPlanView
+              mealPlanId={mealPlanId}
+              dayGroups={dayGroups}
+              canEdit={plan.can_edit}
+              hasTimeframe={!!(plan.start_datetime && plan.end_datetime)}
+              normPortions={plan.norm_portions}
+              budgetPerPersonPerDay={plan.budget_per_person_per_day}
+              onAddDayBefore={handleAddDayBefore}
+              addDayBeforePending={addDayBeforeMutation.isPending}
+              onAddDayAfter={handleAddDayAfter}
+              addDayAfterPending={addDayAfterMutation.isPending}
+              onDeleteDay={setDeleteDayDate}
+              onAddMealType={handleAddMealType}
+              onDeleteMeal={setDeleteMealId}
+              onAddRecipe={handleAddRecipe}
+              onAddIngredient={handleAddIngredient}
+              onDeleteItem={handleDeleteItem}
+              onUpdateItemFactor={handleUpdateItemFactor}
+              onUpdateItemQuantity={handleUpdateItemQuantity}
+              onUpdateMeal={handleUpdateMeal}
+              onScaleMeal={handleScaleMeal}
+              onCopyFromPlan={setCopyDialogTargetMealId}
+              nutritionalTagIds={plan.nutritional_tag_ids}
+              nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
+            />
+          ) : (
+            <TableView
+              meals={plan.meals}
+              normPortions={plan.norm_portions}
+              budgetPerPersonPerDay={plan.budget_per_person_per_day}
+              canEdit={plan.can_edit}
+              startDatetime={plan.start_datetime}
+              endDatetime={plan.end_datetime}
+              onAddMealType={handleAddMealType}
+              onAddRecipe={handleAddRecipe}
+              onAddIngredient={handleAddIngredient}
+              onDeleteItem={handleDeleteItem}
+              onUpdateItemFactor={handleUpdateItemFactor}
+              onUpdateItemQuantity={handleUpdateItemQuantity}
+              onDeleteMeal={setDeleteMealId}
+              onUpdateMeal={handleUpdateMeal}
+              onScaleMeal={handleScaleMeal}
+              nutritionalTagIds={plan.nutritional_tag_ids}
+              nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
+            />
+          )}
+        </div>
       )}
-      {activeTab === 'table' && (
-        <TableView
-          meals={plan.meals}
-          normPortions={plan.norm_portions}
-          budgetPerPersonPerDay={plan.budget_per_person_per_day}
-          canEdit={plan.can_edit}
-          startDatetime={plan.start_datetime}
-          endDatetime={plan.end_datetime}
-          onAddMealType={handleAddMealType}
-          onAddRecipe={handleAddRecipe}
-          onAddIngredient={handleAddIngredient}
-          onDeleteItem={setDeleteItemId}
-          onUpdateItemFactor={handleUpdateItemFactor}
-          onDeleteMeal={setDeleteMealId}
-          onUpdateMeal={handleUpdateMeal}
-          onScaleMeal={handleScaleMeal}
-          nutritionalTagIds={plan.nutritional_tag_ids}
-          nutritionalTagNames={plan.nutritional_tags?.map(t => t.name) ?? []}
-        />
+
+      {activeTab === 'shopping' && (
+        <div className="space-y-4">
+          <div className="flex gap-2 border-b border-border pb-2">
+            <button
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete('sub');
+                setSearchParams(next, { replace: true });
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                shoppingSub === 'list'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ShoppingCart className="w-3.5 h-3.5" />
+              Einkaufsliste
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.set('sub', 'costs');
+                setSearchParams(next, { replace: true });
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                shoppingSub === 'costs'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              Kosten & Budget
+            </button>
+          </div>
+          {shoppingSub === 'list' && <ShoppingView mealPlanId={mealPlanId} />}
+          {shoppingSub === 'costs' && (
+            <CostDashboard
+              mealPlanId={mealPlanId}
+              budgetPerPersonPerDay={plan.budget_per_person_per_day}
+              meals={plan.meals}
+              onSelectTab={(tab) => {
+                if (tab === 'shopping') {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete('sub');
+                  setSearchParams(next, { replace: true });
+                } else {
+                  navigate(`/meal-plans/${mealPlanId}/${tab}`);
+                }
+              }}
+            />
+          )}
+        </div>
       )}
-      {activeTab === 'cooking-schedule' && <CookingScheduleTab mealPlanId={mealPlanId} />}
-       {activeTab === 'costs' && <CostDashboard mealPlanId={mealPlanId} budgetPerPersonPerDay={plan.budget_per_person_per_day} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
-      {activeTab === 'shopping' && <ShoppingView mealPlanId={mealPlanId} />}
-      {activeTab === 'suggestions' && <SuggestionsView mealPlanId={mealPlanId} meals={plan.meals} onSelectTab={(tab) => navigate(`/meal-plans/${mealPlanId}/${tab}`)} />}
-      {activeTab === 'ingredient-scan' && (
-        <IngredientScanView
-          mealPlanId={mealPlanId}
-          canEdit={plan.can_edit}
-          onOpenSettings={() => setShowSettingsDialog(true)}
-          nutritionalTagsCount={plan.nutritional_tag_ids?.length || 0}
-        />
+
+      {activeTab === 'cooking' && (
+        <div className="space-y-4">
+          <div className="flex gap-2 border-b border-border pb-2">
+            <button
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete('sub');
+                setSearchParams(next, { replace: true });
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                cookingSub === 'schedule'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ChefHat className="w-3.5 h-3.5" />
+              Zubereitungs-Zeitplan
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.set('sub', 'helpers');
+                setSearchParams(next, { replace: true });
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all',
+                cookingSub === 'helpers'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Küchenhelfer & Allergene
+            </button>
+          </div>
+          {cookingSub === 'schedule' && <CookingScheduleTab mealPlanId={mealPlanId} />}
+          {cookingSub === 'helpers' && (
+            <IngredientScanView
+              mealPlanId={mealPlanId}
+              canEdit={plan.can_edit}
+              onOpenSettings={() => setShowSettingsDialog(true)}
+              nutritionalTagsCount={plan.nutritional_tag_ids?.length || 0}
+            />
+          )}
+        </div>
       )}
 
       {/* Delete Day Confirm */}
@@ -587,26 +797,6 @@ export default function MealPlanDetailPage() {
         loading={removeMealMutation.isPending}
       />
 
-      {/* Delete Item Confirm */}
-      <ConfirmDialog
-        open={deleteItemId !== null}
-        onConfirm={() => {
-          if (deleteItemId === null) return;
-          removeMealItemMutation.mutate(deleteItemId, {
-            onSuccess: () => {
-              toast.success('Rezept entfernt');
-              setDeleteItemId(null);
-            },
-            onError: (err) => toast.error('Fehler', { description: err.message }),
-          });
-        }}
-        onCancel={() => setDeleteItemId(null)}
-        title="Rezept entfernen?"
-        description="Das Rezept wird aus der Mahlzeit entfernt."
-        confirmLabel="Entfernen"
-        loading={removeMealItemMutation.isPending}
-      />
-
       {/* Copy From Plan Dialog */}
       <CopyFromPlanDialog
         open={copyDialogTargetMealId !== null}
@@ -629,6 +819,28 @@ export default function MealPlanDetailPage() {
         isLoading={variantDialogLoading}
         isFetching={variantDialogFetching}
       />
+
+      {/* Unified Meal Omnibar Dialog */}
+      {omnibarMeal && (
+        <MealOmnibarDialog
+          open={!!omnibarMeal}
+          onOpenChange={(open) => {
+            if (!open) setOmnibarMealId(null);
+          }}
+          mealType={omnibarMeal.meal_type}
+          mealId={omnibarMeal.id}
+          normPortions={effectivePortions(omnibarMeal, plan.norm_portions)}
+          onSelectRecipe={(recipeId) => {
+            handleAddRecipe(omnibarMeal.id, recipeId);
+            setOmnibarMealId(null);
+          }}
+          onSelectIngredient={(ingredientId, portionId, measuringUnitId, quantity) => {
+            handleAddIngredient(omnibarMeal.id, ingredientId, portionId, measuringUnitId, quantity);
+            setOmnibarMealId(null);
+          }}
+          nutritionalTagIds={plan.nutritional_tag_ids}
+        />
+      )}
 
       <PdfExportDialog
         open={pdfDialogOpen}

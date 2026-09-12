@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { applyEstimateToItem, getItemWeightG, type EditableItem } from '../InlineIngredientEditor';
+import {
+  applyEstimateToItem,
+  getItemWeightG,
+  toPersistedRecipeItemQuantity,
+  type EditableItem,
+} from '../InlineIngredientEditor';
 import type { EstimateQuantityItem } from '@/schemas/recipe';
 
 /**
@@ -54,7 +59,7 @@ describe('applyEstimateToItem', () => {
 
     expect(result.portion_id).toBe(32744);
     expect(result.portion_id).not.toBe(item.portion_id);
-    expect(result.quantity).toBe(3.0);
+    expect(result.quantity).toBe(10.0);
     expect(result.measuring_unit_name).toBe('Prise');
     expect(result.isDirty).toBe(true);
   });
@@ -73,6 +78,68 @@ describe('applyEstimateToItem', () => {
   it('sets aiExpectedGramsTotal so the save path can verify the result server-side', () => {
     const result = applyEstimateToItem(makeItem(), makeEstimate());
     expect(result.aiExpectedGramsTotal).toBe(3.0);
+  });
+
+  it('keeps composite portions as portion counts when applying and saving an estimate', () => {
+    const item = makeItem({
+      portion_id: 423,
+      quantity: 0.5,
+      quantityInput: '0.5',
+      measuring_unit_name: '1 Portion trocken',
+      ingredient_portions: [
+        {
+          id: 423,
+          name: '1 Portion trocken',
+          quantity: 125,
+          weight_g: 125,
+          measuring_unit_name: 'Gramm',
+          rank: 1,
+        },
+      ],
+      baseWeightG: 62.5,
+      baseQuantity: 0.5,
+    });
+    const estimate = makeEstimate({
+      portion_id: 423,
+      unit: '1 Portion trocken',
+      quantity_per_portion: 1,
+      grams_total: 125,
+    });
+
+    const result = applyEstimateToItem(item, estimate);
+
+    expect(result.quantity).toBe(1);
+    expect(getItemWeightG(result)).toBe(125);
+    expect(toPersistedRecipeItemQuantity(result, 1)).toBe(1);
+  });
+
+  it('converts direct metric portions back from displayed grams before saving', () => {
+    const item = makeItem({
+      portion_id: 100,
+      ingredient_portions: [
+        {
+          id: 100,
+          name: '100g Zutat',
+          quantity: 1,
+          weight_g: 100,
+          measuring_unit_name: 'Gramm',
+          rank: 1,
+        },
+      ],
+      baseWeightG: 50,
+      baseQuantity: 0.5,
+    });
+    const estimate = makeEstimate({
+      portion_id: 100,
+      unit: 'Gramm',
+      quantity_per_portion: 0.5,
+      grams_total: 50,
+    });
+
+    const result = applyEstimateToItem(item, estimate);
+
+    expect(result.quantity).toBe(50);
+    expect(toPersistedRecipeItemQuantity(result, 1)).toBe(0.5);
   });
 
   it('keeps portion_id unchanged when the estimate targets the same portion the item already has', () => {

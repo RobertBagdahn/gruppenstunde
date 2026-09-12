@@ -11,9 +11,13 @@ from planner.services.pdf_export import (
     _build_meal_context,
     _build_nutrition_table,
     _collect_ingredient_overrides,
+    _compute_meal_timing,
+    _get_allergen_css_class,
+    _get_recipe_steps,
     generate_meal_plan_pdf,
 )
 from planner.tests import make_meal, make_meal_item, make_meal_plan
+from recipe.models import RecipeStep
 from recipe.tests import make_recipe, make_recipe_item
 from supply.models import NutritionalTag
 
@@ -227,6 +231,86 @@ class TestMealPlanPdfGeneration:
         )
         assert isinstance(pdf, bytes)
         assert len(pdf) > 0
+
+
+class TestMealPlanEnhancedFeatures:
+    @pytest.mark.django_db
+    def test_recipe_steps_from_models(self):
+        recipe = make_recipe(title="Pfannkuchen")
+        RecipeStep.objects.create(
+            recipe=recipe, sort_order=0, instruction="Eier und Milch verquirlen.", duration_minutes=5
+        )
+        RecipeStep.objects.create(
+            recipe=recipe, sort_order=1, instruction="Mehl unterrühren und backen.", duration_minutes=15
+        )
+        steps = _get_recipe_steps(recipe)
+        assert len(steps) == 2
+        assert steps[0]["number"] == 1
+        assert "Eier und Milch" in steps[0]["instruction"]
+        assert steps[0]["duration_minutes"] == 5
+        assert steps[1]["number"] == 2
+        assert steps[1]["duration_minutes"] == 15
+
+    @pytest.mark.django_db
+    def test_recipe_steps_from_markdown_description(self):
+        recipe = make_recipe(
+            title="Suppe",
+            description="## Zubereitung\n1. Gemüse putzen und würfeln. (10 Min.)\n2. In Brühe 20 Minuten kochen.",
+        )
+        steps = _get_recipe_steps(recipe)
+        assert len(steps) == 2
+        assert steps[0]["number"] == 1
+        assert "Gemüse putzen" in steps[0]["instruction"]
+        assert steps[0]["duration_minutes"] == 10
+        assert steps[1]["number"] == 2
+
+    @pytest.mark.django_db
+    def test_allergen_css_class_mapping(self):
+        assert _get_allergen_css_class("Glutenhaltiges Getreide") == "gluten"
+        assert _get_allergen_css_class("Milch/Laktose") == "lactose"
+        assert _get_allergen_css_class("Erdnüsse") == "nuts"
+        assert _get_allergen_css_class("Unbekannt") == "default"
+
+    @pytest.mark.django_db
+    def test_meal_timing_calculation(self):
+        import datetime
+
+        from django.utils import timezone
+
+        plan = make_meal_plan()
+        meal_time = timezone.make_aware(datetime.datetime(2026, 7, 15, 12, 30))
+        meal = make_meal(meal_plan=plan, start_datetime=meal_time)
+        timing = _compute_meal_timing(meal, lead_minutes=45)
+        assert timing["eating_time"] == "12:30"
+        assert "12:30 Uhr" in timing["eating_time_full"]
+        assert timing["cook_start_time"] == "11:45"
+        assert "11:45 Uhr" in timing["cook_start_time_full"]
+        assert timing["lead_display"] == "45 Min."
+
+    @pytest.mark.django_db
+    def test_pdf_contains_schedule_table_and_meal_sheets(self):
+        import datetime
+
+        from django.utils import timezone
+
+        plan = make_meal_plan(name="Sommerlager 2026", norm_portions=20, reserve_factor=1.1)
+        recipe = make_recipe(title="Spaghetti Bolognese")
+        RecipeStep.objects.create(recipe=recipe, sort_order=0, instruction="Nudeln kochen.")
+        make_recipe_item(recipe=recipe, quantity=200)
+
+        dt = timezone.make_aware(datetime.datetime(2026, 7, 15, 12, 30))
+        meal = make_meal(meal_plan=plan, start_datetime=dt, meal_type="lunch")
+        make_meal_item(meal=meal, recipe=recipe)
+
+        days = _build_meal_context(plan)
+        assert len(days) == 1
+        meal_ctx = days[0]["meals"][0]
+        assert meal_ctx["eating_time"] == "12:30 Uhr"
+        assert len(meal_ctx["items"][0]["steps"]) == 1
+
+        pdf_bytes = generate_meal_plan_pdf(plan)
+        assert isinstance(pdf_bytes, bytes)
+        assert len(pdf_bytes) > 0
 
 
 class TestMealPlanPdfAPI:

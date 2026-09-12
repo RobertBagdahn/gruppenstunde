@@ -2,234 +2,514 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>{{ meal_plan.name }} — Essensplan</title>
+<title>{{ meal_plan.name }} — Essens- &amp; Kochplan</title>
 <style>
   {% include "planner/meal_plan_pdf.css" %}
 </style>
 </head>
-<body>
-{# ---- Cover Page ---- #}
+<body class="{% if compact_mode %}is-compact{% endif %}">
+
+{# ==================== 1. COVER PAGE ==================== #}
 <div class="cover-page">
+  <div class="cover-top-badge">INSPi · ESSENS- &amp; KOCHPLAN</div>
   {% if logo_path %}
-  <img src="file://{{ logo_path }}" class="logo" alt="Inspi Logo" />
+  <img src="file://{{ logo_path }}" class="cover-logo" alt="Inspi Logo" />
   {% endif %}
-  <h1>{{ meal_plan.name }}</h1>
-  <div class="meta">
-    <div>{{ date_label }}</div>
-    <div>{{ norm_portions }} Portionen · Reservefaktor {{ reserve_factor }}</div>
-    <div>Skalierungsfaktor: {{ scaling_factor }}</div>
+  <h1 class="cover-title">{{ meal_plan.name }}</h1>
+  <div class="cover-subtitle">Detaillierter Küchenplan mit Zeitplan, Rezepten &amp; Schritt-für-Schritt-Anleitung</div>
+
+  <div class="cover-meta-grid">
+    {% if date_label %}
+    <div class="cover-meta-card">
+      <div class="meta-card-icon">01</div>
+      <div class="meta-card-label">Zeitraum</div>
+      <div class="meta-card-value">{{ date_label }}</div>
+    </div>
+    {% endif %}
+    <div class="cover-meta-card">
+      <div class="meta-card-icon">02</div>
+      <div class="meta-card-label">Personen &amp; Portionen</div>
+      <div class="meta-card-value">{{ norm_portions_display }} Personen · Reserve: {{ reserve_factor_display }}</div>
+    </div>
+    <div class="cover-meta-card">
+      <div class="meta-card-icon">03</div>
+      <div class="meta-card-label">Geplante Mahlzeiten</div>
+      <div class="meta-card-value">{{ total_meals_count }} Mahlzeiten an {{ days|length }} Tagen</div>
+    </div>
+    {% if scaling_factor and scaling_factor != 1.0 %}
+    <div class="cover-meta-card">
+      <div class="meta-card-icon">04</div>
+      <div class="meta-card-label">Skalierungsfaktor</div>
+      <div class="meta-card-value">{{ scaling_factor_display }}</div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
-{# ---- Personenliste ---- #}
-<div class="day-section">
-  <h2>Personenliste</h2>
-  {% if group_members %}
+{# ==================== 2. ZEITPLAN & ESSENSZEITEN ==================== #}
+{% if schedule_table %}
+<div class="schedule-section">
+  <div class="section-hero">
+    <div class="section-tag">ÜBERSICHT</div>
+    <h2>Zeitplan &amp; Essenszeiten</h2>
+    <div class="section-desc">Vollständiger Überblick über Kochstart, Essensbeginn und Zubereitungszeiten</div>
+  </div>
+
+  {# 2a. Wann wird gegessen? (Essenszeiten im Überblick) #}
+  <div class="eating-times-overview">
+    <h3 class="subsection-title"><span class="title-icon">01</span> Wann wird gegessen? (Essenszeiten im Überblick)</h3>
+    <div class="eating-days-container">
+      {% for day in eating_schedule %}
+      <div class="eating-day-card">
+        <div class="eating-day-header">{{ day.day_label }}</div>
+        <div class="eating-meals-list">
+          {% for meal in day.meals %}
+          <div class="eating-meal-item meal-theme-{{ meal.meal_type }}">
+            <div class="meal-type-pill">
+              <span class="pill-name">{{ meal.meal_type_label }}</span>
+            </div>
+            <div class="meal-timing-badges">
+              <span class="badge-eat">Essen: <strong>{{ meal.eating_time }}</strong></span>
+              <span class="badge-cook">Kochen ab: <strong>{{ meal.cook_start_time }}</strong></span>
+              <span class="badge-lead">{{ meal.lead_display }}</span>
+            </div>
+            <div class="meal-dishes-summary">
+              {% if meal.dishes %}
+                <strong>{{ meal.dishes|join:", " }}</strong>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# 2b. Zeitplan-Tabelle #}
+  <div class="schedule-table-wrap">
+    <h3 class="subsection-title"><span class="title-icon">02</span> Zeitplan-Tabelle</h3>
+    <table class="schedule-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">Tag</th>
+          <th style="width: 16%;">Mahlzeit</th>
+          <th style="width: 32%;">Gerichte / Speisen</th>
+          <th style="width: 12%; text-align: center;">Kochstart</th>
+          <th style="width: 12%; text-align: center;">Essensbeginn</th>
+          <th style="width: 8%; text-align: center;">Dauer</th>
+          <th style="width: 6%; text-align: right;">Port.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in schedule_table %}
+        <tr class="schedule-row row-{{ row.meal_type }}">
+          <td class="cell-day"><strong>{{ row.day_short }}</strong></td>
+          <td class="cell-meal">
+            <span class="table-meal-badge badge-{{ row.meal_type }}">{{ row.meal_type_label }}</span>
+          </td>
+          <td class="cell-dishes">
+            <span class="dishes-text">{{ row.dishes_text }}</span>
+            {% if row.allergens %}
+            <div class="table-allergens">
+              {% for a in row.allergens %}
+              <span class="allergen-mini {{ a.css_class }}">{{ a.name }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </td>
+          <td class="cell-time cell-cook">{{ row.cook_start_time }}</td>
+          <td class="cell-time cell-eat"><strong>{{ row.eating_time }}</strong></td>
+          <td class="cell-lead">{{ row.lead_display }}</td>
+          <td class="cell-portions">{{ row.portions }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ==================== 3. PERSONENLISTE ==================== #}
+{% if group_members %}
+<div class="person-section">
+  <div class="section-hero">
+    <div class="section-tag">TEILNEHMENDE</div>
+    <h2>👥 Personen &amp; Ernährungsbesonderheiten</h2>
+    <div class="section-desc">Übersicht aller erfassten Personen, Altersstufen und Unverträglichkeiten</div>
+  </div>
   <table class="person-table">
     <thead>
       <tr>
-        <th>Name</th>
-        <th>Alter</th>
-        <th>Geschlecht</th>
-        <th>Allergien / Besonderheiten</th>
+        <th style="width: 35%;">Name</th>
+        <th style="width: 12%;">Alter</th>
+        <th style="width: 15%;">Geschlecht</th>
+        <th style="width: 38%;">Allergien &amp; Besonderheiten</th>
       </tr>
     </thead>
     <tbody>
     {% for member in group_members %}
       <tr>
-        <td>{{ member.name }}{% if member.date_range_label %} ({{ member.date_range_label }}){% endif %}</td>
+        <td class="cell-name"><strong>{{ member.name }}</strong>{% if member.date_range_label %} <span class="date-range-badge">{{ member.date_range_label }}</span>{% endif %}</td>
         <td>{{ member.age|default:"—" }}</td>
         <td>{{ member.gender_label|default:"—" }}</td>
-        <td>{{ member.tags|join:", "|default:"—" }}</td>
+        <td>
+          {% if member.tags %}
+            {% for tag in member.tags %}
+            <span class="member-tag">{{ tag }}</span>
+            {% endfor %}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
-  {% else %}
-  <p class="empty-state">Keine Personen definiert — Norm-Portionen: {{ norm_portions }}</p>
-  {% endif %}
 </div>
+{% endif %}
 
-{# ---- Tage ---- #}
-{% for day in days %}
-<div class="day-section{% if compact_mode %} compact{% endif %}" data-label="{{ day.label }}">
-  <div class="day-header">{{ day.label }}</div>
-
+{# ==================== 4. MAHLZEITEN-BLÄTTER ==================== #}
+{# Jedes Mahlzeit soll ein einzelnes Blatt bekommen mit allen Infos, Essen und Schritt für Schritt Anleitung #}
+  {% for day in days %}
   {% for meal in day.meals %}
-  {% if meal.sub_meals %}
-  {# Exchange-Split: multiple variants as separate blocks #}
-  <div class="meal-box-wide">
-    <h3><span class="meal-icon">{{ meal.icon }}</span> {{ meal.meal_type_label }} <span class="meal-time">{{ meal.time_label }}</span></h3>
-    {% for sub in meal.sub_meals %}
-    <div class="variant-block">
-      <div class="variant-label">Variante {{ sub.recipe_name }} — {{ sub.portions_display }} Portionen</div>
-      <div class="ingredient-list">
-      {% for ing in sub.ingredients %}
-        <p>{{ ing }}</p>
-      {% endfor %}
+  {% if meal.dishes or meal.items or meal.sub_meals %}
+  <div class="meal-sheet meal-sheet-{{ meal.meal_type }}">
+    {# --- Header-Banner --- #}
+    <div class="sheet-banner banner-{{ meal.meal_type }}">
+      <div class="banner-left">
+        <div class="banner-icon-box">
+          <span class="banner-icon">{{ meal.icon }}</span>
+        </div>
+        <div class="banner-titles">
+          <span class="banner-type">{{ meal.meal_type_label }}</span>
+          <span class="banner-date">{{ day.label }}</span>
+        </div>
+      </div>
+      <div class="banner-right">
+        <span class="banner-portions-pill">{{ meal.portions_formatted }} Portionen</span>
       </div>
     </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="meal-row">
-    <div class="meal-box{% if not include_notes %} meal-box-wide{% endif %}">
-      <h3><span class="meal-icon">{{ meal.icon }}</span> {{ meal.meal_type_label }} <span class="meal-time">{{ meal.time_label }}</span></h3>
-      {% for item in meal.items %}
-      <div class="recipe-title">{{ item.recipe_name }}{% if item.portions_label %} — {{ item.portions_label }}{% endif %}{% if item.excluded %} <em>(entfernt)</em>{% endif %}</div>
-      <div class="ingredient-list">
-      {% for ing in item.ingredients %}
-        <p>{{ ing }}</p>
-      {% endfor %}
+
+    {# --- Quick-Info Bar --- #}
+    <div class="sheet-info-bar">
+      <div class="info-pill pill-eat">
+        <span class="info-pill-icon">E</span>
+        <div class="info-pill-text">
+          <span class="info-pill-label">Essensbeginn</span>
+          <span class="info-pill-value value-eat">{{ meal.eating_time }}</span>
+        </div>
       </div>
-      {% endfor %}
+      <div class="info-pill pill-cook">
+        <span class="info-pill-icon">K</span>
+        <div class="info-pill-text">
+          <span class="info-pill-label">Kochstart</span>
+          <span class="info-pill-value">{{ meal.cook_start_time }}</span>
+        </div>
+      </div>
+      <div class="info-pill pill-duration">
+        <span class="info-pill-icon">Z</span>
+        <div class="info-pill-text">
+          <span class="info-pill-label">Zubereitung</span>
+          <span class="info-pill-value">{{ meal.lead_display }}</span>
+        </div>
+      </div>
+      <div class="info-pill pill-portions">
+        <span class="info-pill-icon">P</span>
+        <div class="info-pill-text">
+          <span class="info-pill-label">Menge</span>
+          <span class="info-pill-value">{{ meal.portions_formatted }} Pers.</span>
+        </div>
+      </div>
     </div>
-    {% if include_notes %}
-    <div class="notes-box">
-      <div class="notes-label">Notizen</div>
-      {% if meal.note %}
-      <div style="font-size:8pt;color:#666;">{{ meal.note }}</div>
+
+    {# --- Allergene-Zeile (falls vorhanden) --- #}
+    {% if meal.allergens %}
+    <div class="sheet-allergens-bar">
+      <span class="allergens-title">Enthaltene Allergene:</span>
+      <div class="allergens-badges-list">
+        {% for a in meal.allergens %}
+        <span class="allergen-badge {{ a.css_class }}">{{ a.name }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# --- Notizen / Küchenhinweis --- #}
+    {% if meal.note and include_notes %}
+    <div class="sheet-note-box">
+      <span class="note-box-icon">Hinweis</span>
+      <div class="note-box-content">
+        <strong>Küchenhinweis:</strong> {{ meal.note }}
+      </div>
+    </div>
+    {% endif %}
+
+    {# --- Gerichte, Zutaten & Zubereitung --- #}
+    <div class="sheet-content">
+      {% if meal.sub_meals %}
+        {# Exchange-Split Varianten (z.B. Normal vs Vegan) #}
+        {% for sub in meal.sub_meals %}
+        <div class="dish-card">
+          <div class="dish-card-header">
+            <h3 class="dish-title">{{ sub.recipe_name }}</h3>
+            <span class="dish-portions-badge">Variante · {{ sub.portions_display }} Portionen</span>
+          </div>
+
+          {% if sub.allergens %}
+          <div class="dish-allergens">
+            {% for a in sub.allergens %}
+            <span class="allergen-badge {{ a.css_class }}">{{ a.name }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="dish-two-columns">
+            {# Linke Spalte: Zutaten #}
+            <div class="dish-col-ingredients">
+              <h4 class="col-heading">Zutaten (skaliert)</h4>
+              {% if sub.ingredients %}
+              <ul class="ingredient-items">
+                {% for ing in sub.ingredients %}
+                <li><span class="ing-bullet">•</span> {{ ing }}</li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="muted">Keine Zutaten hinterlegt.</p>
+              {% endif %}
+            </div>
+
+            {# Rechte Spalte: Schritt-für-Schritt Anleitung #}
+            <div class="dish-col-steps">
+              <h4 class="col-heading">Schritt-für-Schritt-Anleitung</h4>
+              {% if sub.steps %}
+              <div class="steps-flow">
+                {% for step in sub.steps %}
+                <div class="step-card">
+                  <div class="step-number-bubble">{{ step.number }}</div>
+                  <div class="step-details">
+                    <div class="step-instruction">{{ step.instruction }}</div>
+                    {% if step.duration_minutes %}
+                    <span class="step-timer-badge">ca. {{ step.duration_minutes }} Min.</span>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="no-steps-notice">
+                <span>Servierfertig — keine gesonderten Kochschritte erforderlich.</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        {# Standard-Mahlzeit mit Gerichten #}
+        {% for item in meal.items %}
+        <div class="dish-card">
+          <div class="dish-card-header">
+            <h3 class="dish-title">
+              {{ item.recipe_name }}
+              {% if item.portions_label %}<span class="dish-subtitle">({{ item.portions_label }})</span>{% endif %}
+              {% if item.excluded %} <em class="excluded-marker">(entfernt)</em>{% endif %}
+            </h3>
+          </div>
+
+          {% if item.allergens %}
+          <div class="dish-allergens">
+            {% for a in item.allergens %}
+            <span class="allergen-badge {{ a.css_class }}">{{ a.name }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="dish-two-columns">
+            {# Linke Spalte: Zutaten #}
+            <div class="dish-col-ingredients">
+              <h4 class="col-heading">Zutaten (skaliert)</h4>
+              {% if item.ingredients %}
+              <ul class="ingredient-items">
+                {% for ing in item.ingredients %}
+                <li><span class="ing-bullet">•</span> {{ ing }}</li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="muted">Keine Zutaten hinterlegt.</p>
+              {% endif %}
+            </div>
+
+            {# Rechte Spalte: Schritt-für-Schritt Anleitung #}
+            <div class="dish-col-steps">
+              <h4 class="col-heading">Schritt-für-Schritt-Anleitung</h4>
+              {% if item.steps %}
+              <div class="steps-flow">
+                {% for step in item.steps %}
+                <div class="step-card">
+                  <div class="step-number-bubble">{{ step.number }}</div>
+                  <div class="step-details">
+                    <div class="step-instruction">{{ step.instruction }}</div>
+                    {% if step.duration_minutes %}
+                    <span class="step-timer-badge">ca. {{ step.duration_minutes }} Min.</span>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="no-steps-notice">
+                <span>Servierfertig — keine gesonderten Kochschritte erforderlich.</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
       {% endif %}
+    </div>
+
+    {# --- Handschriftliche Notizen für das Küchenteam --- #}
+    {% if include_notes %}
+    <div class="kitchen-handwritten-box">
+      <div class="handwritten-title">Küchen-Notizen (Mengenanpassung, Feedback, Reste):</div>
+      <div class="handwritten-line"></div>
+      <div class="handwritten-line"></div>
     </div>
     {% endif %}
   </div>
   {% endif %}
   {% endfor %}
+{% endfor %}
 
-  {% if include_notes %}
-  <div class="day-end-notes">
-    <hr><hr><hr>
+{# ==================== 5. EINKAUFSLISTE ==================== #}
+{% if not exclude_shopping_list and shopping_list.total %}
+<div class="shopping-list-section">
+  <div class="section-hero">
+    <div class="section-tag">ORGANISATION</div>
+    <h2>Gesamte Einkaufsliste</h2>
+    <div class="section-desc">Alle Zutaten aggregiert und nach Abteilungen sortiert</div>
   </div>
-  {% endif %}
 
-  {% if day.timeline and not compact_mode and not exclude_timeline %}
-  <div class="cooking-timeline">
-    <h4>Koch-Zeitplan</h4>
-    {% for entry in day.timeline %}
-    <div class="timeline-item">
-      <span class="timeline-time">{{ entry.time }}</span>
-      <span>{{ entry.action }}</span>
+  <div class="shopping-summary-bar">
+    <span class="sum-pill"><strong>{{ shopping_list.total_count }}</strong> Zutaten gesamt</span>
+    {% if shopping_list.fresh_count %}
+    <span class="sum-pill sum-fresh"><strong>{{ shopping_list.fresh_count }}</strong> frische Produkte</span>
+    {% endif %}
+  </div>
+
+  <div class="shopping-grid">
+    {% for section in shopping_list.total %}
+    <div class="shopping-category-card">
+      <h3 class="category-title">{{ section.name }}</h3>
+      <ul class="shopping-items-list">
+      {% for item in section.items %}
+        <li>
+          <span class="item-check">☐</span>
+          <span class="item-name">{{ item.name }}</span>
+          <span class="item-amount">— {{ item.amount }}</span>
+          {% if item.fresh %}<span class="fresh-pill">frisch</span>{% endif %}
+        </li>
+      {% endfor %}
+      </ul>
     </div>
     {% endfor %}
   </div>
-  {% endif %}
-
-  {% if not exclude_nutrition and day.nutrition %}
-  <div style="margin-top:8pt;">
-    <h4 style="font-size:11pt;font-weight:700;margin-bottom:4pt;">Nährwerte</h4>
-    <table>
-      <thead>
-        <tr>
-          <th></th>
-          <th>Energie (kcal)</th>
-          <th>Eiweiß (g)</th>
-          <th>Fett (g)</th>
-          <th>KH (g)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="row-label">Soll</td>
-          <td>{{ day.nutrition.energy_soll }}</td>
-          <td>{{ day.nutrition.protein_soll }}</td>
-          <td>{{ day.nutrition.fat_soll }}</td>
-          <td>{{ day.nutrition.carbs_soll }}</td>
-        </tr>
-        <tr>
-          <td class="row-label">Ist</td>
-          <td>{{ day.nutrition.energy_ist }}</td>
-          <td>{{ day.nutrition.protein_ist }}</td>
-          <td>{{ day.nutrition.fat_ist }}</td>
-          <td>{{ day.nutrition.carbs_ist }}</td>
-        </tr>
-        <tr>
-          <td class="row-label">Delta</td>
-          <td class="{% if day.nutrition.energy_delta < 0 %}delta-negative{% else %}delta-positive{% endif %}">{{ day.nutrition.energy_delta }}</td>
-          <td class="{% if day.nutrition.protein_delta < 0 %}delta-negative{% else %}delta-positive{% endif %}">{{ day.nutrition.protein_delta }}</td>
-          <td class="{% if day.nutrition.fat_delta < 0 %}delta-negative{% else %}delta-positive{% endif %}">{{ day.nutrition.fat_delta }}</td>
-          <td class="{% if day.nutrition.carbs_delta < 0 %}delta-negative{% else %}delta-positive{% endif %}">{{ day.nutrition.carbs_delta }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
-
-</div>
-{% endfor %}
-
-{# ---- Einkaufsliste ---- #}
-{% if not exclude_shopping_list %}
-<div class="shopping-list">
-  <h2>Einkaufsliste</h2>
-
-  {% if shopping_list.per_day %}
-  <h3>Pro Tag</h3>
-  {% for day_entry in shopping_list.per_day %}
-  <div class="per-day-section">
-    <h4>{{ day_entry.label }}</h4>
-    {% for section in day_entry.sections %}
-    <h4 style="font-size:10pt;color:#666;">{{ section.name }}</h4>
-    <ul>
-    {% for item in section.items %}
-      <li>{{ item.name }} — {{ item.amount }}{% if item.fresh %} <span class="fresh-marker">🥬 frisch</span>{% endif %}</li>
-    {% endfor %}
-    </ul>
-    {% endfor %}
-  </div>
-  {% endfor %}
-  {% endif %}
-
-  {% if shopping_list.total %}
-  <h3>Gesamt</h3>
-  {% for section in shopping_list.total %}
-  <h4 style="font-size:10pt;color:#666;">{{ section.name }}</h4>
-  <ul>
-  {% for item in section.items %}
-    <li>{{ item.name }} — {{ item.amount }}{% if item.fresh %} <span class="fresh-marker">🥬 frisch</span>{% endif %}</li>
-  {% endfor %}
-  </ul>
-  {% endfor %}
-  <p style="font-size:10pt;color:#666;margin-top:8pt;">{{ shopping_list.total_count }} Zutaten{% if shopping_list.fresh_count %}, davon {{ shopping_list.fresh_count }} frisch{% endif %}</p>
-  {% endif %}
 </div>
 {% endif %}
 
-{# ---- Allergen-Matrix ---- #}
-{% if not exclude_allergens and allergen_matrix %}
-<div class="allergen-matrix">
-  <h2>Allergen-Matrix</h2>
-  {% if allergen_matrix.has_allergens %}
-  <table>
+{# ==================== 6. ALLERGEN-MATRIX ==================== #}
+{% if not exclude_allergens and allergen_matrix and allergen_matrix.has_allergens %}
+<div class="allergen-matrix-section">
+  <div class="section-hero">
+    <div class="section-tag">SICHERHEIT</div>
+    <h2>Allergen-Matrix</h2>
+    <div class="section-desc">Übersicht der 14 EU-Hauptallergene über alle Tage hinweg</div>
+  </div>
+
+  <table class="allergen-table">
     <thead>
       <tr>
-        <th>Allergen</th>
+        <th style="width: 28%; text-align: left;">Allergen</th>
         {% for day_label in allergen_matrix.day_labels %}
-        <th>{{ day_label }}</th>
+        <th style="text-align: center;">{{ day_label }}</th>
         {% endfor %}
       </tr>
     </thead>
     <tbody>
     {% for row in allergen_matrix.rows %}
       <tr>
-        <td class="allergen-name">{{ row.allergen }}</td>
+        <td class="cell-allergen-name"><strong>{{ row.allergen }}</strong></td>
         {% for has in row.days %}
-        <td>{% if has %}<span class="mark">X</span>{% endif %}</td>
+        <td class="cell-allergen-mark">{% if has %}<span class="allergen-cross">⚠️ X</span>{% else %}<span class="cross-empty">—</span>{% endif %}</td>
         {% endfor %}
       </tr>
     {% endfor %}
     </tbody>
   </table>
-  {% else %}
-  <p class="empty-state">Keine Allergene gefunden</p>
-  {% endif %}
 </div>
 {% endif %}
 
-{# ---- Footer ---- #}
-<div style="margin-top:24pt;padding-top:6pt;border-top:0.5pt solid #666;font-size:7pt;color:#999;display:flex;justify-content:space-between;">
-  <span>{{ meal_plan.name }} · gruppenstunde.de/meal-plans/{{ meal_plan.slug }}</span>
-  <span>Seite <span class="page-num"></span> von <span class="page-total"></span></span>
+{# ==================== 7. NÄHRWERTE ==================== #}
+{% if not exclude_nutrition and nutrition_data %}
+<div class="nutrition-section">
+  <div class="section-hero">
+    <div class="section-tag">ERNÄHRUNG</div>
+    <h2>Nährwert-Übersicht (Soll / Ist / Delta)</h2>
+    <div class="section-desc">Tägliche Energie- und Makronährstoffbilanz der Gruppe</div>
+  </div>
+
+  {% for day in nutrition_data %}
+  <div class="nutrition-day-card">
+    <h3 class="nutrition-day-title">{{ day.label }}</h3>
+    <table class="nutrition-table">
+      <thead>
+        <tr>
+          <th style="width: 24%; text-align: left;">Kategorie</th>
+          <th style="width: 19%; text-align: right;">Energie (kcal)</th>
+          <th style="width: 19%; text-align: right;">Eiweiß (g)</th>
+          <th style="width: 19%; text-align: right;">Fett (g)</th>
+          <th style="width: 19%; text-align: right;">Kohlenhydrate (g)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-row-label">Soll (Bedarf)</td>
+          <td class="cell-num">{{ day.nutrition.energy_soll }}</td>
+          <td class="cell-num">{{ day.nutrition.protein_soll }}</td>
+          <td class="cell-num">{{ day.nutrition.fat_soll }}</td>
+          <td class="cell-num">{{ day.nutrition.carbs_soll }}</td>
+        </tr>
+        <tr>
+          <td class="cell-row-label">Ist (Geplant)</td>
+          <td class="cell-num">{{ day.nutrition.energy_ist }}</td>
+          <td class="cell-num">{{ day.nutrition.protein_ist }}</td>
+          <td class="cell-num">{{ day.nutrition.fat_ist }}</td>
+          <td class="cell-num">{{ day.nutrition.carbs_ist }}</td>
+        </tr>
+        <tr class="row-delta">
+          <td class="cell-row-label"><strong>Delta</strong></td>
+          <td class="cell-num {% if day.nutrition.energy_delta < 0 %}delta-neg{% else %}delta-pos{% endif %}">
+            {{ day.nutrition.energy_delta }}
+          </td>
+          <td class="cell-num {% if day.nutrition.protein_delta < 0 %}delta-neg{% else %}delta-pos{% endif %}">
+            {{ day.nutrition.protein_delta }}
+          </td>
+          <td class="cell-num {% if day.nutrition.fat_delta < 0 %}delta-neg{% else %}delta-pos{% endif %}">
+            {{ day.nutrition.fat_delta }}
+          </td>
+          <td class="cell-num {% if day.nutrition.carbs_delta < 0 %}delta-neg{% else %}delta-pos{% endif %}">
+            {{ day.nutrition.carbs_delta }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
 </div>
+{% endif %}
 
 </body>
 </html>

@@ -17,7 +17,7 @@ import {
   NutriScoreDetailSchema,
   RecipeNutritionBreakdownSchema,
   ImprovementListSchema,
-  LlmSuggestionSchema,
+  LlmSuggestionsSchema,
   EstimateQuantitiesSchema,
   RecipeRulesSchema,
   RecipeTypeStatsSchema,
@@ -591,7 +591,7 @@ export function useLlmSuggestions(recipeId: number) {
       postJson(
         `${API_BASE}/${recipeId}/suggestions/`,
         { objective, direction },
-        z.array(LlmSuggestionSchema),
+        LlmSuggestionsSchema,
       ),
     onSuccess: () => {
       invalidateRecipeData(queryClient, recipeId);

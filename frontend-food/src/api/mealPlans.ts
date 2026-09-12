@@ -39,6 +39,9 @@ import {
   type CookingSchedule,
   IntelligentSuggestionsResponseSchema,
   type IntelligentSuggestionsResponse,
+  type MealReorderInput,
+  PlanCheckResponseSchema,
+  type PlanCheckResponse,
 } from '@/schemas/mealPlan';
 import { z } from 'zod';
 import { AiApplyOutSchema, AiSuggestOutSchema } from '@/schemas/mealPlan';
@@ -59,6 +62,7 @@ export function invalidateMealPlanQueries(queryClient: QueryClient, mealPlanId: 
     queryClient.invalidateQueries({ queryKey: ['meal-plan-suggestions', mealPlanId] }),
     queryClient.invalidateQueries({ queryKey: ['intelligent-suggestions', mealPlanId] }),
     queryClient.invalidateQueries({ queryKey: ['refMeals', mealPlanId] }),
+    queryClient.invalidateQueries({ queryKey: ['meal-plan', mealPlanId, 'plan-check'] }),
   ]);
 }
 
@@ -352,7 +356,41 @@ export function useRemoveMealItem(mealPlanId: number) {
   return useMutation({
     mutationFn: (itemId: number) =>
       deleteJson(`${API_BASE}/${mealPlanId}/meal-items/${itemId}/`),
-    onSuccess: () => {
+    onMutate: async (itemId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['meal-plan', mealPlanId] });
+      const previousPlan = queryClient.getQueryData<MealPlanDetail>(['meal-plan', mealPlanId]);
+
+      if (previousPlan) {
+        let removedItem: (typeof previousPlan.meals)[0]['items'][0] | null = null;
+        let removedFromMealId: number | null = null;
+        const nextMeals = previousPlan.meals.map((meal) => {
+          const matching = meal.items.find((it) => it.id === itemId);
+          if (matching) {
+            removedItem = matching;
+            removedFromMealId = meal.id;
+            return {
+              ...meal,
+              items: meal.items.filter((it) => it.id !== itemId),
+            };
+          }
+          return meal;
+        });
+
+        queryClient.setQueryData<MealPlanDetail>(['meal-plan', mealPlanId], {
+          ...previousPlan,
+          meals: nextMeals,
+        });
+
+        return { previousPlan, removedItem, removedFromMealId };
+      }
+      return { previousPlan: undefined, removedItem: null, removedFromMealId: null };
+    },
+    onError: (_err, _itemId, context) => {
+      if (context?.previousPlan) {
+        queryClient.setQueryData(['meal-plan', mealPlanId], context.previousPlan);
+      }
+    },
+    onSettled: () => {
       invalidateMealPlanQueries(queryClient, mealPlanId);
     },
   });
@@ -419,6 +457,25 @@ export function useCopyItemsFromPlan(planId: number) {
   });
 }
 
+export function useReorderMeals(mealPlanId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: MealReorderInput) =>
+      postJson(`${API_BASE}/${mealPlanId}/meals/reorder/`, body, MealPlanDetailSchema),
+    onSuccess: () => {
+      invalidateMealPlanQueries(queryClient, mealPlanId);
+    },
+  });
+}
+
+export function usePlanCheck(mealPlanId: number) {
+  return useQuery<PlanCheckResponse>({
+    queryKey: ['meal-plan', mealPlanId, 'plan-check'],
+    queryFn: () => fetchJson(`${API_BASE}/${mealPlanId}/plan-check/`, PlanCheckResponseSchema),
+    enabled: mealPlanId > 0,
+  });
+}
+
 // ==========================================================================
 // Nutrition & Shopping List
 // ==========================================================================
@@ -470,10 +527,11 @@ export interface RecipeSearchParams {
   exclude_nutritional_tag_ids?: number[];
   tag_ids?: string[];
   limit?: number;
+  enabled?: boolean;
 }
 
 export function useRecipeSearch(params: RecipeSearchParams) {
-  const { q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, nutritional_tag_ids, tag_ids, limit } = params;
+  const { q, meal_type, recipe_types, recipe_badge, exclude_nutritional_tag_ids, nutritional_tag_ids, tag_ids, limit, enabled } = params;
 
   const searchParams = new URLSearchParams();
   if (q) searchParams.set('q', q);
@@ -495,7 +553,14 @@ export function useRecipeSearch(params: RecipeSearchParams) {
         `${API_BASE}/recipes/search/?${searchParams.toString()}`,
         UnifiedSearchResponseSchema,
       ),
-    enabled: (q?.length ?? 0) >= 2 || !!recipe_types?.length || !!recipe_badge || !!exclude_nutritional_tag_ids?.length || !!nutritional_tag_ids?.length || !!meal_type,
+    enabled:
+      (enabled ?? true) &&
+      ((q?.length ?? 0) >= 2 ||
+        !!recipe_types?.length ||
+        !!recipe_badge ||
+        !!exclude_nutritional_tag_ids?.length ||
+        !!nutritional_tag_ids?.length ||
+        !!meal_type),
     placeholderData: keepPreviousData,
   });
 }

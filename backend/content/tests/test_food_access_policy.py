@@ -1,7 +1,9 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 
-from content.services.food_access import can_edit, can_read
+from content.models import ContentCollaborator, ContentCollaboratorRole
+from content.services.food_access import can_delete, can_edit, can_read
 from profiles.models import GroupMembership, UserGroup
 from recipe.tests import make_recipe
 
@@ -52,3 +54,43 @@ def test_staff_can_read_and_edit_private_recipe():
 
     assert can_read(recipe, staff)
     assert can_edit(recipe, staff)
+
+
+def _add_collaborator(recipe, user, role):
+    content_type = ContentType.objects.get_for_model(recipe, for_concrete_model=False)
+    return ContentCollaborator.objects.create(
+        content_type=content_type,
+        object_id=recipe.pk,
+        user=user,
+        role=role,
+    )
+
+
+@pytest.mark.django_db
+def test_editor_collaborator_can_edit_but_not_delete():
+    owner = make_user("owner")
+    editor = make_user("editor")
+    recipe = make_recipe(owner=owner, created_by=owner, visibility="private", status="draft")
+    _add_collaborator(recipe, editor, ContentCollaboratorRole.EDITOR)
+
+    assert can_edit(recipe, editor)
+    assert not can_delete(recipe, editor)
+
+
+@pytest.mark.django_db
+def test_admin_collaborator_can_delete():
+    owner = make_user("owner")
+    admin = make_user("collab_admin")
+    recipe = make_recipe(owner=owner, created_by=owner, visibility="private", status="draft")
+    _add_collaborator(recipe, admin, ContentCollaboratorRole.ADMIN)
+
+    assert can_edit(recipe, admin)
+    assert can_delete(recipe, admin)
+
+
+@pytest.mark.django_db
+def test_owner_can_delete():
+    owner = make_user("owner")
+    recipe = make_recipe(owner=owner, created_by=owner, visibility="private", status="draft")
+
+    assert can_delete(recipe, owner)

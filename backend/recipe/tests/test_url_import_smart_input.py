@@ -167,3 +167,23 @@ class TestSmartInputEndpoint:
         data = response.json()
         assert data["input_type"] == "url"
         assert data["is_reconstructed"] is False
+
+    @patch("recipe.services.url_import_service.gemini_call")
+    def test_smart_input_reuses_existing_ingredient_on_exact_match(self, mock_call, auth_client):
+        """When an ingredient already exists in DB, import must not create a duplicate."""
+        from supply.models import Ingredient
+        from supply.tests import make_ingredient
+
+        mock_call.return_value = (_extraction_response(), None)
+        existing = make_ingredient(name="Kartoffel")
+        initial_count = Ingredient.objects.filter(name__iexact="Kartoffel").count()
+
+        response = auth_client.post(
+            "/api/recipes/smart-input/",
+            data=json.dumps({"input": "500 g Kartoffel"}),
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["recipe_items"][0]["ingredient_id"] == existing.id
+        assert Ingredient.objects.filter(name__iexact="Kartoffel").count() == initial_count

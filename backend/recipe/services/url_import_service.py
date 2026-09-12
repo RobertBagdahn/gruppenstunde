@@ -319,6 +319,32 @@ def import_recipe_from_url(
             from supply.services.unit_resolution import resolve_canonical_unit
 
             raw_name = ing.original_name.strip()
+
+            # Reuse existing ingredient or alias if available to prevent duplicate explosion
+            existing_ing = (
+                Ingredient.objects.filter(name__iexact=raw_name, deleted_at__isnull=True)
+                .order_by("-usage_count", "id")
+                .first()
+            )
+            if not existing_ing:
+                alias = IngredientAlias.objects.filter(name__iexact=raw_name).select_related("ingredient").first()
+                if alias and not alias.ingredient.is_deleted:
+                    existing_ing = alias.ingredient
+
+            if existing_ing:
+                matched_items.append(
+                    {
+                        "ingredient_id": existing_ing.id,
+                        "ingredient_name": existing_ing.name,
+                        "quantity": ing.quantity,
+                        "unit": ing.unit,
+                        "note": match_result.note or ing.note,
+                        "is_new_ingredient": False,
+                        "estimated_portion_weight_g": ing.estimated_portion_weight_g,
+                    }
+                )
+                continue
+
             base_slug = slugify(raw_name)
             slug = base_slug
             counter = 1
@@ -479,7 +505,8 @@ def extract_smart_recipe_input(
     if input_type == "text":
         instruction = (
             "Extrahiere das folgende kopierte Rezept exakt. Übernimm vorhandene Mengen, Einheiten und Schritte "
-            "und erfinde keine fehlenden Zutaten."
+            "und erfinde keine fehlenden Zutaten. Wenn es sich um eine reine Zutatenliste handelt, "
+            "darfst du KEINE zusätzlichen Zutaten, Gewürze oder Kräuter hinzufügen."
         )
     else:
         instruction = (
@@ -491,7 +518,10 @@ def extract_smart_recipe_input(
 EINGABE:
 {value.strip()}
 
-Antworte ausschließlich im angegebenen JSON-Format. Für jede Zutat müssen quantity, unit und original_name """
+Antworte ausschließlich im angegebenen JSON-Format. Für jede Zutat müssen quantity, unit und original_name angegeben werden.
+WICHTIG:
+- Für Massen- und Volumeneinheiten ('g', 'ml') gilt immer 1g = 1g bzw. 1ml = 1g.
+- Niemals Zutaten hinzuerfinden, die nicht in der EINGABE stehen."""
 
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
@@ -1359,12 +1389,26 @@ def _build_recipe_items_v2(
     return results
 
 
+METRIC_BASE_UNITS = {"g", "gramm", "kg", "kilogramm", "ml", "milliliter", "l", "liter"}
+METRIC_CANONICAL_WEIGHTS = {
+    "g": 1.0,
+    "gramm": 1.0,
+    "kg": 1000.0,
+    "kilogramm": 1000.0,
+    "ml": 1.0,
+    "milliliter": 1.0,
+    "l": 1000.0,
+    "liter": 1000.0,
+}
+
+
 def _should_update_weight(portion, estimated_weight_g: float) -> bool:
     """Check if a portion's weight_g should be updated with Gemini's estimate."""
     if estimated_weight_g <= 0:
         return False
-    # Never update g/ml portions (weight_g=None means 1g=1g which is correct)
-    if portion.measuring_unit and portion.measuring_unit.name in ("g", "ml"):
+    # Never update metric mass/volume portions (weight_g is fixed physically)
+    unit_name = portion.measuring_unit.name.lower() if portion.measuring_unit else ""
+    if unit_name in METRIC_BASE_UNITS:
         return False
     # Update if weight_g is None (missing)
     if portion.weight_g is None:
@@ -1389,55 +1433,107 @@ def _resolve_portion(
     if not p_name and measuring_unit_id:
         p_name = MeasuringUnit.objects.get(id=measuring_unit_id).name
 
-    # Match the complete portion identity, not an arbitrary portion for a unit.
+    unit_name_lower = ""
+    is_metric_base = False
+    metric_base_weight = 1.0
     if measuring_unit_id:
-        existing_unit_portion = (
+        mu = MeasuringUnit.objects.filter(id=measuring_unit_id).first()
+        if mu:
+            unit_name_lower = mu.name.lower()
+            is_metric_base = unit_name_lower in METRIC_BASE_UNITS
+            metric_base_weight = METRIC_CANONICAL_WEIGHTS.get(unit_name_lower, 1.0)
+
+    # For metric mass/volume units: prioritize an authentic 1g/1ml portion with valid weight.
+    # This prevents selecting legacy/corrupt portions (e.g. a 'Stück' portion mistakenly given unit=Gramm).
+    if is_metric_base:
+        metric_portion = (
             Portion.objects.filter(
                 ingredient_id=ingredient_id,
-                measuring_unit_id=measuring_unit_id,
-                quantity=portion_quantity,
+                name__iexact=p_name,
                 deleted_at__isnull=True,
             )
-            .exclude(rank=9999)
             .order_by("id")
             .first()
         )
-        if existing_unit_portion is None:
-            unit = MeasuringUnit.objects.get(id=measuring_unit_id)
-            existing_unit_portion = (
+        if not metric_portion and measuring_unit_id:
+            metric_portion = (
                 Portion.objects.filter(
                     ingredient_id=ingredient_id,
-                    measuring_unit__name__iexact=unit.name,
+                    measuring_unit_id=measuring_unit_id,
                     quantity=portion_quantity,
+                    name__in=["g", "Gramm", "gramm", "ml", "Milliliter", "milliliter", "kg", "l"],
                     deleted_at__isnull=True,
                 )
-                .exclude(rank=9999)
                 .order_by("id")
                 .first()
             )
-        if existing_unit_portion and not existing_unit_portion.recipe_items.exists():
-            update_fields = ["weight_g"]
-            existing_unit_portion.weight_g = estimated_weight_g
-            if p_name and p_name.lower() != existing_unit_portion.name.lower():
+        if metric_portion:
+            if metric_portion.weight_g != metric_base_weight and not metric_portion.recipe_items.exists():
+                metric_portion.weight_g = metric_base_weight
+                metric_portion.save(update_fields=["weight_g"])
+            return metric_portion.id
+
+    # Match the complete portion identity, not an arbitrary portion for a unit.
+    if measuring_unit_id:
+        unit = MeasuringUnit.objects.get(id=measuring_unit_id)
+        unit_query = Portion.objects.filter(
+            ingredient_id=ingredient_id,
+            measuring_unit_id=measuring_unit_id,
+            quantity=portion_quantity,
+            deleted_at__isnull=True,
+        )
+        if not is_metric_base:
+            unit_query = unit_query.exclude(rank=9999)
+        existing_unit_portion = unit_query.order_by("id").first()
+
+        if existing_unit_portion is None:
+            fallback_query = Portion.objects.filter(
+                ingredient_id=ingredient_id,
+                measuring_unit__name__iexact=unit.name,
+                quantity=portion_quantity,
+                deleted_at__isnull=True,
+            )
+            if not is_metric_base:
+                fallback_query = fallback_query.exclude(rank=9999)
+            existing_unit_portion = fallback_query.order_by("id").first()
+
+        if existing_unit_portion:
+            if is_metric_base:
                 if (
-                    not Portion.objects.filter(
-                        ingredient_id=ingredient_id,
-                        name__iexact=p_name,
-                        deleted_at__isnull=True,
-                    )
-                    .exclude(id=existing_unit_portion.id)
-                    .exists()
+                    existing_unit_portion.weight_g != metric_base_weight
+                    and not existing_unit_portion.recipe_items.exists()
                 ):
-                    existing_unit_portion.name = p_name
-                    update_fields.append("name")
-            existing_unit_portion.save(update_fields=update_fields)
-            return existing_unit_portion.id
+                    existing_unit_portion.weight_g = metric_base_weight
+                    existing_unit_portion.save(update_fields=["weight_g"])
+                return existing_unit_portion.id
+            if not existing_unit_portion.recipe_items.exists():
+                if _should_update_weight(existing_unit_portion, estimated_weight_g):
+                    update_fields = ["weight_g"]
+                    existing_unit_portion.weight_g = estimated_weight_g
+                    if p_name and p_name.lower() != existing_unit_portion.name.lower():
+                        if (
+                            not Portion.objects.filter(
+                                ingredient_id=ingredient_id,
+                                name__iexact=p_name,
+                                deleted_at__isnull=True,
+                            )
+                            .exclude(id=existing_unit_portion.id)
+                            .exists()
+                        ):
+                            existing_unit_portion.name = p_name
+                            update_fields.append("name")
+                    existing_unit_portion.save(update_fields=update_fields)
+                return existing_unit_portion.id
+            elif (
+                estimated_weight_g <= 0
+                or existing_unit_portion.weight_g is None
+                or abs(float(existing_unit_portion.weight_g) - estimated_weight_g) <= 0.01
+            ):
+                return existing_unit_portion.id
 
         portion = Portion.objects.filter(
             ingredient_id=ingredient_id,
             name__iexact=p_name,
-            measuring_unit_id=measuring_unit_id,
-            quantity=portion_quantity,
             deleted_at__isnull=True,
         ).first()
         if portion:
@@ -1445,7 +1541,8 @@ def _resolve_portion(
                 portion.weight_g = estimated_weight_g
                 portion.save(update_fields=["weight_g"])
             elif (
-                estimated_weight_g > 0
+                not is_metric_base
+                and estimated_weight_g > 0
                 and portion.weight_g is not None
                 and abs(float(portion.weight_g) - estimated_weight_g) > 0.01
                 and portion.recipe_items.exists()
@@ -1477,12 +1574,19 @@ def _resolve_portion(
         if not p_name:
             p_name = mu.name or "Stück"
 
-        weight = estimated_weight_g if estimated_weight_g > 0 else None
-        if Portion.objects.filter(
-            ingredient_id=ingredient_id,
-            name__iexact=p_name,
-            deleted_at__isnull=True,
-        ).exists():
+        if is_metric_base:
+            weight = portion_quantity * METRIC_CANONICAL_WEIGHTS.get(unit_name_lower, 1.0)
+        else:
+            weight = estimated_weight_g if estimated_weight_g > 0 else None
+
+        if (
+            not is_metric_base
+            and Portion.objects.filter(
+                ingredient_id=ingredient_id,
+                name__iexact=p_name,
+                deleted_at__isnull=True,
+            ).exists()
+        ):
             suffix = f" ({weight:g} g)" if weight else " (Import)"
             p_name = f"{p_name}{suffix}"
 
@@ -1502,29 +1606,29 @@ def _resolve_portion(
         portion = Portion.objects.filter(
             ingredient_id=ingredient_id,
             name__iexact=p_name,
-            measuring_unit_id=measuring_unit_id,
-            quantity=portion_quantity,
             deleted_at__isnull=True,
         ).first()
         if portion is not None:
+            if is_metric_base and portion.weight_g != metric_base_weight and not portion.recipe_items.exists():
+                portion.weight_g = metric_base_weight
+                portion.save(update_fields=["weight_g"])
             return portion.id
 
         try:
-            portion = Portion.objects.create(
-                ingredient_id=ingredient_id,
-                name=p_name,
-                measuring_unit_id=measuring_unit_id,
-                quantity=portion_quantity,
-                weight_g=weight,
-                rank=next_rank,
-            )
+            with transaction.atomic():
+                portion = Portion.objects.create(
+                    ingredient_id=ingredient_id,
+                    name=p_name,
+                    measuring_unit_id=measuring_unit_id,
+                    quantity=portion_quantity,
+                    weight_g=weight,
+                    rank=next_rank,
+                )
         except IntegrityError:
             # Lost a race against a concurrent insert of the same (case-insensitive) name.
             portion = Portion.objects.filter(
                 ingredient_id=ingredient_id,
                 name__iexact=p_name,
-                measuring_unit_id=measuring_unit_id,
-                quantity=portion_quantity,
                 deleted_at__isnull=True,
             ).first()
             if portion is None:

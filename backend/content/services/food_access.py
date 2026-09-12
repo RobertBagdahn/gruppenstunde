@@ -129,7 +129,25 @@ def can_edit(resource: Any, user: Any) -> bool:
 
 
 def can_delete(resource: Any, user: Any) -> bool:
-    return can_edit(resource, user)
+    """Return whether ``user`` may delete a Food resource.
+
+    Mirrors ``can_edit`` but excludes ``editor`` collaborators: only the owner,
+    a collaborator with role ``admin``, a group admin, or Staff may delete.
+    """
+    if _is_staff(user):
+        return True
+    if getattr(resource, "status", None) == "verified":
+        return False
+    if not can_read(resource, user):
+        return False
+    user_id = getattr(user, "id", None)
+    if user_id in _owner_ids(resource):
+        return True
+    if ContentCollaboratorRole.ADMIN in _collaborator_roles(resource, user):
+        return True
+    group_ids = _shared_group_ids(resource)
+    _, is_group_admin = _active_membership(user, group_ids)
+    return is_group_admin and getattr(resource, "visibility", None) in {"group", "shared"}
 
 
 def can_fork(resource: Any, user: Any) -> bool:

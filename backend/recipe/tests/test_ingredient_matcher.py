@@ -30,25 +30,32 @@ class TestStage1Jaccard:
                 assert result.confidence == 0.0
 
     def test_grey_zone_returns_needs_review(self):
-        # "Zwiebeln" is in DB, so parser returns confidence=1.0, clean_name="Zwiebeln"
-        make_ingredient(name="Zwiebeln", usage_count=15)
-        # Other ingredients with partial overlap
-        make_ingredient(name="Zwiebeln rot", usage_count=100)
-        make_ingredient(name="Zwiebeln frisch", usage_count=50)
-        result = IngredientMatcher.match("Zwiebeln")
+        # Ingredients with partial overlap in DB, query has no exact match
+        make_ingredient(name="Zwiebel rot", usage_count=100)
+        make_ingredient(name="Zwiebel frisch", usage_count=50)
+        result = IngredientMatcher.match("Zwiebel")
         assert result.needs_review is True
         assert result.matched_via == "jaccard"
         assert result.confidence == 0.5
         assert len(result.candidates) >= 1
 
     def test_multiple_close_matches_trigger_hitl(self):
-        make_ingredient(name="Zwiebeln", usage_count=15)
+        # Both "Zwiebel rot" and "Zwiebel frisch" have Jaccard 0.5, diff 0 < 0.05
+        make_ingredient(name="Zwiebel rot", usage_count=100)
+        make_ingredient(name="Zwiebel frisch", usage_count=50)
+        result = IngredientMatcher.match("Zwiebel")
+        assert result.needs_review is True
+        assert len(result.candidates) >= 2
+
+    def test_exact_match_preferred_over_higher_usage_partial_match(self):
+        # Decision 4: Exact match takes precedence over higher-usage partial matches
+        exact = make_ingredient(name="Zwiebeln", usage_count=15)
         make_ingredient(name="Zwiebeln rot", usage_count=100)
         make_ingredient(name="Zwiebeln frisch", usage_count=50)
         result = IngredientMatcher.match("Zwiebeln")
-        # Both "Zwiebeln rot" and "Zwiebeln frisch" have Jaccard 0.5, diff 0 < 0.05
-        assert result.needs_review is True
-        assert len(result.candidates) >= 2
+        assert result.ingredient_id == exact.id
+        assert result.confidence == 1.0
+        assert result.needs_review is False
 
     def test_popularity_ordering(self):
         _low = make_ingredient(name="Zwiebel rot", usage_count=5)

@@ -203,7 +203,6 @@ def update_blog(request, blog_id: int, payload: BlogUpdateIn):
         "execution_time",
         "preparation_time",
         "difficulty",
-        "status",
         "blog_type",
         "show_table_of_contents",
     ]:
@@ -211,6 +210,10 @@ def update_blog(request, blog_id: int, payload: BlogUpdateIn):
         if value is not None:
             setattr(blog, field, value)
             update_fields.append(field)
+
+    if request.user.is_staff and payload.status is not None:
+        blog.status = payload.status
+        update_fields.append("status")
 
     if request.user.is_authenticated:
         blog.updated_by = request.user

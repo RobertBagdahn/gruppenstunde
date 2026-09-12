@@ -125,10 +125,19 @@ def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
     )
 
     if payload.items:
+        from content.services.food_access import visible_ingredient_queryset, visible_recipe_queryset
         from planner.api.meal_plan import check_duplicates_in_input
 
         check_duplicates_in_input(payload.items)
+        allowed_recipes = set(visible_recipe_queryset(request.user).values_list("id", flat=True))
+        allowed_ingredients = set(visible_ingredient_queryset(request.user).values_list("id", flat=True))
+
         for item_in in payload.items:
+            if item_in.recipe_id and item_in.recipe_id not in allowed_recipes:
+                raise HttpError(403, f"Keine Berechtigung für Rezept ID {item_in.recipe_id}")
+            if item_in.ingredient_id and item_in.ingredient_id not in allowed_ingredients:
+                raise HttpError(403, f"Keine Berechtigung für Zutat ID {item_in.ingredient_id}")
+
             _create_ref_meal_item(
                 meal=meal,
                 recipe_id=item_in.recipe_id,
@@ -174,9 +183,19 @@ def update_ref_meal(request, plan_id: int, ref_meal_id: int, payload: RefMealUpd
         ref_meal.save(update_fields=["day_part_factor"])
 
     if payload.items is not None:
+        from content.services.food_access import visible_ingredient_queryset, visible_recipe_queryset
         from planner.api.meal_plan import check_duplicates_in_input
 
         check_duplicates_in_input(payload.items)
+        allowed_recipes = set(visible_recipe_queryset(request.user).values_list("id", flat=True))
+        allowed_ingredients = set(visible_ingredient_queryset(request.user).values_list("id", flat=True))
+
+        for item_in in payload.items:
+            if item_in.recipe_id and item_in.recipe_id not in allowed_recipes:
+                raise HttpError(403, f"Keine Berechtigung für Rezept ID {item_in.recipe_id}")
+            if item_in.ingredient_id and item_in.ingredient_id not in allowed_ingredients:
+                raise HttpError(403, f"Keine Berechtigung für Zutat ID {item_in.ingredient_id}")
+
         ref_meal.items.all().delete()
         for item_in in payload.items:
             _create_ref_meal_item(

@@ -81,7 +81,6 @@ test.describe('Recipe persistence integrity', () => {
     });
     await foodPage.goto('/recipes/new');
     await foodPage.getByTestId('recipe-smart-input').fill(title);
-    await foodPage.getByTestId('recipe-smart-analyze').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
@@ -133,7 +132,6 @@ test.describe('Recipe persistence integrity', () => {
 
     await foodPage.goto('/recipes/new');
     await foodPage.getByTestId('recipe-smart-input').fill('E2E KI Rezept');
-    await foodPage.getByTestId('recipe-smart-analyze').click();
     await foodPage.getByTestId('recipe-wizard-next').click();
     await foodPage.getByTestId('recipe-serving-context-confirm').click();
     await foodPage.getByTestId('recipe-wizard-next').click();

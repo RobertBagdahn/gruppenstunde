@@ -336,6 +336,12 @@ export const LlmSuggestionSchema = z.object({
 });
 export type LlmSuggestion = z.infer<typeof LlmSuggestionSchema>;
 
+export const LlmSuggestionsSchema = z.object({
+  suggestions: z.array(LlmSuggestionSchema),
+  ai_interaction_id: z.string().nullable().optional(),
+});
+export type LlmSuggestions = z.infer<typeof LlmSuggestionsSchema>;
+
 // --- Nutrition Breakdown ---
 
 export const ContributionSchema = z.object({

@@ -139,6 +139,8 @@ def update_planner(request, planner_id: int, payload: PlannerUpdateIn):
     data = payload.dict(exclude_unset=True)
 
     if "group_id" in data:
+        if planner.owner != request.user and not request.user.is_staff:
+            raise HttpError(403, "Nur der Besitzer kann die Gruppe ändern")
         group_id = data.pop("group_id")
         if group_id is not None:
             from profiles.models import UserGroup

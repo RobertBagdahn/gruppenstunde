@@ -234,6 +234,14 @@ class AiIngredientSuggestionOut(Schema):
     portion_name: str | None = None
     quantity: float
     is_new_ingredient: bool = False
+    note: str = ""
+
+
+class AiIngredientSuggestionsOut(Schema):
+    """Wrapper for AI-suggested ingredients including the interaction id for feedback."""
+
+    items: list[AiIngredientSuggestionOut]
+    ai_interaction_id: str | None = None
 
 
 class AiIngredientApplyIn(Schema):

@@ -3,9 +3,12 @@
 import pytest
 
 from content.choices import ContentStatus
+from planner.models import MealPlanVisibility
+from planner.tests import make_meal_plan
 from profiles.tests import make_user_profile
 from recipe.models import RecipeVisibility
 from recipe.tests import make_recipe
+from shopping.tests import make_shopping_list
 
 
 @pytest.mark.django_db
@@ -66,6 +69,35 @@ class TestPublicFoodProfileBySlug:
         resp = api_client.get("/api/profile/by-slug/chef/")
         assert resp.status_code == 200
         assert len(resp.json()["recipes"]) == 1
+
+    def test_private_shopping_lists_excluded(self, api_client):
+        profile = make_user_profile(slug="shopper", is_public=True)
+        make_shopping_list(owner=profile.user)
+        resp = api_client.get("/api/profile/by-slug/shopper/")
+        assert resp.status_code == 200
+        assert resp.json()["shopping_lists"] == []
+
+    def test_private_meal_plans_excluded(self, api_client):
+        profile = make_user_profile(slug="planner", is_public=True)
+        make_meal_plan(created_by=profile.user, visibility=MealPlanVisibility.PRIVATE)
+        resp = api_client.get("/api/profile/by-slug/planner/")
+        assert resp.status_code == 200
+        assert resp.json()["meal_plans"] == []
+
+    def test_public_meal_plans_included(self, api_client):
+        profile = make_user_profile(slug="public-planner", is_public=True)
+        make_meal_plan(created_by=profile.user, visibility=MealPlanVisibility.PUBLIC)
+        resp = api_client.get("/api/profile/by-slug/public-planner/")
+        assert resp.status_code == 200
+        assert len(resp.json()["meal_plans"]) == 1
+
+    def test_own_profile_includes_private_shopping_lists(self, auth_client):
+        user = auth_client._user
+        make_user_profile(user=user, slug="me", is_public=True)
+        make_shopping_list(owner=user)
+        resp = auth_client.get("/api/profile/by-slug/me/")
+        assert resp.status_code == 200
+        assert len(resp.json()["shopping_lists"]) == 1
 
 
 @pytest.mark.django_db

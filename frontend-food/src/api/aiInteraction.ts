@@ -4,6 +4,7 @@ import { API_BASE_URL } from '@/lib/api';
 import {
   AiVoteInSchema,
   AiVoteOutSchema,
+  AiInteractionDetailSchema,
   AiInteractionStatsSchema,
   UserCostSchema,
   PaginatedAiInteractionsSchema,
@@ -71,6 +72,19 @@ interface StatsFilters {
   includeBackground?: boolean;
 }
 
+export interface AiInteractionFilters {
+  page?: number;
+  page_size?: number;
+  context?: string;
+  user_id?: number;
+  success?: string;
+  is_background?: string;
+  has_vote?: string;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}
+
 export function useAiInteractionStats(filters?: StatsFilters) {
   const params = new URLSearchParams();
   if (filters?.dateFrom) params.set('date_from', filters.dateFrom);
@@ -122,6 +136,46 @@ export function useAiUserInteractions(userId: number, page: number = 1) {
     },
     staleTime: 30_000,
     enabled: userId > 0 && page > 0,
+  });
+}
+
+export function useAiInteractions(filters: AiInteractionFilters = {}) {
+  const params = new URLSearchParams();
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.page_size) params.set('page_size', String(filters.page_size));
+  if (filters.context) params.set('context', filters.context);
+  if (filters.user_id) params.set('user_id', String(filters.user_id));
+  if (filters.success) params.set('success', filters.success);
+  if (filters.is_background) params.set('is_background', filters.is_background);
+  if (filters.has_vote) params.set('has_vote', filters.has_vote);
+  if (filters.date_from) params.set('date_from', filters.date_from);
+  if (filters.date_to) params.set('date_to', filters.date_to);
+  if (filters.search) params.set('search', filters.search);
+
+  return useQuery<PaginatedAiInteractions>({
+    queryKey: ['ai-interactions', filters] as const,
+    queryFn: async () => {
+      const qs = params.toString();
+      return fetchJson(
+        `${API_BASE}/admin/ai-interactions/${qs ? `?${qs}` : ''}`,
+        PaginatedAiInteractionsSchema,
+      );
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
+export function useAiInteractionDetail(interactionId: string | null) {
+  return useQuery({
+    queryKey: ['ai-interaction-detail', interactionId] as const,
+    queryFn: async () => fetchJson(
+      `${API_BASE}/admin/ai-interactions/${interactionId}/`,
+      AiInteractionDetailSchema,
+    ),
+    enabled: !!interactionId,
+    staleTime: 60_000,
+    retry: false,
   });
 }
 

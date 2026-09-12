@@ -177,12 +177,11 @@ export default function RecipeSearchDialog({
     quantity: number,
   ) => {
     if (onSelectIngredient) {
-      const totalWeightG = portion?.weight_g ? quantity * portion.weight_g : null;
       onSelectIngredient(
         ingredientId,
         portion?.id ?? null,
         portion?.measuring_unit_id ?? null,
-        totalWeightG ?? quantity,
+        quantity,
         ingredientDialog?.name ?? '',
       );
     }
@@ -285,8 +284,8 @@ export default function RecipeSearchDialog({
             </div>
           )}
 
-          {/* Suchfeld — nur im Rezept-Modus (und nicht in Vorschlags-Ansicht) */}
-          {!ingredientOnly && !isIngredientMode && !(showSuggestions && planId && mealId) && (
+          {/* Suchfeld — sichtbar wenn nicht in der Vorschlags-Ansicht */}
+          {!(showSuggestions && planId && mealId) && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
@@ -294,7 +293,7 @@ export default function RecipeSearchDialog({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Suchen..."
+                placeholder={ingredientOnly || isIngredientMode ? "Zutat suchen..." : "Rezept oder Zutat suchen..."}
                 className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               {searchQuery.length > 0 && (

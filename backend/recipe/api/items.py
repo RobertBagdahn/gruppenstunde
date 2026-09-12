@@ -11,7 +11,7 @@ from ninja.errors import HttpError
 from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup, RecipeItemIdempotencyRecord
 from recipe.schemas import (
     AiIngredientApplyIn,
-    AiIngredientSuggestionOut,
+    AiIngredientSuggestionsOut,
     EstimateQuantitiesOut,
     RecipeItemCreateIn,
     RecipeItemExchangeGroupCreateIn,
@@ -333,7 +333,7 @@ def delete_exchange_group(request, recipe_id: int, group_id: int):
 
 @router.post(
     "/{recipe_id}/ai-suggest-ingredients/",
-    response=list[AiIngredientSuggestionOut],
+    response=AiIngredientSuggestionsOut,
 )
 def ai_suggest_ingredients(request, recipe_id: int):
     """Use AI to suggest ingredients for a recipe."""
@@ -348,7 +348,11 @@ def ai_suggest_ingredients(request, recipe_id: int):
     from supply.services.term_normalization import normalize_term
 
     service = RecipeAiIngredientsService()
-    results = service.get_full_suggestions(recipe, user=request.user)
+    service_result = service.get_full_suggestions(recipe, user=request.user)
+    if isinstance(service_result, tuple):
+        results, interaction_id = service_result
+    else:
+        results, interaction_id = service_result, None
 
     if results is None:
         raise HttpError(503, "KI-Vorschläge konnten nicht generiert werden")
@@ -380,20 +384,24 @@ def ai_suggest_ingredients(request, recipe_id: int):
         for r in results
         if r.ingredient_id not in all_excluded_ids
         and normalize_term(r.ingredient_name) not in existing_normalized_names
+        and r.portion_id is not None
     ]
 
-    return [
-        {
-            "ingredient_id": r.ingredient_id,
-            "ingredient_name": r.ingredient_name,
-            "portion_id": r.portion_id,
-            "portion_name": r.portion_name,
-            "quantity": r.quantity,
-            "is_new_ingredient": r.is_new_ingredient,
-            "note": r.note,
-        }
-        for r in filtered
-    ]
+    return {
+        "items": [
+            {
+                "ingredient_id": r.ingredient_id,
+                "ingredient_name": r.ingredient_name,
+                "portion_id": r.portion_id,
+                "portion_name": r.portion_name,
+                "quantity": r.quantity,
+                "is_new_ingredient": r.is_new_ingredient,
+                "note": r.note,
+            }
+            for r in filtered
+        ],
+        "ai_interaction_id": interaction_id,
+    }
 
 
 @router.post("/{recipe_id}/ai-apply-ingredients/", response=list[RecipeItemOut])

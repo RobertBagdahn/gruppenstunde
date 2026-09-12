@@ -141,19 +141,21 @@ def test_resolve_canonical_unit_mapping(db):
 
 
 @pytest.mark.django_db
-def test_resolve_portion_url_import(ingredient, measuring_unit):
+def test_resolve_portion_url_import(ingredient):
     from recipe.services.url_import_service import _resolve_portion
 
+    piece_unit = MeasuringUnit.objects.create(name="Stück", unit="Stück", quantity=1.0)
+
     # Resolve first time -> creates portion and sets weight_g
-    p_id_1 = _resolve_portion(ingredient.id, measuring_unit.id, 120.0, "Gramm")
+    p_id_1 = _resolve_portion(ingredient.id, piece_unit.id, 120.0, "Stück")
     assert p_id_1 is not None
 
     portion = Portion.objects.get(id=p_id_1)
-    assert portion.name == "Gramm"
+    assert portion.name == "Stück"
     assert portion.weight_g == 120.0
 
     # Resolve second time -> returns existing portion, no new duplicate
-    p_id_2 = _resolve_portion(ingredient.id, measuring_unit.id, 120.0, "Gramm")
+    p_id_2 = _resolve_portion(ingredient.id, piece_unit.id, 120.0, "Stück")
     assert p_id_1 == p_id_2
 
     # The exact identity is reused on the second resolution (plus the 1g base portion).
@@ -161,15 +163,16 @@ def test_resolve_portion_url_import(ingredient, measuring_unit):
 
 
 @pytest.mark.django_db
-def test_resolve_portion_does_not_mutate_referenced_weight(ingredient, measuring_unit):
+def test_resolve_portion_does_not_mutate_referenced_weight(ingredient):
     from recipe.models import RecipeItem
     from recipe.services.url_import_service import _resolve_portion
     from recipe.tests import make_recipe
 
+    piece_unit = MeasuringUnit.objects.create(name="Stück", unit="Stück", quantity=1.0)
     portion = Portion.objects.create(
         ingredient=ingredient,
-        measuring_unit=measuring_unit,
-        name="Gramm",
+        measuring_unit=piece_unit,
+        name="Stück",
         quantity=1.0,
         weight_g=10.0,
         rank=1,
@@ -177,7 +180,7 @@ def test_resolve_portion_does_not_mutate_referenced_weight(ingredient, measuring
     recipe = make_recipe()
     RecipeItem.objects.create(recipe=recipe, portion=portion, quantity=1.0)
 
-    replacement_id = _resolve_portion(ingredient.id, measuring_unit.id, 15.0, "Gramm")
+    replacement_id = _resolve_portion(ingredient.id, piece_unit.id, 15.0, "Stück")
 
     portion.refresh_from_db()
     replacement = Portion.objects.get(id=replacement_id)

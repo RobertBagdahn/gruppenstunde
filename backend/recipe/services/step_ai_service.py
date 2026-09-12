@@ -24,7 +24,7 @@ class AiStepService:
         recipe: Recipe,
         user: AbstractBaseUser | None = None,
         bypass_limits: bool = False,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], str | None]:
         """Generate structured steps from a recipe's ingredients using Gemini.
 
         Args:
@@ -55,7 +55,7 @@ class AiStepService:
         """
         if not recipe.recipe_items.exists():
             logger.warning(f"Recipe {recipe.slug} has no ingredients, cannot generate steps")
-            return []
+            return [], None
 
         # Build ingredient list for prompt
         ingredients = []
@@ -87,7 +87,7 @@ class AiStepService:
 
         # Call Gemini
         try:
-            response, _ = gemini_call(
+            response, interaction_id = gemini_call(
                 user=user,
                 model=GEMINI_MODEL,
                 contents=prompt,
@@ -107,7 +107,7 @@ class AiStepService:
         try:
             steps = _parse_step_generation_response(response.text, item_id_map)
             logger.info(f"Generated {len(steps)} steps for recipe {recipe.slug}")
-            return steps
+            return steps, str(interaction_id) if interaction_id else None
         except Exception as exc:
             logger.error(f"Failed to parse Gemini response for recipe {recipe.slug}: {exc}")
             raise ValueError(f"Invalid step generation response: {exc!s}") from exc
@@ -118,7 +118,7 @@ class AiStepService:
         recipe: Recipe,
         user: AbstractBaseUser | None = None,
         bypass_limits: bool = False,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], str | None]:
         """Suggest which ingredients belong to a given step using Gemini.
 
         Args:
@@ -141,7 +141,7 @@ class AiStepService:
             ValueError: If response is invalid
         """
         if not recipe.recipe_items.exists():
-            return []
+            return [], None
         if not step_instruction.strip():
             raise ValueError("step_instruction must not be empty")
 
@@ -161,7 +161,7 @@ class AiStepService:
 
         # Call Gemini
         try:
-            response, _ = gemini_call(
+            response, interaction_id = gemini_call(
                 user=user,
                 model=GEMINI_MODEL,
                 contents=prompt,
@@ -175,16 +175,16 @@ class AiStepService:
             raise GeminiUnavailableError(f"Ingredient suggestion failed: {exc!s}") from exc
 
         if not response or not response.text:
-            return []
+            return [], None
 
         # Parse response
         try:
             suggestions = _parse_ingredient_suggestion_response(response.text)
             logger.info(f"Generated {len(suggestions)} ingredient suggestions")
-            return suggestions
+            return suggestions, str(interaction_id) if interaction_id else None
         except Exception as exc:
             logger.error(f"Failed to parse ingredient suggestion response: {exc}")
-            return []  # Return empty list if parsing fails (non-critical)
+            return [], None  # Return empty list if parsing fails (non-critical)
 
     @staticmethod
     def convert_markdown_to_steps(
@@ -261,7 +261,7 @@ class AiStepService:
         tone: str = "normal",
         user: AbstractBaseUser | None = None,
         bypass_limits: bool = False,
-    ) -> str:
+    ) -> tuple[str, str | None]:
         """Rewrite a step instruction with a specific tone using Gemini.
 
         Args:
@@ -277,7 +277,7 @@ class AiStepService:
             GeminiUnavailableError: If Gemini API fails
         """
         if not instruction or not instruction.strip():
-            return instruction
+            return instruction, None
 
         tone_descriptions = {
             "präzise": "Präzise, sachlich und kurz. Verwende Fachbegriffe.",
@@ -297,7 +297,7 @@ class AiStepService:
         )
 
         try:
-            response, _ = gemini_call(
+            response, interaction_id = gemini_call(
                 user=user,
                 model=GEMINI_MODEL,
                 contents=prompt,
@@ -311,11 +311,11 @@ class AiStepService:
             raise GeminiUnavailableError(f"Step improvement failed: {exc!s}") from exc
 
         if not response or not response.text:
-            return instruction
+            return instruction, None
 
         improved = response.text.strip()
         logger.info(f"Improved step instruction with tone '{tone}'")
-        return improved
+        return improved, str(interaction_id) if interaction_id else None
 
 
 # --- Prompt Builders ---

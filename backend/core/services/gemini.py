@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
-GLOBAL_LIMIT = 200
-WINDOW_SECONDS = 300  # 5 minutes
+GLOBAL_LIMIT = 100
+WINDOW_SECONDS = 900  # 15 minutes
 CACHE_KEY = "gemini_global_calls"
 
 EMBEDDING_LIMIT = 1000
@@ -289,13 +289,14 @@ def _calculate_cost_eur(model: str, usage_metadata) -> str | None:
     from decimal import ROUND_HALF_UP, Decimal
 
     pricing = getattr(settings, "GEMINI_PRICING", {}).get(model)
-    if not pricing or usage_metadata is None:
+    if usage_metadata is None:
+        return None
+    if not pricing:
+        logger.warning("Gemini model '%s' has no entry in GEMINI_PRICING; cost will be NULL", model)
         return None
 
     input_tokens = usage_metadata.prompt_token_count or 0
-    output_tokens = (usage_metadata.candidates_token_count or 0) + (
-        getattr(usage_metadata, "thoughts_token_count", 0) or 0
-    )
+    output_tokens = usage_metadata.candidates_token_count or 0
 
     try:
         input_cost = input_tokens / 1_000_000 * pricing["input_per_1m_usd"]

@@ -40,7 +40,9 @@ class TestPlausibilityCheck:
         recipe = make_recipe(portions=1)
         ingredient = make_ingredient(name="Kartoffeln")
         unit = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
-        portion = make_portion(ingredient=ingredient, measuring_unit=unit, name="100g Kartoffeln", weight_g=100.0, rank=1)
+        portion = make_portion(
+            ingredient=ingredient, measuring_unit=unit, name="100g Kartoffeln", weight_g=100.0, rank=1
+        )
         make_recipe_item(recipe=recipe, portion=portion, quantity=2.0)  # 200g
 
         service = RecipeQuantityEstimationService()
@@ -76,7 +78,9 @@ class TestPlausibilityCheck:
         recipe = make_recipe(portions=1)
         ingredient = make_ingredient(name="Kartoffeln")
         unit = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
-        portion = make_portion(ingredient=ingredient, measuring_unit=unit, name="100g Kartoffeln", weight_g=100.0, rank=1)
+        portion = make_portion(
+            ingredient=ingredient, measuring_unit=unit, name="100g Kartoffeln", weight_g=100.0, rank=1
+        )
         make_recipe_item(recipe=recipe, portion=portion, quantity=2.0)
 
         service = RecipeQuantityEstimationService()
@@ -85,3 +89,16 @@ class TestPlausibilityCheck:
 
         assert changed is False
         mock_estimate.assert_not_called()
+
+    def test_check_and_repair_recipe_forwards_is_background(self):
+        recipe = make_recipe(portions=1)
+        ingredient = make_ingredient(name="frischer Apfel")
+        unit = make_measuring_unit(name="Gramm", quantity=1.0, unit="g")
+        portion = make_portion(ingredient=ingredient, measuring_unit=unit, name="100g Apfel", weight_g=150.0, rank=1)
+        make_recipe_item(recipe=recipe, portion=portion, quantity=1000.0)
+
+        service = RecipeQuantityEstimationService()
+        with patch.object(RecipeQuantityEstimationService, "estimate_quantities", return_value=[]) as mock_estimate:
+            service.check_and_repair_recipe(recipe, bypass_limits=True, is_background=True)
+
+        assert mock_estimate.call_args.kwargs["is_background"] is True

@@ -210,6 +210,38 @@ class TestUpdateGame:
         )
         assert resp.status_code == 403
 
+    def test_author_cannot_self_approve(self, auth_client: Client, db):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        user = User.objects.get(email="test@inspi.dev")
+        game = Game.objects.create(title="Entwurf", status=ContentStatus.DRAFT)
+        game.authors.add(user)
+        resp = auth_client.patch(
+            f"/api/games/{game.id}/",
+            data=json.dumps({"status": ContentStatus.APPROVED}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        game.refresh_from_db()
+        assert game.status == ContentStatus.DRAFT
+
+    def test_staff_can_change_status(self, admin_client: Client, db):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        user = User.objects.create_user(username="author", password="x")
+        game = Game.objects.create(title="Entwurf", status=ContentStatus.DRAFT, created_by=user)
+        game.authors.add(user)
+        resp = admin_client.patch(
+            f"/api/games/{game.id}/",
+            data=json.dumps({"status": ContentStatus.APPROVED}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        game.refresh_from_db()
+        assert game.status == ContentStatus.APPROVED
+
 
 # ---------------------------------------------------------------------------
 # Delete

@@ -150,14 +150,56 @@ export const NutritionPlausibilitySchema = z.object({
   id: z.number(),
   name: z.string(),
   slug: z.string(),
-  energy_kcal: z.number(),
-  protein_g: z.number(),
-  fat_g: z.number(),
-  carbohydrate_g: z.number(),
-  macro_sum: z.number(),
+  energy_kcal: z.number().nullable().optional(),
+  protein_g: z.number().nullable().optional(),
+  fat_g: z.number().nullable().optional(),
+  carbohydrate_g: z.number().nullable().optional(),
+  sugar_g: z.number().nullable().optional(),
+  fat_sat_g: z.number().nullable().optional(),
+  macro_sum: z.number().nullable().optional(),
   issue: z.string(),
+  anomaly_type: z.string().nullable().optional(),
+  severity: z.string().optional(),
+  missing_fields: z.array(z.string()).optional(),
 });
 export type NutritionPlausibility = z.infer<typeof NutritionPlausibilitySchema>;
+
+export const PaginatedNutritionPlausibilitySchema = z.object({
+  items: z.array(NutritionPlausibilitySchema),
+  total: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+  total_pages: z.number(),
+});
+export type PaginatedNutritionPlausibility = z.infer<typeof PaginatedNutritionPlausibilitySchema>;
+
+export const FilledFieldInfoSchema = z.object({
+  field: z.string(),
+  label: z.string(),
+  value: z.unknown(),
+});
+export type FilledFieldInfo = z.infer<typeof FilledFieldInfoSchema>;
+
+export const IngredientFillResultSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  slug: z.string(),
+  filled_fields: z.array(FilledFieldInfoSchema),
+  quality_score: z.number().nullable().optional(),
+  message: z.string().nullable().optional(),
+});
+export type IngredientFillResult = z.infer<typeof IngredientFillResultSchema>;
+
+export const AiFillMissingRequestSchema = z.object({
+  ingredient_ids: z.array(z.number()),
+});
+export type AiFillMissingRequest = z.infer<typeof AiFillMissingRequestSchema>;
+
+export const AiFillMissingBatchSchema = z.object({
+  results: z.array(IngredientFillResultSchema),
+  total_filled: z.number(),
+});
+export type AiFillMissingBatch = z.infer<typeof AiFillMissingBatchSchema>;
 
 export const RecipeMetadataCheckSchema = z.object({
   id: z.number(),

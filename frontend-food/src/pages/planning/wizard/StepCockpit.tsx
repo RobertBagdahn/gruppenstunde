@@ -1,5 +1,5 @@
 import { Calendar, Users, Sparkles, Copy, FileText, DollarSign, Tag } from 'lucide-react';
-import type { MealPlanWizardState } from '@/schemas/mealPlan';
+import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@/schemas/mealPlan';
 
 interface StepCockpitProps {
   state: MealPlanWizardState;
@@ -127,7 +127,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
 
         {state.strategy === 'ai' && state.ai_suggestions && (
           <div className="space-y-2 mt-2">
-            {(state.ai_suggestions as { days: { date: string; meals: { meal_type: string; recipe_title: string }[] }[] }).days.map((day: { date: string; meals: { meal_type: string; recipe_title: string }[] }) => (
+            {(state.ai_suggestions as AiSuggestOut).days.map((day) => (
               <div key={day.date} className="border border-border rounded-lg p-2.5">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                   {new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE', {
@@ -139,7 +139,7 @@ export default function StepCockpit({ state, nutritionalTagNames, onCreate, isPe
                 <div className="flex flex-wrap gap-1.5">
                   {day.meals.map((meal, idx) => (
                     <span key={idx} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                      {meal.recipe_title}
+                      <span className="opacity-70 font-normal">{MEAL_TYPE_LABELS[meal.meal_type] || meal.meal_type}:</span> {meal.recipe_title}
                     </span>
                   ))}
                 </div>

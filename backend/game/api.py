@@ -210,7 +210,6 @@ def update_game(request, game_id: int, payload: GameUpdateIn):
         "execution_time",
         "preparation_time",
         "difficulty",
-        "status",
         "game_type",
         "play_area",
         "min_players",
@@ -222,6 +221,10 @@ def update_game(request, game_id: int, payload: GameUpdateIn):
         if value is not None:
             setattr(game, field, value)
             update_fields.append(field)
+
+    if request.user.is_staff and payload.status is not None:
+        game.status = payload.status
+        update_fields.append("status")
 
     if request.user.is_authenticated:
         game.updated_by = request.user

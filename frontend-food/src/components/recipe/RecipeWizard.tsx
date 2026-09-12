@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 import type { RecipeImportUrlResponse } from '@/api/recipeImport';
 import { useIngredient } from '@/api/supplies';
 import { API_BASE_URL, fetchWithCsrf } from '@/lib/api';
@@ -404,7 +404,21 @@ export default function RecipeWizard() {
             data-testid="recipe-wizard-next"
             className="flex items-center gap-1.5 px-5 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors ml-auto disabled:opacity-50"
           >
-            {isSaving ? 'Speichert...' : (
+            {isFirst ? (
+              isSaving ? (
+                <>
+                  <Sparkles className="w-4 h-4 animate-spin" />
+                  Analysiert…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Rezept analysieren
+                </>
+              )
+            ) : isSaving ? (
+              'Speichert...'
+            ) : (
               <>
                 Weiter
                 <ChevronRight className="w-4 h-4" />

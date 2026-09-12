@@ -3,7 +3,7 @@
  * MUST stay in sync with backend/planner/schemas.py (MealPlan section)
  */
 import { z } from 'zod';
-import { UtensilsCrossed, Moon, Cookie } from 'lucide-react';
+import { UtensilsCrossed, Moon, Cookie, GlassWater } from 'lucide-react';
 import { NutritionalTagSchema } from './supply';
 
 // Lightweight nutritional tag schema for search results (backend only returns id+name)
@@ -70,6 +70,7 @@ export const MealItemSchema = z.object({
   portion_display: z.string().default(''),
   has_missing_weight: z.boolean().default(false),
   is_per_norm_person: z.boolean().default(true),
+  recipe_portions: z.number().nullable().optional(),
 });
 export type MealItem = z.infer<typeof MealItemSchema>;
 
@@ -454,16 +455,27 @@ export type UnifiedSearchResponse = z.infer<typeof UnifiedSearchResponseSchema>;
 // Meal Type Labels (German)
 // ==========================================================================
 
-export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+export const MEAL_TYPE_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'drinks'] as const;
 
 // ==========================================================================
 // AI Meal Plan Generation
 // ==========================================================================
 
+export const AiSuggestMealItemSchema = z.object({
+  recipe_id: z.number().nullable().optional(),
+  ingredient_id: z.number().nullable().optional(),
+  title: z.string(),
+  quantity: z.number().nullable().optional(),
+  unit: z.string().nullable().optional(),
+});
+export type AiSuggestMealItem = z.infer<typeof AiSuggestMealItemSchema>;
+
 export const AiSuggestMealSchema = z.object({
   meal_type: z.string(),
-  recipe_id: z.number(),
+  recipe_id: z.number().nullable().optional(),
   recipe_title: z.string(),
+  source_meal_id: z.number().nullable().optional(),
+  items: z.array(AiSuggestMealItemSchema).optional().default([]),
 });
 export type AiSuggestMeal = z.infer<typeof AiSuggestMealSchema>;
 
@@ -482,7 +494,7 @@ export type AiSuggestOut = z.infer<typeof AiSuggestOutSchema>;
 export const AiApplySkippedItemSchema = z.object({
   day: z.string(),
   meal_type: z.string(),
-  recipe_id: z.number(),
+  recipe_id: z.number().nullable().optional(),
   reason: z.string(),
 });
 export type AiApplySkippedItem = z.infer<typeof AiApplySkippedItemSchema>;
@@ -573,6 +585,7 @@ export const MEAL_TYPE_LABELS: Record<string, string> = {
   lunch: 'Mittagessen',
   dinner: 'Abendessen',
   snack: 'Snack',
+  drinks: 'Getränke',
 };
 
 export const MEAL_TYPE_ICONS: Record<string, string> = {
@@ -580,22 +593,25 @@ export const MEAL_TYPE_ICONS: Record<string, string> = {
   lunch: 'restaurant',
   dinner: 'dinner_dining',
   snack: 'cookie',
+  drinks: 'local_cafe',
 };
 
 /**
  * Lucide React icon components for meal types.
- * Maps meal type keys (breakfast, lunch, dinner, snack) to Lucide icon components.
+ * Maps meal type keys (breakfast, lunch, dinner, snack, drinks) to Lucide icon components.
  * Used in UI components to render consistent, modern meal category indicators.
  * - breakfast: UtensilsCrossed (utensil icon)
  * - lunch: UtensilsCrossed (utensil icon)
  * - dinner: Moon (crescent moon for evening)
  * - snack: Cookie (cookie icon)
+ * - drinks: GlassWater (glass water icon)
  */
 export const MEAL_TYPE_ICONS_LUCIDE: Record<string, typeof UtensilsCrossed> = {
   breakfast: UtensilsCrossed,
   lunch: UtensilsCrossed,
   dinner: Moon,
   snack: Cookie,
+  drinks: GlassWater,
 };
 
 export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border: string; dot: string }> = {
@@ -603,6 +619,7 @@ export const MEAL_TYPE_COLORS: Record<string, { text: string; bg: string; border
   lunch: { text: 'text-accent-foreground', bg: 'bg-accent/30', border: 'border-accent', dot: 'bg-accent-foreground' },
   dinner: { text: 'text-secondary-foreground', bg: 'bg-secondary', border: 'border-secondary-foreground/30', dot: 'bg-secondary-foreground' },
   snack: { text: 'text-chart-4', bg: 'bg-chart-4/10', border: 'border-chart-4/30', dot: 'bg-chart-4' },
+  drinks: { text: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-200', dot: 'bg-sky-500' },
 };
 
 export type CoverageStatus = 'good' | 'warning' | 'critical';
@@ -635,6 +652,7 @@ export const MEAL_TYPE_DEFAULT_TIMES: Record<string, [number, number]> = {
   lunch: [12 * 60, 13 * 60],
   dinner: [18 * 60, 19 * 60],
   snack: [15 * 60, 15 * 60 + 30],
+  drinks: [10 * 60, 18 * 60],
 };
 
 export function minutesToHHMM(minutes: number): string {
@@ -1109,6 +1127,40 @@ export const IntelligentSuggestionsResponseSchema = z.object({
   day_number: z.number().default(1),
 });
 export type IntelligentSuggestionsResponse = z.infer<typeof IntelligentSuggestionsResponseSchema>;
+
+// ==========================================================================
+// Reorder & Actionable Alerts (Plan-Check)
+// ==========================================================================
+
+export const MealReorderSchema = z.object({
+  source_meal_id: z.number(),
+  target_date: z.string().optional(),
+  target_meal_type: z.string().optional(),
+  target_meal_id: z.number().optional(),
+  mode: z.enum(['move', 'swap']).default('move'),
+});
+export type MealReorderInput = z.infer<typeof MealReorderSchema>;
+
+export const PlanCheckAlertSchema = z.object({
+  id: z.string(),
+  type: z.enum(['empty_slot', 'budget_excess', 'allergen_conflict', 'info']),
+  severity: z.enum(['error', 'warning', 'info']),
+  title: z.string(),
+  description: z.string(),
+  date: z.string().nullable().optional(),
+  meal_id: z.number().nullable().optional(),
+  meal_type: z.string().nullable().optional(),
+  action_label: z.string().nullable().optional(),
+  action_type: z.string().nullable().optional(),
+  action_payload: z.record(z.unknown()).nullable().optional(),
+});
+export type PlanCheckAlert = z.infer<typeof PlanCheckAlertSchema>;
+
+export const PlanCheckResponseSchema = z.object({
+  total_issues: z.number(),
+  alerts: z.array(PlanCheckAlertSchema),
+});
+export type PlanCheckResponse = z.infer<typeof PlanCheckResponseSchema>;
 
 // ==========================================================================
 // Backward compatibility re-exports

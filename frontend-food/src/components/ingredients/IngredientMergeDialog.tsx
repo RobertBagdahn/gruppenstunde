@@ -113,7 +113,7 @@ export default function IngredientMergeDialog({
       onOpenChange(false);
       reset();
       onMergeComplete?.();
-      if (targetIngredient.id === currentIngredient.id) {
+      if (!preSelectedTarget && targetIngredient.id === currentIngredient.id) {
         navigate(`/ingredients/${targetIngredient.slug}`);
       }
     } catch (err) {

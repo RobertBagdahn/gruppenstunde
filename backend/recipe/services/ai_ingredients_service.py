@@ -83,12 +83,14 @@ class MatchedIngredientResult:
 class RecipeAiIngredientsService:
     """Service for AI-powered recipe ingredient suggestions."""
 
-    def suggest_ingredients(self, recipe: Recipe, user: AbstractBaseUser | None = None) -> AiIngredientsOutput | None:
+    def suggest_ingredients(
+        self, recipe: Recipe, user: AbstractBaseUser | None = None
+    ) -> tuple[AiIngredientsOutput | None, str | None]:
         """Call Gemini to suggest ingredients for a recipe.
 
-        Returns structured output with ingredient names and estimated grams per person.
+        Returns (structured output, ai_interaction_id).
         """
-        prompt = self._build_suggest_prompt(recipe)
+        prompt = self._build_suggest_prompt(recipe, user)
 
         try:
             from google.genai import types
@@ -104,14 +106,14 @@ class RecipeAiIngredientsService:
                 context="ai_ingredients",
             )
             if response is None:
-                return None
+                return None, None
             result = AiIngredientsOutput.model_validate_json(response.text)
             logger.info(
                 "AI ingredients suggestion for recipe '%s': %d items",
                 recipe.title,
                 len(result.items),
             )
-            return result
+            return result, str(interaction_id) if interaction_id else None
 
         except HttpError:
             raise
@@ -121,7 +123,7 @@ class RecipeAiIngredientsService:
                 recipe.title,
                 exc_info=True,
             )
-            return None
+            return None, None
 
     def match_ingredients(
         self, suggestions: list[AiIngredientSuggestion]
@@ -139,38 +141,66 @@ class RecipeAiIngredientsService:
             raw_name = suggestion.name.strip()
             match_result = IngredientMatcher.match(raw_name)
 
-            if match_result.needs_review and not match_result.ingredient_id:
+            ingredient_id = match_result.ingredient_id
+            is_new = match_result.is_new
+            note = match_result.note
+
+            if not ingredient_id:
                 from supply.choices import IngredientStatusChoices
-                from supply.models import Ingredient
-                from django.utils.text import slugify
+                from supply.models import Ingredient, IngredientAlias
 
-                slug = slugify(raw_name)
-                new_ingredient = Ingredient.objects.create(
-                    name=raw_name,
-                    slug=slug,
-                    status=IngredientStatusChoices.DRAFT,
+                clean_name = match_result.name.strip() if match_result.name else raw_name
+                existing = (
+                    Ingredient.objects.filter(name__iexact=raw_name, deleted_at__isnull=True)
+                    .order_by("-usage_count", "id")
+                    .first()
+                    or Ingredient.objects.filter(name__iexact=clean_name, deleted_at__isnull=True)
+                    .order_by("-usage_count", "id")
+                    .first()
                 )
-                results.append((suggestion, new_ingredient.id, True, match_result.note))
-                continue
+                if not existing:
+                    alias = (
+                        IngredientAlias.objects.filter(name__iexact=clean_name)
+                        .select_related("ingredient")
+                        .filter(ingredient__deleted_at__isnull=True)
+                        .first()
+                        or IngredientAlias.objects.filter(name__iexact=raw_name)
+                        .select_related("ingredient")
+                        .filter(ingredient__deleted_at__isnull=True)
+                        .first()
+                    )
+                    if alias:
+                        existing = alias.ingredient
 
-            if match_result.ingredient_id:
-                results.append((suggestion, match_result.ingredient_id, match_result.is_new, match_result.note))
-            else:
-                from supply.choices import IngredientStatusChoices
-                from supply.models import Ingredient
-                from django.utils.text import slugify
+                base_slug = slugify(raw_name) or slugify(clean_name) or "zutat"
+                if not existing and base_slug:
+                    existing = Ingredient.objects.filter(slug=base_slug, deleted_at__isnull=True).first()
 
-                slug = slugify(raw_name)
-                new_ingredient = Ingredient.objects.create(
-                    name=raw_name,
-                    slug=slug,
-                    status=IngredientStatusChoices.DRAFT,
-                )
-                results.append((suggestion, new_ingredient.id, True, match_result.note))
+                if existing:
+                    ingredient_id = existing.id
+                    is_new = False
+                else:
+                    slug = base_slug
+                    counter = 1
+                    while Ingredient.objects.filter(slug=slug).exists():
+                        slug = f"{base_slug}-{counter}"
+                        counter += 1
+
+                    new_ingredient = Ingredient.objects.create(
+                        name=raw_name,
+                        slug=slug,
+                        status=IngredientStatusChoices.DRAFT,
+                    )
+                    ingredient_id = new_ingredient.id
+                    is_new = True
+
+            results.append((suggestion, ingredient_id, is_new, note))
 
         return results
 
-    def assign_portions(self, matched: list[tuple[AiIngredientSuggestion, int, bool, str]]) -> list[MatchedIngredientResult]:
+    def assign_portions(
+        self, matched: list[tuple[AiIngredientSuggestion, int, bool, str]]
+    ) -> list[MatchedIngredientResult]:
         """Assign best portion for each matched ingredient and calculate quantity.
 
         Logic:
@@ -207,14 +237,20 @@ class RecipeAiIngredientsService:
                     name="g",
                     defaults={"description": "Gramm", "quantity": 1.0, "unit": "g"},
                 )
-                portion = Portion.objects.create(
-                    name="g",
+                portion = Portion.objects.filter(
                     ingredient=ingredient,
-                    measuring_unit=gramm_unit,
-                    quantity=1.0,
-                    weight_g=1.0,
-                    rank=1,
-                )
+                    name="g",
+                    deleted_at__isnull=True,
+                ).first()
+                if not portion:
+                    portion = Portion.objects.create(
+                        name="g",
+                        ingredient=ingredient,
+                        measuring_unit=gramm_unit,
+                        quantity=1.0,
+                        weight_g=1.0,
+                        rank=1,
+                    )
 
             # Calculate quantity
             weight_g = portion.weight_g if portion.weight_g and portion.weight_g > 0 else 1.0
@@ -238,11 +274,14 @@ class RecipeAiIngredientsService:
 
     def get_full_suggestions(
         self, recipe: Recipe, user: AbstractBaseUser | None = None
-    ) -> list[MatchedIngredientResult] | None:
-        """Full pipeline: suggest → match → assign portions → filter existing."""
-        ai_output = self.suggest_ingredients(recipe, user=user)
+    ) -> tuple[list[MatchedIngredientResult] | None, str | None]:
+        """Full pipeline: suggest → match → assign portions → filter existing.
+
+        Returns (results, ai_interaction_id).
+        """
+        ai_output, interaction_id = self.suggest_ingredients(recipe, user=user)
         if not ai_output or not ai_output.items:
-            return None
+            return None, interaction_id
 
         matched = self.match_ingredients(ai_output.items)
         results = self.assign_portions(matched)
@@ -257,9 +296,9 @@ class RecipeAiIngredientsService:
         )
         results = [r for r in results if r.ingredient_id not in existing_ingredient_ids]
 
-        return results
+        return results, interaction_id
 
-    def _build_suggest_prompt(self, recipe: Recipe) -> str:
+    def _build_suggest_prompt(self, recipe: Recipe, user: AbstractBaseUser | None = None) -> str:
         """Build prompt for ingredient suggestion."""
         parts = [
             "Du bist ein erfahrener Koch und Ernährungsexperte. ",
@@ -296,6 +335,12 @@ class RecipeAiIngredientsService:
             "Gib nur die Zutaten zurück, keine Anleitung."
         )
 
+        from core.services.prompt_context import build_prompt_context
+
+        context_block = build_prompt_context(user)
+        if context_block:
+            parts.append(f"\n\n{context_block}")
+
         return "".join(parts)
 
 
@@ -326,7 +371,12 @@ class RecipeQuantityEstimationService:
     """Estimates realistic quantities for existing recipe items via Gemini."""
 
     def estimate_quantities(
-        self, recipe: Recipe, user: Any = None, *, bypass_limits: bool = False,
+        self,
+        recipe: Recipe,
+        user: Any = None,
+        *,
+        bypass_limits: bool = False,
+        is_background: bool = False,
     ) -> list[dict] | None:
         """Estimate quantities for all existing recipe items.
 
@@ -353,7 +403,7 @@ class RecipeQuantityEstimationService:
         try:
             from google.genai import types
 
-            response, interaction_id = gemini_call(
+            response, _ = gemini_call(
                 user=user,
                 model=GEMINI_MODEL,
                 contents=prompt,
@@ -363,6 +413,7 @@ class RecipeQuantityEstimationService:
                 ),
                 context="ai_quantity_estimation",
                 bypass_limits=bypass_limits,
+                is_background=is_background,
             )
             if response is None:
                 return None
@@ -426,8 +477,7 @@ class RecipeQuantityEstimationService:
                 # No active rank=1 portion exists for this ingredient (e.g. all
                 # candidates soft-deleted) — nothing safe to estimate against.
                 logger.warning(
-                    "AI quantity estimation: no active rank=1 portion for item %s "
-                    "(ingredient '%s') — skipping",
+                    "AI quantity estimation: no active rank=1 portion for item %s " "(ingredient '%s') — skipping",
                     item.id,
                     ingredient_name,
                 )
@@ -548,7 +598,14 @@ class RecipeQuantityEstimationService:
         weight = self.compute_weight_per_portion_g(recipe)
         return weight <= 0 or weight < low or weight > high
 
-    def check_and_repair_recipe(self, recipe: Recipe, user: Any = None, *, bypass_limits: bool = False) -> bool:
+    def check_and_repair_recipe(
+        self,
+        recipe: Recipe,
+        user: Any = None,
+        *,
+        bypass_limits: bool = False,
+        is_background: bool = False,
+    ) -> bool:
         """If `recipe`'s total weight per portion is implausible, re-estimate
         realistic quantities via Gemini and persist them automatically
         (portion_id + quantity together, per-item, no manual approval).
@@ -560,7 +617,7 @@ class RecipeQuantityEstimationService:
         if not self.is_implausible(recipe):
             return False
 
-        results = self.estimate_quantities(recipe, user=user, bypass_limits=bypass_limits)
+        results = self.estimate_quantities(recipe, user=user, bypass_limits=bypass_limits, is_background=is_background)
         if not results:
             logger.warning("AI plausibility repair: no estimate available for recipe '%s'", recipe.title)
             return False

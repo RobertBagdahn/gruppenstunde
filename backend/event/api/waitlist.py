@@ -7,7 +7,7 @@ from ninja.errors import HttpError
 
 from event.api.events import event_router
 from event.api.helpers import require_auth, require_event_manager
-from event.models import BookingOption, Event, WaitlistEntry
+from event.models import BookingOption, Event, Person, WaitlistEntry
 from event.schemas import (
     PaginatedWaitlistEntryOut,
     WaitlistEntryCreateIn,
@@ -22,6 +22,15 @@ def join_waitlist(request, event_slug: str, payload: WaitlistEntryCreateIn):
     event = get_object_or_404(Event, slug=event_slug)
     booking_option = get_object_or_404(BookingOption, id=payload.booking_option_id, event=event)
 
+    if not event.user_is_invited(request.user):
+        raise HttpError(403, "Du bist nicht für dieses Event eingeladen")
+
+    person_id = payload.person_id
+    if person_id is not None:
+        person = get_object_or_404(Person, id=person_id)
+        if person.user != request.user and not request.user.is_staff:
+            raise HttpError(403, f"Zugriff auf Person {person_id} verweigert")
+
     # Check if already on waitlist
     if WaitlistEntry.objects.filter(event=event, user=request.user, booking_option=booking_option).exists():
         raise HttpError(400, "Du bist bereits auf der Warteliste für diese Buchungsoption.")
@@ -30,7 +39,7 @@ def join_waitlist(request, event_slug: str, payload: WaitlistEntryCreateIn):
         event=event,
         booking_option=booking_option,
         user=request.user,
-        person_id=payload.person_id,
+        person_id=person_id,
     )
     return 201, entry
 

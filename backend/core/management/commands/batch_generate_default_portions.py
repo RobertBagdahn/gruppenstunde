@@ -5,7 +5,6 @@ Usage:
 """
 
 import json
-import logging
 import time
 from typing import Any
 
@@ -15,7 +14,7 @@ from core.services.gemini import GeminiUnavailableError, gemini_call
 from supply.models import Ingredient, MeasuringUnit, Portion
 
 BATCH_SIZE = 10
-GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 
 SYSTEM_PROMPT = """Du bist ein Experte für Lebensmittelportionen und deutsche Küche.
 
@@ -101,7 +100,18 @@ class Command(BaseCommand):
             return
 
         # Pre-cache measuring units
-        mu_names = ["Gramm", "Kilogramm", "Milliliter", "Liter", "Esslöffel", "Teelöffel", "Prise", "Messerspitze", "Tasse", "Schuss"]
+        mu_names = [
+            "Gramm",
+            "Kilogramm",
+            "Milliliter",
+            "Liter",
+            "Esslöffel",
+            "Teelöffel",
+            "Prise",
+            "Messerspitze",
+            "Tasse",
+            "Schuss",
+        ]
         mu_cache = {mu.name: mu for mu in MeasuringUnit.objects.filter(name__in=mu_names)}
         gramm = mu_cache["Gramm"]
 
@@ -121,9 +131,7 @@ class Command(BaseCommand):
                 groups = ", ".join(ing.groups.values_list("name", flat=True)[:3]) or "Unbekannt"
                 ingredient_descriptions.append(f"- {ing.name} (Kategorie: {groups})")
 
-            user_prompt = USER_PROMPT_TEMPLATE.format(
-                ingredient_list="\n".join(ingredient_descriptions)
-            )
+            user_prompt = USER_PROMPT_TEMPLATE.format(ingredient_list="\n".join(ingredient_descriptions))
 
             batch_label = f"{batch_start + 1}-{min(batch_start + batch_size, total)}/{total}"
             self.stdout.write(f"\nBatch {batch_label}: {len(batch)} Zutaten...", ending="")
@@ -197,6 +205,6 @@ class Command(BaseCommand):
             if batch_start + batch_size < len(ing_list):
                 time.sleep(0.5)
 
-        self.stdout.write(self.style.SUCCESS(
-            f"\nFERTIG: {created} Portionen erstellt, {failed} fehlgeschlagen, {total_time:.0f}s"
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(f"\nFERTIG: {created} Portionen erstellt, {failed} fehlgeschlagen, {total_time:.0f}s")
+        )

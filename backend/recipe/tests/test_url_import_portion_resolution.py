@@ -111,3 +111,37 @@ class TestResolvePortionNameCollision:
         assert portion_id is not None
         assert portion_id != deleted.id
         assert Portion.objects.get(id=portion_id).deleted_at is None
+
+    def test_gram_portion_never_accepts_estimated_weight(self):
+        """Mass units (Gramm) must always have weight_g=1.0, never AI estimates like 100g."""
+        ingredient = make_ingredient(name="Lauch")
+        gram_unit = make_measuring_unit(name="Gramm", unit="g")
+
+        portion_id = _resolve_portion(
+            ingredient_id=ingredient.id,
+            measuring_unit_id=gram_unit.id,
+            estimated_weight_g=100.0,
+            unit_name="g",
+            portion_quantity=1.0,
+        )
+
+        portion = Portion.objects.get(id=portion_id)
+        assert portion.weight_g == 1.0
+        assert "100" not in portion.name
+
+    def test_milliliter_portion_never_accepts_arbitrary_estimated_weight(self):
+        """Volume units (Milliliter) must have weight_g=1.0, never arbitrary AI estimates like 250g."""
+        ingredient = make_ingredient(name="Milch")
+        ml_unit = make_measuring_unit(name="Milliliter", unit="ml")
+
+        portion_id = _resolve_portion(
+            ingredient_id=ingredient.id,
+            measuring_unit_id=ml_unit.id,
+            estimated_weight_g=250.0,
+            unit_name="ml",
+            portion_quantity=1.0,
+        )
+
+        portion = Portion.objects.get(id=portion_id)
+        assert portion.weight_g == 1.0
+        assert "250" not in portion.name

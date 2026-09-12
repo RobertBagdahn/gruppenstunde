@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useIngredientCompleteness } from '@/api/dataQuality';
+import { useIngredientCompleteness, useAiFillMissingIngredient } from '@/api/dataQuality';
 import type { CompletenessItem } from '@/schemas/dataQuality';
 import Pagination from '@/components/shared/Pagination';
-import { Loader2, ArrowUpDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, ArrowUpDown, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 type SortKey = keyof CompletenessItem;
 type SortDir = 'asc' | 'desc';
@@ -29,8 +31,28 @@ export default function CompletenessGrid() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<SortKey>('quality_score');
   const [dir, setDir] = useState<SortDir>('asc');
+  const [fillingId, setFillingId] = useState<number | null>(null);
 
   const { data, isLoading, error } = useIngredientCompleteness({ page, page_size: 25 });
+  const fillMutation = useAiFillMissingIngredient();
+
+  const handleFillSingle = async (item: CompletenessItem) => {
+    setFillingId(item.id);
+    try {
+      const result = await fillMutation.mutateAsync(item.id);
+      if (result.filled_fields.length > 0) {
+        const labels = result.filled_fields.map((f) => f.label).slice(0, 3).join(', ');
+        const more = result.filled_fields.length > 3 ? ` und ${result.filled_fields.length - 3} weitere` : '';
+        toast.success(`Stammdaten für "${item.name}" ergänzt: ${labels}${more}`);
+      } else {
+        toast.info(`Keine fehlenden Stammdaten für "${item.name}". Bestehende Daten beibehalten.`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Fehler bei der KI-Ergänzung');
+    } finally {
+      setFillingId(null);
+    }
+  };
 
   const handleSort = (key: SortKey) => {
     if (sort === key) {
@@ -85,6 +107,7 @@ export default function CompletenessGrid() {
                   </span>
                 </th>
               ))}
+              <th className="px-3 py-2.5 text-right font-medium">Aktion</th>
             </tr>
           </thead>
           <tbody>
@@ -119,6 +142,24 @@ export default function CompletenessGrid() {
                 </td>
                 <td className={cn('px-3 py-2.5 text-right', scoreColor(item.portion_score))}>
                   {item.portion_score}
+                </td>
+                <td className="px-3 py-2.5 text-right">
+                  <Button
+                    type="button"
+                    onClick={() => handleFillSingle(item)}
+                    disabled={fillingId === item.id}
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+                    title="Fehlende Stammdaten mit KI ergänzen"
+                  >
+                    {fillingId === item.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    <span className="hidden sm:inline">Ergänzen</span>
+                  </Button>
                 </td>
               </tr>
             ))}

@@ -52,6 +52,31 @@ class TestShoppingService:
         # Total weight: 5 (quantity) * 1.0 (measuring_unit.quantity for "g") * 1.0 (factor) * 10.0 (scaling) = 50g
         assert item.total_quantity_g == 50.0
 
+    def test_external_meals_excluded_from_shopping_list(self):
+        """Meals marked as is_external=True should not contribute ingredients to shopping list."""
+        from model_bakery import baker
+
+        from planner.models import MealItem
+
+        meal_plan = make_meal_plan(norm_portions=10, reserve_factor=1.0)
+        ext_meal = make_meal(meal_plan=meal_plan, is_external=True)
+
+        mu, _ = MeasuringUnit.objects.get_or_create(name="Gramm", defaults={"quantity": 1.0, "unit": "g"})
+        ing = make_ingredient(name="Restaurant Pommes")
+
+        baker.make(
+            MealItem,
+            meal=ext_meal,
+            recipe=None,
+            ingredient=ing,
+            quantity=Decimal("100.0"),
+            measuring_unit=mu,
+            factor=1.0,
+        )
+
+        items = generate_shopping_list(meal_plan)
+        assert len(items) == 0
+
     def test_portion_override_scaling(self):
         """Should use override_portions on a meal instead of global plan portions."""
         # 1. Create a meal plan with portions = 10, but override_portions = 20

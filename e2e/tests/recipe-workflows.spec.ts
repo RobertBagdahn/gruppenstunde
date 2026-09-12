@@ -134,7 +134,7 @@ test.describe('Recipe Workflows', () => {
     await mockUnifiedWizard(page);
     await page.goto(`${FOOD_URL}/recipes/new`);
     await page.getByTestId('recipe-smart-input').fill('Kartoffelsuppe für 4 Personen');
-    await page.getByTestId('recipe-smart-analyze').click();
+    await expect(page.getByTestId('recipe-smart-analyze')).toHaveCount(0);
     await page.getByTestId('recipe-wizard-next').click();
     await expect(page.getByRole('heading', { name: 'Basis & Portionen' })).toBeVisible();
     await expect(page.locator('#recipe-basis-title')).toHaveValue('Smart E2E Rezept');

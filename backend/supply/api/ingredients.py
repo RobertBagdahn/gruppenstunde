@@ -598,7 +598,7 @@ def create_portion(request, slug: str, payload: PortionCreateIn):
     if not payload.name or not payload.name.strip():
         raise HttpError(422, "Portionsname darf nicht leer sein.")
 
-    ingredient = Ingredient.all_objects.filter(slug=slug).first()
+    ingredient = Ingredient.objects.filter(slug=slug).first()
     if ingredient is None:
         raise HttpError(404, "Zutat nicht gefunden")
     if not _can_edit_portions(ingredient, request.user):
@@ -1304,6 +1304,31 @@ def ai_suggest_all(request, slug: str):
     from supply.services.ingredient_ai_suggest_service import suggest_all_fields
 
     result = suggest_all_fields(ingredient, user=request.user)
+    return result
+
+
+@ingredient_router.post("/{slug}/ai-fill-missing/")
+def ai_fill_missing_by_slug(request, slug: str):
+    """Fill only the missing master data fields of an ingredient using AI."""
+    require_auth(request)
+
+    from content.services.food_access import get_ingredient_detail_or_404
+    from supply.services.ingredient_ai_fill_service import fill_missing_ingredient_fields
+
+    ingredient = get_ingredient_detail_or_404(request.user, slug)
+    if not _can_edit_ingredient(ingredient, request.user):
+        raise HttpError(403, "Keine Berechtigung, KI-Ergänzungen für diese Zutat anzufordern")
+
+    from core.services.gemini import GeminiUnavailableError
+
+    try:
+        result = fill_missing_ingredient_fields(ingredient, user=request.user)
+    except GeminiUnavailableError as e:
+        raise HttpError(429, str(e))
+    except Exception as e:
+        logger.exception("AI fill missing failed for ingredient %s: %s", slug, e)
+        raise HttpError(500, f"Fehler bei KI-Ergänzung: {e}")
+
     return result
 
 

@@ -218,7 +218,6 @@ def update_session(request, session_id: int, payload: GroupSessionUpdateIn):
         "execution_time",
         "preparation_time",
         "difficulty",
-        "status",
         "session_type",
         "location_type",
         "min_participants",
@@ -228,6 +227,10 @@ def update_session(request, session_id: int, payload: GroupSessionUpdateIn):
         if value is not None:
             setattr(session, field, value)
             update_fields.append(field)
+
+    if request.user.is_staff and payload.status is not None:
+        session.status = payload.status
+        update_fields.append("status")
 
     if request.user.is_authenticated:
         session.updated_by = request.user

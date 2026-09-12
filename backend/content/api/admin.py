@@ -25,10 +25,9 @@ from content.schemas.admin import (
 )
 from content.schemas.ai_interaction import (
     AiInteractionDetailOut,
-    AiInteractionItemOut,
     AiInteractionStatsOut,
     GeminiPricingOut,
-    UserCostOut,
+    PaginatedAiInteractionsOut,
 )
 
 router = Router(tags=["content"])
@@ -402,11 +401,10 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
     total_cost_eur = float(token_agg["total_cost_eur"] or 0)
 
     by_context = []
-    for choice in AiContextChoices:
-        qs = base_qs.filter(context=choice.value)
+    context_labels = dict(AiContextChoices.choices)
+    for context_value in base_qs.exclude(context="").order_by().values_list("context", flat=True).distinct():
+        qs = base_qs.filter(context=context_value)
         total = qs.count()
-        if total == 0:
-            continue
         ctx_agg = qs.aggregate(
             ctx_tokens=models.Sum("total_tokens"),
             ctx_cost=models.Sum("cost_eur"),
@@ -418,8 +416,8 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
         ctx_vote_rate = round((thumbs_up + thumbs_down) / total * 100, 1) if total else 0
         by_context.append(
             {
-                "context": choice.value,
-                "label": str(choice.label),
+                "context": context_value,
+                "label": str(context_labels.get(context_value, context_value)),
                 "total": total,
                 "success_count": success_count,
                 "error_count": error_count,
@@ -430,6 +428,25 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
                 "total_cost_eur": float(ctx_agg["ctx_cost"] or 0),
             }
         )
+
+    by_model = []
+    for model_value in base_qs.exclude(model="").order_by().values_list("model", flat=True).distinct():
+        model_qs = base_qs.filter(model=model_value)
+        model_agg = model_qs.aggregate(
+            model_tokens=models.Sum("total_tokens"),
+            model_cost=models.Sum("cost_eur"),
+        )
+        by_model.append(
+            {
+                "model": model_value,
+                "total_calls": model_qs.count(),
+                "total_tokens": model_agg["model_tokens"] or 0,
+                "total_cost_eur": float(model_agg["model_cost"] or 0),
+                "thumbs_up": model_qs.filter(vote="up").count(),
+                "thumbs_down": model_qs.filter(vote="down").count(),
+            }
+        )
+    by_model.sort(key=lambda entry: entry["total_calls"], reverse=True)
 
     if date_from or date_to:
         timeline_start = parsed_from if date_from else today - timedelta(days=29)
@@ -452,6 +469,9 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
             day_cost=models.Sum("cost_eur"),
             day_tokens=models.Sum("total_tokens"),
         )
+        embedding_cost = AiInteraction.objects.filter(created_at__date=day, is_background=True).aggregate(
+            cost=models.Sum("cost_eur")
+        )["cost"]
         thumbs_up_day = day_qs.filter(vote="up").count()
         thumbs_down_day = day_qs.filter(vote="down").count()
         timeline.append(
@@ -462,6 +482,7 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
                 "thumbs_down": thumbs_down_day,
                 "total_cost_eur": float(day_agg["day_cost"] or 0),
                 "total_tokens": day_agg["day_tokens"] or 0,
+                "embedding_cost_eur": float(embedding_cost or 0),
             }
         )
         day -= timedelta(days=1)
@@ -474,6 +495,7 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
         "total_tokens_all": total_tokens_all,
         "total_cost_eur": total_cost_eur,
         "by_context": by_context,
+        "by_model": by_model,
         "timeline": timeline,
     }
 
@@ -485,12 +507,22 @@ def admin_ai_interaction_stats(request, date_from: str = "", date_to: str = ""):
 
 @router.get(
     "/admin/ai-interactions/",
+    response=PaginatedAiInteractionsOut,
     url_name="content_admin_ai_interactions_list",
 )
-def admin_ai_interactions_list(request, page: int = 1, page_size: int = 20, context: str = "",
-                                user_id: int | None = None, success: str = "", is_background: str = "",
-                                has_vote: str = "", date_from: str = "", date_to: str = "",
-                                search: str = ""):
+def admin_ai_interactions_list(
+    request,
+    page: int = 1,
+    page_size: int = 20,
+    context: str = "",
+    user_id: int | None = None,
+    success: str = "",
+    is_background: str = "",
+    has_vote: str = "",
+    date_from: str = "",
+    date_to: str = "",
+    search: str = "",
+):
     """Paginated list of AI interactions (admin only)."""
     _require_admin(request)
 
@@ -515,28 +547,34 @@ def admin_ai_interactions_list(request, page: int = 1, page_size: int = 20, cont
     if date_to:
         qs = qs.filter(created_at__date__lte=date_to)
     if search:
-        qs = qs.filter(models.Q(response__icontains=search) | models.Q(error_code__icontains=search))
+        qs = qs.filter(
+            models.Q(prompt__icontains=search)
+            | models.Q(response__icontains=search)
+            | models.Q(error_code__icontains=search)
+        )
 
     total = qs.count()
     offset = (page - 1) * page_size
     items = []
     for interaction in qs[offset : offset + page_size]:
-        items.append({
-            "id": str(interaction.id),
-            "context": interaction.context,
-            "model": interaction.model,
-            "user_name": interaction.user.username if interaction.user else None,
-            "created_at": interaction.created_at,
-            "total_tokens": interaction.total_tokens,
-            "cost_eur": float(interaction.cost_eur) if interaction.cost_eur is not None else None,
-            "duration_ms": interaction.duration_ms,
-            "success": interaction.success,
-            "error_code": interaction.error_code,
-            "vote": interaction.vote,
-            "is_background": interaction.is_background,
-        })
+        items.append(
+            {
+                "id": str(interaction.id),
+                "context": interaction.context,
+                "model": interaction.model,
+                "user_name": interaction.user.username if interaction.user else None,
+                "created_at": interaction.created_at,
+                "total_tokens": interaction.total_tokens,
+                "cost_eur": float(interaction.cost_eur) if interaction.cost_eur is not None else None,
+                "duration_ms": interaction.duration_ms,
+                "success": interaction.success,
+                "error_code": interaction.error_code,
+                "vote": interaction.vote,
+                "is_background": interaction.is_background,
+            }
+        )
 
-    total_pages = math.ceil(total / page_size) if total else 0
+    total_pages = max(1, math.ceil(total / page_size))
     return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
 
 
@@ -574,11 +612,15 @@ def admin_ai_interactions_user_costs(request, date_from: str = "", date_to: str 
             raise HttpError(400, f"Ungültiges Datum für date_to: {date_to}. Erwartet: YYYY-MM-DD.")
         base_qs = base_qs.filter(created_at__date__lte=parsed_to)
 
-    users_agg = base_qs.values("user_id", "user__username").annotate(
-        total_calls=models.Count("id"),
-        total_tokens=models.Sum("total_tokens"),
-        total_cost_eur=models.Sum("cost_eur"),
-    ).order_by("-total_cost_eur")
+    users_agg = (
+        base_qs.values("user_id", "user__username")
+        .annotate(
+            total_calls=models.Count("id"),
+            total_tokens=models.Sum("total_tokens"),
+            total_cost_eur=models.Sum("cost_eur"),
+        )
+        .order_by("-total_cost_eur")
+    )
 
     result = []
     for row in users_agg:
@@ -593,21 +635,24 @@ def admin_ai_interactions_user_costs(request, date_from: str = "", date_to: str 
         voted = base_qs.filter(user_id=row["user_id"], vote__isnull=False).count()
         vote_rate = round(voted / row["total_calls"] * 100, 1) if row["total_calls"] else 0
 
-        result.append({
-            "user_id": row["user_id"],
-            "user_name": row["user__username"],
-            "total_calls": row["total_calls"],
-            "total_tokens": row["total_tokens"] or 0,
-            "total_cost_eur": float(row["total_cost_eur"] or 0),
-            "cost_30d_eur": float(cost_30d or 0),
-            "vote_rate": vote_rate,
-        })
+        result.append(
+            {
+                "user_id": row["user_id"],
+                "user_name": row["user__username"],
+                "total_calls": row["total_calls"],
+                "total_tokens": row["total_tokens"] or 0,
+                "total_cost_eur": float(row["total_cost_eur"] or 0),
+                "cost_30d_eur": float(cost_30d or 0),
+                "vote_rate": vote_rate,
+            }
+        )
 
     return result
 
 
 @router.get(
     "/admin/ai-interactions/{interaction_id}/",
+    response=AiInteractionDetailOut,
     url_name="content_admin_ai_interactions_detail",
 )
 def admin_ai_interactions_detail(request, interaction_id: str):
@@ -664,13 +709,15 @@ def admin_ai_pricing(request):
 
     pricing_entries = []
     for model, config in getattr(settings, "GEMINI_PRICING", {}).items():
-        pricing_entries.append({
-            "model": model,
-            "type": config.get("type", ""),
-            "input_per_1m_usd": config.get("input_per_1m_usd", 0),
-            "output_per_1m_usd": config.get("output_per_1m_usd"),
-            "image_output_per_1m_usd": config.get("image_output_per_1m_usd"),
-        })
+        pricing_entries.append(
+            {
+                "model": model,
+                "type": config.get("type", ""),
+                "input_per_1m_usd": config.get("input_per_1m_usd", 0),
+                "output_per_1m_usd": config.get("output_per_1m_usd"),
+                "image_output_per_1m_usd": config.get("image_output_per_1m_usd"),
+            }
+        )
 
     return {
         "pricing": pricing_entries,

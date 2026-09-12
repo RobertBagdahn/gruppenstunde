@@ -24,6 +24,16 @@ export const AiContextStatsSchema = z.object({
 });
 export type AiContextStats = z.infer<typeof AiContextStatsSchema>;
 
+export const AiModelStatsSchema = z.object({
+  model: z.string(),
+  total_calls: z.number(),
+  total_tokens: z.number(),
+  total_cost_eur: z.number(),
+  thumbs_up: z.number(),
+  thumbs_down: z.number(),
+});
+export type AiModelStats = z.infer<typeof AiModelStatsSchema>;
+
 export const AiTimelineEntrySchema = z.object({
   date: z.string(),
   total: z.number(),
@@ -31,6 +41,7 @@ export const AiTimelineEntrySchema = z.object({
   thumbs_down: z.number(),
   total_cost_eur: z.number(),
   total_tokens: z.number(),
+  embedding_cost_eur: z.number(),
 });
 export type AiTimelineEntry = z.infer<typeof AiTimelineEntrySchema>;
 
@@ -42,6 +53,7 @@ export const AiInteractionStatsSchema = z.object({
   total_tokens_all: z.number(),
   total_cost_eur: z.number(),
   by_context: z.array(AiContextStatsSchema),
+  by_model: z.array(AiModelStatsSchema),
   timeline: z.array(AiTimelineEntrySchema),
 });
 export type AiInteractionStats = z.infer<typeof AiInteractionStatsSchema>;

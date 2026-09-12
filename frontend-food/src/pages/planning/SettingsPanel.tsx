@@ -282,18 +282,18 @@ export default function SettingsPanel({
               <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 capitalize">
                 {MEAL_TYPE_LABELS[key] || key}
               </label>
-              <div className="flex min-w-0 gap-2">
+              <div className="flex min-w-0 gap-1.5 sm:gap-2">
                 <input
                   type="time"
                   value={start}
                   onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [e.target.value, prev[key][1]] }))}
-                  className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 />
                 <input
                   type="time"
                   value={end}
                   onChange={(e) => setMealTimes(prev => ({ ...prev, [key]: [prev[key][0], e.target.value] }))}
-                  className="min-w-0 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-card px-2 sm:px-2.5 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-soft"
                 />
               </div>
             </div>

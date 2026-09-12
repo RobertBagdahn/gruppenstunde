@@ -151,7 +151,7 @@ def batch_update_recipe_steps(request, slug: str, payload: RecipeStepsBatchIn):
     return list(steps)
 
 
-@router.post("/{slug}/steps/generate-from-items/", response=list[RecipeStepOut])
+@router.post("/{slug}/steps/generate-from-items/", response={200: dict})
 def generate_steps_from_items(request, slug: str):
     """Generate steps from recipe items using AI."""
     _require_auth(request)
@@ -164,7 +164,7 @@ def generate_steps_from_items(request, slug: str):
     _throttle_ai_endpoint(request, "generate-from-items", slug)
 
     try:
-        steps_data = AiStepService.generate_steps_from_items(
+        steps_data, interaction_id = AiStepService.generate_steps_from_items(
             recipe=recipe,
             user=request.user,
             bypass_limits=False,
@@ -179,7 +179,7 @@ def generate_steps_from_items(request, slug: str):
         )
 
         result = batch_update_recipe_steps(request, slug, batch_input)
-        return result
+        return {"steps": result, "ai_interaction_id": interaction_id}
 
     except HttpError:
         raise
@@ -202,7 +202,7 @@ def suggest_ingredient_assignment(request, slug: str, payload: dict = Body(...))
     _throttle_ai_endpoint(request, "suggest-ingredients", slug, step_instruction[:100])
 
     try:
-        suggestions = AiStepService.suggest_ingredient_assignment(
+        suggestions, interaction_id = AiStepService.suggest_ingredient_assignment(
             step_instruction=step_instruction,
             recipe=recipe,
             user=request.user,
@@ -212,6 +212,7 @@ def suggest_ingredient_assignment(request, slug: str, payload: dict = Body(...))
         return {
             "suggestions": suggestions,
             "recipe_slug": slug,
+            "ai_interaction_id": interaction_id,
         }
 
     except Exception:
@@ -239,7 +240,7 @@ def improve_step_instruction(request, slug: str, step_id: int, payload: dict = B
     _throttle_ai_endpoint(request, "improve-step", slug, str(step_id), tone)
 
     try:
-        improved_instruction = AiStepService.improve_step_instruction(
+        improved_instruction, interaction_id = AiStepService.improve_step_instruction(
             instruction=instruction,
             tone=tone,
             user=request.user,
@@ -249,6 +250,7 @@ def improve_step_instruction(request, slug: str, step_id: int, payload: dict = B
         return {
             "improved_instruction": improved_instruction,
             "step_id": step_id,
+            "ai_interaction_id": interaction_id,
         }
 
     except Exception:

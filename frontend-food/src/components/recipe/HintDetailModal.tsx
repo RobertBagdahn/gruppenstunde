@@ -240,7 +240,7 @@ export default function HintDetailModal({
 
           {llmMutation.data && (
             <div className="space-y-3">
-              {llmMutation.data.map((suggestion, idx) => (
+              {llmMutation.data.suggestions.map((suggestion, idx) => (
                 <SuggestionCard
                   key={idx}
                   suggestion={suggestion}

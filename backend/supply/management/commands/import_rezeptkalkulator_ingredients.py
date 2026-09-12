@@ -474,7 +474,7 @@ class Command(BaseCommand):
 
             # Create via AI
             try:
-                ingredient = ai_create_ingredient(name, bypass_limits=True)
+                ingredient = ai_create_ingredient(name, bypass_limits=True, is_background=True)
                 self.stdout.write(
                     self.style.SUCCESS(
                         f"  [{i}/{start_at + total}] CREATED '{ingredient.name}' (slug={ingredient.slug})"

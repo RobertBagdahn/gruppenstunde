@@ -80,7 +80,10 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
         <textarea
           id="recipe-smart-input"
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value);
+            hasResultRef.current = false;
+          }}
           placeholder="z. B. https://www.chefkoch.de/... oder „Kartoffelsuppe für 4 Personen“"
           rows={7}
           className="w-full resize-y rounded-lg border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -89,16 +92,6 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
         <p className="text-xs leading-relaxed text-muted-foreground">
           Bei blockierten Webseiten versucht die KI, das Rezept über die Websuche zu rekonstruieren. Prüfe die Angaben danach trotzdem.
         </p>
-        <button
-          type="button"
-          onClick={() => void analyze()}
-          disabled={smartInput.isPending || !input.trim()}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-          data-testid="recipe-smart-analyze"
-        >
-          <Sparkles className="h-4 w-4" />
-          {smartInput.isPending ? 'Analysiert…' : 'Mit KI analysieren'}
-        </button>
       </div>
     </div>
   );

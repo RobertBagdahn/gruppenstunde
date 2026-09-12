@@ -54,7 +54,9 @@ class TestAuthEnforcement:
     def test_bypass_limits_skips_auth(self):
         with patch("core.services.gemini._get_client") as mock:
             mock.return_value = None
-            result, interaction_id = gemini_call(user=None, model="test", contents="hello", bypass_limits=True, is_background=True)
+            result, interaction_id = gemini_call(
+                user=None, model="test", contents="hello", bypass_limits=True, is_background=True
+            )
             assert result is None
             assert interaction_id is not None
 
@@ -79,7 +81,9 @@ class TestGlobalRateLimit:
         cache.set(CACHE_KEY, GLOBAL_LIMIT, timeout=WINDOW_SECONDS)
         with patch("core.services.gemini._get_client") as mock:
             mock.return_value = None
-            result, interaction_id = gemini_call(user=None, model="test", contents="hello", bypass_limits=True, is_background=True)
+            result, interaction_id = gemini_call(
+                user=None, model="test", contents="hello", bypass_limits=True, is_background=True
+            )
             assert result is None
             assert interaction_id is not None
 
@@ -132,3 +136,34 @@ class TestImageCall:
         with pytest.raises(HttpError) as exc_info:
             gemini_image_call(user=anon_user, model="test", contents="hello")
         assert exc_info.value.status_code == 403
+
+
+class TestCostCalculation:
+    def test_unknown_model_logs_warning_and_returns_none(self, caplog):
+        from types import SimpleNamespace
+
+        from core.services.gemini import _calculate_cost_eur
+
+        um = SimpleNamespace(prompt_token_count=100, candidates_token_count=50, thoughts_token_count=0)
+        with caplog.at_level("WARNING"):
+            result = _calculate_cost_eur("gemini-unknown-model", um)
+        assert result is None
+        assert any("gemini-unknown-model" in r.message for r in caplog.records)
+
+    def test_thinking_tokens_are_not_double_counted(self):
+        from types import SimpleNamespace
+
+        from core.services.gemini import _calculate_cost_eur
+
+        um = SimpleNamespace(
+            prompt_token_count=1_000_000, candidates_token_count=1_000_000, thoughts_token_count=1_000_000
+        )
+        result = _calculate_cost_eur("gemini-3.1-flash-lite", um)
+        # input 1M -> 0.25 USD, output 1M -> 1.50 USD, total 1.75 USD * 0.92 = 1.61 EUR.
+        # Double-counting thoughts would yield 3.25 USD * 0.92 = 2.99 EUR.
+        assert result == "1.610000"
+
+    def test_missing_usage_metadata_returns_none(self):
+        from core.services.gemini import _calculate_cost_eur
+
+        assert _calculate_cost_eur("gemini-3.1-flash-lite", None) is None

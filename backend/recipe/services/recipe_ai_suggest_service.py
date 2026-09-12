@@ -16,6 +16,7 @@ from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
 from core.services.gemini import gemini_call
+from core.services.prompt_context import build_prompt_context
 
 if TYPE_CHECKING:
     from recipe.models import Recipe
@@ -135,12 +136,16 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
 
     context_str = "\n".join(context_parts)
 
+    prompt_context = build_prompt_context(user)
+
     prompt = (
         f"Recherchiere Informationen zu folgendem Rezept und schlage fehlende Metadaten vor:\n\n"
         f"{context_str}\n\n"
         f"Gib passende Metadaten für das Rezept an. "
         f"Wenn du einen Wert nicht sicher bestimmen kannst, setze ihn auf null."
     )
+    if prompt_context:
+        prompt = f"{prompt}\n\n{prompt_context}"
 
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
@@ -148,7 +153,7 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -158,11 +163,12 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
 
     if response is None:
         logger.warning("AI client not available – returning empty suggestions")
-        return {}
+        return {"ai_interaction_id": str(interaction_id) if interaction_id else None}
 
     result = RecipeSuggestAllSchema.model_validate_json(response.text)
     suggestion = result.model_dump()
     suggestion["recipe_type"] = _map_recipe_type(suggestion.get("recipe_type"))
+    suggestion["ai_interaction_id"] = str(interaction_id) if interaction_id else None
     return suggestion
 
 
@@ -179,13 +185,17 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
 
     prompt_text = f"Erstelle ein vollständiges Rezept zu dieser Beschreibung: {prompt}"
 
+    prompt_context = build_prompt_context(user, include_pantry=True)
+    if prompt_context:
+        prompt_text = f"{prompt_text}\n\n{prompt_context}"
+
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=RecipeAiCreateSchema,
         tools=[types.Tool(google_search=types.GoogleSearch())],
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt_text,
@@ -264,6 +274,9 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
     recalculate_recipe_cache(recipe)
     recipe.refresh_from_db()
 
+    # Transient: expose the AiInteraction id so the UI can offer feedback.
+    recipe.ai_interaction_id = str(interaction_id) if interaction_id else None
+
     return recipe
 
 
@@ -271,12 +284,24 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: Abstr
     """Get or create an Ingredient from a MatchResult."""
     from recipe.services.ingredient_enrichment import enrich_ingredient
     from supply.choices import IngredientStatusChoices
-    from supply.models import Ingredient
+    from supply.models import Ingredient, IngredientAlias
 
     if match_result.ingredient_id:
         return Ingredient.objects.get(id=match_result.ingredient_id)
 
     if match_result.needs_review:
+        existing_ing = (
+            Ingredient.objects.filter(name__iexact=fallback_name, deleted_at__isnull=True)
+            .order_by("-usage_count", "id")
+            .first()
+        )
+        if not existing_ing:
+            alias = IngredientAlias.objects.filter(name__iexact=fallback_name).select_related("ingredient").first()
+            if alias and not alias.ingredient.is_deleted:
+                existing_ing = alias.ingredient
+        if existing_ing:
+            return existing_ing
+
         base_slug = slugify(fallback_name)
         slug = base_slug
         counter = 1

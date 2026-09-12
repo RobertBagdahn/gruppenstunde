@@ -16,9 +16,10 @@ function formatTokens(value: number): string {
 
 interface Props {
   data: AiInteractionStats;
+  hasDateFilter?: boolean;
 }
 
-export default function AiCostOverviewCards({ data }: Props) {
+export default function AiCostOverviewCards({ data, hasDateFilter = false }: Props) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <Card>
@@ -35,8 +36,10 @@ export default function AiCostOverviewCards({ data }: Props) {
           <CardTitle className="text-sm text-muted-foreground">Heute</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{data.calls_today}</p>
-          <p className="text-xs text-muted-foreground">davon heute</p>
+          <p className="text-2xl font-bold">{hasDateFilter ? '—' : data.calls_today}</p>
+          <p className="text-xs text-muted-foreground">
+            {hasDateFilter ? 'nicht im Zeitraum' : 'davon heute'}
+          </p>
         </CardContent>
       </Card>
       <Card>

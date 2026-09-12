@@ -301,7 +301,7 @@ export default function VariantSliderDialog({
           } else {
             const scale = totalOthers / othersSum;
             const scaled = Object.fromEntries(
-              otherIds.map((id) => [id, (g.portions[id] ?? 0) * scale]),
+              otherIds.map((id) => [id, totalOthers > 0 ? ((g.portions[id] ?? 0) * scale) / totalOthers : 0]),
             );
             const rounded = largestRemainderRound(scaled, totalOthers);
             for (const id of otherIds) newPortions[id] = rounded[id] ?? 0;

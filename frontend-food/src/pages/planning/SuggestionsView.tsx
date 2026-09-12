@@ -386,8 +386,13 @@ export default function SuggestionsView({
                 <h4 className="text-sm font-semibold">Nährwerte {selectedDayNum ? `— Tag ${selectedDayNum}` : '— pro Tag'}</h4>
               </div>
             </div>
+            {/* In all-days mode, show notice that selecting a day reveals its individual daily totals */}
             {(selectedDate ? [selectedDate] : uniqueDates).map((date) => {
               const dayNum = uniqueDates.indexOf(date) + 1;
+              const isSingleDay = Boolean(selectedDate);
+              const scopeLabel = isSingleDay
+                ? `Summe Tag ${dayNum} (${formatDate(date)})`
+                : `Tag ${dayNum} (${formatDate(date)}) — Anteil am Plan-Schnitt`;
               return (
                 <div key={date} className="divide-y">
                   {rows.map((row) => {
@@ -447,7 +452,7 @@ export default function SuggestionsView({
                               target_mid={target_mid}
                               status={status}
                               unit={row.unit}
-                              scopeLabel={`Summe Tag ${dayNum} (${formatDate(date)})`}
+                              scopeLabel={scopeLabel}
                             />
                             {effCoverage < 1 && (
                               <div className="text-[10px] text-muted-foreground italic mt-0.5">

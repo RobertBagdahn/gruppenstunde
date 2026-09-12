@@ -262,6 +262,169 @@ class TestAiInteractionStats:
             assert "total" in entry
             assert "thumbs_up" in entry
             assert "thumbs_down" in entry
+            assert "embedding_cost_eur" in entry
+
+    def test_stats_include_model_breakdown(self, client, staff_user, owner_user):
+        """by_model aggregates calls per model, sorted by calls desc."""
+        from content.models import AiInteraction
+
+        AiInteraction.objects.create(
+            context="recipe_ai_create",
+            prompt={"input": "a"},
+            response="resp",
+            model="gemini-model-a",
+            user=owner_user,
+            success=True,
+            vote="up",
+            total_tokens=100,
+            cost_eur=0.05,
+        )
+        AiInteraction.objects.create(
+            context="recipe_ai_create",
+            prompt={"input": "b"},
+            response="resp",
+            model="gemini-model-a",
+            user=owner_user,
+            success=True,
+            total_tokens=50,
+            cost_eur=0.02,
+        )
+        AiInteraction.objects.create(
+            context="recipe_ai_create",
+            prompt={"input": "c"},
+            response="resp",
+            model="gemini-model-b",
+            user=owner_user,
+            success=True,
+            vote="down",
+            total_tokens=200,
+            cost_eur=0.10,
+        )
+        AiInteraction.objects.create(
+            context="recipe_ai_create",
+            prompt={"input": "d"},
+            response="resp",
+            model="",
+            user=owner_user,
+            success=True,
+        )
+
+        client.force_login(staff_user)
+        res = client.get(self.STATS_URL)
+        assert res.status_code == 200
+        by_model = res.json()["by_model"]
+
+        model_names = [m["model"] for m in by_model]
+        assert model_names == ["gemini-model-a", "gemini-model-b"]
+        assert "" not in model_names
+
+        model_a = by_model[0]
+        assert model_a["total_calls"] == 2
+        assert model_a["total_tokens"] == 150
+        assert round(model_a["total_cost_eur"], 2) == 0.07
+        assert model_a["thumbs_up"] == 1
+        assert model_a["thumbs_down"] == 0
+
+        model_b = by_model[1]
+        assert model_b["total_calls"] == 1
+        assert model_b["thumbs_down"] == 1
+
+    def test_model_breakdown_respects_background_toggle(self, client, staff_user, owner_user):
+        """Embedding/background calls are excluded from by_model by default."""
+        from content.models import AiInteraction
+
+        AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "fg"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+            is_background=False,
+        )
+        AiInteraction.objects.create(
+            context="embedding",
+            prompt={"input": "bg"},
+            response="resp",
+            model="text-embedding-001",
+            user=owner_user,
+            success=True,
+            is_background=True,
+        )
+
+        client.force_login(staff_user)
+        res = client.get(self.STATS_URL)
+        model_names = [m["model"] for m in res.json()["by_model"]]
+        assert "gemini-flash" in model_names
+        assert "text-embedding-001" not in model_names
+
+        res_bg = client.get(self.STATS_URL + "?include_background=true")
+        model_names_bg = [m["model"] for m in res_bg.json()["by_model"]]
+        assert "gemini-flash" in model_names_bg
+        assert "text-embedding-001" in model_names_bg
+
+    def test_timeline_entries_include_embedding_cost(self, client, staff_user, owner_user):
+        """Timeline entry for today includes embedding costs of background calls."""
+        from datetime import date
+
+        from content.models import AiInteraction
+
+        fg = AiInteraction.objects.create(
+            context="ingredient_ai_suggest_all",
+            prompt={"input": "fg"},
+            response="resp",
+            model="gemini-flash",
+            user=owner_user,
+            success=True,
+            is_background=False,
+            cost_eur=0.05,
+        )
+        bg = AiInteraction.objects.create(
+            context="embedding",
+            prompt={"input": "bg"},
+            response="resp",
+            model="text-embedding-001",
+            user=owner_user,
+            success=True,
+            is_background=True,
+            cost_eur=0.01,
+        )
+        AiInteraction.objects.filter(id=fg.id).update(created_at=date.today())
+        AiInteraction.objects.filter(id=bg.id).update(created_at=date.today())
+
+        client.force_login(staff_user)
+        res = client.get(self.STATS_URL)
+        timeline = res.json()["timeline"]
+        today_entry = next(e for e in timeline if e["date"] == date.today().isoformat())
+        assert round(today_entry["embedding_cost_eur"], 2) == 0.01
+        assert round(today_entry["total_cost_eur"], 2) == 0.05
+
+
+@pytest.mark.django_db
+class TestAiInteractionLog:
+    LIST_URL = "/api/content/admin/ai-interactions/"
+
+    def test_staff_can_list_and_search_all_requests(self, client, staff_user, interaction):
+        client.force_login(staff_user)
+
+        response = client.get(f"{self.LIST_URL}?search=test%20response&page_size=1")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["items"][0]["id"] == str(interaction.id)
+        assert data["items"][0]["model"] == "gemini-flash"
+        assert data["total_pages"] == 1
+
+    def test_staff_can_get_request_details(self, client, staff_user, interaction):
+        client.force_login(staff_user)
+
+        response = client.get(f"{self.LIST_URL}{interaction.id}/")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["prompt"] == {"input": "test"}
+        assert data["response"] == "test response"
 
 
 # ---------------------------------------------------------------------------
@@ -382,8 +545,10 @@ class TestAiInteractionStatsWithDateFilter:
         client.force_login(staff_user)
         res = client.get(
             self.STATS_URL
-            + "?date_from=" + (date.today() - timedelta(days=7)).isoformat()
-            + "&date_to=" + (date.today() - timedelta(days=3)).isoformat()
+            + "?date_from="
+            + (date.today() - timedelta(days=7)).isoformat()
+            + "&date_to="
+            + (date.today() - timedelta(days=3)).isoformat()
         )
         assert res.status_code == 200
         data = res.json()
