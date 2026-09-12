@@ -89,3 +89,4 @@ class RecipeImportUrlResponseOut(BaseModel):
     # True when the page was unreachable and the data was reconstructed via
     # search grounding. The UI must ask the user to verify it.
     is_reconstructed: bool = False
+    ai_interaction_id: str | None = None

@@ -94,13 +94,29 @@ Das Backend SHALL einen API-Endpunkt `GET /api/profile/by-slug/{slug}/` bereitst
 - WHEN GET `/api/profile/by-slug/unbekannt/` aufgerufen wird
 - THEN wird HTTP 404 zurückgegeben
 
+### Requirement: Public food profile shows only public resources
+
+The public food profile SHALL only expose recipes that are `public` and approved, shopping lists that the profile owner has made publicly accessible, and meal plans that are visible to the requesting user. Private shopping lists and private meal plans SHALL NOT be returned.
+
+#### Scenario: Public profile filters private lists
+
+- **WHEN** a viewer requests a user's public food profile
+- **THEN** the response SHALL include only shopping lists the owner marked public (or an empty list if none)
+- **THEN** private shopping lists SHALL not appear
+
+#### Scenario: Public profile filters private meal plans
+
+- **WHEN** a viewer requests a user's public food profile
+- **THEN** the response SHALL include only meal plans with a non-private visibility
+- **THEN** private meal plans SHALL not appear
+
 ### Requirement: Rezepte im Profil anzeigen
 
-Das öffentliche Profil SHALL alle öffentlichen Rezepte des Users anzeigen.
+Das öffentliche Profil SHALL alle öffentlichen und genehmigten Rezepte des Users anzeigen.
 
 #### Scenario: Öffentliche Rezepte werden angezeigt
 
-- GIVEN ein User mit 3 öffentlichen Rezepten
+- GIVEN ein User mit 3 öffentlichen und genehmigten Rezepten
 - WHEN das öffentliche Profil aufgerufen wird
 - THEN werden alle 3 Rezepte in der Sektion "Rezepte" angezeigt
 - AND jedes Rezept zeigt: Titel, Bild, Erstellungsdatum
@@ -114,25 +130,39 @@ Das öffentliche Profil SHALL alle öffentlichen Rezepte des Users anzeigen.
 
 ### Requirement: Einkaufslisten im Profil anzeigen
 
-Das öffentliche Profil SHALL alle Einkaufslisten des Users anzeigen (deren owner er ist).
+Das öffentliche Profil SHALL nur Einkaufslisten des Users anzeigen, die dieser öffentlich zugänglich gemacht hat.
 
 #### Scenario: Einkaufslisten werden angezeigt
 
-- GIVEN ein User mit 2 Einkaufslisten
+- GIVEN ein User mit 2 öffentlich zugänglichen Einkaufslisten
 - WHEN das öffentliche Profil aufgerufen wird
 - THEN werden beide Einkaufslisten in der Sektion "Einkaufslisten" angezeigt
 - AND jede Liste zeigt: Name, Anzahl Items, Erstellungsdatum
 
+#### Scenario: Private Einkaufslisten werden nicht angezeigt
+
+- GIVEN ein User mit einer öffentlich zugänglichen und einer privaten Einkaufsliste
+- WHEN das öffentliche Profil eines anderen Users aufgerufen wird
+- THEN wird nur die öffentlich zugängliche Einkaufsliste angezeigt
+- AND die private Einkaufsliste ist nicht sichtbar
+
 ### Requirement: Essenspläne im Profil anzeigen
 
-Das öffentliche Profil SHALL alle Essenspläne des Users anzeigen (die er erstellt hat).
+Das öffentliche Profil SHALL nur Essenspläne des Users anzeigen, die für den anfragenden User sichtbar sind. Private Essenspläne SHALL nicht angezeigt werden.
 
 #### Scenario: Essenspläne werden angezeigt
 
-- GIVEN ein User mit 2 Essensplänen
+- GIVEN ein User mit 2 nicht-privaten Essensplänen
 - WHEN das öffentliche Profil aufgerufen wird
 - THEN werden beide Essenspläne in der Sektion "Essenspläne" angezeigt
 - AND jeder Plan zeigt: Name, Erstellungsdatum
+
+#### Scenario: Private Essenspläne werden nicht angezeigt
+
+- GIVEN ein User mit einem nicht-privaten und einem privaten Essensplan
+- WHEN das öffentliche Profil eines anderen Users aufgerufen wird
+- THEN wird nur der nicht-private Essensplan angezeigt
+- AND der private Essensplan ist nicht sichtbar
 
 ### Requirement: entityUrls verwendet slug statt id
 

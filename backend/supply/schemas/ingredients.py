@@ -295,6 +295,7 @@ class IngredientDetailOut(Schema):
     quality_score_updated_at: datetime | None = None
     can_edit: bool = False
     can_delete: bool = False
+    ai_interaction_id: str | None = None
 
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:

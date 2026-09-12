@@ -70,6 +70,7 @@ export const RecipeImportUrlResponseSchema = z.object({
   // True when the page was unreachable and the data was reconstructed via
   // search grounding. The UI must ask the user to verify it.
   is_reconstructed: z.boolean().optional().default(false),
+  ai_interaction_id: z.string().nullable().optional(),
 });
 
 export type RecipeImportUrlResponse = z.infer<typeof RecipeImportUrlResponseSchema>;

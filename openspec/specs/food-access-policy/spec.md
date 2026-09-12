@@ -5,7 +5,7 @@
 This specification defines centralized authorization and visibility for Food resources.
 ## Requirements
 ### Requirement: Central food access policy
-The backend SHALL evaluate Food read, edit, delete, fork, and export access through one central policy covering Recipe, Ingredient, Portion, Package, MealPlan, and Event resources.
+The backend SHALL evaluate Food read, edit, delete, fork, and export access through one central policy covering Recipe, Ingredient, Portion, Package, MealPlan, and Event resources. Delete access SHALL NOT be derived from edit access for collaborator roles: a `ContentCollaborator` with role `editor` SHALL be able to edit but SHALL NOT be able to delete shared Food content. Only the owner, a collaborator with role `admin`, or Staff SHALL delete shared content.
 
 #### Scenario: Unauthenticated access to private resource
 - **WHEN** an unauthenticated user requests a private Food resource
@@ -14,6 +14,18 @@ The backend SHALL evaluate Food read, edit, delete, fork, and export access thro
 #### Scenario: Staff access
 - **WHEN** a staff user requests any Food resource
 - **THEN** the policy SHALL grant read and edit access
+
+#### Scenario: Editor collaborator cannot delete shared Recipe
+- **WHEN** a collaborator with role `editor` attempts to delete a shared Recipe
+- **THEN** the API SHALL return HTTP 403 and SHALL not delete the Recipe
+
+#### Scenario: Owner can delete shared Recipe
+- **WHEN** the owner deletes a Recipe shared with others
+- **THEN** the API SHALL delete the Recipe
+
+#### Scenario: Admin collaborator can delete
+- **WHEN** a collaborator with role `admin` deletes the shared Recipe
+- **THEN** the API SHALL delete the Recipe
 
 ### Requirement: Recipe visibility
 Private Recipes SHALL be visible to their owner, Collaborators, and active members of explicitly assigned groups. Public Recipes SHALL be visible anonymously. Group admins SHALL be allowed to edit group-visible Recipes.

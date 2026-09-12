@@ -151,6 +151,7 @@ export const RecipeDetailSchema = ContentDetailSchema.extend({
   steps: z.array(RecipeStepSchema).default([]),
   steps_count: z.number().default(0),
   has_structured_steps: z.boolean().default(false),
+  ai_interaction_id: z.string().nullable().optional(),
 });
 export type RecipeDetail = z.output<typeof RecipeDetailSchema>;
 

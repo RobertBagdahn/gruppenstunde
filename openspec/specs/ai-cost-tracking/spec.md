@@ -1,7 +1,12 @@
-## ADDED Requirements
+# ai-cost-tracking Specification
+
+## Purpose
+Defines cost calculation, token extraction, and background call flagging for Gemini API interactions.
+
+## Requirements
 
 ### Requirement: Token extraction from Gemini response
-The system SHALL extract token usage data from every successful Gemini API response and store it in the AiInteraction record.
+The system SHALL extract token usage data from every successful Gemini API response and store it in the AiInteraction record. Output token cost SHALL be based on `candidates_token_count`; `thoughts_token_count` SHALL be stored as a metric but SHALL NOT be added to the output total (it is already included in `candidates_token_count`).
 
 #### Scenario: Successful text generation captures tokens
 - **WHEN** `gemini_call()` receives a successful `GenerateContentResponse` from Gemini
@@ -9,6 +14,11 @@ The system SHALL extract token usage data from every successful Gemini API respo
 - **THEN** the system SHALL extract `usage_metadata.candidates_token_count` and store it as `completion_tokens`
 - **THEN** the system SHALL extract `usage_metadata.total_token_count` and store it as `total_tokens`
 - **THEN** the system SHALL extract `usage_metadata.thoughts_token_count` (if present) and store it as `thoughts_tokens`
+
+#### Scenario: Thinking tokens are not double-counted
+- **WHEN** a response includes both `candidates_token_count` and `thoughts_token_count`
+- **THEN** the completion token total used for cost SHALL equal `candidates_token_count`
+- **THEN** `thoughts_tokens` SHALL still be stored for reporting
 
 #### Scenario: Failed call attempts token extraction from exception
 - **WHEN** `gemini_call()` receives an exception that contains `usage_metadata`
@@ -27,7 +37,7 @@ The system SHALL extract token usage data from every successful Gemini API respo
 - **THEN** no tokens SHALL be stored
 
 ### Requirement: Cost calculation in EUR
-The system SHALL calculate the cost of each Gemini call based on the model's pricing table and store it in EUR.
+The system SHALL calculate the cost of each Gemini call based on the model's pricing table and store it in EUR. When a model is not listed in `GEMINI_PRICING`, the system SHALL log a warning and SHALL NOT silently discard the pricing information.
 
 #### Scenario: Text model cost calculation
 - **WHEN** a call to `gemini-3.1-flash-lite` consumes X input tokens and Y output tokens
@@ -50,8 +60,9 @@ The system SHALL calculate the cost of each Gemini call based on the model's pri
 - **THEN** the system SHALL use embedding-specific pricing ($0.00015/1M input)
 - **THEN** only input tokens SHALL be charged (output is free)
 
-#### Scenario: Unknown model has no cost
+#### Scenario: Unknown model logs warning
 - **WHEN** a model not listed in `GEMINI_PRICING` is called
+- **THEN** the system SHALL log a warning identifying the unknown model
 - **THEN** `cost_eur` SHALL remain NULL
 - **THEN** `pricing_model` SHALL be set to the model name for audit purposes
 
@@ -60,8 +71,8 @@ The system SHALL calculate the cost of each Gemini call based on the model's pri
 - **THEN** the system SHALL multiply by `settings.USD_TO_EUR` (default 0.92)
 - **THEN** the result SHALL be quantized to 6 decimal places
 
-### Requirement: Background call flagging
-The system SHALL distinguish between user-initiated AI calls and system/background calls using an `is_background` flag on AiInteraction records.
+### Requirement: Background calls are flagged
+Management commands and batch operations that call Gemini SHALL mark their interactions with `is_background=True` so they do not inflate user-initiated cost totals.
 
 #### Scenario: User request is not background
 - **WHEN** an authenticated user triggers an AI feature through the API
@@ -71,6 +82,10 @@ The system SHALL distinguish between user-initiated AI calls and system/backgrou
 - **WHEN** a management command calls `gemini_call()` with `is_background=True`
 - **THEN** the `AiInteraction` record SHALL have `is_background=True`
 - **THEN** the record SHALL be excluded from user-cost aggregations
+
+#### Scenario: Batch import flags background
+- **WHEN** `import_rezeptkalkulator_ingredients` or `repair_portion_integrity` calls Gemini
+- **THEN** the resulting `AiInteraction` SHALL have `is_background=True`
 
 #### Scenario: Embedding calls are always background
 - **WHEN** `gemini_embed()` creates an `AiInteraction` record

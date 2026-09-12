@@ -1,4 +1,9 @@
-## ADDED Requirements
+# gemini-rate-limit Specification
+
+## Purpose
+Defines the global rate limit, authentication requirements, and centralized error handling for all Gemini API calls.
+
+## Requirements
 
 ### Requirement: Global Gemini call rate limit
 The system SHALL enforce a global rate limit of 100 Gemini API calls per 15-minute window across all services and all users. When the limit is exceeded, the system SHALL reject further calls with HTTP 429.

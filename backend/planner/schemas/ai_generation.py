@@ -37,6 +37,7 @@ class AiSuggestDay(Schema):
 
 class AiSuggestOut(Schema):
     days: list[AiSuggestDay]
+    ai_interaction_id: str | None = None
 
 
 AiApplyIn = AiSuggestOut

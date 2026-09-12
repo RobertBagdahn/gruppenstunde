@@ -3,6 +3,7 @@ import { useIntelligentSuggestions } from '@/api/mealPlans';
 import type { IntelligentSuggestion } from '@/schemas/mealPlan';
 import RecipeBadge from './RecipeBadge';
 import RecipeThumbnail from './RecipeThumbnail';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 
 interface IntelligentSuggestionsGridProps {
   planId: number;
@@ -135,9 +136,12 @@ export default function IntelligentSuggestionsGrid({
   return (
     <div className="space-y-4">
       {data.ai_enhanced && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
-          <Sparkles className="w-3.5 h-3.5" />
-          KI-gestützte Vorschläge
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            KI-gestützte Vorschläge
+          </div>
+          {data.ai_interaction_id && <AiVoteButtons interactionId={data.ai_interaction_id} />}
         </div>
       )}
 

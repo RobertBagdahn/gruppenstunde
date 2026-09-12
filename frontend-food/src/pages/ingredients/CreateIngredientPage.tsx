@@ -23,6 +23,7 @@ import {
   useGenericTerms,
 } from '@/api/supplies';
 import UnauthGate from '@/components/shared/UnauthGate';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 
 
 // ---------------------------------------------------------------------------
@@ -212,6 +213,7 @@ export default function CreateIngredientPage() {
     description: string | null;
     status: string;
     retail_section_id: number | null;
+    ai_interaction_id?: string | null;
   } | null>(null);
   const [showUrlModal, setShowUrlModal] = useState(false);
 
@@ -533,10 +535,16 @@ export default function CreateIngredientPage() {
       {step === 1 && (
         <div className="space-y-6">
           {createdIngredient && (
-            <div className="p-3 rounded-lg bg-primary/10 text-primary text-sm flex items-center gap-2">
+           <div className="p-3 rounded-lg bg-primary/10 text-primary text-sm flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
               KI hat die Zutat bereits mit allen Nährwerten angelegt. Hier kannst du die
               Stammdaten noch anpassen.
+            </div>
+          )}
+          {createdIngredient?.ai_interaction_id && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>War die KI-Hilfe hilfreich?</span>
+              <AiVoteButtons interactionId={createdIngredient.ai_interaction_id} />
             </div>
           )}
 

@@ -1168,5 +1168,6 @@ class IntelligentSuggestionsResponse(Schema):
     suggestions: dict[str, list[IntelligentSuggestionOut]]
     total: int = 0
     ai_enhanced: bool = False
+    ai_interaction_id: str | None = None
     meal_type: str = ""
     day_number: int = 1

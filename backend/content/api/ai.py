@@ -97,7 +97,9 @@ def ai_refurbish(request, payload: AiRefurbishIn):
 
     service = ContentAIService()
     try:
-        result, interaction_id = service.refurbish(payload.raw_text, content_type=payload.content_type, user=request.user)
+        result, interaction_id = service.refurbish(
+            payload.raw_text, content_type=payload.content_type, user=request.user
+        )
     except AiTimeoutError as exc:
         logger.warning("AI refurbish timeout: %s", exc)
         return HttpResponse(
@@ -247,7 +249,12 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
 
     try:
         if payload.content_type == "recipe":
-            raw, interaction_id = suggest_recipe_supplies(title=payload.title, description=payload.description, user=request.user)
+            raw, interaction_id = suggest_recipe_supplies(
+                title=payload.title,
+                description=payload.description,
+                user=request.user,
+                num_persons=payload.num_persons,
+            )
             ingredients = match_ingredients_to_database(raw.get("ingredients", []))
             kitchen_equipment = match_materials_to_database(raw.get("kitchen_equipment", []))
             return {
@@ -262,6 +269,7 @@ def ai_suggest_supplies(request, payload: AiSuggestSuppliesIn):
                 description=payload.description,
                 content_type=payload.content_type,
                 user=request.user,
+                num_persons=payload.num_persons,
             )
             materials = match_materials_to_database(raw_materials)
             return {

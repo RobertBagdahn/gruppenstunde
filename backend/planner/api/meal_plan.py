@@ -2909,6 +2909,7 @@ def intelligent_suggestions(
     result = service.get_suggestions(context_enhance=context_enhance)
     suggestions = result["suggestions"]
     ai_enhanced = result["ai_enhanced"]
+    ai_interaction_id = result.get("ai_interaction_id")
 
     total = sum(len(v) for v in suggestions.values())
 
@@ -2920,6 +2921,7 @@ def intelligent_suggestions(
         suggestions=suggestions,
         total=total,
         ai_enhanced=ai_enhanced,
+        ai_interaction_id=ai_interaction_id,
         meal_type=meal.meal_type,
         day_number=max(day_number, 1),
     )

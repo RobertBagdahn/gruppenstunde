@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from content.choices import ContentStatus
 from core.services.gemini import GeminiInvalidResponseError, GeminiUnavailableError, gemini_call
+from core.services.prompt_context import build_prompt_context
 from planner.models import Meal, MealItem
 from planner.schemas.ai_generation import AiApplyOut, SkippedItem
 from recipe.models import Recipe
@@ -495,6 +496,11 @@ class MealPlanAiService:
         constraints_text = (
             "\n".join(constraints_parts) if constraints_parts else "Keine speziellen Diät- oder Budgetvorgaben."
         )
+        prompt_context = build_prompt_context(
+            user,
+            num_persons=num_persons,
+            nutritional_tag_ids=nutritional_tag_ids,
+        )
 
         breakfast_candidates = self._get_breakfast_candidates(user=user)
         recipe_candidates_dict = self._get_recipe_candidates(
@@ -541,8 +547,10 @@ class MealPlanAiService:
             "6. WÄHLE NUR AUS DEN OBIGEN LISTEN. Erfinde niemals neue IDs!\n"
             "7. Verwende das Datumsformat YYYY-MM-DD ab dem Startdatum.\n"
         )
+        if prompt_context:
+            system_prompt = f"{system_prompt}\n{prompt_context}\n"
 
-        response, _interaction_id = gemini_call(
+        response, interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=system_prompt,
@@ -573,7 +581,10 @@ class MealPlanAiService:
             recipe_candidates_map=all_recipes_map,
         )
 
-        return {"days": complete_days}
+        return {
+            "days": complete_days,
+            "ai_interaction_id": str(interaction_id) if interaction_id else None,
+        }
 
     def apply_suggestions(
         self,

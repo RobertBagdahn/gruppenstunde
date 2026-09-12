@@ -6,13 +6,12 @@ Definiert die Visualisierung von KI-Kosten und Token-Verbrauch im Food-Frontend 
 ## Requirements
 
 ### Requirement: Kosten-Übersichtskarten
-Das Dashboard SHALL zwei zusätzliche Übersichtskarten anzeigen: Gesamtkosten in EUR und Gesamttoken-Verbrauch.
+Das Dashboard SHALL Kosten-Werte mit 2 Dezimalstellen und "€"-Suffix formatieren.
 
 #### Scenario: Kostenkarte zeigt Gesamtkosten
 - **WHEN** der Staff-User den KI-Feedback-Tab öffnet
 - **THEN** SHALL eine Karte "Gesamtkosten" mit dem Wert `total_cost_eur` angezeigt werden
-- **THEN** der Wert SHALL mit 2 Dezimalstellen und "€"-Suffix formatiert sein (z.B. "0,42 €")
-- **THEN** bei Nullkosten SHALL "0,00 €" angezeigt werden
+- **THEN** der Wert SHALL mit genau 2 Dezimalstellen formatiert sein (z. B. "0,42 €")
 
 #### Scenario: Token-Karte zeigt Gesamtverbrauch
 - **WHEN** der Staff-User den KI-Feedback-Tab öffnet
@@ -23,6 +22,14 @@ Das Dashboard SHALL zwei zusätzliche Übersichtskarten anzeigen: Gesamtkosten i
 - **WHEN** der Viewport kleiner als 640px ist
 - **THEN** SHALL das Karten-Grid von 4 auf 2 Spalten wechseln
 - **THEN** die neuen Kosten/Token-Karten SHALL Teil desselben Grids sein (6 Karten in 2 Spalten)
+
+### Requirement: Kontext-Kostenaggregation
+Die `by_context`-Aggregation SHALL gegen die tatsächlich gespeicherten `context`-Strings gruppieren. Die Kontext-Tabelle SHALL für jeden real genutzten Kontext eine Zeile mit Kosten und Tokens anzeigen.
+
+#### Scenario: Kontext-Tabelle ist gefüllt
+- **WHEN** AiInteraction-Datensätze mit `context` wie `improve_text`, `meal_plan_ai_suggest` oder `recipe_ai_create` existieren
+- **THEN** die Kontext-Tabelle SHALL für jeden dieser Kontexte eine aggregierte Zeile mit `total_tokens` und `total_cost_eur` anzeigen
+- **THEN** die Tabelle SHALL nicht leer sein, wenn entsprechende Interaktionen existieren
 
 ### Requirement: Kosten- und Token-Spalten in der Kontext-Tabelle
 Die Kontext-Tabelle SHALL zwei zusätzliche Spalten enthalten: Token-Verbrauch und Kosten in EUR.
@@ -41,6 +48,26 @@ Die Kontext-Tabelle SHALL zwei zusätzliche Spalten enthalten: Token-Verbrauch u
 - **WHEN** die Kontext-Tabelle gerendert wird
 - **THEN** SHALL die Spaltenreihenfolge sein: Kontext, Aufrufe, Tokens, Kosten, 👍, 👎, Quote, Fehler
 
+### Requirement: Modell-Auswertung
+Das Dashboard SHALL eine Sektion "Auswertung nach Modell" anzeigen, die die KI-Aufrufe je verwendetem Gemini-Modell aufschlüsselt.
+
+#### Scenario: Modell-Tabelle anzeigen
+- **WHEN** der Staff-User den KI-Feedback-Tab öffnet
+- **THEN** SHALL eine Sektion "Auswertung nach Modell" mit den Spalten Modell, Aufrufe, Tokens, Kosten, 👍 und 👎 erscheinen
+- **THEN** die Daten SHALL aus dem `by_model`-Array der `/admin/ai-interactions/stats/`-Antwort stammen
+- **THEN** die Zeilen SHALL nach Aufrufen absteigend sortiert sein
+- **THEN** Token-Werte SHALL mit Tausender-Trennzeichen formatiert sein
+- **THEN** Kosten-Werte SHALL mit 2 Dezimalstellen und "€"-Suffix formatiert sein
+- **THEN** bei Nullwerten SHALL "—" angezeigt werden
+
+#### Scenario: Keine Modell-Daten
+- **WHEN** der gewählte Zeitraum keine KI-Calls enthält
+- **THEN** SHALL die Modell-Sektion "Keine Daten im gewählten Zeitraum" anzeigen
+
+#### Scenario: Zeitraum-Filter auf Modell-Auswertung
+- **WHEN** der Staff-User den Zeitraum-Filter ändert
+- **THEN** SHALL die Modell-Auswertung mit den gefilterten Daten aktualisiert werden
+
 ### Requirement: Kosten-Verlaufschart
 Das Dashboard SHALL ein Liniendiagramm anzeigen, das die täglichen KI-Kosten über 30 Tage visualisiert.
 
@@ -53,6 +80,7 @@ Das Dashboard SHALL ein Liniendiagramm anzeigen, das die täglichen KI-Kosten ü
 #### Scenario: Embedding-Kosten separat sichtbar
 - **WHEN** der Embedding-Toggle aktiviert ist
 - **THEN** SHALL eine zweite gestrichelte Linie die täglichen Embedding-Kosten anzeigen
+- **THEN** die Embedding-Kosten SHALL aus dem Feld `embedding_cost_eur` des jeweiligen Timeline-Eintrags stammen
 - **THEN** die Embedding-Linie SHALL in Grau dargestellt werden
 
 #### Scenario: Chart mit leeren Daten
@@ -74,11 +102,15 @@ Das Dashboard SHALL ein Dropdown-Menü bieten, um den betrachteten Zeitraum für
 #### Scenario: Zeitraum ändern
 - **WHEN** der Staff-User "Letzte 30 Tage" auswählt
 - **THEN** SHALL der API-Call `date_from` auf `today - 30 days` setzen
-- **THEN** alle Übersichtskarten, die Kontext-Tabelle und das Chart SHALL mit den gefilterten Daten aktualisiert werden
+- **THEN** alle Übersichtskarten, die Kontext-Tabelle, die Modell-Auswertung und das Chart SHALL mit den gefilterten Daten aktualisiert werden
 
 #### Scenario: Zeitraum "Dieses Jahr"
 - **WHEN** der Staff-User "Dieses Jahr" auswählt
 - **THEN** SHALL `date_from` auf den 1. Januar des aktuellen Jahres gesetzt werden
+
+#### Scenario: Heute-Karte bei aktivem Zeitraum-Filter
+- **WHEN** der Staff-User einen Zeitraum-Filter ungleich "Gesamte Zeit" wählt
+- **THEN** SHALL die "Heute"-Übersichtskarte "—" statt "0" anzeigen
 
 ### Requirement: Embedding-Toggle
 Das Dashboard SHALL eine Checkbox bieten, um Embedding-Calls (`is_background=true`) in die Statistiken ein- oder auszublenden.
@@ -124,8 +156,14 @@ Ein Modal SHALL die paginierte Liste aller KI-Calls eines einzelnen Users anzeig
 
 #### Scenario: Einzel-Call-Daten anzeigen
 - **WHEN** das Modal geöffnet ist
-- **THEN** SHALL jeder Eintrag folgende Felder zeigen: Datum, Kontext (Label), Tokens, Kosten, Dauer (ms), Vote
+- **THEN** SHALL jeder Eintrag folgende Felder zeigen: Datum, Kontext (Label), Modell, Tokens, Kosten, Dauer (ms), Vote
 - **THEN** die Liste SHALL paginiert sein (20 Einträge pro Seite, "Mehr laden"-Button)
+
+#### Scenario: Mehr laden lädt Folgeseite
+- **WHEN** der Staff-User im Modal auf "Mehr laden" klickt
+- **THEN** SHALL die nächste Seite der KI-Calls geladen und an die bestehende Liste angehängt werden
+- **THEN** der Button SHALL solange sichtbar sein, bis alle Seiten geladen sind
+- **THEN** während des Ladens SHALL der Button deaktiviert sein
 
 #### Scenario: Modal schließen
 - **WHEN** der Staff-User auf "Schließen" klickt oder außerhalb des Dialogs klickt

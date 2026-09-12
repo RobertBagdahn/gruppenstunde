@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRecipeSmartInput, type RecipeImportUrlResponse } from '@/api/recipeImport';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 
 export type CreationMethod = 'manual' | 'ai' | 'url' | 'smart' | null;
 
@@ -10,6 +11,7 @@ export interface WizardState {
   recipeId: number | null;
   recipeSlug: string | null;
   creationMethod: CreationMethod;
+  aiInteractionId?: string | null;
 }
 
 interface WizardStepMethodProps {
@@ -92,6 +94,12 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
         <p className="text-xs leading-relaxed text-muted-foreground">
           Bei blockierten Webseiten versucht die KI, das Rezept über die Websuche zu rekonstruieren. Prüfe die Angaben danach trotzdem.
         </p>
+        {state.aiInteractionId && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>War die KI-Analyse hilfreich?</span>
+            <AiVoteButtons interactionId={state.aiInteractionId} />
+          </div>
+        )}
       </div>
     </div>
   );

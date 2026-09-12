@@ -906,7 +906,9 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
       const data = await suggestRes.json();
 
       // Support both list response (legacy) and object response with interaction_id
-      const suggestions: AiIngredientSuggestion[] = Array.isArray(data) ? data : (data.suggestions ?? data);
+      const suggestions: AiIngredientSuggestion[] = Array.isArray(data)
+        ? data
+        : (data.items ?? data.suggestions ?? []);
       const interactionId: string | null = !Array.isArray(data) ? (data.ai_interaction_id ?? null) : null;
 
       if (!suggestions || suggestions.length === 0) {

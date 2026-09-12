@@ -11,6 +11,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 import { useLlmSuggestions } from '@/api/recipes';
 import { useRecipeModificationStore } from '@/store/useRecipeModificationStore';
 import type { Improvement, LlmSuggestion, RecipeItemNutrition } from '@/schemas/recipe';
@@ -240,6 +241,12 @@ export default function HintDetailModal({
 
           {llmMutation.data && (
             <div className="space-y-3">
+              {llmMutation.data.ai_interaction_id && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Waren die Vorschläge hilfreich?</span>
+                  <AiVoteButtons interactionId={llmMutation.data.ai_interaction_id} />
+                </div>
+              )}
               {llmMutation.data.suggestions.map((suggestion, idx) => (
                 <SuggestionCard
                   key={idx}

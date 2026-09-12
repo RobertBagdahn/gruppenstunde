@@ -214,6 +214,7 @@ class UrlImportResult:
         image_url: str = "",
         is_reconstructed: bool = False,
         input_type: str = "url",
+        ai_interaction_id: str | None = None,
     ):
         self.title = title
         self.description = description
@@ -236,6 +237,7 @@ class UrlImportResult:
         # reconstructed via search grounding, so the user must review it.
         self.is_reconstructed = is_reconstructed
         self.input_type = input_type
+        self.ai_interaction_id = ai_interaction_id
 
 
 # ---------------------------------------------------------------------------
@@ -279,10 +281,18 @@ def import_recipe_from_url(
             is_reconstructed = True
 
     # Step 2: Gemini call for recipe metadata + quantity/unit parsing only
-    gemini_result = gemini_result_override or _call_gemini_for_metadata(
-        parsed=parsed,
-        user=user,
-    )
+    if gemini_result_override is not None:
+        gemini_result = gemini_result_override
+        ai_interaction_id = None
+    else:
+        metadata_result = _call_gemini_for_metadata(
+            parsed=parsed,
+            user=user,
+        )
+        if isinstance(metadata_result, tuple):
+            gemini_result, ai_interaction_id = metadata_result
+        else:
+            gemini_result, ai_interaction_id = metadata_result, None
 
     extracted_ingredients = _merge_ingredient_sources(parsed.ingredients, gemini_result.ingredients)
 
@@ -473,6 +483,7 @@ def import_recipe_from_url(
             CreatedIngredientResult(id=ci["id"], name=ci["name"], aliases=ci["aliases"], nutri_class=ci["nutri_class"])
             for ci in created_ingredients
         ],
+        ai_interaction_id=ai_interaction_id,
     )
 
 
@@ -1010,7 +1021,7 @@ Antworte ausschließlich im angegebenen JSON-Format."""
 def _call_gemini_for_metadata(
     parsed: Any,
     user: AbstractBaseUser,
-) -> GeminiRecipeExtraction:
+) -> tuple[GeminiRecipeExtraction, str | None]:
     """Gemini call for recipe metadata and quantity/unit parsing only.
 
     No ingredient matching — that is handled by IngredientMatcher.
@@ -1079,7 +1090,7 @@ Antworte ausschließlich im angegebenen JSON-Format."""
         response_schema=GeminiRecipeExtraction,
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -1090,7 +1101,7 @@ Antworte ausschließlich im angegebenen JSON-Format."""
     if response is None:
         raise GeminiUnavailableError()
 
-    return GeminiRecipeExtraction.model_validate_json(response.text)
+    return GeminiRecipeExtraction.model_validate_json(response.text), str(interaction_id) if interaction_id else None
 
 
 # ---------------------------------------------------------------------------

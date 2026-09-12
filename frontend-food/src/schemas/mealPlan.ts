@@ -1123,6 +1123,7 @@ export const IntelligentSuggestionsResponseSchema = z.object({
   suggestions: z.record(z.array(IntelligentSuggestionSchema)),
   total: z.number().default(0),
   ai_enhanced: z.boolean().default(false),
+  ai_interaction_id: z.string().uuid().nullable().optional(),
   meal_type: z.string().default(''),
   day_number: z.number().default(1),
 });

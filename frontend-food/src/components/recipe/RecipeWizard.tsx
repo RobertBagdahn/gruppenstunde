@@ -146,6 +146,7 @@ export default function RecipeWizard() {
     recipeId: null,
     recipeSlug: null,
     creationMethod: null,
+    aiInteractionId: null,
     inputServings: null,
         inputItemsAreContextual: false,
   });
@@ -300,6 +301,7 @@ export default function RecipeWizard() {
     setStepRecipeType(result.recipe_draft.recipe_type || 'warm_meal');
     updateState({
       creationMethod: 'smart',
+      aiInteractionId: result.ai_interaction_id ?? null,
       inputServings: result.recipe_draft.servings ?? 1,
       inputItemsAreContextual: false,
     });

@@ -10,7 +10,7 @@ Provides the IntelligentSuggestionsService which:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.db.models import Max, Q
 from django.utils import timezone
@@ -97,6 +97,7 @@ class IntelligentSuggestionsService:
         self._planned_recipe_ingredient_ids: set[int] | None = None
         self._usage_count_max: int | None = None
         self._usage_percentiles: dict[int, float] | None = None
+        self._last_interaction_id: str | None = None
 
     # ------------------------------------------------------------------
     # Hard filters
@@ -510,6 +511,8 @@ class IntelligentSuggestionsService:
             if response is None:
                 return None
 
+            self._last_interaction_id = str(interaction_id) if interaction_id else None
+
             result = AiRerankOutput.model_validate_json(response.text)
 
             # Map AI results back to ScoredRecipe objects
@@ -536,7 +539,7 @@ class IntelligentSuggestionsService:
     # Public API
     # ------------------------------------------------------------------
 
-    def get_suggestions(self, context_enhance: bool = True) -> dict[str, list[dict]]:
+    def get_suggestions(self, context_enhance: bool = True) -> dict[str, Any]:
         """Generate 9 categorized recipe suggestions.
 
         When context_enhance is True (default), Gemini receives enriched context
@@ -580,6 +583,7 @@ class IntelligentSuggestionsService:
                 return {
                     "suggestions": self._to_dict(categorized, ai_enhanced=True),
                     "ai_enhanced": True,
+                    "ai_interaction_id": self._last_interaction_id,
                 }
 
         # 5. Pure algorithmic categorization
@@ -587,6 +591,7 @@ class IntelligentSuggestionsService:
         return {
             "suggestions": self._to_dict(categorized, ai_enhanced=False),
             "ai_enhanced": False,
+            "ai_interaction_id": self._last_interaction_id,
         }
 
     def _categorize_from_ai_result(self, reranked: list[ScoredRecipe]) -> dict[str, list[ScoredRecipe]]:

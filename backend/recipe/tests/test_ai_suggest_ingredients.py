@@ -74,7 +74,11 @@ class TestAiSuggestIngredientsEndpoint:
                 note="",
             )
         ]
-        with patch.object(RecipeAiIngredientsService, "get_full_suggestions", return_value=mock_result):
+        with patch.object(
+            RecipeAiIngredientsService,
+            "get_full_suggestions",
+            return_value=(mock_result, "interaction-id"),
+        ):
             resp = auth_client.post(f"/api/recipes/{draft_recipe.id}/ai-suggest-ingredients/")
             assert resp.status_code == 200
             data = resp.json()
@@ -83,9 +87,10 @@ class TestAiSuggestIngredientsEndpoint:
             assert items[0]["ingredient_id"] == portion_nudeln.ingredient_id
             assert items[0]["portion_id"] == portion_nudeln.id
             assert items[0]["quantity"] == 1.25
+            assert data["ai_interaction_id"] == "interaction-id"
 
     def test_suggest_503_when_service_returns_none(self, auth_client, draft_recipe):
-        with patch.object(RecipeAiIngredientsService, "get_full_suggestions", return_value=None):
+        with patch.object(RecipeAiIngredientsService, "get_full_suggestions", return_value=(None, None)):
             resp = auth_client.post(f"/api/recipes/{draft_recipe.id}/ai-suggest-ingredients/")
             assert resp.status_code == 503
             assert "KI-Vorschläge konnten nicht generiert werden" in resp.json().get("detail", "")

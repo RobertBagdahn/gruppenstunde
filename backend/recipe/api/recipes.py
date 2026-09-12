@@ -392,6 +392,7 @@ def _recipe_import_response(result) -> RecipeImportUrlResponseOut:
         ],
         input_type=getattr(result, "input_type", "url"),
         is_reconstructed=getattr(result, "is_reconstructed", False),
+        ai_interaction_id=getattr(result, "ai_interaction_id", None),
     )
 
 

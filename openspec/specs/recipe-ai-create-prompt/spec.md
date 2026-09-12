@@ -1,4 +1,10 @@
-## ADDED Requirements
+# recipe-ai-create-prompt Specification
+
+## Purpose
+
+Type-sicheres Frontend-Handling für den KI-Rezept-Erstellungs-Endpunkt inklusive Kontext-Anreicherung des Prompts.
+
+## Requirements
 
 ### Requirement: Zod request schema for ai-create endpoint
 The frontend SHALL define a `RecipeAiCreateInSchema` Zod schema matching the backend `RecipeAiCreateIn` Pydantic schema with a single `prompt: z.string().min(1)` field.
@@ -32,3 +38,10 @@ The `WizardStepMethod` component SHALL use the `useRecipeAiCreate()` hook instea
 #### Scenario: AI generation triggers mutation
 - **WHEN** the user enters a prompt and clicks "Generieren"
 - **THEN** the component SHALL call `useRecipeAiCreate().mutateAsync({ prompt: aiPrompt.trim() })`
+
+### Requirement: Recipe AI create prompt includes context
+The `ai-create` endpoint SHALL enrich the AI prompt with the central context block (dietary/nutritional tags, group size, season) in addition to the user's free-text prompt.
+
+#### Scenario: Context appended to create prompt
+- **WHEN** a user submits a free-text prompt to `POST /api/recipes/ai-create/`
+- **THEN** the prompt sent to Gemini SHALL include the central context block alongside the free-text prompt

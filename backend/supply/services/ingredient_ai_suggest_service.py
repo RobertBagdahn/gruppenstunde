@@ -190,6 +190,8 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
     """
     from google.genai import types
 
+    from core.services.prompt_context import build_prompt_context
+
     is_breakfast_topping, is_baking_ingredient = _ingredient_portion_tags(ingredient)
 
     prompt = (
@@ -220,6 +222,9 @@ def suggest_all_fields(ingredient: Ingredient, user: AbstractBaseUser | None = N
         f"durchschnittlichen Supermarktpreisen in Deutschland.\n\n"
         f"Wenn du einen Wert nicht sicher bestimmen kannst, setze ihn auf null."
     )
+    prompt_context = build_prompt_context(user)
+    if prompt_context:
+        prompt = f"{prompt}\n\n{prompt_context}"
 
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
@@ -291,6 +296,7 @@ def ai_create_ingredient(
     """
     from google.genai import types
 
+    from core.services.prompt_context import build_prompt_context
     from supply.models import Ingredient, IngredientAlias, MeasuringUnit, Package, Portion
 
     prompt = (
@@ -305,13 +311,16 @@ def ai_create_ingredient(
         f"Der Preis soll auf durchschnittlichen Supermarktpreisen in Deutschland basieren.\n\n"
         f"{build_portion_prompt_section(is_breakfast_topping=False, is_baking_ingredient=False)}"
     )
+    prompt_context = build_prompt_context(user)
+    if prompt_context:
+        prompt = f"{prompt}\n\n{prompt_context}"
 
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=IngredientAiCreateSchema,
     )
 
-    response, _interaction_id = gemini_call(
+    response, interaction_id = gemini_call(
         user=user,
         model=GEMINI_MODEL,
         contents=prompt,
@@ -443,4 +452,5 @@ def ai_create_ingredient(
 
     update_ingredient_nutri_score(ingredient)
 
+    ingredient.ai_interaction_id = str(interaction_id) if interaction_id else None
     return ingredient

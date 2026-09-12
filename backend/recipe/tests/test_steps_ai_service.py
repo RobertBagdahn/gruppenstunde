@@ -44,30 +44,32 @@ class TestGenerateStepsFromItems(TestCase):
         """Test successful step generation from ingredients."""
         # Mock Gemini response
         mock_response = MagicMock()
-        mock_response.text = """
+        mock_response.text = f"""
         [
-            {
+            {{
                 "sort_order": 1,
-                "instruction": "Mix {Flour} with {Water}",
+                "instruction": "Mix {{Flour}} with {{Water}}",
                 "duration_minutes": 5,
                 "section": "Mixing",
                 "step_ingredients": [
-                    {"recipe_item_id": %d, "quantity_modifier": 1.0, "preparation": "", "sort_order": 1},
-                    {"recipe_item_id": %d, "quantity_modifier": 1.0, "preparation": "", "sort_order": 2}
+                    {{"recipe_item_id": {self.flour_item.id}, "quantity_modifier": 1.0, "preparation": "", "sort_order": 1}},
+                    {{"recipe_item_id": {self.water_item.id}, "quantity_modifier": 1.0, "preparation": "", "sort_order": 2}}
                 ]
-            }
+            }}
         ]
-        """ % (
-            self.flour_item.id,
-            self.water_item.id,
-        )
+        """
         mock_gemini.return_value = (mock_response, "interaction-id")
 
         # Generate steps
-        steps = AiStepService.generate_steps_from_items(recipe=self.recipe, user=self.user, bypass_limits=False)
+        steps, interaction_id = AiStepService.generate_steps_from_items(
+            recipe=self.recipe,
+            user=self.user,
+            bypass_limits=False,
+        )
 
         # Verify response
         assert len(steps) > 0
+        assert interaction_id == "interaction-id"
         assert mock_gemini.called
 
     @patch("recipe.services.step_ai_service.gemini_call")

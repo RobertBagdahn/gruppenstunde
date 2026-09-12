@@ -1,5 +1,6 @@
 import { Sparkles, Loader2 } from 'lucide-react';
 import { MEAL_TYPE_LABELS, type MealPlanWizardState, type AiSuggestOut } from '@/schemas/mealPlan';
+import { AiVoteButtons } from '@/components/shared/AiVoteButtons';
 
 interface StepAiPromptProps {
   state: MealPlanWizardState;
@@ -55,10 +56,13 @@ export default function StepAiPrompt({
 
       {state.ai_suggestions && (
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <h4 className="font-display font-bold text-sm text-foreground flex items-center gap-2">
+           <h4 className="font-display font-bold text-sm text-foreground flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            Generierte Vorschläge
-          </h4>
+             Generierte Vorschläge
+             {(state.ai_suggestions as AiSuggestOut).ai_interaction_id && (
+               <AiVoteButtons interactionId={(state.ai_suggestions as AiSuggestOut).ai_interaction_id!} />
+             )}
+           </h4>
           <div className="space-y-3">
             {(state.ai_suggestions as AiSuggestOut).days.map((day) => (
               <div key={day.date} className="border border-border rounded-lg p-3 bg-muted/20 space-y-2">

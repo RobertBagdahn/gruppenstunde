@@ -35,7 +35,9 @@ def _dietary_tag_names(user: Any, nutritional_tag_ids: list[int] | None) -> list
     if nutritional_tag_ids:
         tags = NutritionalTag.objects.filter(id__in=nutritional_tag_ids)
     elif user is not None and getattr(user, "is_authenticated", False):
-        profile = getattr(user, "profile", None)
+        from profiles.models import UserProfile
+
+        profile = UserProfile.objects.filter(user_id=user.id).first()
         tags = profile.nutritional_tags.all() if profile is not None else NutritionalTag.objects.none()
     else:
         tags = NutritionalTag.objects.none()

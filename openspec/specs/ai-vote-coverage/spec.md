@@ -1,4 +1,10 @@
-## ADDED Requirements
+# ai-vote-coverage Specification
+
+## Purpose
+
+Einheitliche Rückgabe von `ai_interaction_id` in allen KI-Antworten mit Feedback-Buttons in der UI.
+
+## Requirements
 
 ### Requirement: AI interaction ID in all AI response schemas
 All AI API endpoints SHALL return an `ai_interaction_id` field in their response, enabling user feedback (thumbs up/down) on every AI-generated result.
@@ -39,6 +45,14 @@ All AI API endpoints SHALL return an `ai_interaction_id` field in their response
 
 #### Scenario: Meal plan suggestions return interaction ID
 - **WHEN** `POST /api/meal-plans/ai/suggest/` succeeds
+- **THEN** the response SHALL include `ai_interaction_id`
+
+#### Scenario: Intelligent suggestions return interaction ID
+- **WHEN** an intelligent/context recipe suggestion request performs an AI rerank
+- **THEN** the response SHALL include `ai_interaction_id`
+
+#### Scenario: Recipe improvement suggestions return interaction ID
+- **WHEN** recipe improvement suggestions are generated via AI
 - **THEN** the response SHALL include `ai_interaction_id`
 
 #### Scenario: Ingredient AI endpoints already return interaction ID

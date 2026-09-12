@@ -1,6 +1,10 @@
 # context-recipe-suggestions Specification
 
-## ADDED Requirements
+## Purpose
+
+Kontextbewusste Rezeptvorschläge für Mahlzeiten im Essensplan mit Scoring, Kategorisierung und KI-Enhancement.
+
+## Requirements
 
 ### Requirement: Kontext-Vorschlags-Endpunkt
 
@@ -304,3 +308,12 @@ Das Frontend SHALL die kontextbewussten Vorschläge im RecipeSearchDialog als St
 - **WHEN** ein User auf einen Vorschlag klickt
 - **THEN** wird der RecipePreviewInline geöffnet (gleicher Flow wie bisher)
 - **THEN** nach "Hinzufügen" wird der Vorschlags-Endpunkt erneut aufgerufen (aktualisiert, da das Rezept jetzt im Plan ist)
+
+### Requirement: Context recipe suggestions return interaction ID
+
+Context-based recipe suggestions (intelligent suggestions with AI rerank) SHALL return an `ai_interaction_id` so users can provide feedback.
+
+#### Scenario: Intelligent suggestions return interaction ID
+
+- **WHEN** a context-recipe-suggestions request performs an AI rerank
+- **THEN** the response SHALL include `ai_interaction_id`

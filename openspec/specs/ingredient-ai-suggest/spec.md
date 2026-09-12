@@ -1,3 +1,11 @@
+# ingredient-ai-suggest Specification
+
+## Purpose
+
+KI-gestützte Vorschläge und Erstellung von Zutaten mit Interaktions-ID und Kontext-Anreicherung des Prompts.
+
+## Requirements
+
 ### Requirement: AI-powered ingredient data suggestion endpoint
 
 The system SHALL provide a POST endpoint at `/api/ingredients/{slug}/ai-suggest-all/` that returns suggested values for all fields of an ingredient (nutrition, ratings, physical properties, scout fields, name suggestion, portions, aliases, nutritional tags) using Gemini with structured output in a single call. Portion suggestions SHALL be returned as a structured `IngredientPortionSuggestSchema` object (not a flat array) with a required `portion_type` per entry (`system_gramm`, `rezeptportion`, `packung`, `belag`, `backmenge`). The response SHALL always include exactly one `system_gramm` suggestion (name „g", `weight_g=1`), at least one `rezeptportion` (typical per-person quantity, rank=1), and at least one `packung` suggestion. `belag`-Vorschläge SHALL nur enthalten sein, wenn die Zutat den Tag `breakfast-topping` trägt; `backmenge`-Vorschläge SHALL nur enthalten sein, wenn die Zutat den Tag `baking-ingredient` trägt. Portion names SHALL NOT contain any digits; weight and quantity information SHALL be conveyed exclusively via the `weight_g` and `quantity` fields. The `aliases` and `nutritional_tags` fields SHALL be required (non-optional) in the structured output schema to ensure Gemini always returns them.
@@ -149,3 +157,26 @@ The system SHALL display a dialog showing all non-null suggestions with the curr
 - **WHEN** der Zauberstab-Dialog Portionsvorschläge anzeigt
 - **THEN** SHALL eine Checkbox „Alte Portionen ersetzen" angezeigt werden (standardmäßig deaktiviert)
 - **THEN** SHALL bei Aktivierung ein Warnhinweis erscheinen, wie viele bestehende Portionen ersetzt würden
+
+### Requirement: AI-powered ingredient suggestion returns interaction ID
+
+The `ai-suggest-all` and `ai-create` ingredient endpoints SHALL return an `ai_interaction_id` so users can provide feedback.
+
+#### Scenario: ai-suggest-all returns interaction ID
+
+- **WHEN** an authenticated user sends POST to `/api/ingredients/{slug}/ai-suggest-all/`
+- **THEN** the response SHALL include `ai_interaction_id`
+
+#### Scenario: ai-create returns interaction ID
+
+- **WHEN** an authenticated user creates an ingredient via `/api/ingredients/ai-create/`
+- **THEN** the response SHALL include `ai_interaction_id`
+
+### Requirement: Ingredient suggestion prompt includes context
+
+Ingredient AI endpoints SHALL include the central context block (dietary tags, group size, season) where relevant to the suggestion.
+
+#### Scenario: Context appended to suggestion prompt
+
+- **WHEN** an ingredient suggestion is generated
+- **THEN** the prompt sent to Gemini SHALL include the central context block alongside the ingredient-specific instructions

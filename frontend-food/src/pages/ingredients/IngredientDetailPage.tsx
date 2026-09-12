@@ -1767,6 +1767,7 @@ export default function IngredientDetailPage() {
         title="KI-Vorschläge für Zutat"
         isLoading={aiSuggest.isPending}
         error={aiSuggest.error?.message ?? null}
+        interactionId={aiSuggest.data?.ai_interaction_id ?? null}
         fields={buildIngredientSuggestionFields(ingredient, aiSuggest.data)}
         onApply={(selectedKeys) => {
           handleApplyAiSuggestions(selectedKeys);

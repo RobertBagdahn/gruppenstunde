@@ -23,6 +23,25 @@ The system SHALL provide a `MeetingPoint` model that stores reusable address ent
 - **WHEN** POST `/api/meeting-points/` without authentication
 - **THEN** the system SHALL return HTTP 403
 
+### Requirement: MeetingPoint update restricted to creator and group admin
+Updating a MeetingPoint SHALL require the requesting user to be the `created_by` user or a group admin of the MeetingPoint's group. Plain group members SHALL NOT be able to modify MeetingPoints created by others.
+
+#### Scenario: Creator updates own meeting point
+- **WHEN** the `created_by` user PATCHes their MeetingPoint
+- **THEN** the update SHALL succeed
+
+#### Scenario: Group admin updates group meeting point
+- **WHEN** a group admin PATCHes a MeetingPoint of their group
+- **THEN** the update SHALL succeed
+
+#### Scenario: Group member cannot update another's meeting point
+- **WHEN** a plain group member PATCHes a MeetingPoint created by another user in the same group
+- **THEN** the system SHALL return HTTP 403 and SHALL not mutate the MeetingPoint
+
+#### Scenario: Unrelated user cannot update
+- **WHEN** an unrelated authenticated user PATCHes a MeetingPoint
+- **THEN** the system SHALL return HTTP 404
+
 ### Requirement: MeetingPoint visibility restricted to owner and group members
 The system SHALL restrict MeetingPoint visibility so that only the creator and members of the assigned group can see a MeetingPoint. MeetingPoints MUST NOT be publicly listed.
 
@@ -65,9 +84,9 @@ The system SHALL provide full CRUD operations for MeetingPoints at `/api/meeting
 - **AND** the user is the creator of the MeetingPoint
 - **THEN** the system SHALL update the MeetingPoint
 
-#### Scenario: Update group meeting point as group member
+#### Scenario: Update group meeting point as group admin
 - **WHEN** PATCH `/api/meeting-points/{id}/` for a group MeetingPoint
-- **AND** the user is a member of the associated group
+- **AND** the user is an admin of the associated group
 - **THEN** the system SHALL update the MeetingPoint
 
 #### Scenario: Delete own meeting point

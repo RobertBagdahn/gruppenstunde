@@ -13,10 +13,11 @@ import logging
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
+from ninja.errors import HttpError
 from pydantic import BaseModel, Field
 
 from core.services.gemini import gemini_call
-from ninja.errors import HttpError
+from core.services.prompt_context import build_prompt_context
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ def suggest_materials(
     description: str,
     content_type: str = "session",
     user: AbstractBaseUser | None = None,
+    num_persons: float | None = None,
 ) -> tuple[list[dict[str, Any]], str | None]:
     """
     Suggest materials for a content item based on its title and description.
@@ -93,6 +95,9 @@ def suggest_materials(
         "'stationery' (Schreibwaren), 'other' (Sonstiges).\n"
         "Mengen sind pro Person, es sei denn es ist ein Gegenstand für die Gruppe."
     )
+    prompt_context = build_prompt_context(user, num_persons=num_persons)
+    if prompt_context:
+        prompt = f"{prompt}\n\n{prompt_context}"
 
     from google.genai import types
 
@@ -123,6 +128,7 @@ def suggest_recipe_supplies(
     title: str,
     description: str,
     user: AbstractBaseUser | None = None,
+    num_persons: float | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], str | None]:
     """
     Suggest ingredients and kitchen equipment for a recipe.
@@ -140,6 +146,9 @@ def suggest_recipe_supplies(
         "(Topf, Schneidebrett, Messer, etc.)\n"
         "Gib realistische Mengen an."
     )
+    prompt_context = build_prompt_context(user, num_persons=num_persons)
+    if prompt_context:
+        prompt = f"{prompt}\n\n{prompt_context}"
 
     from google.genai import types
 

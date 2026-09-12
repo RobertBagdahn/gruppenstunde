@@ -34,6 +34,7 @@ export const MaterialSchema = z.object({
   created_at: z.string(),
   can_edit: z.boolean(),
   can_delete: z.boolean(),
+  ai_interaction_id: z.string().nullable().optional(),
 });
 export type Material = z.infer<typeof MaterialSchema>;
 

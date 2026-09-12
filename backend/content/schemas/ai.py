@@ -92,6 +92,7 @@ class AiSuggestSuppliesIn(Schema):
     title: str
     description: str = ""
     content_type: str = "session"  # session, game, recipe
+    num_persons: float | None = None
 
 
 class AiMaterialSuggestionOut(Schema):
