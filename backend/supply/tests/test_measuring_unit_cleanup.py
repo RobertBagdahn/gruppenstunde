@@ -8,7 +8,6 @@ from supply.models import MeasuringUnit, Portion
 
 from . import make_ingredient
 
-
 UNIT_DATA = [
     ("Gramm", "Gewichtseinheit", 1.0, "g"),
     ("Kilogramm", "1000 Gramm", 1000.0, "g"),
@@ -48,13 +47,20 @@ class TestMeasuringUnitCleanup(TestCase):
 
     def test_deleted_units_not_present(self):
         deleted_names = [
-            "g", "ml", "Stück", "Packung", "Portion",
-            "Scheibe", "Dose", "Glas", "Becher", "Bund", "Sp",
+            "g",
+            "ml",
+            "Stück",
+            "Packung",
+            "Portion",
+            "Scheibe",
+            "Dose",
+            "Glas",
+            "Becher",
+            "Bund",
+            "Sp",
         ]
         for name in deleted_names:
-            assert not MeasuringUnit.objects.filter(name__iexact=name).exists(), (
-                f"'{name}' should not exist"
-            )
+            assert not MeasuringUnit.objects.filter(name__iexact=name).exists(), f"'{name}' should not exist"
 
     def test_gramm_base_unit(self):
         gramm = MeasuringUnit.objects.get(name="Gramm")
@@ -112,6 +118,7 @@ class TestMeasuringUnitApiSort(TestCase):
 
     def test_api_returns_sorted_units(self):
         from django.test import RequestFactory
+
         from supply.api.materials import list_measuring_units
 
         factory = RequestFactory()
@@ -121,9 +128,16 @@ class TestMeasuringUnitApiSort(TestCase):
 
         names = [u.name for u in response]
         expected = [
-            "Gramm", "Kilogramm", "Milliliter", "Liter",
-            "Esslöffel", "Teelöffel", "Prise", "Messerspitze",
-            "Tasse", "Schuss",
+            "Gramm",
+            "Kilogramm",
+            "Milliliter",
+            "Liter",
+            "Esslöffel",
+            "Teelöffel",
+            "Prise",
+            "Messerspitze",
+            "Tasse",
+            "Schuss",
         ]
         assert names == expected, f"Expected {expected}, got {names}"
 
@@ -137,8 +151,10 @@ class TestComputeWeightGWithMlUnits(TestCase):
         ingredient = make_ingredient(name="Wasser Test", physical_density=1.0)
         el = MeasuringUnit.objects.get(name="Esslöffel")
         portion = Portion(
-            ingredient=ingredient, name="EL Test",
-            measuring_unit=el, quantity=1.0,
+            ingredient=ingredient,
+            name="EL Test",
+            measuring_unit=el,
+            quantity=1.0,
         )
         weight = portion.compute_weight_g()
         assert weight == 15.0, f"Expected 15.0, got {weight}"
@@ -148,8 +164,10 @@ class TestComputeWeightGWithMlUnits(TestCase):
         ingredient = make_ingredient(name="Mehl Test", physical_density=0.5)
         el = MeasuringUnit.objects.get(name="Esslöffel")
         portion = Portion(
-            ingredient=ingredient, name="EL Mehl",
-            measuring_unit=el, quantity=1.0,
+            ingredient=ingredient,
+            name="EL Mehl",
+            measuring_unit=el,
+            quantity=1.0,
         )
         weight = portion.compute_weight_g()
         assert weight == 7.5, f"Expected 7.5, got {weight}"
@@ -159,8 +177,10 @@ class TestComputeWeightGWithMlUnits(TestCase):
         ingredient = make_ingredient(name="Zucker Test", physical_density=0.85)
         gramm = MeasuringUnit.objects.get(name="Gramm")
         portion = Portion(
-            ingredient=ingredient, name="100g Zucker",
-            measuring_unit=gramm, quantity=100.0,
+            ingredient=ingredient,
+            name="100g Zucker",
+            measuring_unit=gramm,
+            quantity=100.0,
         )
         weight = portion.compute_weight_g()
         assert weight == 100.0, f"Expected 100.0 (no density), got {weight}"
@@ -170,8 +190,11 @@ class TestComputeWeightGWithMlUnits(TestCase):
         ingredient = make_ingredient(name="Test Explicit", physical_density=1.0)
         el = MeasuringUnit.objects.get(name="Esslöffel")
         portion = Portion(
-            ingredient=ingredient, name="EL mit explizitem Gewicht",
-            measuring_unit=el, quantity=1.0, weight_g=20.0,
+            ingredient=ingredient,
+            name="EL mit explizitem Gewicht",
+            measuring_unit=el,
+            quantity=1.0,
+            weight_g=20.0,
         )
         assert portion.weight_g == 20.0
         ingredient.delete()
@@ -184,32 +207,33 @@ class TestUnitResolution(TestCase):
 
     def test_g_resolves_to_gramm(self):
         from supply.services.unit_resolution import resolve_canonical_unit
+
         unit = resolve_canonical_unit("g")
         assert unit is not None
         assert unit.name == "Gramm"
 
     def test_el_resolves_to_essloeffel(self):
         from supply.services.unit_resolution import resolve_canonical_unit
+
         unit = resolve_canonical_unit("el")
         assert unit is not None
         assert unit.name == "Esslöffel"
 
     def test_schuss_resolves(self):
         from supply.services.unit_resolution import resolve_canonical_unit
+
         unit = resolve_canonical_unit("schuss")
         assert unit is not None
         assert unit.name == "Schuss"
 
     def test_deleted_unit_falls_back_to_gramm(self):
         from supply.services.unit_resolution import resolve_canonical_unit
-        deleted_names = ["stück", "packung", "dose", "scheibe", "glas",
-                         "becher", "bund", "portion"]
+
+        deleted_names = ["stück", "packung", "dose", "scheibe", "glas", "becher", "bund", "portion"]
         for name in deleted_names:
             unit = resolve_canonical_unit(name)
             assert unit is not None, f"'{name}' returned None"
-            assert unit.name == "Gramm", (
-                f"'{name}' should fall back to Gramm, got {unit.name}"
-            )
+            assert unit.name == "Gramm", f"'{name}' should fall back to Gramm, got {unit.name}"
 
 
 @pytest.mark.django_db
@@ -219,16 +243,14 @@ class TestPortionKnowledge(TestCase):
 
     def test_no_phantom_units_in_typical_weights(self):
         from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS
+
         existing_names = set(MeasuringUnit.objects.values_list("name", flat=True))
         for name in TYPICAL_UNIT_WEIGHTS:
-            assert name in existing_names, (
-                f"'{name}' in TYPICAL_UNIT_WEIGHTS but not a MeasuringUnit"
-            )
+            assert name in existing_names, f"'{name}' in TYPICAL_UNIT_WEIGHTS but not a MeasuringUnit"
 
     def test_deleted_units_not_in_typical_weights(self):
         from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS
+
         deleted = {"Spitzer", "Ei", "Zehe"}
         for name in deleted:
-            assert name not in TYPICAL_UNIT_WEIGHTS, (
-                f"'{name}' should not be in TYPICAL_UNIT_WEIGHTS"
-            )
+            assert name not in TYPICAL_UNIT_WEIGHTS, f"'{name}' should not be in TYPICAL_UNIT_WEIGHTS"

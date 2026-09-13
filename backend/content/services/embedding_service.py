@@ -11,7 +11,7 @@ import hashlib
 import itertools
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
@@ -245,12 +245,15 @@ def create_embedding(text: str, output_dimensionality: int | None = None) -> lis
     from core.services.gemini import gemini_embed
 
     dim = output_dimensionality or EMBEDDING_OUTPUT_DIM
-    return gemini_embed(
-        user=None,
-        model=EMBEDDING_MODEL,
-        contents=text,
-        output_dimensionality=dim,
-        bypass_limits=False,
+    return cast(
+        list[float] | None,
+        gemini_embed(
+            user=None,
+            model=EMBEDDING_MODEL,
+            contents=text,
+            output_dimensionality=dim,
+            bypass_limits=False,
+        ),
     )
 
 
@@ -399,8 +402,8 @@ def get_embedding_vector(content_obj) -> list[float] | None:
     if content_obj.embedding is None:
         return None
     if hasattr(content_obj.embedding, "tolist"):
-        return content_obj.embedding.tolist()
-    return list(content_obj.embedding)
+        return cast(list[float], content_obj.embedding.tolist())
+    return cast(list[float], list(content_obj.embedding))
 
 
 def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
@@ -412,7 +415,7 @@ def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     norm_b = sum(b * b for b in vec_b) ** 0.5
     if norm_a == 0 or norm_b == 0:
         return 0.0
-    return dot / (norm_a * norm_b)
+    return cast(float, dot / (norm_a * norm_b))
 
 
 def find_similar_content(
@@ -453,7 +456,7 @@ def find_similar_content(
                 results.append(
                     {
                         "content_type": ct.model,
-                        "object_id": item.id,
+                        "object_id": item.id,  # type: ignore[attr-defined]
                         "title": item.title,
                         "slug": item.slug,
                         "summary": item.summary[:200] if item.summary else "",
@@ -536,9 +539,9 @@ def batch_update_embeddings(
         qs = model_class.objects.all()
 
         if model_class is Ingredient:
-            update_fn = update_ingredient_embedding
+            update_fn: Any = update_ingredient_embedding
         else:
-            qs = qs.filter(status="approved")
+            qs = qs.filter(**{"status": "approved"})
             update_fn = update_content_embedding
 
         for item in qs[:limit]:

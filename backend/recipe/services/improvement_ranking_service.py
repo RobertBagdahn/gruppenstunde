@@ -234,9 +234,9 @@ def _score_recipe_hint(hint, actual_value: float) -> float:
     if hint.value <= 0:
         return 0.0
     if hint.min_max == "max":
-        return max(0.0, min(1.0, (actual_value - hint.value) / hint.value))
+        return float(max(0.0, min(1.0, (actual_value - hint.value) / hint.value)))
     if hint.min_max == "min":
-        return max(0.0, min(1.0, (hint.value - actual_value) / hint.value))
+        return float(max(0.0, min(1.0, (hint.value - actual_value) / hint.value)))
     return 0.0
 
 

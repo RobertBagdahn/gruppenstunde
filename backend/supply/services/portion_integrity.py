@@ -10,6 +10,10 @@ through the dedicated rebind helpers in this module.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from supply.models import Portion
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +85,7 @@ def rebind_recipe_items_to_rank1(portion, *, updated_by=None) -> list[int]:
     return rebind_recipe_items_to_portion(portion, target, updated_by=updated_by)
 
 
-def would_change_weight_g(portion, prospective_weight_g: float | None) -> bool:
+def would_change_weight_g(portion: Portion, prospective_weight_g: float | None) -> bool:
     """Return True if `prospective_weight_g` differs from the portion's current
     persisted `weight_g` (within floating point tolerance)."""
     current = portion.weight_g
@@ -237,6 +241,8 @@ def rebind_dead_portion_references(*, dry_run: bool = False, recipe_id: int | No
     items = list(qs)
     for item in items:
         portion = item.portion
+        if portion is None:
+            continue
         ingredient = portion.ingredient
         target = get_active_rank1_portion(ingredient, exclude_portion_id=portion.pk)
         if target is None:

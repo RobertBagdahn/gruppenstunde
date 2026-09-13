@@ -21,6 +21,7 @@ differently or accidentally imported twice). Genuine variants that can be
 bought separately (colors, "groß" sizes, Meersalz vs. Salz, etc.) are left
 untouched.
 """
+
 import json
 from pathlib import Path
 
@@ -45,7 +46,7 @@ MERGE_GROUPS = [
 
 
 def load(path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -78,9 +79,7 @@ def main():
         print(f"\n=== Merging into '{keep_ing['fields']['name']}' (pk {keep_pk}) ===")
 
         # Existing portions under the canonical ingredient, indexed by name
-        keep_portions_by_name = {
-            p["fields"]["name"]: p for p in portions if p["fields"]["ingredient_id"] == keep_pk
-        }
+        keep_portions_by_name = {p["fields"]["name"]: p for p in portions if p["fields"]["ingredient_id"] == keep_pk}
 
         for remove_pk in remove_pks:
             remove_ing = ingredients_by_pk.get(remove_pk)
@@ -124,7 +123,7 @@ def main():
     save(PORTION_FILE, portions)
     save(RECIPEITEM_FILE, recipe_items)
 
-    print(f"\n✓ Done!")
+    print("\n✓ Done!")
     print(f"  Removed ingredients: {len(removed_ingredient_pks)}")
     print(f"  Removed duplicate portions: {len(removed_portion_pks)}")
     print(f"  Repointed portions (no equivalent existed): {repointed_portions}")

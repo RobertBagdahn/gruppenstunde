@@ -34,9 +34,15 @@ def generate_instagram_slides(session) -> list[str]:
 
     # Try to get a font; fall back to default
     try:
-        font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
-        font_body = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)
-        font_brand = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
+        font_title: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64
+        )
+        font_body: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36
+        )
+        font_brand: ImageFont.ImageFont | ImageFont.FreeTypeFont = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24
+        )
     except OSError:
         font_title = ImageFont.load_default()
         font_body = ImageFont.load_default()
@@ -45,14 +51,14 @@ def generate_instagram_slides(session) -> list[str]:
     watermark = "gruppenstunde.de"
 
     # --- Slide 1: Title with background ---
-    img1 = Image.new("RGB", SIZE, bg_color)
+    img1: Image.Image = Image.new("RGB", SIZE, bg_color)
     draw1 = ImageDraw.Draw(img1)
 
     # If session has an image, use it as background with overlay
     if session.image:
         try:
-            bg_img = Image.open(session.image.path)
-            bg_img = bg_img.resize(SIZE, Image.LANCZOS)
+            bg_img: Image.Image = Image.open(session.image.path)
+            bg_img = bg_img.resize(SIZE, Image.Resampling.LANCZOS)
             # Dark overlay
             overlay = Image.new("RGBA", SIZE, (0, 0, 0, 150))
             img1 = bg_img.convert("RGB")

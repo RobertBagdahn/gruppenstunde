@@ -310,7 +310,7 @@ def test_page_optimizer_fits_default() -> None:
             target_pages=1,
         )
 
-    params, flowables, log = optimize_layout(build_fn, target_pages=1)
+    params, flowables, _log = optimize_layout(build_fn, target_pages=1)
     pages = trial_build_pages(flowables, params)
     assert pages == 1
 

@@ -60,7 +60,9 @@ class Command(BaseCommand):
                 keep_alias = dups.first()
                 delete_aliases = dups[1:]
 
-                self.stdout.write(f"    ✓ Keep: ID={keep_alias.id}, Name='{keep_alias.name}', Created={keep_alias.created_at}")
+                self.stdout.write(
+                    f"    ✓ Keep: ID={keep_alias.id}, Name='{keep_alias.name}', Created={keep_alias.created_at}"
+                )
 
                 for alias in delete_aliases:
                     deleted_count += 1
@@ -72,7 +74,7 @@ class Command(BaseCommand):
                     if not dry_run:
                         alias.delete()
 
-        self.stdout.write(self.style.SUCCESS(f"\n=== Summary ==="))
+        self.stdout.write(self.style.SUCCESS("\n=== Summary ==="))
         self.stdout.write(f"Duplicate groups found: {duplicate_groups_found}")
         self.stdout.write(f"Aliases to delete: {deleted_count}")
 

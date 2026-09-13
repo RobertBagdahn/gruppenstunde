@@ -28,7 +28,7 @@ class TestInvitationPdfGeneration:
 
     def test_generate_pdf_without_ci(self):
         event = make_event(invitation_text="Einladungstext")
-        file_bytes, content_type, filename = InvitationPdfService.generate(event)
+        file_bytes, _content_type, _filename = InvitationPdfService.generate(event)
         assert len(file_bytes) > 0
         assert file_bytes[:5] == b"%PDF-"
 

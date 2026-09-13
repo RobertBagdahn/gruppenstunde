@@ -2762,7 +2762,6 @@ class Command(BaseCommand):
             pass
             # self.stdout.write(f"  + RecipeHint: {hint_data['name']}")
 
-
         # --- Recalculate recipe caches (nutrition, nutri-score, price) ---
         from recipe.services.recipe_checks import recalculate_recipe_cache
 
@@ -3199,7 +3198,7 @@ class Command(BaseCommand):
                 },
             ]
             for cf_data in custom_fields_data:
-                cf, created = CustomField.objects.get_or_create(
+                _cf, created = CustomField.objects.get_or_create(
                     event=sommerlager,
                     label=cf_data["label"],
                     defaults=cf_data,

@@ -6,9 +6,11 @@ import logging
 from typing import Any
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.db import models
 from django.template.loader import render_to_string
+
+from event.models import Event, Participant, Registration
 
 from ..choices import TimelineActionChoices
 from ..services.ci_helper import get_event_ci
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_FROM_EMAIL = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@gruppenstunde.de")
 
 
-def _ci_context(event: models.Model) -> dict[str, str]:
+def _ci_context(event: Event) -> dict[str, str]:
     """Build template context dict from event CI."""
     ci = get_event_ci(event)
     return {
@@ -41,11 +43,11 @@ class MailService:
 
     @staticmethod
     def send_mail(
-        event: models.Model,
+        event: Event,
         subject: str,
         body: str,
         recipient_type: str,
-        user: models.Model,
+        user: User,
         filters: dict[str, Any] | None = None,
         participant_ids: list[int] | None = None,
     ) -> dict[str, Any]:
@@ -63,8 +65,6 @@ class MailService:
         Returns:
             Dict with sent_count, failed_count, failed_recipients.
         """
-        from ..models import Participant
-
         # Get participants based on recipient_type
         participants_qs = Participant.objects.filter(
             registration__event=event,
@@ -154,9 +154,9 @@ class MailService:
 
     @staticmethod
     def send_registration_confirmation(
-        event: models.Model,
-        registration: models.Model,
-        participants: list | None = None,
+        event: Event,
+        registration: Registration,
+        participants: list[Participant] | None = None,
     ) -> None:
         """Send a confirmation email after registration.
 

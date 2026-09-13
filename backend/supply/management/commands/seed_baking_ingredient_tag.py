@@ -19,7 +19,7 @@ class Command(BaseCommand):
     help = "Seedet den Content-Tag 'baking-ingredient' für Backzutaten (Mehl, Zucker, Hefe, Backpulver, ...)."
 
     def handle(self, *args, **options):
-        tag, created = Tag.objects.get_or_create(
+        _tag, created = Tag.objects.get_or_create(
             slug=BAKING_TAG_SLUG,
             defaults={"name": BAKING_TAG_SLUG},
         )

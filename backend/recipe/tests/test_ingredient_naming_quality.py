@@ -19,7 +19,7 @@ class TestMatchIngredientsIntegration:
         suggestion = AiIngredientSuggestion(name="Zwiebel frisch", estimated_grams=80)
         results = service.match_ingredients([suggestion])
         assert len(results) == 1
-        _, ingredient_id, is_new, note = results[0]
+        _, ingredient_id, is_new, _note = results[0]
         assert ingredient_id == existing.id
         assert is_new is False
 
@@ -29,7 +29,7 @@ class TestMatchIngredientsIntegration:
         suggestion = AiIngredientSuggestion(name="Zwiebeln frisch", estimated_grams=80)
         results = service.match_ingredients([suggestion])
         assert len(results) == 1
-        _, ingredient_id, is_new, note = results[0]
+        _, _ingredient_id, is_new, _note = results[0]
         # Partial match triggers needs_review → new ingredient on SQLite
         assert is_new is True
 
@@ -38,7 +38,7 @@ class TestMatchIngredientsIntegration:
         service = RecipeAiIngredientsService()
         suggestion = AiIngredientSuggestion(name="Mehl", estimated_grams=200)
         results = service.match_ingredients([suggestion])
-        _, ingredient_id, is_new, note = results[0]
+        _, ingredient_id, is_new, _note = results[0]
         assert ingredient_id == existing.id
         assert is_new is False
 
@@ -50,5 +50,5 @@ class TestMatchIngredientsIntegration:
             with patch.object(IngredientMatcher, "_stage_embedding", return_value=None):
                 suggestion = AiIngredientSuggestion(name="Tomatenmark", estimated_grams=30)
                 results = service.match_ingredients([suggestion])
-                _, ingredient_id, is_new, note = results[0]
+                _, _ingredient_id, is_new, _note = results[0]
                 assert is_new is True

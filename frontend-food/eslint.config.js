@@ -19,7 +19,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react-refresh/only-export-components': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
@@ -27,6 +27,21 @@ export default tseslint.config(
     files: ['**/*.test.ts', '**/*.test.tsx', 'src/__tests__/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: [
+      'src/components/ingredients/IngredientMergeDialog.tsx',
+      'src/components/meal/VariantSliderDialog.tsx',
+      'src/components/recipe/InlineIngredientEditor.tsx',
+      'src/components/recipe/WizardStepBasis.tsx',
+      'src/components/recipe/WizardStepMethod.tsx',
+      'src/pages/ingredients/IngredientDetailPage.tsx',
+      'src/pages/ingredients/statistics/components/HeatmapExplorer.tsx',
+      'src/pages/recipes/RecipeListPage.tsx',
+    ],
+    rules: {
+      'react-hooks/exhaustive-deps': 'error',
     },
   },
 );

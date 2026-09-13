@@ -2,7 +2,8 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
+from typing import cast
 
 from django.utils import timezone as _tz
 from ninja import Schema
@@ -29,7 +30,7 @@ class ChoiceOut(Schema):
 # ---------------------------------------------------------------------------
 
 
-class EventPhase(str, Enum):
+class EventPhase(StrEnum):
     DRAFT = "draft"
     PRE_REGISTRATION = "pre_registration"
     REGISTRATION = "registration"
@@ -224,8 +225,8 @@ class PersonOut(Schema):
     updated_at: datetime
 
     @staticmethod
-    def resolve_nutritional_tags(obj) -> list:
-        return obj.nutritional_tags.all()
+    def resolve_nutritional_tags(obj) -> list[NutritionalTagOut]:
+        return list(obj.nutritional_tags.all())
 
 
 class PersonCreateIn(Schema):
@@ -340,20 +341,20 @@ class ParticipantOut(Schema):
     @staticmethod
     def resolve_booking_option_name(obj) -> str:
         if obj.booking_option:
-            return obj.booking_option.name
+            return cast(str, obj.booking_option.name)
         return ""
 
     @staticmethod
-    def resolve_nutritional_tags(obj) -> list:
-        return obj.nutritional_tags.all()
+    def resolve_nutritional_tags(obj) -> list[NutritionalTagOut]:
+        return list(obj.nutritional_tags.all())
 
     @staticmethod
-    def resolve_labels(obj) -> list:
-        return obj.labels.all()
+    def resolve_labels(obj) -> list[LabelOut]:
+        return list(obj.labels.all())
 
     @staticmethod
-    def resolve_custom_field_values(obj) -> list:
-        return obj.custom_field_values.select_related("custom_field").all()
+    def resolve_custom_field_values(obj) -> list[CustomFieldValueOut]:
+        return list(obj.custom_field_values.select_related("custom_field").all())
 
 
 class ParticipantUpdateIn(Schema):
@@ -397,11 +398,11 @@ class RegistrationOut(Schema):
 
     @staticmethod
     def resolve_user_email(obj) -> str:
-        return obj.user.email
+        return cast(str, obj.user.email)
 
     @staticmethod
-    def resolve_participants(obj) -> list:
-        return obj.participants.select_related("booking_option").all()
+    def resolve_participants(obj) -> list[ParticipantOut]:
+        return list(obj.participants.select_related("booking_option").all())
 
 
 class RegisterPersonIn(Schema):
@@ -468,16 +469,16 @@ class EventListOut(Schema):
         return obj.pickup_point
 
     @staticmethod
-    def resolve_booking_options(obj) -> list:
+    def resolve_booking_options(obj) -> list[BookingOptionOut]:
         qs = obj.booking_options.all()
         # Filter system options for non-managers (is_manager is set dynamically by the API)
         if not getattr(obj, "_show_system_options", False):
             qs = qs.filter(is_system=False)
-        return qs
+        return list(qs)
 
     @staticmethod
     def resolve_registration_count(obj) -> int:
-        return obj.registrations.count()
+        return cast(int, obj.registrations.count())
 
     @staticmethod
     def resolve_participant_count(obj) -> int:
@@ -487,7 +488,7 @@ class EventListOut(Schema):
 
     @staticmethod
     def resolve_phase(obj) -> str:
-        return obj.compute_phase()
+        return cast(str, obj.compute_phase())
 
     @staticmethod
     def resolve_is_registered(obj) -> bool:
@@ -559,24 +560,24 @@ class EventDetailOut(Schema):
         return obj.pickup_point
 
     @staticmethod
-    def resolve_booking_options(obj) -> list:
+    def resolve_booking_options(obj) -> list[BookingOptionOut]:
         qs = obj.booking_options.all()
         # Filter system options for non-managers (is_manager is set dynamically by the API)
         if not getattr(obj, "_show_system_options", False):
             qs = qs.filter(is_system=False)
-        return qs
+        return list(qs)
 
     @staticmethod
-    def resolve_day_slots(obj) -> list:
-        return obj.day_slots.select_related("content_type").all()
+    def resolve_day_slots(obj) -> list[EventDaySlotOut]:
+        return list(obj.day_slots.select_related("content_type").all())
 
     @staticmethod
-    def resolve_responsible_persons_detail(obj) -> list:
-        return obj.responsible_persons.all()
+    def resolve_responsible_persons_detail(obj) -> list[ResponsiblePersonOut]:
+        return list(obj.responsible_persons.all())
 
     @staticmethod
     def resolve_registration_count(obj) -> int:
-        return obj.registrations.count()
+        return cast(int, obj.registrations.count())
 
     @staticmethod
     def resolve_participant_count(obj) -> int:
@@ -586,7 +587,7 @@ class EventDetailOut(Schema):
 
     @staticmethod
     def resolve_phase(obj) -> str:
-        return obj.compute_phase()
+        return cast(str, obj.compute_phase())
 
 
 class EventCreateIn(Schema):

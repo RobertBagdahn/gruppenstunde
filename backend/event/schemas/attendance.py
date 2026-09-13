@@ -1,6 +1,7 @@
 """Pydantic schemas for AttendanceRecord model."""
 
 from datetime import datetime
+from typing import cast
 
 from ninja import Schema
 
@@ -17,11 +18,11 @@ class AttendanceRecordOut(Schema):
     @staticmethod
     def resolve_participant_name(obj) -> str:
         p = obj.participant
-        return f"{p.first_name} {p.last_name}".strip()
+        return cast(str, f"{p.first_name} {p.last_name}".strip())
 
     @staticmethod
     def resolve_is_checked_in(obj) -> bool:
-        return obj.is_checked_in
+        return cast(bool, obj.is_checked_in)
 
 
 class AttendanceRecordCreateIn(Schema):

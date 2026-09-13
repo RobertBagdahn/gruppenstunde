@@ -78,4 +78,4 @@ def calculate_recipe_quality_score(recipe) -> int:
     scores.append(("price", 0.10, price_score))
 
     total = sum(weight * score for _, weight, score in scores)
-    return int(round(total))
+    return round(total)

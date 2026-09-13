@@ -6,9 +6,10 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.db import models
 
-from ..choices import TimelineActionChoices
+from event.choices import TimelineActionChoices
+from event.models import Participant
+
 from ..models.payment import Payment
 from .timeline import TimelineService
 
@@ -18,7 +19,7 @@ class PaymentService:
 
     @staticmethod
     def create_payment(
-        participant: models.Model,
+        participant: Participant,
         amount: Decimal,
         method: str,
         received_at: datetime,

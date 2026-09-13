@@ -19,6 +19,8 @@ from core.services.gemini import gemini_call
 from core.services.prompt_context import build_prompt_context
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+
     from recipe.models import Recipe
     from supply.models import Ingredient
 
@@ -173,7 +175,7 @@ def suggest_recipe_metadata(recipe: Recipe, user: AbstractBaseUser | None = None
 
 
 @transaction.atomic
-def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recipe:
+def ai_create_recipe(prompt: str, user: User | None = None) -> Recipe:
     """Create a complete recipe from a free-text prompt using Gemini + Search Grounding.
 
     Creates Recipe, matches/creates Ingredients, creates RecipeItems.
@@ -229,7 +231,7 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         difficulty=data.difficulty,
         execution_time=execution_time,
         portions=1,
-        recipe_type=_map_recipe_type(data.recipe_type),
+        recipe_type=_map_recipe_type(data.recipe_type) or "",
         status="draft",
         owner=user if is_authenticated else None,
         created_by=user if is_authenticated else None,
@@ -237,7 +239,7 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
         # is skipped by every visibility filter. Match `POST /api/recipes/`.
         visibility="private" if is_authenticated else None,
     )
-    if is_authenticated:
+    if is_authenticated and user is not None:
         recipe.authors.add(user)
     # Keep the AI's source context only on this response object. The recipe model
     # remains normalized to one portion for all persisted consumers.
@@ -280,7 +282,7 @@ def ai_create_recipe(prompt: str, user: AbstractBaseUser | None = None) -> Recip
     return recipe
 
 
-def _resolve_ingredient_from_match(match_result, fallback_name: str, user: AbstractBaseUser | None = None):
+def _resolve_ingredient_from_match(match_result, fallback_name: str, user: User | None = None):
     """Get or create an Ingredient from a MatchResult."""
     from recipe.services.ingredient_enrichment import enrich_ingredient
     from supply.choices import IngredientStatusChoices
@@ -392,7 +394,7 @@ def _resolve_ingredient_from_match(match_result, fallback_name: str, user: Abstr
     return _match_or_create_ingredient(fallback_name, user)
 
 
-def _match_or_create_ingredient(name: str, user: AbstractBaseUser | None) -> Ingredient:
+def _match_or_create_ingredient(name: str, user: User | None) -> Ingredient:
     """Find an existing ingredient by name/alias or create a new one."""
     from supply.models import Ingredient, IngredientAlias
 

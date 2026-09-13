@@ -33,6 +33,9 @@ class Command(BaseCommand):
         # ── Tag topping ingredients ─────────────────────────────────────
         self._tag_topping_ingredients(tags["breakfast-topping"], dry_run)
 
+        # ── Tag fresh fruit and vegetables ────────────────────────────────
+        self._tag_extra_ingredients(tags["breakfast-extra"], dry_run)
+
         # ── Tag drink ingredients ───────────────────────────────────────
         self._tag_drink_ingredients(tags["breakfast-drink"], dry_run)
 
@@ -44,8 +47,7 @@ class Command(BaseCommand):
 
         # ── Summary ────────────────────────────────────────────────────
         self.stdout.write(self.style.SUCCESS("\nDone!\n"))
-        for tag_slug in ["breakfast-base", "breakfast-topping", "breakfast-fat",
-                          "breakfast-drink", "breakfast-extra"]:
+        for tag_slug in ["breakfast-base", "breakfast-topping", "breakfast-fat", "breakfast-drink", "breakfast-extra"]:
             tag = Tag.objects.filter(slug=tag_slug).first()
             if tag:
                 ing_count = Ingredient.objects.filter(tags=tag).count()
@@ -96,83 +98,175 @@ class Command(BaseCommand):
             self.stdout.write(f"  [{label}] All {skipped} already tagged")
 
     def _tag_base_ingredients(self, tag, dry_run):
-        qs = Ingredient.objects.filter(is_standalone_food=True).filter(
-            Q(name__icontains="brot") | Q(name__icontains="brötchen") |
-            Q(name__icontains="stuten") | Q(name__icontains="toast") |
-            Q(name__icontains="ciabatta") | Q(name__icontains="baguette")
-        ).exclude(
-            Q(name__icontains="gewürz") | Q(name__icontains="gewuerz") |
-            Q(name__icontains="brotaufstrich") | Q(name__icontains="aufstrich") |
-            Q(name__icontains="frischkäse") | Q(name__icontains="mischung") |
-            Q(name__icontains="chips") | Q(name__icontains="knäcke") |
-            Q(name__icontains="knusper") | Q(name__icontains="gebäck") |
-            Q(name__icontains="mehl") | Q(name__icontains="krümel")
-        ).order_by("name")
+        qs = (
+            Ingredient.objects.filter(is_standalone_food=True)
+            .filter(
+                Q(name__icontains="brot")
+                | Q(name__icontains="brötchen")
+                | Q(name__icontains="stuten")
+                | Q(name__icontains="toast")
+                | Q(name__icontains="ciabatta")
+                | Q(name__icontains="baguette")
+            )
+            .exclude(
+                Q(name__icontains="gewürz")
+                | Q(name__icontains="gewuerz")
+                | Q(name__icontains="brotaufstrich")
+                | Q(name__icontains="aufstrich")
+                | Q(name__icontains="frischkäse")
+                | Q(name__icontains="mischung")
+                | Q(name__icontains="chips")
+                | Q(name__icontains="knäcke")
+                | Q(name__icontains="knusper")
+                | Q(name__icontains="gebäck")
+                | Q(name__icontains="mehl")
+                | Q(name__icontains="krümel")
+            )
+            .order_by("name")
+        )
         self._tag_ingredients(tag, qs, "BASE", dry_run)
 
     def _tag_fat_ingredients(self, tag, dry_run):
-        qs = Ingredient.objects.filter(is_standalone_food=True).filter(
-            Q(name__icontains="butter") | Q(name__icontains="margarine") |
-            Q(name__icontains="schmalz")
-        ).exclude(
-            Q(name__icontains="erdnuss") | Q(name__icontains="kakaobutter") |
-            Q(name__icontains="keks") | Q(name__icontains="gebäck") |
-            Q(name__icontains="bohne") | Q(name__icontains="kürbis") |
-            Q(name__icontains="apfelbutter")
-        ).order_by("name")
+        qs = (
+            Ingredient.objects.filter(is_standalone_food=True)
+            .filter(Q(name__icontains="butter") | Q(name__icontains="margarine") | Q(name__icontains="schmalz"))
+            .exclude(
+                Q(name__icontains="erdnuss")
+                | Q(name__icontains="kakaobutter")
+                | Q(name__icontains="keks")
+                | Q(name__icontains="gebäck")
+                | Q(name__icontains="bohne")
+                | Q(name__icontains="kürbis")
+                | Q(name__icontains="apfelbutter")
+            )
+            .order_by("name")
+        )
         self._tag_ingredients(tag, qs, "FAT", dry_run)
 
     def _tag_topping_ingredients(self, tag, dry_run):
-        qs = Ingredient.objects.filter(is_standalone_food=True).filter(
-            Q(name__icontains="nutella") |
-            Q(name__icontains="marmelade") | Q(name__icontains="konfitüre") |
-            Q(name__icontains="honig") |
-            Q(name__icontains="erdnussbutter") |
-            Q(name__icontains="avocado") |
-            Q(name__icontains="gouda") | Q(name__icontains="edamer") |
-            Q(name__icontains="emmentaler") | Q(name__icontains="tilsiter") |
-            Q(name__icontains="mozzarella") | Q(name__icontains="camembert") |
-            Q(name__icontains="brie") | Q(name__icontains="cheddar") |
-            Q(name__icontains="salami") |
-            Q(name__icontains="schinken") | Q(name__icontains="putenbrust") |
-            Q(name__icontains="leberwurst") | Q(name__icontains="teewurst") |
-            Q(name__icontains="mettwurst") | Q(name__icontains="streichwurst") |
-            Q(name__icontains="frischkäse") | Q(name__icontains="hummus")
-        ).exclude(
-            Q(name__icontains="chips") | Q(name__icontains="flips") |
-            Q(name__icontains="gebäck") | Q(name__icontains="knäcke") |
-            Q(name__icontains="pizza") | Q(name__icontains="auflauf") |
-            Q(name__icontains="suppe") | Q(name__icontains="soße") |
-            Q(name__icontains="sosse") | Q(name__icontains="dip") |
-            Q(name__icontains="creme") | Q(name__icontains="creme") |
-            Q(name__icontains="salat") | Q(name__icontains="gemüse") |
-            Q(name__icontains="käsegebäck") | Q(name__icontains="käsegebäck") |
-            Q(name__icontains="käsesoße") | Q(name__icontains="käsesosse") |
-            Q(name__icontains="käse-creme") | Q(name__icontains="käsecreme")
-        ).order_by("name")
+        qs = (
+            Ingredient.objects.filter(is_standalone_food=True)
+            .filter(
+                Q(name__icontains="nutella")
+                | Q(name__icontains="marmelade")
+                | Q(name__icontains="konfitüre")
+                | Q(name__icontains="honig")
+                | Q(name__icontains="erdnussbutter")
+                | Q(name__icontains="avocado")
+                | Q(name__icontains="gouda")
+                | Q(name__icontains="edamer")
+                | Q(name__icontains="emmentaler")
+                | Q(name__icontains="tilsiter")
+                | Q(name__icontains="mozzarella")
+                | Q(name__icontains="camembert")
+                | Q(name__icontains="brie")
+                | Q(name__icontains="cheddar")
+                | Q(name__icontains="salami")
+                | Q(name__icontains="schinken")
+                | Q(name__icontains="putenbrust")
+                | Q(name__icontains="leberwurst")
+                | Q(name__icontains="teewurst")
+                | Q(name__icontains="mettwurst")
+                | Q(name__icontains="streichwurst")
+                | Q(name__icontains="frischkäse")
+                | Q(name__icontains="hummus")
+            )
+            .exclude(
+                Q(name__icontains="chips")
+                | Q(name__icontains="flips")
+                | Q(name__icontains="gebäck")
+                | Q(name__icontains="knäcke")
+                | Q(name__icontains="pizza")
+                | Q(name__icontains="auflauf")
+                | Q(name__icontains="suppe")
+                | Q(name__icontains="soße")
+                | Q(name__icontains="sosse")
+                | Q(name__icontains="dip")
+                | Q(name__icontains="creme")
+                | Q(name__icontains="creme")
+                | Q(name__icontains="salat")
+                | Q(name__icontains="gemüse")
+                | Q(name__icontains="käsegebäck")
+                | Q(name__icontains="käsegebäck")
+                | Q(name__icontains="käsesoße")
+                | Q(name__icontains="käsesosse")
+                | Q(name__icontains="käse-creme")
+                | Q(name__icontains="käsecreme")
+            )
+            .order_by("name")
+        )
         self._tag_ingredients(tag, qs, "TOPPING", dry_run)
 
     def _tag_drink_ingredients(self, tag, dry_run):
-        qs = Ingredient.objects.filter(is_standalone_food=True).filter(
-            Q(name__icontains="milch") | Q(name__icontains="haferdrink") |
-            Q(name__istartswith="Saft ") | Q(name__icontains="Saft (") |
-            Q(name__icontains="saft ") | Q(name__icontains="saft (") |
-            Q(name__icontains="Kakao") | Q(name__icontains="kakao") |
-            Q(name__icontains="tee ") | Q(name__icontains="Tee ") |
-            Q(name__iendswith="tee") | Q(name__iendswith="Tee")
-        ).exclude(
-            Q(name__icontains="pulver") | Q(name__icontains="kakaopulver") |
-            Q(name__icontains="kakaobutter") | Q(name__icontains="schokolade") |
-            Q(name__icontains="kondensmilch") | Q(name__icontains="milchpulver") |
-            Q(name__icontains="milchreis") | Q(name__icontains="milchshake") |
-            Q(name__icontains="milchbrötchen") | Q(name__icontains="milchschnitte") |
-            Q(name__icontains="milchmix") | Q(name__icontains="buttermilch") |
-            Q(name__icontains="zitronentee") | Q(name__icontains="pfirsichtee") |
-            Q(name__icontains="früchtetee") | Q(name__icontains="kräutertee") |
-            Q(name__icontains="teegetränk") | Q(name__icontains="eistee") |
-            Q(name__icontains="tee konzentrat") | Q(name__icontains="matcha")
-        ).order_by("name")
+        qs = (
+            Ingredient.objects.filter(is_standalone_food=True)
+            .filter(
+                Q(name__icontains="milch")
+                | Q(name__icontains="haferdrink")
+                | Q(name__istartswith="Saft ")
+                | Q(name__icontains="Saft (")
+                | Q(name__icontains="saft ")
+                | Q(name__icontains="saft (")
+                | Q(name__icontains="Kakao")
+                | Q(name__icontains="kakao")
+                | Q(name__icontains="tee ")
+                | Q(name__icontains="Tee ")
+                | Q(name__iendswith="tee")
+                | Q(name__iendswith="Tee")
+            )
+            .exclude(
+                Q(name__icontains="pulver")
+                | Q(name__icontains="kakaopulver")
+                | Q(name__icontains="kakaobutter")
+                | Q(name__icontains="schokolade")
+                | Q(name__icontains="kondensmilch")
+                | Q(name__icontains="milchpulver")
+                | Q(name__icontains="milchreis")
+                | Q(name__icontains="milchshake")
+                | Q(name__icontains="milchbrötchen")
+                | Q(name__icontains="milchschnitte")
+                | Q(name__icontains="milchmix")
+                | Q(name__icontains="buttermilch")
+                | Q(name__icontains="zitronentee")
+                | Q(name__icontains="pfirsichtee")
+                | Q(name__icontains="früchtetee")
+                | Q(name__icontains="kräutertee")
+                | Q(name__icontains="teegetränk")
+                | Q(name__icontains="eistee")
+                | Q(name__icontains="tee konzentrat")
+                | Q(name__icontains="matcha")
+            )
+            .order_by("name")
+        )
         self._tag_ingredients(tag, qs, "DRINK-ING", dry_run)
+
+    def _tag_extra_ingredients(self, tag, dry_run):
+        qs = (
+            Ingredient.objects.filter(is_standalone_food=True)
+            .filter(
+                Q(name__icontains="avocado")
+                | Q(name__icontains="apfel")
+                | Q(name__icontains="banane")
+                | Q(name__icontains="orange")
+                | Q(name__icontains="erdbeere")
+                | Q(name__icontains="tomate")
+                | Q(name__icontains="gurke")
+                | Q(name__icontains="paprika")
+                | Q(name__icontains="möhre")
+                | Q(name__icontains="moehre")
+                | Q(name__icontains="radieschen")
+                | Q(name__icontains="schnittlauch")
+            )
+            .exclude(
+                Q(name__icontains="saft")
+                | Q(name__icontains="marmelade")
+                | Q(name__icontains="kuchen")
+                | Q(name__icontains="joghurt")
+                | Q(name__icontains="tee")
+            )
+            .order_by("name")
+        )
+        self._tag_ingredients(tag, qs, "EXTRA", dry_run)
 
     def _tag_drink_recipes(self, tag, dry_run):
         qs = Recipe.objects.filter(recipe_type="drink", status="approved").order_by("title")
@@ -192,9 +286,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  [DRINK-REC] All {skipped} already tagged")
 
     def _tag_warm_meal_recipes(self, tag, dry_run):
-        qs = Recipe.objects.filter(
-            recipe_type="breakfast", status="approved"
-        ).order_by("title")
+        qs = Recipe.objects.filter(recipe_type="breakfast", status="approved").order_by("title")
         tagged = 0
         skipped = 0
         for rec in qs:

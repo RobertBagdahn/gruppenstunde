@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from planner.models import MealPlan
+    from supply.models import Ingredient
 
 
 def _retail_section_rank_map() -> dict[str, int]:
@@ -125,12 +126,12 @@ def generate_shopping_list(
                 portion_lookup[(p.ingredient_id, p.measuring_unit_id)] = p
 
     # Batch-load ingredients for price estimation at the end
-    ingredient_cache: dict[int, object] = {}
+    ingredient_cache: dict[int, Ingredient] = {}
 
     # Aggregate: ingredient_id -> ShoppingListItem
     aggregated: dict[int, ShoppingListItem] = {}
     # Track sources per ingredient: ingredient_id -> dict[(recipe_id, meal_id) -> ShoppingItemSource]
-    sources_map: dict[int, dict[tuple[int, int | None], ShoppingItemSource]] = {}
+    sources_map: dict[int, dict[tuple[int | None, int | None], ShoppingItemSource]] = {}
     # Track raw quantities for items with weight_g=0: ingredient_id -> (total_quantity, portion_name)
     raw_quantities: dict[int, tuple[float, str]] = {}
 
@@ -138,10 +139,10 @@ def generate_shopping_list(
         meal = mi.meal
         if meal and meal.override_portions is not None:
             meal_scaling = meal.override_portions * reserve_factor
-            effective_portions = meal.override_portions
+            effective_portions: float = meal.override_portions
         else:
             meal_scaling = scaling
-            effective_portions = meal_plan.norm_portions or 1
+            effective_portions = float(meal_plan.norm_portions or 1)
 
         meal_label = str(mi.meal) if mi.meal else ""
 
@@ -160,16 +161,19 @@ def generate_shopping_list(
 
             for active_item in active_recipe_items(mi):
                 ri = active_item.recipe_item
-                ing = ri.portion.ingredient if ri.portion else None
+                portion = ri.portion
+                if portion is None:
+                    continue
+                ing = portion.ingredient
                 if not ing:
                     continue
 
-                recipe_servings = recipe.portions
+                recipe_servings = recipe.portions or 1
                 weight_g = (active_item.weight_g or 0) * mi.factor * meal_scaling / recipe_servings
 
-                if not ri.portion.weight_g:
+                if not portion.weight_g:
                     raw_qty = active_item.quantity * mi.factor * meal_scaling / recipe_servings
-                    portion_name = ri.portion.name or ""
+                    portion_name = portion.name or ""
                     if ing.id in raw_quantities:
                         raw_quantities[ing.id] = (
                             raw_quantities[ing.id][0] + raw_qty,
@@ -197,7 +201,7 @@ def generate_shopping_list(
                     sources_map[ing.id] = {}
 
                 # Track source contribution
-                source_key = (recipe.id, mi.meal_id)
+                source_key: tuple[int | None, int | None] = (recipe.id, mi.meal_id)
                 if source_key in sources_map[ing.id]:
                     sources_map[ing.id][source_key].quantity_g += weight_g
                 else:
@@ -280,10 +284,10 @@ def generate_shopping_list(
 
     # Estimate prices from Ingredient.price_per_kg — no DB queries here
     for ing_id, item in aggregated.items():
-        ing = ingredient_cache.get(ing_id)
-        if ing is None:
+        cached_ingredient = ingredient_cache.get(ing_id)
+        if cached_ingredient is None:
             continue
-        price = get_portion_price(ing, item.total_quantity_g)
+        price = get_portion_price(cached_ingredient, item.total_quantity_g)
         if price is not None:
             item.estimated_price_eur = float(price)
 

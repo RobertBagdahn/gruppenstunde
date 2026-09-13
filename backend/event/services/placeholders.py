@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db import models
+from event.models import Event, Participant
 
 # Supported placeholders and their corresponding Participant fields / computed values.
 PLACEHOLDER_MAP: dict[str, str] = {
@@ -19,7 +19,7 @@ PLACEHOLDER_MAP: dict[str, str] = {
 }
 
 
-def replace_placeholders(text: str, participant: models.Model, event: models.Model) -> str:
+def replace_placeholders(text: str, participant: Participant, event: Event) -> str:
     """Replace all supported placeholders in the text.
 
     Works for both email and WhatsApp messages — the placeholder syntax

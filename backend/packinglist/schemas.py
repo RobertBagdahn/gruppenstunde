@@ -1,6 +1,7 @@
 """Pydantic schemas for the Packing List API (Django Ninja)."""
 
 from datetime import datetime
+from typing import cast
 from uuid import UUID
 
 from ninja import Schema
@@ -27,19 +28,19 @@ class PackingItemOut(Schema):
     @staticmethod
     def resolve_supply_type(obj) -> str | None:
         if obj.supply_content_type:
-            return obj.supply_content_type.model
+            return cast(str, obj.supply_content_type.model)
         return None
 
     @staticmethod
     def resolve_supply_id(obj) -> int | None:
-        return obj.supply_object_id
+        return cast(int | None, obj.supply_object_id)
 
     @staticmethod
     def resolve_supply_name(obj) -> str | None:
         if obj.supply_content_type and obj.supply_object_id:
             try:
                 supply = obj.supply_content_type.get_object_for_this_type(pk=obj.supply_object_id)
-                return getattr(supply, "name", None)
+                return cast(str | None, getattr(supply, "name", None))
             except Exception:
                 pass
         return None
@@ -80,8 +81,8 @@ class PackingCategoryOut(Schema):
     updated_at: datetime
 
     @staticmethod
-    def resolve_items(obj) -> list:
-        return obj.items.all()
+    def resolve_items(obj) -> list[PackingItemOut]:
+        return list(obj.items.all())
 
 
 class PackingCategoryCreateIn(Schema):
@@ -136,19 +137,19 @@ class SharedPackingItemOut(Schema):
     @staticmethod
     def resolve_supply_type(obj) -> str | None:
         if obj.supply_content_type:
-            return obj.supply_content_type.model
+            return cast(str, obj.supply_content_type.model)
         return None
 
     @staticmethod
     def resolve_supply_id(obj) -> int | None:
-        return obj.supply_object_id
+        return cast(int | None, obj.supply_object_id)
 
     @staticmethod
     def resolve_supply_name(obj) -> str | None:
         if obj.supply_content_type and obj.supply_object_id:
             try:
                 supply = obj.supply_content_type.get_object_for_this_type(pk=obj.supply_object_id)
-                return getattr(supply, "name", None)
+                return cast(str | None, getattr(supply, "name", None))
             except Exception:
                 pass
         return None
@@ -202,23 +203,23 @@ class PackingListOut(Schema):
     def resolve_owner_name(obj) -> str:
         profile = getattr(obj.owner, "profile", None)
         if profile and profile.scout_display_name:
-            return profile.scout_display_name
-        return obj.owner.email
+            return cast(str, profile.scout_display_name)
+        return cast(str, obj.owner.email)
 
     @staticmethod
     def resolve_group_name(obj) -> str:
         if obj.group:
-            return obj.group.name
+            return cast(str, obj.group.name)
         return ""
 
     @staticmethod
-    def resolve_categories(obj) -> list:
-        return obj.categories.prefetch_related("items").all()
+    def resolve_categories(obj) -> list[PackingCategoryOut]:
+        return list(obj.categories.prefetch_related("items").all())
 
     @staticmethod
-    def resolve_shares(obj) -> list:
+    def resolve_shares(obj) -> list[ShareOut]:
         if getattr(obj, "can_edit", False):
-            return obj.shares.filter(is_active=True)
+            return list(obj.shares.filter(is_active=True))
         return []
 
 
@@ -246,18 +247,18 @@ class PackingListSummaryOut(Schema):
     def resolve_owner_name(obj) -> str:
         profile = getattr(obj.owner, "profile", None)
         if profile and profile.scout_display_name:
-            return profile.scout_display_name
-        return obj.owner.email
+            return cast(str, profile.scout_display_name)
+        return cast(str, obj.owner.email)
 
     @staticmethod
     def resolve_group_name(obj) -> str:
         if obj.group:
-            return obj.group.name
+            return cast(str, obj.group.name)
         return ""
 
     @staticmethod
     def resolve_category_count(obj) -> int:
-        return obj.categories.count()
+        return cast(int, obj.categories.count())
 
     @staticmethod
     def resolve_item_count(obj) -> int:

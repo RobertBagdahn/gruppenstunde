@@ -1,12 +1,28 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, ChefHat, Carrot, Layers, Sparkles, Check, X, Users, Euro, AlertCircle, Plus } from 'lucide-react';
+import { Search, ChefHat, Carrot, Layers, Sparkles, Check, X, Users, Euro, AlertCircle, Plus, BadgeCheck, Flame, Utensils } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRecipeSearch } from '@/api/mealPlans';
 import type { RecipeSearchResult, IngredientSearchResult } from '@/schemas/mealPlan';
-import RecipeThumbnail from '@/components/recipe/RecipeThumbnail';
 import { cn } from '@/lib/utils';
 
 type FilterPill = 'all' | 'recipes' | 'ingredients' | 'bundles';
+
+const RECIPE_TYPE_LABELS: Record<string, string> = {
+  breakfast: 'Frühstück',
+  warm_meal: 'Warme Mahlzeit',
+  cold_meal: 'Kalte Mahlzeit',
+  snack: 'Snack',
+  drink: 'Getränk',
+  dessert: 'Dessert',
+};
+
+function recipeTypeLabel(type: string): string {
+  return RECIPE_TYPE_LABELS[type] ?? 'Rezept';
+}
+
+function formatNumber(value: number | null | undefined, suffix: string): string | null {
+  return value == null ? null : `${Math.round(value)} ${suffix}`;
+}
 
 export interface MealOmnibarDialogProps {
   open: boolean;
@@ -173,7 +189,7 @@ export function MealOmnibarDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden shadow-2xl border-border">
+      <DialogContent className="max-w-5xl max-h-[min(760px,90vh)] p-0 overflow-hidden shadow-2xl border-border">
         {/* Top Search Omnibar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
           <Search className="w-5 h-5 text-muted-foreground shrink-0" />
@@ -187,7 +203,7 @@ export function MealOmnibarDialog({
             }}
             onKeyDown={handleInputKeyDown}
             placeholder="Gericht, Zutat oder Set suchen... (z. B. Spaghetti, Haferflocken)"
-            className="w-full text-base font-sans bg-transparent border-0 focus:outline-none placeholder:text-muted-foreground"
+            className="min-w-0 w-full text-base font-sans bg-transparent border-0 focus:outline-none placeholder:text-muted-foreground"
           />
           {query && (
             <button
@@ -272,9 +288,9 @@ export function MealOmnibarDialog({
         </div>
 
         {/* 2-Column Area: List on left, Live Preview on right */}
-        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[380px] max-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[420px] max-h-[620px]">
           {/* List Area */}
-          <div className="md:col-span-7 overflow-y-auto border-r border-border p-2 space-y-1">
+          <div className="md:col-span-7 overflow-y-auto border-r border-border p-3 space-y-1">
             {isLoading && (
               <p className="text-xs text-muted-foreground py-10 text-center">Suche läuft...</p>
             )}
@@ -298,19 +314,16 @@ export function MealOmnibarDialog({
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={cn(
-                    'p-2.5 rounded-xl cursor-pointer flex items-center gap-3 transition-colors text-xs',
+                    'p-3 rounded-xl cursor-pointer flex items-start gap-3 transition-colors text-xs',
                     isSelected
                       ? 'bg-primary/10 border border-primary/30 text-foreground'
                       : 'hover:bg-muted/40 text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {item.type === 'recipe' && (
-                    <RecipeThumbnail
-                      imageUrl={item.data.image_url}
-                      title={item.data.title}
-                      size="xs"
-                      className="rounded shrink-0"
-                    />
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <ChefHat className="w-4 h-4" />
+                    </div>
                   )}
                   {item.type === 'ingredient' && (
                     <div className="w-9 h-9 rounded-lg bg-orange-500/10 text-orange-600 flex items-center justify-center shrink-0">
@@ -323,18 +336,20 @@ export function MealOmnibarDialog({
                     </div>
                   )}
 
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-foreground text-sm truncate leading-tight">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="font-bold text-foreground text-sm leading-snug break-words">
                       {item.type === 'ingredient' ? item.data.name : item.data.title}
                     </div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                       {item.type === 'recipe' && (
-                        <span>
-                          Rezept {item.data.price_per_serving ? `· ca. ${item.data.price_per_serving.toFixed(2)} €/P.` : ''}
-                        </span>
+                        <>
+                          <span>{recipeTypeLabel(item.data.recipe_type)}</span>
+                          {item.data.portions != null && <span>{item.data.portions} Portionen</span>}
+                          {item.data.price_per_serving != null && <span>{item.data.price_per_serving.toFixed(2)} €/P.</span>}
+                        </>
                       )}
                       {item.type === 'ingredient' && <span>Einzelzutat</span>}
-                      {item.type === 'bundle' && <span>{item.data.description}</span>}
+                      {item.type === 'bundle' && <span className="break-words">{item.data.description}</span>}
                     </div>
                   </div>
 
@@ -344,35 +359,57 @@ export function MealOmnibarDialog({
             })}
           </div>
 
-          {/* Preview Panel on Right */}
-          <div className="md:col-span-5 p-4 flex flex-col justify-between bg-muted/10 overflow-y-auto">
+          {/* Details Panel on Right */}
+          <div className="md:col-span-5 p-5 flex flex-col justify-between bg-muted/10 overflow-y-auto">
             {activeItem ? (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {activeItem.type === 'recipe' && (
                   <>
-                    <RecipeThumbnail
-                      imageUrl={activeItem.data.image_url}
-                      title={activeItem.data.title}
-                      size="lg"
-                      className="w-full h-36 rounded-xl object-cover shadow-sm"
-                    />
                     <div>
-                      <h3 className="font-display font-bold text-base text-foreground leading-snug">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-primary mb-2">
+                        <ChefHat className="w-4 h-4" />
+                        {recipeTypeLabel(activeItem.data.recipe_type)}
+                        {activeItem.data.recipe_badge === 'verified' && (
+                          <span className="inline-flex items-center gap-1 text-muted-foreground"><BadgeCheck className="w-3.5 h-3.5" />Verifiziert</span>
+                        )}
+                      </div>
+                      <h3 className="font-display font-bold text-xl text-foreground leading-tight break-words">
                         {activeItem.data.title}
                       </h3>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs">
+                        <span className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
                           <Users className="w-3.5 h-3.5 text-primary" />
                           {normPortions} Personen
                         </span>
-                        {activeItem.data.price_per_serving && (
-                          <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                        {activeItem.data.price_per_serving != null && (
+                          <span className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-card border border-border px-3 py-2 font-semibold text-foreground break-words">
                             <Euro className="w-3.5 h-3.5 text-emerald-600" />
                             {(activeItem.data.price_per_serving * normPortions).toFixed(2)} € gesamt
                           </span>
                         )}
                       </div>
                     </div>
+                    {(activeItem.data.description || (activeItem.data.ingredients_preview?.length ?? 0) > 0) && (
+                      <div className="space-y-3 text-xs">
+                        {activeItem.data.description && <p className="text-muted-foreground leading-relaxed break-words">{activeItem.data.description}</p>}
+                        {activeItem.data.ingredients_preview && activeItem.data.ingredients_preview.length > 0 && (
+                          <div className="rounded-xl border border-border bg-card p-3">
+                            <div className="flex items-center gap-2 font-semibold text-foreground mb-2"><Utensils className="w-3.5 h-3.5 text-primary" />Enthält unter anderem</div>
+                            <p className="text-muted-foreground leading-relaxed break-words">{activeItem.data.ingredients_preview.join(' · ')}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {(activeItem.data.cached_energy_kcal != null || activeItem.data.cached_protein_g != null || activeItem.data.nutritional_tags?.length) && (
+                      <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-foreground"><Flame className="w-3.5 h-3.5 text-primary" />Nährwerte und Hinweise</div>
+                        <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                          {formatNumber(activeItem.data.cached_energy_kcal, 'kcal') && <span>{formatNumber(activeItem.data.cached_energy_kcal, 'kcal')}</span>}
+                          {formatNumber(activeItem.data.cached_protein_g, 'g Protein') && <span>{formatNumber(activeItem.data.cached_protein_g, 'g Protein')}</span>}
+                          {activeItem.data.nutritional_tags?.map((tag) => <span key={tag.id} className="rounded-full bg-primary/10 px-2 py-1 text-primary">{tag.name}</span>)}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 

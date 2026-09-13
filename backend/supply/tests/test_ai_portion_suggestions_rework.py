@@ -14,6 +14,7 @@ from django.test import Client
 from pydantic import ValidationError
 
 from content.models import Tag
+from supply.models import Portion
 from supply.services.ingredient_ai_suggest_service import (
     _ingredient_portion_tags,
 )
@@ -23,7 +24,6 @@ from supply.services.portion_knowledge import (
     PortionType,
     build_portion_prompt_section,
 )
-from supply.models import Portion
 from supply.tests import make_ingredient, make_measuring_unit, make_portion
 
 User = get_user_model()
@@ -201,33 +201,73 @@ class TestFullZauberstabFlowMockedGemini:
 
         portions = {
             "system_gramm": {
-                "name": "g", "weight_g": 1.0, "quantity": 1.0,
-                "measuring_unit_name": "Gramm", "rank": 9999, "portion_type": "system_gramm",
+                "name": "g",
+                "weight_g": 1.0,
+                "quantity": 1.0,
+                "measuring_unit_name": "Gramm",
+                "rank": 9999,
+                "portion_type": "system_gramm",
             },
             "rezeptportionen": [
-                {"name": "Portion", "weight_g": 80.0, "quantity": 1.0,
-                 "measuring_unit_name": "Gramm", "rank": 1, "portion_type": "rezeptportion"},
+                {
+                    "name": "Portion",
+                    "weight_g": 80.0,
+                    "quantity": 1.0,
+                    "measuring_unit_name": "Gramm",
+                    "rank": 1,
+                    "portion_type": "rezeptportion",
+                },
             ],
             "packungen": [
-                {"name": "Packung", "weight_g": 500.0, "quantity": 1.0,
-                 "measuring_unit_name": "Gramm", "rank": 3, "portion_type": "packung"},
+                {
+                    "name": "Packung",
+                    "weight_g": 500.0,
+                    "quantity": 1.0,
+                    "measuring_unit_name": "Gramm",
+                    "rank": 3,
+                    "portion_type": "packung",
+                },
             ],
             "belag": (
                 [
-                    {"name": "Belag knapp", "weight_g": 10.0, "quantity": 1.0,
-                     "measuring_unit_name": "Gramm", "rank": 2, "portion_type": "belag"},
-                    {"name": "Belag normal", "weight_g": 20.0, "quantity": 1.0,
-                     "measuring_unit_name": "Gramm", "rank": 1, "portion_type": "belag"},
-                    {"name": "Belag üppig", "weight_g": 30.0, "quantity": 1.0,
-                     "measuring_unit_name": "Gramm", "rank": 3, "portion_type": "belag"},
+                    {
+                        "name": "Belag knapp",
+                        "weight_g": 10.0,
+                        "quantity": 1.0,
+                        "measuring_unit_name": "Gramm",
+                        "rank": 2,
+                        "portion_type": "belag",
+                    },
+                    {
+                        "name": "Belag normal",
+                        "weight_g": 20.0,
+                        "quantity": 1.0,
+                        "measuring_unit_name": "Gramm",
+                        "rank": 1,
+                        "portion_type": "belag",
+                    },
+                    {
+                        "name": "Belag üppig",
+                        "weight_g": 30.0,
+                        "quantity": 1.0,
+                        "measuring_unit_name": "Gramm",
+                        "rank": 3,
+                        "portion_type": "belag",
+                    },
                 ]
                 if is_breakfast_topping
                 else []
             ),
             "backmengen": (
                 [
-                    {"name": "Backmenge", "weight_g": 200.0, "quantity": 1.0,
-                     "measuring_unit_name": "Gramm", "rank": 4, "portion_type": "backmenge"},
+                    {
+                        "name": "Backmenge",
+                        "weight_g": 200.0,
+                        "quantity": 1.0,
+                        "measuring_unit_name": "Gramm",
+                        "rank": 4,
+                        "portion_type": "backmenge",
+                    },
                 ]
                 if is_baking_ingredient
                 else []
@@ -235,15 +275,33 @@ class TestFullZauberstabFlowMockedGemini:
         }
         payload = {
             "name_suggestion": None,
-            "energy_kcal": 100.0, "protein_g": 1.0, "fat_g": 1.0, "fat_sat_g": 0.1,
-            "carbohydrate_g": 10.0, "sugar_g": 1.0, "fibre_g": 1.0, "salt_g": 0.1,
-            "sodium_mg": 10.0, "fructose_g": 0.0, "lactose_g": 0.0,
-            "nutri_score": None, "nova_score": None, "child_score": None,
-            "scout_score": None, "environmental_score": None, "fruit_factor": None,
-            "physical_density": None, "physical_viscosity": None,
-            "durability_in_days": None, "max_storage_temperature": None,
-            "storage_type": None, "cooking_factor": None, "camp_suitable": None,
-            "preparation_time_min": None, "season_start": None, "season_end": None,
+            "energy_kcal": 100.0,
+            "protein_g": 1.0,
+            "fat_g": 1.0,
+            "fat_sat_g": 0.1,
+            "carbohydrate_g": 10.0,
+            "sugar_g": 1.0,
+            "fibre_g": 1.0,
+            "salt_g": 0.1,
+            "sodium_mg": 10.0,
+            "fructose_g": 0.0,
+            "lactose_g": 0.0,
+            "nutri_score": None,
+            "nova_score": None,
+            "child_score": None,
+            "scout_score": None,
+            "environmental_score": None,
+            "fruit_factor": None,
+            "physical_density": None,
+            "physical_viscosity": None,
+            "durability_in_days": None,
+            "max_storage_temperature": None,
+            "storage_type": None,
+            "cooking_factor": None,
+            "camp_suitable": None,
+            "preparation_time_min": None,
+            "season_start": None,
+            "season_end": None,
             "price_per_kg": None,
             "portions": portions,
             "aliases": [],
@@ -256,14 +314,17 @@ class TestFullZauberstabFlowMockedGemini:
     def test_breakfast_topping_suggest_then_apply_without_replace(self):
         from unittest.mock import patch
 
-        client, user = self._client()
+        client, _user = self._client()
         ing = make_ingredient(name="Marmelade")
         tag, _ = Tag.objects.get_or_create(slug="breakfast-topping", defaults={"name": "breakfast-topping"})
         ing.tags.add(tag)
 
         with patch(
             "supply.services.ingredient_ai_suggest_service.gemini_call",
-            return_value=(self._mock_gemini_response(is_breakfast_topping=True, is_baking_ingredient=False), "interaction-1"),
+            return_value=(
+                self._mock_gemini_response(is_breakfast_topping=True, is_baking_ingredient=False),
+                "interaction-1",
+            ),
         ):
             suggest_response = client.post(f"/api/ingredients/{ing.slug}/ai-suggest-all/")
         assert suggest_response.status_code == 200, suggest_response.content
@@ -284,14 +345,17 @@ class TestFullZauberstabFlowMockedGemini:
     def test_baking_ingredient_suggest_then_apply(self):
         from unittest.mock import patch
 
-        client, user = self._client()
+        client, _user = self._client()
         ing = make_ingredient(name="Mehl")
         tag, _ = Tag.objects.get_or_create(slug="baking-ingredient", defaults={"name": "baking-ingredient"})
         ing.tags.add(tag)
 
         with patch(
             "supply.services.ingredient_ai_suggest_service.gemini_call",
-            return_value=(self._mock_gemini_response(is_breakfast_topping=False, is_baking_ingredient=True), "interaction-2"),
+            return_value=(
+                self._mock_gemini_response(is_breakfast_topping=False, is_baking_ingredient=True),
+                "interaction-2",
+            ),
         ):
             suggest_response = client.post(f"/api/ingredients/{ing.slug}/ai-suggest-all/")
         assert suggest_response.status_code == 200, suggest_response.content
@@ -312,7 +376,7 @@ class TestFullZauberstabFlowMockedGemini:
         not break the recipe's displayed portion name (soft-delete only)."""
         from recipe.tests import make_recipe, make_recipe_item
 
-        client, user = self._client()
+        client, _user = self._client()
         ing = make_ingredient(name="Reis")
         old_portion = make_portion(ing, name="Alte Rezeptportion", measuring_unit=make_measuring_unit(), rank=1)
         recipe = make_recipe()

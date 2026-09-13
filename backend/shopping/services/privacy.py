@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from profiles.services.privacy import PrivacyDataCollector
-
-User = get_user_model()
 
 
 class ShoppingPrivacyCollector(PrivacyDataCollector):
@@ -19,7 +17,8 @@ class ShoppingPrivacyCollector(PrivacyDataCollector):
 
         shopping_lists = list(ShoppingList.objects.filter(owner=user).values("id", "name", "source_type", "created_at"))
         for s in shopping_lists:
-            s["created_at"] = str(s["created_at"])
+            s_any = cast(dict[str, Any], s)
+            s_any["created_at"] = str(s_any["created_at"])
 
         collaborations = list(
             ShoppingListCollaborator.objects.filter(user=user)
@@ -27,7 +26,8 @@ class ShoppingPrivacyCollector(PrivacyDataCollector):
             .values("shopping_list__name", "role", "created_at")
         )
         for c in collaborations:
-            c["created_at"] = str(c["created_at"])
+            c_any = cast(dict[str, Any], c)
+            c_any["created_at"] = str(c_any["created_at"])
 
         items = [
             *[{"type": "owned", **s} for s in shopping_lists],

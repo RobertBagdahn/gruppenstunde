@@ -3,7 +3,7 @@
 from django.contrib.postgres.search import TrigramSimilarity
 from django.db.models import FloatField, Value
 
-from supply.models import Ingredient, IngredientAlias, IngredientGroup
+from supply.models import Ingredient, IngredientAlias
 
 
 def suggest_ingredients(query: str, limit: int = 5, threshold: float = 0.3) -> list[dict]:

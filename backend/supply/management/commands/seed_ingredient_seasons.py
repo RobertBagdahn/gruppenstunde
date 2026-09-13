@@ -149,7 +149,7 @@ class Command(BaseCommand):
 
             for ingredient in ingredients:
                 for month in months:
-                    obj, was_created = IngredientSeason.objects.update_or_create(
+                    _obj, was_created = IngredientSeason.objects.update_or_create(
                         ingredient=ingredient,
                         month=month,
                         defaults={"is_high_season": is_high},

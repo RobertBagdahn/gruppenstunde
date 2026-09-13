@@ -37,6 +37,8 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
   const totalGrams = state.basis.reduce((s, b) =>
     s + breadItemGrams(b.sharePercent, totalShare, breadKcal, b.energyKcal100g), 0);
 
+  const hasMuesli = state.basis.some((b) => /müsli|haferflock/i.test(b.name) && b.sharePercent > 0);
+
   return (
     <div className="space-y-6">
       {/* Sortenverteilung */}
@@ -53,7 +55,7 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
                 +  Neue Basis erstellen
               </button>
               <span className="text-xs text-muted-foreground">
-                {Math.round(totalGrams)}g · {Math.round(breadKcal)} kcal/Person
+                 {Math.round(totalGrams)}g · {Math.round(breadKcal)} kcal/Person
               </span>
             </div>
           </div>
@@ -61,11 +63,11 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
             {state.basis.map((b, i) => {
               const grams = breadItemGrams(b.sharePercent, totalShare, breadKcal, b.energyKcal100g);
               const kcal = b.energyKcal100g ? (b.energyKcal100g / 100) * grams : null;
-              
+
               // Get portions from catalog for portion hint
               const catalogIng = catalog?.base_ingredients.find((ing) => ing.id === b.ingredientId);
               const gramsWithHint = formatGramsWithPortionHint(grams, catalogIng?.portions);
-              
+
               return (
                 <ShareSlider
                   key={b.ingredientId}
@@ -82,6 +84,11 @@ export default function StepBasis({ wiz, dayPartFactor }: StepBasisProps) {
               );
             })}
           </div>
+          {hasMuesli && (
+            <p className="text-xs text-muted-foreground rounded-lg bg-muted/50 px-3 py-2">
+              Müsli-Menge als Trockenprodukt. Milch, Hafermilch und Obst kannst du in den nächsten Schritten ergänzen.
+            </p>
+          )}
         </div>
       )}
 

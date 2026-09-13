@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import type { UseWizardStateReturn } from './useWizardState';
 import { useScaleMealToTarget } from '@/api/mealPlans';
 import type { BreakfastCatalog, BreakfastPortion } from '@/schemas/breakfast';
+import type { Meal } from '@/schemas/mealPlan';
 import {
   computeGroupKcal,
   breadItemGrams,
@@ -25,6 +26,9 @@ interface StepCockpitProps {
   saveMode: 'refMeal' | 'directMeal';
   planId: number;
   mealId: number | null;
+  breakfastMeals: Meal[];
+  selectedBreakfastMealIds: number[];
+  onSelectedBreakfastMealIdsChange: (ids: number[]) => void;
 }
 
 function kcalRow(kcal: number): string {
@@ -36,7 +40,7 @@ function gramsRow(g: number, portions?: BreakfastPortion[] | null): string {
   return formatGramsWithPortionHint(g, portions);
 }
 
-export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, planId, mealId }: StepCockpitProps) {
+export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, planId, mealId, breakfastMeals, selectedBreakfastMealIds, onSelectedBreakfastMealIdsChange }: StepCockpitProps) {
   const { state } = wiz;
   const scaleMutation = useScaleMealToTarget(planId);
 
@@ -94,6 +98,26 @@ export default function StepCockpit({ wiz, catalog, dayPartFactor, saveMode, pla
 
   return (
     <div className="space-y-6">
+      {saveMode === 'directMeal' && breakfastMeals.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div>
+            <h3 className="font-display font-semibold text-base">Auf welche Frühstücke anwenden?</h3>
+            <p className="text-xs text-muted-foreground">Die geprüfte Zusammenstellung wird auf jedes ausgewählte Frühstück dieses Events kopiert.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(breakfastMeals.map((meal) => meal.id))} className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted">Alle Frühstücke</button>
+            <button type="button" onClick={() => onSelectedBreakfastMealIdsChange(mealId ? [mealId] : [])} className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted">Nur dieses</button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {breakfastMeals.map((meal) => {
+              const selected = selectedBreakfastMealIds.includes(meal.id);
+              const label = meal.start_datetime ? new Date(meal.start_datetime).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) : `Frühstück #${meal.id}`;
+              return <label key={meal.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selected} onChange={() => onSelectedBreakfastMealIdsChange(selected ? selectedBreakfastMealIds.filter((id) => id !== meal.id) : [...selectedBreakfastMealIds, meal.id])} />{label}</label>;
+            })}
+          </div>
+          {selectedBreakfastMealIds.length === 0 && <p className="text-xs text-destructive">Bitte mindestens ein Frühstück auswählen.</p>}
+        </div>
+      )}
       {/* SollIstBar */}
       <div className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">

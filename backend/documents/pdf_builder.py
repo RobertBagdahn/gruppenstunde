@@ -393,7 +393,7 @@ def generate_pdf(
         rightMargin=params.margin_right * mm,
     )
     doc.build(flowables)
-    return doc.page
+    return int(doc.page)
 
 
 def measure_content_height(
@@ -420,7 +420,7 @@ def measure_content_height(
     doc.build(trial_flowables)
     page_h = available_page_height(params)
     # Return height as fractional pages * page_height
-    return doc.page * page_h
+    return float(doc.page) * page_h
 
 
 def trial_build_pages(
@@ -441,9 +441,9 @@ def trial_build_pages(
         rightMargin=params.margin_right * mm,
     )
     doc.build(trial_flowables)
-    return doc.page
+    return int(doc.page)
 
 
 def available_page_height(params: LayoutParams) -> float:
     """Calculate available content height per page in points."""
-    return A4[1] - (params.margin_top + params.margin_bottom) * mm
+    return float(A4[1] - (params.margin_top + params.margin_bottom) * mm)

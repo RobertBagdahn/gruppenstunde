@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { ImprovementSchema, RecipeDetailSchema } from './recipe';
+import { getRecipeExecutionTimeLabel, ImprovementSchema, RecipeDetailSchema } from './recipe';
 import { PortionOptionSchema, ShoppingItemSourceSchema } from './mealPlan';
 import { IngredientDetailSchema } from './supply';
 import { RecipeImportUrlResponseSchema } from '../api/recipeImport';
 
 describe('food API contracts', () => {
+  it('maps legacy execution-time values to the current German label', () => {
+    expect(getRecipeExecutionTimeLabel('less_5')).toBe('< 30 Min');
+  });
+
   it('accepts ingredient shopping sources and applies numeric defaults', () => {
     const result = ShoppingItemSourceSchema.parse({ ingredient_id: 7 });
     expect(result).toMatchObject({ ingredient_id: 7, recipe_id: null, quantity_g: 0 });

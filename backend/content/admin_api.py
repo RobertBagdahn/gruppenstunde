@@ -17,13 +17,14 @@ Endpoints:
 import logging
 import math
 from datetime import timedelta
+from typing import cast
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Count, Q
+from django.db.models import Count, Manager, Model, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Query, Router, Schema
+from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
 logger = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ class AdminUserOut(Schema):
 
     @staticmethod
     def resolve_date_joined(obj) -> str:
-        return obj.date_joined.isoformat()
+        return cast(str, obj.date_joined.isoformat())
 
 
 class AdminUserContentOut(Schema):
@@ -132,7 +133,7 @@ class AdminUserContentOut(Schema):
 
     @staticmethod
     def resolve_created_at(obj) -> str:
-        return obj["created_at"].isoformat()
+        return cast(str, obj["created_at"].isoformat())
 
 
 class AdminUserCommentOut(Schema):
@@ -201,11 +202,11 @@ class CommentModerationOut(Schema):
 
     @staticmethod
     def resolve_created_at(obj) -> str:
-        return obj.created_at.isoformat()
+        return cast(str, obj.created_at.isoformat())
 
     @staticmethod
     def resolve_content_type(obj) -> str:
-        return obj.content_type.model
+        return cast(str, obj.content_type.model)
 
     @staticmethod
     def resolve_user_email(obj) -> str | None:
@@ -507,7 +508,8 @@ def admin_user_detail(request, user_id: int):
     for model in CONTENT_MODELS:
         model_name = model.__name__.lower()
         label = CONTENT_TYPE_LABELS.get(model_name, model_name)
-        for item in model.objects.filter(created_by=user).values("id", "title", "slug", "status", "created_at"):
+        manager = cast(Manager[Model], model.objects)
+        for item in manager.filter(created_by=user).values("id", "title", "slug", "status", "created_at"):
             item["content_type"] = label
             user_content.append(item)
     user_content.sort(key=lambda x: x["created_at"], reverse=True)
@@ -558,9 +560,11 @@ def admin_user_detail(request, user_id: int):
 @router.get("/moderation/", response=PaginatedCommentModerationOut)
 def moderation_queue(request, page: int = 1, page_size: int = 50):
     _require_staff(request)
-    qs = ContentComment.objects.filter(status=CommentStatus.PENDING).select_related(
-        "content_type", "user"
-    ).order_by("-created_at")
+    qs = (
+        ContentComment.objects.filter(status=CommentStatus.PENDING)
+        .select_related("content_type", "user")
+        .order_by("-created_at")
+    )
     total = qs.count()
     total_pages = max(1, math.ceil(total / page_size))
     start = (page - 1) * page_size
@@ -640,7 +644,7 @@ def admin_create_material(request, payload: MaterialAdminCreateIn):
         description=payload.description,
         created_by=request.user,
     )
-    return 201, {"id": material.id, "name": material.name, "slug": material.slug, "default_unit": None}
+    return Status(201, {"id": material.id, "name": material.name, "slug": material.slug, "default_unit": None})
 
 
 @router.patch("/materials/{material_id}/", response=MaterialAdminOut)
@@ -663,7 +667,7 @@ def admin_delete_material(request, material_id: int):
 
     material = get_object_or_404(Material, id=material_id)
     material.soft_delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ---------------------------------------------------------------------------
@@ -681,7 +685,7 @@ def admin_units(request):
 def admin_create_unit(request, payload: UnitCreateIn):
     _require_staff(request)
     unit = MeasuringUnit.objects.create(name=payload.name)
-    return 201, unit
+    return Status(201, unit)
 
 
 @router.patch("/units/{unit_id}/", response=UnitOut)
@@ -699,7 +703,7 @@ def admin_delete_unit(request, unit_id: int):
     _require_staff(request)
     unit = get_object_or_404(MeasuringUnit, id=unit_id)
     unit.delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ---------------------------------------------------------------------------
@@ -772,7 +776,7 @@ def admin_approval_queue(request, page_size: int = 50):
                 "created_at": recipe.created_at.isoformat(),
             }
         )
-    items.sort(key=lambda x: x["created_at"], reverse=True)
+    items.sort(key=lambda x: cast(str, x["created_at"]), reverse=True)
     return items[:page_size]
 
 

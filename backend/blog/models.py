@@ -1,3 +1,5 @@
+from typing import Any
+
 """
 Blog model — a concrete content type for knowledge articles and guides.
 
@@ -22,6 +24,9 @@ class Blog(Content):
     Blog posts are typically longer, have no material list,
     and include a table of contents.
     """
+
+    # Non-persisted attribute set dynamically by the API layer (no DB field).
+    similar_blogs: list[Any] = []
 
     blog_type = models.CharField(
         max_length=20,

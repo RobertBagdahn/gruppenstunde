@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from django.db import models
+from django.contrib.auth.models import User
 
-from ..choices import TimelineActionChoices
+from event.choices import TimelineActionChoices
+from event.models import Event
+
 from ..services.mail import MailService
 from ..services.placeholders import apply_participant_filters, replace_placeholders
 from ..services.timeline import TimelineService
@@ -27,11 +29,11 @@ class MessagingService:
 
     @staticmethod
     def preview(
-        event: models.Model,
+        event: Event,
         channel: str,
         body: str,
         recipient_type: str,
-        user: models.Model,
+        user: User,
         filters: dict[str, Any] | None = None,
         participant_ids: list[int] | None = None,
     ) -> dict[str, Any]:
@@ -131,12 +133,12 @@ class MessagingService:
 
     @staticmethod
     def send(
-        event: models.Model,
+        event: Event,
         channel: str,
         subject: str,
         body: str,
         recipient_type: str,
-        user: models.Model,
+        user: User,
         filters: dict[str, Any] | None = None,
         participant_ids: list[int] | None = None,
     ) -> dict[str, Any]:
@@ -179,10 +181,10 @@ class MessagingService:
 
 
 def _send_whatsapp(
-    event: models.Model,
+    event: Event,
     body: str,
     recipient_type: str,
-    user: models.Model,
+    user: User,
     filters: dict[str, Any] | None = None,
     participant_ids: list[int] | None = None,
 ) -> dict[str, Any]:

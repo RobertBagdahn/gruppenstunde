@@ -4,6 +4,10 @@ import { BreakfastQuickBuilder } from './BreakfastQuickBuilder';
 
 const mockMutate = vi.fn();
 
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}));
+
 vi.mock('@/api/breakfast', () => ({
   useBreakfastCatalog: () => ({
     data: {
@@ -69,7 +73,7 @@ describe('BreakfastQuickBuilder', () => {
     expect(screen.getByText(/2000 g Basis gesamt/i)).toBeDefined();
   });
 
-  it('toggles expert mode showing DGE percentages', () => {
+  it('offers the detailed expert wizard', () => {
     render(
       <BreakfastQuickBuilder
         open={true}
@@ -80,11 +84,7 @@ describe('BreakfastQuickBuilder', () => {
       />
     );
 
-    const expertToggle = screen.getByRole('button', { name: /DGE-Nährwert-Feinjustierung/i });
-    fireEvent.click(expertToggle);
-
-    expect(screen.getByText('Basis-Anteil')).toBeDefined();
-    expect(screen.getByText('50%')).toBeDefined();
+    expect(screen.getByRole('button', { name: /Expertenmodus öffnen/i })).toBeDefined();
   });
 
   it('submits auto-scaled meal items on save click', () => {

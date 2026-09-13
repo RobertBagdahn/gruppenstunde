@@ -1,6 +1,7 @@
 """Pydantic schemas for CustomField and CustomFieldValue (Django Ninja)."""
 
 from datetime import datetime
+from typing import cast
 
 from ninja import Schema
 
@@ -18,7 +19,7 @@ class CustomFieldOut(Schema):
 
     @staticmethod
     def resolve_field_type_display(obj) -> str:
-        return obj.get_field_type_display()
+        return cast(str, obj.get_field_type_display())
 
 
 class CustomFieldCreateIn(Schema):
@@ -44,7 +45,7 @@ class CustomFieldValueOut(Schema):
 
     @staticmethod
     def resolve_custom_field_label(obj) -> str:
-        return obj.custom_field.label
+        return cast(str, obj.custom_field.label)
 
 
 class CustomFieldValuesIn(Schema):

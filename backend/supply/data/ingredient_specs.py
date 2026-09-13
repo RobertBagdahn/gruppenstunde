@@ -155,6 +155,7 @@ INGREDIENT_SPECS: list[IngredientSpec] = []
 # Runtime spec extraction from fixture data
 # ---------------------------------------------------------------------------
 
+
 def extract_specs_from_fixtures(data_dir: str, max_specs: int = 500) -> list[IngredientSpec]:
     """Extract IngredientSpec entries from the REWE fixture data.
 
@@ -165,7 +166,6 @@ def extract_specs_from_fixtures(data_dir: str, max_specs: int = 500) -> list[Ing
         - Non-generic name (multiple words or contains qualifiers)
     """
     import json
-    import os
     from pathlib import Path
 
     fixture_path = Path(data_dir) / "food" / "supply_ingredient.json"
@@ -205,9 +205,7 @@ def extract_specs_from_fixtures(data_dir: str, max_specs: int = 500) -> list[Ing
 
 def _is_generic_name(name: str) -> bool:
     """Check if a name is too generic (single common food word)."""
-    generic_words = {
-        name.lower() for name in GENERIC_TERM_MAP
-    }
+    generic_words = {name.lower() for name in GENERIC_TERM_MAP}
     return name.strip().lower() in generic_words
 
 
@@ -223,9 +221,7 @@ def _load_retail_section_map(data_dir: str) -> dict[int, str]:
     return {item["pk"]: item["fields"]["name"] for item in data}
 
 
-def _ingredient_to_spec(
-    name: str, fields: dict, retail_section_map: dict
-) -> IngredientSpec:
+def _ingredient_to_spec(name: str, fields: dict, retail_section_map: dict) -> IngredientSpec:
     rs_id = fields.get("retail_section_id")
     return IngredientSpec(
         canonical_name=name,

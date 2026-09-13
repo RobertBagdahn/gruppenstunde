@@ -204,6 +204,29 @@ export function useSaveDirectMeal(planId: number) {
   });
 }
 
+export interface SaveBreakfastBulkPayload {
+  planId: number;
+  mealIds: number[];
+  items: WizardItemIn[];
+}
+
+export function useSaveBreakfastBulk(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ mealIds, items }: SaveBreakfastBulkPayload) => {
+      const res = await fetch(`${MEAL_PLAN_BASE}/${planId}/meals/wizard-items/bulk/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify({ meal_ids: mealIds, items }),
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return z.object({ meal_ids: z.array(z.number()), meals_updated: z.number() }).parse(await res.json());
+    },
+    onSuccess: () => invalidateMealPlanQueries(queryClient, planId),
+  });
+}
+
 // ============================================================================
 // Calculate Ingredient Kcal (for extra ingredients)
 // ============================================================================

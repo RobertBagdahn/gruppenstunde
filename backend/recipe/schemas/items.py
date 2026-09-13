@@ -1,5 +1,7 @@
 """RecipeItem schemas."""
 
+from typing import cast
+
 from ninja import Schema
 
 from supply.schemas.ingredients import PortionOut
@@ -46,35 +48,35 @@ class RecipeItemOut(Schema):
     @staticmethod
     def resolve_ingredient_name(obj) -> str:
         if obj.portion and obj.portion.ingredient:
-            return obj.portion.ingredient.name
+            return cast(str, obj.portion.ingredient.name)
         if obj.portion and obj.portion.name:
-            return obj.portion.name
+            return cast(str, obj.portion.name)
         if obj.note:
-            return obj.note
+            return cast(str, obj.note)
         return "Zutat"
 
     @staticmethod
     def resolve_ingredient_id(obj) -> int | None:
         if obj.portion and obj.portion.ingredient_id:
-            return obj.portion.ingredient_id
+            return cast(int, obj.portion.ingredient_id)
         return None
 
     @staticmethod
     def resolve_ingredient_slug(obj) -> str | None:
         if obj.portion and obj.portion.ingredient:
-            return obj.portion.ingredient.slug
+            return cast(str, obj.portion.ingredient.slug)
         return None
 
     @staticmethod
     def resolve_measuring_unit_name(obj) -> str | None:
         if obj.portion and obj.portion.measuring_unit:
-            return obj.portion.measuring_unit.name
+            return cast(str, obj.portion.measuring_unit.name)
         return None
 
     @staticmethod
     def resolve_measuring_unit_id(obj) -> int | None:
         if obj.portion and obj.portion.measuring_unit_id:
-            return obj.portion.measuring_unit_id
+            return cast(int, obj.portion.measuring_unit_id)
         return None
 
     @staticmethod
@@ -102,46 +104,46 @@ class RecipeItemOut(Schema):
     @staticmethod
     def resolve_ingredient_density(obj) -> float | None:
         if obj.portion and obj.portion.ingredient:
-            return obj.portion.ingredient.physical_density
+            return cast(float, obj.portion.ingredient.physical_density)
         return None
 
     @staticmethod
     def resolve_ingredient_viscosity(obj) -> str | None:
         if obj.portion and obj.portion.ingredient:
-            return obj.portion.ingredient.physical_viscosity
+            return cast(str, obj.portion.ingredient.physical_viscosity)
         return None
 
     @staticmethod
     def resolve_ingredient_price_per_kg(obj) -> float | None:
         if obj.portion and obj.portion.ingredient:
-            return obj.portion.ingredient.price_per_kg
+            return cast(float, obj.portion.ingredient.price_per_kg)
         return None
 
     @staticmethod
     def resolve_ingredient_nutri_class(obj) -> int | None:
         if obj.portion and obj.portion.ingredient:
-            return obj.portion.ingredient.nutri_class
+            return cast(int, obj.portion.ingredient.nutri_class)
         return None
 
     @staticmethod
     def resolve_ingredient_retail_section_id(obj) -> int | None:
         if obj.portion and obj.portion.ingredient and obj.portion.ingredient.retail_section_id:
-            return obj.portion.ingredient.retail_section_id
+            return cast(int, obj.portion.ingredient.retail_section_id)
         return None
 
     @staticmethod
     def resolve_ingredient_retail_section_name(obj) -> str | None:
         if obj.portion and obj.portion.ingredient and obj.portion.ingredient.retail_section:
-            return obj.portion.ingredient.retail_section.name
+            return cast(str, obj.portion.ingredient.retail_section.name)
         return None
 
     @staticmethod
     def resolve_weight_g(obj) -> float:
         if obj.portion and obj.portion.weight_g:
-            return obj.quantity * obj.portion.weight_g
+            return cast(float, obj.quantity * obj.portion.weight_g)
         elif obj.portion and obj.portion.measuring_unit:
-            return obj.quantity * obj.portion.quantity * obj.portion.measuring_unit.quantity
-        return obj.quantity
+            return cast(float, obj.quantity * obj.portion.quantity * obj.portion.measuring_unit.quantity)
+        return cast(float, obj.quantity)
 
     @staticmethod
     def resolve_portion_display(obj) -> str:
@@ -200,12 +202,12 @@ class ExchangeGroupMemberOut(Schema):
 
     @staticmethod
     def resolve_recipe_item_id(obj) -> int:
-        return obj.id
+        return cast(int, obj.id)
 
     @staticmethod
     def resolve_ingredient_name(obj) -> str:
         if obj.portion and obj.portion.ingredient:
-            return obj.portion.ingredient.name
+            return cast(str, obj.portion.ingredient.name)
         return ""
 
 

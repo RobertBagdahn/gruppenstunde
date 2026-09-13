@@ -77,9 +77,6 @@ function searchParamsToFilters(params: URLSearchParams): Partial<RecipeFilter> {
 
   const tagSlugs = params.getAll('tag_slugs');
   if (tagSlugs.length > 0) filters.tag_slugs = tagSlugs;
-  const scoutLevelIds = params.getAll('scout_level_ids');
-  if (scoutLevelIds.length > 0) filters.scout_level_ids = scoutLevelIds.map(Number);
-
   return filters;
 }
 
@@ -108,9 +105,6 @@ function filtersToSearchParams(filters: Partial<RecipeFilter>): URLSearchParams 
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));
   if (filters.tag_slugs?.length) {
     filters.tag_slugs.forEach((slug) => params.append('tag_slugs', slug));
-  }
-  if (filters.scout_level_ids?.length) {
-    filters.scout_level_ids.forEach((id) => params.append('scout_level_ids', String(id)));
   }
   return params;
 }
@@ -161,7 +155,7 @@ export default function RecipeListPage() {
         setSearchInput(parsed.q ?? '');
       }
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (initialized.current) {
@@ -175,7 +169,7 @@ export default function RecipeListPage() {
     return () => {
       document.title = 'Inspi – Gruppenstunden-Inspirator';
     };
-  }, [filters.q, filters.recipe_type, filters.origin]);
+  }, [filters]);
 
   const handleFilterChange = useCallback((key: string, value: unknown) => {
     setFilters((prev) => ({
@@ -430,7 +424,6 @@ function hasNonDefaultFilters(filters: Partial<RecipeFilter>): boolean {
   if (filters.preparation_method?.length) return true;
   if (filters.origin && !(filters.origin.length === 1 && filters.origin[0] === 'verified')) return true;
   if (filters.tag_slugs?.length) return true;
-  if (filters.scout_level_ids?.length) return true;
   if (filters.costs_min !== undefined || filters.costs_max !== undefined) return true;
   return false;
 }

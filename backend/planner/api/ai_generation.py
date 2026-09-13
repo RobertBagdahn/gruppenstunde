@@ -2,9 +2,8 @@
 
 import logging
 
-from django.contrib.auth.models import AbstractBaseUser
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from core.services.gemini import (
@@ -34,9 +33,9 @@ ai_service = MealPlanAiService()
     description="Takes a free-text prompt and parameters, returns structured meal plan suggestions using existing recipes.",
 )
 def ai_suggest(request, payload: AiSuggestIn):
-    user: AbstractBaseUser | None = request.user
-    if not user.is_authenticated:
+    if not request.user.is_authenticated:
         raise HttpError(403, "Anmeldung erforderlich")
+    user = request.user
 
     try:
         result = ai_service.generate_suggestions(
@@ -48,7 +47,7 @@ def ai_suggest(request, payload: AiSuggestIn):
             budget_per_person_per_day=payload.budget_per_person_per_day,
             user=user,
         )
-        return 200, result
+        return Status(200, result)
     except GeminiAuthError as e:
         raise HttpError(403, str(e))
     except GeminiRateLimitError as e:
@@ -68,12 +67,12 @@ def ai_suggest(request, payload: AiSuggestIn):
     description="Takes AI-generated meal plan suggestions and creates MealItems for each suggested recipe.",
 )
 def ai_apply(request, meal_plan_id: int, payload: AiSuggestOut):
-    user: AbstractBaseUser | None = request.user
-    if not user.is_authenticated:
+    if not request.user.is_authenticated:
         raise HttpError(403, "Anmeldung erforderlich")
+    user = request.user
 
     meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
     _require_edit(meal_plan, user)
 
     result = ai_service.apply_suggestions(meal_plan, payload.dict())
-    return 200, result
+    return Status(200, result)

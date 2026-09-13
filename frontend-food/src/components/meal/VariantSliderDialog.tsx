@@ -249,7 +249,7 @@ export default function VariantSliderDialog({
         description: (err as Error).message,
       });
     }
-  }, [displayGroups, displayOptionals, effectivePortions, recipeItems, batchCreate, onClose]);
+  }, [displayGroups, displayOptionals, effectivePortions, recipeId, batchCreate, onClose]);
 
   if (!open) return null;
 

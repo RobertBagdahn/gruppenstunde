@@ -8,6 +8,7 @@ gemini_image_call(). Direct genai.Client usage is not permitted elsewhere.
 import logging
 import time
 import uuid
+from typing import NoReturn
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
@@ -179,7 +180,7 @@ def _check_embedding_limit(*, bypass_limits: bool) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _handle_gemini_exception(exc: Exception, context: str = "") -> None:
+def _handle_gemini_exception(exc: Exception, context: str = "") -> NoReturn:
     """Map Gemini SDK exceptions to HTTP errors. Always raises."""
     from google.api_core.exceptions import DeadlineExceeded, GoogleAPIError, ServiceUnavailable
     from google.genai.errors import APIError, ClientError, ServerError

@@ -10,14 +10,14 @@ Provides the IntelligentSuggestionsService which:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.db.models import Max, Q
 from django.utils import timezone
 from ninja.errors import HttpError
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AbstractBaseUser
+    from django.contrib.auth.models import AbstractBaseUser, User
 
     from planner.models import Meal, MealPlan
     from recipe.models import Recipe
@@ -75,7 +75,7 @@ class ScoredRecipe:
             self.reason_text = "Ein Rezept, das du vielleicht noch nicht kennst"
             return
 
-        best = max(scores, key=scores.get)
+        best = max(scores, key=lambda k: scores[k])
         self.reason = best
         reasons = {
             "season": "Hat in dieser Jahreszeit besonders viel Saison",
@@ -96,7 +96,7 @@ class IntelligentSuggestionsService:
         self._already_in_plan_ids: set[int] | None = None
         self._planned_recipe_ingredient_ids: set[int] | None = None
         self._usage_count_max: int | None = None
-        self._usage_percentiles: dict[int, float] | None = None
+        self._usage_percentiles: dict[int, float] = {}
         self._last_interaction_id: str | None = None
 
     # ------------------------------------------------------------------
@@ -211,7 +211,10 @@ class IntelligentSuggestionsService:
         in_season = 0
         total = 0
         for item in items:
-            ing = item.portion.ingredient
+            portion = item.portion
+            if portion is None:
+                continue
+            ing = portion.ingredient
             if ing is None:
                 continue
             total += 1
@@ -279,7 +282,7 @@ class IntelligentSuggestionsService:
         last_use = (
             MealItem.objects.filter(
                 recipe=recipe,
-                meal__meal_plan__created_by=self.user,
+                meal__meal_plan__created_by=cast("User", self.user),
             )
             .order_by("-id")
             .first()
@@ -347,7 +350,7 @@ class IntelligentSuggestionsService:
         remaining = list(scored)
 
         # --- top_picks: highest scoring, diverse recipe_types ---
-        top_picks_candidates = []
+        top_picks_candidates: list[ScoredRecipe] = []
         used_types: set[str] = set()
         for s in remaining:
             if len(top_picks_candidates) >= 3:
@@ -371,7 +374,7 @@ class IntelligentSuggestionsService:
 
         # --- variety: minimal ingredient overlap with top_picks ---
         remaining = [s for s in remaining if s.recipe.id not in assigned_ids]
-        variety_candidates = []
+        variety_candidates: list[ScoredRecipe] = []
         for s in remaining:
             if len(variety_candidates) >= 3:
                 break
@@ -384,7 +387,7 @@ class IntelligentSuggestionsService:
         remaining = [s for s in remaining if s.recipe.id not in assigned_ids]
         # Sort remaining by: low usage_count first (discovery aspect)
         remaining.sort(key=lambda s: s.recipe.usage_count or 0)
-        discovery_candidates = []
+        discovery_candidates: list[ScoredRecipe] = []
         for s in remaining:
             if len(discovery_candidates) >= 3:
                 break

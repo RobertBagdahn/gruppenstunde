@@ -8,9 +8,9 @@ Provides:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser, User
 from django.utils.text import slugify
 from pydantic import BaseModel, Field
 
@@ -372,7 +372,7 @@ def ai_create_ingredient(
         durability_in_days=data.durability_in_days,
         max_storage_temperature=data.max_storage_temperature,
         price_per_kg=data.price_per_kg,
-        created_by=user if user and user.is_authenticated else None,
+        created_by=cast(User, user) if user and user.is_authenticated else None,
     )
 
     # Resolve measuring units

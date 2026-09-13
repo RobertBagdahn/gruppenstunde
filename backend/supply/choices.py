@@ -1,5 +1,7 @@
 """TextChoices for supply app."""
 
+from __future__ import annotations
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -96,6 +98,7 @@ class HintLevelChoices(models.TextChoices):
     INFO = "info", _("Information")
     WARN = "warn", _("Warnung")
     ERROR = "error", _("Fehler")
+    WARNING: HintLevelChoices
 
 
 HintLevelChoices.WARNING = HintLevelChoices.WARN

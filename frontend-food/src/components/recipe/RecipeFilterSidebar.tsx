@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTags, useScoutLevels } from '@/api/tags';
+import { useTags } from '@/api/tags';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
@@ -53,11 +53,9 @@ interface RecipeFilterSidebarProps {
 
 export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }: RecipeFilterSidebarProps) {
   const { data: tags } = useTags();
-  const { data: scoutLevels } = useScoutLevels();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const selectedTagSlugs = (filters.tag_slugs as string[]) ?? [];
-  const selectedScoutIds = (filters.scout_level_ids as number[]) ?? [];
   const selectedOrigin = (filters.origin as string[]) ?? ['verified'];
   const selectedRecipeType = (filters.recipe_type as string[]) ?? [];
   const selectedDifficulty = (filters.difficulty as string[]) ?? [];
@@ -90,7 +88,6 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
 
   const hasActiveFilters =
     selectedTagSlugs.length > 0 ||
-    selectedScoutIds.length > 0 ||
     selectedRecipeType.length > 0 ||
     selectedDifficulty.length > 0 ||
     selectedExecutionTime.length > 0 ||
@@ -100,7 +97,6 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
 
   const activeFilterCount =
     selectedTagSlugs.length +
-    selectedScoutIds.length +
     selectedRecipeType.length +
     selectedDifficulty.length +
     selectedExecutionTime.length +
@@ -113,13 +109,6 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
       ? selectedTagSlugs.filter((x) => x !== slug)
       : [...selectedTagSlugs, slug];
     onFilterChange('tag_slugs', next.length ? next : undefined);
-  }
-
-  function toggleScoutLevel(id: number) {
-    const next = selectedScoutIds.includes(id)
-      ? selectedScoutIds.filter((x) => x !== id)
-      : [...selectedScoutIds, id];
-    onFilterChange('scout_level_ids', next.length ? next : undefined);
   }
 
   return (
@@ -202,19 +191,6 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
                   </button>
                 ) : null;
               })}
-              {scoutLevels && selectedScoutIds.map((id) => {
-                const level = scoutLevels.find((s) => s.id === id);
-                return level ? (
-                  <button
-                    key={id}
-                    onClick={() => toggleScoutLevel(id)}
-                    className="inline-flex items-center gap-1 rounded-full bg-[hsl(var(--chart-3))]/10 text-[hsl(var(--chart-3))] border border-[hsl(var(--chart-3))]/20 px-2.5 py-1 text-xs font-medium hover:bg-[hsl(var(--chart-3))]/20 transition-colors"
-                  >
-                    {level.name}
-                    <span className="material-symbols-outlined text-[14px]">close</span>
-                  </button>
-                ) : null;
-              })}
             </div>
           </div>
         )}
@@ -243,20 +219,6 @@ export default function RecipeFilterSidebar({ filters, onFilterChange, onReset }
             />
           ))}
         </FilterGroup>
-
-        {scoutLevels && (
-          <FilterGroup title="Stufe" icon="groups" color="var(--chart-3)">
-            {scoutLevels.map((level) => (
-              <FilterCheckbox
-                key={level.id}
-                checked={selectedScoutIds.includes(level.id)}
-                onChange={() => toggleScoutLevel(level.id)}
-                icon={level.icon}
-                label={level.name}
-              />
-            ))}
-          </FilterGroup>
-        )}
 
         <FilterGroup title="Schwierigkeit" icon="signal_cellular_alt" color="var(--chart-2)">
           {RECIPE_DIFFICULTY_OPTIONS.map((opt) => (

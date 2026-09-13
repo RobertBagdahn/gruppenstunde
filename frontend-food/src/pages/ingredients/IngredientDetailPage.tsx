@@ -322,6 +322,7 @@ function PortionFormDialog({
     initialValues.unitId,
     initialValues.rank,
     initialValues.weight,
+    initialValues,
   ]);
 
   const setValue = (field: keyof PortionFormValues, value: string) => {

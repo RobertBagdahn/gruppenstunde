@@ -8,6 +8,9 @@ from planner.models import Meal, MealPlan
 
 
 def validate_meal_plan_contiguity(meal_plan: MealPlan) -> None:
+    if meal_plan.start_datetime is None or meal_plan.end_datetime is None:
+        return
+
     start_date = meal_plan.start_datetime.date()
     end_date = meal_plan.end_datetime.date()
 

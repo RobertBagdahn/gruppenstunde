@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any
 
-    from django.contrib.auth.models import AbstractBaseUser
+    from django.contrib.auth.models import User
 
     from planner.models import MealPlan
     from recipe.models import Recipe
@@ -142,6 +142,8 @@ def _check_duplicates(meal_plan: MealPlan) -> list[SuggestionOut]:
 
     recipe_counts: Counter = Counter()
     for item in items:
+        if item.recipe is None:
+            continue
         recipe_counts[item.recipe.title] += 1
 
     suggestions: list[SuggestionOut] = []
@@ -311,7 +313,7 @@ def _check_nutritional_tag_compliance(meal_plan: MealPlan) -> list[SuggestionOut
     meal_items = (
         MealItem.objects.filter(meal__meal_plan=meal_plan, recipe__isnull=False)
         .select_related("recipe", "meal")
-        .prefetch_related("recipe__items__ingredient__nutritional_tags")
+        .prefetch_related("recipe__recipe_items__portion__ingredient__nutritional_tags")
     )
 
     for plan_tag in plan_tags:
@@ -385,6 +387,8 @@ def _check_budget(meal_plan: MealPlan) -> list[SuggestionOut]:
 
     for item in items:
         recipe = item.recipe
+        if recipe is None:
+            continue
         total_items += 1
         if recipe.cached_price_total:
             has_price_data = True
@@ -440,9 +444,7 @@ def _get_recipe_suggestions(recipe_type: str, limit: int = 3) -> list[RecipeSugg
     recipes = Recipe.objects.filter(
         recipe_type=recipe_type,
         status="approved",
-    ).order_by(
-        "-like_score"
-    )[:limit]
+    ).order_by("-like_score")[:limit]  # fmt: skip
 
     return [
         RecipeSuggestionOut(
@@ -506,7 +508,7 @@ def _format_rule_value(rule: Rule, value: float) -> str:
 
 
 def _format_nutri_class(value: float) -> str:
-    rounded = int(round(value))
+    rounded = round(value)
     letter = {
         1: "A",
         2: "B",
@@ -606,7 +608,7 @@ def _build_nutritional_summary(values: dict[str, float]) -> str:
     return "\n".join(lines)
 
 
-def _check_rate_limit(user: AbstractBaseUser) -> None:
+def _check_rate_limit(user: User) -> None:
     """Enforce max 10 requests per user per hour. Raises HttpError(429) if exceeded."""
     cache_key = f"suggestion_ratelimit:{user.id}"
     current_count = cache.get(cache_key, 0)
@@ -620,7 +622,7 @@ def _check_rate_limit(user: AbstractBaseUser) -> None:
 
 
 def get_suggestions(
-    recipe: Recipe, objective: str, user: AbstractBaseUser, direction: str = "reduce"
+    recipe: Recipe, objective: str, user: User, direction: str = "reduce"
 ) -> tuple[list[dict[str, Any]], str | None]:
     """Generate LLM-based ingredient suggestions for improving a recipe.
 

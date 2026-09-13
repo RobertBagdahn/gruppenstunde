@@ -97,7 +97,7 @@ export default function HeatmapExplorer({ data, xLabel, yLabel, xUnit, yUnit, fo
     const yAtXMin = slope * xMin + intercept;
     const yAtXMax = slope * xMax + intercept;
     return { x1: xMin, y1: yAtXMin, x2: xMax, y2: yAtXMax };
-  }, [data.linear_fit, data.pearson_r, xMin, xMax]);
+  }, [data.linear_fit, xMin, xMax]);
 
   const toPlotX = (v: number) => MARGIN.left + ((v - xMin) / (xMax - xMin)) * plotW;
   const toPlotY = (v: number) => MARGIN.top + (1 - (v - yMin) / (yMax - yMin)) * plotH;

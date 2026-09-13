@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime
+from typing import cast
 
 from ninja import Schema
 from pydantic import field_validator
@@ -26,12 +27,12 @@ class UserGroupOut(Schema):
 
     @staticmethod
     def resolve_member_count(obj) -> int:
-        return obj.memberships.filter(is_active=True).count()
+        return cast(int, obj.memberships.filter(is_active=True).count())
 
     @staticmethod
     def resolve_parent(obj) -> dict | None:
         if obj.parent:
-            return {"id": obj.parent.id, "name": obj.parent.name, "slug": obj.parent.slug}
+            return cast(dict, {"id": obj.parent.id, "name": obj.parent.name, "slug": obj.parent.slug})
         return None
 
 
@@ -44,7 +45,7 @@ class UserGroupChildOut(Schema):
 
     @staticmethod
     def resolve_member_count(obj) -> int:
-        return obj.memberships.filter(is_active=True).count()
+        return cast(int, obj.memberships.filter(is_active=True).count())
 
 
 class GroupMemberOut(Schema):
@@ -59,15 +60,15 @@ class GroupMemberOut(Schema):
 
     @staticmethod
     def resolve_user_email(obj) -> str:
-        return obj.user.email
+        return cast(str, obj.user.email)
 
     @staticmethod
     def resolve_user_first_name(obj) -> str:
-        return obj.user.first_name
+        return cast(str, obj.user.first_name)
 
     @staticmethod
     def resolve_user_last_name(obj) -> str:
-        return obj.user.last_name
+        return cast(str, obj.user.last_name)
 
 
 # --- Corporate Identity ---
@@ -87,7 +88,7 @@ class GroupCorporateIdentityOut(Schema):
 
     @staticmethod
     def resolve_logo_url(obj) -> str:
-        return obj.logo_url
+        return cast(str, obj.logo_url)
 
 
 class GroupCorporateIdentityIn(Schema):
@@ -130,34 +131,34 @@ class UserGroupDetailOut(Schema):
 
     @staticmethod
     def resolve_member_count(obj) -> int:
-        return obj.memberships.filter(is_active=True).count()
+        return cast(int, obj.memberships.filter(is_active=True).count())
 
     @staticmethod
     def resolve_parent(obj) -> dict | None:
         if obj.parent:
-            return {"id": obj.parent.id, "name": obj.parent.name, "slug": obj.parent.slug}
+            return cast(dict, {"id": obj.parent.id, "name": obj.parent.name, "slug": obj.parent.slug})
         return None
 
     @staticmethod
-    def resolve_children(obj) -> list:
-        return obj.children.filter(is_deleted=False).order_by("name")
+    def resolve_children(obj) -> list[UserGroupChildOut]:
+        return list(obj.children.filter(is_deleted=False).order_by("name"))
 
     @staticmethod
-    def resolve_ancestors(obj) -> list:
-        return [{"id": a.id, "name": a.name, "slug": a.slug} for a in obj.get_ancestors()]
+    def resolve_ancestors(obj) -> list[GroupParentOut]:
+        return [cast(GroupParentOut, {"id": a.id, "name": a.name, "slug": a.slug}) for a in obj.get_ancestors()]
 
     @staticmethod
-    def resolve_members(obj) -> list:
-        return obj.memberships.filter(is_active=True).select_related("user")
+    def resolve_members(obj) -> list[GroupMemberOut]:
+        return list(obj.memberships.filter(is_active=True).select_related("user"))
 
     @staticmethod
     def resolve_inherited_member_count(obj) -> int:
-        return len(obj.get_all_member_ids())
+        return cast(int, len(obj.get_all_member_ids()))
 
     @staticmethod
-    def resolve_corporate_identity(obj):
+    def resolve_corporate_identity(obj) -> GroupCorporateIdentityOut | None:
         try:
-            return obj.corporate_identity
+            return cast(GroupCorporateIdentityOut, obj.corporate_identity)
         except obj.__class__.corporate_identity.RelatedObjectDoesNotExist:
             return None
 
@@ -203,11 +204,11 @@ class JoinRequestOut(Schema):
 
     @staticmethod
     def resolve_user_email(obj) -> str:
-        return obj.user.email
+        return cast(str, obj.user.email)
 
     @staticmethod
     def resolve_group_name(obj) -> str:
-        return obj.group.name
+        return cast(str, obj.group.name)
 
 
 class JoinRequestIn(Schema):

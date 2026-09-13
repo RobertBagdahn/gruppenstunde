@@ -1,3 +1,5 @@
+from typing import Any
+
 """
 GroupSession model — a concrete content type for scout group sessions.
 
@@ -21,6 +23,9 @@ class GroupSession(Content):
     Replaces the old Idea model with idea_type='idea'.
     Includes session-specific fields for categorization and planning.
     """
+
+    # Non-persisted attribute set dynamically by the API layer (no DB field).
+    similar_sessions: list[Any] = []
 
     session_type = models.CharField(
         max_length=20,

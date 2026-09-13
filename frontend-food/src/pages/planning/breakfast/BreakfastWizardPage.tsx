@@ -9,7 +9,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
 import { useMealPlan } from '@/api/mealPlans';
 import { useRefMeals } from '@/api/refMeals';
-import { useBreakfastCatalog, useSaveBreakfastWizard, useSaveDirectMeal } from '@/api/breakfast';
+import { useBreakfastCatalog, useSaveBreakfastWizard, useSaveDirectMeal, useSaveBreakfastBulk } from '@/api/breakfast';
 import { useWizardState, STEP_LABELS, WIZARD_STEPS } from './useWizardState';
 import StepBasis from './StepBasis';
 import StepStreichfett from './StepStreichfett';
@@ -19,12 +19,29 @@ import StepGetraenke from './StepGetraenke';
 import StepCockpit from './StepCockpit';
 import { CreateIngredientModal } from '@/components/breakfast/CreateIngredientModal';
 import { CreateRecipeModal } from '@/components/breakfast/CreateRecipeModal';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import type { WizardItemIn } from '@/api/breakfast';
 import type { MealItem } from '@/schemas/mealPlan';
+import type { WizardState } from '@/schemas/breakfast';
 import { refMealItemsToWizardState } from '@/lib/refMealToWizardState';
 import { computeGroupKcal, breadItemGrams, toppingItemGrams, extrasKcalPerPerson, FAT_GRAMS_PER_PERSON } from '@/lib/breakfastCalc';
+
+type BreakfastProfile = 'classic' | 'children' | 'adults' | 'muesli' | 'vegetarian' | 'plant';
+
+const BREAKFAST_PROFILES: Array<{ id: BreakfastProfile; title: string; description: string }> = [
+  { id: 'classic', title: 'Klassisch', description: 'Brot, Belag, Obst und Getränke' },
+  { id: 'children', title: 'Für Kinder', description: 'Kleinere Brotportion, milde Auswahl und Obst' },
+  { id: 'adults', title: 'Für Erwachsene', description: 'Herzhaftere Portion mit vielfältigem Belag' },
+  { id: 'muesli', title: 'Nur Müsli', description: 'Müsli oder Haferflocken mit Obst und Milch' },
+  { id: 'vegetarian', title: 'Ohne Fleisch', description: 'Vegetarische Aufstriche und Käse' },
+  { id: 'plant', title: 'Rein pflanzlich', description: 'Vegane Auswahl ohne Milch, Ei, Fleisch und Honig' },
+];
+
+function nameMatches(name: string, terms: string[]): boolean {
+  const normalized = name.toLocaleLowerCase('de-DE');
+  return terms.some((term) => normalized.includes(term));
+}
 
 export default function BreakfastWizardPage() {
   const { id, mealId: mealIdParam } = useParams<{ id: string; mealId?: string }>();
@@ -41,6 +58,7 @@ export default function BreakfastWizardPage() {
   const { data: catalog } = useBreakfastCatalog();
   const saveWizardRefMeal = useSaveBreakfastWizard(planId);
   const saveWizardDirectMeal = useSaveDirectMeal(planId);
+  const saveBreakfastBulk = useSaveBreakfastBulk(planId);
 
   const existingRefMeal = useMemo(
     () => (saveMode === 'refMeal' ? refMeals?.find((rm) => rm.meal_type === 'breakfast') ?? null : null),
@@ -53,6 +71,8 @@ export default function BreakfastWizardPage() {
   }, [saveMode, plan, mealId]);
 
   const normPortions = plan?.norm_portions ?? 10;
+  const breakfastMeals = useMemo(() => plan?.meals.filter((meal) => meal.meal_type === 'breakfast' && !meal.is_reference) ?? [], [plan?.meals]);
+  const [selectedBreakfastMealIds, setSelectedBreakfastMealIds] = useState<number[]>(mealId ? [mealId] : []);
   const dayPartFactor =
     (saveMode === 'directMeal' ? targetMeal?.day_part_factor : existingRefMeal?.day_part_factor) ?? 0.25;
 
@@ -72,6 +92,47 @@ export default function BreakfastWizardPage() {
 
   const wiz = useWizardState(initialWizardState);
   const { state, step, currentStepIndex, canGoNext, canGoPrev, goNext, goPrev } = wiz;
+
+  function applyBreakfastProfile(profile: BreakfastProfile) {
+    if (!catalog) return;
+    const isMuesli = profile === 'muesli';
+    const isPlant = profile === 'plant';
+    const isVegetarian = profile === 'vegetarian' || isPlant;
+    const base = catalog.base_ingredients.filter((item) => {
+      if (!isMuesli) return !nameMatches(item.name, ['müsli', 'haferflock']);
+      return nameMatches(item.name, ['müsli', 'haferflock']);
+    });
+    const toppings = catalog.topping_ingredients.filter((item) => {
+      if (isMuesli) return false;
+      if (isPlant && nameMatches(item.name, ['käse', 'edamer', 'gouda', 'emmentaler', 'frischkäse', 'leberwurst', 'salami', 'schinken', 'putenbrust', 'honig'])) return false;
+      if (isVegetarian && nameMatches(item.name, ['leberwurst', 'salami', 'schinken', 'putenbrust'])) return false;
+      return true;
+    });
+    const fats = catalog.fat_ingredients.filter((item) => !isPlant || nameMatches(item.name, ['margarine', 'pflanz']));
+    const drinks = catalog.drink_recipes.filter((item) => !isPlant || !nameMatches(item.title, ['milch', 'kakao']));
+    const extras = catalog.extra_ingredients.filter((item) => !isMuesli || nameMatches(item.name, ['apfel', 'banane', 'erdbeere', 'orange', 'beere']));
+    const share = <T extends { id: number }>(items: T[]) => items.map((item, index) => ({ item, sharePercent: index === 0 ? 100 : 0 }));
+    const selectedBase = share(base.length > 0 ? base : catalog.base_ingredients.slice(0, 1));
+    const selectedToppings = share(toppings);
+    const selectedFats = share(fats);
+    const selectedDrinks = share(drinks);
+    const nextState: WizardState = {
+      ...state,
+      gramsPerPerson: profile === 'children' ? 100 : 150,
+      basis: selectedBase.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, sliceWeightG: item.standard_recipe_weight_g ?? 50, energyKcal100g: item.energy_kcal })),
+      toppings: selectedToppings.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, energyKcal100g: item.energy_kcal, pricePerKg: item.price_per_kg, portions: item.portions })),
+      fatSelections: selectedFats.map(({ item, sharePercent }) => ({ ingredientId: item.id, name: item.name, sharePercent, locked: false, energyKcal100g: item.energy_kcal, pricePerKg: item.price_per_kg, portions: item.portions })),
+      drinkRecipes: selectedDrinks.map(({ item, sharePercent }) => ({ recipeId: item.id, name: item.title, sharePercent, locked: false, energyKcal: item.cached_energy_total_kcal })),
+      drinkIngredients: isPlant ? [] : catalog.drink_ingredients.filter((item) => nameMatches(item.name, ['milch', 'hafermilch'])).map((item, index) => ({ ingredientId: item.id, name: item.name, sharePercent: index === 0 ? 100 : 0, locked: false, mlPerPerson: index === 0 ? 200 : null })),
+      extraIngredients: Object.fromEntries(extras.slice(0, isMuesli ? 2 : 0).map((item) => [String(item.id), isMuesli ? 80 : 0])),
+      extraIngredientNames: Object.fromEntries(extras.slice(0, isMuesli ? 2 : 0).map((item) => [String(item.id), item.name])),
+      warmDishRecipeIds: [],
+      warmDishFactors: {},
+      warmDishRecipeNames: {},
+      globalIntensity: profile === 'children' ? 'knapp' : 'normal',
+    };
+    wiz.replaceState(nextState);
+  }
 
   /**
    * Build the list of items to save.
@@ -177,7 +238,16 @@ export default function BreakfastWizardPage() {
       }
 
       if (saveMode === 'directMeal' && mealId != null) {
-        await saveWizardDirectMeal.mutateAsync({ planId, mealId, items });
+        if (selectedBreakfastMealIds.length === 0) {
+          toast.error('Bitte mindestens ein Frühstück auswählen.');
+          return;
+        }
+        const mealIds = selectedBreakfastMealIds;
+        if (mealIds.length > 1) {
+          await saveBreakfastBulk.mutateAsync({ planId, mealIds, items });
+        } else {
+          await saveWizardDirectMeal.mutateAsync({ planId, mealId, items });
+        }
         navigate(`/meal-plans/${planId}/plan`);
       } else {
         await saveWizardRefMeal.mutateAsync({
@@ -193,7 +263,7 @@ export default function BreakfastWizardPage() {
     }
   }
 
-  const savePending = saveMode === 'directMeal' ? saveWizardDirectMeal.isPending : saveWizardRefMeal.isPending;
+  const savePending = saveMode === 'directMeal' ? saveWizardDirectMeal.isPending || saveBreakfastBulk.isPending : saveWizardRefMeal.isPending;
   const isCockpit = step === 'cockpit';
   const isEditMode = saveMode === 'refMeal' ? existingRefMeal != null : (targetMeal?.items?.length ?? 0) > 0;
 
@@ -243,6 +313,22 @@ export default function BreakfastWizardPage() {
 
       {/* Step content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
+        {step === 'basis' && catalog && (
+          <div className="mb-6 rounded-xl border border-border bg-card p-4 space-y-3">
+            <div>
+              <h2 className="font-display font-semibold text-base">Schnellstart: Frühstück auswählen</h2>
+              <p className="text-xs text-muted-foreground">Wähle eine Vorlage. Danach kannst du jede Auswahl im Detail anpassen.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {BREAKFAST_PROFILES.map((profile) => (
+                <button key={profile.id} type="button" onClick={() => applyBreakfastProfile(profile.id)} className="rounded-lg border border-border p-3 text-left hover:border-primary hover:bg-primary/5 transition-colors">
+                  <span className="block text-sm font-semibold">{profile.title}</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">{profile.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {step === 'basis' && <StepBasis wiz={wiz} dayPartFactor={dayPartFactor} />}
         {step === 'fett' && <StepStreichfett wiz={wiz} />}
         {step === 'belag' && <StepBelag wiz={wiz} dayPartFactor={dayPartFactor} />}
@@ -256,6 +342,9 @@ export default function BreakfastWizardPage() {
             saveMode={saveMode}
             planId={planId}
             mealId={mealId}
+            breakfastMeals={breakfastMeals}
+            selectedBreakfastMealIds={selectedBreakfastMealIds}
+            onSelectedBreakfastMealIdsChange={setSelectedBreakfastMealIds}
           />
         )}
       </div>

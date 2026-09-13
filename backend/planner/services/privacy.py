@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from profiles.services.privacy import PrivacyDataCollector
-
-User = get_user_model()
 
 
 class PlannerPrivacyCollector(PrivacyDataCollector):
@@ -19,7 +17,8 @@ class PlannerPrivacyCollector(PrivacyDataCollector):
 
         planners = list(Planner.objects.filter(owner=user).values("id", "title", "created_at"))
         for p in planners:
-            p["created_at"] = str(p["created_at"])
+            p_any = cast(dict[str, Any], p)
+            p_any["created_at"] = str(p_any["created_at"])
 
         collaborations = list(
             PlannerCollaborator.objects.filter(user=user)
@@ -27,11 +26,13 @@ class PlannerPrivacyCollector(PrivacyDataCollector):
             .values("planner__title", "role", "invited_at")
         )
         for c in collaborations:
-            c["invited_at"] = str(c["invited_at"])
+            c_any = cast(dict[str, Any], c)
+            c_any["invited_at"] = str(c_any["invited_at"])
 
         meal_plans = list(MealPlan.objects.filter(created_by=user).values("id", "name", "slug", "created_at"))
         for m in meal_plans:
-            m["created_at"] = str(m["created_at"])
+            m_any = cast(dict[str, Any], m)
+            m_any["created_at"] = str(m_any["created_at"])
 
         items = [
             *[{"type": "planner", **p} for p in planners],

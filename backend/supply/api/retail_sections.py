@@ -1,6 +1,6 @@
 """Retail section endpoints."""
 
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from supply.models import RetailSection
@@ -33,7 +33,7 @@ def create_retail_section(request, payload: RetailSectionIn):
     """Create a new retail section (staff-only)."""
     _require_staff(request)
     section = RetailSection.objects.create(**payload.dict())
-    return 201, section
+    return Status(201, section)
 
 
 @retail_section_router.patch("/{section_id}/", response=RetailSectionOut)
@@ -63,4 +63,4 @@ def delete_retail_section(request, section_id: int):
         section.delete()
     except Exception:
         raise HttpError(409, "Kann nicht gelöscht werden, da noch Zutaten zugeordnet sind")
-    return 204, None
+    return Status(204, None)

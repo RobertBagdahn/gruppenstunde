@@ -65,7 +65,7 @@ class TestMailEndpoint:
     """Test POST /api/events/{slug}/send-mail/"""
 
     def test_send_mail_to_all(self, event_with_participants):
-        event, participants, client, user = event_with_participants
+        event, _participants, client, _user = event_with_participants
         mail.outbox.clear()
 
         resp = client.post(
@@ -94,7 +94,7 @@ class TestMailEndpoint:
         assert any("Hallo Bob" in b for b in bodies)
 
     def test_send_mail_to_selected(self, event_with_participants):
-        event, participants, client, user = event_with_participants
+        event, participants, client, _user = event_with_participants
         mail.outbox.clear()
 
         resp = client.post(
@@ -115,7 +115,7 @@ class TestMailEndpoint:
         assert "Hallo Alice" in mail.outbox[0].body
 
     def test_send_mail_to_filtered(self, event_with_participants):
-        event, participants, client, user = event_with_participants
+        event, participants, client, _user = event_with_participants
         # Add label to first participant only
         lbl = make_label(event=event, name="VIP")
         participants[0].labels.add(lbl)
@@ -138,7 +138,7 @@ class TestMailEndpoint:
         assert "Hallo Alice" in mail.outbox[0].body
 
     def test_send_mail_creates_timeline_entries(self, event_with_participants):
-        event, participants, client, user = event_with_participants
+        event, _participants, client, _user = event_with_participants
         from event.models import TimelineEntry
 
         initial_count = TimelineEntry.objects.filter(event=event).count()
@@ -158,7 +158,7 @@ class TestMailEndpoint:
         assert new_entries == 2
 
     def test_placeholder_replacement(self, event_with_participants):
-        event, participants, client, user = event_with_participants
+        event, participants, client, _user = event_with_participants
         mail.outbox.clear()
 
         resp = client.post(
@@ -181,7 +181,7 @@ class TestMailEndpoint:
         assert mail.outbox[0].subject == event.name
 
     def test_send_mail_non_manager_forbidden(self, non_manager_client, db):
-        client, user = non_manager_client
+        client, _user = non_manager_client
         event = make_event()
 
         resp = client.post(
@@ -196,7 +196,7 @@ class TestMailEndpoint:
         assert resp.status_code == 403
 
     def test_send_mail_selected_without_ids(self, event_with_participants):
-        event, participants, client, user = event_with_participants
+        event, _participants, client, _user = event_with_participants
 
         resp = client.post(
             f"{EVENTS_URL}/{event.slug}/send-mail/",
@@ -210,7 +210,7 @@ class TestMailEndpoint:
         assert resp.status_code == 400
 
     def test_send_mail_no_email_participant(self, event_with_participants):
-        event, participants, client, user = event_with_participants
+        event, participants, client, _user = event_with_participants
         # Remove email from one participant
         participants[1].email = ""
         participants[1].save()

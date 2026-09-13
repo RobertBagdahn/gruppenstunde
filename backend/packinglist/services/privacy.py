@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from profiles.services.privacy import PrivacyDataCollector
-
-User = get_user_model()
 
 
 class PackingListPrivacyCollector(PrivacyDataCollector):
@@ -21,7 +19,8 @@ class PackingListPrivacyCollector(PrivacyDataCollector):
             PackingList.objects.filter(owner=user).values("id", "title", "description", "is_template", "created_at")
         )
         for p in packing_lists:
-            p["created_at"] = str(p["created_at"])
+            p_any = cast(dict[str, Any], p)
+            p_any["created_at"] = str(p_any["created_at"])
 
         return {
             "packing_lists": {"count": len(packing_lists), "items": packing_lists},

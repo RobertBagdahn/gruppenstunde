@@ -1,5 +1,7 @@
 """Profile and preference API endpoints."""
 
+from typing import Any
+
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db.models import Q
@@ -130,7 +132,7 @@ def get_my_content(request):
     from game.models import Game
     from session.models import GroupSession
 
-    results = []
+    results: list[Any] = []
     for Model, content_type in [
         (GroupSession, "session"),
         (Blog, "blog"),
@@ -142,7 +144,7 @@ def get_my_content(request):
             .order_by("-updated_at")
         )
         for obj in qs:
-            obj.content_type = content_type
+            obj.content_type = content_type  # type: ignore[attr-defined]
         results.extend(qs)
 
     results.sort(key=lambda x: x.updated_at, reverse=True)
@@ -211,7 +213,7 @@ def get_user_profile(request, user_id: int):
     from game.models import Game
     from session.models import GroupSession
 
-    results = []
+    results: list[Any] = []
     for Model, content_type in [
         (GroupSession, "session"),
         (Blog, "blog"),
@@ -226,7 +228,7 @@ def get_user_profile(request, user_id: int):
             .order_by("-created_at")[:20]
         )
         for obj in qs:
-            obj.content_type = content_type
+            obj.content_type = content_type  # type: ignore[attr-defined]
         results.extend(qs)
 
     results.sort(key=lambda x: x.created_at, reverse=True)

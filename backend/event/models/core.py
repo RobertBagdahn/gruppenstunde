@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Any
 
 from django.conf import settings
 from django.db import models
@@ -42,6 +43,19 @@ class EventLocation(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Non-persisted attributes set dynamically by the API layer (no DB fields).
+    _show_system_options: bool = False
+    _is_registered: bool = False
+    _is_invited: bool = False
+    is_manager: bool = False
+    is_registered: bool = False
+    my_registration: Any = None
+    all_registrations: Any = None
+    user_registration: Any = None
+    participant_stats: Any = None
+    guest_registration_url: str | None = None
+    invitation_counts: Any = None
 
     class Meta:
         verbose_name = _("Veranstaltungsort")
@@ -97,6 +111,19 @@ class MeetingPoint(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Non-persisted attributes set dynamically by the API layer (no DB fields).
+    _show_system_options: bool = False
+    _is_registered: bool = False
+    _is_invited: bool = False
+    is_manager: bool = False
+    is_registered: bool = False
+    my_registration: Any = None
+    all_registrations: Any = None
+    user_registration: Any = None
+    participant_stats: Any = None
+    guest_registration_url: str | None = None
+    invitation_counts: Any = None
 
     class Meta:
         verbose_name = _("Treffpunkt")
@@ -236,6 +263,19 @@ class Event(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Non-persisted attributes set dynamically by the API layer (no DB fields).
+    _show_system_options: bool = False
+    _is_registered: bool = False
+    _is_invited: bool = False
+    is_manager: bool = False
+    is_registered: bool = False
+    my_registration: Any = None
+    all_registrations: Any = None
+    user_registration: Any = None
+    participant_stats: Any = None
+    guest_registration_url: str | None = None
+    invitation_counts: Any = None
 
     class Meta:
         verbose_name = _("Veranstaltung")
@@ -469,6 +509,19 @@ class Person(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Non-persisted attributes set dynamically by the API layer (no DB fields).
+    _show_system_options: bool = False
+    _is_registered: bool = False
+    _is_invited: bool = False
+    is_manager: bool = False
+    is_registered: bool = False
+    my_registration: Any = None
+    all_registrations: Any = None
+    user_registration: Any = None
+    participant_stats: Any = None
+    guest_registration_url: str | None = None
+    invitation_counts: Any = None
+
     class Meta:
         verbose_name = _("Person")
         verbose_name_plural = _("Personen")
@@ -603,6 +656,19 @@ class Participant(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Non-persisted attributes set dynamically by the API layer (no DB fields).
+    _show_system_options: bool = False
+    _is_registered: bool = False
+    _is_invited: bool = False
+    is_manager: bool = False
+    is_registered: bool = False
+    my_registration: Any = None
+    all_registrations: Any = None
+    user_registration: Any = None
+    participant_stats: Any = None
+    guest_registration_url: str | None = None
+    invitation_counts: Any = None
 
     class Meta:
         verbose_name = _("Teilnehmer")

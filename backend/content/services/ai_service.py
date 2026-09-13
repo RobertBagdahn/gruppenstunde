@@ -16,7 +16,7 @@ import io
 import logging
 import time
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.models import AbstractBaseUser
 from pydantic import BaseModel, Field, ValidationError
@@ -174,7 +174,9 @@ class ContentAIService:
     # improve_text
     # ------------------------------------------------------------------
 
-    def improve_text(self, text: str, context: str = "", user: AbstractBaseUser | None = None) -> tuple[str, str | None]:
+    def improve_text(
+        self, text: str, context: str = "", user: AbstractBaseUser | None = None
+    ) -> tuple[str, str | None]:
         """Improve text: grammar, style, clarity. Content-type agnostic."""
         from google.genai import types
 
@@ -441,17 +443,15 @@ class ContentAIService:
             context_parts.append(f"Title: {title}")
         if summary:
             context_parts.append(f"Summary: {summary[:200]}")
-        
+
         # For recipes, include actual ingredients
         if content_type == "recipe" and ingredients:
             ingredients_text = ", ".join(
-                f"{ing.get('name', '')} ({ing.get('description', '')})" 
-                for ing in ingredients 
-                if ing.get('name')
+                f"{ing.get('name', '')} ({ing.get('description', '')})" for ing in ingredients if ing.get("name")
             )
             if ingredients_text:
                 context_parts.append(f"Ingredients: {ingredients_text}")
-        
+
         context_text = "; ".join(context_parts)
 
         # Recipe images: realistic illustrated style, focus on the finished dish plated
@@ -530,7 +530,7 @@ class ContentAIService:
                 if part.inline_data and part.inline_data.mime_type.startswith("image/"):
                     image_data = part.inline_data.data
 
-                    img = Image.open(io.BytesIO(image_data))
+                    img: Image.Image = Image.open(io.BytesIO(image_data))
                     if img.mode == "RGBA":
                         bg = Image.new("RGB", img.size, (255, 255, 255))
                         bg.paste(img, mask=img.split()[3])
@@ -564,7 +564,7 @@ class ContentAIService:
 
     def create_embedding(self, text: str, user: AbstractBaseUser | None = None) -> list[float] | None:
         """Create a text embedding using google-genai SDK."""
-        return gemini_embed(user=user, contents=text)
+        return cast(list[float] | None, gemini_embed(user=user, contents=text))
 
 
 # Module-level singleton for convenience

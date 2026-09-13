@@ -1,7 +1,7 @@
 """Pydantic schemas for Ingredient, Portion, Alias."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, cast
 
 from ninja import Schema
 
@@ -49,15 +49,15 @@ class PortionOut(Schema):
     @staticmethod
     def resolve_is_default(obj) -> bool:
         if isinstance(obj, dict):
-            return obj.get("is_default", obj.get("rank", 0) == 1)
+            return cast(bool, obj.get("is_default", obj.get("rank", 0) == 1))
         return getattr(obj, "rank", 0) == 1
 
     @staticmethod
     def resolve_measuring_unit_name(obj) -> str | None:
         if isinstance(obj, dict):
-            return obj.get("measuring_unit_name")
+            return cast(str | None, obj.get("measuring_unit_name"))
         if hasattr(obj, "measuring_unit") and obj.measuring_unit:
-            return obj.measuring_unit.name
+            return cast(str, obj.measuring_unit.name)
         return None
 
 
@@ -200,7 +200,7 @@ class IngredientListOut(Schema):
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
         if obj.retail_section:
-            return obj.retail_section.name
+            return cast(str, obj.retail_section.name)
         return None
 
     @staticmethod
@@ -300,7 +300,7 @@ class IngredientDetailOut(Schema):
     @staticmethod
     def resolve_retail_section_name(obj) -> str | None:
         if obj.retail_section:
-            return obj.retail_section.name
+            return cast(str, obj.retail_section.name)
         return None
 
     @staticmethod

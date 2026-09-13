@@ -241,7 +241,7 @@ class TestVariantBatchCreate:
 
     def test_empty_batch_rejected(self):
         client, _ = _make_staff_client()
-        recipe, plan, meal = self._setup()
+        _recipe, plan, meal = self._setup()
         resp = client.post(
             f"/api/meal-plans/{plan.id}/meals/{meal.id}/items/batch/",
             json.dumps({"items": []}),

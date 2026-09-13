@@ -3,7 +3,7 @@ import type { RecipeListItem } from '@/schemas/recipe';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
-  RECIPE_EXECUTION_TIME_OPTIONS,
+  getRecipeExecutionTimeLabel,
 } from '@/schemas/recipe';
 import { NUTRI_SCORE_COLORS } from '@/schemas/supply';
 import RecipeBadge from './RecipeBadge';
@@ -31,9 +31,7 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe, searchQuery, canEdit, canDelete, onEdit, onDelete, onClone }: RecipeCardProps) {
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
-  const timeLabel =
-    RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
-    recipe.execution_time;
+  const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
   const pricePerPortion = recipe.cached_price_total != null
     ? (recipe.portions && recipe.portions > 1 ? recipe.cached_price_total / recipe.portions : recipe.cached_price_total)

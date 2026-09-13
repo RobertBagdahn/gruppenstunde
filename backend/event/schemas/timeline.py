@@ -1,6 +1,7 @@
 """Pydantic schemas for TimelineEntry (Django Ninja)."""
 
 from datetime import datetime
+from typing import cast
 
 from ninja import Schema
 
@@ -21,15 +22,15 @@ class TimelineEntryOut(Schema):
     @staticmethod
     def resolve_participant_name(obj) -> str:
         if obj.participant:
-            return f"{obj.participant.first_name} {obj.participant.last_name}"
+            return cast(str, f"{obj.participant.first_name} {obj.participant.last_name}")
         return ""
 
     @staticmethod
     def resolve_user_email(obj) -> str:
         if obj.user:
-            return obj.user.email
+            return cast(str, obj.user.email)
         return ""
 
     @staticmethod
     def resolve_action_type_display(obj) -> str:
-        return obj.get_action_type_display()
+        return cast(str, obj.get_action_type_display())

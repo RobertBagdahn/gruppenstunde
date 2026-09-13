@@ -2,7 +2,7 @@
 
 ENRICH_TARGET = "recipe.services.ingredient_enrichment.enrich_ingredient"
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -51,7 +51,6 @@ class TestResolveIngredientFromMatch:
 
     def test_enriches_when_needs_review_and_enrichment_succeeds(self):
         from recipe.schemas.enrichment import GeminiNewIngredient
-        from supply.choices import IngredientStatusChoices
 
         enrichment_data = GeminiNewIngredient(
             name="Exotisch",

@@ -1,13 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Coffee,
   Apple,
   Sparkles,
   Check,
-  ChevronDown,
-  ChevronUp,
   Save,
-  Utensils,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useBreakfastCatalog, useSaveDirectMeal, type WizardItemIn } from '@/api/breakfast';
@@ -32,6 +30,7 @@ export function BreakfastQuickBuilder({
 }: BreakfastQuickBuilderProps) {
   const { data: catalog, isLoading } = useBreakfastCatalog();
   const saveMutation = useSaveDirectMeal(mealPlanId);
+  const navigate = useNavigate();
 
   // Selected item IDs
   const [selectedBaseIds, setSelectedBaseIds] = useState<number[]>([1]); // Default Mischbrot
@@ -39,8 +38,6 @@ export function BreakfastQuickBuilder({
   const [selectedToppingIds, setSelectedToppingIds] = useState<number[]>([1, 2]); // Default Gouda, Marmelade
   const [selectedDrinkIds, setSelectedDrinkIds] = useState<number[]>([1, 2]); // Default Kaffee, Tee
   const [selectedExtraIds, setSelectedExtraIds] = useState<number[]>([1]); // Default Äpfel
-
-  const [showExpertMode, setShowExpertMode] = useState(false);
 
   // Auto-calculated portions for standard group size
   // Standard per person: Bread = 80g, Butter = 15g, Topping = 35g, Fruit = 100g, Drink = 250ml
@@ -121,6 +118,29 @@ export function BreakfastQuickBuilder({
           display_name: top.name,
           factor: 1.0,
         });
+      }
+    });
+
+    // Fresh ingredients and fruit
+    selectedExtraIds.forEach((id) => {
+      const extra = catalog.extra_ingredients.find((item) => item.id === id);
+      if (extra) {
+        const defaultPortion = extra.portions?.[0];
+        items.push({
+          ingredient_id: extra.id,
+          measuring_unit_id: defaultPortion?.measuring_unit_id || null,
+          quantity: Math.round((100 / selectedExtraIds.length) * portions),
+          display_name: extra.name,
+          factor: 1.0,
+        });
+      }
+    });
+
+    // Drinks are recipes and therefore use recipe_id rather than ingredient_id.
+    selectedDrinkIds.forEach((id) => {
+      const drink = catalog.drink_recipes.find((item) => item.id === id);
+      if (drink) {
+        items.push({ recipe_id: drink.id, display_name: drink.title, factor: 1.0 });
       }
     });
 
@@ -206,7 +226,7 @@ export function BreakfastQuickBuilder({
                   <h4 className="font-display font-bold text-sm text-foreground">Aufstriche & Belag</h4>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {(catalog?.topping_ingredients || []).slice(0, 6).map((top) => {
+                  {(catalog?.topping_ingredients || []).map((top) => {
                     const active = selectedToppingIds.includes(top.id);
                     return (
                       <button
@@ -252,7 +272,8 @@ export function BreakfastQuickBuilder({
                   <h4 className="font-display font-bold text-sm text-foreground">Frisches & Extras</h4>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {(catalog?.extra_ingredients || []).slice(0, 4).map((extra) => {
+                  <div className="max-h-64 overflow-y-auto pr-1 grid grid-cols-2 gap-2">
+                  {(catalog?.extra_ingredients || []).map((extra) => {
                     const active = selectedExtraIds.includes(extra.id);
                     return (
                       <button
@@ -270,6 +291,7 @@ export function BreakfastQuickBuilder({
                       </button>
                     );
                   })}
+                  </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   Berechnung: ca. {Math.round(100 * portions)} g Frisches gesamt
@@ -283,7 +305,7 @@ export function BreakfastQuickBuilder({
                   <h4 className="font-display font-bold text-sm text-foreground">Getränke</h4>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {(catalog?.drink_recipes || []).slice(0, 4).map((drink) => {
+                  {(catalog?.drink_recipes || []).map((drink) => {
                     const active = selectedDrinkIds.includes(drink.id);
                     return (
                       <button
@@ -308,41 +330,21 @@ export function BreakfastQuickBuilder({
               </div>
             </div>
 
-            {/* DGE Expert Mode Toggle */}
-            <div className="rounded-xl border border-border/60 bg-muted/10 p-3">
+            {/* Full rule-based wizard */}
+            <div className="rounded-xl border border-border/60 bg-muted/10 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1">
+                <p className="text-xs font-bold text-foreground">Mehr Kontrolle gewünscht?</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Im Expertenmodus legst du Mengen, Sortenanteile und Regeln Schritt für Schritt fest.
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowExpertMode(!showExpertMode)}
-                className="w-full flex items-center justify-between text-xs font-bold text-muted-foreground hover:text-foreground"
+                onClick={() => navigate(`/meal-plans/${mealPlanId}/meals/${mealId}/breakfast-wizard`)}
+                className="shrink-0 px-3 py-2 rounded-lg border border-primary text-primary text-xs font-bold hover:bg-primary/10 transition-colors"
               >
-                <span className="flex items-center gap-1.5">
-                  <Utensils className="w-3.5 h-3.5 text-primary" />
-                  DGE-Nährwert-Feinjustierung (Expertenmodus)
-                </span>
-                {showExpertMode ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                Expertenmodus öffnen
               </button>
-
-              {showExpertMode && (
-                <div className="pt-3 mt-3 border-t border-border/40 text-xs space-y-2 text-muted-foreground animate-in fade-in-50">
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-2 rounded-lg bg-card border">
-                      <span className="text-[11px] block">Basis-Anteil</span>
-                      <span className="font-bold text-foreground">50%</span>
-                    </div>
-                    <div className="p-2 rounded-lg bg-card border">
-                      <span className="text-[11px] block">Belag-Anteil</span>
-                      <span className="font-bold text-foreground">35%</span>
-                    </div>
-                    <div className="p-2 rounded-lg bg-card border">
-                      <span className="text-[11px] block">Fett-Anteil</span>
-                      <span className="font-bold text-foreground">15%</span>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-center pt-1">
-                    Standard-Verteilung deckt ca. 25% des DGE-Tagesbedarfs ab.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         )}

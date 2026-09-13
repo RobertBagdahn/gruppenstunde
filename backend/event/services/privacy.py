@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from profiles.services.privacy import PrivacyDataCollector
-
-User = get_user_model()
 
 
 class EventPrivacyCollector(PrivacyDataCollector):
@@ -34,7 +32,8 @@ class EventPrivacyCollector(PrivacyDataCollector):
             )
         )
         for p in persons:
-            p["birthday"] = str(p["birthday"]) if p["birthday"] else None
+            p_any = cast(dict[str, Any], p)
+            p_any["birthday"] = str(p_any["birthday"]) if p_any["birthday"] else None
 
         registrations_qs = Registration.objects_all.filter(user=user).select_related("event")
         reg_items = []
@@ -50,7 +49,8 @@ class EventPrivacyCollector(PrivacyDataCollector):
                 )
             )
             for part in participants:
-                part["birthday"] = str(part["birthday"]) if part["birthday"] else None
+                part_any = cast(dict[str, Any], part)
+                part_any["birthday"] = str(part_any["birthday"]) if part_any["birthday"] else None
 
             payments = list(
                 Payment.objects.filter(participant__registration=reg).values(
@@ -60,8 +60,9 @@ class EventPrivacyCollector(PrivacyDataCollector):
                 )
             )
             for pay in payments:
-                pay["amount"] = str(pay["amount"])
-                pay["received_at"] = str(pay["received_at"]) if pay["received_at"] else None
+                pay_any = cast(dict[str, Any], pay)
+                pay_any["amount"] = str(pay_any["amount"])
+                pay_any["received_at"] = str(pay_any["received_at"]) if pay_any["received_at"] else None
 
             reg_items.append(
                 {

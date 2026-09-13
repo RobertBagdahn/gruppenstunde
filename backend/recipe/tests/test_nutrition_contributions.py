@@ -137,21 +137,21 @@ class TestNutritionContributions:
 
     def test_density_adjusted_weight_for_volume(self):
         """VOLUME-type measuring units use ingredient physical_density."""
-        from recipe.services.recipe_checks import _calculate_item_weight_g
         from recipe.models import RecipeItem
+        from recipe.services.recipe_checks import _calculate_item_weight_g
 
         oil = make_ingredient(name="Olivenöl", energy_kcal=900, physical_density=0.92, physical_viscosity="liquid")
         ml_unit = make_measuring_unit(name="Milliliter", quantity=1.0, unit=MeasuringUnitType.VOLUME)
-        portion = make_portion(
-            ingredient=oil, name="100ml Öl", measuring_unit=ml_unit, quantity=1.0, weight_g=None
-        )
+        portion = make_portion(ingredient=oil, name="100ml Öl", measuring_unit=ml_unit, quantity=1.0, weight_g=None)
         recipe = make_recipe(portions=1)
         make_recipe_item(recipe=recipe, portion=portion, quantity=1.0)
 
         # Verify helper directly
-        ri = RecipeItem.objects.filter(recipe=recipe).select_related(
-            "portion", "portion__ingredient", "portion__measuring_unit"
-        ).first()
+        ri = (
+            RecipeItem.objects.filter(recipe=recipe)
+            .select_related("portion", "portion__ingredient", "portion__measuring_unit")
+            .first()
+        )
         w = _calculate_item_weight_g(ri)
         assert w == pytest.approx(0.92, abs=0.01), f"Expected 0.92g, got {w}"
 
@@ -207,9 +207,9 @@ class TestNutritionContributions:
         per_serving = data.get("per_serving_energy_kcal", 0)
         item_sum = sum(item["energy_kcal"] for item in data["items"])
         # Sum of per-item energy_kcal should match per_serving_energy_kcal
-        assert abs(item_sum - per_serving) < 0.15, (
-            f"Sum of per-item energy_kcal ({item_sum}) != per_serving_energy_kcal ({per_serving})"
-        )
+        assert (
+            abs(item_sum - per_serving) < 0.15
+        ), f"Sum of per-item energy_kcal ({item_sum}) != per_serving_energy_kcal ({per_serving})"
         # Each item value should be <= total (per-serving ≤ total when portions > 1)
         for item in data["items"]:
             assert item["energy_kcal"] <= data["total_energy_kcal"]

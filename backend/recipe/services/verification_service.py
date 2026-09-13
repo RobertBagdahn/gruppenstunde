@@ -9,6 +9,8 @@ from content.models.approval import ApprovalLog
 from recipe.models import Rule
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from django.contrib.auth.models import User
 
     from recipe.models import Recipe
@@ -74,7 +76,7 @@ def _check_required_fields(recipe: Recipe) -> list[str]:
 
 
 def _evaluate_rules(recipe: Recipe) -> tuple[list[dict], int, int]:
-    warnings = []
+    warnings: list[dict[str, Any]] = []
     rules_total = 0
     rules_passed = 0
 

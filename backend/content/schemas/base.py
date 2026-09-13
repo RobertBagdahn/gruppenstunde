@@ -7,9 +7,10 @@ via imports like ``from content.schemas import ContentListOut``.
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import cast
 
 from ninja import Schema
-from pydantic import field_validator
+from pydantic import ConfigDict, field_validator
 
 # ---------------------------------------------------------------------------
 # Shared Sub-Schemas (Tag, ScoutLevel, Author)
@@ -35,8 +36,7 @@ class TagOut(Schema):
     def _coerce_uuid_to_str(cls, value: object) -> object:
         return str(value) if value is not None else None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TagTreeOut(Schema):
@@ -94,8 +94,7 @@ class TagAdminOut(Schema):
     def _coerce_uuid_to_str(cls, value: object) -> object:
         return str(value) if value is not None else None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TagDetailOut(Schema):
@@ -154,7 +153,7 @@ class ContentListOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.image:
-            return obj.image.url
+            return cast(str, obj.image.url)
         return None
 
     @staticmethod
@@ -205,7 +204,7 @@ class ContentDetailOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.image:
-            return obj.image.url
+            return cast(str, obj.image.url)
         return None
 
     @staticmethod
@@ -239,7 +238,7 @@ class ContentSimilarOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.image:
-            return obj.image.url
+            return cast(str, obj.image.url)
         return None
 
 

@@ -1,7 +1,7 @@
 """Planner-related schemas (Planner, PlannerEntry, Collaborator)."""
 
 import datetime as dt
-from typing import Literal
+from typing import Literal, cast
 
 from ninja import Schema
 
@@ -19,7 +19,7 @@ class PlannerOut(Schema):
     @staticmethod
     def resolve_group_name(obj) -> str:
         if obj.group:
-            return obj.group.name
+            return cast(str, obj.group.name)
         return ""
 
 
@@ -50,13 +50,13 @@ class PlannerEntryOut(Schema):
     @staticmethod
     def resolve_session_title(obj) -> str | None:
         if obj.session:
-            return obj.session.title
+            return cast(str, obj.session.title)
         return None
 
     @staticmethod
     def resolve_session_slug(obj) -> str | None:
         if obj.session:
-            return obj.session.slug
+            return cast(str, obj.session.slug)
         return None
 
 
@@ -91,7 +91,7 @@ class PlannerDetailOut(Schema):
     @staticmethod
     def resolve_group_name(obj) -> str:
         if obj.group:
-            return obj.group.name
+            return cast(str, obj.group.name)
         return ""
 
 
@@ -103,7 +103,7 @@ class CollaboratorOut(Schema):
 
     @staticmethod
     def resolve_username(obj) -> str:
-        return obj.user.get_username()
+        return cast(str, obj.user.get_username())
 
 
 class InviteIn(Schema):

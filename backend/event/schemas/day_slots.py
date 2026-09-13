@@ -1,8 +1,9 @@
 """Pydantic schemas for EventDaySlot (Django Ninja)."""
 
-import logging
 import datetime as _dt
+import logging
 from datetime import datetime, time
+from typing import cast
 
 from ninja import Schema
 
@@ -28,7 +29,7 @@ class EventDaySlotOut(Schema):
     @staticmethod
     def resolve_content_type(obj) -> str | None:
         if obj.content_type:
-            return obj.content_type.model
+            return cast(str, obj.content_type.model)
         return None
 
     @staticmethod
@@ -36,11 +37,13 @@ class EventDaySlotOut(Schema):
         if obj.content_type and obj.object_id:
             try:
                 content_obj = obj.content_type.get_object_for_this_type(pk=obj.object_id)
-                return getattr(content_obj, "title", None)
+                return cast(str | None, getattr(content_obj, "title", None))
             except Exception:
                 logger.warning(
                     "Could not resolve content title for day_slot %d (type=%s, pk=%s)",
-                    obj.id, obj.content_type, obj.object_id,
+                    obj.id,
+                    obj.content_type,
+                    obj.object_id,
                 )
         return None
 
@@ -49,11 +52,13 @@ class EventDaySlotOut(Schema):
         if obj.content_type and obj.object_id:
             try:
                 content_obj = obj.content_type.get_object_for_this_type(pk=obj.object_id)
-                return getattr(content_obj, "slug", None)
+                return cast(str | None, getattr(content_obj, "slug", None))
             except Exception:
                 logger.warning(
                     "Could not resolve content slug for day_slot %d (type=%s, pk=%s)",
-                    obj.id, obj.content_type, obj.object_id,
+                    obj.id,
+                    obj.content_type,
+                    obj.object_id,
                 )
         return None
 

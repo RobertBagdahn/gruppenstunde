@@ -15,6 +15,9 @@ class VisibilityChoices(models.TextChoices):
 class PackingList(models.Model):
     """A packing list for scouting trips (Hajk, summer camp, weekend, etc.)."""
 
+    # Non-persisted attribute set dynamically by the API layer (no DB field).
+    can_edit: bool = False
+
     title = models.CharField(max_length=200, verbose_name=_("Titel"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
     owner = models.ForeignKey(

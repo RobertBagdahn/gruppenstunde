@@ -2,7 +2,7 @@
 
 import datetime as dt
 from decimal import Decimal
-from typing import Literal
+from typing import Literal, cast
 
 from ninja import Schema
 from pydantic import Field, model_validator
@@ -49,6 +49,7 @@ class MealItemOut(Schema):
     quantity_g: float | None = None
     ingredient_tags: list[str] = []
     recipe_type: str = ""
+    nutri_class: int | None = None
     overrides: list[MealItemOverrideOut] = []
     portion_display: str = ""
     has_missing_weight: bool = False
@@ -70,7 +71,7 @@ class MealItemOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.recipe and obj.recipe.image:
-            return obj.recipe.image.url
+            return cast(str, obj.recipe.image.url)
         return None
 
     @staticmethod
@@ -101,7 +102,7 @@ class MealItemOut(Schema):
             servings = obj.recipe.portions or 1
             effective_portions = obj.meal.effective_portions
             total = compute_variant_energy(obj)
-            return total * obj.factor * (effective_portions / servings)
+            return cast(float, total * obj.factor * (effective_portions / servings))
         if obj.ingredient:
             return resolve_ingredient_energy_kcal(obj, effective_portions=obj.meal.effective_portions)
         return None
@@ -119,7 +120,7 @@ class MealItemOut(Schema):
         from planner.services.variant_service import compute_variant_cost
 
         total = compute_variant_cost(obj)
-        return total * obj.factor * (effective_portions / servings)
+        return cast(float, total * obj.factor * (effective_portions / servings))
 
     @staticmethod
     def resolve_overrides(obj) -> list:
@@ -194,6 +195,14 @@ class MealItemOut(Schema):
         return obj.recipe.recipe_type if obj.recipe else ""
 
     @staticmethod
+    def resolve_nutri_class(obj) -> int | None:
+        if obj.recipe:
+            return cast(int, obj.recipe.cached_nutri_class)
+        if obj.ingredient:
+            return cast(int, obj.ingredient.nutri_class)
+        return None
+
+    @staticmethod
     def resolve_quantity_g(obj) -> float | None:
         """Per-person grams for ingredient items."""
         if obj.ingredient and obj.quantity and obj.measuring_unit:
@@ -205,7 +214,7 @@ class MealItemOut(Schema):
                 return float(obj.quantity) * density
             portion = obj.ingredient.portions.filter(measuring_unit=obj.measuring_unit).first()
             if portion and portion.weight_g:
-                return portion.weight_g * float(obj.quantity)
+                return cast(float, portion.weight_g * float(obj.quantity))
 
             default_portions = obj.ingredient.portions.filter(rank=1, weight_g__isnull=False)
             if default_portions.exists():
@@ -278,6 +287,16 @@ class WizardItemsOut(Schema):
     items: list[MealItemOut]
 
 
+class WizardItemsBulkIn(Schema):
+    meal_ids: list[int]
+    items: list[MealItemCreateIn]
+
+
+class WizardItemsBulkOut(Schema):
+    meal_ids: list[int]
+    meals_updated: int
+
+
 class CopyItemsFromPlanIn(Schema):
     source_plan_id: int
     source_meal_id: int
@@ -307,7 +326,7 @@ class MealOut(Schema):
     @staticmethod
     def resolve_external_energy_kcal(obj) -> float | None:
         if obj.external_energy_kcal is not None:
-            return round(obj.external_energy_kcal, 1)
+            return cast(float, round(obj.external_energy_kcal, 1))
         return None
 
     @staticmethod
@@ -315,8 +334,8 @@ class MealOut(Schema):
         effective_portions = obj.effective_portions
         if obj.is_external:
             if obj.external_energy_kcal is not None:
-                return obj.external_energy_kcal * effective_portions
-            return NORM_PERSON_DAILY_KCAL * obj.day_part_factor * effective_portions
+                return cast(float, obj.external_energy_kcal * effective_portions)
+            return cast(float, NORM_PERSON_DAILY_KCAL * obj.day_part_factor * effective_portions)
         total = 0.0
         for item in obj.items.all():
             if item.recipe and item.recipe.cached_energy_total_kcal is not None:
@@ -335,7 +354,7 @@ class MealOut(Schema):
         effective_portions = obj.effective_portions
         if obj.is_external:
             if obj.external_cost_per_person is not None:
-                return float(obj.external_cost_per_person) * effective_portions
+                return cast(float, float(obj.external_cost_per_person) * effective_portions)
             return 0.0
         total = 0.0
         for item in obj.items.all():
@@ -431,14 +450,14 @@ class MealPlanOut(Schema):
     @staticmethod
     def resolve_event_id(obj) -> int | None:
         try:
-            return obj.event_relation.event_id
+            return cast(int, obj.event_relation.event_id)
         except Exception:
             return None
 
     @staticmethod
     def resolve_event_name(obj) -> str:
         try:
-            return obj.event_relation.event.name
+            return cast(str, obj.event_relation.event.name)
         except Exception:
             return ""
 
@@ -447,13 +466,13 @@ class MealPlanOut(Schema):
         # Use annotated value when available (list_meal_plans uses annotate)
         ann = getattr(obj, "meals_count_ann", None)
         if ann is not None:
-            return ann
-        return obj.meals.count()
+            return cast(int, ann)
+        return cast(int, obj.meals.count())
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
         if obj.owner:
-            return obj.owner.get_full_name() or obj.owner.username
+            return cast(str, obj.owner.get_full_name() or obj.owner.username)
         return None
 
     @staticmethod
@@ -469,23 +488,23 @@ class MealPlanOut(Schema):
     def resolve_is_owner(obj) -> bool:
         ann = getattr(obj, "is_owner_ann", None)
         if ann is not None:
-            return ann
+            return cast(bool, ann)
         return False
 
     @staticmethod
     def resolve_collaborators_count(obj) -> int:
         ann = getattr(obj, "collaborators_count_ann", None)
         if ann is not None:
-            return ann
-        return obj.collaborators.count()
+            return cast(int, ann)
+        return cast(int, obj.collaborators.count())
 
     @staticmethod
     def resolve_has_group_members(obj) -> bool:
-        return obj.group_members.exists()
+        return cast(bool, obj.group_members.exists())
 
     @staticmethod
     def resolve_group_members_count(obj) -> int:
-        return obj.group_members.count()
+        return cast(int, obj.group_members.count())
 
 
 class MealPlanDuplicateIn(Schema):
@@ -618,21 +637,21 @@ class MealPlanDetailOut(Schema):
     @staticmethod
     def resolve_event_id(obj) -> int | None:
         try:
-            return obj.event_relation.event_id
+            return cast(int, obj.event_relation.event_id)
         except Exception:
             return None
 
     @staticmethod
     def resolve_event_name(obj) -> str:
         try:
-            return obj.event_relation.event.name
+            return cast(str, obj.event_relation.event.name)
         except Exception:
             return ""
 
     @staticmethod
     def resolve_owner_name(obj) -> str | None:
         if obj.owner:
-            return obj.owner.get_full_name() or obj.owner.username
+            return cast(str, obj.owner.get_full_name() or obj.owner.username)
         return None
 
     @staticmethod
@@ -640,26 +659,26 @@ class MealPlanDetailOut(Schema):
         return [tag.id for tag in obj.nutritional_tags.all()]
 
     @staticmethod
-    def resolve_nutritional_tags(obj) -> list:
+    def resolve_nutritional_tags(obj) -> list[NutritionalTagOut]:
         if hasattr(obj, "_prefetched_objects_cache") and "nutritional_tags" in obj._prefetched_objects_cache:
-            return obj.nutritional_tags.all()
-        return obj.nutritional_tags.all()
+            return list(obj.nutritional_tags.all())
+        return list(obj.nutritional_tags.all())
 
     @staticmethod
-    def resolve_collaborators(obj) -> list:
-        return obj.collaborators.select_related("user").all()
+    def resolve_collaborators(obj) -> list[MealPlanCollaboratorOut]:
+        return list(obj.collaborators.select_related("user").all())
 
     @staticmethod
     def resolve_has_group_members(obj) -> bool:
-        return obj.group_members.exists()
+        return cast(bool, obj.group_members.exists())
 
     @staticmethod
     def resolve_group_members_count(obj) -> int:
-        return obj.group_members.count()
+        return cast(int, obj.group_members.count())
 
     @staticmethod
-    def resolve_group_members(obj) -> list:
-        return obj.group_members.select_related("person").prefetch_related("nutritional_tags").all()
+    def resolve_group_members(obj) -> list["GroupMemberOut"]:
+        return list(obj.group_members.select_related("person").prefetch_related("nutritional_tags").all())
 
 
 # ==========================================================================
@@ -677,8 +696,8 @@ class GroupMemberOut(Schema):
     synced_from_event: bool = False
 
     @staticmethod
-    def resolve_nutritional_tags(obj) -> list:
-        return obj.nutritional_tags.all()
+    def resolve_nutritional_tags(obj) -> list[NutritionalTagOut]:
+        return list(obj.nutritional_tags.all())
 
 
 class GroupMemberCreateIn(Schema):
@@ -845,11 +864,11 @@ class RefMealOut(Schema):
 
     @staticmethod
     def resolve_synced_meals_count(obj) -> int:
-        return obj.synced_meals.filter(is_synced=True).count()
+        return cast(int, obj.synced_meals.filter(is_synced=True).count())
 
     @staticmethod
     def resolve_total_meals_count(obj) -> int:
-        return obj.meal_plan.meals.filter(meal_type=obj.meal_type, is_reference=False).count()
+        return cast(int, obj.meal_plan.meals.filter(meal_type=obj.meal_type, is_reference=False).count())
 
     @staticmethod
     def resolve_synced_meal_count(obj) -> int | None:

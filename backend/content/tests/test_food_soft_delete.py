@@ -4,7 +4,6 @@ from django.utils import timezone
 
 from content.services.food_access import visible_recipe_queryset
 from planner.models import Meal, MealItem, MealPlan
-from recipe.models import Recipe
 from recipe.tests import make_recipe
 
 User = get_user_model()

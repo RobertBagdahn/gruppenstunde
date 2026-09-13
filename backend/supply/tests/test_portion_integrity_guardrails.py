@@ -8,7 +8,7 @@ deleted.
 
 import pytest
 
-from recipe.tests import make_recipe, make_recipe_item
+from recipe.tests import make_recipe_item
 from supply.models import Ingredient, MeasuringUnit, Portion, RetailSection
 from supply.services.portion_integrity import (
     _pick_rank1_winner,

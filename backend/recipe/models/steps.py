@@ -120,4 +120,6 @@ class RecipeStepIngredient(models.Model):
         return super().save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f"{self.step.recipe.slug} Step {self.step.sort_order} - {self.recipe_item.portion.ingredient.name}"
+        portion = self.recipe_item.portion
+        ingredient_name = portion.ingredient.name if portion else ""
+        return f"{self.step.recipe.slug} Step {self.step.sort_order} - {ingredient_name}"

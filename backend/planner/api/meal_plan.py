@@ -2,12 +2,13 @@
 
 import datetime as dt
 import logging
+from typing import Any, cast
 
 from django.db import IntegrityError
 from django.db.models import BooleanField, Case, Count, Prefetch, Q, Value, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from planner.models import (
@@ -27,11 +28,13 @@ from planner.schemas import (
     CalculateIngredientKcalOut,
     CookingScheduleOut,
     CopyItemsFromPlanIn,
+    DayCostOut,
     GroupMemberBulkCreateIn,
     GroupMemberCreateIn,
     GroupMemberOut,
     GroupMemberUpdateIn,
     IntelligentSuggestionsResponse,
+    MealCostOut,
     MealCreateIn,
     MealDayBulkCreateIn,
     MealItemBatchIn,
@@ -60,9 +63,14 @@ from planner.schemas import (
     PlanCheckResponseOut,
     PopularRecipesResponseOut,
     RecentlyUsedRecipesResponseOut,
+    RecipeCostOut,
     RecipeSuggestionOut,
     SearchRecipesResponseOut,
+    ShoppingItemPortionOptionOut,
+    ShoppingItemSourceOut,
     ShoppingListItemOut,
+    WizardItemsBulkIn,
+    WizardItemsBulkOut,
     WizardItemsIn,
     WizardItemsOut,
 )
@@ -530,7 +538,7 @@ def update_meal_plan(request, meal_plan_id: int, payload: MealPlanUpdateIn):
         if old_start != new_start or old_end != new_end:
             has_range_change = True
 
-    if has_range_change and new_end is not None:
+    if has_range_change and new_end is not None and new_start is not None:
         from planner.services.contiguity import smart_merge_days, validate_meal_plan_contiguity
 
         smart_merge_days(meal_plan, new_start, new_end)
@@ -1067,8 +1075,61 @@ def set_wizard_items(request, meal_plan_id: int, meal_id: int, payload: WizardIt
 
     return WizardItemsOut(
         meal_id=meal.id,
-        items=list(meal.items.select_related("recipe", "ingredient", "measuring_unit").all()),
+        items=cast(list[MealItemOut], list(meal.items.select_related("recipe", "ingredient", "measuring_unit").all())),
     )
+
+
+@meal_plan_router.post("/{meal_plan_id}/meals/wizard-items/bulk/", response=WizardItemsBulkOut)
+def set_wizard_items_bulk(request, meal_plan_id: int, payload: WizardItemsBulkIn):
+    """Replace breakfast items in several event meals atomically."""
+    from django.db import transaction
+
+    _require_auth(request)
+    meal_plan = get_object_or_404(MealPlan, id=meal_plan_id)
+    _require_edit(meal_plan, request.user)
+    if not payload.meal_ids:
+        raise HttpError(422, "Mindestens ein Frühstück muss ausgewählt werden.")
+
+    selected_ids = set(payload.meal_ids)
+    meals = list(
+        Meal.objects.filter(id__in=selected_ids, meal_plan=meal_plan, meal_type="breakfast", is_reference=False)
+    )
+    if len(meals) != len(selected_ids):
+        raise HttpError(422, "Es wurden ungültige Frühstücke ausgewählt.")
+    check_duplicates_in_input(payload.items)
+
+    from content.services.food_access import get_visible_ingredient_or_404, get_visible_recipe_or_404
+
+    resolved_items = []
+    for item_in in payload.items:
+        if item_in.recipe_id and item_in.ingredient_id:
+            raise HttpError(422, "Entweder Rezept oder Zutat angeben, nicht beides")
+        recipe = (
+            get_visible_recipe_or_404(request.user, item_in.recipe_id, allow_system_draft=True)
+            if item_in.recipe_id
+            else None
+        )
+        ingredient = (
+            get_visible_ingredient_or_404(request.user, item_in.ingredient_id, allow_system_draft=True)
+            if item_in.ingredient_id
+            else None
+        )
+        resolved_items.append((item_in, recipe, ingredient))
+
+    with transaction.atomic():
+        for meal in meals:
+            meal.items.all().delete()
+            for item_in, recipe, ingredient in resolved_items:
+                _create_meal_item(
+                    meal=meal,
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity=item_in.quantity,
+                    measuring_unit_id=item_in.measuring_unit_id,
+                    display_name=item_in.display_name,
+                    factor=item_in.factor,
+                )
+    return {"meal_ids": payload.meal_ids, "meals_updated": len(meals)}
 
 
 @meal_plan_router.post(
@@ -1281,11 +1342,19 @@ def copy_items_from_plan(request, meal_plan_id: int, meal_id: int, payload: Copy
     for src in items_to_copy:
         if src.recipe_id:
             if src.recipe_id in source_recipe_ids:
-                raise HttpError(422, f"Rezept «{src.recipe.title}» ist mehrfach in der Quell-Mahlzeit enthalten")
+                recipe = src.recipe
+                raise HttpError(
+                    422,
+                    f"Rezept «{recipe.title if recipe else '#' + str(src.recipe_id)}» ist mehrfach in der Quell-Mahlzeit enthalten",
+                )
             source_recipe_ids.append(src.recipe_id)
         if src.ingredient_id:
             if src.ingredient_id in source_ingredient_ids:
-                raise HttpError(422, f"Zutat «{src.ingredient.name}» ist mehrfach in der Quell-Mahlzeit enthalten")
+                ingredient = src.ingredient
+                raise HttpError(
+                    422,
+                    f"Zutat «{ingredient.name if ingredient else '#' + str(src.ingredient_id)}» ist mehrfach in der Quell-Mahlzeit enthalten",
+                )
             source_ingredient_ids.append(src.ingredient_id)
 
     # Check source items don't conflict with existing target items
@@ -1382,8 +1451,8 @@ def plan_check(request, meal_plan_id: int):
             day_totals[date_str] = day_totals.get(date_str, 0.0) + cost_p
 
         for date_str, day_cost in sorted(day_totals.items()):
-            if day_cost > budget_limit:
-                excess = day_cost - budget_limit
+            if day_cost > float(budget_limit):
+                excess = day_cost - float(budget_limit)
                 alerts.append(
                     PlanCheckAlertOut(
                         id=f"budget-excess-{date_str}",
@@ -1424,7 +1493,7 @@ def plan_check(request, meal_plan_id: int):
                                 type="allergen_conflict",
                                 severity="error",
                                 title=f"Einschränkung verletzt bei {meal.get_meal_type_display()}",
-                                description=f"«{item.recipe.title if item.recipe else item.ingredient.name}» enthält «{tag.name}».",
+                                description=f"«{item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else 'Unbekannt')}» enthält «{tag.name}».",
                                 date=date_str,
                                 meal_id=meal.id,
                                 meal_type=meal.meal_type,
@@ -1720,15 +1789,15 @@ def cost_summary(request, meal_plan_id: int):
         day_costs[str(meal_date)]["total"] += meal_cost
         day_costs[str(meal_date)]["portions"] += Decimal(str(effective_portions))
         day_costs[str(meal_date)]["meals"].append(
-            {
-                "meal_id": meal.id,
-                "meal_type": meal.meal_type,
-                "date": meal_date,
-                "cost": meal_cost,
-                "cost_per_person": cost_per_person,
-                "is_external": False,
-                "external_cost_per_person": None,
-            }
+            MealCostOut(
+                meal_id=meal.id,
+                meal_type=meal.meal_type,
+                date=meal_date,
+                cost=meal_cost,
+                cost_per_person=cost_per_person,
+                is_external=False,
+                external_cost_per_person=None,
+            )
         )
 
     # Build response
@@ -1738,16 +1807,16 @@ def cost_summary(request, meal_plan_id: int):
     reserve_factor = meal_plan.reserve_factor or 1.0
     total_cost_with_reserve = total_cost * Decimal(str(reserve_factor))
 
-    days = []
+    days: list[DayCostOut] = []
     for date_str in sorted(day_costs.keys()):
         d = day_costs[date_str]
         days.append(
-            {
-                "date": date_str,
-                "total_cost": d["total"],
-                "cost_per_person": (d["total"] / d["portions"] if d["portions"] > 0 else Decimal("0")),
-                "meals": d["meals"],
-            }
+            DayCostOut(
+                date=dt.date.fromisoformat(date_str),
+                total_cost=d["total"],
+                cost_per_person=(d["total"] / d["portions"] if d["portions"] > 0 else Decimal("0")),
+                meals=d["meals"],
+            )
         )
 
     return MealPlanCostSummaryOut(
@@ -1760,21 +1829,21 @@ def cost_summary(request, meal_plan_id: int):
         priced_ingredients=priced_ingredients,
         days=days,
         recipes=[
-            {
-                "recipe_id": rc["recipe_id"],
-                "recipe_title": rc["recipe_title"],
-                "recipe_slug": rc["recipe_slug"],
-                "total_cost": rc["total_cost"],
+            RecipeCostOut(
+                recipe_id=rc["recipe_id"],
+                recipe_title=rc["recipe_title"],
+                recipe_slug=rc["recipe_slug"],
+                total_cost=rc["total_cost"],
                 # Weighted cost_per_person: total_cost / total_person_portions across all meals
                 # This correctly handles meals with different effective_portions (override_portions).
-                "cost_per_person": (
+                cost_per_person=(
                     rc["weighted_cost_sum"] / Decimal(str(rc["weighted_portions_sum"]))
                     if rc["weighted_portions_sum"] > 0
                     else Decimal("0")
                 ),
-                "priced_ingredients": rc["priced_ingredients"],
-                "total_ingredients": rc["total_ingredients"],
-            }
+                priced_ingredients=rc["priced_ingredients"],
+                total_ingredients=rc["total_ingredients"],
+            )
             for rc in sorted(recipe_costs.values(), key=lambda x: x["total_cost"], reverse=True)
         ],
     )
@@ -1811,17 +1880,8 @@ def shopping_list(request, meal_plan_id: int):
             estimated_price_eur=item.estimated_price_eur,
             display_quantity=item.display_quantity,
             natural_portions=item.natural_portions,
-            portion_options=item.portion_options or [],
-            sources=[
-                {
-                    "recipe_id": s.recipe_id,
-                    "recipe_name": s.recipe_name,
-                    "recipe_slug": s.recipe_slug,
-                    "meal_label": s.meal_label,
-                    "quantity_g": s.quantity_g,
-                }
-                for s in (item.sources or [])
-            ],
+            portion_options=[ShoppingItemPortionOptionOut(**po) for po in (item.portion_options or [])],
+            sources=[ShoppingItemSourceOut.model_validate(s) for s in (item.sources or [])],
         )
         for item in items
     ]
@@ -2215,8 +2275,9 @@ def search_recipes(
             if exclude_tag_ids:
                 ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
-        ing_list = list(
-            ing_qs.values(
+        ing_list_only: list[dict[str, Any]] = [
+            dict(row)
+            for row in ing_qs.values(
                 "id",
                 "name",
                 "slug",
@@ -2230,15 +2291,15 @@ def search_recipes(
                 "description",
                 "status",
             )[:limit]
-        )
-        for ing in ing_list:
+        ]
+        for ing in ing_list_only:
             ing["price_per_kg"] = float(ing["price_per_kg"]) if ing["price_per_kg"] is not None else None
 
-        if ing_list:
-            ing_ids = [i["id"] for i in ing_list]
+        if ing_list_only:
+            ing_ids = [i["id"] for i in ing_list_only]
 
             # Nutritional tags
-            through_model = Ingredient.nutritional_tags.through
+            through_model: Any = Ingredient.nutritional_tags.through
             through_rows = through_model.objects.filter(ingredient_id__in=ing_ids).values_list(
                 "ingredient_id", "nutritionaltag_id"
             )
@@ -2247,16 +2308,16 @@ def search_recipes(
             if tag_ids_all:
                 for tag in NutritionalTag.objects.filter(id__in=tag_ids_all).values("id", "name"):
                     tags_map[tag["id"]] = tag["name"]
-            nutritional_tags_by_ing: dict[int, list[dict]] = {}
+            nutritional_tags_only: dict[int, list[dict]] = {}
             for iid, tid in through_rows:
-                nutritional_tags_by_ing.setdefault(iid, []).append({"id": tid, "name": tags_map.get(tid, "")})
+                nutritional_tags_only.setdefault(iid, []).append({"id": tid, "name": tags_map.get(tid, "")})
 
-            portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
+            portions_only = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
                 "measuring_unit"
             )
-            portions_by_ing: dict[int, list[dict]] = {}
-            for p in portions:
-                portions_by_ing.setdefault(p.ingredient_id, []).append(
+            portions_by_ing_only: dict[int, list[dict]] = {}
+            for p in portions_only:
+                portions_by_ing_only.setdefault(p.ingredient_id, []).append(
                     {
                         "id": p.id,
                         "name": p.name,
@@ -2266,11 +2327,11 @@ def search_recipes(
                         "weight_g": float(p.weight_g) if p.weight_g else None,
                     }
                 )
-            for ing in ing_list:
-                ing["portions"] = portions_by_ing.get(ing["id"], [])
-                ing["nutritional_tags"] = nutritional_tags_by_ing.get(ing["id"], [])
+            for ing in ing_list_only:
+                ing["portions"] = portions_by_ing_only.get(ing["id"], [])
+                ing["nutritional_tags"] = nutritional_tags_only.get(ing["id"], [])
 
-        return {"recipes": recipes_data, "ingredients": ing_list, "fallback_applied": False}
+        return {"recipes": recipes_data, "ingredients": ing_list_only, "fallback_applied": False}
 
     # --- Recipes ---
     qs = Recipe.objects.filter(Q(status="approved") | Q(owner=request.user))
@@ -2337,17 +2398,17 @@ def search_recipes(
     if recipe_ids:
         from supply.models.reference import NutritionalTag
 
-        through_model = Recipe.nutritional_tags.through
-        through_rows = through_model.objects.filter(recipe_id__in=recipe_ids).values_list(
+        recipe_through_model: Any = Recipe.nutritional_tags.through
+        recipe_through_rows = recipe_through_model.objects.filter(recipe_id__in=recipe_ids).values_list(
             "recipe_id", "nutritionaltag_id"
         )
-        tag_ids_all = set(tid for _, tid in through_rows)
-        tags_map: dict[int, str] = {}
-        if tag_ids_all:
-            for tag in NutritionalTag.objects.filter(id__in=tag_ids_all).values("id", "name"):
-                tags_map[tag["id"]] = tag["name"]
-        for rid, tid in through_rows:
-            nutritional_tags_map.setdefault(rid, []).append({"id": tid, "name": tags_map.get(tid, "")})
+        recipe_tag_ids_all = set(tid for _, tid in recipe_through_rows)
+        recipe_tags_map: dict[int, str] = {}
+        if recipe_tag_ids_all:
+            for tag in NutritionalTag.objects.filter(id__in=recipe_tag_ids_all).values("id", "name"):
+                recipe_tags_map[tag["id"]] = tag["name"]
+        for rid, tid in recipe_through_rows:
+            nutritional_tags_map.setdefault(rid, []).append({"id": tid, "name": recipe_tags_map.get(tid, "")})
 
         # Fetch recipe items for preview
         from recipe.models import RecipeItem
@@ -2411,8 +2472,9 @@ def search_recipes(
         if exclude_tag_ids:
             ing_qs = ing_qs.exclude(nutritional_tags__id__in=exclude_tag_ids)
 
-    ing_list = list(
-        ing_qs.values(
+    ing_list: list[dict[str, Any]] = [
+        dict(row)
+        for row in ing_qs.values(
             "id",
             "name",
             "slug",
@@ -2426,7 +2488,7 @@ def search_recipes(
             "description",
             "status",
         )[:limit]
-    )
+    ]
     for ing in ing_list:
         ing["price_per_kg"] = float(ing["price_per_kg"]) if ing["price_per_kg"] is not None else None
 
@@ -2437,18 +2499,18 @@ def search_recipes(
         # Nutritional tags (same approach as recipes above)
         from supply.models.reference import NutritionalTag
 
-        through_model = Ingredient.nutritional_tags.through
-        through_rows = through_model.objects.filter(ingredient_id__in=ing_ids).values_list(
+        ing_through_model: Any = Ingredient.nutritional_tags.through
+        ing_through_rows = ing_through_model.objects.filter(ingredient_id__in=ing_ids).values_list(
             "ingredient_id", "nutritionaltag_id"
         )
-        tag_ids_all = set(tid for _, tid in through_rows)
-        tags_map: dict[int, str] = {}
-        if tag_ids_all:
-            for tag in NutritionalTag.objects.filter(id__in=tag_ids_all).values("id", "name"):
-                tags_map[tag["id"]] = tag["name"]
+        ing_tag_ids_all = set(tid for _, tid in ing_through_rows)
+        ing_tags_map: dict[int, str] = {}
+        if ing_tag_ids_all:
+            for tag in NutritionalTag.objects.filter(id__in=ing_tag_ids_all).values("id", "name"):
+                ing_tags_map[tag["id"]] = tag["name"]
         nutritional_tags_by_ing: dict[int, list[dict]] = {}
-        for iid, tid in through_rows:
-            nutritional_tags_by_ing.setdefault(iid, []).append({"id": tid, "name": tags_map.get(tid, "")})
+        for iid, tid in ing_through_rows:
+            nutritional_tags_by_ing.setdefault(iid, []).append({"id": tid, "name": ing_tags_map.get(tid, "")})
 
         # Portions
         portions = Portion.objects.filter(ingredient_id__in=ing_ids, deleted_at__isnull=True).select_related(
@@ -2591,7 +2653,7 @@ def add_collaborator(request, meal_plan_id: int, payload: MealPlanCollaboratorCr
     except Exception:
         logger.exception("Failed to send collaborator notification email")
 
-    return 201, collab
+    return Status(201, collab)
 
 
 @meal_plan_router.patch(
@@ -2713,11 +2775,11 @@ def get_ingredient_scan(request, meal_plan_id: int):
 
             for tag_id in tags_to_check:
                 if tag_id in plan_tag_ids:
-                    tag = next(
+                    matched_tag = next(
                         (t for t in meal_plan.nutritional_tags.all() if t.id == tag_id),
                         None,
                     )
-                    if tag:
+                    if matched_tag:
                         violations.append(
                             {
                                 "meal_id": meal.id,
@@ -2730,12 +2792,12 @@ def get_ingredient_scan(request, meal_plan_id: int):
                                     else (item.ingredient.name if item.ingredient else "Unbekannt")
                                 ),
                                 "recipe_slug": item.recipe.slug if item.recipe else "",
-                                "nutritional_tag": tag,
+                                "nutritional_tag": matched_tag,
                                 "source": "recipe_tag" if item.recipe else "ingredient_tag",
                             }
                         )
                         affected_meal_ids.add(meal.id)
-                        unique_tag_ids.add(tag.id)
+                        unique_tag_ids.add(matched_tag.id)
 
     summary = {
         "total_violations": len(violations),
@@ -2853,7 +2915,7 @@ def create_tag(request, meal_plan_id: int, payload: MealPlanTagCreateIn):
         raise HttpError(409, f"Tag «{name}» existiert bereits in diesem Essensplan")
 
     tag = MealPlanTag.objects.create(meal_plan=meal_plan, name=name)
-    return 201, tag
+    return Status(201, tag)
 
 
 @meal_plan_router.delete(
@@ -2868,7 +2930,7 @@ def delete_tag(request, meal_plan_id: int, tag_id: int):
 
     tag = get_object_or_404(MealPlanTag, id=tag_id, meal_plan=meal_plan)
     tag.delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ==========================================================================

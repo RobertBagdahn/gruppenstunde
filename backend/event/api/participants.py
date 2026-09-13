@@ -153,6 +153,7 @@ def register_admin(request, event_slug: str, payload: AdminRegisterIn):
         last_registration = registration
 
     # Return the last registration for response
+    reg: Registration | None
     if last_registration:
         reg = Registration.objects.prefetch_related("participants__booking_option").get(pk=last_registration.pk)
     else:
@@ -168,7 +169,7 @@ def register_admin(request, event_slug: str, payload: AdminRegisterIn):
 
 
 @event_router.delete("/{event_slug}/participants/{participant_id}/")
-def remove_participant(request, event_slug: str, participant_id: int, payload: RemoveParticipantIn = None):
+def remove_participant(request, event_slug: str, participant_id: int, payload: RemoveParticipantIn | None = None):
     """Remove a participant from an event (soft-delete)."""
     require_auth(request)
     event = get_object_or_404(Event, slug=event_slug)

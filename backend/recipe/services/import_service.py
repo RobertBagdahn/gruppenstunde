@@ -205,7 +205,7 @@ def _parse_chefkoch(soup: BeautifulSoup, url: str) -> ImportedRecipe | None:
     recipe.description = _text_value(soup.find(itemprop="description"))
     image_element = soup.find(itemprop="image")
     if image_element:
-        recipe.image_url = image_element.get("content") or image_element.get("src") or ""
+        recipe.image_url = str(image_element.get("content") or image_element.get("src") or "")
 
     recipe.ingredients = [
         _parse_ingredient_string(element.get_text(" ", strip=True))
@@ -247,7 +247,7 @@ def _parse_microdata(soup: BeautifulSoup, url: str) -> ImportedRecipe | None:
     recipe.description = _text_value(description_el)
     image_el = recipe_el.find(itemprop="image")
     if image_el:
-        recipe.image_url = image_el.get("content") or image_el.get("src") or ""
+        recipe.image_url = str(image_el.get("content") or image_el.get("src") or "")
 
     for ing_el in recipe_el.find_all(itemprop="recipeIngredient"):
         recipe.ingredients.append(_parse_ingredient_string(ing_el.get_text(strip=True)))

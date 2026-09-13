@@ -1,7 +1,7 @@
 """Consolidated seed command for the breakfast catalog.
 
-Creates:
-- 5 content.Tag instances: breakfast-base, breakfast-topping, breakfast-fat, breakfast-drink, breakfast-warm-meal
+ Creates:
+- 6 content.Tag instances: breakfast-base, breakfast-topping, breakfast-fat, breakfast-extra, breakfast-drink, breakfast-warm-meal
 - 6 base bread ingredients (tagged breakfast-base)
 - 16 specific topping ingredients (tagged breakfast-topping)
 - 2 fat/spread ingredients (tagged breakfast-fat) — Butter, Margarine
@@ -21,6 +21,7 @@ from supply.models import Ingredient, MeasuringUnit, Portion
 BASE_TAG_SLUG = "breakfast-base"
 TOPPING_TAG_SLUG = "breakfast-topping"
 FAT_TAG_SLUG = "breakfast-fat"
+EXTRA_TAG_SLUG = "breakfast-extra"
 DRINK_TAG_SLUG = "breakfast-drink"
 WARM_MEAL_TAG_SLUG = "breakfast-warm-meal"
 
@@ -45,19 +46,27 @@ BASE_INGREDIENTS = [
     ("Körnerbrot", "koernerbrot", 55, 230, 10, 40),
     ("Brötchen (halbes)", "broetchen-halb", 35, 265, 9, 48),
     ("Brötchen (ganzes)", "broetchen-ganzes", 70, 265, 9, 48),
+    ("Müsli", "muesli", 60, 380, 10, 65),
+    ("Haferflocken", "haferflocken", 60, 370, 13, 59),
 ]
 
 # (name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, portions_grams, package_g)
 # portions_grams: (knapp, normal, üppig)
 TOPPING_INGREDIENTS = [
     ("Nutella", "nutella", 540, 6.3, 63, 31, 8.0, (15, 20, 25), 450),
+    ("Schokocreme", "schokocreme", 540, 6.3, 63, 31, 8.0, (15, 20, 25), 450),
+    ("Kekscreme", "kekscreme", 580, 5.5, 62, 35, 9.0, (15, 20, 25), 400),
+    ("Nuss-Nougat-Creme", "nuss-nougat-creme", 540, 6.3, 63, 31, 8.0, (15, 20, 25), 450),
     ("Marmelade", "marmelade", 265, 0.3, 63, 0.1, 5.0, (15, 20, 30), 500),
+    ("Erdbeermarmelade", "erdbeermarmelade", 260, 0.3, 65, 0.1, 5.0, (15, 20, 30), 450),
+    ("Aprikosenmarmelade", "aprikosenmarmelade", 260, 0.3, 65, 0.1, 5.0, (15, 20, 30), 450),
+    ("Kirschmarmelade", "kirschmarmelade", 260, 0.3, 65, 0.1, 5.0, (15, 20, 30), 450),
+    ("Johannisbeergelee", "johannisbeergelee", 250, 0.2, 62, 0.1, 6.0, (15, 20, 30), 250),
     ("Honig", "honig", 304, 0.3, 82, 0, 12.0, (12, 15, 20), 500),
     ("Erdnussbutter", "erdnussbutter", 580, 25, 8, 51, 10.0, (15, 20, 25), 500),
     ("Frischkäse", "frischkaese", 342, 5.9, 4.3, 35, 6.0, (20, 30, 40), 200),
     ("Leberwurst", "leberwurst", 330, 14, 0.5, 30, 7.0, (25, 30, 40), 250),
     ("Hummus", "hummus", 166, 5.1, 15, 9, 6.0, (20, 30, 40), 400),
-    ("Avocado", "avocado", 160, 2, 9, 15, 8.0, (40, 50, 70), 200),
     ("Marmelade Erdbeere", "marmelade-erdbeere", 260, 0.3, 65, 0.1, 5.0, (15, 20, 30), 500),
     ("Konfitüre Himbeere", "konfituere-himbeere", 265, 0.4, 63, 0.2, 6.0, (15, 20, 30), 350),
     # Cheese (specific)
@@ -69,6 +78,21 @@ TOPPING_INGREDIENTS = [
     ("Schinken (gekocht)", "schinken-gekocht", 120, 20, 1, 4, 10.0, (25, 30, 40), 200),
     ("Putenbrust (Aufschnitt)", "putenbrust-aufschnitt", 105, 22, 0.5, 2, 12.0, (25, 30, 40), 200),
     ("Käse", "kaese", 356, 24, 0.1, 28, 12.0, (20, 25, 35), 250),
+]
+
+# Fresh fruit and vegetables shown in the "Frisches & Extras" step.
+EXTRA_INGREDIENTS = [
+    ("frische Avocado", "avocado", 160, 2, 9, 15, 8.0, (40, 50, 70), 200),
+    ("frische Äpfel", "frische-aepfel", 52, 0.3, 14, 0.2, 3.0, (80, 100, 120), 1000),
+    ("frische Bananen", "frische-bananen", 89, 1.1, 23, 0.3, 2.5, (80, 100, 120), 1000),
+    ("frische Orangen", "frische-orangen", 47, 0.9, 12, 0.1, 3.0, (80, 100, 120), 1000),
+    ("frische Erdbeeren", "frische-erdbeeren", 32, 0.7, 6, 0.3, 8.0, (60, 80, 100), 500),
+    ("Tomaten", "tomaten", 18, 0.9, 3.9, 0.2, 3.5, (50, 80, 100), 500),
+    ("Gurke", "gurke", 15, 0.7, 3.6, 0.1, 2.5, (50, 80, 100), 500),
+    ("Paprika", "paprika", 31, 1, 6, 0.3, 4.0, (50, 80, 100), 500),
+    ("Möhren", "moehren", 41, 0.9, 10, 0.2, 2.5, (50, 80, 100), 500),
+    ("Radieschen", "radieschen", 16, 0.7, 3.4, 0.1, 3.5, (40, 60, 80), 500),
+    ("Schnittlauch", "schnittlauch", 30, 3.3, 4.4, 0.7, 12.0, (5, 10, 15), 50),
 ]
 
 # (name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, standard_g, package_g)
@@ -92,6 +116,11 @@ DRINK_RECIPES = [
     ("Kaffee", "kaffee", 4, 0.12, 0, 0, 0),
     ("Kakao", "kakao", 77, 3.4, 11, 2.3, 9.5),
     ("Tee", "tee", 1, 0, 0, 0, 0),
+    ("Zitronentee", "zitronentee", 2, 0, 0.5, 0, 0.5),
+    ("Leitungswasser", "leitungswasser", 0, 0, 0, 0, 0),
+    ("Orangensaft", "orangensaft", 90, 1.4, 18, 0.2, 18),
+    ("Apfelsaft", "apfelsaft", 92, 0.2, 23, 0.1, 23),
+    ("Multivitaminsaft", "multivitaminsaft", 94, 0.5, 22, 0.1, 20),
 ]
 
 
@@ -123,6 +152,7 @@ class Command(BaseCommand):
                 BASE_TAG_SLUG: _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base"),
                 TOPPING_TAG_SLUG: _get_or_create_tag(TOPPING_TAG_SLUG, "breakfast-topping"),
                 FAT_TAG_SLUG: _get_or_create_tag(FAT_TAG_SLUG, "breakfast-fat"),
+                EXTRA_TAG_SLUG: _get_or_create_tag(EXTRA_TAG_SLUG, "breakfast-extra"),
                 DRINK_TAG_SLUG: _get_or_create_tag(DRINK_TAG_SLUG, "breakfast-drink"),
                 WARM_MEAL_TAG_SLUG: _get_or_create_tag(WARM_MEAL_TAG_SLUG, "breakfast-warm-meal"),
             }
@@ -132,6 +162,7 @@ class Command(BaseCommand):
         base_tag = _get_or_create_tag(BASE_TAG_SLUG, "breakfast-base")
         topping_tag = _get_or_create_tag(TOPPING_TAG_SLUG, "breakfast-topping")
         fat_tag = _get_or_create_tag(FAT_TAG_SLUG, "breakfast-fat")
+        extra_tag = _get_or_create_tag(EXTRA_TAG_SLUG, "breakfast-extra")
         drink_tag = _get_or_create_tag(DRINK_TAG_SLUG, "breakfast-drink")
 
         created_base = 0
@@ -300,6 +331,46 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  Failed fat {name}: {e}"))
 
+        # ── Fresh ingredients (tagged breakfast-extra) ─────────────────────
+        for name, slug, energy_kcal, protein_g, carb_g, fat_g, price_per_kg, portions, package_g in EXTRA_INGREDIENTS:
+            try:
+                ing, created = Ingredient.objects.get_or_create(
+                    slug=slug,
+                    defaults={
+                        "name": name,
+                        "is_standalone_food": True,
+                        "status": "verified",
+                        "energy_kcal": energy_kcal,
+                        "protein_g": protein_g,
+                        "carbohydrate_g": carb_g,
+                        "fat_g": fat_g,
+                        "sugar_g": carb_g * 0.7,
+                        "fibre_g": 1.5,
+                        "salt_g": 0.1,
+                        "price_per_kg": price_per_kg,
+                    },
+                )
+                if created:
+                    self.stdout.write(f"  Created fresh extra: {ing.name}")
+                if not ing.tags.filter(id=extra_tag.id).exists() and not dry_run:
+                    ing.tags.add(extra_tag)
+                if slug == "avocado" and not dry_run:
+                    ing.tags.remove(topping_tag)
+                if not dry_run:
+                    for rank, grams in enumerate((portions[0], portions[1], portions[2], package_g), start=1):
+                        portion_name = (
+                            "Extra normal"
+                            if rank == 2
+                            else (f"Packung ({package_g}g)" if rank == 4 else "Extra Portion")
+                        )
+                        Portion.objects.get_or_create(
+                            ingredient=ing,
+                            name=portion_name,
+                            defaults={"measuring_unit": g_unit, "quantity": grams, "weight_g": grams, "rank": rank},
+                        )
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"  Failed fresh extra {name}: {e}"))
+
         # ── Drink ingredients (tagged breakfast-drink, standalone food) ────
         for name, slug, energy_kcal, protein_g, carb_g, fat_g, sugar_g in DRINK_INGREDIENTS:
             try:
@@ -362,7 +433,7 @@ class Command(BaseCommand):
                         "portions": 1,
                         "description": "",
                         "difficulty": "easy",
-                        "execution_time": "less_5",
+                        "execution_time": "less_30",
                     },
                 )
                 if created:

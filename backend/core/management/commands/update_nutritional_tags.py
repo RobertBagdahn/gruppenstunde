@@ -11,18 +11,37 @@ Usage:
 
 from django.core.management.base import BaseCommand
 from django.db import connection
+
 from supply.models import NutritionalTag
 
 MAPPING: dict[str, tuple[str, str, int, bool, str]] = {
     "vegan": ("Vegan", "Tierische Produkte", 1, False, "Keine tierischen Produkte wie Fleisch, Milch, Eier, Honig"),
     "vegetarisch": ("Vegetarisch", "Fleisch", 2, False, "Kein Fleisch"),
-    "Gluten (Zöliakie)": ("Glutenunverträglichkeit (Zöliakie)", "Gluten", 3, True, "Medizinisch notwendiger Verzicht auf Gluten (Autoimmunerkrankung)"),
+    "Gluten (Zöliakie)": (
+        "Glutenunverträglichkeit (Zöliakie)",
+        "Gluten",
+        3,
+        True,
+        "Medizinisch notwendiger Verzicht auf Gluten (Autoimmunerkrankung)",
+    ),
     "Laktose": ("Laktoseunverträglichkeit", "Laktose", 4, True, "Keine Laktose (Milchzucker)"),
-    "nussfrei": ("Nussallergie", "Nüsse und Schalenfrüchte", 5, True, "Allergie gegen Nüsse, Schalenfrüchte und Mandeln"),
+    "nussfrei": (
+        "Nussallergie",
+        "Nüsse und Schalenfrüchte",
+        5,
+        True,
+        "Allergie gegen Nüsse, Schalenfrüchte und Mandeln",
+    ),
     "eifrei": ("Eiallergie", "Ei und Eierzeugnisse", 6, True, "Allergie gegen Hühnerei und Eierzeugnisse"),
     "Gluten (nicht zöliakie)": ("Glutenfrei (freiwillig)", "Gluten", 8, False, "Freiwilliger Verzicht auf Gluten"),
     "Gluten (nicht Zöliakie)": ("Glutenfrei (freiwillig)", "Gluten", 8, False, "Freiwilliger Verzicht auf Gluten"),
-    "Erdnüsse": ("Erdnussallergie", "Erdnüsse und Erdnusserzeugnisse", 11, True, "Allergie gegen Erdnüsse und Erdnusserzeugnisse"),
+    "Erdnüsse": (
+        "Erdnussallergie",
+        "Erdnüsse und Erdnusserzeugnisse",
+        11,
+        True,
+        "Allergie gegen Erdnüsse und Erdnusserzeugnisse",
+    ),
     "Kamut": ("Kamutfrei", "Kamut und Kamuterzeugnisse", 29, False, "Kein Kamut und Kamuterzeugnisse"),
 }
 
@@ -140,11 +159,13 @@ class Command(BaseCommand):
 
         total = NutritionalTag.objects.count()
 
-        self.stdout.write(self.style.SUCCESS(
-            f"\nFertig: {updated} aktualisiert, {fixups} fixups, {deleted} gelöscht, "
-            f"{created} neu erstellt, {skipped} nicht gefunden. "
-            f"Gesamt: {total} NutritionalTags."
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\nFertig: {updated} aktualisiert, {fixups} fixups, {deleted} gelöscht, "
+                f"{created} neu erstellt, {skipped} nicht gefunden. "
+                f"Gesamt: {total} NutritionalTags."
+            )
+        )
 
         if dry_run:
             self.stdout.write(self.style.WARNING("DRY RUN — keine Änderungen gespeichert."))

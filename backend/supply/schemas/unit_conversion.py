@@ -1,6 +1,6 @@
 """Unit conversion schemas."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class UnitConversionOut(BaseModel):
@@ -13,8 +13,7 @@ class UnitConversionOut(BaseModel):
     ingredient_id: int | None = None
     ingredient_name: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UnitConversionCreateIn(BaseModel):

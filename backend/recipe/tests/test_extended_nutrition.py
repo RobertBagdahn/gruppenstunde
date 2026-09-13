@@ -450,7 +450,7 @@ class TestCockpitVitaminMineralRules:
 
     def test_day_cockpit_vitamin_c_rule_green(self):
         """A vitamin_c_mg day rule should evaluate to green when below threshold."""
-        meal_plan, meal, today = self._setup_meal_with_cached_recipe()
+        meal_plan, _meal, today = self._setup_meal_with_cached_recipe()
 
         make_health_rule(
             name="Vitamin C Tag",
@@ -470,7 +470,7 @@ class TestCockpitVitaminMineralRules:
 
     def test_vitamin_rule_tip_text_shown_when_not_green(self):
         """Tip text should be included when the status is not green."""
-        meal_plan, meal, today = self._setup_meal_with_cached_recipe()
+        meal_plan, _meal, today = self._setup_meal_with_cached_recipe()
 
         # Set a very low threshold so the value exceeds it
         make_health_rule(

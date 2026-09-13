@@ -1,6 +1,7 @@
 """Helper functions shared across event API modules."""
 
 import hashlib
+from typing import cast
 
 from django.core.cache import cache
 from ninja.errors import HttpError
@@ -41,5 +42,5 @@ def _get_client_ip(request) -> str:
     """Extract client IP from request (supports proxied requests)."""
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
-        return x_forwarded_for.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "unknown")
+        return cast(str, x_forwarded_for.split(",")[0].strip())
+    return cast(str, request.META.get("REMOTE_ADDR", "unknown"))

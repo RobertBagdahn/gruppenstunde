@@ -2,6 +2,7 @@
 
 import logging
 import math
+from typing import cast
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -431,7 +432,7 @@ def create_ingredient(request, payload: IngredientCreateIn):
 
     # Add breakfast tags if provided
     if payload.tag_ids:
-        ingredient.tags.set(payload.tag_ids)
+        ingredient.tags.set(cast(list[int], payload.tag_ids))
 
     # Set shared groups if visibility is "shared"
     if payload.visibility == "shared" and payload.shared_group_ids:
@@ -775,12 +776,12 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
                 existing_portion_names_lower.add(name.lower())
 
             # Create packages
-            for suggestion in payload.packages:
-                name = suggestion.name.strip()
+            for package_suggestion in payload.packages:
+                name = package_suggestion.name.strip()
                 if not name or name.lower() in existing_package_names_lower:
                     continue
 
-                rank = suggestion.rank
+                rank = package_suggestion.rank
                 if rank == 1 and has_active_pkg_rank1:
                     max_rank = (
                         Package.objects.filter(ingredient=ingredient, deleted_at__isnull=True)
@@ -796,7 +797,7 @@ def ai_apply(request, slug: str, payload: AiApplyIn):
                 Package.objects.create(
                     ingredient=ingredient,
                     name=name,
-                    weight_g=suggestion.weight_g,
+                    weight_g=package_suggestion.weight_g,
                     rank=rank,
                     created_by=request.user,
                 )

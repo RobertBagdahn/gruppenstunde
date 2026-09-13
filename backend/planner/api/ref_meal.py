@@ -2,7 +2,7 @@
 
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from planner.api.meal_plan import _get_user_role, _require_access, _require_auth, _require_edit
@@ -58,11 +58,19 @@ def _validate_ref_meal_items(ref_meal: Meal):
     for item in ref_meal.items.all():
         if item.recipe_id:
             if item.recipe_id in recipe_ids:
-                raise HttpError(422, f"Rezept «{item.recipe.title}» ist mehrfach im RefMeal enthalten")
+                recipe = item.recipe
+                raise HttpError(
+                    422,
+                    f"Rezept «{recipe.title if recipe else '#' + str(item.recipe_id)}» ist mehrfach im RefMeal enthalten",
+                )
             recipe_ids.append(item.recipe_id)
         if item.ingredient_id:
             if item.ingredient_id in ingredient_ids:
-                raise HttpError(422, f"Zutat «{item.ingredient.name}» ist mehrfach im RefMeal enthalten")
+                ingredient = item.ingredient
+                raise HttpError(
+                    422,
+                    f"Zutat «{ingredient.name if ingredient else '#' + str(item.ingredient_id)}» ist mehrfach im RefMeal enthalten",
+                )
             ingredient_ids.append(item.ingredient_id)
 
 
@@ -149,7 +157,7 @@ def create_ref_meal(request, plan_id: int, payload: RefMealCreateIn):
             )
 
     meal.refresh_from_db()
-    return 201, meal
+    return Status(201, meal)
 
 
 @ref_meal_router.get(
@@ -231,7 +239,7 @@ def delete_ref_meal(request, plan_id: int, ref_meal_id: int):
     # Unlink all synced meals
     Meal.objects.filter(ref_meal=ref_meal).update(ref_meal=None, is_synced=False)
     ref_meal.delete()
-    return 204, None
+    return Status(204, None)
 
 
 @ref_meal_router.post(

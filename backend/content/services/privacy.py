@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
+from django.db.models import Manager, Model
 
 from profiles.services.privacy import PrivacyDataCollector
-
-User = get_user_model()
 
 
 class ContentPrivacyCollector(PrivacyDataCollector):
@@ -29,21 +28,25 @@ class ContentPrivacyCollector(PrivacyDataCollector):
             (Game, "game"),
             (Recipe, "recipe"),
         ]:
-            items = model.all_objects.filter(created_by=user).values("id", "title", "slug", "status", "created_at")
+            manager = cast(Manager[Model], model.all_objects)
+            items = manager.filter(created_by=user).values("id", "title", "slug", "status", "created_at")
             for item in items:
-                item["content_type"] = content_type
-                item["created_at"] = str(item["created_at"])
-                content_items.append(item)
+                item_any = cast(dict[str, Any], item)
+                item_any["content_type"] = content_type
+                item_any["created_at"] = str(item_any["created_at"])
+                content_items.append(item_any)
 
         # Comments
         comments = list(ContentComment.objects.filter(user=user).values("id", "text", "author_name", "created_at"))
         for c in comments:
-            c["created_at"] = str(c["created_at"])
+            c_any = cast(dict[str, Any], c)
+            c_any["created_at"] = str(c_any["created_at"])
 
         # Emotions
         emotions = list(ContentEmotion.objects.filter(user=user).values("id", "emotion_type", "created_at"))
         for e in emotions:
-            e["created_at"] = str(e["created_at"])
+            e_any = cast(dict[str, Any], e)
+            e_any["created_at"] = str(e_any["created_at"])
 
         # Analytics counts only
         view_count = ContentView.objects.filter(user=user).count()

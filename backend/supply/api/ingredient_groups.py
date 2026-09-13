@@ -1,6 +1,6 @@
 """Ingredient group endpoints (simple CRUD for search grouping)."""
 
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from supply.models import IngredientGroup
@@ -20,7 +20,7 @@ def create_group(request, payload: IngredientGroupOut):
     """Create a new ingredient group (staff-only)."""
     _require_staff(request)
     group = IngredientGroup.objects.create(name=payload.name, slug=payload.slug)
-    return 201, group
+    return Status(201, group)
 
 
 @ingredient_group_router.patch("/{group_id}/", response=IngredientGroupOut)
@@ -47,7 +47,7 @@ def delete_group(request, group_id: int):
     except IngredientGroup.DoesNotExist:
         raise HttpError(404, "Nicht gefunden")
     group.delete()
-    return 204, None
+    return Status(204, None)
 
 
 def _require_staff(request):

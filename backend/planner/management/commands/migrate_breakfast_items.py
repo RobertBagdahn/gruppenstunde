@@ -7,10 +7,10 @@ New format: quantity=portions_per_person, factor=1.0, measuring_unit=portion_uni
 from django.core.management.base import BaseCommand
 
 from planner.models import MealItem
-from supply.models import MeasuringUnit, Portion
+from supply.models import Ingredient, MeasuringUnit, Portion
 
 
-def _find_best_portion(ingredient, measuring_unit) -> Portion | None:
+def _find_best_portion(ingredient: Ingredient, measuring_unit: MeasuringUnit) -> Portion | None:
     """Find or infer the best Portion for an ingredient."""
     name = measuring_unit.name.lower()
     # Try new-style named portion units (Scheibe, Portion)

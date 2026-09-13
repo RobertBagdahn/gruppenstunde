@@ -1,5 +1,7 @@
 """Recipe model — inherits from Content abstract base."""
 
+from typing import Any
+
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -196,6 +198,18 @@ class Recipe(Content):
         verbose_name=_("Equipment"),
     )
 
+    # --- Runtime-only attributes (set by services/API, never persisted) ---
+    can_edit: bool = False
+    can_delete: bool = False
+    is_owner: bool = False
+    emotion_counts: dict[str, int] = {}
+    user_emotion: str | None = None
+    next_best_recipes: list[dict[str, Any]] = []
+    input_servings: int | None = None
+    ai_interaction_id: str | None = None
+    _updating_score: bool = False
+    _old_values: dict[str, Any] = {}
+
     class Meta(Content.Meta):
         verbose_name = _("Rezept")
         verbose_name_plural = _("Rezepte")
@@ -210,7 +224,9 @@ class Recipe(Content):
 
     def __str__(self) -> str:
         """Display recipe with type and status in Django admin."""
-        recipe_type_label = dict(RecipeTypeChoices.choices).get(self.recipe_type, self.recipe_type) if self.recipe_type else ""
+        recipe_type_label = (
+            dict(RecipeTypeChoices.choices).get(self.recipe_type, self.recipe_type) if self.recipe_type else ""
+        )
         return f"{self.title} ({recipe_type_label})" if recipe_type_label else self.title
 
     @staticmethod

@@ -8,11 +8,10 @@ from abc import ABC, abstractmethod
 from datetime import UTC
 from typing import Any
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 from django.db import transaction
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
 
 
 class PrivacyDataCollector(ABC):

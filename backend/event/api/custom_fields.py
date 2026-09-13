@@ -1,6 +1,7 @@
 """Custom Fields API endpoints — CRUD for event custom fields and participant values."""
 
 from django.shortcuts import get_object_or_404
+from ninja import Status
 
 from event.models import CustomField, CustomFieldValue, Event, Participant
 from event.schemas import (
@@ -37,7 +38,7 @@ def create_custom_field(request, event_slug: str, payload: CustomFieldCreateIn):
     require_event_manager(event, request.user)
 
     field = CustomField.objects.create(event=event, **payload.dict())
-    return 201, field
+    return Status(201, field)
 
 
 @event_router.patch("/{event_slug}/custom-fields/{field_id}/", response=CustomFieldOut)

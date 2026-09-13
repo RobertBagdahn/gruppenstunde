@@ -1,5 +1,7 @@
 """Pydantic schemas for RoomAssignment model."""
 
+from typing import cast
+
 from ninja import Schema
 
 
@@ -22,16 +24,16 @@ class RoomAssignmentOut(Schema):
     is_full: bool = False
 
     @staticmethod
-    def resolve_participants(obj) -> list:
-        return obj.participants.all()
+    def resolve_participants(obj) -> list[RoomParticipantOut]:
+        return list(obj.participants.all())
 
     @staticmethod
     def resolve_current_occupancy(obj) -> int:
-        return obj.current_occupancy
+        return cast(int, obj.current_occupancy)
 
     @staticmethod
     def resolve_is_full(obj) -> bool:
-        return obj.is_full
+        return cast(bool, obj.is_full)
 
 
 class RoomAssignmentCreateIn(Schema):

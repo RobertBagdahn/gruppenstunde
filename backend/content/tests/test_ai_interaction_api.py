@@ -10,6 +10,7 @@ import uuid
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -389,8 +390,8 @@ class TestAiInteractionStats:
             is_background=True,
             cost_eur=0.01,
         )
-        AiInteraction.objects.filter(id=fg.id).update(created_at=date.today())
-        AiInteraction.objects.filter(id=bg.id).update(created_at=date.today())
+        AiInteraction.objects.filter(id=fg.id).update(created_at=timezone.now())
+        AiInteraction.objects.filter(id=bg.id).update(created_at=timezone.now())
 
         client.force_login(staff_user)
         res = client.get(self.STATS_URL)
@@ -474,7 +475,6 @@ class TestAiInteractionStatsWithDateFilter:
 
         from content.models import AiInteraction
 
-        old_date = date.today() - timedelta(days=60)
         old = AiInteraction.objects.create(
             context="ingredient_ai_suggest_all",
             prompt={"input": "old"},
@@ -482,7 +482,7 @@ class TestAiInteractionStatsWithDateFilter:
             model="gemini-flash",
             success=True,
         )
-        AiInteraction.objects.filter(id=old.id).update(created_at=old_date)
+        AiInteraction.objects.filter(id=old.id).update(created_at=timezone.now() - timedelta(days=30))
 
         new = AiInteraction.objects.create(
             context="recipe_ai_create",
@@ -491,7 +491,7 @@ class TestAiInteractionStatsWithDateFilter:
             model="gemini-flash",
             success=True,
         )
-        AiInteraction.objects.filter(id=new.id).update(created_at=date.today())
+        AiInteraction.objects.filter(id=new.id).update(created_at=timezone.now())
 
         client.force_login(staff_user)
         res = client.get(self.STATS_URL + "?date_from=" + (date.today() - timedelta(days=7)).isoformat())
@@ -540,7 +540,7 @@ class TestAiInteractionStatsWithDateFilter:
                 user=owner_user,
                 success=True,
             )
-            AiInteraction.objects.filter(id=obj.id).update(created_at=d)
+            AiInteraction.objects.filter(id=obj.id).update(created_at=timezone.now() - timedelta(days=days_ago))
 
         client.force_login(staff_user)
         res = client.get(
@@ -644,7 +644,6 @@ class TestAiUserCosts:
 
         from content.models import AiInteraction
 
-        old_date = date.today() - timedelta(days=60)
         old = AiInteraction.objects.create(
             context="ingredient_ai_suggest_all",
             prompt={"input": "old"},
@@ -653,7 +652,7 @@ class TestAiUserCosts:
             user=owner_user,
             success=True,
         )
-        AiInteraction.objects.filter(id=old.id).update(created_at=old_date)
+        AiInteraction.objects.filter(id=old.id).update(created_at=timezone.now() - timedelta(days=30))
 
         new = AiInteraction.objects.create(
             context="recipe_ai_create",
@@ -663,7 +662,7 @@ class TestAiUserCosts:
             user=owner_user,
             success=True,
         )
-        AiInteraction.objects.filter(id=new.id).update(created_at=date.today())
+        AiInteraction.objects.filter(id=new.id).update(created_at=timezone.now())
 
         client.force_login(staff_user)
         res = client.get(self.USER_COSTS_URL + "?date_from=" + (date.today() - timedelta(days=7)).isoformat())

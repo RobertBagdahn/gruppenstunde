@@ -4,7 +4,7 @@ import math
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Schema
+from ninja import Schema, Status
 from ninja.errors import HttpError
 
 from event.api.events import event_router
@@ -84,7 +84,7 @@ def create_parent_token(request, event_slug: str, payload: ParentAccessTokenCrea
         email=payload.email,
         expires_at=timezone.now() + timedelta(days=payload.expires_in_days),
     )
-    return 201, token
+    return Status(201, token)
 
 
 @event_router.post("/{event_slug}/parent-access/batch/", response=list[ParentAccessTokenOut])

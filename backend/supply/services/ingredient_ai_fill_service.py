@@ -256,10 +256,10 @@ def fill_missing_ingredient_fields(
         # Enforce consistency constraints
         if f == "carbohydrate_g" and (ingredient.sugar_g or 0) > float(val):
             # Carbs cannot be less than known sugar
-            val = float(ingredient.sugar_g)
+            val = float(ingredient.sugar_g or 0.0)
         elif f == "fat_g" and (ingredient.fat_sat_g or 0) > float(val):
             # Fat cannot be less than known sat fat
-            val = float(ingredient.fat_sat_g)
+            val = float(ingredient.fat_sat_g or 0.0)
         elif f == "sugar_g" and ingredient.carbohydrate_g is not None and float(val) > float(ingredient.carbohydrate_g):
             val = float(ingredient.carbohydrate_g)
         elif f == "fat_sat_g" and ingredient.fat_g is not None and float(val) > float(ingredient.fat_g):

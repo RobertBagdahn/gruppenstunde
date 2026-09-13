@@ -1,6 +1,5 @@
 """Tests for core.services.background — background task execution with connection cleanup."""
 
-import logging
 import time
 from unittest.mock import MagicMock, patch
 

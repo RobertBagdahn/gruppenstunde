@@ -27,7 +27,6 @@ __all__ = [
     "AllObjectsManager",
     "ApprovalLog",
     "ChangeAuditLog",
-    "StaffFoodAccessLog",
     "Content",
     "ContentCollaborator",
     "ContentCollaboratorRole",
@@ -43,6 +42,7 @@ __all__ = [
     "SoftDeleteManager",
     "SoftDeleteModel",
     "SoftDeleteQuerySet",
+    "StaffFoodAccessLog",
     "Tag",
     "TagSuggestion",
 ]

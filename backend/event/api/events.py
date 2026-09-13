@@ -6,7 +6,7 @@ import math
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Router, Schema
+from ninja import Router, Schema, Status
 from ninja.errors import HttpError
 
 from event.choices import GenderChoices, ParticipantVisibilityChoices
@@ -371,7 +371,7 @@ class DuplicateEventIn(Schema):
 
 
 @event_router.post("/{event_slug}/duplicate/", response=EventListOut)
-def duplicate_event(request, event_slug: str, payload: DuplicateEventIn = None):
+def duplicate_event(request, event_slug: str, payload: DuplicateEventIn | None = None):
     """Deep-copy an event with optional date shifting."""
     require_auth(request)
     event = get_object_or_404(Event, slug=event_slug)
@@ -407,11 +407,14 @@ def register_guest(request, event_slug: str, payload: GuestRegistrationIn):
 
     MailService.send_registration_confirmation(event, registration)
 
-    return 201, {
-        "registration_id": registration.id,
-        "participant_count": registration.participants.count(),
-        "email": payload.email,
-    }
+    return Status(
+        201,
+        {
+            "registration_id": registration.id,
+            "participant_count": registration.participants.count(),
+            "email": payload.email,
+        },
+    )
 
 
 # ==========================================================================

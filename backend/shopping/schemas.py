@@ -38,7 +38,7 @@ class ShoppingItemSourceOut(Schema):
 
     @staticmethod
     def resolve_quantity_g(obj) -> float:
-        return round(obj.quantity_g, 2)
+        return float(round(obj.quantity_g, 2))
 
 
 class ShoppingItemPortionOptionOut(Schema):
@@ -61,7 +61,7 @@ class ShoppingListItemOut(Schema):
 
     @staticmethod
     def resolve_quantity_g(obj) -> float:
-        return round(obj.quantity_g, 2)
+        return float(round(obj.quantity_g, 2))
 
     retail_section_id: int | None = None
     retail_section_name: str = ""
@@ -81,24 +81,24 @@ class ShoppingListItemOut(Schema):
     @staticmethod
     def resolve_retail_section_name(obj) -> str:
         if obj.retail_section:
-            return obj.retail_section.name
+            return str(obj.retail_section.name)
         return ""
 
     @staticmethod
     def resolve_checked_by_username(obj) -> str | None:
         if obj.checked_by:
-            return obj.checked_by.username
+            return str(obj.checked_by.username)
         return None
 
     @staticmethod
     def resolve_ingredient_slug(obj) -> str | None:
         if obj.ingredient:
-            return obj.ingredient.slug
+            return str(obj.ingredient.slug)
         return None
 
     @staticmethod
     def resolve_sources(obj) -> list:
-        return obj.sources.all()
+        return list(obj.sources.all())
 
     @staticmethod
     def resolve_estimated_price_eur(obj) -> float | None:
@@ -218,15 +218,15 @@ class ShoppingListOut(Schema):
     @staticmethod
     def resolve_items_count(obj) -> int:
         # Use annotated value from queryset when available (avoids N+1)
-        return getattr(obj, "items_count", None) or obj.items.count()
+        return int(getattr(obj, "items_count", None) or obj.items.count())
 
     @staticmethod
     def resolve_checked_count(obj) -> int:
-        return getattr(obj, "checked_count", None) or obj.items.filter(is_checked=True).count()
+        return int(getattr(obj, "checked_count", None) or obj.items.filter(is_checked=True).count())
 
     @staticmethod
     def resolve_collaborators_count(obj) -> int:
-        return getattr(obj, "collaborators_count", None) or obj.collaborators.count()
+        return int(getattr(obj, "collaborators_count", None) or obj.collaborators.count())
 
 
 class ShoppingListDetailOut(Schema):
@@ -251,7 +251,7 @@ class ShoppingListDetailOut(Schema):
 
     @staticmethod
     def resolve_items(obj) -> list:
-        return (
+        return list(
             obj.items.select_related("retail_section", "checked_by", "ingredient")
             .prefetch_related("sources", "ingredient__portions")
             .all()
@@ -259,7 +259,7 @@ class ShoppingListDetailOut(Schema):
 
     @staticmethod
     def resolve_collaborators(obj) -> list:
-        return obj.collaborators.select_related("user").all()
+        return list(obj.collaborators.select_related("user").all())
 
     @staticmethod
     def resolve_can_edit(obj) -> bool:

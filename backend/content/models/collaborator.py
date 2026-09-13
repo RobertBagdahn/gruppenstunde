@@ -76,7 +76,7 @@ class ContentCollaborator(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=Q(user__isnull=False) | Q(group__isnull=False),
+                condition=Q(user__isnull=False) | Q(group__isnull=False),
                 name="collab_user_or_group_required",
             ),
             models.UniqueConstraint(

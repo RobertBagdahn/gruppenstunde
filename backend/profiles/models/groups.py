@@ -1,5 +1,7 @@
 """Group, membership, join request, and corporate identity models."""
 
+from typing import cast
+
 from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
@@ -269,5 +271,5 @@ class GroupCorporateIdentity(models.Model):
     def logo_url(self) -> str:
         """Return the logo URL or empty string."""
         if self.logo:
-            return self.logo.url
+            return cast(str, self.logo.url)
         return ""

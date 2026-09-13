@@ -69,5 +69,5 @@ class TestNutriScoreService:
             protein_g=0.0,
             physical_viscosity="beverage",
         )
-        total, nutri_class = calculate_nutri_score(water)
+        _total, nutri_class = calculate_nutri_score(water)
         assert nutri_class == 2

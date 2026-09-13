@@ -288,7 +288,7 @@ class RecipeDetailOut(ContentDetailOut):
     def resolve_has_structured_steps(obj) -> bool:
         """Check if recipe has structured steps."""
         if hasattr(obj, "steps"):
-            return obj.steps.exists()
+            return bool(obj.steps.exists())
         return False
 
     @staticmethod
@@ -302,7 +302,7 @@ class RecipeDetailOut(ContentDetailOut):
     def resolve_steps_count(obj) -> int:
         """Get count of structured recipe steps."""
         if hasattr(obj, "steps"):
-            return obj.steps.count()
+            return int(obj.steps.count())
         return 0
 
 

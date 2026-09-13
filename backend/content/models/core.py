@@ -194,6 +194,10 @@ class Content(SoftDeleteModel):
         related_name="%(class)s_updated",
     )
 
+    # Non-persisted attributes set dynamically by the API layer (no DB fields).
+    can_edit: bool = False
+    can_delete: bool = False
+
     class Meta:
         abstract = True
         ordering = ["-created_at"]

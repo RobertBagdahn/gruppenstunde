@@ -19,7 +19,8 @@ import os
 import sys
 import time
 from collections import defaultdict
-from datetime import date, datetime, time as dtime
+from datetime import date, datetime
+from datetime import time as dtime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inspi.settings.local")
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", "inspi-441320")
 import django
+
 django.setup()
 
 PROXY_PORT = 5433
@@ -85,6 +87,7 @@ def get_model_column_map(app_label: str, model_name: str) -> dict[str, str]:
     """
     try:
         from django.apps import apps
+
         model_cls = apps.get_model(app_label, model_name)
         if model_cls is None:
             return {}
@@ -95,10 +98,10 @@ def get_model_column_map(app_label: str, model_name: str) -> dict[str, str]:
 
         # Map all regular fields
         for field in model_cls._meta.get_fields():
-            if hasattr(field, 'column') and field.column:
+            if hasattr(field, "column") and field.column:
                 # For FK fields, column is 'foo_id', attname is 'foo_id' or 'foo'
                 # We want the FK field name (without _id) for fixtures
-                if field.is_relation and hasattr(field, 'attname'):
+                if field.is_relation and hasattr(field, "attname"):
                     column_map[field.column] = field.attname
                 else:
                     column_map[field.column] = field.attname
@@ -130,7 +133,7 @@ def serialize_value(val: Any) -> Any:
     """Convert a Python value to JSON-serializable form matching Django fixture format."""
     if val is None:
         return None
-    if isinstance(val, (datetime, date)):
+    if isinstance(val, datetime | date):
         return val.isoformat()
     if isinstance(val, dtime):
         return val.strftime("%H:%M:%S")
@@ -205,13 +208,13 @@ def export_group(cur: Any, group_key: str, models: list[tuple]) -> int:
                             obj_id = row[1]
                             rel_id = row[2]
                             m2m_data[obj_id][m2m_field].append(rel_id)
-                except Exception as e:
+                except Exception:
                     pass
 
         # Build fixture entries
         entries: list[dict] = []
         for row in rows:
-            row_dict = dict(zip(columns, row))
+            row_dict = dict(zip(columns, row, strict=False))
             pk = row_dict[pk_field]
 
             fields = {}
@@ -229,11 +232,13 @@ def export_group(cur: Any, group_key: str, models: list[tuple]) -> int:
                 if m2m_field in obj_m2m:
                     fields[m2m_field] = obj_m2m[m2m_field]
 
-            entries.append({
-                "model": f"{app_label}.{model_name.lower()}",
-                "pk": pk,
-                "fields": fields,
-            })
+            entries.append(
+                {
+                    "model": f"{app_label}.{model_name.lower()}",
+                    "pk": pk,
+                    "fields": fields,
+                }
+            )
 
         # Write to file
         filepath = group_dir / f"{app_label}_{model_name.lower()}.json"

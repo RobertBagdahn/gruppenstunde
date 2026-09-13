@@ -7,6 +7,7 @@ to avoid boilerplate in each content type's api.py.
 
 import math
 import re
+from typing import cast
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, F, Model
@@ -24,7 +25,7 @@ def get_session_key(request) -> str:
     """Get or create session key for anonymous tracking."""
     if not request.session.session_key:
         request.session.create()
-    return request.session.session_key
+    return cast(str, request.session.session_key)
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +222,7 @@ def record_view(model_class: type[Model], obj_id: int, request) -> bool:
     )
 
     # Atomically increment view_count on the content object
-    model_class.objects.filter(pk=obj_id).update(view_count=F("view_count") + 1)
+    model_class._default_manager.filter(pk=obj_id).update(view_count=F("view_count") + 1)
 
     return True
 

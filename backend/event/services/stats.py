@@ -108,7 +108,7 @@ class StatsService:
     def _demographic_stats(participants: list[Participant], reference_date: date) -> dict:
         """Gender and age distribution."""
         # Gender distribution
-        gender_counts = Counter()
+        gender_counts: Counter[str] = Counter()
         for p in participants:
             gender_counts[p.get_gender_display()] += 1
 
@@ -162,7 +162,7 @@ class StatsService:
     @staticmethod
     def _nutrition_stats(participants: list[Participant]) -> dict:
         """Nutritional tag summaries."""
-        tag_counts = Counter()
+        tag_counts: Counter[str] = Counter()
         for p in participants:
             for tag in p.nutritional_tags.all():
                 tag_counts[tag.name] += 1

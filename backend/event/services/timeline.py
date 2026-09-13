@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from django.contrib.auth.models import User
-from django.db import models
 
-from ..models.timeline import TimelineEntry
+from event.models import Event, Participant
+from event.models.timeline import TimelineEntry
 
 
 class TimelineService:
@@ -15,10 +15,10 @@ class TimelineService:
 
     @staticmethod
     def log(
-        event: models.Model,
+        event: Event,
         action_type: str,
         description: str = "",
-        participant: models.Model | None = None,
+        participant: Participant | None = None,
         user: User | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> TimelineEntry:

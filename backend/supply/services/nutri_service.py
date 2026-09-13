@@ -11,6 +11,7 @@ Migrated from idea/services/nutri_service.py to supply/services/.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -55,7 +56,7 @@ SOLID_CLASS_BOUNDARIES = [(-1, 1), (0, 2), (3, 3), (11, 4), (19, 5)]
 BEVERAGE_CLASS_BOUNDARIES = [(0, 1), (0, 2), (2, 3), (6, 4), (10, 5)]
 
 
-def _lookup_points(value: float | None, thresholds: list[float]) -> int:
+def _lookup_points(value: float | None, thresholds: Sequence[float]) -> int:
     """Look up points for a value against a threshold table."""
     if value is None:
         return 0

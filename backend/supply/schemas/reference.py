@@ -1,6 +1,7 @@
 """Pydantic schemas for reference/lookup models."""
 
 from ninja import Schema
+from pydantic import ConfigDict
 
 
 class MeasuringUnitOut(Schema):
@@ -85,8 +86,7 @@ class EquipmentOut(Schema):
     slug: str
     sort_order: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EquipmentIn(Schema):

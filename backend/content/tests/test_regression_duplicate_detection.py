@@ -8,10 +8,11 @@ Critical test case: "Schweinebauch" (pork belly) vs "Bacon" should have similari
 (i.e., should NOT be flagged as duplicate pair)
 """
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, patch
+
 from content.services.embedding_service import (
-    find_similar_ingredients,
     similarity_to_pct,
 )
 from supply.models import Ingredient
@@ -25,10 +26,10 @@ class TestRegressionDuplicateDetection:
         """
         CRITICAL REGRESSION TEST:
         Schweinebauch (pork belly) and Bacon should NOT be flagged as duplicates.
-        
+
         This test ensures that ingredient similarity is based on simplified text
         (name + description + retail_section) rather than complex nutritional data.
-        
+
         If this test fails, it indicates the calibration is too loose or the
         similarity calculation is broken.
         """
@@ -58,7 +59,7 @@ class TestRegressionDuplicateDetection:
         # The sigmoid function should calibrate this to below 70% for these cases
         # if properly fitted to ground truth
         print(f"Schweinebauch <-> Bacon similarity: {similarity_pct:.1f}%")
-        
+
         # This is where the calibration is critical:
         # - Raw cosine might be 0.85 (too high for threshold)
         # - But sigmoid with proper midpoint should calibrate to ~55-65%
@@ -71,7 +72,7 @@ class TestRegressionDuplicateDetection:
     def test_zwiebel_red_zwiebel_should_be_similar(self):
         """
         Zwiebel (onion) and Rote Zwiebel (red onion) should be flagged as similar.
-        
+
         These are both onions, just different varieties. They should have
         similarity > 80% to be flagged as potential duplicates.
         """
@@ -90,7 +91,7 @@ class TestRegressionDuplicateDetection:
         similarity_pct = similarity_to_pct(high_cosine)
 
         print(f"Zwiebel <-> Rote Zwiebel similarity: {similarity_pct:.1f}%")
-        
+
         # Should be well above 70% threshold
         assert similarity_pct > 80, (
             f"Zwiebel and Rote Zwiebel should be similar but got {similarity_pct:.1f}%. "
@@ -100,7 +101,7 @@ class TestRegressionDuplicateDetection:
     def test_tomato_tomate_should_be_duplicates(self):
         """
         Tomato (English) and Tomate (German) should be flagged as duplicates.
-        
+
         These are the exact same ingredient with different language names.
         Should have similarity > 90%.
         """
@@ -119,7 +120,7 @@ class TestRegressionDuplicateDetection:
         similarity_pct = similarity_to_pct(very_high_cosine)
 
         print(f"Tomato <-> Tomate similarity: {similarity_pct:.1f}%")
-        
+
         # Should be well above 90%
         assert similarity_pct > 90, (
             f"Tomato and Tomate should be nearly identical but got {similarity_pct:.1f}%. "
@@ -129,7 +130,7 @@ class TestRegressionDuplicateDetection:
     def test_sigmoid_calibration_not_identity_function(self):
         """
         Verify that sigmoid calibration actually transforms the values.
-        
+
         This is a sanity check that the sigmoid function is doing something
         meaningful, not just acting as identity function.
         """
@@ -137,16 +138,14 @@ class TestRegressionDuplicateDetection:
         pct_values = [similarity_to_pct(c) for c in cosine_values]
 
         # Should be monotonically increasing
-        assert pct_values == sorted(pct_values), (
-            "Sigmoid calibration should be monotonic"
-        )
+        assert pct_values == sorted(pct_values), "Sigmoid calibration should be monotonic"
 
         # Should not be linear (identity would be cosine * 100)
         # Sigmoid should have S-curve shape
         linear_pct = [c * 100 for c in cosine_values]
 
         # At least some values should differ from linear
-        differences = [abs(p - l) for p, l in zip(pct_values, linear_pct)]
+        differences = [abs(p - l) for p, l in zip(pct_values, linear_pct, strict=False)]
         max_diff = max(differences)
 
         assert max_diff > 5, (
@@ -154,7 +153,7 @@ class TestRegressionDuplicateDetection:
             "This suggests sigmoid parameters (steepness/midpoint) may not be optimal."
         )
 
-        print(f"\nSigmoid Calibration Shape Check:")
+        print("\nSigmoid Calibration Shape Check:")
         print(f"Cosine: {cosine_values}")
         print(f"Linear: {[f'{l:.1f}' for l in linear_pct]}")
         print(f"Sigmoid: {[f'{p:.1f}' for p in pct_values]}")

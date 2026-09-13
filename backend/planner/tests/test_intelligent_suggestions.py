@@ -273,8 +273,8 @@ class TestContextEnhancedSuggestions:
         assert "Sommerlager 2026" in context
 
     def test_build_context_includes_meal_plan_tags(self):
-        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
         from planner.models import MealPlanTag
+        from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
 
         plan = make_meal_plan()
         MealPlanTag.objects.create(meal_plan=plan, name="sommerlager")
@@ -308,12 +308,15 @@ class TestContextEnhancedSuggestions:
 
     def test_build_context_includes_planned_meals(self):
         from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
-        from recipe.tests import make_recipe, make_recipe_item as make_ri
+        from recipe.tests import make_recipe
+        from recipe.tests import make_recipe_item as make_ri
 
         plan = make_meal_plan()
         meal = make_meal(meal_plan=plan)
         # Add a planned recipe to a dinner meal (different type = same day ok)
-        other_meal = make_meal(meal_plan=plan, meal_type="dinner", start_datetime=timezone.now() + timezone.timedelta(hours=6))
+        other_meal = make_meal(
+            meal_plan=plan, meal_type="dinner", start_datetime=timezone.now() + timezone.timedelta(hours=6)
+        )
         recipe = make_recipe(title="Nudelsalat")
         make_ri(recipe)
         make_meal_item(meal=other_meal, recipe=recipe)
@@ -336,6 +339,7 @@ class TestContextEnhancedSuggestions:
     def test_context_enhance_true_without_gemini_falls_back(self):
         """When context_enhance=true but Gemini is unavailable, falls back to algorithmic."""
         from unittest.mock import patch
+
         from planner.services.intelligent_suggestions_service import IntelligentSuggestionsService
 
         plan = make_meal_plan()

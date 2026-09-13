@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpResponse
 from django.middleware.csrf import get_token
-from ninja import Query, Router, Schema
+from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
 from core.schemas import PaginatedUserOut, UserSimpleOut
@@ -95,7 +95,7 @@ def register_user(request, payload: RegisterIn):
         password=payload.password1,
     )
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-    return 201, user
+    return Status(201, user)
 
 
 @auth_router.post("/logout/", response=MessageOut)

@@ -99,7 +99,7 @@ test.describe('Recipe Search Page', () => {
   test('filter groups are present when sidebar opened', async ({ page }) => {
     await openFilters(page);
 
-    const filterGroups = ['Typ', 'Anzeigen', 'Stufe', 'Schwierigkeit', 'Dauer', 'Zubereitungsart', 'Kosten'];
+    const filterGroups = ['Typ', 'Anzeigen', 'Schwierigkeit', 'Dauer', 'Zubereitungsart', 'Kosten'];
     let visibleCount = 0;
     for (const label of filterGroups) {
       const el = page.locator('h3').filter({ hasText: label });

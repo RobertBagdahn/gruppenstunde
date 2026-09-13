@@ -10,11 +10,10 @@ Covers:
 import datetime
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.test import Client
 from django.utils import timezone
 from model_bakery import baker
-
-from django.contrib.auth import get_user_model
 
 from event.models import Event
 from planner.models import Meal, MealTypeChoices
@@ -141,16 +140,12 @@ class TestEventMealPlanDefaultTimes:
         assert plan.start_datetime.astimezone(timezone.get_current_timezone()).time() != datetime.time(0, 0)
         assert plan.end_datetime.astimezone(timezone.get_current_timezone()).time() != datetime.time(0, 0)
 
-        arrival_meals = Meal.objects.filter(
-            meal_plan=plan, is_reference=False, start_datetime__date=start_date
-        )
+        arrival_meals = Meal.objects.filter(meal_plan=plan, is_reference=False, start_datetime__date=start_date)
         arrival_types = set(arrival_meals.values_list("meal_type", flat=True))
         assert MealTypeChoices.BREAKFAST not in arrival_types
         assert MealTypeChoices.LUNCH not in arrival_types
 
-        departure_meals = Meal.objects.filter(
-            meal_plan=plan, is_reference=False, start_datetime__date=end_date
-        )
+        departure_meals = Meal.objects.filter(meal_plan=plan, is_reference=False, start_datetime__date=end_date)
         departure_types = set(departure_meals.values_list("meal_type", flat=True))
         assert MealTypeChoices.LUNCH not in departure_types
         assert MealTypeChoices.DINNER not in departure_types

@@ -15,6 +15,7 @@ import io
 import logging
 import threading
 import time
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
@@ -68,16 +69,20 @@ class WhatsAppClientManager:
 
     _instance: WhatsAppClientManager | None = None
     _lock = threading.Lock()
+    _clients: dict[int, Any] = {}
+    _client_threads: dict[int, threading.Thread] = {}
+    _qr_codes: dict[int, str] = {}
+    _statuses: dict[int, str] = {}
 
     def __new__(cls) -> WhatsAppClientManager:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
-                    cls._instance._clients: dict[int, Any] = {}
-                    cls._instance._client_threads: dict[int, threading.Thread] = {}
-                    cls._instance._qr_codes: dict[int, str] = {}
-                    cls._instance._statuses: dict[int, str] = {}
+                    cls._instance._clients = {}
+                    cls._instance._client_threads = {}
+                    cls._instance._qr_codes = {}
+                    cls._instance._statuses = {}
         return cls._instance
 
     def _acquire_advisory_lock(self, user_id: int) -> bool:
@@ -502,7 +507,7 @@ class WhatsAppService:
 
         now = timezone.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        week_start = today_start - timezone.timedelta(days=today_start.weekday())
+        week_start = today_start - timedelta(days=today_start.weekday())
 
         messages = WhatsAppMessage.objects.filter(connection=conn, status="sent")
 
@@ -596,7 +601,7 @@ class WhatsAppService:
         from ..models import WhatsAppMessage
 
         rate_limit = getattr(settings, "WHATSAPP_RATE_LIMIT_PER_HOUR", 50)
-        one_hour_ago = timezone.now() - timezone.timedelta(hours=1)
+        one_hour_ago = timezone.now() - timedelta(hours=1)
 
         recent_count = WhatsAppMessage.objects.filter(
             connection=conn,

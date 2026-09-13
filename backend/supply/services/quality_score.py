@@ -73,4 +73,4 @@ def calculate_ingredient_quality_score(ingredient) -> int:
     scores.append(("scout", 0.13, scout_score))
 
     total = sum(weight * score for _, weight, score in scores)
-    return int(round(total))
+    return round(total)

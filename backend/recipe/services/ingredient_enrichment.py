@@ -12,8 +12,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from core.services.gemini import GeminiUnavailableError, gemini_call
 from ninja.errors import HttpError
+
+from core.services.gemini import GeminiUnavailableError, gemini_call
 from recipe.schemas.enrichment import GeminiNewIngredient
 from supply.services.portion_knowledge import TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT
 
@@ -59,7 +60,7 @@ def enrich_ingredient(
     try:
         from google.genai import types
 
-        response, interaction_id = gemini_call(
+        response, _interaction_id = gemini_call(
             user=user,
             model=GEMINI_MODEL,
             contents=prompt,

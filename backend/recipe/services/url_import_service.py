@@ -395,8 +395,8 @@ def import_recipe_from_url(
                 )
                 new_ing.save()
 
-                for alias in nutrition.aliases:
-                    alias_str = alias.strip()
+                for alias_name in nutrition.aliases:
+                    alias_str = alias_name.strip()
                     if not alias_str:
                         continue
                     if IngredientAlias.objects.filter(name__iexact=alias_str).exists():
@@ -705,31 +705,33 @@ def _merge_ingredient_sources(
 
     merged: list[GeminiIngredientMatch] = []
     for index, source in enumerate(parsed_ingredients):
-        entry = slots[index]
-        if entry is None:
-            entry = leftovers.pop(0) if leftovers else None
-        if entry is None:
+        matched_entry = slots[index]
+        if matched_entry is None:
+            matched_entry = leftovers.pop(0) if leftovers else None
+        if matched_entry is None:
             merged.append(
                 GeminiIngredientMatch(
                     source_index=index,
                     original_name=source.name,
+                    matched_ingredient_id=None,
                     quantity=_parse_import_quantity(source.quantity),
                     unit=source.unit,
                     note="",
                     estimated_portion_weight_g=100,
+                    new_ingredient=None,
                 )
             )
             continue
         # The parser is authoritative for values the model left empty.
-        if not entry.unit:
-            entry.unit = source.unit
-        if not entry.quantity:
-            entry.quantity = _parse_import_quantity(source.quantity)
+        if not matched_entry.unit:
+            matched_entry.unit = source.unit
+        if not matched_entry.quantity:
+            matched_entry.quantity = _parse_import_quantity(source.quantity)
         # The model only parses quantities and units here; ingredient matching
         # runs on the parser name. Echoing the model name would feed
         # "300 g Hähnchenbrustfilet(s)" into IngredientMatcher.
-        entry.original_name = source.name
-        merged.append(entry)
+        matched_entry.original_name = source.name
+        merged.append(matched_entry)
 
     return merged
 
@@ -1586,7 +1588,7 @@ def _resolve_portion(
             p_name = mu.name or "Stück"
 
         if is_metric_base:
-            weight = portion_quantity * METRIC_CANONICAL_WEIGHTS.get(unit_name_lower, 1.0)
+            weight: float | None = portion_quantity * METRIC_CANONICAL_WEIGHTS.get(unit_name_lower, 1.0)
         else:
             weight = estimated_weight_g if estimated_weight_g > 0 else None
 

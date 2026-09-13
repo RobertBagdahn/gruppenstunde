@@ -5,7 +5,7 @@ All thresholds are per 100g of total recipe weight.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from recipe.models import Recipe
@@ -113,15 +113,16 @@ def compute_positive_traits(recipe: Recipe) -> list[str]:
         traits.append("low_sugar")
 
     # Balanced: compute nutri-score total points
+    from supply.models import Ingredient
+
     class _Agg:
-        pass
+        physical_viscosity: str = "solid"
 
     agg = _Agg()
     for k, v in values.items():
         setattr(agg, k, v)
-    agg.physical_viscosity = "solid"  # type: ignore[attr-defined]
 
-    total_points, _ = calculate_nutri_score(agg)
+    total_points, _ = calculate_nutri_score(cast(Ingredient, agg))
     if is_balanced(total_points):
         traits.append("balanced")
 

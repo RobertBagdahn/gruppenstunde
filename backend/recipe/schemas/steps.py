@@ -1,6 +1,7 @@
 """Pydantic schemas for recipe steps."""
 
 import datetime as dt
+from typing import cast
 
 from ninja import Schema
 from pydantic import field_validator
@@ -29,7 +30,7 @@ class RecipeStepIngredientOut(Schema):
         if obj.recipe_item:
             portion = obj.recipe_item.portion
             if portion and portion.ingredient:
-                return portion.ingredient.name
+                return cast(str, portion.ingredient.name)
         return None
 
     @staticmethod
@@ -38,7 +39,7 @@ class RecipeStepIngredientOut(Schema):
         if obj.recipe_item:
             portion = obj.recipe_item.portion
             if portion and portion.ingredient:
-                return portion.ingredient.id
+                return cast(int, portion.ingredient.id)
         return None
 
     @staticmethod
@@ -47,21 +48,21 @@ class RecipeStepIngredientOut(Schema):
         if obj.recipe_item:
             portion = obj.recipe_item.portion
             if portion and portion.measuring_unit:
-                return portion.measuring_unit.unit
+                return cast(str, portion.measuring_unit.unit)
         return None
 
     @staticmethod
     def resolve_quantity(obj) -> float | None:
         """Calculate modified quantity = recipe_item.quantity * quantity_modifier."""
         if obj.recipe_item and obj.quantity_modifier:
-            return obj.recipe_item.quantity * obj.quantity_modifier
+            return cast(float, obj.recipe_item.quantity * obj.quantity_modifier)
         return None
 
     @staticmethod
     def resolve_note(obj) -> str | None:
         """Resolve from recipe_item.note."""
         if obj.recipe_item:
-            return obj.recipe_item.note or None
+            return cast(str | None, obj.recipe_item.note or None)
         return None
 
 

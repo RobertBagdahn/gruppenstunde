@@ -10,6 +10,7 @@ Uses Django's built-in send_mail with HTML templates.
 """
 
 import logging
+from typing import cast
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -73,20 +74,20 @@ def _get_content_url(content_obj) -> str:
 def _get_author_email(content_obj) -> str | None:
     """Get the email of the content author."""
     if content_obj.created_by and content_obj.created_by.email:
-        return content_obj.created_by.email
+        return cast(str, content_obj.created_by.email)
     authors = content_obj.authors.all()[:1]
     if authors and authors[0].email:
-        return authors[0].email
+        return cast(str, authors[0].email)
     return None
 
 
 def _get_author_name(content_obj) -> str:
     """Get the display name of the content author."""
     if content_obj.created_by:
-        return content_obj.created_by.get_full_name() or content_obj.created_by.email
+        return cast(str, content_obj.created_by.get_full_name() or content_obj.created_by.email)
     authors = content_obj.authors.all()[:1]
     if authors:
-        return authors[0].get_full_name() or authors[0].email
+        return cast(str, authors[0].get_full_name() or authors[0].email)
     return "Unbekannt"
 
 

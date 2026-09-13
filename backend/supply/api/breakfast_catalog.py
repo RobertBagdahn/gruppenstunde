@@ -384,12 +384,12 @@ def calculate_breakfast_leftovers(request, data: BreakfastLeftoversIn) -> dict[s
         if p.ingredient_id not in package_portions:
             package_portions[p.ingredient_id] = p
 
-    for p in Portion.objects.filter(
+    for portion in Portion.objects.filter(
         ingredient_id__in=ing_ids,
         deleted_at__isnull=True,
         name__icontains="Packung",
     ).order_by("ingredient_id", "rank", "id"):
-        package_portions.setdefault(p.ingredient_id, p)
+        package_portions.setdefault(portion.ingredient_id, portion)
 
     results = []
     for t in data.toppings:

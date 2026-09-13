@@ -1,6 +1,7 @@
 """Room assignment API endpoints."""
 
 from django.shortcuts import get_object_or_404
+from ninja import Status
 from ninja.errors import HttpError
 
 from event.api.events import event_router
@@ -32,7 +33,7 @@ def create_room(request, event_slug: str, payload: RoomAssignmentCreateIn):
     require_event_manager(event, request.user)
 
     room = RoomAssignment.objects.create(event=event, **payload.dict())
-    return 201, room
+    return Status(201, room)
 
 
 @event_router.patch("/{event_slug}/rooms/{room_id}/", response=RoomAssignmentOut)

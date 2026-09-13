@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from planner.models import MealItem
+    from planner.models import MealItem, MealItemOverride
     from recipe.models import RecipeItem
 
 
@@ -43,7 +43,7 @@ def _active_items(meal_item: MealItem) -> list[RecipeItem]:
     return list(meal_item.recipe.recipe_items.select_related("portion__ingredient").filter(id__in=ids))
 
 
-def _build_overrides_map(meal_item: MealItem) -> dict[int, object]:
+def _build_overrides_map(meal_item: MealItem) -> dict[int, MealItemOverride]:
     """Build {recipe_item_id: override} from the meal item's prefetched overrides."""
     return {o.recipe_item_id: o for o in meal_item.overrides.all()}
 
@@ -100,7 +100,7 @@ def compute_variant_cost(meal_item: MealItem) -> float:
 def _compute_total_with_overrides(
     recipe_items: list[RecipeItem],
     active_ids: set[int],
-    overrides_map: dict[int, object],
+    overrides_map: dict[int, MealItemOverride],
     field: str,
 ) -> float:
     """Compute total from scratch, applying overrides (excluded + quantity_override).

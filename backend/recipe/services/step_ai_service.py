@@ -62,6 +62,8 @@ class AiStepService:
         item_id_map = {}  # Map ingredient name to recipe_item_id
 
         for recipe_item in recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").all():
+            if recipe_item.portion is None:
+                continue
             ingredient = recipe_item.portion.ingredient
             unit = recipe_item.portion.measuring_unit
 
@@ -148,6 +150,8 @@ class AiStepService:
         # Build ingredient list for context
         ingredients = []
         for recipe_item in recipe.recipe_items.select_related("portion__ingredient").all():
+            if recipe_item.portion is None:
+                continue
             ingredient = recipe_item.portion.ingredient
             ingredients.append(
                 {
@@ -216,6 +220,8 @@ class AiStepService:
         item_id_map = {}
 
         for recipe_item in recipe.recipe_items.select_related("portion__ingredient").all():
+            if recipe_item.portion is None:
+                continue
             ingredient = recipe_item.portion.ingredient
             ingredients.append(
                 {

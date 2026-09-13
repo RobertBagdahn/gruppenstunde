@@ -1,3 +1,5 @@
+from typing import Any
+
 """
 Game model — a concrete content type for scout games.
 
@@ -21,6 +23,9 @@ class Game(Content):
     Includes game-specific fields for player counts, area requirements,
     duration, and detailed rules.
     """
+
+    # Non-persisted attribute set dynamically by the API layer (no DB field).
+    similar_games: list[Any] = []
 
     game_type = models.CharField(
         max_length=20,

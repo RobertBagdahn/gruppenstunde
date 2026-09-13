@@ -3,7 +3,7 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import File, Router
+from ninja import File, Router, Status
 from ninja.errors import HttpError
 from ninja.files import UploadedFile
 
@@ -177,7 +177,7 @@ def remove_member(request, group_slug: str, membership_id: int):
 
 
 @group_router.post("/{group_slug}/join/", response={200: GroupMemberOut, 201: JoinRequestOut})
-def join_group(request, group_slug: str, payload: JoinRequestIn = None):
+def join_group(request, group_slug: str, payload: JoinRequestIn | None = None):
     """Join a group (directly if free_to_join, otherwise create a request)."""
     _require_auth(request)
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
@@ -195,7 +195,7 @@ def join_group(request, group_slug: str, payload: JoinRequestIn = None):
         if not created:
             membership.is_active = True
             membership.save(update_fields=["is_active"])
-        return 200, membership
+        return Status(200, membership)
 
     # Create join request
     if GroupJoinRequest.objects.filter(user=request.user, group=group, approved__isnull=True).exists():
@@ -207,7 +207,7 @@ def join_group(request, group_slug: str, payload: JoinRequestIn = None):
         group=group,
         message=message,
     )
-    return 201, join_request
+    return Status(201, join_request)
 
 
 @group_router.post("/{group_slug}/join-by-code/", response=GroupMemberOut)
@@ -324,7 +324,7 @@ def upload_logo(request, group_slug: str, file: UploadedFile = File(...)):
     group = get_object_or_404(UserGroup, slug=group_slug, is_deleted=False)
     _require_group_admin(group, request.user)
 
-    if file.size > MAX_LOGO_SIZE:
+    if file.size is None or file.size > MAX_LOGO_SIZE:
         raise HttpError(400, "Logo darf maximal 500KB groß sein")
 
     ci, _created = GroupCorporateIdentity.objects.get_or_create(group=group)

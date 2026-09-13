@@ -28,28 +28,24 @@ def _mealplan_collaborator_ids_for_user(user) -> set[int]:
     from planner.models import MealPlan
 
     ct = ContentType.objects.get_for_model(MealPlan)
-    return set(
-        ContentCollaborator.objects.filter(content_type=ct, user=user).values_list("object_id", flat=True)
-    )
+    return set(ContentCollaborator.objects.filter(content_type=ct, user=user).values_list("object_id", flat=True))
 
 
-def recipe_visible_transitively(recipe: "Recipe", user) -> bool:
+def recipe_visible_transitively(recipe: Recipe, user) -> bool:
     """Whether `recipe` is visible to `user` via a shared MealPlan referencing it."""
     if not user.is_authenticated:
         return False
 
     from planner.models import MealItem
 
-    meal_plan_ids = set(
-        MealItem.objects.filter(recipe=recipe).values_list("meal__meal_plan_id", flat=True).distinct()
-    )
+    meal_plan_ids = set(MealItem.objects.filter(recipe=recipe).values_list("meal__meal_plan_id", flat=True).distinct())
     if not meal_plan_ids:
         return False
 
     return bool(meal_plan_ids & _mealplan_collaborator_ids_for_user(user))
 
 
-def ingredient_visible_transitively(ingredient: "Ingredient", user) -> bool:
+def ingredient_visible_transitively(ingredient: Ingredient, user) -> bool:
     """Whether `ingredient` is visible to `user` via a recipe that uses it and
     is itself visible to the user (directly owned or transitively via MealPlan).
     """

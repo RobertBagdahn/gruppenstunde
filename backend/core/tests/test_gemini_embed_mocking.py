@@ -1,8 +1,8 @@
 """Tests for Vertex AI Gemini embedding client with mocking."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from core.services.gemini import gemini_embed, GeminiUnavailableError
+from unittest.mock import MagicMock, patch
+
+from core.services.gemini import gemini_embed
 
 
 class TestGeminiEmbedWithMocking:

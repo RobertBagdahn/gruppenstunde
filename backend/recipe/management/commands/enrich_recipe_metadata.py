@@ -12,6 +12,7 @@ Usage:
 
 import json
 import time
+from typing import cast
 
 from django.core.management.base import BaseCommand
 
@@ -131,7 +132,7 @@ class Command(BaseCommand):
             return []
 
         try:
-            return json.loads(response.text)
+            return cast(list[dict], json.loads(response.text))
         except json.JSONDecodeError:
             self.stderr.write(self.style.WARNING(f"  Invalid JSON from AI: {response.text[:200]}"))
             return []

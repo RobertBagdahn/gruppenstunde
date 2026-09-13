@@ -10,10 +10,11 @@ these candidates with RecipeHint matches and selects the final Top-5.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from recipe.models import Recipe
+    from supply.models import Ingredient
 
 _NUTRI_LABELS = {1: "A", 2: "B", 3: "C", 4: "D", 5: "E"}
 
@@ -205,14 +206,15 @@ def _find_contributing_ingredients(recipe: Recipe, parameter: str) -> list[dict]
     return result
 
 
-def _make_agg_ingredient(values: dict[str, float]) -> object:
+def _make_agg_ingredient(values: dict[str, float]) -> Ingredient:
     """Create a mock ingredient object from aggregated nutritional values."""
 
+    from supply.models import Ingredient
+
     class _AggIngredient:
-        pass
+        physical_viscosity: str = "solid"
 
     agg = _AggIngredient()
     for k, v in values.items():
         setattr(agg, k, v)
-    agg.physical_viscosity = "solid"
-    return agg
+    return cast(Ingredient, agg)

@@ -9,7 +9,6 @@ import logging
 from typing import Any
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 
@@ -36,7 +35,7 @@ def create_manual_link(
     source_id: int,
     target_type: str,
     target_id: int,
-    user: AbstractBaseUser | None = None,
+    user: Any | None = None,
 ) -> ContentLink:
     """
     Create a manual link between two content items.
@@ -269,7 +268,7 @@ def reject_link_with_feedback(
     link_id: int,
     feedback_type: str,
     notes: str = "",
-    user: AbstractBaseUser | None = None,
+    user: Any | None = None,
 ) -> tuple[ContentLink, EmbeddingFeedback]:
     """
     Reject a link and create an EmbeddingFeedback record.
@@ -340,8 +339,10 @@ def _get_content_type(model_name: str) -> ContentType:
 def _verify_object_exists(ct: ContentType, object_id: int) -> None:
     """Verify that an object exists for the given content type and ID."""
     model_class = ct.model_class()
-    if model_class and not model_class.objects.filter(pk=object_id).exists():
-        raise ValueError(f"{ct.model} #{object_id} existiert nicht.")
+    if model_class is not None:
+        objects = model_class.objects  # type: ignore[attr-defined]
+        if not objects.filter(pk=object_id).exists():
+            raise ValueError(f"{ct.model} #{object_id} existiert nicht.")
 
 
 def _link_exists(
@@ -381,7 +382,7 @@ def _resolve_content_object(ct: ContentType, object_id: int) -> dict | None:
     url_prefix = URL_PREFIXES.get(ct.model, f"/{ct.model}/")
 
     return {
-        "id": obj.id,
+        "id": obj.id,  # type: ignore[attr-defined]
         "content_type": ct.model,
         "title": title,
         "slug": slug,

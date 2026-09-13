@@ -545,7 +545,7 @@ def ingredient_comparison(
     metric: str,
     retail_section_id: str | None = None,
 ):
-    label, unit = FIELD_LABELS.get(metric, (metric, ""))
+    _label, unit = FIELD_LABELS.get(metric, (metric, ""))
 
     base_qs = _base_queryset(retail_section_id=retail_section_id)
     base_qs = base_qs.exclude(**{f"{metric}__isnull": True})

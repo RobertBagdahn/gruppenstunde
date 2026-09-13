@@ -12,7 +12,15 @@ See openspec/changes/retail-sections-restructure/design.md (D1/D7) for rationale
 
 from __future__ import annotations
 
-RETAIL_SECTIONS: list[dict[str, object]] = [
+from typing import TypedDict
+
+
+class _RetailSectionEntry(TypedDict):
+    name: str
+    rank: int
+
+
+RETAIL_SECTIONS: list[_RetailSectionEntry] = [
     {"name": "Obst", "rank": 1},
     {"name": "Gemüse", "rank": 2},
     {"name": "Brot & Backwaren", "rank": 3},

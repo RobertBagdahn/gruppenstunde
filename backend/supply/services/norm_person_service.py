@@ -9,10 +9,10 @@ Migrated from idea/services/norm_person.py to supply/services/.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class Gender(str, Enum):
+class Gender(StrEnum):
     MALE = "male"
     FEMALE = "female"
 

@@ -1,6 +1,7 @@
 """Event Day Slot CRUD endpoints."""
 
 from django.shortcuts import get_object_or_404
+from ninja import Status
 from ninja.errors import HttpError
 
 from event.models import Event, EventDaySlot
@@ -63,7 +64,7 @@ def create_day_slot(request, event_slug: str, payload: EventDaySlotCreateIn):
         sort_order=payload.sort_order,
         created_by=request.user,
     )
-    return 201, slot
+    return Status(201, slot)
 
 
 @event_router.patch(
@@ -118,4 +119,4 @@ def delete_day_slot(request, event_slug: str, slot_id: int):
 
     slot = get_object_or_404(EventDaySlot, pk=slot_id, event=event)
     slot.delete()
-    return 204, None
+    return Status(204, None)

@@ -1,6 +1,7 @@
 """Pydantic schemas for user profile and preferences."""
 
 from datetime import date, datetime
+from typing import cast
 
 from ninja import Schema
 
@@ -25,12 +26,12 @@ class UserProfileOut(Schema):
     @staticmethod
     def resolve_profile_picture_url(obj) -> str | None:
         if obj.profile_picture:
-            return obj.profile_picture.url
+            return cast(str, obj.profile_picture.url)
         return None
 
     @staticmethod
-    def resolve_nutritional_tags(obj) -> list:
-        return obj.nutritional_tags.all()
+    def resolve_nutritional_tags(obj) -> list[NutritionalTagOut]:
+        return list(obj.nutritional_tags.all())
 
 
 class UserProfileUpdateIn(Schema):
@@ -63,7 +64,7 @@ class PublicContentOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.image:
-            return obj.image.url
+            return cast(str, obj.image.url)
         return None
 
 
@@ -83,7 +84,7 @@ class MyContentOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.image:
-            return obj.image.url
+            return cast(str, obj.image.url)
         return None
 
 
@@ -102,7 +103,7 @@ class PublicUserProfileOut(Schema):
     @staticmethod
     def resolve_profile_picture_url(obj) -> str | None:
         if obj.profile_picture:
-            return obj.profile_picture.url
+            return cast(str, obj.profile_picture.url)
         return None
 
 
@@ -119,7 +120,7 @@ class PublicRecipeOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.image:
-            return obj.image.url
+            return cast(str, obj.image.url)
         return None
 
 
@@ -133,7 +134,7 @@ class PublicShoppingListOut(Schema):
 
     @staticmethod
     def resolve_item_count(obj) -> int:
-        return obj.items.count()
+        return cast(int, obj.items.count())
 
 
 class PublicMealPlanOut(Schema):
@@ -163,7 +164,7 @@ class PublicUserFoodProfileOut(Schema):
     @staticmethod
     def resolve_profile_picture_url(obj) -> str | None:
         if obj.profile_picture:
-            return obj.profile_picture.url
+            return cast(str, obj.profile_picture.url)
         return None
 
 

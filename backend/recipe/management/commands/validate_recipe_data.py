@@ -64,21 +64,23 @@ class Command(BaseCommand):
             total_weight = 0.0
 
             for item in items:
-                weight = float(item.quantity) * float(item.portion.weight_g)
-                per_person = weight / max(recipe.portions, 1)
+                if item.portion is None:
+                    continue
+                weight = float(item.quantity or 0) * float(item.portion.weight_g or 0)
+                per_person = weight / max(recipe.portions or 1, 1)
                 total_weight += weight
 
                 if per_person > threshold:
                     problematic_items.append((item.portion.ingredient.name, per_person))
 
-            per_person_total = total_weight / max(recipe.portions, 1)
+            per_person_total = total_weight / max(recipe.portions or 1, 1)
             if problematic_items or per_person_total > threshold:
                 results.append((recipe, total_weight, problematic_items))
 
         return results
 
     def _report_recipe(self, recipe: Recipe, total_weight: float, items: list[tuple[str, float]]) -> None:
-        per_person = total_weight / max(recipe.portions, 1)
+        per_person = total_weight / max(recipe.portions or 1, 1)
         self.stdout.write(f"\n  Recipe: {recipe.title} (ID={recipe.id})")
         self.stdout.write(f"  Portions: {recipe.portions}")
         self.stdout.write(f"  Total weight: {total_weight:.0f}g")

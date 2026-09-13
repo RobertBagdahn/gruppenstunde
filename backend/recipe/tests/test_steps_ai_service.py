@@ -185,7 +185,7 @@ class TestImproveStepInstruction(TestCase):
         mock_response.text = "Improved instruction"
         mock_gemini.return_value = (mock_response, "interaction-id")
 
-        improved, _interaction_id = AiStepService.improve_step_instruction(
+        _improved, _interaction_id = AiStepService.improve_step_instruction(
             instruction="Original instruction",
             tone="invalid_tone",  # Unknown tone
             user=self.user,

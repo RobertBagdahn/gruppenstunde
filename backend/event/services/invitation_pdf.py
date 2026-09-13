@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import logging
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import qrcode
 from reportlab.lib import colors
@@ -37,12 +37,12 @@ def _hex_to_color(hex_str: str) -> colors.Color:
     return colors.Color(r / 255, g / 255, b / 255)
 
 
-def _markdown_to_paragraphs(text: str, style: ParagraphStyle) -> list:
+def _markdown_to_paragraphs(text: str, style: ParagraphStyle) -> list[Any]:
     """Convert basic markdown text to ReportLab Paragraph elements.
 
     Supports: **bold**, *italic*, bullet lists (- item), headings (### heading).
     """
-    elements = []
+    elements: list[Any] = []
     if not text:
         return elements
 
@@ -275,9 +275,9 @@ def _build_header(ci: CIData, primary: colors.Color, title_style: ParagraphStyle
     return elements
 
 
-def _build_packing_list_section(event, heading_style: ParagraphStyle, body_style: ParagraphStyle) -> list:
+def _build_packing_list_section(event, heading_style: ParagraphStyle, body_style: ParagraphStyle) -> list[Any]:
     """Build the packing list section for the PDF."""
-    elements = []
+    elements: list[Any] = []
     packing_list = event.packing_list
 
     categories = packing_list.categories.prefetch_related("items").order_by("sort_order", "id")

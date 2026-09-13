@@ -14,12 +14,10 @@ from pathlib import Path
 
 import pytest
 
-from supply.data.retail_sections import RETAIL_SECTIONS, RETAIL_SECTION_NAMES
+from supply.data.retail_sections import RETAIL_SECTION_NAMES, RETAIL_SECTIONS
 from supply.services.retail_section_mapping import KEYWORD_TO_RETAIL_SECTION_NAME, _match_keywords
 
-FIXTURE_PATH = (
-    Path(__file__).resolve().parents[2] / "data" / "masterdata" / "supply_retailsection.json"
-)
+FIXTURE_PATH = Path(__file__).resolve().parents[2] / "data" / "masterdata" / "supply_retailsection.json"
 
 
 class TestCatalogConsistency:
@@ -121,7 +119,7 @@ class TestRestructureRetailSectionsCommand:
         self._call()
 
         names = set(RetailSection.objects.values_list("name", flat=True))
-        assert RETAIL_SECTION_NAMES <= names
+        assert names >= RETAIL_SECTION_NAMES
         sonstiges = RetailSection.objects.get(name="Sonstiges")
         assert sonstiges.rank == 22
 

@@ -1,6 +1,6 @@
 """Equipment CRUD endpoints (staff-only for CUD)."""
 
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from supply.models import Equipment
@@ -33,7 +33,7 @@ def create_equipment(request, payload: EquipmentIn):
     """Create new equipment (staff-only)."""
     _require_staff(request)
     equipment = Equipment.objects.create(**payload.dict())
-    return 201, equipment
+    return Status(201, equipment)
 
 
 @equipment_router.patch("/{equipment_id}/", response=EquipmentOut)
@@ -63,4 +63,4 @@ def delete_equipment(request, equipment_id: int):
         equipment.delete()
     except Exception:
         raise HttpError(409, "Kann nicht gelöscht werden, da noch Rezepte zugeordnet sind")
-    return 204, None
+    return Status(204, None)

@@ -28,7 +28,7 @@ import {
 } from '@/api/recipes';
 import {
   RECIPE_DIFFICULTY_OPTIONS as _DIFF,
-  RECIPE_EXECUTION_TIME_OPTIONS,
+  getRecipeExecutionTimeLabel,
 } from '@/schemas/recipe';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ErrorDisplay from '@/components/ErrorDisplay';
@@ -346,9 +346,7 @@ export default function RecipeDetailPage() {
   }
 
 
-  const timeLabel =
-    RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
-    recipe.execution_time;
+  const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
 
   // Group tags by parent
   const topicTags = recipe.tags.filter((t) => t.parent_name === 'Themen');

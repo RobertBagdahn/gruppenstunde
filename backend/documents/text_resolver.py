@@ -169,8 +169,9 @@ def generate_ai_text(
 ) -> str:
     """Generate text using Google Gemini AI."""
     try:
-        from core.services.gemini import gemini_call
         from ninja.errors import HttpError
+
+        from core.services.gemini import gemini_call
 
         block_labels = {
             "greeting": "Begrüßungstext",

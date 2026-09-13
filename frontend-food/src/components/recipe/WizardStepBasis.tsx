@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { toast } from 'sonner';
 import { useCreateRecipe } from '@/api/recipes';
 import type { RecipeImportUrlResponse } from '@/api/recipeImport';
@@ -61,7 +61,7 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
     onRecipeTypeChange(value);
   };
 
-  const save = async (): Promise<boolean> => {
+  const save = useCallback(async (): Promise<boolean> => {
     if (!result) {
       toast.error('Die KI-Analyse ist noch nicht abgeschlossen.');
       return false;
@@ -136,9 +136,9 @@ const WizardStepBasis = forwardRef<WizardStepBasisHandle, WizardStepBasisProps>(
       });
       return false;
     }
-  };
+  }, [createRecipe, onCreated, result, selectedPortions, servings, servingsConfirmed, title, recipeType]);
 
-  useImperativeHandle(ref, () => ({ save }), [createRecipe, onCreated, result, selectedPortions, servings, servingsConfirmed, title, recipeType]);
+  useImperativeHandle(ref, () => ({ save }), [save]);
 
   if (!result) {
     return <div className="py-12 text-center text-muted-foreground">Warte auf die KI-Analyse…</div>;

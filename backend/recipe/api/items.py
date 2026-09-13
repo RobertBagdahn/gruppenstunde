@@ -2,10 +2,11 @@
 
 import hashlib
 import json
+from typing import cast
 
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from recipe.models import Recipe, RecipeItem, RecipeItemExchangeGroup, RecipeItemIdempotencyRecord
@@ -60,7 +61,7 @@ def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = Tru
         _require_auth(request)
     from content.services.food_access import get_visible_recipe_or_404
 
-    return get_visible_recipe_or_404(request.user, recipe_id)
+    return cast(Recipe, get_visible_recipe_or_404(request.user, recipe_id))
 
 
 @router.get("/{recipe_id}/recipe-items/", response=list[RecipeItemOut])
@@ -226,6 +227,8 @@ def update_recipe_item(request, recipe_id: int, item_id: int, payload: RecipeIte
         portion = (
             item.portion if result_portion_id == item.portion_id else get_object_or_404(Portion, id=result_portion_id)
         )
+        if portion is None:
+            raise HttpError(400, "Zutat hat keine Portion")
         resulting_weight_g = portion.weight_g if (portion.weight_g and portion.weight_g > 0) else 1.0
         resulting_grams = result_quantity * resulting_weight_g
         tolerance = max(abs(expected_grams_total) * 0.15, 2.0)
@@ -293,7 +296,7 @@ def create_exchange_group(request, recipe_id: int, payload: RecipeItemExchangeGr
         raise HttpError(403, "Keine Berechtigung")
 
     group = RecipeItemExchangeGroup.objects.create(recipe=recipe, name=payload.name)
-    return 201, group
+    return Status(201, group)
 
 
 @router.delete("/{recipe_id}/exchanges/{group_id}/")

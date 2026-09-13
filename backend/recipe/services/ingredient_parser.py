@@ -179,9 +179,9 @@ class IngredientNameParser:
         raw = raw_name.strip()
 
         if re.match(r"^etwas\b", raw, flags=re.IGNORECASE):
-            return ParsedIngredient(name=raw, confidence=0.0)
+            return ParsedIngredient(name=raw, quantity=0, unit="", note="", confidence=0.0)
         if re.search(r"\baus der Dose\b", raw, flags=re.IGNORECASE):
-            return ParsedIngredient(name=raw, confidence=0.0)
+            return ParsedIngredient(name=raw, quantity=0, unit="", note="", confidence=0.0)
 
         result = cls._parse_rule_based(raw)
         if result is not None and result.confidence >= 0.9:

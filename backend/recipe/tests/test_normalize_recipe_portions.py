@@ -6,7 +6,6 @@ could permanently corrupt recipe quantities. These tests mock gemini_call to
 ensure the command skips / clamps such values.
 """
 
-from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,6 +18,7 @@ from supply.tests import make_ingredient, make_portion
 def _make_gemini_response(items: list[dict]) -> MagicMock:
     """Build a fake Gemini response returning the given NormalizedItem list."""
     import json
+
     resp = MagicMock()
     resp.text = json.dumps({"items": items})
     return resp

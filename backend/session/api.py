@@ -2,10 +2,11 @@
 
 import logging
 import math
+from typing import cast
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Query, Router, Schema
+from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
 from content.base_api import (
@@ -185,7 +186,7 @@ def create_session(request, payload: GroupSessionCreateIn):
     )
 
     if payload.tag_ids:
-        session.tags.set(payload.tag_ids)
+        session.tags.set(cast(list[Tag], payload.tag_ids))
     if payload.scout_level_ids:
         session.scout_levels.set(payload.scout_level_ids)
     if request.user.is_authenticated:
@@ -193,7 +194,7 @@ def create_session(request, payload: GroupSessionCreateIn):
 
     enrich_content_with_interactions(request, session, GroupSession)
     session.similar_sessions = []
-    return 201, session
+    return Status(201, session)
 
 
 @router.patch("/{session_id}/", response=GroupSessionDetailOut)
@@ -240,7 +241,7 @@ def update_session(request, session_id: int, payload: GroupSessionUpdateIn):
         session.save(update_fields=update_fields)
 
     if payload.tag_ids is not None:
-        session.tags.set(payload.tag_ids)
+        session.tags.set(cast(list[Tag], payload.tag_ids))
     if payload.scout_level_ids is not None:
         session.scout_levels.set(payload.scout_level_ids)
 
@@ -263,7 +264,7 @@ def delete_session(request, session_id: int):
 
     session = get_object_or_404(GroupSession, id=session_id)
     session.soft_delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ---------------------------------------------------------------------------
@@ -319,17 +320,20 @@ def create_session_comment(request, session_id: int, payload: ContentCommentIn):
         author_name=payload.author_name,
         parent_id=payload.parent_id,
     )
-    return 201, {
-        "id": comment.id,
-        "text": comment.text,
-        "author_name": comment.author_name,
-        "user_id": comment.user_id,
-        "user_display_name": comment.user.first_name if comment.user else None,
-        "parent_id": comment.parent_id,
-        "status": comment.status,
-        "created_at": comment.created_at,
-        "replies": [],
-    }
+    return Status(
+        201,
+        {
+            "id": comment.id,
+            "text": comment.text,
+            "author_name": comment.author_name,
+            "user_id": comment.user_id,
+            "user_display_name": comment.user.first_name if comment.user else None,
+            "parent_id": comment.parent_id,
+            "status": comment.status,
+            "created_at": comment.created_at,
+            "replies": [],
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -401,15 +405,18 @@ def add_session_material(request, session_id: int, payload: ContentMaterialItemI
         quantity=payload.quantity,
         sort_order=payload.sort_order,
     )
-    return 201, {
-        "id": item.id,
-        "material_id": item.material_id,
-        "material_name": item.material.name,
-        "material_slug": item.material.slug,
-        "material_category": item.material.material_category,
-        "quantity": item.quantity,
-        "sort_order": item.sort_order,
-    }
+    return Status(
+        201,
+        {
+            "id": item.id,
+            "material_id": item.material_id,
+            "material_name": item.material.name,
+            "material_slug": item.material.slug,
+            "material_category": item.material.material_category,
+            "quantity": item.quantity,
+            "sort_order": item.sort_order,
+        },
+    )
 
 
 @router.delete("/{session_id}/materials/{item_id}/", response={204: None})
@@ -429,7 +436,7 @@ def remove_session_material(request, session_id: int, item_id: int):
     ct = ContentType.objects.get_for_model(GroupSession)
     item = get_object_or_404(ContentMaterialItem, id=item_id, content_type=ct, object_id=session_id)
     item.delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ---------------------------------------------------------------------------

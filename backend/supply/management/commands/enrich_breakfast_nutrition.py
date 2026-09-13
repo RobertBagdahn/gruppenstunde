@@ -6,8 +6,8 @@ Steps:
 3. Recalculate affected recipe caches
 """
 
-from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
 
 from content.models import Tag
 from recipe.models import Recipe, RecipeItem
@@ -17,21 +17,21 @@ User = get_user_model()
 
 # Ingredients that need AI enrichment (missing kcal data)
 INGREDIENTS_TO_ENRICH = [
-    184,   # Haferflocken
+    184,  # Haferflocken
     1875,  # Margarine
-    378,   # Nuss-Nougat-Creme
-    931,   # Nuss-Nougat-Creme Bio
+    378,  # Nuss-Nougat-Creme
+    931,  # Nuss-Nougat-Creme Bio
     7092,  # Dinkelmehl Type 630
     6986,  # Zarte Haferflocken
     7291,  # Schokodrops backfest
     6987,  # Schoko-Chunks
     6985,  # Whey-Protein Vanille
-    131,   # Sesam
+    131,  # Sesam
     7102,  # Saatenmischung
     5289,  # Kaffeeweißer
     7290,  # Backmalz enzymaktiv
     5397,  # Röstzwiebeln
-    152,   # Zimt
+    152,  # Zimt
 ]
 
 # (recipe_id, old_portion_id, new_portion_id, new_qty) for RecipeItem fixes
@@ -85,13 +85,17 @@ class Command(BaseCommand):
             )
             count = qs.count()
             if count == 0:
-                self.stdout.write(f"  SKIP: no RecipeItems with {fix['old_ingredient_name']} in recipe {fix['recipe_id']}")
+                self.stdout.write(
+                    f"  SKIP: no RecipeItems with {fix['old_ingredient_name']} in recipe {fix['recipe_id']}"
+                )
                 continue
             if not dry_run:
                 qs.update(portion_id=fix["new_portion_id"], quantity=fix["new_qty"])
             fixed_items += count
             new_port = Portion.objects.get(id=fix["new_portion_id"])
-            self.stdout.write(f"  Fixed {count} RecipeItem(s): {fix['old_ingredient_name']} → {new_port.ingredient.name} ({new_port.name})")
+            self.stdout.write(
+                f"  Fixed {count} RecipeItem(s): {fix['old_ingredient_name']} → {new_port.ingredient.name} ({new_port.name})"
+            )
 
         # ── Step 2: AI Enrichment ──────────────────────────────────────
         if not skip_ai:
@@ -115,8 +119,14 @@ class Command(BaseCommand):
                     continue
 
                 nutrient_fields = [
-                    "energy_kcal", "protein_g", "fat_g", "fat_sat_g",
-                    "carbohydrate_g", "sugar_g", "fibre_g", "salt_g",
+                    "energy_kcal",
+                    "protein_g",
+                    "fat_g",
+                    "fat_sat_g",
+                    "carbohydrate_g",
+                    "sugar_g",
+                    "fibre_g",
+                    "salt_g",
                 ]
 
                 if all(getattr(ing, f) and getattr(ing, f) > 0 for f in nutrient_fields):
@@ -147,10 +157,10 @@ class Command(BaseCommand):
 
                 if updated:
                     ing.save()
-                    self.stdout.write(f"    ✓ Saved")
+                    self.stdout.write("    ✓ Saved")
                     enriched += 1
                 else:
-                    self.stdout.write(f"    ⊘ No changes")
+                    self.stdout.write("    ⊘ No changes")
                     skipped += 1
 
             self.stdout.write(f"\n  Enriched: {enriched}, Skipped: {skipped}, Errors: {errors}")

@@ -119,7 +119,7 @@ export default function IngredientMergeDialog({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Fehler beim Zusammenführen');
     }
-  }, [sourceIngredient, targetIngredient, mergeMutation, onOpenChange, reset, onMergeComplete, navigate, currentIngredient]);
+  }, [sourceIngredient, targetIngredient, mergeMutation, onOpenChange, reset, onMergeComplete, navigate, currentIngredient, preSelectedTarget]);
 
   const handleClose = useCallback((open: boolean) => {
     if (!open) reset();

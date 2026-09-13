@@ -1,5 +1,3 @@
-import pytest
-
 from supply.schemas.ingredients import PortionOut
 
 

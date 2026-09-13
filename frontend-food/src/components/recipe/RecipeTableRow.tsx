@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { RecipeListItem } from '@/schemas/recipe';
 import {
   RECIPE_DIFFICULTY_OPTIONS,
-  RECIPE_EXECUTION_TIME_OPTIONS,
+  getRecipeExecutionTimeLabel,
 } from '@/schemas/recipe';
 import RecipeBadge from './RecipeBadge';
 import SearchHighlight from './SearchHighlight';
@@ -18,9 +18,7 @@ interface RecipeTableRowProps {
 export default function RecipeTableRow({ recipe, searchQuery, onDelete, onClone }: RecipeTableRowProps) {
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
-  const timeLabel =
-    RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
-    recipe.execution_time;
+  const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
   const costsLabel = recipe.cached_price_total != null
     ? `${recipe.cached_price_total.toFixed(2).replace('.', ',')} €`
     : '—';

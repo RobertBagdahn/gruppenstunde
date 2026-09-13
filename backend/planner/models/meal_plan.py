@@ -77,6 +77,13 @@ class MealPlanVisibility(models.TextChoices):
 class MealPlan(models.Model):
     """Meal plan for scout events or standalone use."""
 
+    can_edit: bool = False
+    can_delete: bool = False
+    is_owner: bool = False
+    meals_copied: int = 0
+    items_copied: int = 0
+    overrides_copied: int = 0
+
     name = models.CharField(max_length=200, verbose_name=_("Name"))
     slug = models.SlugField(max_length=220, unique=True, blank=True, verbose_name=_("Slug"))
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
@@ -177,7 +184,7 @@ class MealPlan(models.Model):
             self.norm_portions = self.previous_norm_portions
             return
 
-        persons = []
+        persons: list[PersonSpec | float] = []
         for member in members:
             if member.gender == "no_answer":
                 male = calculate_group_norm_factor(
@@ -302,6 +309,10 @@ class MealPlan(models.Model):
 
 class Meal(models.Model):
     """A single meal (e.g. breakfast, lunch) with start and end datetime."""
+
+    can_edit: bool = False
+    can_delete: bool = False
+    synced_meal_count: int | None = None
 
     meal_plan = models.ForeignKey(
         MealPlan,

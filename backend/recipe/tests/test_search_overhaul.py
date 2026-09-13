@@ -5,7 +5,6 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 
 from content.choices import ContentStatus
-from recipe.models import Recipe, Rule
 from recipe.tests import make_recipe, make_recipe_item, make_rule
 
 User = get_user_model()
@@ -18,9 +17,7 @@ def user(db):
 
 @pytest.fixture
 def staff_user(db):
-    return User.objects.create_user(
-        username="staffuser", password="testpass", is_staff=True
-    )
+    return User.objects.create_user(username="staffuser", password="testpass", is_staff=True)
 
 
 @pytest.fixture
@@ -85,20 +82,14 @@ class TestListRecipesDefaultOrigin:
         assert "Verified Pancakes" in titles
         assert "Community Waffles" not in titles
 
-    def test_origin_verified_plus_community(
-        self, api_client, verified_recipe, community_recipe
-    ):
-        resp = api_client.get(
-            "/api/recipes/?origin=verified&origin=community&page_size=50"
-        )
+    def test_origin_verified_plus_community(self, api_client, verified_recipe, community_recipe):
+        resp = api_client.get("/api/recipes/?origin=verified&origin=community&page_size=50")
         data = resp.json()
         titles = [item["title"] for item in data["items"]]
         assert "Verified Pancakes" in titles
         assert "Community Waffles" in titles
 
-    def test_origin_mine_shows_drafts(
-        self, api_client, user, draft_recipe, community_recipe
-    ):
+    def test_origin_mine_shows_drafts(self, api_client, user, draft_recipe, community_recipe):
         api_client.force_login(user)
         resp = api_client.get("/api/recipes/?origin=mine&page_size=50")
         data = resp.json()
@@ -107,9 +98,7 @@ class TestListRecipesDefaultOrigin:
         # community_recipe also owned by user, so it appears in mine too
         assert "Community Waffles" in titles
 
-    def test_no_origin_param_defaults_to_verified(
-        self, api_client, verified_recipe, community_recipe
-    ):
+    def test_no_origin_param_defaults_to_verified(self, api_client, verified_recipe, community_recipe):
         resp = api_client.get("/api/recipes/")
         data = resp.json()
         titles = [item["title"] for item in data["items"]]
@@ -155,9 +144,7 @@ class TestListRecipesMultiValueFilters:
             owner=None,
             recipe_type="warm_meal",
         )
-        resp = api_client.get(
-            "/api/recipes/?recipe_type=breakfast&recipe_type=warm_meal&page_size=50"
-        )
+        resp = api_client.get("/api/recipes/?recipe_type=breakfast&recipe_type=warm_meal&page_size=50")
         data = resp.json()
         titles = [item["title"] for item in data["items"]]
         assert "Breakfast Bowl" in titles
@@ -176,9 +163,7 @@ class TestListRecipesMultiValueFilters:
             owner=None,
             execution_time="60_90",
         )
-        resp = api_client.get(
-            "/api/recipes/?execution_time=less_30&execution_time=60_90&page_size=50"
-        )
+        resp = api_client.get("/api/recipes/?execution_time=less_30&execution_time=60_90&page_size=50")
         data = resp.json()
         titles = [item["title"] for item in data["items"]]
         assert "Quick Snack" in titles
@@ -197,9 +182,7 @@ class TestListRecipesMultiValueFilters:
             owner=None,
             preparation_method="frying",
         )
-        resp = api_client.get(
-            "/api/recipes/?preparation_method=baking&preparation_method=frying&page_size=50"
-        )
+        resp = api_client.get("/api/recipes/?preparation_method=baking&preparation_method=frying&page_size=50")
         data = resp.json()
         titles = [item["title"] for item in data["items"]]
         assert "Baked Bread" in titles
@@ -213,9 +196,7 @@ class TestListRecipesMultiValueFilters:
 
 @pytest.mark.django_db
 class TestListRecipesSortByUseCount:
-    def test_default_sort_is_use_count(
-        self, api_client, verified_recipe, another_verified_recipe
-    ):
+    def test_default_sort_is_use_count(self, api_client, verified_recipe, another_verified_recipe):
         resp = api_client.get("/api/recipes/?page_size=50")
         data = resp.json()
         titles = [item["title"] for item in data["items"]]
@@ -320,9 +301,7 @@ class TestVerificationStatus:
     def test_get_status(self, api_client, verified_recipe):
         verified_recipe.description = "Full recipe"
         verified_recipe.save()
-        resp = api_client.get(
-            f"/api/recipes/{verified_recipe.id}/verification-status/"
-        )
+        resp = api_client.get(f"/api/recipes/{verified_recipe.id}/verification-status/")
         assert resp.status_code == 200
         data = resp.json()
         assert "can_verify" in data
@@ -334,9 +313,7 @@ class TestVerificationStatus:
     def test_status_shows_missing_fields(self, api_client, verified_recipe):
         verified_recipe.description = ""
         verified_recipe.save()
-        resp = api_client.get(
-            f"/api/recipes/{verified_recipe.id}/verification-status/"
-        )
+        resp = api_client.get(f"/api/recipes/{verified_recipe.id}/verification-status/")
         data = resp.json()
         assert len(data["missing_fields"]) > 0
 
@@ -382,7 +359,5 @@ class TestVerificationService:
         from recipe.services.verification_service import check_verification_readiness
 
         result = check_verification_readiness(verified_recipe)
-        has_sugar_warning = any(
-            w.get("rule_name") == "Sugar check" for w in result.warnings
-        )
+        has_sugar_warning = any(w.get("rule_name") == "Sugar check" for w in result.warnings)
         assert has_sugar_warning

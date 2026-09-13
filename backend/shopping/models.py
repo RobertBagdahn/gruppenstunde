@@ -48,6 +48,12 @@ class ShoppingList(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Runtime-only attributes (set by API, never persisted)
+    can_edit: bool = False
+    can_delete: bool = False
+    _can_edit: bool = False
+    _is_owner: bool = False
+
     class Meta:
         verbose_name = _("Einkaufsliste")
         verbose_name_plural = _("Einkaufslisten")

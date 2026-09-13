@@ -3,6 +3,7 @@
 import json
 import logging
 import time
+from typing import cast
 
 from django.db import transaction
 from django.db.models import Q
@@ -39,9 +40,13 @@ from recipe.schemas import (
     VisibilityUpdateIn,
 )
 from recipe.schemas.import_schemas import (
+    CreatedIngredientInfoOut,
+    ImportedIngredientOut,
+    RecipeDraftOut,
     RecipeImportPreviewOut,
     RecipeImportRequestIn,
     RecipeImportUrlResponseOut,
+    RecipeItemDraftOut,
     SmartRecipeInputIn,
 )
 
@@ -99,7 +104,7 @@ def _get_visible_recipe_or_404(request, recipe_id: int, require_auth: bool = Fal
     recipe = _get_visible_recipes_qs(request).filter(id=recipe_id).first()
     if recipe is None:
         raise HttpError(404, "Rezept nicht gefunden")
-    return recipe
+    return cast(Recipe, recipe)
 
 
 def _is_transitively_visible_recipe(recipe: Recipe, request) -> bool:
@@ -334,7 +339,7 @@ def import_recipe_from_url(request, payload: RecipeImportRequestIn):
         title=result.title,
         description=result.description,
         servings=result.servings,
-        ingredients=[{"name": i.name, "quantity": i.quantity, "unit": i.unit} for i in result.ingredients],
+        ingredients=[ImportedIngredientOut(name=i.name, quantity=i.quantity, unit=i.unit) for i in result.ingredients],
         steps=result.steps,
         image_url=result.image_url,
         source_url=result.source_url,
@@ -346,48 +351,48 @@ def import_recipe_from_url(request, payload: RecipeImportRequestIn):
 def _recipe_import_response(result) -> RecipeImportUrlResponseOut:
     """Serialize every smart-input source through one response contract."""
     return RecipeImportUrlResponseOut(
-        recipe_draft={
-            "title": result.title,
-            "description": result.description,
-            "summary": result.summary,
-            "servings": result.servings,
-            "preparation_time": result.preparation_time,
-            "execution_time": result.execution_time,
-            "image_url": getattr(result, "image_url", ""),
-            "recipe_type": result.recipe_type,
-            "difficulty": result.difficulty,
-            "execution_time_choice": result.execution_time_choice,
-            "preparation_time_choice": result.preparation_time_choice,
-            "scout_level_ids": result.scout_level_ids,
-            "tag_ids": result.tag_ids,
-            "steps": result.steps,
-            "source_url": result.source_url,
-        },
+        recipe_draft=RecipeDraftOut(
+            title=result.title,
+            description=result.description,
+            summary=result.summary,
+            servings=result.servings,
+            preparation_time=result.preparation_time,
+            execution_time=result.execution_time,
+            image_url=getattr(result, "image_url", ""),
+            recipe_type=result.recipe_type,
+            difficulty=result.difficulty,
+            execution_time_choice=result.execution_time_choice,
+            preparation_time_choice=result.preparation_time_choice,
+            scout_level_ids=result.scout_level_ids,
+            tag_ids=result.tag_ids,
+            steps=result.steps,
+            source_url=result.source_url,
+        ),
         recipe_items=[
-            {
-                "ingredient_id": item.ingredient_id,
-                "ingredient_name": item.ingredient_name,
-                "quantity": item.quantity,
-                "measuring_unit_id": item.measuring_unit_id,
-                "measuring_unit_name": item.measuring_unit_name,
-                "note": item.note,
-                "is_new_ingredient": item.is_new_ingredient,
-                "portion_id": item.portion_id,
-                "needs_unit_clarification": getattr(item, "needs_unit_clarification", False),
-                "suggested_unit_name": getattr(item, "suggested_unit_name", ""),
-                "suggested_portion_weight_g": getattr(item, "suggested_portion_weight_g", None),
-                "available_portions": getattr(item, "available_portions", []),
-            }
+            RecipeItemDraftOut(
+                ingredient_id=item.ingredient_id,
+                ingredient_name=item.ingredient_name,
+                quantity=item.quantity,
+                measuring_unit_id=item.measuring_unit_id,
+                measuring_unit_name=item.measuring_unit_name,
+                note=item.note,
+                is_new_ingredient=item.is_new_ingredient,
+                portion_id=item.portion_id,
+                needs_unit_clarification=getattr(item, "needs_unit_clarification", False),
+                suggested_unit_name=getattr(item, "suggested_unit_name", ""),
+                suggested_portion_weight_g=getattr(item, "suggested_portion_weight_g", None),
+                available_portions=getattr(item, "available_portions", []),
+            )
             for item in result.recipe_items
         ],
         created_ingredients=[
-            {
-                "id": ci.id,
-                "name": ci.name,
-                "aliases": ci.aliases,
-                "nutri_class": ci.nutri_class,
-                "name_warning": getattr(ci, "name_warning", None),
-            }
+            CreatedIngredientInfoOut(
+                id=ci.id,
+                name=ci.name,
+                aliases=ci.aliases,
+                nutri_class=ci.nutri_class,
+                name_warning=getattr(ci, "name_warning", None),
+            )
             for ci in result.created_ingredients
         ],
         input_type=getattr(result, "input_type", "url"),
@@ -1045,7 +1050,7 @@ def set_recipe_image_from_url(request, recipe_id: int, payload: ImageFromUrlIn):
 
 
 @router.post("/{recipe_id}/fork/", response=RecipeDetailOut)
-def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
+def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn | None = None):
     """Create a personal copy (fork) of a recipe.
 
     Copies the recipe and all its RecipeItems, setting owner to the current user.
@@ -1101,6 +1106,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
             )
 
         for item in original.recipe_items.all():
+            exchange_group = group_map.get(item.exchange_group_id) if item.exchange_group_id is not None else None
             RecipeItem.objects.create(
                 recipe=fork,
                 portion_id=item.portion_id,
@@ -1108,7 +1114,7 @@ def fork_recipe(request, recipe_id: int, payload: ForkRecipeIn = None):
                 sort_order=item.sort_order,
                 note=item.note,
                 is_optional=item.is_optional,
-                exchange_group=group_map.get(item.exchange_group_id),
+                exchange_group=exchange_group,
                 exchange_position=item.exchange_position,
             )
 

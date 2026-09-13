@@ -54,17 +54,17 @@ class TestBreakfastSeed:
         actual = set(Tag.objects.filter(slug__in=expected).values_list("slug", flat=True))
         assert expected == actual
 
-    def test_creates_six_base_ingredients(self):
+    def test_creates_breakfast_base_ingredients(self):
         self._seed_breakfast()
         tag = Tag.objects.get(slug="breakfast-base")
         count = Ingredient.objects.filter(tags=tag).count()
-        assert count == 6
+        assert count == 8
 
-    def test_creates_seventeen_topping_ingredients(self):
+    def test_creates_breakfast_topping_ingredients(self):
         self._seed_breakfast()
         tag = Tag.objects.get(slug="breakfast-topping")
         count = Ingredient.objects.filter(tags=tag).count()
-        assert count == 17
+        assert count == 23
 
     def test_creates_six_drink_ingredients(self):
         self._seed_breakfast()
@@ -72,11 +72,11 @@ class TestBreakfastSeed:
         count = Ingredient.objects.filter(tags=tag, is_standalone_food=True).count()
         assert count == 6
 
-    def test_creates_three_drink_recipes(self):
+    def test_creates_breakfast_drink_recipes(self):
         self._seed_breakfast()
         tag = Tag.objects.get(slug="breakfast-drink")
         count = Recipe.objects.filter(tags=tag, recipe_type="drink").count()
-        assert count == 3
+        assert count == 8
 
     def test_creates_warm_meals_and_muesli(self):
         MeasuringUnit.objects.get_or_create(name="g", defaults={"quantity": 1.0, "unit": "g"})

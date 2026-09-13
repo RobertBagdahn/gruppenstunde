@@ -1,6 +1,7 @@
 """Payment API endpoints — create, list, delete payments for event participants."""
 
 from django.shortcuts import get_object_or_404
+from ninja import Status
 
 from event.choices import PaymentMethodChoices
 from event.models import Event, Participant, Payment
@@ -52,7 +53,7 @@ def create_payment(request, event_slug: str, payload: PaymentCreateIn):
         note=payload.note,
     )
 
-    return 201, payment
+    return Status(201, payment)
 
 
 @event_router.delete("/{event_slug}/payments/{payment_id}/")

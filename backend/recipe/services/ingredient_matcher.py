@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from recipe.services.ingredient_parser import IngredientNameParser
 
@@ -51,14 +51,14 @@ class MatchCandidate(BaseModel):
 
 
 class MatchResult(BaseModel):
-    ingredient_id: int | None = Field(None, description="Matched ingredient ID, null if needs_review")
-    name: str = Field("", description="Ingredient name")
-    confidence: float = Field(0.0, description="Match confidence 0.0–1.0")
-    matched_via: str = Field("new", description="jaccard | fuzzy | embed | gemini | new")
-    note: str = Field("", description="Extracted note from parser")
-    is_new: bool = Field(False, description="True if a new ingredient was created")
-    needs_review: bool = Field(False, description="True if HITL dialog should open")
-    candidates: list[MatchCandidate] = Field(default_factory=list, description="Alternative candidates for HITL")
+    ingredient_id: int | None = None
+    name: str = ""
+    confidence: float = 0.0
+    matched_via: str = "new"
+    note: str = ""
+    is_new: bool = False
+    needs_review: bool = False
+    candidates: list[MatchCandidate] = []
 
 
 # ---------------------------------------------------------------------------
@@ -238,8 +238,6 @@ class IngredientMatcher:
         from django.contrib.postgres.search import TrigramSimilarity
 
         candidates = cls._get_candidates_ordered()
-        results: list[MatchCandidate] = []
-
         for cand in candidates:
             trigram = TrigramSimilarity("name", clean_name)
             # We need to compute per-candidate, so we do it through the queryset
@@ -255,15 +253,16 @@ class IngredientMatcher:
             .order_by("-similarity")[:MAX_CANDIDATES_PER_STAGE]
         )
 
-        for ing in trigram_qs:
-            trigram_score = float(ing.similarity)
-            levenshtein_score = cls._normalized_levenshtein(clean_name.lower(), ing.name.lower())
+        trigram_results: list[MatchCandidate] = []
+        for trigram_ing in trigram_qs:
+            trigram_score = float(trigram_ing.similarity)
+            levenshtein_score = cls._normalized_levenshtein(clean_name.lower(), trigram_ing.name.lower())
             combined = 0.6 * trigram_score + 0.4 * levenshtein_score
 
             if combined >= GREY_ZONE_MIN:
-                results.append(MatchCandidate(id=ing.id, name=ing.name, confidence=combined))
+                trigram_results.append(MatchCandidate(id=trigram_ing.id, name=trigram_ing.name, confidence=combined))
 
-        return cls._fuzzy_result(clean_name, note, results)
+        return cls._fuzzy_result(clean_name, note, trigram_results)
 
     @classmethod
     def _fuzzy_result(cls, clean_name: str, note: str, results: list[MatchCandidate]) -> MatchResult | None:
@@ -386,7 +385,7 @@ class IngredientMatcher:
         """Return all ingredient (id, name) ordered by usage_count DESC."""
         from supply.models import Ingredient
 
-        return list(Ingredient.objects.order_by("-usage_count", "name").values("id", "name"))
+        return [dict(row) for row in Ingredient.objects.order_by("-usage_count", "name").values("id", "name")]
 
     @classmethod
     def _normalized_levenshtein(cls, a: str, b: str) -> float:

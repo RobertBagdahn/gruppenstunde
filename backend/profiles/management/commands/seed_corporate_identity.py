@@ -132,6 +132,7 @@ def generate_placeholder_logo(initials: str, color: str) -> ContentFile:
     draw.ellipse([10, 10, size - 10, size - 10], fill=(r, g, b, 255))
 
     # Draw initials
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont
     try:
         font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 100)
     except OSError:

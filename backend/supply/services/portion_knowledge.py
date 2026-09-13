@@ -16,7 +16,7 @@ openspec/changes/rework-ingredient-portion-ai-suggestions/design.md).
 from __future__ import annotations
 
 import re
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -44,7 +44,7 @@ TYPICAL_UNIT_WEIGHTS_PROMPT_TEXT = (
 _DIGIT_RE = re.compile(r"\d")
 
 
-class PortionType(str, Enum):
+class PortionType(StrEnum):
     """Kategorie eines Portionsvorschlags."""
 
     SYSTEM_GRAMM = "system_gramm"

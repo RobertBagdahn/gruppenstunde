@@ -2,6 +2,8 @@
 Local development settings.
 """
 
+from pathlib import Path
+
 from .base import *  # noqa: F403
 
 DEBUG = True
@@ -17,7 +19,7 @@ INTERNAL_IPS = ["127.0.0.1"]
 # Local media storage — outside project dir to avoid triggering StatReloader
 import os
 
-MEDIA_ROOT = "/tmp/inspi-media/"
+MEDIA_ROOT = Path("/tmp/inspi-media/")
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"

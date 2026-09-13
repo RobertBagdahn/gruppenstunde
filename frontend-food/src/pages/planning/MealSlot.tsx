@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   AlertCircle,
+  AlertTriangle,
   PlusCircle,
   X,
   RefreshCw,
@@ -163,6 +164,9 @@ export function MealSlot({
   const mealTargetCost = budgetPerPersonPerDay ? budgetPerPersonPerDay * meal.day_part_factor : 0;
   const mealActualCost = meal.total_cost_eur / effPortions;
   const mealTime = formatMealTime(meal.start_datetime);
+  const mealIsTooLittle = meal.meal_type !== 'drinks' && coverage.percent < 80;
+  const mealIsTooExpensive = mealTargetCost > 0 && mealActualCost > mealTargetCost;
+  const mealIsUnhealthy = meal.items.some((item) => (item.nutri_class ?? 0) >= 4);
 
   const isPortionUnit = (name: string) => !['g', 'ml'].includes(name.toLowerCase());
   const formatPortion = (item: Meal['items'][number]): string => {
@@ -314,6 +318,37 @@ export function MealSlot({
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
                 {mealActualCost.toFixed(2)} €/P. ({meal.total_cost_eur.toFixed(2)} €)
               </span>
+              {mealIsTooLittle && (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold ${
+                    coverage.status === 'critical'
+                      ? 'bg-destructive/10 text-destructive border-destructive/20'
+                      : 'bg-[hsl(var(--chart-4))]/10 text-[hsl(var(--chart-4))] border-[hsl(var(--chart-4))]/20'
+                  }`}
+                  title={`Nur ${coverage.percent}% der erwarteten Energiemenge (${mealActualKcal} von ${mealTargetKcal} kcal)`}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  Essen reicht nicht
+                </span>
+              )}
+              {mealIsTooExpensive && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/20 bg-destructive/10 text-destructive text-[11px] font-bold"
+                  title={`Ist ${mealActualCost.toFixed(2)} € pro Person, Soll ${mealTargetCost.toFixed(2)} € pro Person`}
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  Zu teuer
+                </span>
+              )}
+              {mealIsUnhealthy && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/20 bg-destructive/10 text-destructive text-[11px] font-bold"
+                  title="Diese Mahlzeit enthält ein Rezept oder eine Zutat mit Nutri-Score D oder E"
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  Ungesund
+                </span>
+              )}
               {prominentIngredientTags.map((tag) => (
                 <span
                   key={tag}

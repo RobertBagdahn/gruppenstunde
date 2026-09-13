@@ -12,12 +12,12 @@ Content-type subclasses, avoiding ~85% duplicate code in session/blog/game.
 
 import logging
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Query, Router
+from ninja import Query, Router, Status
 from ninja.errors import HttpError
 
 from content.api.helpers import (  # noqa: F401
@@ -44,13 +44,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ContentRouterConfig:
-    model_class: type
-    list_schema: type
-    detail_schema: type
-    create_schema: type
-    update_schema: type
-    paginated_schema: type
-    filter_schema: type
+    model_class: Any
+    list_schema: Any
+    detail_schema: Any
+    create_schema: Any
+    update_schema: Any
+    paginated_schema: Any
+    filter_schema: Any
     resource_name: str
     similar_attr: str
     create_fields: list[str]
@@ -70,20 +70,18 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
     Model = config.model_class
     ListOut = config.list_schema
     DetailOut = config.detail_schema
-    CreateIn = config.create_schema
-    UpdateIn = config.update_schema
+    _CreateIn = config.create_schema
+    _UpdateIn = config.update_schema
     PaginatedOut = config.paginated_schema
 
     # ---------- list ----------
     @router.get("/", response=PaginatedOut)
-    def content_list(request, filters: FilterSchema = Query(...)):
+    def content_list(request, filters: Any = Query(...)):
         qs = Model.objects.filter(status=ContentStatus.APPROVED)
 
         search = getattr(filters, "search", None)
         if search:
-            qs = qs.filter(
-                Q(title__icontains=search) | Q(summary__icontains=search)
-            )
+            qs = qs.filter(Q(title__icontains=search) | Q(summary__icontains=search))
 
         sort = getattr(filters, "sort", None)
         if sort:
@@ -104,7 +102,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
             .order_by("-created_at")[offset : offset + filters.page_size]
         )
 
-        enrich_list_with_permissions(items, request.user, Model)
+        enrich_list_with_permissions(request, items)
         out_items = [ListOut.from_orm(it) for it in items]
         return {
             "items": out_items,
@@ -119,27 +117,24 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
     def content_autocomplete(request, q: str = ""):
         if len(q.strip()) < 2:
             return []
-        results = (
-            Model.objects.filter(
-                Q(title__icontains=q.strip()),
-                status=ContentStatus.APPROVED,
-            )
-            .values("id", "title", "slug")[:10]
-        )
+        results = Model.objects.filter(
+            Q(title__icontains=q.strip()),
+            status=ContentStatus.APPROVED,
+        ).values("id", "title", "slug")[:10]  # fmt: skip
         return list(results)
 
     # ---------- by-slug ----------
     @router.get("/by-slug/{slug}/", response=DetailOut)
     def content_by_slug(request, slug: str):
         obj = get_object_or_404(
-            Model.objects.prefetch_related(
-                "scout_levels", "tags__parent", "authors__profile"
-            ).select_related("created_by"),
+            Model.objects.prefetch_related("scout_levels", "tags__parent", "authors__profile").select_related(
+                "created_by"
+            ),
             slug=slug,
             status=ContentStatus.APPROVED,
         )
-        record_view(request, obj)
-        enrich_content_with_interactions(obj, request.user, config.resource_name)
+        record_view(Model, obj.id, request)
+        enrich_content_with_interactions(request, obj, Model)
         setattr(obj, config.similar_attr, [])
         return obj
 
@@ -147,20 +142,20 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
     @router.get("/{content_id}/", response=DetailOut)
     def content_detail(request, content_id: int):
         obj = get_object_or_404(
-            Model.objects.prefetch_related(
-                "scout_levels", "tags__parent", "authors__profile"
-            ).select_related("created_by"),
+            Model.objects.prefetch_related("scout_levels", "tags__parent", "authors__profile").select_related(
+                "created_by"
+            ),
             id=content_id,
             status=ContentStatus.APPROVED,
         )
-        record_view(request, obj)
-        enrich_content_with_interactions(obj, request.user, config.resource_name)
+        record_view(Model, obj.id, request)
+        enrich_content_with_interactions(request, obj, Model)
         setattr(obj, config.similar_attr, [])
         return obj
 
     # ---------- create ----------
     @router.post("/", response={201: DetailOut})
-    def content_create(request, payload: CreateIn):
+    def content_create(request, payload: Any):
         if not request.user.is_authenticated:
             raise HttpError(403, "Anmeldung erforderlich")
         create_kwargs = {
@@ -178,6 +173,7 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
         scout_level_ids = getattr(payload, "scout_level_ids", None) or []
         if scout_level_ids:
             from content.models import ScoutLevel
+
             obj.scout_levels.set(ScoutLevel.objects.filter(id__in=scout_level_ids))
 
         authors = getattr(payload, "authors", None)
@@ -192,18 +188,16 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
                 )
 
         obj.refresh_from_db()
-        enrich_content_with_interactions(obj, request.user, config.resource_name)
-        return 201, obj
+        enrich_content_with_interactions(request, obj, Model)
+        return Status(201, obj)
 
     # ---------- update ----------
     @router.patch("/{content_id}/", response=DetailOut)
-    def content_update(request, content_id: int, payload: UpdateIn):
+    def content_update(request, content_id: int, payload: Any):
         if not request.user.is_authenticated:
             raise HttpError(403, "Anmeldung erforderlich")
         obj = get_object_or_404(Model, id=content_id)
-        if not request.user.is_staff and (
-            not hasattr(obj, "created_by") or obj.created_by != request.user
-        ):
+        if not request.user.is_staff and (not hasattr(obj, "created_by") or obj.created_by != request.user):
             raise HttpError(403, "Keine Berechtigung")
 
         for field_name in config.update_fields:
@@ -218,53 +212,53 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
         scout_level_ids = getattr(payload, "scout_level_ids", None)
         if scout_level_ids is not None:
             from content.models import ScoutLevel
+
             obj.scout_levels.set(ScoutLevel.objects.filter(id__in=scout_level_ids))
 
         obj.save()
         obj.refresh_from_db()
         obj = get_object_or_404(
-            Model.objects.prefetch_related(
-                "scout_levels", "tags__parent", "authors__profile"
-            ).select_related("created_by"),
+            Model.objects.prefetch_related("scout_levels", "tags__parent", "authors__profile").select_related(
+                "created_by"
+            ),
             id=content_id,
         )
-        enrich_content_with_interactions(obj, request.user, config.resource_name)
+        enrich_content_with_interactions(request, obj, Model)
         return obj
 
     # ---------- delete ----------
     @router.delete("/{content_id}/", response={204: None})
     def content_delete(request, content_id: int):
         if not request.user.is_authenticated or not request.user.is_staff:
-            raise HttpError(
-                403, f"Nur Admins dürfen {config.resource_name} löschen"
-            )
+            raise HttpError(403, f"Nur Admins dürfen {config.resource_name} löschen")
         obj = get_object_or_404(Model, id=content_id)
         obj.soft_delete()
-        return 204, None
+        return Status(204, None)
 
     # ---------- comments ----------
     @router.get("/{content_id}/comments/", response=list[ContentCommentOut])
     def content_comments_list(request, content_id: int):
         obj = get_object_or_404(Model, id=content_id)
-        comments = obj.comments.filter(parent=None, status="approved").select_related(
-            "user"
-        )
+        comments = obj.comments.filter(parent=None, status="approved").select_related("user")
         for comment in comments:
-            comment.replies = comment.replies.filter(
-                status="approved"
-            ).select_related("user")
+            comment.replies = comment.replies.filter(status="approved").select_related("user")
         return list(comments)
 
     @router.post("/{content_id}/comments/", response={201: ContentCommentOut})
     def content_comments_create(request, content_id: int, payload: ContentCommentIn):
         obj = get_object_or_404(Model, id=content_id)
-        return 201, create_comment(request, obj, payload)
+        return Status(
+            201,
+            create_comment(
+                Model, obj.id, payload.text, request, author_name=payload.author_name, parent_id=payload.parent_id
+            ),
+        )
 
     # ---------- emotions ----------
     @router.post("/{content_id}/emotions/")
     def content_emotion_toggle(request, content_id: int, payload: ContentEmotionIn):
         obj = get_object_or_404(Model, id=content_id)
-        return toggle_emotion(request, obj, payload)
+        return toggle_emotion(Model, obj.id, payload.emotion_type, request)
 
     # ---------- image ----------
     @router.post("/{content_id}/image/", response=DetailOut)
@@ -272,18 +266,14 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
         if not request.user.is_authenticated:
             raise HttpError(403, "Anmeldung erforderlich")
         obj = get_object_or_404(Model, id=content_id)
-        if (
-            not request.user.is_staff
-            and hasattr(obj, "created_by")
-            and obj.created_by != request.user
-        ):
+        if not request.user.is_staff and hasattr(obj, "created_by") and obj.created_by != request.user:
             raise HttpError(403, "Keine Berechtigung")
         file = request.FILES.get("image")
         if not file:
             raise HttpError(400, "Kein Bild hochgeladen")
         obj.image.save(file.name, file, save=True)
         obj.refresh_from_db()
-        enrich_content_with_interactions(obj, request.user, config.resource_name)
+        enrich_content_with_interactions(request, obj, Model)
         return obj
 
     @router.delete("/{content_id}/image/", response=DetailOut)
@@ -291,18 +281,14 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
         if not request.user.is_authenticated:
             raise HttpError(403, "Anmeldung erforderlich")
         obj = get_object_or_404(Model, id=content_id)
-        if (
-            not request.user.is_staff
-            and hasattr(obj, "created_by")
-            and obj.created_by != request.user
-        ):
+        if not request.user.is_staff and hasattr(obj, "created_by") and obj.created_by != request.user:
             raise HttpError(403, "Keine Berechtigung")
         if obj.image:
             obj.image.delete(save=False)
         obj.image = None
         obj.save()
         obj.refresh_from_db()
-        enrich_content_with_interactions(obj, request.user, config.resource_name)
+        enrich_content_with_interactions(request, obj, Model)
         return obj
 
     @router.post("/{content_id}/image-from-url/", response=DetailOut)
@@ -310,23 +296,21 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
         if not request.user.is_authenticated:
             raise HttpError(403, "Anmeldung erforderlich")
         obj = get_object_or_404(Model, id=content_id)
-        if (
-            not request.user.is_staff
-            and hasattr(obj, "created_by")
-            and obj.created_by != request.user
-        ):
+        if not request.user.is_staff and hasattr(obj, "created_by") and obj.created_by != request.user:
             raise HttpError(403, "Keine Berechtigung")
         validate_image_url(payload.image_url)
-        image = download_and_save_image(payload.image_url)
-        if image:
-            obj.image.save(image.name, image, save=True)
+        saved_path = download_and_save_image(payload.image_url, upload_to="content/")
+        if saved_path:
+            obj.image.name = saved_path
+            obj.save(update_fields=["image"])
         obj.refresh_from_db()
-        enrich_content_with_interactions(obj, request.user, config.resource_name)
+        enrich_content_with_interactions(request, obj, Model)
         return obj
 
     # ---------- materials (optional) ----------
     if config.has_full_materials:
         from django.contrib.contenttypes.models import ContentType
+
         from supply.models import ContentMaterialItem, Material
         from supply.schemas import ContentMaterialItemIn
 
@@ -334,24 +318,22 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
         def content_materials_list(request, content_id: int):
             obj = get_object_or_404(Model, id=content_id)
             content_type = ContentType.objects.get_for_model(Model)
-            items = ContentMaterialItem.objects.filter(
-                content_type=content_type, object_id=obj.id
-            ).select_related("material")
+            items = ContentMaterialItem.objects.filter(content_type=content_type, object_id=obj.id).select_related(
+                "material"
+            )
             return [
                 {
                     "id": it.id,
                     "material_id": it.material.id,
                     "material_name": it.material.name,
                     "quantity": it.quantity,
-                    "unit": it.material.unit,
+                    "unit": getattr(it.material, "unit", ""),
                 }
                 for it in items
             ]
 
         @router.post("/{content_id}/materials/", response={201: dict})
-        def content_materials_add(
-            request, content_id: int, payload: ContentMaterialItemIn
-        ):
+        def content_materials_add(request, content_id: int, payload: ContentMaterialItemIn):
             if not request.user.is_authenticated:
                 raise HttpError(403, "Anmeldung erforderlich")
             obj = get_object_or_404(Model, id=content_id)
@@ -363,24 +345,24 @@ def create_content_router(config: ContentRouterConfig) -> tuple[Router, Any]:
                 material=material,
                 quantity=payload.quantity,
             )
-            return 201, {
-                "id": item.id,
-                "material_id": item.material.id,
-                "material_name": item.material.name,
-                "quantity": item.quantity,
-                "unit": item.material.unit,
-            }
+            return Status(
+                201,
+                {
+                    "id": item.id,
+                    "material_id": item.material.id,
+                    "material_name": item.material.name,
+                    "quantity": item.quantity,
+                    "unit": getattr(item.material, "unit", ""),
+                },
+            )
 
         @router.delete("/{content_id}/materials/{item_id}/", response={204: None})
         def content_materials_delete(request, content_id: int, item_id: int):
             if not request.user.is_authenticated:
                 raise HttpError(403, "Anmeldung erforderlich")
             obj = get_object_or_404(Model, id=content_id)
-            item = get_object_or_404(
-                ContentMaterialItem, id=item_id, object_id=obj.id
-            )
+            item = get_object_or_404(ContentMaterialItem, id=item_id, object_id=obj.id)
             item.delete()
-            return 204, None
+            return Status(204, None)
 
     return router, FilterSchema
-

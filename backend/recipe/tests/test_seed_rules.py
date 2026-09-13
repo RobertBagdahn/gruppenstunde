@@ -48,8 +48,8 @@ class TestFibreRules:
                 rule.max_yellow is None
             ), f"Fibre rule '{rule.name}' (scope: {rule.scope}) should not have max_yellow set"
             # Should have min thresholds
-            assert rule.min_green is not None, f"Fibre rule should have min_green set"
-            assert rule.min_yellow is not None, f"Fibre rule should have min_yellow set"
+            assert rule.min_green is not None, "Fibre rule should have min_green set"
+            assert rule.min_yellow is not None, "Fibre rule should have min_yellow set"
 
     def test_3_3_fibre_rules_clear_fix_removes_max_thresholds(self):
         """3.3 Backend: check_fibre_rules --fix removes max thresholds from fiber rules."""
@@ -72,12 +72,8 @@ class TestFibreRules:
 
         # Verify fix
         fibre_rule.refresh_from_db()
-        assert (
-            fibre_rule.max_green is None
-        ), "check_fibre_rules --fix should remove max_green"
-        assert (
-            fibre_rule.max_yellow is None
-        ), "check_fibre_rules --fix should remove max_yellow"
+        assert fibre_rule.max_green is None, "check_fibre_rules --fix should remove max_green"
+        assert fibre_rule.max_yellow is None, "check_fibre_rules --fix should remove max_yellow"
 
     def test_3_3_fibre_rules_check_detects_corruption(self):
         """3.3 Backend: check_fibre_rules detects fiber rules with max set."""
@@ -90,7 +86,5 @@ class TestFibreRules:
 
         # Command should detect the violation (we can't easily capture stdout in pytest,
         # but we can verify the data state is detected)
-        violations = Rule.objects.filter(parameter="fibre_g").filter(
-            max_green__isnull=False
-        )
+        violations = Rule.objects.filter(parameter="fibre_g").filter(max_green__isnull=False)
         assert violations.exists(), "Violation should be detectable"

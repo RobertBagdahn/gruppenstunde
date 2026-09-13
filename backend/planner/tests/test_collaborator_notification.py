@@ -41,7 +41,7 @@ class TestCollaboratorNotification:
             )
             assert resp.status_code == 201
             mock_send.assert_called_once()
-            args, kwargs = mock_send.call_args
+            _args, kwargs = mock_send.call_args
             assert collab_user.email in kwargs["recipient_list"]
             assert "Testplan" in kwargs["subject"]
 

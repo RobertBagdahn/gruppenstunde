@@ -19,6 +19,9 @@ class Supply(SoftDeleteModel):
     Each concrete subclass gets its own database table.
     """
 
+    can_edit: bool = False
+    can_delete: bool = False
+
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=280, unique=True, blank=True)
     description = models.TextField(blank=True, default="")

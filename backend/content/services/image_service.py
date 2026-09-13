@@ -9,7 +9,7 @@ import socket
 import uuid
 from urllib.parse import urlparse
 
-import requests
+import requests  # type: ignore[import-untyped]
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage

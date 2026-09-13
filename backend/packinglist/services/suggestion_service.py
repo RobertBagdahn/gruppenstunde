@@ -10,6 +10,7 @@ Provides:
 
 import logging
 import random
+from typing import Any, cast
 
 from ninja.errors import HttpError
 
@@ -658,7 +659,7 @@ def preview_dynamic_list(context: dict) -> dict:
     """
     built = build_dynamic_list(context)
     categories = [{"name": name, "item_count": len(items)} for name, items in built.items()]
-    total_items = sum(c["item_count"] for c in categories)
+    total_items = sum(cast(int, c["item_count"]) for c in categories)
     return {"categories": categories, "total_items": total_items}
 
 
@@ -1043,7 +1044,7 @@ def get_ai_suggestions(
     category_context: str | None = None,
     count: int = 5,
     user=None,
-) -> list[dict]:
+) -> tuple[list[dict[str, Any]], str | None]:
     """
     Use Vertex AI Gemini to suggest additional packing list items based on context.
 

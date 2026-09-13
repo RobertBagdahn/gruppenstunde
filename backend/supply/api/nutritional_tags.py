@@ -1,6 +1,6 @@
 """NutritionalTag CRUD endpoints (staff-only for CUD)."""
 
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from supply.models import NutritionalTag
@@ -33,7 +33,7 @@ def create_nutritional_tag(request, payload: NutritionalTagIn):
     """Create a new nutritional tag (staff-only)."""
     _require_staff(request)
     tag = NutritionalTag.objects.create(**payload.dict())
-    return 201, tag
+    return Status(201, tag)
 
 
 @nutritional_tag_router.patch("/{tag_id}/", response=NutritionalTagOut)
@@ -63,4 +63,4 @@ def delete_nutritional_tag(request, tag_id: int):
         tag.delete()
     except Exception:
         raise HttpError(409, "Kann nicht gelöscht werden, da noch Zutaten zugeordnet sind")
-    return 204, None
+    return Status(204, None)

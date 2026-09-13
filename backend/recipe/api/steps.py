@@ -1,6 +1,7 @@
 """Recipe step API endpoints."""
 
 import logging
+from typing import cast
 
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
@@ -62,7 +63,7 @@ def _get_visible_recipe(request, slug: str, *, require_auth: bool = False) -> Re
     recipe = visible_recipe_queryset(request.user).filter(slug=slug).first()
     if recipe is None:
         raise HttpError(404, "Rezept nicht gefunden")
-    return recipe
+    return cast(Recipe, recipe)
 
 
 @router.get("/{slug}/steps/", response=list[RecipeStepOut])

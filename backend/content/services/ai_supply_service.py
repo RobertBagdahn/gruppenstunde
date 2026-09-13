@@ -274,7 +274,7 @@ def match_ingredients_to_database(suggestions: list[dict[str, Any]]) -> list[dic
                         break
 
             if not selected:
-                selected = portions_qs.filter(is_default=True).first()
+                selected = portions_qs.filter(**{"is_default": True}).first()
 
             if not selected:
                 selected = portions_qs.order_by("priority", "-rank").first()

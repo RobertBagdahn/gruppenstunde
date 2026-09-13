@@ -11,6 +11,7 @@ Triggers email notifications via email_service.
 """
 
 import logging
+from typing import cast
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
@@ -256,8 +257,8 @@ def get_pending_approvals(limit: int = 50) -> list[dict]:
 def _get_content_author(content_obj) -> str | None:
     """Get the display name of the content author."""
     if content_obj.created_by:
-        return content_obj.created_by.get_full_name() or content_obj.created_by.email
+        return cast(str, content_obj.created_by.get_full_name() or content_obj.created_by.email)
     authors = content_obj.authors.all()[:1]
     if authors:
-        return authors[0].get_full_name() or authors[0].email
+        return cast(str, authors[0].get_full_name() or authors[0].email)
     return None

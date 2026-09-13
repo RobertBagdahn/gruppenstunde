@@ -1,15 +1,16 @@
 """Tests for embedding service functionality."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
+
 from content.services.embedding_service import (
-    build_ingredient_embedding_text,
     _text_hash,
+    build_ingredient_embedding_text,
     similarity_to_pct,
     update_ingredient_embedding,
 )
 from supply.models import Ingredient
-from supply.models.reference import RetailSection
 
 
 @pytest.mark.django_db

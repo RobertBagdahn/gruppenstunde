@@ -84,6 +84,12 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Runtime-populated attributes (set by profile API endpoints)
+    recipes: list = []
+    shopping_lists: list = []
+    meal_plans: list = []
+    contents: list = []
+
     class Meta:
         verbose_name = _("Benutzerprofil")
         verbose_name_plural = _("Benutzerprofile")

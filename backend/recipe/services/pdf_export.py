@@ -1,6 +1,6 @@
 """PDF export service for Recipe using WeasyPrint."""
 
-import os
+from typing import cast
 
 from django.template.loader import render_to_string
 from weasyprint import HTML
@@ -65,20 +65,22 @@ def _parse_markdown_steps(markdown_text: str) -> list[str]:
 
 def generate_recipe_pdf(recipe: Recipe, page_format: str = "A4") -> bytes:
     """Generate a PDF for a recipe with ingredients, steps, nutrition, allergens."""
-    recipe_items = recipe.recipe_items.select_related(
-        "portion__ingredient", "portion__measuring_unit"
-    ).order_by("sort_order")
+    recipe_items = recipe.recipe_items.select_related("portion__ingredient", "portion__measuring_unit").order_by(
+        "sort_order"
+    )
 
     ingredients = []
     for ri in recipe_items:
         if ri.portion and ri.portion.ingredient:
             qty = float(ri.quantity)
             unit = ri.portion.measuring_unit.name if ri.portion.measuring_unit else ""
-            ingredients.append({
-                "name": ri.portion.ingredient.name,
-                "amount": f"{_format_decimal(qty, 1)} {unit}",
-                "note": ri.note or "",
-            })
+            ingredients.append(
+                {
+                    "name": ri.portion.ingredient.name,
+                    "amount": f"{_format_decimal(qty, 1)} {unit}",
+                    "note": ri.note or "",
+                }
+            )
 
     steps_md = recipe.description or ""
     plain_text = _extract_plain_text(steps_md)
@@ -97,11 +99,17 @@ def generate_recipe_pdf(recipe: Recipe, page_format: str = "A4") -> bytes:
         "carbs_per100": _format_decimal(recipe.cached_carbohydrate_g or 0, 1),
         "carbs_per_portion": _format_decimal((recipe.cached_carbohydrate_g or 0) * servings / 100, 1),
         "sugar_per100": _format_decimal(recipe.cached_sugar_g or 0, 1) if recipe.cached_sugar_g else None,
-        "sugar_per_portion": _format_decimal((recipe.cached_sugar_g or 0) * servings / 100, 1) if recipe.cached_sugar_g else None,
+        "sugar_per_portion": (
+            _format_decimal((recipe.cached_sugar_g or 0) * servings / 100, 1) if recipe.cached_sugar_g else None
+        ),
         "fibre_per100": _format_decimal(recipe.cached_fibre_g or 0, 1) if recipe.cached_fibre_g else None,
-        "fibre_per_portion": _format_decimal((recipe.cached_fibre_g or 0) * servings / 100, 1) if recipe.cached_fibre_g else None,
+        "fibre_per_portion": (
+            _format_decimal((recipe.cached_fibre_g or 0) * servings / 100, 1) if recipe.cached_fibre_g else None
+        ),
         "salt_per100": _format_decimal(recipe.cached_salt_g or 0, 2) if recipe.cached_salt_g else None,
-        "salt_per_portion": _format_decimal((recipe.cached_salt_g or 0) * servings / 100, 2) if recipe.cached_salt_g else None,
+        "salt_per_portion": (
+            _format_decimal((recipe.cached_salt_g or 0) * servings / 100, 2) if recipe.cached_salt_g else None
+        ),
     }
 
     allergens = _get_allergens(recipe)
@@ -110,8 +118,16 @@ def generate_recipe_pdf(recipe: Recipe, page_format: str = "A4") -> bytes:
     if recipe.image:
         image_path = recipe.image.path if hasattr(recipe.image, "path") else None
 
-    recipe_type_label = dict(Recipe.RecipeTypeChoices.choices).get(recipe.recipe_type, "") if hasattr(Recipe, "RecipeTypeChoices") else ""
-    difficulty_label = dict(Recipe.DifficultyChoices.choices).get(recipe.difficulty, "") if hasattr(Recipe, "DifficultyChoices") and recipe.difficulty else ""
+    recipe_type_label = (
+        dict(Recipe.RecipeTypeChoices.choices).get(recipe.recipe_type, "")
+        if hasattr(Recipe, "RecipeTypeChoices")
+        else ""
+    )
+    difficulty_label = (
+        dict(Recipe.DifficultyChoices.choices).get(recipe.difficulty, "")
+        if hasattr(Recipe, "DifficultyChoices") and recipe.difficulty
+        else ""
+    )
 
     context = {
         "recipe": recipe,
@@ -128,6 +144,6 @@ def generate_recipe_pdf(recipe: Recipe, page_format: str = "A4") -> bytes:
     }
 
     html = render_to_string("recipe/recipe_pdf.html", context)
-    pdf_bytes = HTML(string=html).write_pdf()
+    pdf_bytes = cast(bytes, HTML(string=html).write_pdf())
 
     return pdf_bytes

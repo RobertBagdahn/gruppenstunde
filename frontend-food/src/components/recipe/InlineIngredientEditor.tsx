@@ -729,7 +729,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         toast.error('Fehler beim Laden der Portion');
       }
     },
-    [editItems],
+    [editItems, scale],
   );
 
   const trackIngredientOperation = useCallback((operation: Promise<void>): void => {
@@ -852,7 +852,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         toast.error('Fehler beim Laden der Portion');
       }
     },
-    [editItems],
+    [editItems, scale],
   );
 
   // --- AI Estimate ---
@@ -881,7 +881,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     setEstimateResult(null);
     setSelectedEstimates(new Set());
     toast.success(`${applied} von ${estimateResult.length} Mengen übernommen`);
-  }, [estimateResult, selectedEstimates]);
+  }, [estimateResult, selectedEstimates, scale]);
 
   // --- AI Suggest Ingredients ---
 
@@ -1064,7 +1064,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
         toast.error('Fehler', { description: (err as Error).message });
       }
     },
-    [alternativeTargetId, editItems, createExchangeGroup, patchItem],
+    [alternativeTargetId, editItems, createExchangeGroup, patchItem, scale],
   );
 
   // --- Save ---
@@ -1227,7 +1227,7 @@ const InlineIngredientEditor = forwardRef<InlineIngredientEditorHandle, InlineIn
     } finally {
       saveInFlightRef.current = null;
     }
-  }, [editItems, portions, scale, deleteItem, createItem, updateItem, patchItem, onSave, onSaved, onCreateDraft, queryClient, recipeId, persistedRecipeId]);
+  }, [editItems, scale, deleteItem, createItem, updateItem, patchItem, onSave, onSaved, onCreateDraft, queryClient, recipeId, persistedRecipeId]);
 
   const confirmSave = useCallback(() => {
     setShowSaveConfirmation(false);

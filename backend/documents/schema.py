@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
+from typing import cast
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -98,7 +99,7 @@ def resolve_packlist(
     if value not in presets:
         available = ", ".join(sorted(presets.keys()))
         raise ValueError(f"Unbekannter Packlisten-Preset: '{value}'. Verfügbare Presets: {available}")
-    return presets[value] + extra
+    return cast(list[str], presets[value] + extra)
 
 
 def resolve_form_fields(

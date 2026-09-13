@@ -1,6 +1,7 @@
 """PDF export service for Cooking Schedule using WeasyPrint."""
 
 import os
+from typing import cast
 
 from django.template.loader import render_to_string
 from weasyprint import HTML
@@ -110,7 +111,7 @@ def _get_logo_path() -> str | None:
 
     logo_path = getattr(settings, "INSPI_LOGO_PATH", None)
     if logo_path and os.path.exists(logo_path):
-        return os.path.abspath(logo_path)
+        return os.path.abspath(cast(str, logo_path))
     return None
 
 
@@ -291,6 +292,4 @@ def generate_cooking_schedule_pdf(meal_plan: MealPlan, page_format: str = "A4") 
     }
 
     html = render_to_string("planner/cooking_schedule_pdf.html", context)
-    pdf_bytes = HTML(string=html).write_pdf()
-
-    return pdf_bytes
+    return cast(bytes, HTML(string=html).write_pdf())

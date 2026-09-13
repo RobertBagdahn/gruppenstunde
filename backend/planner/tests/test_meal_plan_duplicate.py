@@ -4,12 +4,12 @@ import datetime as dt
 
 import pytest
 from django.test import Client
-from django.utils import timezone
 from model_bakery import baker
+
 from planner.models import MealPlan, MealTypeChoices
 from planner.tests import make_meal, make_meal_plan
 
-UTC = dt.timezone.utc
+UTC = dt.UTC
 
 
 @pytest.mark.django_db

@@ -11,6 +11,7 @@ from ninja import Query, Router
 from ninja.errors import HttpError
 
 from content.api.helpers import paginate_queryset
+from supply.models import Portion
 
 from .models import (
     CollaboratorRole,
@@ -291,8 +292,9 @@ def _compute_order_quantity(item: ShoppingListItem) -> tuple[float, str]:
         return quantity_g, item.unit or "g"
 
     # Prefer the ingredient's rank=1 Package (a real purchasable unit).
-    portion = get_shopping_portion(item.ingredient)
-    if portion is None:
+    package = get_shopping_portion(item.ingredient)
+    portion: Portion | None = None
+    if package is None:
         # Fall back to a shopping-relevant Portion only. Small cooking
         # portions (<= 20g) are not meaningful package units.
         portion = item.ingredient.portions.filter(
@@ -399,7 +401,7 @@ def get_shopping_list_view(request, shopping_list_id: int, view: str = "detailed
         # Group by persisted provenance instead of the editable note field.
         by_source: dict[str, list] = {}
         for item in items:
-            sources = list(item.sources.all()) or [None]
+            sources: list[ShoppingListItemSource | None] = list(item.sources.all()) or [None]
             for source_obj in sources:
                 source = (
                     (source_obj.recipe_name or source_obj.meal_label) if source_obj else (item.note or "Sonstiges")

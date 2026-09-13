@@ -5,7 +5,7 @@ Content API — Featured content endpoints.
 from datetime import date
 
 from django.contrib.contenttypes.models import ContentType
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from content.models import FeaturedContent
@@ -94,4 +94,4 @@ def create_featured_content(request, payload: FeaturedContentIn):
         reason=payload.reason,
         created_by=request.user,
     )
-    return 201, _resolve_featured(fc)
+    return Status(201, _resolve_featured(fc))

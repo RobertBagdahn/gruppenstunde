@@ -1,7 +1,5 @@
 """Tests for quantity clamping in normalize_recipe_portions command."""
 
-import pytest
-
 from recipe.management.commands.normalize_recipe_portions import Command
 
 

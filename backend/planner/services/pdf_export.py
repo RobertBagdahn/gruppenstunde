@@ -3,6 +3,7 @@
 import re
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+from typing import cast
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -54,7 +55,7 @@ ALLERGEN_COLORS = {
     "weichtiere": "molluscs",
 }
 
-PREPARATION_TIME_MINUTES = {
+PREPARATION_TIME_MINUTES: dict[str, int] = {
     PreparationTimeChoices.NONE: 0,
     PreparationTimeChoices.LESS_15: 15,
     PreparationTimeChoices.BETWEEN_15_30: 30,
@@ -62,7 +63,7 @@ PREPARATION_TIME_MINUTES = {
     PreparationTimeChoices.MORE_60: 90,
 }
 
-EXECUTION_TIME_MINUTES = {
+EXECUTION_TIME_MINUTES: dict[str, int] = {
     ExecutionTimeChoices.LESS_30: 30,
     ExecutionTimeChoices.BETWEEN_30_60: 60,
     ExecutionTimeChoices.BETWEEN_60_90: 90,
@@ -216,7 +217,7 @@ def _get_recipe_steps(recipe) -> list[dict]:
         }
         from recipe.services.step_helpers import resolve_placeholders
 
-        result = []
+        result: list[dict] = []
         for idx, s in enumerate(steps_qs, 1):
             try:
                 instruction = resolve_placeholders(s, recipe_items_map)
@@ -499,7 +500,7 @@ def _build_meal_context(meal_plan: MealPlan) -> list[dict]:
     return result
 
 
-def _build_sub_meal(item: MealItem, portions: int, reserve_factor: float, overrides: dict) -> dict:
+def _build_sub_meal(item: MealItem, portions: float, reserve_factor: float, overrides: dict) -> dict:
     """Build a sub-meal block for exchange-split variants."""
     recipe_name = item.display_name or (
         item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?")
@@ -536,7 +537,7 @@ def _build_sub_meal(item: MealItem, portions: int, reserve_factor: float, overri
     }
 
 
-def _build_item_data(item: MealItem, portions: int, reserve_factor: float, overrides: dict) -> dict:
+def _build_item_data(item: MealItem, portions: float, reserve_factor: float, overrides: dict) -> dict:
     """Build item data for a single (non-exchange-split) meal item."""
     recipe_name = item.display_name or (
         item.recipe.title if item.recipe else (item.ingredient.name if item.ingredient else "?")
@@ -573,7 +574,7 @@ def _build_item_data(item: MealItem, portions: int, reserve_factor: float, overr
     }
 
 
-def _format_scaled_direct_quantity(item: MealItem, portions: int, reserve_factor: float) -> str:
+def _format_scaled_direct_quantity(item: MealItem, portions: float, reserve_factor: float) -> str:
     """Format a direct ingredient quantity scaled by portions * reserve_factor * item.factor."""
     quantity_display = (
         f"{_format_decimal(float(item.quantity or 0), 1)} {item.measuring_unit.name if item.measuring_unit else ''}"
@@ -584,7 +585,7 @@ def _format_scaled_direct_quantity(item: MealItem, portions: int, reserve_factor
     return f"{_format_decimal(scaled, 1)} {item.measuring_unit.name if item.measuring_unit else ''}".strip()
 
 
-def _get_recipe_ingredients(item: MealItem, portions: int, reserve_factor: float, item_overrides: dict) -> list[str]:
+def _get_recipe_ingredients(item: MealItem, portions: float, reserve_factor: float, item_overrides: dict) -> list[str]:
     """Get formatted ingredient strings for a recipe item, scaled to effective portions and active variants."""
     from planner.services.calculation_context import active_recipe_items
 
@@ -746,13 +747,13 @@ def _build_allergen_matrix(meals) -> dict | None:
     has_any = False
     rows = []
     for allergen in EU_ALLERGENS:
-        row = {"allergen": allergen, "days": []}
+        day_flags: list = []
         for day_idx in range(len(day_labels)):
             has = allergen.lower() in {a.lower() for a in day_allergens[day_idx]}
-            row["days"].append(has)
+            day_flags.append(has)
             if has:
                 has_any = True
-        rows.append(row)
+        rows.append({"allergen": allergen, "days": day_flags})
 
     return {
         "day_labels": day_labels,
@@ -845,7 +846,7 @@ def _get_logo_path() -> str | None:
         import os
 
         if os.path.exists(logo_path):
-            return os.path.abspath(logo_path)
+            return os.path.abspath(cast(str, logo_path))
     return None
 
 
@@ -949,6 +950,4 @@ def generate_meal_plan_pdf(
     }
 
     html = render_to_string("planner/meal_plan_pdf.html", context)
-    pdf_bytes = HTML(string=html).write_pdf()
-
-    return pdf_bytes
+    return cast(bytes, HTML(string=html).write_pdf())

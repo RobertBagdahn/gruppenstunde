@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from planner.models import MealItem
     from supply.models import Portion
 
 
-def resolve_ingredient_energy_kcal(item, effective_portions: float = 1.0) -> float | None:
+def resolve_ingredient_energy_kcal(item: MealItem, effective_portions: float = 1.0) -> float | None:
     """Compute total energy kcal for an ingredient-based MealItem.
 
     The formula:
@@ -26,7 +27,7 @@ def resolve_ingredient_energy_kcal(item, effective_portions: float = 1.0) -> flo
     return (float(item.ingredient.energy_kcal) / 100.0) * weight_g * item.factor * effective_portions
 
 
-def resolve_ingredient_cost_eur(item, effective_portions: float = 1.0) -> float | None:
+def resolve_ingredient_cost_eur(item: MealItem, effective_portions: float = 1.0) -> float | None:
     """Compute total cost for an ingredient-based MealItem.
 
     Consistent with energy: multiplies by effective_portions for total cost.
@@ -88,7 +89,7 @@ def _resolve_ingredient_weight_g(
             None,
         )
         if default_portion:
-            return float(default_portion.weight_g) * float(item.quantity)
+            return float(default_portion.weight_g or 0.0) * float(item.quantity)
     else:
         default_portions = item.ingredient.portions.filter(rank=1, weight_g__isnull=False, deleted_at__isnull=True)
         if default_portions.exists():

@@ -2,7 +2,7 @@
 
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from content.api.helpers import (
@@ -62,7 +62,10 @@ def list_collaborators(request, content_type_app: str, content_type_model: str, 
     _require_auth(request)
 
     ct = get_object_or_404(ContentType, app_label=content_type_app, model=content_type_model)
-    obj = get_object_or_404(ct.model_class(), id=object_id)
+    model_class = ct.model_class()
+    if model_class is None:
+        raise HttpError(404, "Content-Typ nicht gefunden")
+    obj = get_object_or_404(model_class, id=object_id)
 
     # User must have at least viewer access
     has_access = _is_staff_or_admin(request) or getattr(obj, "created_by_id", None) == request.user.id
@@ -110,7 +113,10 @@ def add_collaborator(request, payload: ContentCollaboratorIn):
     _require_auth(request)
 
     ct = get_object_or_404(ContentType, app_label=payload.content_type_app, model=payload.content_type_model)
-    obj = get_object_or_404(ct.model_class(), id=payload.object_id)
+    model_class = ct.model_class()
+    if model_class is None:
+        raise HttpError(404, "Content-Typ nicht gefunden")
+    obj = get_object_or_404(model_class, id=payload.object_id)
 
     if not _can_manage_shares(obj, request.user):
         raise HttpError(403, "Keine Berechtigung zum Verwalten von Freigaben")
@@ -177,4 +183,4 @@ def remove_collaborator(request, collab_id: int):
         raise HttpError(403, "Keine Berechtigung zum Verwalten von Freigaben")
 
     collab.delete()
-    return 204, None
+    return Status(204, None)

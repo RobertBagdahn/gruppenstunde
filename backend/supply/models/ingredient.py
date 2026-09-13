@@ -49,6 +49,11 @@ class Ingredient(SoftDeleteModel):
     30+ nutritional/score fields that have nothing in common with Material.
     """
 
+    _old_values: dict[str, object] = {}
+    can_edit: bool = False
+    can_delete: bool = False
+    ai_interaction_id: str | None = None
+
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     slug = models.SlugField(max_length=280, unique=True, blank=True)
     description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))

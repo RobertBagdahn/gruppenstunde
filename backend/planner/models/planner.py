@@ -23,6 +23,8 @@ class EntryStatusChoices(models.TextChoices):
 class Planner(models.Model):
     """Collaborative weekly session planner for Gruppenstunden."""
 
+    can_edit: bool = False
+
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

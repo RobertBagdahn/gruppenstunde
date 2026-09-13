@@ -4,7 +4,7 @@ Content API — Content link endpoints.
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from content.models import ContentLink
@@ -162,7 +162,7 @@ def create_content_link(request, payload: ContentLinkCreateIn):
         created_by=request.user,
     )
 
-    return 201, _resolve_link(link)
+    return Status(201, _resolve_link(link))
 
 
 @router.post(
@@ -204,4 +204,4 @@ def delete_content_link(request, link_id: int):
         raise HttpError(403, "Keine Berechtigung")
 
     link.delete()
-    return 204, None
+    return Status(204, None)

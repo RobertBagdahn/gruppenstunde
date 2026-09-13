@@ -3,6 +3,7 @@
 import math
 
 from django.shortcuts import get_object_or_404
+from ninja import Status
 from ninja.errors import HttpError
 
 from event.api.events import event_router
@@ -41,7 +42,7 @@ def join_waitlist(request, event_slug: str, payload: WaitlistEntryCreateIn):
         user=request.user,
         person_id=person_id,
     )
-    return 201, entry
+    return Status(201, entry)
 
 
 @event_router.get("/{event_slug}/waitlist/", response=PaginatedWaitlistEntryOut)

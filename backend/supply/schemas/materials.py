@@ -1,6 +1,7 @@
 """Pydantic schemas for Material and ContentMaterialItem."""
 
 from datetime import datetime
+from typing import cast
 
 from ninja import Schema
 
@@ -23,7 +24,7 @@ class MaterialOut(Schema):
     @staticmethod
     def resolve_image_url(obj) -> str | None:
         if obj.image:
-            return obj.image.url
+            return cast(str, obj.image.url)
         return None
 
 

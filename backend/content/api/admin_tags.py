@@ -1,7 +1,7 @@
 """Admin Tag CRUD endpoints (staff-only)."""
 
 from django.utils.text import slugify
-from ninja import Router
+from ninja import Router, Status
 from ninja.errors import HttpError
 
 from content.models import Tag
@@ -71,15 +71,11 @@ def tag_detail(request, tag_id: str):
     except Tag.DoesNotExist:
         raise HttpError(404, "Tag nicht gefunden")
 
-    recipes = list(
-        tag.recipe_set.all().values("id", "title", "slug")[:100]
-    )
-    ingredients = list(
-        tag.ingredients.all().values("id", "name", "slug")[:100]
-    )
+    recipes = list(tag.recipe_set.all().values("id", "title", "slug")[:100])
+    ingredients = list(tag.ingredients.all().values("id", "name", "slug")[:100])
 
     return TagDetailOut(
-        tag=_tag_to_dict(tag),
+        tag=TagAdminOut(**_tag_to_dict(tag)),
         recipes=[{"id": r["id"], "title": r["title"], "slug": r["slug"]} for r in recipes],
         ingredients=[{"id": i["id"], "name": i["name"], "slug": i["slug"]} for i in ingredients],
     )
@@ -102,7 +98,7 @@ def create_admin_tag(request, payload: TagAdminIn):
         group=payload.group,
         sort_order=payload.sort_order,
     )
-    return 201, _tag_to_dict(tag)
+    return Status(201, _tag_to_dict(tag))
 
 
 # === Update ===
@@ -136,4 +132,4 @@ def delete_admin_tag(request, tag_id: str):
     except Tag.DoesNotExist:
         raise HttpError(404, "Tag nicht gefunden")
     tag.delete()
-    return 204, None
+    return Status(204, None)

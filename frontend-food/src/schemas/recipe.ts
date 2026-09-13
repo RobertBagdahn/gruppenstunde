@@ -248,6 +248,14 @@ export const RECIPE_EXECUTION_TIME_OPTIONS = [
   { value: 'more_90', label: '> 90 Min' },
 ] as const;
 
+export function getRecipeExecutionTimeLabel(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+
+  // Older imported recipes used less_5, which is covered by the current less_30 range.
+  const normalizedValue = value === 'less_5' ? 'less_30' : value;
+  return RECIPE_EXECUTION_TIME_OPTIONS.find((option) => option.value === normalizedValue)?.label ?? value;
+}
+
 export const RECIPE_PREPARATION_TIME_OPTIONS = [
   { value: 'none', label: 'keine' },
   { value: 'less_15', label: '< 15 Min' },

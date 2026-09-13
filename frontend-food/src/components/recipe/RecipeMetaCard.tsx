@@ -3,7 +3,7 @@ import type { RecipeDetail } from '@/schemas/recipe';
 import {
   RECIPE_TYPE_OPTIONS,
   RECIPE_DIFFICULTY_OPTIONS,
-  RECIPE_EXECUTION_TIME_OPTIONS,
+  getRecipeExecutionTimeLabel,
   RECIPE_PREPARATION_TIME_OPTIONS,
 } from '@/schemas/recipe';
 import { cn } from '@/lib/utils';
@@ -28,9 +28,7 @@ export default function RecipeMetaCard({ recipe, portions, totalPriceEur, isLoad
   const typeOpt = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type);
   const difficultyLabel =
     RECIPE_DIFFICULTY_OPTIONS.find((d) => d.value === recipe.difficulty)?.label ?? recipe.difficulty;
-  const timeLabel =
-    RECIPE_EXECUTION_TIME_OPTIONS.find((t) => t.value === recipe.execution_time)?.label ??
-    recipe.execution_time;
+  const timeLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
   const prepTimeLabel =
     RECIPE_PREPARATION_TIME_OPTIONS.find((p) => p.value === recipe.preparation_time)?.label ??
     recipe.preparation_time ??

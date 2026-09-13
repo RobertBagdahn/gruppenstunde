@@ -1,6 +1,7 @@
 """Labels API endpoints — CRUD for event labels and participant label assignment."""
 
 from django.shortcuts import get_object_or_404
+from ninja import Status
 
 from event.choices import TimelineActionChoices
 from event.models import Event, Participant, ParticipantLabel
@@ -33,7 +34,7 @@ def create_label(request, event_slug: str, payload: LabelCreateIn):
     require_event_manager(event, request.user)
 
     label = ParticipantLabel.objects.create(event=event, **payload.dict())
-    return 201, label
+    return Status(201, label)
 
 
 @event_router.patch("/{event_slug}/labels/{label_id}/", response=LabelOut)

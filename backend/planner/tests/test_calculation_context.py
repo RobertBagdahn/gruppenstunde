@@ -3,11 +3,10 @@
 import pytest
 from model_bakery import baker
 
-from recipe.models import RecipeItem
-from supply.models import Ingredient, MeasuringUnit, Portion
-
 from planner.services.calculation_context import active_recipe_items
 from planner.tests import make_meal_item
+from recipe.models import RecipeItem
+from supply.models import Ingredient, MeasuringUnit, Portion
 
 
 @pytest.mark.django_db

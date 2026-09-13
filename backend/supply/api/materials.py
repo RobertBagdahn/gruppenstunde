@@ -4,7 +4,7 @@ import math
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Query, Router, Schema
+from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
 from supply.models import Material
@@ -104,7 +104,7 @@ def create_material(request, payload: MaterialCreateIn):
     )
     material.can_edit = request.user.is_staff
     material.can_delete = request.user.is_staff
-    return 201, material
+    return Status(201, material)
 
 
 @router.patch("/materials/{material_id}/", response=MaterialOut)
@@ -141,7 +141,7 @@ def delete_material(request, material_id: int):
 
     material = get_object_or_404(Material, id=material_id)
     material.soft_delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ===========================================================================

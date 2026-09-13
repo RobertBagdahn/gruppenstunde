@@ -17,17 +17,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from collections import Counter
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
-from django.db import models, transaction
+from django.db import models
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
 
@@ -156,11 +154,13 @@ class EnrichmentReport:
         for line in lines:
             stdout.write(line)
 
+
 @contextmanager
 def _silence_signals():
+    from django.db.models.signals import post_delete, post_save, pre_save
+
     import recipe.signals  # noqa: F401
     import supply.signals  # noqa: F401
-    from django.db.models.signals import post_delete, post_save, pre_save
 
     signals = [pre_save, post_save, post_delete]
     saved: dict[int, list] = {}
@@ -176,6 +176,7 @@ def _silence_signals():
 
 def _get_generic_term_names() -> set[str]:
     from supply.data.ingredient_specs import GENERIC_TERM_MAP
+
     return {name.lower() for name in GENERIC_TERM_MAP}
 
 
@@ -237,6 +238,7 @@ class Command(BaseCommand):
 
     def _ensure_data_loaded(self, data_dir: Path) -> None:
         from supply.models import Ingredient
+
         if Ingredient.objects.count() < 100:
             self.stdout.write("Importing fixtures...")
             with _silence_signals():
@@ -264,8 +266,8 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     def _run_enrichment(self, dry_run: bool, skip_embeddings: bool) -> None:
-        from supply.models import Ingredient
         from supply.data.ingredient_specs import get_all_specs
+        from supply.models import Ingredient
 
         specs = get_all_specs(data_dir=str(self._data_dir))
         spec_by_name = {s.canonical_name.lower(): s for s in specs}
@@ -312,13 +314,10 @@ class Command(BaseCommand):
 
     def _deduplicate_ingredients(self) -> None:
         from django.db.models import Count
+
         from supply.models import Ingredient
 
-        dupes = (
-            Ingredient.objects.values("name")
-            .annotate(cnt=Count("id"))
-            .filter(cnt__gt=1)
-        )
+        dupes = Ingredient.objects.values("name").annotate(cnt=Count("id")).filter(cnt__gt=1)
         for entry in dupes:
             name = entry["name"]
             duplicates = list(Ingredient.objects.filter(name=name).order_by("id"))
@@ -327,18 +326,25 @@ class Command(BaseCommand):
                 keeper = self._merge_ingredients(keeper, dup)
         self.stdout.write(f"  Deduplicated {len(dupes)} ingredient name groups")
 
-    def _merge_ingredients(self, keeper, duplicate) -> "Ingredient":
-        from supply.models import Portion, IngredientAlias
+    def _merge_ingredients(self, keeper, duplicate) -> Ingredient:
         from django.utils import timezone
 
-        for field in [
-            "energy_kcal", "protein_g", "fat_g", "fat_sat_g",
-            "carbohydrate_g", "sugar_g", "fibre_g", "salt_g",
+        from supply.models import IngredientAlias, Portion
+
+        for field_name in [
+            "energy_kcal",
+            "protein_g",
+            "fat_g",
+            "fat_sat_g",
+            "carbohydrate_g",
+            "sugar_g",
+            "fibre_g",
+            "salt_g",
         ]:
-            keeper_val = getattr(keeper, field) or 0
-            dup_val = getattr(duplicate, field) or 0
+            keeper_val = getattr(keeper, field_name) or 0
+            dup_val = getattr(duplicate, field_name) or 0
             if not keeper_val and dup_val:
-                setattr(keeper, field, dup_val)
+                setattr(keeper, field_name, dup_val)
 
         if not keeper.price_per_kg and duplicate.price_per_kg:
             keeper.price_per_kg = duplicate.price_per_kg
@@ -349,9 +355,7 @@ class Command(BaseCommand):
         keeper.save()
 
         for portion in Portion.objects.filter(ingredient=duplicate):
-            existing = Portion.objects.filter(
-                ingredient=keeper, name__iexact=portion.name
-            ).first()
+            existing = Portion.objects.filter(ingredient=keeper, name__iexact=portion.name).first()
             if existing:
                 portion.deleted_at = timezone.now()
                 portion.save(update_fields=["deleted_at"])
@@ -359,11 +363,8 @@ class Command(BaseCommand):
             portion.ingredient = keeper
             portion.save()
 
-        from supply.models import IngredientAlias
         for alias in IngredientAlias.objects.filter(ingredient=duplicate):
-            if not IngredientAlias.objects.filter(
-                ingredient=keeper, name__iexact=alias.name
-            ).exists():
+            if not IngredientAlias.objects.filter(ingredient=keeper, name__iexact=alias.name).exists():
                 alias.ingredient = keeper
                 alias.save()
             else:
@@ -374,6 +375,7 @@ class Command(BaseCommand):
 
     def _fix_unrealistic_energy(self) -> None:
         from supply.models import Ingredient
+
         # Energy per 100g cannot exceed pure fat (884 kcal)
         # Values above this are likely per-package errors
         bad = Ingredient.objects.filter(energy_kcal__gt=900)
@@ -384,20 +386,53 @@ class Command(BaseCommand):
 
     def _fix_zero_energy_vegetables(self) -> None:
         from supply.models import Ingredient
+
         veggie_estimates = {
-            "Ingwer": 80, "Brokkoli": 34, "Champignons": 22, "Aubergine": 24,
-            "Blumenkohl": 25, "Suesskartoffel": 86, "Kohlrabi": 27, "Fenchel": 31,
-            "Chinakohl": 16, "Wirsing": 25, "Weisskohl": 25, "Rotkohl": 25,
-            "Eisbergsalat": 13, "Feldsalat": 20, "Rucola": 25, "Babyspinat": 19,
-            "Radieschen": 16, "Schalotten": 30, "Pastinake": 75,
-            "Schnittlauch": 30, "Limette": 30, "Birne": 57, "Mango": 60,
-            "Ananas": 55, "Himbeeren": 34, "Blaubeeren": 42, "Brombeeren": 32,
-            "Kirschen": 50, "Trauben": 69, "Kiwi": 61, "Spargel (weiss)": 18,
-            "Schmand": 240, "Creme Fraiche": 280, "Griechischer Joghurt": 57,
-            "Skyr": 66, "Quark (Magerquark)": 68, "Feta": 270, "Cheddar": 400,
-            "Bratwurst (frisch)": 320, "Haehnchenfiletsteaks (TK)": 105,
-            "Speckwuerfel": 370, "Hackfleisch": 230, "Fettreduziertes Rinderhack": 170,
-            "Schinkenwuerfel mager": 115, "Thunfisch (Dose)": 99,
+            "Ingwer": 80,
+            "Brokkoli": 34,
+            "Champignons": 22,
+            "Aubergine": 24,
+            "Blumenkohl": 25,
+            "Suesskartoffel": 86,
+            "Kohlrabi": 27,
+            "Fenchel": 31,
+            "Chinakohl": 16,
+            "Wirsing": 25,
+            "Weisskohl": 25,
+            "Rotkohl": 25,
+            "Eisbergsalat": 13,
+            "Feldsalat": 20,
+            "Rucola": 25,
+            "Babyspinat": 19,
+            "Radieschen": 16,
+            "Schalotten": 30,
+            "Pastinake": 75,
+            "Schnittlauch": 30,
+            "Limette": 30,
+            "Birne": 57,
+            "Mango": 60,
+            "Ananas": 55,
+            "Himbeeren": 34,
+            "Blaubeeren": 42,
+            "Brombeeren": 32,
+            "Kirschen": 50,
+            "Trauben": 69,
+            "Kiwi": 61,
+            "Spargel (weiss)": 18,
+            "Schmand": 240,
+            "Creme Fraiche": 280,
+            "Griechischer Joghurt": 57,
+            "Skyr": 66,
+            "Quark (Magerquark)": 68,
+            "Feta": 270,
+            "Cheddar": 400,
+            "Bratwurst (frisch)": 320,
+            "Haehnchenfiletsteaks (TK)": 105,
+            "Speckwuerfel": 370,
+            "Hackfleisch": 230,
+            "Fettreduziertes Rinderhack": 170,
+            "Schinkenwuerfel mager": 115,
+            "Thunfisch (Dose)": 99,
         }
         updated = 0
         for name, kcal in veggie_estimates.items():
@@ -421,9 +456,7 @@ class Command(BaseCommand):
             )
             if not legit_zero:
                 return False
-        rank1 = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True, rank=1
-        ).first()
+        rank1 = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, rank=1).first()
         if rank1 and (rank1.weight_g is None or rank1.weight_g <= 1.0):
             return False
         return True
@@ -469,18 +502,27 @@ class Command(BaseCommand):
 
     def _enrich_nutrients(self, ingredient, spec, dry_run: bool) -> None:
         nutrient_fields = [
-            "energy_kcal", "protein_g", "fat_g", "fat_sat_g", "carbohydrate_g",
-            "sugar_g", "fibre_g", "salt_g", "sodium_mg", "fructose_g",
-            "lactose_g", "vitamin_c_mg",
+            "energy_kcal",
+            "protein_g",
+            "fat_g",
+            "fat_sat_g",
+            "carbohydrate_g",
+            "sugar_g",
+            "fibre_g",
+            "salt_g",
+            "sodium_mg",
+            "fructose_g",
+            "lactose_g",
+            "vitamin_c_mg",
         ]
         updated = False
-        for field in nutrient_fields:
-            current = getattr(ingredient, field, None)
-            spec_val = getattr(spec, field, None)
+        for field_name in nutrient_fields:
+            current = getattr(ingredient, field_name, None)
+            spec_val = getattr(spec, field_name, None)
             if (current is None or current == 0) and spec_val is not None:
                 if not dry_run:
-                    setattr(ingredient, field, spec_val)
-                self.report.add_nutrient(field)
+                    setattr(ingredient, field_name, spec_val)
+                self.report.add_nutrient(field_name)
                 updated = True
 
         if not ingredient.price_per_kg and spec.price_per_kg:
@@ -496,9 +538,7 @@ class Command(BaseCommand):
         from supply.models import Ingredient
         from supply.services.nutri_service import calculate_nutri_score
 
-        ingredients = Ingredient.objects.filter(
-            nutri_score__isnull=True, energy_kcal__gt=0
-        )
+        ingredients = Ingredient.objects.filter(nutri_score__isnull=True, energy_kcal__gt=0)
         count = ingredients.count()
         if dry_run:
             self.report.nutri_scores_calculated = count
@@ -581,47 +621,41 @@ class Command(BaseCommand):
             self._ensure_g_portions(ingredient, g_unit)
 
     def _delete_garbage_portions(self, ingredient) -> None:
-        from supply.models import Portion
         from django.utils import timezone
+
+        from supply.models import Portion
 
         now = timezone.now()
 
         # Delete rank=9999 sentinels
-        sentinels = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True, rank=9999
-        )
+        sentinels = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, rank=9999)
         self.report.portions_deleted += sentinels.count()
         sentinels.update(deleted_at=now)
 
         # Delete "1 Portion" with weight_g <= 1.0 (generic placeholder)
         garbage1 = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True,
-            name__iexact="1 Portion", weight_g__lte=1.0
+            ingredient=ingredient, deleted_at__isnull=True, name__iexact="1 Portion", weight_g__lte=1.0
         )
         count = garbage1.update(deleted_at=now)
         self.report.portions_deleted += count
 
         # Delete "ml" name portions with weight_g <= 1.0 (useless on any ingredient)
         garbage_ml_all = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True,
-            name__iexact="ml", weight_g__lte=1.0, rank=1
+            ingredient=ingredient, deleted_at__isnull=True, name__iexact="ml", weight_g__lte=1.0, rank=1
         )
         count = garbage_ml_all.update(deleted_at=now)
         self.report.portions_deleted += count
 
         # Delete "* in ml" pattern portions with weight_g=1.0
         garbage_in_ml = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True,
-            name__icontains=" in ml", weight_g__lte=1.0
+            ingredient=ingredient, deleted_at__isnull=True, name__icontains=" in ml", weight_g__lte=1.0
         )
         count = garbage_in_ml.update(deleted_at=now)
         self.report.portions_deleted += count
 
         # Delete known garbage names
         garbage_names = {"Gramm", "evtl.", "große"}
-        garbage = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True, name__in=garbage_names
-        )
+        garbage = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, name__in=garbage_names)
         for p in garbage:
             p.deleted_at = now
             p.save(update_fields=["deleted_at"])
@@ -631,9 +665,7 @@ class Command(BaseCommand):
         for name in ("Stück", "Packung", "Becher", "Glas"):
             garbage_empty = Portion.objects.filter(
                 ingredient=ingredient, deleted_at__isnull=True, name__iexact=name
-            ).filter(
-                models.Q(weight_g__isnull=True) | models.Q(weight_g__lte=1.0)
-            )
+            ).filter(models.Q(weight_g__isnull=True) | models.Q(weight_g__lte=1.0))
             count = garbage_empty.update(deleted_at=now)
             self.report.portions_deleted += count
 
@@ -649,9 +681,7 @@ class Command(BaseCommand):
         # them active alongside spec portions can create multiple active
         # rank=1 portions, violating unique_rank1_portion_per_ingredient.
         now = timezone.now()
-        conflicting = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True
-        ).exclude(rank=9999)
+        conflicting = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True).exclude(rank=9999)
         for p in conflicting:
             if p.name.lower() not in spec_names_lower:
                 p.deleted_at = now
@@ -660,9 +690,7 @@ class Command(BaseCommand):
 
         for ps in spec.portions:
             mu = MeasuringUnit.objects.filter(name=ps.measuring_unit).first() or g_unit
-            existing = Portion.objects.filter(
-                ingredient=ingredient, name=ps.name, deleted_at__isnull=True
-            ).first()
+            existing = Portion.objects.filter(ingredient=ingredient, name=ps.name, deleted_at__isnull=True).first()
             if existing:
                 existing.rank = ps.rank
                 existing.weight_g = ps.weight_g
@@ -682,15 +710,16 @@ class Command(BaseCommand):
 
     def _get_spec_for_ingredient(self, ingredient) -> list:
         from supply.data.ingredient_specs import get_all_specs
+
         specs = get_all_specs(data_dir=str(self._data_dir))
         result = []
         name_lower = ingredient.name.lower().strip()
         for s in specs:
-            if s.canonical_name.lower() == name_lower:
-                result.append(s)
-            elif name_lower in [n.lower() for n in s.aliases]:
-                result.append(s)
-            elif name_lower in [n.lower() for n in s.generic_names]:
+            if (
+                s.canonical_name.lower() == name_lower
+                or name_lower in [n.lower() for n in s.aliases]
+                or name_lower in [n.lower() for n in s.generic_names]
+            ):
                 result.append(s)
         return result
 
@@ -734,9 +763,7 @@ class Command(BaseCommand):
         # Soft-delete pre-existing active rank=1 portions not covered by the
         # new defaults to avoid violating unique_rank1_portion_per_ingredient.
         now = timezone.now()
-        conflicting_rank1 = Portion.objects.filter(
-            ingredient=ingredient, deleted_at__isnull=True, rank=1
-        )
+        conflicting_rank1 = Portion.objects.filter(ingredient=ingredient, deleted_at__isnull=True, rank=1)
         for p in conflicting_rank1:
             if p.name.lower() not in default_names_lower:
                 p.deleted_at = now
@@ -761,9 +788,8 @@ class Command(BaseCommand):
 
     def _ensure_g_portions(self, ingredient, g_unit) -> None:
         from supply.models import Portion
-        existing_g = Portion.objects.filter(
-            ingredient=ingredient, name="g", deleted_at__isnull=True
-        ).first()
+
+        existing_g = Portion.objects.filter(ingredient=ingredient, name="g", deleted_at__isnull=True).first()
         if not existing_g and g_unit:
             Portion.objects.create(
                 ingredient=ingredient,
@@ -789,9 +815,7 @@ class Command(BaseCommand):
             if not ingredient:
                 continue
             for alias_name in spec.aliases:
-                if not IngredientAlias.objects.filter(
-                    ingredient=ingredient, name__iexact=alias_name
-                ).exists():
+                if not IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=alias_name).exists():
                     rank = ingredient.aliases.count() + 1
                     IngredientAlias.objects.create(
                         ingredient=ingredient,
@@ -802,17 +826,15 @@ class Command(BaseCommand):
                     self.report.aliases_created += 1
 
     def _generate_generic_aliases(self, generic_names: set[str]) -> None:
-        from supply.models import Ingredient, IngredientAlias
         from supply.data.ingredient_specs import GENERIC_TERM_MAP
+        from supply.models import Ingredient, IngredientAlias
 
         for generic_term, canonical_names in GENERIC_TERM_MAP.items():
             for canonical_name in canonical_names:
                 ingredient = Ingredient.objects.filter(name__iexact=canonical_name).first()
                 if not ingredient:
                     continue
-                exists = IngredientAlias.objects.filter(
-                    ingredient=ingredient, name__iexact=generic_term
-                ).exists()
+                exists = IngredientAlias.objects.filter(ingredient=ingredient, name__iexact=generic_term).exists()
                 if not exists:
                     rank = ingredient.aliases.count() + 1
                     IngredientAlias.objects.create(
@@ -848,8 +870,8 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     def _regenerate_embeddings(self) -> None:
-        from supply.models import Ingredient
         from core.services.gemini import gemini_embed
+        from supply.models import Ingredient
 
         ingredients = list(Ingredient.objects.all())
         total = len(ingredients)
@@ -861,9 +883,7 @@ class Command(BaseCommand):
                 embedding = gemini_embed(contents=text, output_dimensionality=768, bypass_limits=True)
                 if embedding:
                     ingredient.embedding = embedding
-                    ingredient.embedding_text_hash = hashlib.sha256(
-                        text.encode()
-                    ).hexdigest()[:32]
+                    ingredient.embedding_text_hash = hashlib.sha256(text.encode()).hexdigest()[:32]
                     ingredient.save(update_fields=["embedding", "embedding_text_hash"])
                     self.report.embeddings_regenerated += 1
             except Exception as e:
@@ -908,20 +928,19 @@ class Command(BaseCommand):
 
         embeddings = []
         for ingredient in Ingredient.objects.filter(embedding__isnull=False):
-            embeddings.append({
-                "pk": ingredient.pk,
-                "name": ingredient.name,
-                "description": ingredient.description or "",
-                "embedding": ingredient.embedding,
-                "embedding_text_hash": ingredient.embedding_text_hash or "",
-                "embedding_updated_at": (
-                    ingredient.embedding_updated_at.isoformat()
-                    if ingredient.embedding_updated_at else None
-                ),
-                "retail_section": (
-                    ingredient.retail_section.name if ingredient.retail_section else None
-                ),
-            })
+            embeddings.append(
+                {
+                    "pk": ingredient.pk,
+                    "name": ingredient.name,
+                    "description": ingredient.description or "",
+                    "embedding": ingredient.embedding,
+                    "embedding_text_hash": ingredient.embedding_text_hash or "",
+                    "embedding_updated_at": (
+                        ingredient.embedding_updated_at.isoformat() if ingredient.embedding_updated_at else None
+                    ),
+                    "retail_section": (ingredient.retail_section.name if ingredient.retail_section else None),
+                }
+            )
 
         out_path = food_dir / "supply_ingredient_embeddings.json"
         tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")

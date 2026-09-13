@@ -148,6 +148,21 @@ warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 disallow_untyped_defs = false
+exclude = [
+    "(^|/)tests/",
+    "(^|/)migrations/",
+    "(^|/)management/commands/",
+    "documents/tests.py",
+    "fix_nutrition_ai.py",
+    "fix_nutrition_batch.py",
+    "bin/",
+    "supply/scripts/",
+    "split_combined_ingredients.py",
+]
+
+[[tool.mypy.overrides]]
+module = ["recipe.*", "content.*", "core.*", "event.*", "profiles.*", "session.*", "inspi.*"]
+follow_imports = "silent"
 
 [tool.django-stubs]
 django_settings_module = "inspi.settings.local"

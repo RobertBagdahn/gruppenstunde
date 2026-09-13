@@ -33,7 +33,7 @@ def _classify_recipe(recipe: Recipe) -> str:
         pw = item.portion.weight_g if item.portion else 0
         total_g = item.quantity * (pw or 1)
         weights_total.append(total_g)
-        weights_per_person.append(total_g / recipe.portions)
+        weights_per_person.append(total_g / (recipe.portions or 1))
 
     max_total = max(weights_total)
     avg_pp = sum(weights_per_person) / len(weights_per_person)

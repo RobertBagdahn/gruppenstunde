@@ -5,7 +5,7 @@ import { useRecipeSteps } from '@/hooks/useRecipeSteps';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import RecipeIngredientsTable from '@/components/recipe/RecipeIngredientsTable';
 import { Badge } from '@/components/ui/badge';
-import { RECIPE_DIFFICULTY_OPTIONS, RECIPE_EXECUTION_TIME_OPTIONS, RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
+import { getRecipeExecutionTimeLabel, RECIPE_DIFFICULTY_OPTIONS, RECIPE_TYPE_OPTIONS } from '@/schemas/recipe';
 
 interface WizardStepPreviewProps {
   recipeSlug: string;
@@ -56,7 +56,7 @@ const WizardStepPreview = forwardRef<WizardStepPreviewHandle, WizardStepPreviewP
 
   const recipeTypeLabel = RECIPE_TYPE_OPTIONS.find((o) => o.value === recipe.recipe_type)?.label || recipe.recipe_type;
   const difficultyLabel = RECIPE_DIFFICULTY_OPTIONS.find((o) => o.value === recipe.difficulty)?.label;
-  const executionLabel = RECIPE_EXECUTION_TIME_OPTIONS.find((o) => o.value === recipe.execution_time)?.label;
+  const executionLabel = getRecipeExecutionTimeLabel(recipe.execution_time);
 
   return (
     <div className="space-y-6">
@@ -136,4 +136,3 @@ const WizardStepPreview = forwardRef<WizardStepPreviewHandle, WizardStepPreviewP
 });
 
 export default WizardStepPreview;
-

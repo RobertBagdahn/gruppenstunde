@@ -89,9 +89,11 @@ def admin_approval_action(request, content_type_name: str, object_id: int, paylo
         raise HttpError(400, f"Unbekannter Content-Typ: {content_type_name}")
 
     model_class = ct.model_class()
+    if model_class is None:
+        raise HttpError(400, f"Unbekannter Content-Typ: {content_type_name}")
     try:
-        content_obj = model_class.objects.get(pk=object_id)
-    except model_class.DoesNotExist:
+        content_obj = model_class.objects.get(pk=object_id)  # type: ignore[attr-defined]
+    except ObjectDoesNotExist:
         raise HttpError(404, "Inhalt nicht gefunden")
 
     try:
@@ -586,14 +588,14 @@ def admin_ai_interactions_user_costs(request, date_from: str = "", date_to: str 
     """Per-user cost aggregation (admin only)."""
     _require_admin(request)
 
-    from datetime import date
+    from datetime import date, timedelta
 
     from django.utils import timezone
 
     from content.models import AiInteraction
 
     include_background = request.GET.get("include_background", "").lower() == "true"
-    thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
 
     base_qs = AiInteraction.objects.filter(user__isnull=False)
     if not include_background:

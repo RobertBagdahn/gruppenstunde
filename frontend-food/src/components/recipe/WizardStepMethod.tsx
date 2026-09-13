@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRecipeSmartInput, type RecipeImportUrlResponse } from '@/api/recipeImport';
@@ -35,7 +35,7 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
   const hasResultRef = useRef(false);
   const smartInput = useRecipeSmartInput();
 
-  const analyze = async (): Promise<boolean> => {
+  const analyze = useCallback(async (): Promise<boolean> => {
     const value = input.trim();
     if (!value) {
       toast.error('Bitte füge einen Link, Rezepttext oder eine Rezeptidee ein.');
@@ -53,14 +53,14 @@ const WizardStepMethod = forwardRef<WizardStepMethodHandle, WizardStepMethodProp
       });
       return false;
     }
-  };
+  }, [input, smartInput, updateState, onSmartResult]);
 
   useImperativeHandle(ref, () => ({
     primaryAction: async () => {
       if (hasResultRef.current) return true;
       return analyze();
     },
-  }), [input, smartInput, updateState, onSmartResult]);
+  }), [analyze]);
 
   void state;
   return (

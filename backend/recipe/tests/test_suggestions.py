@@ -66,7 +66,7 @@ def ingredient_with_portion(db):
 
 @pytest.fixture
 def recipe_with_items(ingredient_with_portion):
-    ing, portion, unit = ingredient_with_portion
+    _ing, portion, _unit = ingredient_with_portion
     recipe = make_recipe(
         cached_energy_kcal=72,
         cached_protein_g=2.0,

@@ -522,7 +522,7 @@ class Command(BaseCommand):
         updated = 0
 
         for rule_data in RULES_DATA:
-            obj, was_created = Rule.objects.update_or_create(
+            _obj, was_created = Rule.objects.update_or_create(
                 parameter=rule_data["parameter"],
                 scope=rule_data["scope"],
                 name=rule_data["name"],

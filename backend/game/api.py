@@ -2,10 +2,11 @@
 
 import logging
 import math
+from typing import cast
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Query, Router, Schema
+from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
 from content.base_api import (
@@ -179,7 +180,7 @@ def create_game(request, payload: GameCreateIn):
     )
 
     if payload.tag_ids:
-        game.tags.set(payload.tag_ids)
+        game.tags.set(cast(list[Tag], payload.tag_ids))
     if payload.scout_level_ids:
         game.scout_levels.set(payload.scout_level_ids)
     if request.user.is_authenticated:
@@ -187,7 +188,7 @@ def create_game(request, payload: GameCreateIn):
 
     enrich_content_with_interactions(request, game, Game)
     game.similar_games = []
-    return 201, game
+    return Status(201, game)
 
 
 @router.patch("/{game_id}/", response=GameDetailOut)
@@ -234,7 +235,7 @@ def update_game(request, game_id: int, payload: GameUpdateIn):
         game.save(update_fields=update_fields)
 
     if payload.tag_ids is not None:
-        game.tags.set(payload.tag_ids)
+        game.tags.set(cast(list[Tag], payload.tag_ids))
     if payload.scout_level_ids is not None:
         game.scout_levels.set(payload.scout_level_ids)
 
@@ -257,7 +258,7 @@ def delete_game(request, game_id: int):
 
     game = get_object_or_404(Game, id=game_id)
     game.soft_delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ---------------------------------------------------------------------------
@@ -313,17 +314,20 @@ def create_game_comment(request, game_id: int, payload: ContentCommentIn):
         author_name=payload.author_name,
         parent_id=payload.parent_id,
     )
-    return 201, {
-        "id": comment.id,
-        "text": comment.text,
-        "author_name": comment.author_name,
-        "user_id": comment.user_id,
-        "user_display_name": comment.user.first_name if comment.user else None,
-        "parent_id": comment.parent_id,
-        "status": comment.status,
-        "created_at": comment.created_at,
-        "replies": [],
-    }
+    return Status(
+        201,
+        {
+            "id": comment.id,
+            "text": comment.text,
+            "author_name": comment.author_name,
+            "user_id": comment.user_id,
+            "user_display_name": comment.user.first_name if comment.user else None,
+            "parent_id": comment.parent_id,
+            "status": comment.status,
+            "created_at": comment.created_at,
+            "replies": [],
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

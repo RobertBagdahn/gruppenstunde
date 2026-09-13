@@ -6,14 +6,9 @@ Usage:
 """
 
 from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
 
-from recipe.models import Recipe
-from blog.models import Blog
-from game.models import Game
-from session.models import GroupSession
-from supply.models import Ingredient
 from content.services.embedding_service import update_content_embedding, update_ingredient_embedding
+from supply.models import Ingredient
 
 
 class Command(BaseCommand):
@@ -41,7 +36,9 @@ class Command(BaseCommand):
         }
 
         if content_type and content_type != "ingredient":
-            raise CommandError(f"Content type '{content_type}' is not yet supported. Currently only 'ingredient' embeddings are active.")
+            raise CommandError(
+                f"Content type '{content_type}' is not yet supported. Currently only 'ingredient' embeddings are active."
+            )
 
         total_updated = 0
 
@@ -69,17 +66,9 @@ class Command(BaseCommand):
                         self.stdout.flush()
 
                 except Exception as e:
-                    self.stdout.write(
-                        self.style.WARNING(f"  Error updating {model_name} #{obj.pk}: {e}")
-                    )
+                    self.stdout.write(self.style.WARNING(f"  Error updating {model_name} #{obj.pk}: {e}"))
 
             total_updated += updated
-            self.stdout.write(
-                self.style.SUCCESS(f"✓ {model_name}: {updated}/{total} embeddings updated")
-            )
+            self.stdout.write(self.style.SUCCESS(f"✓ {model_name}: {updated}/{total} embeddings updated"))
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"\n✓ Total: {total_updated} embeddings recalculated (force={force})"
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"\n✓ Total: {total_updated} embeddings recalculated (force={force})"))

@@ -1,6 +1,7 @@
 """Pydantic schemas for WaitlistEntry model."""
 
 from datetime import datetime
+from typing import cast
 
 from ninja import Schema
 
@@ -21,14 +22,14 @@ class WaitlistEntryOut(Schema):
     @staticmethod
     def resolve_booking_option_name(obj) -> str:
         if hasattr(obj, "booking_option") and obj.booking_option:
-            return obj.booking_option.name
+            return cast(str, obj.booking_option.name)
         return ""
 
     @staticmethod
     def resolve_user_display_name(obj) -> str:
         if hasattr(obj, "user") and obj.user:
             full = f"{obj.user.first_name} {obj.user.last_name}".strip()
-            return full or obj.user.username
+            return cast(str, full or obj.user.username)
         return ""
 
     @staticmethod

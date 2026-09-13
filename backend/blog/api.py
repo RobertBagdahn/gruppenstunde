@@ -2,10 +2,11 @@
 
 import logging
 import math
+from typing import cast
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from ninja import Query, Router, Schema
+from ninja import Query, Router, Schema, Status
 from ninja.errors import HttpError
 
 from content.base_api import (
@@ -172,7 +173,7 @@ def create_blog(request, payload: BlogCreateIn):
     )
 
     if payload.tag_ids:
-        blog.tags.set(payload.tag_ids)
+        blog.tags.set(cast(list[Tag], payload.tag_ids))
     if payload.scout_level_ids:
         blog.scout_levels.set(payload.scout_level_ids)
     if request.user.is_authenticated:
@@ -180,7 +181,7 @@ def create_blog(request, payload: BlogCreateIn):
 
     enrich_content_with_interactions(request, blog, Blog)
     blog.similar_blogs = []
-    return 201, blog
+    return Status(201, blog)
 
 
 @router.patch("/{blog_id}/", response=BlogDetailOut)
@@ -223,7 +224,7 @@ def update_blog(request, blog_id: int, payload: BlogUpdateIn):
         blog.save(update_fields=update_fields)
 
     if payload.tag_ids is not None:
-        blog.tags.set(payload.tag_ids)
+        blog.tags.set(cast(list[Tag], payload.tag_ids))
     if payload.scout_level_ids is not None:
         blog.scout_levels.set(payload.scout_level_ids)
 
@@ -246,7 +247,7 @@ def delete_blog(request, blog_id: int):
 
     blog = get_object_or_404(Blog, id=blog_id)
     blog.soft_delete()
-    return 204, None
+    return Status(204, None)
 
 
 # ---------------------------------------------------------------------------
@@ -302,17 +303,20 @@ def create_blog_comment(request, blog_id: int, payload: ContentCommentIn):
         author_name=payload.author_name,
         parent_id=payload.parent_id,
     )
-    return 201, {
-        "id": comment.id,
-        "text": comment.text,
-        "author_name": comment.author_name,
-        "user_id": comment.user_id,
-        "user_display_name": comment.user.first_name if comment.user else None,
-        "parent_id": comment.parent_id,
-        "status": comment.status,
-        "created_at": comment.created_at,
-        "replies": [],
-    }
+    return Status(
+        201,
+        {
+            "id": comment.id,
+            "text": comment.text,
+            "author_name": comment.author_name,
+            "user_id": comment.user_id,
+            "user_display_name": comment.user.first_name if comment.user else None,
+            "parent_id": comment.parent_id,
+            "status": comment.status,
+            "created_at": comment.created_at,
+            "replies": [],
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

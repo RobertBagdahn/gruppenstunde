@@ -1,6 +1,7 @@
 """Budget API endpoints."""
 
 from django.shortcuts import get_object_or_404
+from ninja import Status
 
 from event.api.events import event_router
 from event.api.helpers import require_auth, require_event_manager
@@ -37,7 +38,7 @@ def create_budget_item(request, event_slug: str, payload: BudgetItemCreateIn):
         created_by=request.user,
         **payload.dict(),
     )
-    return 201, item
+    return Status(201, item)
 
 
 @event_router.patch("/{event_slug}/budget/items/{item_id}/", response=BudgetItemOut)

@@ -1,10 +1,17 @@
 """Service für die chronologische Kochplan-Berechnung eines Essensplans."""
 
+from __future__ import annotations
+
 import datetime as dt
 import re
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from content.choices import ExecutionTimeChoices, PreparationTimeChoices
+
+if TYPE_CHECKING:
+    from planner.models import MealItem
 
 # Bucket-Obergrenzen in Minuten (konservativ, Worst-Case)
 EXECUTION_TIME_MINUTES: dict[str, int] = {
@@ -214,21 +221,21 @@ def _compute_scaled_ingredients(
         from planner.services.calculation_context import active_recipe_items
 
         scale = factor * (portions / recipe_portions)
-        return [
-            CookingScheduleIngredient(
-                name=(
-                    entry.recipe_item.portion.ingredient.name
-                    if entry.recipe_item.portion.ingredient
-                    else entry.recipe_item.portion.name
-                ),
-                quantity=round(entry.quantity * entry.recipe_item.portion.quantity * scale, 2),
-                unit=entry.recipe_item.portion.measuring_unit.name if entry.recipe_item.portion.measuring_unit else "",
-                note=entry.recipe_item.note or "",
-                is_optional=entry.recipe_item.is_optional,
-                weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
+        for entry in active_recipe_items(meal_item):
+            portion = entry.recipe_item.portion
+            if portion is None:
+                continue
+            ingredients.append(
+                CookingScheduleIngredient(
+                    name=portion.ingredient.name if portion.ingredient else portion.name,
+                    quantity=round(entry.quantity * portion.quantity * scale, 2),
+                    unit=portion.measuring_unit.name if portion.measuring_unit else "",
+                    note=entry.recipe_item.note or "",
+                    is_optional=entry.recipe_item.is_optional,
+                    weight_g=round(entry.weight_g * scale, 1) if entry.weight_g is not None else None,
+                )
             )
-            for entry in active_recipe_items(meal_item)
-        ]
+        return ingredients
 
     active_ids_set = set(active_recipe_item_ids or [])
 
@@ -353,7 +360,10 @@ def _compute_item_nutrition(item, meal_item, effective_portions: int) -> dict[st
         }
 
     for entry in active_items:
-        ingredient = entry.recipe_item.portion.ingredient
+        portion = entry.recipe_item.portion
+        if portion is None:
+            continue
+        ingredient = portion.ingredient
         if not ingredient or entry.weight_g is None:
             continue
         for key in values:
@@ -362,7 +372,7 @@ def _compute_item_nutrition(item, meal_item, effective_portions: int) -> dict[st
     return values
 
 
-def _compute_item_cost(meal_item, effective_portions: int) -> float:
+def _compute_item_cost(meal_item: MealItem, effective_portions: int) -> float:
     if not meal_item.recipe or meal_item.recipe.cached_price_total is None:
         return 0.0
 
@@ -375,11 +385,13 @@ def _compute_item_cost(meal_item, effective_portions: int) -> float:
     if not active_items and not meal_item.recipe.recipe_items.exists():
         return float(meal_item.recipe.cached_price_total or 0) * scale
 
-    return sum(
-        float(entry.recipe_item.portion.ingredient.price_per_kg or 0) * float(entry.weight_g or 0) / 1000.0 * scale
-        for entry in active_items
-        if entry.recipe_item.portion.ingredient
-    )
+    total = 0.0
+    for entry in active_items:
+        portion = entry.recipe_item.portion
+        if portion is None or portion.ingredient is None:
+            continue
+        total += float(portion.ingredient.price_per_kg or 0) * float(entry.weight_g or 0) / 1000.0 * scale
+    return total
 
 
 def _compute_direct_item_nutrition(meal_item, portions: int) -> dict[str, float]:
@@ -399,7 +411,7 @@ def _compute_direct_item_nutrition(meal_item, portions: int) -> dict[str, float]
     }
 
 
-def _compute_direct_item_cost(meal_item, portions: int) -> float:
+def _compute_direct_item_cost(meal_item: MealItem, portions: int) -> float:
     """Cost total for a direct ingredient MealItem scaled by factor * portions."""
     ing = meal_item.ingredient
     if not ing or ing.price_per_kg is None or ing.deleted_at is not None:
@@ -518,7 +530,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
 
     excluded_meal_count = 0
     meals_by_day: dict[dt.date, list[Meal]] = {}
-    meal_items_data: dict[int, list[dict]] = {}  # meal.id -> list of variant data
+    meal_items_data: dict[int, list[tuple[tuple[int, UUID | None], list]]] = {}  # meal.id -> list of variant data
     direct_items_data: dict[int, list] = {}  # meal.id -> list of direct ingredient items
 
     # First pass: filter meals and collect meal items grouped by variant
@@ -531,7 +543,7 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
         meals_by_day.setdefault(day, []).append(meal)
 
         # Group meal items by (recipe_id, variant_group_id) to form recipe blocks
-        recipe_blocks_dict: dict[tuple[int, str | None], list] = {}
+        recipe_blocks_dict: dict[tuple[int, UUID | None], list] = {}
         direct_items: list = []
 
         for meal_item in meal.items.all():
@@ -566,6 +578,8 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
         for meal in sorted_meals:
             portions = meal.override_portions if meal.override_portions is not None else meal_plan.norm_portions
             serving_time = meal.start_datetime
+            if serving_time is None:
+                continue
 
             # Build recipe blocks for this meal
             recipe_blocks: list[CookingScheduleRecipeBlock] = []
@@ -660,8 +674,8 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
         day_energy = 0.0
         day_tags: dict[int, dict] = {}
 
-        for meal in cooking_schedule_meals:
-            for recipe_block in meal.recipe_blocks:
+        for cooking_meal in cooking_schedule_meals:
+            for recipe_block in cooking_meal.recipe_blocks:
                 for variant in recipe_block.variants:
                     day_cost += variant.total_cost_eur
                     day_energy += variant.total_energy_kcal
@@ -686,15 +700,15 @@ def build_cooking_schedule(meal_plan) -> CookingScheduleResult:
 
         # Build backward-compat items list (flattened variants)
         compat_items: list[CookingScheduleItem] = []
-        for meal in cooking_schedule_meals:
-            for recipe_block in meal.recipe_blocks:
+        for cooking_meal in cooking_schedule_meals:
+            for recipe_block in cooking_meal.recipe_blocks:
                 for variant in recipe_block.variants:
                     compat_item = CookingScheduleItem(
                         recipe_id=recipe_block.recipe_id,
                         recipe_title=recipe_block.recipe_title,
                         recipe_slug=recipe_block.recipe_slug,
-                        meal_type=meal.meal_type,
-                        serving_time=meal.serving_time,
+                        meal_type=cooking_meal.meal_type,
+                        serving_time=cooking_meal.serving_time,
                         lead_minutes=variant.lead_minutes,
                         start_time=variant.start_time,
                         portions=variant.portions,

@@ -4,12 +4,14 @@ import logging
 import math
 import uuid
 from collections import defaultdict
+from typing import Any
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models as db_models
 from django.db.models import Avg, Q
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from ninja import Router
+from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from content.choices import LinkType
@@ -56,6 +58,11 @@ logger = logging.getLogger(__name__)
 admin_router = Router(tags=["Data Quality Admin"])
 public_router = Router(tags=["Data Quality Public"])
 
+
+class AiFillMissingBatchIn(Schema):
+    ingredient_ids: list[int]
+
+
 DUPLICATE_CANDIDATE_LIMIT = 100
 DUPLICATE_NEIGHBOR_LIMIT = 10
 DUPLICATE_MAX_PAGE_SIZE = 50
@@ -64,6 +71,24 @@ DUPLICATE_MAX_PAGE_SIZE = 50
 def _require_staff(request):
     if not request.user.is_authenticated or not request.user.is_staff:
         raise HttpError(403, "Nur für Administratoren")
+
+
+@admin_router.post("/ingredients/{ingredient_id}/ai-fill-missing/")
+def ai_fill_missing(request, ingredient_id: int):
+    _require_staff(request)
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    from supply.services.ingredient_ai_fill_service import fill_missing_ingredient_fields
+
+    return fill_missing_ingredient_fields(ingredient, user=request.user)
+
+
+@admin_router.post("/ingredients/ai-fill-missing/")
+def ai_fill_missing_batch(request, payload: AiFillMissingBatchIn):
+    _require_staff(request)
+    from supply.services.ingredient_ai_fill_service import fill_missing_ingredient_fields
+
+    ingredients = Ingredient.objects.filter(id__in=payload.ingredient_ids)
+    return {"results": [fill_missing_ingredient_fields(ingredient, user=request.user) for ingredient in ingredients]}
 
 
 # ============================================================================
@@ -79,9 +104,9 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
     ingredients = Ingredient.objects.select_related("retail_section").all()
 
     # Compute stats per retail section
-    section_stats = {}
+    section_stats: dict[int, dict[str, Any]] = {}
     for ing in ingredients:
-        if ing.price_per_kg is None:
+        if ing.price_per_kg is None or ing.price_per_kg == 0:
             continue
         section_id = ing.retail_section_id or 0
         if section_id not in section_stats:
@@ -89,7 +114,9 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
         section_stats[section_id]["prices"].append(float(ing.price_per_kg))
 
     # Compute global stats for sections with too few items
-    all_prices = [float(ing.price_per_kg) for ing in ingredients if ing.price_per_kg is not None]
+    all_prices = [
+        float(ing.price_per_kg) for ing in ingredients if ing.price_per_kg is not None and ing.price_per_kg != 0
+    ]
     global_mean = sum(all_prices) / len(all_prices) if all_prices else 0
     global_std = math.sqrt(sum((p - global_mean) ** 2 for p in all_prices) / len(all_prices)) if all_prices else 1
 
@@ -102,15 +129,15 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
         else:
             section_stats[sid]["std"] = global_std
 
-    items = []
+    items: list[dict[str, Any]] = []
     for ing in ingredients:
-        if ing.price_per_kg is None:
+        if ing.price_per_kg is None or ing.price_per_kg == 0:
             items.append(
                 {
                     "id": ing.id,
                     "name": ing.name,
                     "slug": ing.slug,
-                    "price_per_kg": None,
+                    "price_per_kg": str(ing.price_per_kg) if ing.price_per_kg is not None else None,
                     "retail_section": ing.retail_section.name if ing.retail_section else None,
                     "z_score": None,
                     "anomaly_type": "missing",
@@ -140,7 +167,7 @@ def price_analysis(request, page: int = 1, page_size: int = 20, anomaly_type: st
         items = [i for i in items if i["anomaly_type"] == anomaly_type]
 
     # Sort: missing first, then by |z_score|
-    items.sort(key=lambda x: (0 if x["anomaly_type"] == "missing" else 1, -(abs(x["z_score"] or 0))))
+    items.sort(key=lambda x: (0 if x["anomaly_type"] == "missing" else 1, -(abs(float(x["z_score"] or 0)))))
 
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
@@ -189,7 +216,7 @@ def _ai_suggest_price(ingredient) -> dict:
             prompt += f"Energie: {ingredient.energy_kcal} kcal/100g\n"
         prompt += "Antworte NUR mit dem Preis als Zahl in Euro pro kg (z.B. 3.49), sonst nichts."
 
-        result, interaction_id = gemini_call(
+        result, _interaction_id = gemini_call(
             user=None,
             model="gemini-3.1-flash-lite",
             contents=prompt,
@@ -761,13 +788,36 @@ def missing_classification(request, page: int = 1, page_size: int = 20):
 
 
 @admin_router.get("/ingredients/nutrition-plausibility/")
-def nutrition_plausibility(request, page: int = 1, page_size: int = 20):
+def nutrition_plausibility(
+    request, page: int = 1, page_size: int = 20, anomaly_type: str | None = None, search: str | None = None
+):
     _require_staff(request)
-    ingredients = Ingredient.objects.exclude(energy_kcal=0).all()
+    ingredients = Ingredient.objects.all()
     items = []
     for ing in ingredients:
         macro_sum = (ing.protein_g or 0) + (ing.fat_g or 0) + (ing.carbohydrate_g or 0)
-        if macro_sum > 110:
+        issue_type = None
+        issue = ""
+        if (ing.sugar_g or 0) > (ing.carbohydrate_g or 0):
+            issue_type = "sugar_gt_carbs"
+            issue = "Zucker ist größer als Kohlenhydrate"
+        elif (ing.fat_sat_g or 0) > (ing.fat_g or 0):
+            issue_type = "sat_fat_gt_fat"
+            issue = "Gesättigte Fettsäuren sind größer als Fett"
+        elif macro_sum > 110:
+            issue_type = "macro_sum_gt_100"
+            issue = f"Makro-Summe {round(macro_sum, 1)}g > 100g/100g"
+        elif not ing.energy_kcal and macro_sum > 0:
+            issue_type = "energy_missing"
+            issue = "Energiegehalt fehlt trotz vorhandener Makros"
+        elif ing.energy_kcal and not macro_sum:
+            issue_type = "macros_missing"
+            issue = "Makronährstoffe fehlen trotz Energiegehalt"
+        elif ing.energy_kcal and ing.energy_kcal > 900:
+            issue_type = "energy_too_high"
+            issue = f"Extrem hohe Energiedichte: {ing.energy_kcal} kcal/100g"
+
+        if issue_type:
             items.append(
                 NutritionPlausibilityOut(
                     id=ing.id,
@@ -778,23 +828,15 @@ def nutrition_plausibility(request, page: int = 1, page_size: int = 20):
                     fat_g=ing.fat_g or 0,
                     carbohydrate_g=ing.carbohydrate_g or 0,
                     macro_sum=round(macro_sum, 1),
-                    issue=f"Makro-Summe {round(macro_sum, 1)}g > 100g/100g",
+                    issue=issue,
+                    anomaly_type=issue_type,
                 )
             )
-        elif ing.energy_kcal and ing.energy_kcal > 900:
-            items.append(
-                NutritionPlausibilityOut(
-                    id=ing.id,
-                    name=ing.name,
-                    slug=ing.slug,
-                    energy_kcal=ing.energy_kcal,
-                    protein_g=ing.protein_g or 0,
-                    fat_g=ing.fat_g or 0,
-                    carbohydrate_g=ing.carbohydrate_g or 0,
-                    macro_sum=round(macro_sum, 1),
-                    issue=f"Extrem hohe Energiedichte: {ing.energy_kcal} kcal/100g",
-                )
-            )
+
+    if anomaly_type:
+        items = [item for item in items if item.anomaly_type == anomaly_type]
+    if search:
+        items = [item for item in items if search.lower() in item.name.lower()]
 
     total = len(items)
     total_pages = max(1, math.ceil(total / page_size))
@@ -842,7 +884,7 @@ def recipe_cache_staleness(request, page: int = 1, page_size: int = 20):
         stale = False
         for item in recipe.recipe_items.all():
             if item.portion and item.portion.ingredient:
-                if item.portion.ingredient.updated_at > recipe.cached_at:
+                if recipe.cached_at is not None and item.portion.ingredient.updated_at > recipe.cached_at:
                     stale = True
                     break
         if stale:
@@ -868,27 +910,28 @@ def recipe_portion_plausibility(request, page: int = 1, page_size: int = 20):
     _require_staff(request)
     from recipe.models import Recipe
 
-    qs = Recipe.objects.filter(cached_weight_g__isnull=False)
+    qs = Recipe.objects.filter(cached_weight_g__isnull=False).exclude(recipe_type__in=("snack", "recipe_part"))
     items = []
     for recipe in qs:
-        if recipe.cached_weight_g and recipe.cached_weight_g < 100:
+        per_portion_weight = recipe.cached_weight_g / max(recipe.portions or 1, 1) if recipe.cached_weight_g else 0
+        if per_portion_weight and per_portion_weight < 100:
             items.append(
                 PortionPlausibilityOut(
                     id=recipe.id,
                     title=recipe.title,
                     slug=recipe.slug,
                     cached_weight_g=recipe.cached_weight_g,
-                    issue=f"Sehr wenig Gewicht pro Portion: {recipe.cached_weight_g:.0f}g",
+                    issue=f"Sehr wenig Gewicht pro Portion: {per_portion_weight:.0f}g",
                 )
             )
-        elif recipe.cached_weight_g and recipe.cached_weight_g > 2000:
+        elif per_portion_weight > 2000:
             items.append(
                 PortionPlausibilityOut(
                     id=recipe.id,
                     title=recipe.title,
                     slug=recipe.slug,
                     cached_weight_g=recipe.cached_weight_g,
-                    issue=f"Sehr viel Gewicht pro Portion: {recipe.cached_weight_g:.0f}g",
+                    issue=f"Sehr viel Gewicht pro Portion: {per_portion_weight:.0f}g",
                 )
             )
 
@@ -1016,7 +1059,7 @@ def ingredient_cost_distribution(
         tag_ids = [int(t) for t in tags.split(",") if t.strip()]
         qs = qs.filter(nutritional_tags__id__in=tag_ids).distinct()
 
-    prices = [float(ing.price_per_kg) for ing in qs]
+    prices = [float(ing.price_per_kg or 0) for ing in qs]
     if not prices:
         return CostDistributionOut(
             buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0)
@@ -1110,8 +1153,8 @@ def ingredient_nutrient_distribution(
     except NutritionalTag.DoesNotExist:
         pass
 
-    nutrients = []
-    scatter = []
+    nutrients: list[Any] = []
+    scatter: list[Any] = []
     for ing in qs[:500]:
         scatter.append(
             NutrientScatterItemOut(
@@ -1136,7 +1179,7 @@ def recipe_cost_distribution(request, recipe_type: str | None = None):
     if recipe_type:
         qs = qs.filter(recipe_type=recipe_type)
 
-    prices = [float(r.cached_price_total) for r in qs]
+    prices = [float(r.cached_price_total or 0) for r in qs]
     if not prices:
         return CostDistributionOut(
             buckets=[], stats=DistributionStatsOut(mean=None, median=None, p5=None, p95=None, count=0)
@@ -1204,7 +1247,7 @@ def recipe_nutri_score_distribution(request, recipe_type: str | None = None):
     if recipe_type:
         qs = qs.filter(recipe_type=recipe_type)
 
-    class_counts = defaultdict(int)
+    class_counts: defaultdict[str, int] = defaultdict(int)
     for r in qs:
         label = chr(64 + r.cached_nutri_class) if r.cached_nutri_class else None
         if label:

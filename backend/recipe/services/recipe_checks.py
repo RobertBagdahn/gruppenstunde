@@ -11,7 +11,7 @@ Note: The former 4-dimension `get_recipe_checks` aggregator has been removed
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.db.models import Q
 from django.utils import timezone
@@ -162,16 +162,16 @@ def get_recipe_values_with_computed(recipe: Recipe) -> tuple[dict[str, float], f
     if recipe.cached_nutri_class:
         values["nutri_class"] = float(recipe.cached_nutri_class)
     else:
+        from supply.models import Ingredient
         from supply.services.nutri_service import calculate_nutri_score as _calc_ns
 
         class _AggIngredient:
-            pass
+            physical_viscosity: str = "solid"
 
         agg = _AggIngredient()
         for k, v in values.items():
             setattr(agg, k, v)
-        agg.physical_viscosity = "solid"
-        _ns_total, ns_class = _calc_ns(agg)
+        _ns_total, ns_class = _calc_ns(cast(Ingredient, agg))
         values["nutri_class"] = float(ns_class)
 
     return values, total_weight_g
@@ -276,8 +276,8 @@ def evaluate_recipe_rules(recipe: Recipe) -> dict:
         threshold = None
         has_min = rule.min_green is not None or rule.min_yellow is not None
         has_max = rule.max_green is not None or rule.max_yellow is not None
-        min_val = rule.min_green if rule.min_green is not None else rule.min_yellow
-        max_val = rule.max_green if rule.max_green is not None else rule.max_yellow
+        min_val = rule.min_green if rule.min_green is not None else (rule.min_yellow or 0.0)
+        max_val = rule.max_green if rule.max_green is not None else (rule.max_yellow or 0.0)
 
         if has_min and has_max:
             if value_per_serving < min_val:
@@ -406,17 +406,17 @@ def recalculate_recipe_cache(recipe: Recipe) -> None:
         setattr(recipe, cached_field, values.get(field))
 
     # Calculate nutri-score class
+    from supply.models import Ingredient
     from supply.services.nutri_service import calculate_nutri_score as _calc_ns
 
     class _AggIngredient:
-        pass
+        physical_viscosity: str = "solid"
 
     agg = _AggIngredient()
     for k, v in values.items():
         setattr(agg, k, v)
-    agg.physical_viscosity = "solid"
 
-    _ns_total, ns_class = _calc_ns(agg)
+    _ns_total, ns_class = _calc_ns(cast(Ingredient, agg))
     recipe.cached_nutri_class = ns_class
 
     # Calculate total price (excluding exchange alternatives)
